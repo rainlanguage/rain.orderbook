@@ -1,0 +1,4 @@
+{
+    "detectors_to_exclude": "assembly-usage",
+    "filter_paths": "forge-std,openzeppelin,test"
+}

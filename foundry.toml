@@ -1,0 +1,18 @@
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+solc = "0.8.18"
+optimizer = true
+optimizer_runs = 100000
+
+fuzz.runs = 1024
+
+[profile.default.model_checker]
+contracts = {'src/LibFoo.sol' = ['LibFoo']}
+engine = 'chc'
+timeout = 10000
+targets = ['assert', 'underflow', 'overflow', 'divByZero', 'constantCondition', 'popEmptyArray', 'outOfBounds']
