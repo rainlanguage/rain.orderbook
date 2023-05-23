@@ -3,7 +3,6 @@ pragma solidity ^0.8.18;
 
 import {IERC20Upgradeable as IERC20} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable as SafeERC20} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import {MathUpgradeable as Math} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
 import "rain.interface.orderbook/ierc3156/IERC3156FlashBorrower.sol";
 import "rain.interface.orderbook/ierc3156/IERC3156FlashLender.sol";
@@ -11,7 +10,7 @@ import "rain.interface.orderbook/ierc3156/IERC3156FlashLender.sol";
 /// Thrown when `flashLoan` token is zero address.
 error ZeroToken();
 
-/// Thrown when `flashLoadn` receiver is zero address.
+/// Thrown when `flashLoan` receiver is zero address.
 error ZeroReceiver();
 
 /// Thrown when the `onFlashLoan` callback returns anything other than
@@ -38,7 +37,6 @@ uint256 constant FLASH_FEE = 0;
 /// hardcoded for `Orderbook`.
 contract OrderBookFlashLender is IERC3156FlashLender {
     using SafeERC20 for IERC20;
-    using Math for uint256;
 
     IERC3156FlashBorrower private _receiver = IERC3156FlashBorrower(address(0));
     address private _token = address(0);
