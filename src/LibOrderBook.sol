@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 
 import "rain.interface.interpreter/IInterpreterStoreV1.sol";
 import "rain.interface.orderbook/IOrderBookV2.sol";
-import "../math/LibFixedPointMath.sol";
+import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
@@ -44,8 +44,7 @@ struct OrderIOCalculation {
 }
 
 library LibOrderBook {
-    using LibFixedPointMath for uint256;
-    using Math for uint256;
+    using FixedPointDecimalArithmeticOpenZeppelin for uint256;
 
     /// Calculates the clear state change given both order calculations for order
     /// alice and order bob. The input of each is their output multiplied by

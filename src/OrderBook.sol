@@ -8,7 +8,7 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/Reentra
 
 import "rain.interface.orderbook/IOrderBookV2.sol";
 import "./LibOrder.sol";
-import "../math/LibFixedPointMath.sol";
+import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
 import "rain.math.fixedpoint/FixedPointDecimalScale.sol";
 import "./OrderBookFlashLender.sol";
 import "rain.interface.interpreter/LibEncodedDispatch.sol";
@@ -119,8 +119,7 @@ contract OrderBook is
 {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
-    using Math for uint256;
-    using LibFixedPointMath for uint256;
+    using FixedPointDecimalArithmeticOpenZeppelin for uint256;
     using FixedPointDecimalScale for uint256;
     using LibOrder for Order;
     using LibUint256Array for uint256;
