@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity ^0.8.18;
 
 import "rain.interface.interpreter/IInterpreterStoreV1.sol";
 import "rain.interface.orderbook/IOrderBookV2.sol";
 import "../math/LibFixedPointMath.sol";
-import {MathUpgradeable as Math} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
