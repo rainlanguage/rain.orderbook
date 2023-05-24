@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         contract: [
-          "src/Foo.sol:Foo"
+          "src/OrderBook.sol:OrderBook"
         ]
     runs-on: ubuntu-latest
     steps:

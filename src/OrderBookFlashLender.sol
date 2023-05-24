@@ -36,7 +36,7 @@ uint256 constant FLASH_FEE = 0;
 /// https://eips.ethereum.org/EIPS/eip-3156
 /// Several features found in the reference implementation are simplified or
 /// hardcoded for `Orderbook`.
-contract OrderBookFlashLender is IERC3156FlashLender {
+abstract contract OrderBookFlashLender is IERC3156FlashLender {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
