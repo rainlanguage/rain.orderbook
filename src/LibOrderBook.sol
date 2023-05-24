@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.18;
 
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+
 import "rain.interface.interpreter/IInterpreterStoreV1.sol";
 import "rain.interface.orderbook/IOrderBookV2.sol";
 import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
@@ -44,6 +46,7 @@ struct OrderIOCalculation {
 }
 
 library LibOrderBook {
+    using Math for uint256;
     using FixedPointDecimalArithmeticOpenZeppelin for uint256;
 
     /// Calculates the clear state change given both order calculations for order
@@ -60,45 +63,29 @@ library LibOrderBook {
     ) internal pure returns (ClearStateChange memory) {
         ClearStateChange memory clearStateChange_;
         {
-            clearStateChange_.aliceOutput = aliceOrderIOCalculation_
-                .outputMax
-                .min(
-                    // B's input is A's output.
-                    // A cannot output more than their max.
-                    // B wants input of their IO ratio * their output.
-                    // Always round IO calculations up.
-                    bobOrderIOCalculation_.outputMax.fixedPointMul(
-                        bobOrderIOCalculation_.IORatio,
-                        Math.Rounding.Up
-                    )
-                );
+            clearStateChange_.aliceOutput = aliceOrderIOCalculation_.outputMax.min(
+                // B's input is A's output.
+                // A cannot output more than their max.
+                // B wants input of their IO ratio * their output.
+                // Always round IO calculations up.
+                bobOrderIOCalculation_.outputMax.fixedPointMul(bobOrderIOCalculation_.IORatio, Math.Rounding.Up)
+            );
             clearStateChange_.bobOutput = bobOrderIOCalculation_.outputMax.min(
                 // A's input is B's output.
                 // B cannot output more than their max.
                 // A wants input of their IO ratio * their output.
                 // Always round IO calculations up.
-                aliceOrderIOCalculation_.outputMax.fixedPointMul(
-                    aliceOrderIOCalculation_.IORatio,
-                    Math.Rounding.Up
-                )
+                aliceOrderIOCalculation_.outputMax.fixedPointMul(aliceOrderIOCalculation_.IORatio, Math.Rounding.Up)
             );
 
             // A's input is A's output * their IO ratio.
             // Always round IO calculations up.
-            clearStateChange_.aliceInput = clearStateChange_
-                .aliceOutput
-                .fixedPointMul(
-                    aliceOrderIOCalculation_.IORatio,
-                    Math.Rounding.Up
-                );
+            clearStateChange_.aliceInput =
+                clearStateChange_.aliceOutput.fixedPointMul(aliceOrderIOCalculation_.IORatio, Math.Rounding.Up);
             // B's input is B's output * their IO ratio.
             // Always round IO calculations up.
-            clearStateChange_.bobInput = clearStateChange_
-                .bobOutput
-                .fixedPointMul(
-                    bobOrderIOCalculation_.IORatio,
-                    Math.Rounding.Up
-                );
+            clearStateChange_.bobInput =
+                clearStateChange_.bobOutput.fixedPointMul(bobOrderIOCalculation_.IORatio, Math.Rounding.Up);
         }
         return clearStateChange_;
     }

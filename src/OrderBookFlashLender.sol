@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.18;
 
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -36,6 +37,7 @@ uint256 constant FLASH_FEE = 0;
 /// Several features found in the reference implementation are simplified or
 /// hardcoded for `Orderbook`.
 contract OrderBookFlashLender is IERC3156FlashLender {
+    using Math for uint256;
     using SafeERC20 for IERC20;
 
     IERC3156FlashBorrower private _receiver = IERC3156FlashBorrower(address(0));
@@ -43,9 +45,7 @@ contract OrderBookFlashLender is IERC3156FlashLender {
     uint256 private _amount = 0;
 
     function _isActiveDebt() internal view returns (bool) {
-        return (address(_receiver) != address(0) ||
-            _token != address(0) ||
-            _amount != 0);
+        return (address(_receiver) != address(0) || _token != address(0) || _amount != 0);
     }
 
     function _checkActiveDebt() internal view {
@@ -91,11 +91,7 @@ contract OrderBookFlashLender is IERC3156FlashLender {
     /// @param token_ The token being sent or for the debt being paid.
     /// @param receiver_ The receiver of the token or holder of the debt.
     /// @param sendAmount_ The amount to send or repay.
-    function _decreaseFlashDebtThenSendToken(
-        address token_,
-        address receiver_,
-        uint256 sendAmount_
-    ) internal {
+    function _decreaseFlashDebtThenSendToken(address token_, address receiver_, uint256 sendAmount_) internal {
         // If this token transfer matches the active debt then prioritise
         // reducing debt over sending tokens.
         if (token_ == _token && receiver_ == address(_receiver)) {
@@ -113,12 +109,11 @@ contract OrderBookFlashLender is IERC3156FlashLender {
     }
 
     /// @inheritdoc IERC3156FlashLender
-    function flashLoan(
-        IERC3156FlashBorrower receiver_,
-        address token_,
-        uint256 amount_,
-        bytes calldata data_
-    ) external override returns (bool) {
+    function flashLoan(IERC3156FlashBorrower receiver_, address token_, uint256 amount_, bytes calldata data_)
+        external
+        override
+        returns (bool)
+    {
         // This prevents reentrancy, loans can be taken sequentially within a
         // transaction but not simultanously.
         _checkActiveDebt();
@@ -165,11 +160,7 @@ contract OrderBookFlashLender is IERC3156FlashLender {
             // `_decreaseFlashDebtThenSendToken`.
             amount_ = _amount;
             if (amount_ > 0) {
-                IERC20(_token).safeTransferFrom(
-                    address(_receiver),
-                    address(this),
-                    amount_
-                );
+                IERC20(_token).safeTransferFrom(address(_receiver), address(this), amount_);
                 _amount = 0;
             }
 
@@ -187,10 +178,7 @@ contract OrderBookFlashLender is IERC3156FlashLender {
     }
 
     /// @inheritdoc IERC3156FlashLender
-    function flashFee(
-        address,
-        uint256
-    ) external pure override returns (uint256) {
+    function flashFee(address, uint256) external pure override returns (uint256) {
         return FLASH_FEE;
     }
 
@@ -198,9 +186,7 @@ contract OrderBookFlashLender is IERC3156FlashLender {
     /// the current tokens deposited in `Orderbook`. If there is an active debt
     /// then loans are disabled so the max becomes `0` until after repayment.
     /// @inheritdoc IERC3156FlashLender
-    function maxFlashLoan(
-        address token_
-    ) external view override returns (uint256) {
+    function maxFlashLoan(address token_) external view override returns (uint256) {
         return _isActiveDebt() ? 0 : IERC20(token_).balanceOf(address(this));
     }
 }
