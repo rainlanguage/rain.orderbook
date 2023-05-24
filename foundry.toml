@@ -9,6 +9,9 @@ solc = "0.8.19"
 optimizer = true
 optimizer_runs = 100000
 
+bytecode_hash = "none"
+cbor_metadata = false
+
 fuzz.runs = 1024
 
 [profile.default.model_checker]
