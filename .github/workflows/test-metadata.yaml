@@ -13,4 +13,3 @@ jobs:
           toolchain: stable
       - run: cargo install rain_cli@0.2.0
       - run: rain meta schema validate -i src/OrderBook.meta.json -s interpreter-caller-v1
-      - uses: Swatinem/rust-cache@v2
