@@ -15,7 +15,7 @@ import "rain.lib.typecast/LibCast.sol";
 
 
 
-contract Rainterpreter {
+contract Rainterpreter is IInterpreterV1 {
     using LibStackPointer for Pointer;
     using LibStackPointer for uint256[];
     using LibUint256Array for uint256[];
@@ -26,7 +26,7 @@ contract Rainterpreter {
         view
         returns (Pointer)[];
     using Math for uint256;
-    using LibMemoryKV for MemoryKV;
+    using LibMemoryKV for MemoryKV; 
    
     function eval(
         IInterpreterStoreV1 store_,
@@ -57,6 +57,10 @@ contract Rainterpreter {
             stackLength_.min(maxOutputs_)
         );
         return (tail_, state_.stateKV.toUint256Array());
+    } 
+
+    function functionPointers() external view virtual returns (bytes memory) {
+        return hex"00";
     }
 
 }
