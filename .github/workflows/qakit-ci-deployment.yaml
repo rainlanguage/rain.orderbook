@@ -9,6 +9,8 @@ jobs:
           "src/OrderBook.sol:OrderBook"
         ]
     runs-on: ubuntu-latest
+    env:
+      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -19,11 +21,11 @@ jobs:
           version: nightly
       - name: Report public key to make it easy to send funds for deployments
         env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ env.DEPLOYMENT_KEY }}
         run: cast wallet address "${PRIVATE_KEY}"
       - name: Forge deploy contract to mumbai(wip)
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ env.DEPLOYMENT_KEY }}
           EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
         run: forge create --rpc-url "${CI_DEPLOY_RPC_URL}" --private-key "${PRIVATE_KEY}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}" --verify ${{ matrix.contract }}
