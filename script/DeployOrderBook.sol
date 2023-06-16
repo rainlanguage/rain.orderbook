@@ -25,6 +25,8 @@ contract DeployOrderBook is Script {
         buildMeta[10] = "deflate";
         buildMeta[11] = "--content-language";
         buildMeta[12] = "en";
+        buildMeta[13] = "--output-encoding";
+        buildMeta[14] = "hex";
 
         bytes memory meta = vm.ffi(buildMeta);
         vm.startBroadcast(deployerPrivateKey);
