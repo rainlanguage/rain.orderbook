@@ -16,7 +16,7 @@ contract DeployOrderBook is Script {
         buildMeta[1] = "meta";
         buildMeta[2] = "build";
         buildMeta[3] = "--magic";
-        buildMeta[4] = "interpreter-caller-v1";
+        buildMeta[4] = "interpreter-caller-meta-v1";
         buildMeta[5] = "--input-path";
         buildMeta[6] = "meta/OrderBook.meta.json";
         buildMeta[7] = "--content-type";
