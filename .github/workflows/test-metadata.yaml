@@ -12,4 +12,4 @@ jobs:
         with:
           toolchain: stable
       - run: cargo install rain_cli@0.4.0
-      - run: rain meta validate -i meta/OrderBook.meta.json -s interpreter-caller-meta-v1
+      - run: rain meta validate -i meta/OrderBook.meta.json -m interpreter-caller-meta-v1
