@@ -3,11 +3,6 @@ on: [push]
 
 jobs:
   deploy:
-    strategy:
-      matrix:
-        contract: [
-          "src/OrderBook.sol:OrderBook"
-        ]
     runs-on: ubuntu-latest
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
@@ -32,4 +27,4 @@ jobs:
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-        run: forge create --rpc-url "${CI_DEPLOY_RPC_URL}" --private-key "${DEPLOYMENT_KEY}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}" --verify ${{ matrix.contract }}
+        run: forge script script/DeployOrderBook.sol:DeployOrderBook --rpc-url "${CI_DEPLOY_RPC_URL}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}"
