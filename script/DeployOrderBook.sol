@@ -11,7 +11,7 @@ contract DeployOrderBook is Script {
         // hardcoded from CI https://github.com/rainprotocol/rain-protocol/actions/runs/5039345251/jobs/9037426821
         address i9rDeployer = 0xB20DFEdC1b12AA6afA308064998A28531a18C714;
 
-        string[] memory buildMeta = new string(11);
+        string[] memory buildMeta = new string[](11);
         buildMeta[0] = "rain";
         buildMeta[1] = "meta";
         buildMeta[2] = "build";
