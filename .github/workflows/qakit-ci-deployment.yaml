@@ -27,4 +27,6 @@ jobs:
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-        run: forge script script/DeployOrderBook.sol:DeployOrderBook --ffi --broadcast --rpc-url "${CI_DEPLOY_RPC_URL}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}"
+        run: |
+        fee="$(curl -s https://gasstation-testnet.polygon.technology/v2 | jq '.fast.maxFee')"
+        forge script script/DeployOrderBook.sol:DeployOrderBook --ffi --broadcast --rpc-url "${CI_DEPLOY_RPC_URL}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}" --gas-price "$fee"
