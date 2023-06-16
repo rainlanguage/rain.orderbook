@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - run: fee="$(curl -s https://gasstation-testnet.polygon.technology/v2 | jq '.fast.maxFee')";
+      - run: fee="$(curl -s https://gasstation-testnet.polygon.technology/v2 | jq '.fast.maxFee')"; fee=$( echo "scale=0; $fee*1e18/1" | bc );
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
