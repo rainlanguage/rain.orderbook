@@ -28,6 +28,6 @@ jobs:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
         run: |
-          fee="$(curl -s https://gasstation-testnet.polygon.technology/v2 | jq '.fast.maxFee')"; echo "$fee"; \
+          fee="$(curl -s https://gasstation-testnet.polygon.technology/v2 | jq '.fast.maxFee')"; fee=$( echo "scale=0; $fee*1e18/1" | bc ); \
             forge script script/DeployOrderBook.sol:DeployOrderBook --ffi --broadcast --rpc-url "${CI_DEPLOY_RPC_URL}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}" --gas-price "$fee" \
           ...
