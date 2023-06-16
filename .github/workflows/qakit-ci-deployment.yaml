@@ -25,6 +25,7 @@ jobs:
           version: nightly
       - name: Install rain
         run: cargo install --git https://github.com/rainprotocol/rain.cli --branch main
+      - run: rain --version
       - name: Report public key to make it easy to send funds for deployments
         run: cast wallet address "${DEPLOYMENT_KEY}"
       - name: Forge deploy contract to mumbai(wip)
