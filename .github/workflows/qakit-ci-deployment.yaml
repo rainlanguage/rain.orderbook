@@ -24,7 +24,7 @@ jobs:
         with:
           version: nightly
       - name: Install rain
-        run: cargo install rain_cli --version 0.4.0
+        run: cargo install rain_cli --version 0.3.0
       - run: rain --version
       - name: Report public key to make it easy to send funds for deployments
         run: cast wallet address "${DEPLOYMENT_KEY}"
