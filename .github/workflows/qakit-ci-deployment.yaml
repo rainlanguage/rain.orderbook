@@ -3,27 +3,30 @@ on: [push]
 
 jobs:
   deploy:
-    strategy:
-      matrix:
-        contract: [
-          "src/OrderBook.sol:OrderBook"
-        ]
     runs-on: ubuntu-latest
+    env:
+      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
+      - run: fee="$(curl -s https://gasstation-testnet.polygon.technology/v2 | jq '.fast.maxFee')"; echo "$fee"; fee=$( echo "scale=0; ${fee} * 1e18 / 1" | bc );
+
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+      - name: Install rain
+        run: cargo install rain_cli@0.5.0
+      - run: rain --version
       - name: Report public key to make it easy to send funds for deployments
-        env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-        run: cast wallet address "${PRIVATE_KEY}"
-      - name: Forge deploy contract to mumbai(wip)
+        run: cast wallet address "${DEPLOYMENT_KEY}"
+      - name: Forge deploy contract to mumbai
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-        run: forge create --rpc-url "${CI_DEPLOY_RPC_URL}" --private-key "${PRIVATE_KEY}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}" --verify ${{ matrix.contract }}
+        run: forge script script/DeployOrderBook.sol:DeployOrderBook --legacy --ffi --verify --broadcast --rpc-url "${CI_DEPLOY_RPC_URL}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}"
