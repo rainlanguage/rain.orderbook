@@ -29,6 +29,7 @@ contract DeployOrderBook is Script {
         buildMeta[14] = "hex";
 
         bytes memory meta = vm.ffi(buildMeta);
+        console2.log(keccak256(meta));
         vm.startBroadcast(deployerPrivateKey);
 
         OrderBook orderbook = new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig (
