@@ -5,8 +5,8 @@ import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "rain.interface.orderbook/ierc3156/IERC3156FlashBorrower.sol";
-import "rain.interface.orderbook/ierc3156/IERC3156FlashLender.sol";
+import "../interface/ierc3156/IERC3156FlashBorrower.sol";
+import "../interface/ierc3156/IERC3156FlashLender.sol";
 
 /// Thrown when `flashLoan` token is zero address.
 error ZeroToken();
