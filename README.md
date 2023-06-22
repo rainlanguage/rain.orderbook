@@ -1,4 +1,4 @@
-# foundry.template
+# rain.orderbook
 
 Docs at https://rainprotocol.github.io/foundry.template
 
