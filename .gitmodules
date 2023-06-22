@@ -4,3 +4,6 @@
 [submodule "lib/rain.math.fixedpoint"]
 	path = lib/rain.math.fixedpoint
 	url = https://github.com/rainprotocol/rain.math.fixedpoint
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainprotocol/rain.interpreter
