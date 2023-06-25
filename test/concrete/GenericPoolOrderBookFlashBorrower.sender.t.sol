@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "rain.orderbook/src/interface/IOrderBookV2.sol";
+import "src/interface/IOrderBookV2.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
