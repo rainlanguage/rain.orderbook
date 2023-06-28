@@ -1,2 +1,2 @@
-ZeroExOrderBookFlashBorrowerTest:testMinimumOutput(uint256,uint256) (runs: 1024, μ: 5094617, ~: 5097649)
-ZeroExOrderBookFlashBorrowerTest:testTakeOrdersSender() (gas: 5009484)
+GenericPoolOrderBookFlashBorrowerTest:testMinimumOutput(uint256,uint256) (runs: 2048, μ: 2315865, ~: 2318936)
+GenericPoolOrderBookFlashBorrowerTest:testTakeOrdersSender() (gas: 2230771)
