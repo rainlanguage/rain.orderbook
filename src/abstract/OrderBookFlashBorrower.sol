@@ -140,7 +140,7 @@ abstract contract OrderBookFlashBorrower is
 
     /// Type hints for the input encoding for the `initialize` function.
     /// Reverts ALWAYS with `InitializeSignatureFn` as per ICloneableV2.
-    function initialize(OrderBookFlashBorrowerConfig memory) external returns (bytes32) {
+    function initialize(OrderBookFlashBorrowerConfig memory) external pure returns (bytes32) {
         revert InitializeSignatureFn();
     }
 
