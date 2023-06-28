@@ -32,11 +32,10 @@
           deploy-single-contract = contract: ''
             forge script script/Deploy${contract}.sol:Deploy${contract} --legacy --verify --broadcast --rpc-url "''${CI_DEPLOY_RPC_URL}" --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
               --sig='run(bytes)' \
-              ${(build-meta-cmd contract)} -E hex \
+              "$( ${(build-meta-cmd contract)} -E hex )" \
               ;
           '';
           deploy-contracts = pkgs.writeShellScriptBin "deploy-contracts" (''
-            ${build-meta}/bin/build-meta;
           '' + pkgs.lib.concatStrings (map deploy-single-contract concrete-contracts));
 
           default = build-meta;
