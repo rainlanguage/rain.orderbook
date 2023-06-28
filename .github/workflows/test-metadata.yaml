@@ -6,7 +6,7 @@ jobs:
   test:
     strategy:
       matrix:
-        meta-file: [src/concrete/OrderBook.meta.json, src/concrete/GenericPoolOrderBookFlashBorrower.meta.yaml]
+        meta-file: [src/concrete/OrderBook.meta.json, src/concrete/GenericPoolOrderBookFlashBorrower.meta.json]
     name: Test metadata
     runs-on: ubuntu-latest
     steps:
