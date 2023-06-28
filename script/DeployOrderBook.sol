@@ -19,7 +19,7 @@ contract DeployOrderBook is Script {
             i9rDeployer,
             meta
         ));
-        (orderbook);
+        (deployed);
         vm.stopBroadcast();
     }
 }
