@@ -5,42 +5,21 @@ import "forge-std/Script.sol";
 import "src/concrete/OrderBook.sol";
 
 contract DeployOrderBook is Script {
-    function run() external {
+    function run(bytes memory meta) external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
         // @todo pull this from subgraph.
         // hardcoded from CI https://github.com/rainprotocol/rain-protocol/actions/runs/5039345251/jobs/9037426821
         address i9rDeployer = 0xB20DFEdC1b12AA6afA308064998A28531a18C714;
 
-        string[] memory buildMeta = new string[](15);
-        buildMeta[0] = "rain";
-        buildMeta[1] = "meta";
-        buildMeta[2] = "build";
-        buildMeta[3] = "--magic";
-        buildMeta[4] = "interpreter-caller-meta-v1";
-        buildMeta[5] = "--input-path";
-        buildMeta[6] = "meta/OrderBook.meta.json";
-        buildMeta[7] = "--content-type";
-        buildMeta[8] = "json";
-        buildMeta[9] = "--content-encoding";
-        buildMeta[10] = "deflate";
-        buildMeta[11] = "--content-language";
-        buildMeta[12] = "en";
-        buildMeta[13] = "--output-encoding";
-        buildMeta[14] = "hex";
-
-        bytes memory meta = vm.ffi(buildMeta);
-
         console2.log("meta hash:");
-        console2.logBytes(bytes.concat(keccak256(meta)));
+        console2.logBytes32(keccak256(meta));
 
         vm.startBroadcast(deployerPrivateKey);
-
-        OrderBook orderbook = new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig (
+        OrderBook deployed = new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig (
             i9rDeployer,
             meta
         ));
         (orderbook);
-
         vm.stopBroadcast();
     }
 }
