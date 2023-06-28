@@ -6,6 +6,7 @@ import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "src/interface/IOrderBookV2.sol";
+import "./GenericPoolOrderBookFlashBorrowerMeta.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -51,7 +52,28 @@ contract Mock0xProxy {
     }
 }
 
-contract ZeroExOrderBookFlashBorrowerTest is Test {
+contract GenericPoolOrderBookFlashBorrowerTest is Test {
+    address immutable deployer;
+    address immutable implementation;
+
+    constructor() {
+        deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
+        vm.etch(deployer, hex"00");
+        vm.mockCall(
+            deployer,
+            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encode(address(0), address(0), address(0))
+        );
+        bytes memory meta = vm.readFileBinary(META_PATH);
+        console2.logBytes32(keccak256(meta));
+        implementation = address(
+            new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV1ConstructionConfig(
+            deployer,
+            meta
+            ))
+        );
+    }
+
     function testTakeOrdersSender() public {
         MockOrderBook ob_ = new MockOrderBook();
         Mock0xProxy proxy_ = new Mock0xProxy();
@@ -59,8 +81,7 @@ contract ZeroExOrderBookFlashBorrowerTest is Test {
         Token input_ = new Token();
         Token output_ = new Token();
 
-        GenericPoolOrderBookFlashBorrower arb_ =
-            GenericPoolOrderBookFlashBorrower(Clones.clone(address(new GenericPoolOrderBookFlashBorrower())));
+        GenericPoolOrderBookFlashBorrower arb_ = GenericPoolOrderBookFlashBorrower(Clones.clone(implementation));
         arb_.initialize(
             abi.encode(
                 OrderBookFlashBorrowerConfig(
@@ -88,8 +109,7 @@ contract ZeroExOrderBookFlashBorrowerTest is Test {
         Token input = new Token();
         Token output = new Token();
 
-        GenericPoolOrderBookFlashBorrower arb =
-            GenericPoolOrderBookFlashBorrower(Clones.clone(address(new GenericPoolOrderBookFlashBorrower())));
+        GenericPoolOrderBookFlashBorrower arb = GenericPoolOrderBookFlashBorrower(Clones.clone(implementation));
         arb.initialize(
             abi.encode(
                 OrderBookFlashBorrowerConfig(

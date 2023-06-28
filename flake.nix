@@ -15,17 +15,17 @@
 
       in rec {
         packages = rec {
-          contracts-with-meta = ["CloneFactory" "GenericPoolOrderBookFlashBorrower"];
+          contracts-with-meta = ["OrderBook" "GenericPoolOrderBookFlashBorrower"];
           build-single-meta = contract: ''
             ${rain-cli} meta build -o meta/${contract}.rain.meta \
               -i <(${rain-cli} meta solc artifact -c abi -i out/${contract}.sol/${contract}.json) -m solidity-abi-v2 -t json -e deflate -l en \
               -i src/concrete/${contract}.meta.json -m interpreter-caller-meta-v1 -t json -e deflate -l en \
               ;
           '';
-          forge-build = ''
-          forge build;
-          '';
-          build-meta = pkgs.writeShellScriptBin "build-meta" builtIns.concatStrings [forge-build builtIns.concatStrings map(build-single-meta packages.contracts-with-meta)];
+          build-meta = pkgs.writeShellScriptBin "build-meta" (''
+          set -x;
+          forge build --force;
+          '' + pkgs.lib.concatStrings (map build-single-meta contracts-with-meta));
 
           default = build-meta;
         };
