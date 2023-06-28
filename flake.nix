@@ -30,6 +30,7 @@
           '' + pkgs.lib.concatStrings (map build-single-meta concrete-contracts));
 
           deploy-single-contract = contract: ''
+            set -euo pipefail;
             forge script script/Deploy${contract}.sol:Deploy${contract} --legacy --verify --broadcast --rpc-url "''${CI_DEPLOY_RPC_URL}" --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
               --sig='run(bytes)' \
               "$( ${(build-meta-cmd contract)} -E hex )" \
