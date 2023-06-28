@@ -6,6 +6,11 @@ import "src/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 import "src/abstract/OrderBookFlashBorrower.sol";
 
+/// @dev Metadata hash for `DeployerDiscoverableMetaV1`.
+/// - ABI for GenericPoolOrderBookFlashBorrower
+/// - Interpreter caller metadata V1 for GenericPoolOrderBookFlashBorrower
+bytes32 constant CALLER_META_HASH = bytes32(0x23f773c3618546fdcc07be06f9424910462a90bd2b919684a4b856afa40f1384);
+
 /// @title GenericPoolOrderBookFlashBorrower
 /// Implements the OrderBookFlashBorrower interface for a external liquidity
 /// source that behaves vaguely like a standard AMM. The `exchangeData` from
@@ -19,6 +24,8 @@ import "src/abstract/OrderBookFlashBorrower.sol";
 contract GenericPoolOrderBookFlashBorrower is OrderBookFlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
+
+    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config) OrderBookFlashBorrower(CALLER_META_HASH, config) {}
 
     /// @inheritdoc OrderBookFlashBorrower
     function _exchange(TakeOrdersConfig memory takeOrders, bytes memory exchangeData) internal virtual override {

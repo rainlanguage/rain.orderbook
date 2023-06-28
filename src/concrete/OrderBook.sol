@@ -139,8 +139,8 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
     /// factory deployments as each order is a unique expression deployment
     /// rather than needing to wrap up expressions with proxies.
-    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config_)
-        DeployerDiscoverableMetaV1(CALLER_META_HASH, config_)
+    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config)
+        DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
     {}
 
     /// @inheritdoc IOrderBookV2

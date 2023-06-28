@@ -6,6 +6,11 @@ import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import {
+    DeployerDiscoverableMetaV1,
+    DeployerDiscoverableMetaV1ConstructionConfig,
+    LibMeta
+} from "rain.interpreter/abstract/DeployerDiscoverableMetaV1.sol";
 
 import "../interface/IOrderBookV2.sol";
 import "rain.factory/src/interface/ICloneableV2.sol";
@@ -86,7 +91,7 @@ uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookFlashBorrower is IERC3156FlashBorrower, ICloneableV2, ReentrancyGuard, Initializable {
+abstract contract OrderBookFlashBorrower is IERC3156FlashBorrower, ICloneableV2, ReentrancyGuard, Initializable, DeployerDiscoverableMetaV1 {
     using Address for address;
     using SafeERC20 for IERC20;
 
@@ -105,7 +110,10 @@ abstract contract OrderBookFlashBorrower is IERC3156FlashBorrower, ICloneableV2,
     /// The associated store for the interpreter.
     IInterpreterStoreV1 public sI9rStore;
 
-    constructor() {
+    constructor(
+        bytes32 metaHash,
+        DeployerDiscoverableMetaV1ConstructionConfig memory config
+    ) DeployerDiscoverableMetaV1(metaHash, config) {
         // Arb contracts are expected to be cloned proxies so allowing
         // initialization of the implementation is a security risk.
         _disableInitializers();
