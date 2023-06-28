@@ -15,7 +15,7 @@
 
       in rec {
         packages = rec {
-          contracts-with-meta = ["OrderBook" "GenericPoolOrderBookFlashBorrower"];
+          concrete-contracts = ["OrderBook" "GenericPoolOrderBookFlashBorrower"];
           build-single-meta = contract: ''
             ${rain-cli} meta build -o meta/${contract}.rain.meta \
               -i <(${rain-cli} meta solc artifact -c abi -i out/${contract}.sol/${contract}.json) -m solidity-abi-v2 -t json -e deflate -l en \
@@ -25,7 +25,17 @@
           build-meta = pkgs.writeShellScriptBin "build-meta" (''
           set -x;
           forge build --force;
-          '' + pkgs.lib.concatStrings (map build-single-meta contracts-with-meta));
+          '' + pkgs.lib.concatStrings (map build-single-meta concrete-contracts));
+
+          deploy-single-contract = contract: ''
+            forge script script/Deploy${contract}.sol:Deploy${contract} --legacy --verify --broadcast --rpc-url "''${CI_DEPLOY_RPC_URL}" --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
+              --sig='run(bytes)' $(cat meta/${contract}.rain.meta) \
+              ;
+          '';
+          deploy-contracts = pkgs.writeShellScriptBin "deploy-contracts" (''
+            set -x;
+            ${build-meta}/bin/build-meta;
+          '' + pkgs.lib.concatStrings (map deploy-single-contract concrete-contracts));
 
           default = build-meta;
         };

@@ -21,6 +21,7 @@ jobs:
       - run: rain --version
       - name: Report public key to make it easy to send funds for deployments
         run: cast wallet address "${DEPLOYMENT_KEY}"
+      - run: nix run .#deploy-contracts
       # - name: Forge deploy contract to mumbai
       #   env:
       #     CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
