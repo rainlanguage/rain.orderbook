@@ -12,4 +12,9 @@ optimizer_runs = 100000
 bytecode_hash = "none"
 cbor_metadata = false
 
-fuzz.runs = 1024
+# Build metadata used for testing rain meta aware contracts in this folder rather
+# than expose ffi to forge.
+fs_permissions = [{ access = "read", path = "./meta"}]
+
+[fuzz]
+runs = 2048

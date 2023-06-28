@@ -42,7 +42,7 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 error SameOwner(address owner);
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0x23f773c3618546fdcc07be06f9424910462a90bd2b919684a4b856afa40f1384);
+bytes32 constant CALLER_META_HASH = bytes32(0x2858026ac771f397aab34c708066d6a2536986a8b262f5cd21cc3b164be1255b);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
@@ -139,8 +139,8 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
     /// factory deployments as each order is a unique expression deployment
     /// rather than needing to wrap up expressions with proxies.
-    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config_)
-        DeployerDiscoverableMetaV1(CALLER_META_HASH, config_)
+    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config)
+        DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
     {}
 
     /// @inheritdoc IOrderBookV2

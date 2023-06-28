@@ -1,0 +1,18 @@
+{
+    "name": "Generic pool order book flash borrower",
+    "abiName": "GenericPoolOrderBookFlashBorrower",
+    "desc": "A generic flash borrower that takes loans from an order book and can source external liquidity from any basic onchain AMM pool to cover the loan and specific orderbook orders. Supports expression based access gating.",
+    "alias": "generic-pool-order-book-flash-borrower",
+    "methods": [{
+      "name": "stub",
+      "abiName": "stub",
+      "desc": "Stub.",
+      "inputs": [{
+        "name": "stub",
+        "abiName": "stub",
+        "desc": "Stub.",
+        "path": "stub"
+      }],
+      "expressions": []
+    }]
+  }

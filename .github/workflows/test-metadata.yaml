@@ -4,6 +4,9 @@ on: [push]
 
 jobs:
   test:
+    strategy:
+      matrix:
+        meta-file: [src/concrete/OrderBook.meta.json, src/concrete/GenericPoolOrderBookFlashBorrower.meta.json]
     name: Test metadata
     runs-on: ubuntu-latest
     steps:
@@ -11,5 +14,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo install rain_cli@0.5.0
-      - run: rain meta validate -i meta/OrderBook.meta.json -m interpreter-caller-meta-v1
+      - run: cargo install rain_cli@0.8.0
+      - run: rain meta validate -i ${{ matrix.meta-file }} -m interpreter-caller-meta-v1
+
