@@ -29,7 +29,7 @@
 
           deploy-single-contract = contract: ''
             forge script script/Deploy${contract}.sol:Deploy${contract} --legacy --verify --broadcast --rpc-url "''${CI_DEPLOY_RPC_URL}" --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
-              --sig='run(bytes)' $(xxd -p meta/${contract}.rain.meta) \
+              --sig='run(bytes)' $(xxd -c0 -p meta/${contract}.rain.meta) \
               ;
           '';
           deploy-contracts = pkgs.writeShellScriptBin "deploy-contracts" (''
