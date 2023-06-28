@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.18;
 
+import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -96,7 +97,8 @@ abstract contract OrderBookFlashBorrower is
     ICloneableV2,
     ReentrancyGuard,
     Initializable,
-    DeployerDiscoverableMetaV1
+    DeployerDiscoverableMetaV1,
+    ERC165
 {
     using Address for address;
     using SafeERC20 for IERC20;
@@ -124,11 +126,23 @@ abstract contract OrderBookFlashBorrower is
         _disableInitializers();
     }
 
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IERC3156FlashBorrower).interfaceId || interfaceId == type(ICloneableV2).interfaceId
+            || super.supportsInterface(interfaceId);
+    }
+
     /// Hook called before initialize happens. Inheriting contracts can perform
     /// internal state maintenance before any external contract calls are made.
     /// @param data Arbitrary bytes the child may use to initialize.
     //slither-disable-next-line dead-code
     function _beforeInitialize(bytes memory data) internal virtual {}
+
+    /// Type hints for the input encoding for the `initialize` function.
+    /// Reverts ALWAYS with `InitializeSignatureFn` as per ICloneableV2.
+    function initialize(OrderBookFlashBorrowerConfig memory) external returns (bytes32) {
+        revert InitializeSignatureFn();
+    }
 
     /// @inheritdoc ICloneableV2
     function initialize(bytes memory data) external initializer nonReentrant returns (bytes32) {
