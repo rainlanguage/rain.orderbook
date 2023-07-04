@@ -530,6 +530,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         // are updated, but before we call handle IO. We want handle IO to see
         // a consistent view on sets from calculate IO.
         if (orderIOCalculation.kvs.length > 0) {
+            // Slither false positive. External calls within loops are fine if
+            // the caller controls which orders are eval'd as they can drop
+            // failing calls and resubmit a new transaction.
+            // https://github.com/crytic/slither/issues/880
+            //slither-disable-next-line calls-loop
             order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
         }
 
