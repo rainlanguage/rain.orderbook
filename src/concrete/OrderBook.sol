@@ -159,6 +159,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
         emit Deposit(msg.sender, token, vaultId, amount);
+        //slither-disable-next-line reentrancy-benign
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         _sVaultBalances[msg.sender][token][vaultId] += amount;
     }
