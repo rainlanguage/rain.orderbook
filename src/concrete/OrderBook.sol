@@ -146,16 +146,15 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     {}
 
     /// @inheritdoc IOrderBookV3
-    function vaultBalance(
-        address owner,
-        address token,
-        uint256 vaultId
-    ) external view override returns (uint256) {
+    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
 
     /// @inheritdoc IOrderBookV3
     function deposit(address token, uint256 vaultId, uint256 amount) external nonReentrant {
+        if (amount == 0) {
+            revert ZeroDepositAmount(msg.sender, token, vaultId);
+        }
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.

@@ -284,6 +284,12 @@ struct ClearStateChange {
 /// Main differences between `IOrderBookV2` and `IOderBookV3`:
 /// - Most structs are now primitives to save gas.
 interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
+    /// MUST be thrown by `deposit` if the amount is zero.
+    /// @param sender `msg.sender` depositing tokens.
+    /// @param token The token being deposited.
+    /// @param vaultId The vault ID the tokens are being deposited under.
+    error ZeroDepositAmount(address sender, address token, uint256 vaultId);
+
     /// Some tokens have been deposited to a vault.
     /// @param sender `msg.sender` depositing tokens. Delegated deposits are NOT
     /// supported.
@@ -398,6 +404,12 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// Vault IDs are namespaced by the token address so there is no risk of
     /// collision between tokens. For example, vault ID 0 for token A is
     /// completely different to vault ID 0 for token B.
+    ///
+    /// `0` amount deposits are unsupported as underlying token contracts
+    /// handle `0` value transfers differently and this would be a source of
+    /// confusion. The order book MUST revert with `ZeroDepositAmount` if the
+    /// amount is zero.
+    ///
     /// @param token The token to deposit.
     /// @param vaultId The vault ID to deposit under.
     /// @param amount The amount of tokens to deposit.
