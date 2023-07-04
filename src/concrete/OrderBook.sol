@@ -387,69 +387,74 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// are always treated as 18 decimal fixed point values and then rescaled
     /// according to the order's definition of each token's actual fixed point
     /// decimals.
-    /// @param order_ The order to evaluate.
-    /// @param inputIOIndex_ The index of the input token being calculated for.
-    /// @param outputIOIndex_ The index of the output token being calculated for.
-    /// @param counterparty_ The counterparty of the order as it is currently
+    /// @param order The order to evaluate.
+    /// @param inputIOIndex The index of the input token being calculated for.
+    /// @param outputIOIndex The index of the output token being calculated for.
+    /// @param counterparty The counterparty of the order as it is currently
     /// being cleared against.
-    /// @param signedContext_ Any signed context provided by the clearer/taker
+    /// @param signedContext Any signed context provided by the clearer/taker
     /// that the order may need for its calculations.
     function _calculateOrderIO(
-        Order memory order_,
-        uint256 inputIOIndex_,
-        uint256 outputIOIndex_,
-        address counterparty_,
-        SignedContextV1[] memory signedContext_
+        Order memory order,
+        uint256 inputIOIndex,
+        uint256 outputIOIndex,
+        address counterparty,
+        SignedContextV1[] memory signedContext
     ) internal view virtual returns (OrderIOCalculation memory) {
         unchecked {
-            uint256 orderHash_ = order_.hash();
+            uint256 orderHash = order.hash();
 
-            uint256[][] memory context_;
+            uint256[][] memory context;
             {
-                uint256[][] memory callingContext_ = new uint256[][](
+                uint256[][] memory callingContext = new uint256[][](
                     CALLING_CONTEXT_COLUMNS
                 );
-                callingContext_[CONTEXT_CALLING_CONTEXT_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    orderHash_, uint256(uint160(order_.owner)), uint256(uint160(counterparty_))
-                );
+                callingContext[CONTEXT_CALLING_CONTEXT_COLUMN - 1] =
+                    LibUint256Array.arrayFrom(orderHash, uint256(uint160(order.owner)), uint256(uint160(counterparty)));
 
-                callingContext_[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order_.validInputs[inputIOIndex_].token)),
-                    order_.validInputs[inputIOIndex_].decimals,
-                    order_.validInputs[inputIOIndex_].vaultId,
-                    sVaultBalances[order_.owner][order_.validInputs[inputIOIndex_].token][order_.validInputs[inputIOIndex_]
+                callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                    uint256(uint160(order.validInputs[inputIOIndex].token)),
+                    order.validInputs[inputIOIndex].decimals,
+                    order.validInputs[inputIOIndex].vaultId,
+                    sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
                         .vaultId],
                     // Don't know the balance diff yet!
                     0
                 );
 
-                callingContext_[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order_.validOutputs[outputIOIndex_].token)),
-                    order_.validOutputs[outputIOIndex_].decimals,
-                    order_.validOutputs[outputIOIndex_].vaultId,
-                    sVaultBalances[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
+                callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                    uint256(uint160(order.validOutputs[outputIOIndex].token)),
+                    order.validOutputs[outputIOIndex].decimals,
+                    order.validOutputs[outputIOIndex].vaultId,
+                    sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
                         .vaultId],
                     // Don't know the balance diff yet!
                     0
                 );
-                context_ = LibContext.build(callingContext_, signedContext_);
+                context = LibContext.build(callingContext, signedContext);
             }
 
             // The state changes produced here are handled in _recordVaultIO so
             // that local storage writes happen before writes on the interpreter.
-            StateNamespace namespace_ = StateNamespace.wrap(uint256(uint160(order_.owner)));
-            (uint256[] memory stack_, uint256[] memory kvs_) = order_.evaluable.interpreter.eval(
-                order_.evaluable.store, namespace_, _calculateOrderDispatch(order_.evaluable.expression), context_
-            );
+            StateNamespace namespace = StateNamespace.wrap(uint256(uint160(order.owner)));
+            // Slither false positive. External calls within loops are fine if
+            // the caller controls which contracts are called as they can drop
+            // failing calls and resubmit a new transaction.
+            // https://github.com/crytic/slither/issues/880
+            //slither-disable-next-line calls-loop
+            (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
+                .evaluable
+                .interpreter
+                .eval(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context);
 
-            uint256 orderOutputMax_ = stack_[stack_.length - 2];
-            uint256 orderIORatio_ = stack_[stack_.length - 1];
+            uint256 orderOutputMax = calculateOrderStack[calculateOrderStack.length - 2];
+            uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
 
             // Rescale order output max from 18 FP to whatever decimals the
             // output token is using.
             // Always round order output down.
-            orderOutputMax_ = orderOutputMax_.scaleN(
-                order_.validOutputs[outputIOIndex_].decimals,
+            orderOutputMax = orderOutputMax.scaleN(
+                order.validOutputs[outputIOIndex].decimals,
                 // Saturate the order max output because if we were willing to
                 // give more than this on a scale up, we should be comfortable
                 // giving less.
@@ -460,9 +465,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // Rescale the ratio from 18 FP according to the difference in
             // decimals between input and output.
             // Always round IO ratio up.
-            orderIORatio_ = orderIORatio_.scaleRatio(
-                order_.validOutputs[outputIOIndex_].decimals,
-                order_.validInputs[inputIOIndex_].decimals,
+            orderIORatio = orderIORatio.scaleRatio(
+                order.validOutputs[outputIOIndex].decimals,
+                order.validInputs[inputIOIndex].decimals,
                 // DO NOT saturate ratios because this would reduce the effective
                 // IO ratio, which would mean that saturating would make the deal
                 // worse for the order. Instead we overflow, and round up to get
@@ -472,16 +477,16 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
             // The order owner can't send more than the smaller of their vault
             // balance or their per-order limit.
-            orderOutputMax_ = orderOutputMax_.min(
-                sVaultBalances[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
+            orderOutputMax = orderOutputMax.min(
+                sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
                     .vaultId]
             );
 
             // Populate the context with the output max rescaled and vault capped
             // and the rescaled ratio.
-            context_[CONTEXT_CALCULATIONS_COLUMN] = LibUint256Array.arrayFrom(orderOutputMax_, orderIORatio_);
+            context[CONTEXT_CALCULATIONS_COLUMN] = LibUint256Array.arrayFrom(orderOutputMax, orderIORatio);
 
-            return OrderIOCalculation(orderOutputMax_, orderIORatio_, context_, namespace_, kvs_);
+            return OrderIOCalculation(orderOutputMax, orderIORatio, context, namespace, calculateOrderKVs);
         }
     }
 
