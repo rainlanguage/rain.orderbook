@@ -42,7 +42,7 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 error SameOwner(address owner);
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0x2858026ac771f397aab34c708066d6a2536986a8b262f5cd21cc3b164be1255b);
+bytes32 constant CALLER_META_HASH = bytes32(0x8b7784ccde8b75c182d7e75ef41c957926a1ed20d55612ff08cfc5a2cd99be96);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
