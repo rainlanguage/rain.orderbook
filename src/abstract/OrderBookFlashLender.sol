@@ -140,7 +140,9 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
             _checkActiveDebt();
             _sToken = token;
             _sReceiver = receiver;
-            _sAmountUnpaid = amount;
+            // As long as FLASH_FEE is 0 this `+` will probably get optimised
+            // away by the compiler.
+            _sAmountUnpaid = amount + FLASH_FEE;
             IERC20(token).safeTransfer(address(receiver), amount);
         }
 
