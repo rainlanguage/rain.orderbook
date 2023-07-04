@@ -144,13 +144,13 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
     {}
 
     /// @inheritdoc IOrderBookV2
-    function deposit(DepositConfig calldata config_) external nonReentrant {
+    function deposit(DepositConfig calldata config) external nonReentrant {
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
-        emit Deposit(msg.sender, config_);
-        IERC20(config_.token).safeTransferFrom(msg.sender, address(this), config_.amount);
-        vaultBalance[msg.sender][config_.token][config_.vaultId] += config_.amount;
+        emit Deposit(msg.sender, config);
+        IERC20(config.token).safeTransferFrom(msg.sender, address(this), config.amount);
+        vaultBalance[msg.sender][config.token][config.vaultId] += config.amount;
     }
 
     /// @inheritdoc IOrderBookV2

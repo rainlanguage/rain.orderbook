@@ -2,11 +2,14 @@
 pragma solidity =0.8.18;
 
 import "forge-std/Test.sol";
-import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+
+import "test/util/lib/LibTestConstants.sol";
+import "test/util/lib/LibGenericPoolOrderBookFlashBorrowerConstants.sol";
+
+import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
 import "src/interface/IOrderBookV2.sol";
-import "./GenericPoolOrderBookFlashBorrowerMeta.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -58,13 +61,14 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
 
     constructor() {
         deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
-        vm.etch(deployer, hex"00");
+        // All non-mocked calls will revert.
+        vm.etch(deployer, REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             deployer,
             abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
             abi.encode(address(0), address(0), address(0))
         );
-        bytes memory meta = vm.readFileBinary(META_PATH);
+        bytes memory meta = vm.readFileBinary(GENERIC_POOL_ORDER_BOOK_FLASH_BORROWER_META_PATH);
         console2.logBytes32(keccak256(meta));
         implementation = address(
             new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV1ConstructionConfig(
