@@ -169,42 +169,53 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function withdraw(WithdrawConfig calldata config_) external nonReentrant {
-        uint256 vaultBalance_ = sVaultBalances[msg.sender][config_.token][config_.vaultId];
-        uint256 withdrawAmount_ = config_.amount.min(vaultBalance_);
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external nonReentrant {
+        if (targetAmount == 0) {
+            revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
+        }
+        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        uint256 withdrawAmount = targetAmount.min(currentVaultBalance);
         // The overflow check here is redundant with .min above, so technically
         // this is overly conservative but we REALLY don't want withdrawals to
         // exceed vault balances.
-        sVaultBalances[msg.sender][config_.token][config_.vaultId] = vaultBalance_ - withdrawAmount_;
-        emit Withdraw(msg.sender, config_, withdrawAmount_);
-        _decreaseFlashDebtThenSendToken(config_.token, msg.sender, withdrawAmount_);
+        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
+        emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
+        _decreaseFlashDebtThenSendToken(token, msg.sender, withdrawAmount);
     }
 
     /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfig calldata config_) external nonReentrant {
-        (IInterpreterV1 interpreter_, IInterpreterStoreV1 store_, address expression_) = config_
+    function addOrder(OrderConfig calldata config) external nonReentrant {
+        (IInterpreterV1 interpreter, IInterpreterStoreV1 store, address expression) = config
             .evaluableConfig
             .deployer
             .deployExpression(
-            config_.evaluableConfig.sources,
-            config_.evaluableConfig.constants,
+            config.evaluableConfig.sources,
+            config.evaluableConfig.constants,
             LibUint256Array.arrayFrom(CALCULATE_ORDER_MIN_OUTPUTS, HANDLE_IO_MIN_OUTPUTS)
         );
-        Order memory order_ = Order(
+        Order memory order = Order(
             msg.sender,
-            config_.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
-            Evaluable(interpreter_, store_, expression_),
-            config_.validInputs,
-            config_.validOutputs
+            config.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
+            Evaluable(interpreter, store, expression),
+            config.validInputs,
+            config.validOutputs
         );
-        uint256 orderHash_ = order_.hash();
+        uint256 orderHash = order.hash();
 
-        sOrders[orderHash_] = LIVE_ORDER;
-        emit AddOrder(msg.sender, config_.evaluableConfig.deployer, order_, orderHash_);
+        // Check that the order is not already live. As the order hash includes
+        // the expression address, this can only happen if the deployer returns
+        // the same expression address for multiple deployments. This is
+        // technically possible but not something we want to support.
+        if (sOrders[orderHash] != DEAD_ORDER) {
+            revert OrderExists(msg.sender, orderHash);
+        }
+        //slither-disable-next-line reentrancy-benign
+        sOrders[orderHash] = LIVE_ORDER;
+        emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
 
-        if (config_.meta.length > 0) {
-            LibMeta.checkMetaUnhashed(config_.meta);
-            emit MetaV1(msg.sender, orderHash_, config_.meta);
+        if (config.meta.length > 0) {
+            LibMeta.checkMetaUnhashed(config.meta);
+            emit MetaV1(msg.sender, orderHash, config.meta);
         }
     }
 

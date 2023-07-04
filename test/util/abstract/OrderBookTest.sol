@@ -97,7 +97,7 @@ abstract contract OrderBookTest is Test, IOrderBookV3 {
     }
 
     /// @inheritdoc IOrderBookV3
-    function withdraw(WithdrawConfig calldata) external pure {
+    function withdraw(address, uint256, uint256) external pure {
         revert("withdraw");
     }
 }
