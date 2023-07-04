@@ -41,8 +41,12 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 /// @param owner The owner of both orders.
 error SameOwner(address owner);
 
+/// Thrown when a reentrant call occurs and is caught outside the default
+/// nonReentrant modifier.
+error ReentrantCall();
+
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xa72b1351656daad5908b906f15ad318da93554430d296150444616ae0be4c92f);
+bytes32 constant CALLER_META_HASH = bytes32(0x3e0a09bbcfb00ba65f2d54e879ada0793be341ec4cce52ae46c79dcfa3b87f8e);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
@@ -151,6 +155,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
     /// @inheritdoc IOrderBookV3
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
+        // Guard against read-only reentrancy.
+        // https://chainsecurity.com/heartbreaks-curve-lp-oracles/
+        if (_reentrancyGuardEntered()) {
+            revert ReentrantCall();
+        }
         return sVaultBalances[owner][token][vaultId];
     }
 
