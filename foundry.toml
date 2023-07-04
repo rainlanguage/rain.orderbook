@@ -7,6 +7,12 @@ libs = ['lib']
 
 solc = "0.8.18"
 
+# optimizer settings for debugging
+# via_ir = false
+# optimizer = false
+# optimizer_runs = 0
+# optimizer_steps = 0
+
 # optimizer settings for snapshotting.
 optimizer = true
 optimizer_runs = 100000

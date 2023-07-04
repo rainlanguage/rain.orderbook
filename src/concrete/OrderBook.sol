@@ -130,10 +130,12 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// The order hash includes its owner so there's no need to build a multi
     /// level mapping, each order hash MUST uniquely identify the order globally.
     /// order hash => order is live
-    mapping(uint256 => uint256) internal orders;
+    mapping(uint256 => uint256) internal sOrders;
 
-    /// @inheritdoc IOrderBookV2
-    mapping(address => mapping(address => mapping(uint256 => uint256))) public vaultBalance;
+    /// @dev Vault balances are stored in a mapping of owner => token => vault ID
+    /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
+    /// `sFoo` naming convention for storage variables.
+    mapping(address => mapping(address => mapping(uint256 => uint256))) internal sVaultBalances;
 
     /// Initializes the orderbook upon construction for compatibility with
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
@@ -144,23 +146,32 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
     {}
 
     /// @inheritdoc IOrderBookV2
+    function vaultBalance(
+        address owner,
+        address token,
+        uint256 vaultId
+    ) external view override returns (uint256) {
+        return sVaultBalances[owner][token][vaultId];
+    }
+
+    /// @inheritdoc IOrderBookV2
     function deposit(DepositConfig calldata config) external nonReentrant {
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
         emit Deposit(msg.sender, config);
         IERC20(config.token).safeTransferFrom(msg.sender, address(this), config.amount);
-        vaultBalance[msg.sender][config.token][config.vaultId] += config.amount;
+        sVaultBalances[msg.sender][config.token][config.vaultId] += config.amount;
     }
 
     /// @inheritdoc IOrderBookV2
     function withdraw(WithdrawConfig calldata config_) external nonReentrant {
-        uint256 vaultBalance_ = vaultBalance[msg.sender][config_.token][config_.vaultId];
+        uint256 vaultBalance_ = sVaultBalances[msg.sender][config_.token][config_.vaultId];
         uint256 withdrawAmount_ = config_.amount.min(vaultBalance_);
         // The overflow check here is redundant with .min above, so technically
         // this is overly conservative but we REALLY don't want withdrawals to
         // exceed vault balances.
-        vaultBalance[msg.sender][config_.token][config_.vaultId] = vaultBalance_ - withdrawAmount_;
+        sVaultBalances[msg.sender][config_.token][config_.vaultId] = vaultBalance_ - withdrawAmount_;
         emit Withdraw(msg.sender, config_, withdrawAmount_);
         _decreaseFlashDebtThenSendToken(config_.token, msg.sender, withdrawAmount_);
     }
@@ -184,7 +195,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         );
         uint256 orderHash_ = order_.hash();
 
-        orders[orderHash_] = LIVE_ORDER;
+        sOrders[orderHash_] = LIVE_ORDER;
         emit AddOrder(msg.sender, config_.evaluableConfig.deployer, order_, orderHash_);
 
         if (config_.meta.length > 0) {
@@ -207,7 +218,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
             revert NotOrderOwner(msg.sender, order_.owner);
         }
         uint256 orderHash_ = order_.hash();
-        delete (orders[orderHash_]);
+        delete (sOrders[orderHash_]);
         emit RemoveOrder(msg.sender, order_, orderHash_);
     }
 
@@ -225,7 +236,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
             takeOrder_ = takeOrders_.orders[i_];
             order_ = takeOrder_.order;
             uint256 orderHash_ = order_.hash();
-            if (orders[orderHash_] == DEAD_ORDER) {
+            if (sOrders[orderHash_] == DEAD_ORDER) {
                 emit OrderNotFound(msg.sender, order_.owner, orderHash_);
             } else {
                 if (order_.validInputs[takeOrder_.inputIOIndex].token != takeOrders_.output) {
@@ -315,11 +326,11 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
             // If either order is dead the clear is a no-op other than emitting
             // `OrderNotFound`. Returning rather than erroring makes it easier to
             // bulk clear using `Multicall`.
-            if (orders[alice_.hash()] == DEAD_ORDER) {
+            if (sOrders[alice_.hash()] == DEAD_ORDER) {
                 emit OrderNotFound(msg.sender, alice_.owner, alice_.hash());
                 return;
             }
-            if (orders[bob_.hash()] == DEAD_ORDER) {
+            if (sOrders[bob_.hash()] == DEAD_ORDER) {
                 emit OrderNotFound(msg.sender, bob_.owner, bob_.hash());
                 return;
             }
@@ -345,11 +356,11 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
             uint256 aliceBounty_ = clearStateChange_.aliceOutput - clearStateChange_.bobInput;
             uint256 bobBounty_ = clearStateChange_.bobOutput - clearStateChange_.aliceInput;
             if (aliceBounty_ > 0) {
-                vaultBalance[msg.sender][alice_.validOutputs[clearConfig_.aliceOutputIOIndex].token][clearConfig_
+                sVaultBalances[msg.sender][alice_.validOutputs[clearConfig_.aliceOutputIOIndex].token][clearConfig_
                     .aliceBountyVaultId] += aliceBounty_;
             }
             if (bobBounty_ > 0) {
-                vaultBalance[msg.sender][bob_.validOutputs[clearConfig_.bobOutputIOIndex].token][clearConfig_
+                sVaultBalances[msg.sender][bob_.validOutputs[clearConfig_.bobOutputIOIndex].token][clearConfig_
                     .bobBountyVaultId] += bobBounty_;
             }
         }
@@ -391,7 +402,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
                     uint256(uint160(order_.validInputs[inputIOIndex_].token)),
                     order_.validInputs[inputIOIndex_].decimals,
                     order_.validInputs[inputIOIndex_].vaultId,
-                    vaultBalance[order_.owner][order_.validInputs[inputIOIndex_].token][order_.validInputs[inputIOIndex_]
+                    sVaultBalances[order_.owner][order_.validInputs[inputIOIndex_].token][order_.validInputs[inputIOIndex_]
                         .vaultId],
                     // Don't know the balance diff yet!
                     0
@@ -401,7 +412,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
                     uint256(uint160(order_.validOutputs[outputIOIndex_].token)),
                     order_.validOutputs[outputIOIndex_].decimals,
                     order_.validOutputs[outputIOIndex_].vaultId,
-                    vaultBalance[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
+                    sVaultBalances[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
                         .vaultId],
                     // Don't know the balance diff yet!
                     0
@@ -447,7 +458,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
             // The order owner can't send more than the smaller of their vault
             // balance or their per-order limit.
             orderOutputMax_ = orderOutputMax_.min(
-                vaultBalance[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
+                sVaultBalances[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
                     .vaultId]
             );
 
@@ -480,13 +491,13 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
 
         if (input_ > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
-            vaultBalance[order_.owner][address(
+            sVaultBalances[order_.owner][address(
                 uint160(orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
             )][orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input_;
         }
         if (output_ > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID UNDERFLOW.
-            vaultBalance[order_.owner][address(
+            sVaultBalances[order_.owner][address(
                 uint160(orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
             )][orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output_;
         }
