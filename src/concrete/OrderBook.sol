@@ -42,7 +42,7 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 error SameOwner(address owner);
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xa62ee776c94e335a2d59a5fa7d87ae282b35af1370107165adafe3464270a852);
+bytes32 constant CALLER_META_HASH = bytes32(0xa72b1351656daad5908b906f15ad318da93554430d296150444616ae0be4c92f);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
@@ -488,61 +488,63 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// Given an order, final input and output amounts and the IO calculation
     /// verbatim from `_calculateOrderIO`, dispatch the handle IO entrypoint if
     /// it exists and update the order owner's vault balances.
-    /// @param order_ The order that is being cleared.
-    /// @param input_ The exact token input amount to move into the owner's
+    /// @param order The order that is being cleared.
+    /// @param input The exact token input amount to move into the owner's
     /// vault.
-    /// @param output_ The exact token output amount to move out of the owner's
+    /// @param output The exact token output amount to move out of the owner's
     /// vault.
-    /// @param orderIOCalculation_ The verbatim order IO calculation returned by
+    /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
     function _recordVaultIO(
-        Order memory order_,
-        uint256 input_,
-        uint256 output_,
-        OrderIOCalculation memory orderIOCalculation_
+        Order memory order,
+        uint256 input,
+        uint256 output,
+        OrderIOCalculation memory orderIOCalculation
     ) internal virtual {
-        orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input_;
-        orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output_;
+        orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input;
+        orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output;
 
-        if (input_ > 0) {
+        if (input > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
-            sVaultBalances[order_.owner][address(
-                uint160(orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-            )][orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input_;
+            sVaultBalances[order.owner][address(
+                uint160(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input;
         }
-        if (output_ > 0) {
+        if (output > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID UNDERFLOW.
-            sVaultBalances[order_.owner][address(
-                uint160(orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-            )][orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output_;
+            sVaultBalances[order.owner][address(
+                uint160(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output;
         }
 
         // Emit the context only once in its fully populated form rather than two
         // nearly identical emissions of a partial and full context.
-        emit Context(msg.sender, orderIOCalculation_.context);
+        emit Context(msg.sender, orderIOCalculation.context);
 
         // Apply state changes to the interpreter store after the vault balances
         // are updated, but before we call handle IO. We want handle IO to see
         // a consistent view on sets from calculate IO.
-        if (orderIOCalculation_.kvs.length > 0) {
-            order_.evaluable.store.set(orderIOCalculation_.namespace, orderIOCalculation_.kvs);
+        if (orderIOCalculation.kvs.length > 0) {
+            order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
         }
 
         // Only dispatch handle IO entrypoint if it is defined, otherwise it is
         // a waste of gas to hit the interpreter a second time.
-        if (order_.handleIO) {
+        if (order.handleIO) {
             // The handle IO eval is run under the same namespace as the
             // calculate order entrypoint.
-            (, uint256[] memory handleIOKVs_) = order_.evaluable.interpreter.eval(
-                order_.evaluable.store,
-                orderIOCalculation_.namespace,
-                _handleIODispatch(order_.evaluable.expression),
-                orderIOCalculation_.context
+            (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = order.evaluable.interpreter.eval(
+                order.evaluable.store,
+                orderIOCalculation.namespace,
+                _handleIODispatch(order.evaluable.expression),
+                orderIOCalculation.context
             );
+            // There's nothing to be done with the stack.
+            (handleIOStack);
             // Apply state changes to the interpreter store from the handle IO
             // entrypoint.
-            if (handleIOKVs_.length > 0) {
-                order_.evaluable.store.set(orderIOCalculation_.namespace, handleIOKVs_);
+            if (handleIOKVs.length > 0) {
+                order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
             }
         }
     }

@@ -37,7 +37,8 @@ abstract contract OrderBookTest is Test, IOrderBookV3 {
             abi.encode(address(0), address(0), address(0))
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        console2.logBytes32(keccak256(meta));
+        console2.log("meta hash:");
+        console2.logBytes(abi.encodePacked(keccak256(meta)));
         orderbook =
             IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(deployer), meta))));
 
