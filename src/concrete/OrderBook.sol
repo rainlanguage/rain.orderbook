@@ -17,7 +17,7 @@ import {
     LibMeta
 } from "rain.interpreter/abstract/DeployerDiscoverableMetaV1.sol";
 
-import "../interface/IOrderBookV2.sol";
+import "../interface/unstable/IOrderBookV3.sol";
 import "../lib/LibOrder.sol";
 import "../lib/LibOrderBook.sol";
 import "../abstract/OrderBookFlashLender.sol";
@@ -114,7 +114,7 @@ uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLender, DeployerDiscoverableMetaV1 {
+contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLender, DeployerDiscoverableMetaV1 {
     using Math for uint256;
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
@@ -145,7 +145,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
     {}
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function vaultBalance(
         address owner,
         address token,
@@ -154,17 +154,17 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         return sVaultBalances[owner][token][vaultId];
     }
 
-    /// @inheritdoc IOrderBookV2
-    function deposit(DepositConfig calldata config) external nonReentrant {
+    /// @inheritdoc IOrderBookV3
+    function deposit(address token, uint256 vaultId, uint256 amount) external nonReentrant {
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
-        emit Deposit(msg.sender, config);
-        IERC20(config.token).safeTransferFrom(msg.sender, address(this), config.amount);
-        sVaultBalances[msg.sender][config.token][config.vaultId] += config.amount;
+        emit Deposit(msg.sender, token, vaultId, amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        sVaultBalances[msg.sender][token][vaultId] += amount;
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function withdraw(WithdrawConfig calldata config_) external nonReentrant {
         uint256 vaultBalance_ = sVaultBalances[msg.sender][config_.token][config_.vaultId];
         uint256 withdrawAmount_ = config_.amount.min(vaultBalance_);
@@ -176,7 +176,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         _decreaseFlashDebtThenSendToken(config_.token, msg.sender, withdrawAmount_);
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function addOrder(OrderConfig calldata config_) external nonReentrant {
         (IInterpreterV1 interpreter_, IInterpreterStoreV1 store_, address expression_) = config_
             .evaluableConfig
@@ -212,7 +212,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         return LibEncodedDispatch.encode(expression_, HANDLE_IO_ENTRYPOINT, HANDLE_IO_MAX_OUTPUTS);
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function removeOrder(Order calldata order_) external nonReentrant {
         if (msg.sender != order_.owner) {
             revert NotOrderOwner(msg.sender, order_.owner);
@@ -222,7 +222,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         emit RemoveOrder(msg.sender, order_, orderHash_);
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function takeOrders(TakeOrdersConfig calldata takeOrders_)
         external
         nonReentrant
@@ -291,7 +291,7 @@ contract OrderBook is IOrderBookV2, ReentrancyGuard, Multicall, OrderBookFlashLe
         _decreaseFlashDebtThenSendToken(takeOrders_.input, msg.sender, totalInput_);
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function clear(
         Order memory alice_,
         Order memory bob_,

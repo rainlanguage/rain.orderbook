@@ -7,7 +7,7 @@ import "rain.interpreter/interface/IExpressionDeployerV1.sol";
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibOrderBookConstants.sol";
 
-import "src/interface/IOrderBookV2.sol";
+import "src/interface/unstable/IOrderBookV3.sol";
 import "src/concrete/OrderBook.sol";
 
 /// @title OrderBookTest
@@ -20,9 +20,9 @@ import "src/concrete/OrderBook.sol";
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV2 so that it has access to all the relevant events.
-abstract contract OrderBookTest is Test, IOrderBookV2 {
+abstract contract OrderBookTest is Test, IOrderBookV3 {
     IExpressionDeployerV1 immutable deployer;
-    IOrderBookV2 immutable orderbook;
+    IOrderBookV3 immutable orderbook;
     IERC20 immutable token0;
     IERC20 immutable token1;
 
@@ -39,7 +39,7 @@ abstract contract OrderBookTest is Test, IOrderBookV2 {
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.logBytes32(keccak256(meta));
         orderbook =
-            IOrderBookV2(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(deployer), meta))));
+            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(deployer), meta))));
 
         token0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(token0), REVERTING_MOCK_BYTECODE);
@@ -48,12 +48,12 @@ abstract contract OrderBookTest is Test, IOrderBookV2 {
         vm.resumeGasMetering();
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function addOrder(OrderConfig calldata) external pure {
         revert("addOrder");
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function clear(Order memory, Order memory, ClearConfig calldata, SignedContextV1[] memory, SignedContextV1[] memory)
         external
         pure
@@ -61,8 +61,8 @@ abstract contract OrderBookTest is Test, IOrderBookV2 {
         revert("clear");
     }
 
-    /// @inheritdoc IOrderBookV2
-    function deposit(DepositConfig calldata) external pure {
+    /// @inheritdoc IOrderBookV3
+    function deposit(address, uint256, uint256) external pure {
         revert("deposit");
     }
 
@@ -81,22 +81,22 @@ abstract contract OrderBookTest is Test, IOrderBookV2 {
         revert("maxFlashLoan");
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function removeOrder(Order calldata) external pure {
         revert("removeOrder");
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function takeOrders(TakeOrdersConfig calldata) external pure returns (uint256, uint256) {
         revert("takeOrders");
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function vaultBalance(address, address, uint256) external pure returns (uint256) {
         revert("vaultBalance");
     }
 
-    /// @inheritdoc IOrderBookV2
+    /// @inheritdoc IOrderBookV3
     function withdraw(WithdrawConfig calldata) external pure {
         revert("withdraw");
     }
