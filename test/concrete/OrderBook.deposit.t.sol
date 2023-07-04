@@ -20,9 +20,10 @@ contract OrderBookDepositTest is OrderBookTest {
         vm.record();
         orderbook.deposit(DepositConfig(address(token0), vaultId, amount));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses((address(orderbook)));
-        // assertEq(reads.length, 0);
-        // assertEq(writes.length, 1);
-        // assertEq(writes[0], bytes32(uint256(1)));
+        assertEq(reads.length, 5);
+        assertEq(writes.length, 3);
+        assertEq(writes[0], bytes32(0));
+        // assertEq(writes[1], bytes32(0));
 
         assertEq(orderbook.vaultBalance(depositor, address(token0), vaultId), amount);
     }
@@ -59,18 +60,18 @@ contract OrderBookDepositTest is OrderBookTest {
 
     /// Multiple deposits should be additive.
     function testDepositMultiple(address depositor, uint256 vaultId, uint256[] memory amounts) external {
-        uint256 totalAmount;
+        uint256 totalAmount = 0;
+        uint256 amount;
         for (uint256 i = 0; i < amounts.length; i++) {
-            vm.assume(type(uint256).max - totalAmount >= amounts[i]); // Prevent overflow.
-            totalAmount += amounts[i];
-
+            amount = amounts[i] % type(uint248).max;
+            totalAmount += amount;
             vm.prank(depositor);
             vm.mockCall(
                 address(token0),
-                abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amounts[i]),
+                abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amount),
                 abi.encode(true)
             );
-            orderbook.deposit(DepositConfig(address(token0), vaultId, amounts[i]));
+            orderbook.deposit(DepositConfig(address(token0), vaultId, amount));
             assertEq(orderbook.vaultBalance(depositor, address(token0), vaultId), totalAmount);
         }
     }
