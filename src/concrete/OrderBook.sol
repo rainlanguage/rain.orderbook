@@ -438,7 +438,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // that local storage writes happen before writes on the interpreter.
             StateNamespace namespace = StateNamespace.wrap(uint256(uint160(order.owner)));
             // Slither false positive. External calls within loops are fine if
-            // the caller controls which contracts are called as they can drop
+            // the caller controls which orders are eval'd as they can drop
             // failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
@@ -538,6 +538,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         if (order.handleIO) {
             // The handle IO eval is run under the same namespace as the
             // calculate order entrypoint.
+            // Slither false positive. External calls within loops are fine if
+            // the caller controls which orders are eval'd as they can drop
+            // failing calls and resubmit a new transaction.
+            // https://github.com/crytic/slither/issues/880
+            //slither-disable-next-line calls-loop
             (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = order.evaluable.interpreter.eval(
                 order.evaluable.store,
                 orderIOCalculation.namespace,
