@@ -560,8 +560,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // entrypoint.
             if (handleIOKVs.length > 0) {
                 // Slither false positive. External calls within loops are fine
-                // if the caller controls which orders are eval'd as they can drop
-                // failing calls and resubmit a new transaction.
+                // if the caller controls which orders are eval'd as they can
+                // drop failing calls and resubmit a new transaction.
                 // https://github.com/crytic/slither/issues/880
                 //slither-disable-next-line calls-loop
                 order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
