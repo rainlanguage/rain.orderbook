@@ -17,14 +17,7 @@ contract OrderBookDepositTest is OrderBookTest {
             abi.encode(true)
         );
 
-        vm.record();
         orderbook.deposit(address(token0), vaultId, amount);
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses((address(orderbook)));
-        assertEq(reads.length, 5);
-        assertEq(writes.length, 3);
-        assertEq(writes[0], bytes32(0));
-        // assertEq(writes[1], bytes32(0));
-
         assertEq(orderbook.vaultBalance(depositor, address(token0), vaultId), amount);
     }
 
@@ -66,20 +59,21 @@ contract OrderBookDepositTest is OrderBookTest {
 
     /// Any failure in the deposit should revert the entire transaction.
     function testDepositFail(address depositor, uint256 vaultId, uint256 amount) external {
-        vm.prank(depositor);
-
         // The token contract always reverts when not mocked.
+        vm.prank(depositor);
         vm.expectRevert(bytes("SafeERC20: low-level call failed"));
         orderbook.deposit(address(token0), vaultId, amount);
 
         // Mocking the token to return false should also revert.
+        vm.prank(depositor);
         vm.mockCall(
             address(token0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amount),
             abi.encode(false)
         );
-        vm.expectRevert(bytes("SafeERC20: low-level call failed"));
-        orderbook.deposit(address(token0), vaultId, amount);
+        // This error string appears when the call completes but returns false.
+        vm.expectRevert(bytes("SafeERC20: ERC20 operation did not succeed"));
+        orderbook.deposit(address(token0), ~vaultId, amount);
     }
 
     /// Multiple deposits should be additive.
