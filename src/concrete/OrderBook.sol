@@ -41,12 +41,8 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 /// @param owner The owner of both orders.
 error SameOwner(address owner);
 
-/// Thrown when a reentrant call occurs and is caught outside the default
-/// nonReentrant modifier.
-error ReentrantCall();
-
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0x3e0a09bbcfb00ba65f2d54e879ada0793be341ec4cce52ae46c79dcfa3b87f8e);
+bytes32 constant CALLER_META_HASH = bytes32(0xccb725aa09e1c62951d95bc8e34abc49b4678da5b64bb75c366054659b3f3b3b);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
@@ -153,13 +149,27 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
     {}
 
-    /// @inheritdoc IOrderBookV3
-    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
-        // Guard against read-only reentrancy.
-        // https://chainsecurity.com/heartbreaks-curve-lp-oracles/
+    /// This will exist in a future version of Open Zeppelin if their main
+    /// branch is to be believed.
+    error ReentrancyGuardReentrantCall();
+
+    /// Guard against read-only reentrancy.
+    /// https://chainsecurity.com/heartbreaks-curve-lp-oracles/
+    modifier nonReentrantView() {
         if (_reentrancyGuardEntered()) {
-            revert ReentrantCall();
+            revert ReentrancyGuardReentrantCall();
         }
+        _;
+    }
+
+    /// @inheritdoc IOrderBookV3
+    function vaultBalance(address owner, address token, uint256 vaultId)
+        external
+        view
+        override
+        nonReentrantView
+        returns (uint256)
+    {
         return sVaultBalances[owner][token][vaultId];
     }
 
