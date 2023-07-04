@@ -14,6 +14,9 @@ error ZeroToken();
 /// Thrown when `flashLoan` receiver is zero address.
 error ZeroReceiver();
 
+/// Thrown when `flashLoan` amount is zero.
+error ZeroAmount();
+
 /// Thrown when the `onFlashLoan` callback returns anything other than
 /// ON_FLASH_LOAN_CALLBACK_SUCCESS.
 /// @param result The value that was returned by `onFlashLoan`.
@@ -42,15 +45,18 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
 
     IERC3156FlashBorrower private _sReceiver = IERC3156FlashBorrower(address(0));
     address private _sToken = address(0);
-    uint256 private _sAmount = 0;
+    uint256 private _sAmountUnpaid = 0;
 
+    /// If any of the debt related storage values are set then we consider a
+    /// debt active. Notably the debt is still active even if the amount unpaid
+    /// is zero, until the loan originating `flashLoan` call fully completes.
     function _isActiveDebt() internal view returns (bool) {
-        return (address(_sReceiver) != address(0)) || (_sToken != address(0)) || (_sAmount != 0);
+        return (address(_sReceiver) != address(0)) || (_sToken != address(0)) || (_sAmountUnpaid != 0);
     }
 
     function _checkActiveDebt() internal view {
         if (_isActiveDebt()) {
-            revert ActiveDebt(address(_sReceiver), _sToken, _sAmount);
+            revert ActiveDebt(address(_sReceiver), _sToken, _sAmountUnpaid);
         }
     }
 
@@ -95,12 +101,12 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
         // If this token transfer matches the active debt then prioritise
         // reducing debt over sending tokens.
         if (token == _sToken && receiver == address(_sReceiver)) {
-            uint256 debtReduction = sendAmount.min(_sAmount);
+            uint256 debtReduction = sendAmount.min(_sAmountUnpaid);
             sendAmount -= debtReduction;
 
             // Even if this completely zeros the amount the debt is considered
             // active until the `flashLoan` also clears the token and recipient.
-            _sAmount -= debtReduction;
+            _sAmountUnpaid -= debtReduction;
         }
 
         if (sendAmount > 0) {
@@ -114,26 +120,28 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
         override
         returns (bool)
     {
-        // This prevents reentrancy, loans can be taken sequentially within a
-        // transaction but not simultanously.
-        _checkActiveDebt();
-
         // Set the active debt before transferring tokens to prevent reeentrancy.
         // The active debt is set beyond the scope of `flashLoan` to facilitate
         // early repayment via. `_decreaseFlashDebtThenSendToken`.
         {
-            if (token == address(0)) {
-                revert ZeroToken();
-            }
             if (address(receiver) == address(0)) {
                 revert ZeroReceiver();
             }
+            if (token == address(0)) {
+                revert ZeroToken();
+            }
+            if (amount == 0) {
+                revert ZeroAmount();
+            }
+
+            // This prevents reentrancy, loans can be taken sequentially within
+            // a transaction but not simultanously. If any of these values are
+            // nonzero in storage, they cannot be set to a new value.
+            _checkActiveDebt();
             _sToken = token;
             _sReceiver = receiver;
-            _sAmount = amount;
-            if (amount > 0) {
-                IERC20(token).safeTransfer(address(receiver), amount);
-            }
+            _sAmountUnpaid = amount;
+            IERC20(token).safeTransfer(address(receiver), amount);
         }
 
         bytes32 result = receiver.onFlashLoan(msg.sender, token, amount, FLASH_FEE, data);
@@ -147,10 +155,14 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
             // Sync local `amount_` with global `_amount` in case an early
             // repayment was made during the loan term via.
             // `_decreaseFlashDebtThenSendToken`.
-            amount = _sAmount;
+            amount = _sAmountUnpaid;
             if (amount > 0) {
+                // There is no way to fix this slither warning and be compatible
+                // with ERC3156.
+                // https://github.com/crytic/slither/issues/1658
+                //slither-disable-next-line arbitrary-from-in-transferfrom
                 IERC20(token).safeTransferFrom(address(receiver), address(this), amount);
-                _sAmount = 0;
+                _sAmountUnpaid = 0;
             }
 
             // Both of these are required to fully clear the active debt and
