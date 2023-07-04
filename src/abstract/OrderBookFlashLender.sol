@@ -40,17 +40,17 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
-    IERC3156FlashBorrower private _receiver = IERC3156FlashBorrower(address(0));
-    address private _token = address(0);
-    uint256 private _amount = 0;
+    IERC3156FlashBorrower private _sReceiver = IERC3156FlashBorrower(address(0));
+    address private _sToken = address(0);
+    uint256 private _sAmount = 0;
 
     function _isActiveDebt() internal view returns (bool) {
-        return (address(_receiver) != address(0) || _token != address(0) || _amount != 0);
+        return (address(_sReceiver) != address(0)) || (_sToken != address(0)) || (_sAmount != 0);
     }
 
     function _checkActiveDebt() internal view {
         if (_isActiveDebt()) {
-            revert ActiveDebt(address(_receiver), _token, _amount);
+            revert ActiveDebt(address(_sReceiver), _sToken, _sAmount);
         }
     }
 
@@ -88,28 +88,28 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
     /// but the scenario is worth being aware of for more exotic token
     /// behaviours that may not be supported.
     ///
-    /// @param token_ The token being sent or for the debt being paid.
-    /// @param receiver_ The receiver of the token or holder of the debt.
-    /// @param sendAmount_ The amount to send or repay.
-    function _decreaseFlashDebtThenSendToken(address token_, address receiver_, uint256 sendAmount_) internal {
+    /// @param token The token being sent or for the debt being paid.
+    /// @param receiver The receiver of the token or holder of the debt.
+    /// @param sendAmount The amount to send or repay.
+    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount) internal {
         // If this token transfer matches the active debt then prioritise
         // reducing debt over sending tokens.
-        if (token_ == _token && receiver_ == address(_receiver)) {
-            uint256 debtReduction_ = sendAmount_.min(_amount);
-            sendAmount_ -= debtReduction_;
+        if (token == _sToken && receiver == address(_sReceiver)) {
+            uint256 debtReduction = sendAmount.min(_sAmount);
+            sendAmount -= debtReduction;
 
             // Even if this completely zeros the amount the debt is considered
             // active until the `flashLoan` also clears the token and recipient.
-            _amount -= debtReduction_;
+            _sAmount -= debtReduction;
         }
 
-        if (sendAmount_ > 0) {
-            IERC20(token_).safeTransfer(receiver_, sendAmount_);
+        if (sendAmount > 0) {
+            IERC20(token).safeTransfer(receiver, sendAmount);
         }
     }
 
     /// @inheritdoc IERC3156FlashLender
-    function flashLoan(IERC3156FlashBorrower receiver_, address token_, uint256 amount_, bytes calldata data_)
+    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
         external
         override
         returns (bool)
@@ -122,34 +122,23 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
         // The active debt is set beyond the scope of `flashLoan` to facilitate
         // early repayment via. `_decreaseFlashDebtThenSendToken`.
         {
-            if (token_ == address(0)) {
+            if (token == address(0)) {
                 revert ZeroToken();
             }
-            if (address(receiver_) == address(0)) {
+            if (address(receiver) == address(0)) {
                 revert ZeroReceiver();
             }
-            _token = token_;
-            _receiver = receiver_;
-            _amount = amount_;
-            if (amount_ > 0) {
-                IERC20(token_).safeTransfer(address(receiver_), amount_);
+            _sToken = token;
+            _sReceiver = receiver;
+            _sAmount = amount;
+            if (amount > 0) {
+                IERC20(token).safeTransfer(address(receiver), amount);
             }
         }
 
-        bytes32 result_ = receiver_.onFlashLoan(
-            // initiator
-            msg.sender,
-            // token
-            token_,
-            // amount
-            amount_,
-            // fee
-            0,
-            // data
-            data_
-        );
-        if (result_ != ON_FLASH_LOAN_CALLBACK_SUCCESS) {
-            revert FlashLenderCallbackFailed(result_);
+        bytes32 result = receiver.onFlashLoan(msg.sender, token, amount, FLASH_FEE, data);
+        if (result != ON_FLASH_LOAN_CALLBACK_SUCCESS) {
+            revert FlashLenderCallbackFailed(result);
         }
 
         // Pull tokens before releasing the active debt to prevent a new loan
@@ -158,16 +147,16 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
             // Sync local `amount_` with global `_amount` in case an early
             // repayment was made during the loan term via.
             // `_decreaseFlashDebtThenSendToken`.
-            amount_ = _amount;
-            if (amount_ > 0) {
-                IERC20(_token).safeTransferFrom(address(_receiver), address(this), amount_);
-                _amount = 0;
+            amount = _sAmount;
+            if (amount > 0) {
+                IERC20(token).safeTransferFrom(address(receiver), address(this), amount);
+                _sAmount = 0;
             }
 
             // Both of these are required to fully clear the active debt and
             // allow new debts.
-            _receiver = IERC3156FlashBorrower(address(0));
-            _token = address(0);
+            _sReceiver = IERC3156FlashBorrower(address(0));
+            _sToken = address(0);
         }
 
         // Guard against some bad code path that allowed an active debt to remain
@@ -186,7 +175,7 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
     /// the current tokens deposited in `Orderbook`. If there is an active debt
     /// then loans are disabled so the max becomes `0` until after repayment.
     /// @inheritdoc IERC3156FlashLender
-    function maxFlashLoan(address token_) external view override returns (uint256) {
-        return _isActiveDebt() ? 0 : IERC20(token_).balanceOf(address(this));
+    function maxFlashLoan(address token) external view override returns (uint256) {
+        return _isActiveDebt() ? 0 : IERC20(token).balanceOf(address(this));
     }
 }
