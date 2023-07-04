@@ -162,7 +162,7 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
                 // There is no way to fix this slither warning and be compatible
                 // with ERC3156.
                 // https://github.com/crytic/slither/issues/1658
-                //slither-disable-next-line arbitrary-from-in-transferfrom
+                //slither-disable-next-line arbitrary-send-erc20
                 IERC20(token).safeTransferFrom(address(receiver), address(this), amount);
                 _sAmountUnpaid = 0;
             }
