@@ -259,19 +259,21 @@ contract OrderBookDepositTest is OrderBookTest {
         orderbook.deposit(address(token0), vaultId, amountTwo);
     }
 
-    /// It must always be possible to deposit to a vault, assuming it does not
-    /// overflow.
-    //solhint-disable-next-line func-name-mixedcase
-    function invariant_canAlwaysDeposit() external {
-        uint256 vaultId = uint256(keccak256(abi.encodePacked(block.timestamp)));
-        uint256 amount = uint256(keccak256(abi.encodePacked(vaultId)));
+    // Invariant testing doesn't seem to work currently.
+    // https://github.com/foundry-rs/foundry/issues/4656
+    // /// It must always be possible to deposit to a vault, assuming it does not
+    // /// overflow.
+    // //solhint-disable-next-line func-name-mixedcase
+    // function invariant_CanAlwaysDeposit() external {
+    //     uint256 vaultId = uint256(keccak256(abi.encodePacked(block.timestamp)));
+    //     uint256 amount = uint256(keccak256(abi.encodePacked(vaultId)));
 
-        vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(orderbook), amount),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token0), vaultId, amount);
-        assertEq(orderbook.vaultBalance(address(this), address(token0), vaultId), amount);
-    }
+    //     vm.mockCall(
+    //         address(token0),
+    //         abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(orderbook), amount),
+    //         abi.encode(true)
+    //     );
+    //     orderbook.deposit(address(token0), vaultId, amount);
+    //     assertEq(orderbook.vaultBalance(address(this), address(token0), vaultId), amount);
+    // }
 }
