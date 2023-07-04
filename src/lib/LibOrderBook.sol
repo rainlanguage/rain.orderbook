@@ -6,7 +6,7 @@ import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
 
 import "rain.interpreter/interface/IInterpreterStoreV1.sol";
-import "../interface/IOrderBookV2.sol";
+import "../interface/unstable/IOrderBookV3.sol";
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
