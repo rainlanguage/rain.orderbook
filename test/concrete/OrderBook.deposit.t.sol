@@ -7,7 +7,7 @@ import "test/util/abstract/OrderBookTest.sol";
 import "test/util/concrete/Reenteroor.sol";
 
 /// @title OrderBookDepositTest
-/// Tests depositing to an order book without any trades.
+/// Tests depositing to an order book.
 contract OrderBookDepositTest is OrderBookTest {
     /// Tests that we can deposit some amount and view the new vault balance.
     function testDepositSimple(address depositor, uint256 vaultId, uint256 amount) external {
