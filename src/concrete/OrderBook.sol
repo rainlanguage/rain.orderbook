@@ -22,6 +22,10 @@ import "../lib/LibOrder.sol";
 import "../lib/LibOrderBook.sol";
 import "../abstract/OrderBookFlashLender.sol";
 
+/// This will exist in a future version of Open Zeppelin if their main branch is
+/// to be believed.
+error ReentrancyGuardReentrantCall();
+
 /// Thrown when the `msg.sender` modifying an order is not its owner.
 /// @param sender `msg.sender` attempting to modify the order.
 /// @param owner The owner of the order.
@@ -148,10 +152,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config)
         DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
     {}
-
-    /// This will exist in a future version of Open Zeppelin if their main
-    /// branch is to be believed.
-    error ReentrancyGuardReentrantCall();
 
     /// Guard against read-only reentrancy.
     /// https://chainsecurity.com/heartbreaks-curve-lp-oracles/

@@ -13,3 +13,4 @@ OrderBookDepositTest:testMultiDepositorCollision(address,address,uint256,uint256
 OrderBookDepositTest:testMultiTokenCollision(address,uint256,uint256,uint256) (runs: 2048, μ: 68268, ~: 68268)
 OrderBookDepositTest:testMultiVaultCollision(address,uint256,uint256,uint256,uint256) (runs: 2048, μ: 68631, ~: 68631)
 OrderBookDepositTest:testVaultBalanceNoDeposits(address,uint256) (runs: 2048, μ: 8263, ~: 8263)
+OrderBookDepositTest:testVaultBalanceReentrant(address,uint256,uint256,address,address,uint256) (runs: 2048, μ: 494046, ~: 496009)
