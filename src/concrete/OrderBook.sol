@@ -22,6 +22,10 @@ import "../lib/LibOrder.sol";
 import "../lib/LibOrderBook.sol";
 import "../abstract/OrderBookFlashLender.sol";
 
+/// This will exist in a future version of Open Zeppelin if their main branch is
+/// to be believed.
+error ReentrancyGuardReentrantCall();
+
 /// Thrown when the `msg.sender` modifying an order is not its owner.
 /// @param sender `msg.sender` attempting to modify the order.
 /// @param owner The owner of the order.
@@ -42,7 +46,7 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 error SameOwner(address owner);
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0x8b7784ccde8b75c182d7e75ef41c957926a1ed20d55612ff08cfc5a2cd99be96);
+bytes32 constant CALLER_META_HASH = bytes32(0xccb725aa09e1c62951d95bc8e34abc49b4678da5b64bb75c366054659b3f3b3b);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
@@ -149,8 +153,27 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
     {}
 
+    /// Guard against read-only reentrancy.
+    /// https://chainsecurity.com/heartbreaks-curve-lp-oracles/
+    modifier nonReentrantView() {
+        if (_reentrancyGuardEntered()) {
+            revert ReentrancyGuardReentrantCall();
+        }
+        _;
+    }
+
     /// @inheritdoc IOrderBookV3
-    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
+    // This has a reentrancy guard on it but Slither doesn't know that because
+    // it is a read-only reentrancy due to potential cross function reentrancy.
+    // https://github.com/crytic/slither/issues/735#issuecomment-1620704314
+    //slither-disable-next-line reentrancy-no-eth
+    function vaultBalance(address owner, address token, uint256 vaultId)
+        external
+        view
+        override
+        nonReentrantView
+        returns (uint256)
+    {
         return sVaultBalances[owner][token][vaultId];
     }
 
@@ -169,42 +192,53 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function withdraw(WithdrawConfig calldata config_) external nonReentrant {
-        uint256 vaultBalance_ = sVaultBalances[msg.sender][config_.token][config_.vaultId];
-        uint256 withdrawAmount_ = config_.amount.min(vaultBalance_);
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external nonReentrant {
+        if (targetAmount == 0) {
+            revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
+        }
+        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        uint256 withdrawAmount = targetAmount.min(currentVaultBalance);
         // The overflow check here is redundant with .min above, so technically
         // this is overly conservative but we REALLY don't want withdrawals to
         // exceed vault balances.
-        sVaultBalances[msg.sender][config_.token][config_.vaultId] = vaultBalance_ - withdrawAmount_;
-        emit Withdraw(msg.sender, config_, withdrawAmount_);
-        _decreaseFlashDebtThenSendToken(config_.token, msg.sender, withdrawAmount_);
+        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
+        emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
+        _decreaseFlashDebtThenSendToken(token, msg.sender, withdrawAmount);
     }
 
     /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfig calldata config_) external nonReentrant {
-        (IInterpreterV1 interpreter_, IInterpreterStoreV1 store_, address expression_) = config_
+    function addOrder(OrderConfig calldata config) external nonReentrant {
+        (IInterpreterV1 interpreter, IInterpreterStoreV1 store, address expression) = config
             .evaluableConfig
             .deployer
             .deployExpression(
-            config_.evaluableConfig.sources,
-            config_.evaluableConfig.constants,
+            config.evaluableConfig.sources,
+            config.evaluableConfig.constants,
             LibUint256Array.arrayFrom(CALCULATE_ORDER_MIN_OUTPUTS, HANDLE_IO_MIN_OUTPUTS)
         );
-        Order memory order_ = Order(
+        Order memory order = Order(
             msg.sender,
-            config_.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
-            Evaluable(interpreter_, store_, expression_),
-            config_.validInputs,
-            config_.validOutputs
+            config.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
+            Evaluable(interpreter, store, expression),
+            config.validInputs,
+            config.validOutputs
         );
-        uint256 orderHash_ = order_.hash();
+        uint256 orderHash = order.hash();
 
-        sOrders[orderHash_] = LIVE_ORDER;
-        emit AddOrder(msg.sender, config_.evaluableConfig.deployer, order_, orderHash_);
+        // Check that the order is not already live. As the order hash includes
+        // the expression address, this can only happen if the deployer returns
+        // the same expression address for multiple deployments. This is
+        // technically possible but not something we want to support.
+        if (sOrders[orderHash] != DEAD_ORDER) {
+            revert OrderExists(msg.sender, orderHash);
+        }
+        //slither-disable-next-line reentrancy-benign
+        sOrders[orderHash] = LIVE_ORDER;
+        emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
 
-        if (config_.meta.length > 0) {
-            LibMeta.checkMetaUnhashed(config_.meta);
-            emit MetaV1(msg.sender, orderHash_, config_.meta);
+        if (config.meta.length > 0) {
+            LibMeta.checkMetaUnhashed(config.meta);
+            emit MetaV1(msg.sender, orderHash, config.meta);
         }
     }
 
@@ -376,69 +410,74 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// are always treated as 18 decimal fixed point values and then rescaled
     /// according to the order's definition of each token's actual fixed point
     /// decimals.
-    /// @param order_ The order to evaluate.
-    /// @param inputIOIndex_ The index of the input token being calculated for.
-    /// @param outputIOIndex_ The index of the output token being calculated for.
-    /// @param counterparty_ The counterparty of the order as it is currently
+    /// @param order The order to evaluate.
+    /// @param inputIOIndex The index of the input token being calculated for.
+    /// @param outputIOIndex The index of the output token being calculated for.
+    /// @param counterparty The counterparty of the order as it is currently
     /// being cleared against.
-    /// @param signedContext_ Any signed context provided by the clearer/taker
+    /// @param signedContext Any signed context provided by the clearer/taker
     /// that the order may need for its calculations.
     function _calculateOrderIO(
-        Order memory order_,
-        uint256 inputIOIndex_,
-        uint256 outputIOIndex_,
-        address counterparty_,
-        SignedContextV1[] memory signedContext_
+        Order memory order,
+        uint256 inputIOIndex,
+        uint256 outputIOIndex,
+        address counterparty,
+        SignedContextV1[] memory signedContext
     ) internal view virtual returns (OrderIOCalculation memory) {
         unchecked {
-            uint256 orderHash_ = order_.hash();
+            uint256 orderHash = order.hash();
 
-            uint256[][] memory context_;
+            uint256[][] memory context;
             {
-                uint256[][] memory callingContext_ = new uint256[][](
+                uint256[][] memory callingContext = new uint256[][](
                     CALLING_CONTEXT_COLUMNS
                 );
-                callingContext_[CONTEXT_CALLING_CONTEXT_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    orderHash_, uint256(uint160(order_.owner)), uint256(uint160(counterparty_))
-                );
+                callingContext[CONTEXT_CALLING_CONTEXT_COLUMN - 1] =
+                    LibUint256Array.arrayFrom(orderHash, uint256(uint160(order.owner)), uint256(uint160(counterparty)));
 
-                callingContext_[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order_.validInputs[inputIOIndex_].token)),
-                    order_.validInputs[inputIOIndex_].decimals,
-                    order_.validInputs[inputIOIndex_].vaultId,
-                    sVaultBalances[order_.owner][order_.validInputs[inputIOIndex_].token][order_.validInputs[inputIOIndex_]
+                callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                    uint256(uint160(order.validInputs[inputIOIndex].token)),
+                    order.validInputs[inputIOIndex].decimals,
+                    order.validInputs[inputIOIndex].vaultId,
+                    sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
                         .vaultId],
                     // Don't know the balance diff yet!
                     0
                 );
 
-                callingContext_[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order_.validOutputs[outputIOIndex_].token)),
-                    order_.validOutputs[outputIOIndex_].decimals,
-                    order_.validOutputs[outputIOIndex_].vaultId,
-                    sVaultBalances[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
+                callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                    uint256(uint160(order.validOutputs[outputIOIndex].token)),
+                    order.validOutputs[outputIOIndex].decimals,
+                    order.validOutputs[outputIOIndex].vaultId,
+                    sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
                         .vaultId],
                     // Don't know the balance diff yet!
                     0
                 );
-                context_ = LibContext.build(callingContext_, signedContext_);
+                context = LibContext.build(callingContext, signedContext);
             }
 
             // The state changes produced here are handled in _recordVaultIO so
             // that local storage writes happen before writes on the interpreter.
-            StateNamespace namespace_ = StateNamespace.wrap(uint256(uint160(order_.owner)));
-            (uint256[] memory stack_, uint256[] memory kvs_) = order_.evaluable.interpreter.eval(
-                order_.evaluable.store, namespace_, _calculateOrderDispatch(order_.evaluable.expression), context_
-            );
+            StateNamespace namespace = StateNamespace.wrap(uint256(uint160(order.owner)));
+            // Slither false positive. External calls within loops are fine if
+            // the caller controls which orders are eval'd as they can drop
+            // failing calls and resubmit a new transaction.
+            // https://github.com/crytic/slither/issues/880
+            //slither-disable-next-line calls-loop
+            (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
+                .evaluable
+                .interpreter
+                .eval(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context);
 
-            uint256 orderOutputMax_ = stack_[stack_.length - 2];
-            uint256 orderIORatio_ = stack_[stack_.length - 1];
+            uint256 orderOutputMax = calculateOrderStack[calculateOrderStack.length - 2];
+            uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
 
             // Rescale order output max from 18 FP to whatever decimals the
             // output token is using.
             // Always round order output down.
-            orderOutputMax_ = orderOutputMax_.scaleN(
-                order_.validOutputs[outputIOIndex_].decimals,
+            orderOutputMax = orderOutputMax.scaleN(
+                order.validOutputs[outputIOIndex].decimals,
                 // Saturate the order max output because if we were willing to
                 // give more than this on a scale up, we should be comfortable
                 // giving less.
@@ -449,9 +488,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // Rescale the ratio from 18 FP according to the difference in
             // decimals between input and output.
             // Always round IO ratio up.
-            orderIORatio_ = orderIORatio_.scaleRatio(
-                order_.validOutputs[outputIOIndex_].decimals,
-                order_.validInputs[inputIOIndex_].decimals,
+            orderIORatio = orderIORatio.scaleRatio(
+                order.validOutputs[outputIOIndex].decimals,
+                order.validInputs[inputIOIndex].decimals,
                 // DO NOT saturate ratios because this would reduce the effective
                 // IO ratio, which would mean that saturating would make the deal
                 // worse for the order. Instead we overflow, and round up to get
@@ -461,77 +500,94 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
             // The order owner can't send more than the smaller of their vault
             // balance or their per-order limit.
-            orderOutputMax_ = orderOutputMax_.min(
-                sVaultBalances[order_.owner][order_.validOutputs[outputIOIndex_].token][order_.validOutputs[outputIOIndex_]
+            orderOutputMax = orderOutputMax.min(
+                sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
                     .vaultId]
             );
 
             // Populate the context with the output max rescaled and vault capped
             // and the rescaled ratio.
-            context_[CONTEXT_CALCULATIONS_COLUMN] = LibUint256Array.arrayFrom(orderOutputMax_, orderIORatio_);
+            context[CONTEXT_CALCULATIONS_COLUMN] = LibUint256Array.arrayFrom(orderOutputMax, orderIORatio);
 
-            return OrderIOCalculation(orderOutputMax_, orderIORatio_, context_, namespace_, kvs_);
+            return OrderIOCalculation(orderOutputMax, orderIORatio, context, namespace, calculateOrderKVs);
         }
     }
 
     /// Given an order, final input and output amounts and the IO calculation
     /// verbatim from `_calculateOrderIO`, dispatch the handle IO entrypoint if
     /// it exists and update the order owner's vault balances.
-    /// @param order_ The order that is being cleared.
-    /// @param input_ The exact token input amount to move into the owner's
+    /// @param order The order that is being cleared.
+    /// @param input The exact token input amount to move into the owner's
     /// vault.
-    /// @param output_ The exact token output amount to move out of the owner's
+    /// @param output The exact token output amount to move out of the owner's
     /// vault.
-    /// @param orderIOCalculation_ The verbatim order IO calculation returned by
+    /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
     function _recordVaultIO(
-        Order memory order_,
-        uint256 input_,
-        uint256 output_,
-        OrderIOCalculation memory orderIOCalculation_
+        Order memory order,
+        uint256 input,
+        uint256 output,
+        OrderIOCalculation memory orderIOCalculation
     ) internal virtual {
-        orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input_;
-        orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output_;
+        orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input;
+        orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output;
 
-        if (input_ > 0) {
+        if (input > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
-            sVaultBalances[order_.owner][address(
-                uint160(orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-            )][orderIOCalculation_.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input_;
+            sVaultBalances[order.owner][address(
+                uint160(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input;
         }
-        if (output_ > 0) {
+        if (output > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID UNDERFLOW.
-            sVaultBalances[order_.owner][address(
-                uint160(orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-            )][orderIOCalculation_.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output_;
+            sVaultBalances[order.owner][address(
+                uint160(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output;
         }
 
         // Emit the context only once in its fully populated form rather than two
         // nearly identical emissions of a partial and full context.
-        emit Context(msg.sender, orderIOCalculation_.context);
+        emit Context(msg.sender, orderIOCalculation.context);
 
         // Apply state changes to the interpreter store after the vault balances
         // are updated, but before we call handle IO. We want handle IO to see
         // a consistent view on sets from calculate IO.
-        if (orderIOCalculation_.kvs.length > 0) {
-            order_.evaluable.store.set(orderIOCalculation_.namespace, orderIOCalculation_.kvs);
+        if (orderIOCalculation.kvs.length > 0) {
+            // Slither false positive. External calls within loops are fine if
+            // the caller controls which orders are eval'd as they can drop
+            // failing calls and resubmit a new transaction.
+            // https://github.com/crytic/slither/issues/880
+            //slither-disable-next-line calls-loop
+            order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
         }
 
         // Only dispatch handle IO entrypoint if it is defined, otherwise it is
         // a waste of gas to hit the interpreter a second time.
-        if (order_.handleIO) {
+        if (order.handleIO) {
             // The handle IO eval is run under the same namespace as the
             // calculate order entrypoint.
-            (, uint256[] memory handleIOKVs_) = order_.evaluable.interpreter.eval(
-                order_.evaluable.store,
-                orderIOCalculation_.namespace,
-                _handleIODispatch(order_.evaluable.expression),
-                orderIOCalculation_.context
+            // Slither false positive. External calls within loops are fine if
+            // the caller controls which orders are eval'd as they can drop
+            // failing calls and resubmit a new transaction.
+            // https://github.com/crytic/slither/issues/880
+            //slither-disable-next-line calls-loop
+            (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = order.evaluable.interpreter.eval(
+                order.evaluable.store,
+                orderIOCalculation.namespace,
+                _handleIODispatch(order.evaluable.expression),
+                orderIOCalculation.context
             );
+            // There's nothing to be done with the stack.
+            (handleIOStack);
             // Apply state changes to the interpreter store from the handle IO
             // entrypoint.
-            if (handleIOKVs_.length > 0) {
-                order_.evaluable.store.set(orderIOCalculation_.namespace, handleIOKVs_);
+            if (handleIOKVs.length > 0) {
+                // Slither false positive. External calls within loops are fine
+                // if the caller controls which orders are eval'd as they can
+                // drop failing calls and resubmit a new transaction.
+                // https://github.com/crytic/slither/issues/880
+                //slither-disable-next-line calls-loop
+                order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
             }
         }
     }

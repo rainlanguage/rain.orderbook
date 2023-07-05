@@ -54,40 +54,37 @@ library LibOrderBook {
     /// alice and order bob. The input of each is their output multiplied by
     /// their IO ratio and the output of each is the smaller of their maximum
     /// output and the counterparty IO * max output.
-    /// @param aliceOrderIOCalculation_ Order calculation A.
-    /// @param bobOrderIOCalculation_ Order calculation B.
-    /// @return The clear state change with absolute inputs and outputs for A and
-    /// B.
+    /// @param aliceOrderIOCalculation Order calculation for Alice.
+    /// @param bobOrderIOCalculation Order calculation for Bob.
+    /// @return clearStateChange The clear state change with absolute inputs and
+    /// outputs for Alice and Bob.
     function _clearStateChange(
-        OrderIOCalculation memory aliceOrderIOCalculation_,
-        OrderIOCalculation memory bobOrderIOCalculation_
-    ) internal pure returns (ClearStateChange memory) {
-        ClearStateChange memory clearStateChange_;
-        {
-            clearStateChange_.aliceOutput = aliceOrderIOCalculation_.outputMax.min(
-                // B's input is A's output.
-                // A cannot output more than their max.
-                // B wants input of their IO ratio * their output.
-                // Always round IO calculations up.
-                bobOrderIOCalculation_.outputMax.fixedPointMul(bobOrderIOCalculation_.IORatio, Math.Rounding.Up)
-            );
-            clearStateChange_.bobOutput = bobOrderIOCalculation_.outputMax.min(
-                // A's input is B's output.
-                // B cannot output more than their max.
-                // A wants input of their IO ratio * their output.
-                // Always round IO calculations up.
-                aliceOrderIOCalculation_.outputMax.fixedPointMul(aliceOrderIOCalculation_.IORatio, Math.Rounding.Up)
-            );
-
-            // A's input is A's output * their IO ratio.
+        OrderIOCalculation memory aliceOrderIOCalculation,
+        OrderIOCalculation memory bobOrderIOCalculation
+    ) internal pure returns (ClearStateChange memory clearStateChange) {
+        // Alice's output is the smaller of their max output and Bob's input.
+        clearStateChange.aliceOutput = aliceOrderIOCalculation.outputMax.min(
+            // Bob's input is Alice's output.
+            // Alice cannot output more than their max.
+            // Bob wants input of their IO ratio * their output.
             // Always round IO calculations up.
-            clearStateChange_.aliceInput =
-                clearStateChange_.aliceOutput.fixedPointMul(aliceOrderIOCalculation_.IORatio, Math.Rounding.Up);
-            // B's input is B's output * their IO ratio.
+            bobOrderIOCalculation.outputMax.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up)
+        );
+        // Bob's output is the smaller of their max output and Alice's input.
+        clearStateChange.bobOutput = bobOrderIOCalculation.outputMax.min(
+            // Alice's input is Bob's output.
+            // Bob cannot output more than their max.
+            // Alice wants input of their IO ratio * their output.
             // Always round IO calculations up.
-            clearStateChange_.bobInput =
-                clearStateChange_.bobOutput.fixedPointMul(bobOrderIOCalculation_.IORatio, Math.Rounding.Up);
-        }
-        return clearStateChange_;
+            aliceOrderIOCalculation.outputMax.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
+        );
+        // Alice's input is Alice's output * their IO ratio.
+        // Always round IO calculations up.
+        clearStateChange.aliceInput =
+            clearStateChange.aliceOutput.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
+        // Bob's input is Bob's output * their IO ratio.
+        // Always round IO calculations up.
+        clearStateChange.bobInput =
+            clearStateChange.bobOutput.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up);
     }
 }

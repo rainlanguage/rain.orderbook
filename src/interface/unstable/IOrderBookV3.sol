@@ -5,17 +5,6 @@ import "../ierc3156/IERC3156FlashLender.sol";
 import "rain.interpreter/lib/LibEvaluable.sol";
 import "rain.interpreter/interface/IInterpreterCallerV2.sol";
 
-/// Configuration for a withdrawal. All withdrawals are processed by and for
-/// `msg.sender` so the vaults are unambiguous here.
-/// @param token The token to withdraw.
-/// @param vaultId The vault ID for the token to withdraw.
-/// @param amount The amount of the token to withdraw.
-struct WithdrawConfig {
-    address token;
-    uint256 vaultId;
-    uint256 amount;
-}
-
 /// Configuration for a single input or output on an `Order`.
 /// @param token The token to either send from the owner as an output or receive
 /// from the counterparty to the owner as an input. The tokens are not moved
@@ -290,6 +279,19 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param vaultId The vault ID the tokens are being deposited under.
     error ZeroDepositAmount(address sender, address token, uint256 vaultId);
 
+    /// MUST be thrown by `withdraw` if the amount _requested_ to withdraw is
+    /// zero. The withdrawal MAY still not move any tokens if the vault balance
+    /// is zero, or the withdrawal is used to repay a flash loan.
+    /// @param sender `msg.sender` withdrawing tokens.
+    /// @param token The token being withdrawn.
+    /// @param vaultId The vault ID the tokens are being withdrawn from.
+    error ZeroWithdrawTargetAmount(address sender, address token, uint256 vaultId);
+
+    /// MUST be thrown by `addOrder` if the order already exists.
+    /// @param sender `msg.sender` adding the order.
+    /// @param orderHash The hash of the order that already exists.
+    error OrderExists(address sender, uint256 orderHash);
+
     /// Some tokens have been deposited to a vault.
     /// @param sender `msg.sender` depositing tokens. Delegated deposits are NOT
     /// supported.
@@ -301,12 +303,14 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// Some tokens have been withdrawn from a vault.
     /// @param sender `msg.sender` withdrawing tokens. Delegated withdrawals are
     /// NOT supported.
-    /// @param config All config sent to the `withdraw` call.
+    /// @param token The token being withdrawn.
+    /// @param vaultId The vault ID the tokens are being withdrawn from.
+    /// @param targetAmount The amount of tokens requested to withdraw.
     /// @param amount The amount of tokens withdrawn, can be less than the
-    /// config amount if the vault does not have the funds available to cover
-    /// the config amount. For example an active order might move tokens before
+    /// target amount if the vault does not have the funds available to cover
+    /// the target amount. For example an active order might move tokens before
     /// the withdraw completes.
-    event Withdraw(address sender, WithdrawConfig config, uint256 amount);
+    event Withdraw(address sender, address token, uint256 vaultId, uint256 targetAmount, uint256 amount);
 
     /// An order has been added to the orderbook. The order is permanently and
     /// always active according to its expression until/unless it is removed.
@@ -419,10 +423,13 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// withrawer has an active flash loan debt denominated in the same token
     /// being withdrawn then Orderbook will merely reduce the debt and NOT send
     /// the amount of tokens repaid to the flashloan debt.
-    /// @param config All config required to withdraw. Notably if the amount
-    /// is less than the current vault balance then the vault will be cleared
-    /// to 0 rather than the withdraw transaction reverting.
-    function withdraw(WithdrawConfig calldata config) external;
+    /// @param token The token to withdraw.
+    /// @param vaultId The vault ID to withdraw from.
+    /// @param targetAmount The amount of tokens to attempt to withdraw. MAY
+    /// result in fewer tokens withdrawn if the vault balance is lower than the
+    /// target amount. MAY NOT be zero, the order book MUST revert with
+    /// `ZeroWithdrawTargetAmount` if the amount is zero.
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external;
 
     /// Given an order config, deploys the expression and builds the full `Order`
     /// for the config, then records it as an active order. Delegated adding an
