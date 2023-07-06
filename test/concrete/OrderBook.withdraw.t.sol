@@ -136,6 +136,7 @@ contract OrderBookWithdrawTest is OrderBookTest {
     }
     /// Arbitrary interleavings of deposits and withdrawals should work across
     /// many depositors, tokens, and vaults.
+
     function testWithdrawMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
@@ -164,7 +165,11 @@ contract OrderBookWithdrawTest is OrderBookTest {
                 vm.expectEmit(false, false, false, true);
                 emit Deposit(action.alice, action.token, action.vaultId, action.amount);
                 orderbook.deposit(action.token, action.vaultId, action.amount);
-                assertEq(orderbook.vaultBalance(action.alice, action.token, action.vaultId), balance + action.amount, "vault balance on deposit");
+                assertEq(
+                    orderbook.vaultBalance(action.alice, action.token, action.vaultId),
+                    balance + action.amount,
+                    "vault balance on deposit"
+                );
             } else {
                 uint256 expectedActualAmount = balance.min(uint256(action.amount));
                 vm.mockCall(
@@ -178,7 +183,8 @@ contract OrderBookWithdrawTest is OrderBookTest {
                 }
                 orderbook.withdraw(action.token, action.vaultId, action.amount);
                 assertEq(
-                    orderbook.vaultBalance(action.alice, action.token, action.vaultId), balance - expectedActualAmount,
+                    orderbook.vaultBalance(action.alice, action.token, action.vaultId),
+                    balance - expectedActualAmount,
                     "vault balance on withdraw"
                 );
             }

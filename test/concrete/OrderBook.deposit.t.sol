@@ -104,7 +104,10 @@ contract OrderBookDepositTest is OrderBookTest {
     }
     /// Any combination of depositors, tokens, vaults, amounts should not cause
     /// collisions or other illogical outcomes.
+
     function testDepositMany(Action[] memory actions) external {
+        vm.assume(address(0) != address(console));
+
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit amounts must be non-zero.
@@ -113,20 +116,17 @@ contract OrderBookDepositTest is OrderBookTest {
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             // Avoid errors from attempting to etch the orderbook.
             vm.assume(actions[i].token != address(orderbook));
-            vm.assume(actions[i].token != address(console));
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(actions[i].token, REVERTING_MOCK_BYTECODE);
-            uint256 vaultBalanceBefore = orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId);
+            uint256 vaultBalanceBefore =
+                orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId);
             vm.prank(actions[i].depositor);
             vm.mockCall(
                 actions[i].token,
                 abi.encodeWithSelector(
-                    IERC20.transferFrom.selector,
-                    actions[i].depositor,
-                    address(orderbook),
-                    uint256(actions[i].amount)
+                    IERC20.transferFrom.selector, actions[i].depositor, address(orderbook), uint256(actions[i].amount)
                 ),
                 abi.encode(true)
             );
