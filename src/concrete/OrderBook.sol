@@ -198,12 +198,14 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         }
         uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
         uint256 withdrawAmount = targetAmount.min(currentVaultBalance);
-        // The overflow check here is redundant with .min above, so technically
-        // this is overly conservative but we REALLY don't want withdrawals to
-        // exceed vault balances.
-        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
-        emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
-        _decreaseFlashDebtThenSendToken(token, msg.sender, withdrawAmount);
+        if (withdrawAmount > 0) {
+            // The overflow check here is redundant with .min above, so
+            // technically this is overly conservative but we REALLY don't want
+            // withdrawals to exceed vault balances.
+            sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
+            emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
+            _decreaseFlashDebtThenSendToken(token, msg.sender, withdrawAmount);
+        }
     }
 
     /// @inheritdoc IOrderBookV3
