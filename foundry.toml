@@ -25,5 +25,5 @@ cbor_metadata = false
 fs_permissions = [{ access = "read", path = "./meta"}]
 
 [fuzz]
-runs = 2048
+runs = 5096
 seed = "0xdeadbeef"

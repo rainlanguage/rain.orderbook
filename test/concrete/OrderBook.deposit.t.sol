@@ -91,6 +91,54 @@ contract OrderBookDepositTest is OrderBookTest {
         orderbook.deposit(address(token0), vaultId, amount);
     }
 
+    /// Defines a deposit to be used in testDepositMany.
+    /// @param depositor The address of the depositor.
+    /// @param token The address of the token to deposit.
+    /// @param vaultId The vaultId to deposit to.
+    /// @param amount The amount to deposit. `uint248` is used to avoid overflow.
+    struct Action {
+        address depositor;
+        address token;
+        uint256 vaultId;
+        uint248 amount;
+    }
+    /// Any combination of depositors, tokens, vaults, amounts should not cause
+    /// collisions or other illogical outcomes.
+    function testDepositMany(Action[] memory actions) external {
+        vm.assume(actions.length > 0);
+        for (uint256 i = 0; i < actions.length; i++) {
+            // Deposit amounts must be non-zero.
+            vm.assume(actions[i].amount != 0);
+            // Avoid errors from attempting to etch precompiles.
+            vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
+            // Avoid errors from attempting to etch the orderbook.
+            vm.assume(actions[i].token != address(orderbook));
+            vm.assume(actions[i].token != address(console));
+        }
+
+        for (uint256 i = 0; i < actions.length; i++) {
+            vm.etch(actions[i].token, REVERTING_MOCK_BYTECODE);
+            uint256 vaultBalanceBefore = orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId);
+            vm.prank(actions[i].depositor);
+            vm.mockCall(
+                actions[i].token,
+                abi.encodeWithSelector(
+                    IERC20.transferFrom.selector,
+                    actions[i].depositor,
+                    address(orderbook),
+                    uint256(actions[i].amount)
+                ),
+                abi.encode(true)
+            );
+            orderbook.deposit(actions[i].token, actions[i].vaultId, actions[i].amount);
+            assertEq(
+                orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId),
+                actions[i].amount + vaultBalanceBefore,
+                "vault balance"
+            );
+        }
+    }
+
     /// Multiple deposits should be additive.
     function testDepositMultiple(address depositor, uint256 vaultId, uint256[] memory amounts) external {
         uint256 totalAmount = 0;

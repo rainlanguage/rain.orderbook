@@ -119,49 +119,68 @@ contract OrderBookWithdrawTest is OrderBookTest {
         orderbook.withdraw(address(token0), vaultId, withdrawAmount);
     }
 
-    /// Multiple withdrawals from the same vault should be possible.
-    /// @param isDeposit Whether the action is a deposit or a withdrawal.
-    /// @param amount The amount to deposit or withdraw. Using a uint248 to
-    /// avoid overflow conditions that aren't relevant to the test.
+    /// Defines an action that can be taken in withdrawal tests.
+    /// @param actionKind The kind of action to take. True for deposit, false
+    /// for withdraw.
+    /// @param alice The address taking action.
+    /// @param token The token being deposited/withdrawn.
+    /// @param vaultId The vault being deposited/withdrawn from.
+    /// @param amount The amount being deposited/withdrawn. `uint248` is used
+    /// as a simple hack to avoid dealing with overflows.
     struct Action {
-        bool isDeposit;
+        bool actionKind;
+        address alice;
+        address token;
+        uint256 vaultId;
         uint248 amount;
     }
-    function testWithdrawMultiple(address alice, uint256 vaultId, Action[] memory actions)
-        external
-    {
+    /// Arbitrary interleavings of deposits and withdrawals should work across
+    /// many depositors, tokens, and vaults.
+    function testWithdrawMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
+            // Deposit and withdrawal amounts must be positive.
             vm.assume(actions[i].amount > 0);
+            // Avoid errors from attempting to etch precompiles.
+            vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
+            // Avoid errors from attempting to etch the orderbook.
+            vm.assume(actions[i].token != address(orderbook));
         }
+        Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {
-            uint256 balance = orderbook.vaultBalance(address(alice), address(token0), vaultId);
+            vm.etch(action.token, REVERTING_MOCK_BYTECODE);
+            action = actions[i];
+            uint256 balance = orderbook.vaultBalance(action.alice, action.token, action.vaultId);
 
-            if (actions[i].isDeposit) {
-                vm.prank(alice);
+            vm.prank(action.alice);
+            if (action.actionKind) {
                 vm.mockCall(
-                    address(token0),
-                    abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(orderbook), actions[i].amount),
+                    action.token,
+                    abi.encodeWithSelector(
+                        IERC20.transferFrom.selector, action.alice, address(orderbook), uint256(action.amount)
+                    ),
                     abi.encode(true)
                 );
                 vm.expectEmit(false, false, false, true);
-                emit Deposit(alice, address(token0), vaultId, actions[i].amount);
-                orderbook.deposit(address(token0), vaultId, actions[i].amount);
-                assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), balance + actions[i].amount);
+                emit Deposit(action.alice, action.token, action.vaultId, action.amount);
+                orderbook.deposit(action.token, action.vaultId, action.amount);
+                assertEq(orderbook.vaultBalance(action.alice, action.token, action.vaultId), balance + action.amount, "vault balance on deposit");
             } else {
-                uint256 expectedActualAmount = balance.min(uint256(actions[i].amount));
-                vm.prank(alice);
+                uint256 expectedActualAmount = balance.min(uint256(action.amount));
                 vm.mockCall(
-                    address(token0),
-                    abi.encodeWithSelector(IERC20.transfer.selector, alice, expectedActualAmount),
+                    action.token,
+                    abi.encodeWithSelector(IERC20.transfer.selector, action.alice, expectedActualAmount),
                     abi.encode(true)
                 );
                 if (expectedActualAmount > 0) {
                     vm.expectEmit(false, false, false, true);
-                    emit Withdraw(alice, address(token0), vaultId, actions[i].amount, expectedActualAmount);
+                    emit Withdraw(action.alice, action.token, action.vaultId, action.amount, expectedActualAmount);
                 }
-                orderbook.withdraw(address(token0), vaultId, actions[i].amount);
-                assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), balance - expectedActualAmount);
+                orderbook.withdraw(action.token, action.vaultId, action.amount);
+                assertEq(
+                    orderbook.vaultBalance(action.alice, action.token, action.vaultId), balance - expectedActualAmount,
+                    "vault balance on withdraw"
+                );
             }
         }
     }
