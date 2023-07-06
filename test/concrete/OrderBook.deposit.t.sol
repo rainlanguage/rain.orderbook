@@ -102,9 +102,9 @@ contract OrderBookDepositTest is OrderBookTest {
         uint256 vaultId;
         uint248 amount;
     }
+
     /// Any combination of depositors, tokens, vaults, amounts should not cause
     /// collisions or other illogical outcomes.
-
     function testDepositMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
@@ -114,7 +114,9 @@ contract OrderBookDepositTest is OrderBookTest {
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             // Avoid errors from attempting to etch the orderbook.
             vm.assume(actions[i].token != address(orderbook));
-            // vm.assume(actions[i].token != address(console));
+            // Avoid errors from attempting to etch test harness internals.
+            vm.assume(actions[i].token != address(CONSOLE_ADDRESS));
+            vm.assume(actions[i].token != address(vm));
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
@@ -129,123 +131,25 @@ contract OrderBookDepositTest is OrderBookTest {
                 ),
                 abi.encode(true)
             );
+            vm.expectEmit(false, false, false, true);
+            emit Deposit(actions[i].depositor, actions[i].token, actions[i].vaultId, uint256(actions[i].amount));
+            vm.record();
+            vm.recordLogs();
             orderbook.deposit(actions[i].token, actions[i].vaultId, actions[i].amount);
+            (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(orderbook));
+            assertEq(vm.getRecordedLogs().length, 1, "logs");
+            // - reentrancy guard x3
+            // - vault balance x2
+            assertEq(reads.length, 5, "reads");
+            // - reentrancy guard x2
+            // - vault balance x1
+            assertEq(writes.length, 3, "writes");
             assertEq(
                 orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId),
                 actions[i].amount + vaultBalanceBefore,
                 "vault balance"
             );
         }
-    }
-
-    /// Multiple deposits should be additive.
-    function testDepositMultiple(address depositor, uint256 vaultId, uint256[] memory amounts) external {
-        uint256 totalAmount = 0;
-        uint256 amount;
-        for (uint256 i = 0; i < amounts.length; i++) {
-            amount = amounts[i] % type(uint248).max;
-            vm.assume(amount != 0);
-            totalAmount += amount;
-            vm.prank(depositor);
-            vm.mockCall(
-                address(token0),
-                abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amount),
-                abi.encode(true)
-            );
-            orderbook.deposit(address(token0), vaultId, amount);
-            assertEq(orderbook.vaultBalance(depositor, address(token0), vaultId), totalAmount);
-        }
-    }
-
-    /// Depositing under different tokens should not affect each other even if
-    /// the vaultId is the same.
-    function testMultiTokenCollision(address depositor, uint256 vaultId, uint256 amountOne, uint256 amountTwo)
-        external
-    {
-        vm.assume(amountOne != 0);
-        vm.assume(amountTwo != 0);
-
-        vm.prank(depositor);
-        vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amountOne),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token0), vaultId, amountOne);
-        assertEq(orderbook.vaultBalance(depositor, address(token0), vaultId), amountOne);
-
-        vm.prank(depositor);
-        vm.mockCall(
-            address(token1),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amountTwo),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token1), vaultId, amountTwo);
-        assertEq(orderbook.vaultBalance(depositor, address(token1), vaultId), amountTwo);
-    }
-
-    /// Depositing under different vaults should not affect each other even if
-    /// the token is the same.
-    function testMultiVaultCollision(
-        address depositor,
-        uint256 vaultIdOne,
-        uint256 vaultIdTwo,
-        uint256 amountOne,
-        uint256 amountTwo
-    ) external {
-        vm.assume(amountOne != 0);
-        vm.assume(amountTwo != 0);
-        vm.assume(vaultIdOne != vaultIdTwo);
-
-        vm.prank(depositor);
-        vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amountOne),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token0), vaultIdOne, amountOne);
-        assertEq(orderbook.vaultBalance(depositor, address(token0), vaultIdOne), amountOne);
-
-        vm.prank(depositor);
-        vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amountTwo),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token0), vaultIdTwo, amountTwo);
-        assertEq(orderbook.vaultBalance(depositor, address(token0), vaultIdTwo), amountTwo);
-    }
-
-    /// Two different depositors should not affect each other even if the token
-    /// and vaultId are the same.
-    function testMultiDepositorCollision(
-        address alice,
-        address bob,
-        uint256 vaultId,
-        uint256 amountAlice,
-        uint256 amountBob
-    ) external {
-        vm.assume(amountAlice != 0);
-        vm.assume(amountBob != 0);
-        vm.assume(alice != bob);
-
-        vm.prank(alice);
-        vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(orderbook), amountAlice),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token0), vaultId, amountAlice);
-        assertEq(orderbook.vaultBalance(alice, address(token0), vaultId), amountAlice);
-
-        vm.prank(bob);
-        vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(orderbook), amountBob),
-            abi.encode(true)
-        );
-        orderbook.deposit(address(token0), vaultId, amountBob);
-        assertEq(orderbook.vaultBalance(bob, address(token0), vaultId), amountBob);
     }
 
     /// Depositing should emit an event with the sender and all deposit details.

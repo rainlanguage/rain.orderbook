@@ -28,12 +28,13 @@ contract OrderBookWithdrawTest is OrderBookTest {
         vm.recordLogs();
         orderbook.withdraw(token, vaultId, amount);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(orderbook));
-        (reads);
-        // Two writes to cover the reentrancy guard.
-        assertEq(writes.length, 2);
         // Zero logs because nothing happened.
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0);
+        assertEq(vm.getRecordedLogs().length, 0, "logs");
+        // - reentrancy guard x3
+        // - vault balance x1
+        assertEq(reads.length, 4, "reads");
+        // - reentrancy guard x2
+        assertEq(writes.length, 2, "writes");
     }
 
     /// Withdrawing the full amount from a vault should delete the vault.
@@ -134,9 +135,9 @@ contract OrderBookWithdrawTest is OrderBookTest {
         uint256 vaultId;
         uint248 amount;
     }
+
     /// Arbitrary interleavings of deposits and withdrawals should work across
     /// many depositors, tokens, and vaults.
-
     function testWithdrawMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
