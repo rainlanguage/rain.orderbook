@@ -15,8 +15,8 @@ import {
 
 import "../interface/IOrderBookV2.sol";
 import "rain.factory/src/interface/ICloneableV2.sol";
-import "rain.interpreter/lib/LibEncodedDispatch.sol";
-import "rain.interpreter/lib/LibContext.sol";
+import "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
+import "rain.interpreter/lib/caller/LibContext.sol";
 
 /// Thrown when the lender is not the trusted `OrderBook`.
 /// @param badLender The untrusted lender calling `onFlashLoan`.

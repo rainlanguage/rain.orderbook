@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "../ierc3156/IERC3156FlashLender.sol";
-import "rain.interpreter/lib/LibEvaluable.sol";
+import "rain.interpreter/lib/caller/LibEvaluable.sol";
 import "rain.interpreter/interface/deprecated/IInterpreterCallerV1.sol";
 
 /// Configuration for a deposit. All deposits are processed by and for

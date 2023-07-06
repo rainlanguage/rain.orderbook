@@ -9,8 +9,8 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/Reentra
 
 import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
 import "rain.math.fixedpoint/FixedPointDecimalScale.sol";
-import "rain.interpreter/lib/LibEncodedDispatch.sol";
-import "rain.interpreter/lib/LibContext.sol";
+import "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
+import "rain.interpreter/lib/caller/LibContext.sol";
 import {
     DeployerDiscoverableMetaV1,
     DeployerDiscoverableMetaV1ConstructionConfig,
