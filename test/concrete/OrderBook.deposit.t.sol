@@ -106,8 +106,6 @@ contract OrderBookDepositTest is OrderBookTest {
     /// collisions or other illogical outcomes.
 
     function testDepositMany(Action[] memory actions) external {
-        vm.assume(address(0) != address(console));
-
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit amounts must be non-zero.
@@ -116,6 +114,7 @@ contract OrderBookDepositTest is OrderBookTest {
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             // Avoid errors from attempting to etch the orderbook.
             vm.assume(actions[i].token != address(orderbook));
+            vm.assume(actions[i].token != address(console));
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
