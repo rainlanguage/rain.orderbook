@@ -19,7 +19,6 @@ import {
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../lib/LibOrder.sol";
-import "../lib/LibOrderBook.sol";
 import "../abstract/OrderBookFlashLender.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
@@ -44,16 +43,6 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 /// Thrown when two orders have the same owner during clear.
 /// @param owner The owner of both orders.
 error SameOwner(address owner);
-
-/// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xccb725aa09e1c62951d95bc8e34abc49b4678da5b64bb75c366054659b3f3b3b);
-
-/// @dev Value that signifies that an order is live in the internal mapping.
-/// Anything nonzero is equally useful.
-uint256 constant LIVE_ORDER = 1;
-
-/// @dev Value that signifies that an order is dead in the internal mapping.
-uint256 constant DEAD_ORDER = 0;
 
 /// @dev Entrypoint to a calculate the amount and ratio of an order.
 SourceIndex constant CALCULATE_ORDER_ENTRYPOINT = SourceIndex.wrap(0);
@@ -116,16 +105,64 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 /// @dev Length of a vault IO column.
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
+/// @dev Hash of the caller contract metadata for construction.
+bytes32 constant CALLER_META_HASH = bytes32(0xccb725aa09e1c62951d95bc8e34abc49b4678da5b64bb75c366054659b3f3b3b);
+
+/// @dev Value that signifies that an order is live in the internal mapping.
+/// Anything nonzero is equally useful.
+uint256 constant LIVE_ORDER = 1;
+
+/// @dev Value that signifies that an order is dead in the internal mapping.
+uint256 constant DEAD_ORDER = 0;
+
+/// All information resulting from an order calculation that allows for vault IO
+/// to be calculated and applied, then the handle IO entrypoint to be dispatched.
+/// @param outputMax The UNSCALED maximum output calculated by the order
+/// expression. WILL BE RESCALED ACCORDING TO TOKEN DECIMALS to an 18 fixed
+/// point decimal number for the purpose of calculating actual vault movements.
+/// The output max is CAPPED AT THE OUTPUT VAULT BALANCE OF THE ORDER OWNER.
+/// The order is guaranteed that the total output of this single clearance cannot
+/// exceed this (subject to rescaling). It is up to the order expression to track
+/// values over time if the output max is to impose a global limit across many
+/// transactions and counterparties.
+/// @param IORatio The UNSCALED order ratio as input/output from the perspective
+/// of the order. As each counterparty's input is the other's output, the IORatio
+/// calculated by each order is inverse of its counterparty. IORatio is SCALED
+/// ACCORDING TO TOKEN DECIMALS to allow 18 decimal fixed point math over the
+/// vault balances. I.e. `1e18` returned from the expression is ALWAYS "one" as
+/// ECONOMIC EQUIVALENCE between two tokens, but this will be rescaled according
+/// to the decimals of the token. For example, if DAI and USDT have a ratio of
+/// `1e18` then in reality `1e12` DAI will move in the vault for every `1` USDT
+/// that moves, because DAI has `1e18` decimals per $1 peg and USDT has `1e6`
+/// decimals per $1 peg. THE ORDER DEFINES THE DECIMALS for each token, NOT the
+/// token itself, because the token MAY NOT report its decimals as per it being
+/// optional in the ERC20 specification.
+/// @param context The entire 2D context array, initialized from the context
+/// passed into the order calculations and then populated with the order
+/// calculations and vault IO before being passed back to handle IO entrypoint.
+/// @param namespace The `StateNamespace` to be passed to the store for calculate
+/// IO state changes.
+/// @param kvs KVs returned from calculate order entrypoint to pass to the store
+/// before calling handle IO entrypoint.
+struct OrderIOCalculation {
+    uint256 outputMax;
+    //solhint-disable-next-line var-name-mixedcase
+    uint256 IORatio;
+    uint256[][] context;
+    StateNamespace namespace;
+    uint256[] kvs;
+}
+
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
 contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLender, DeployerDiscoverableMetaV1 {
-    using Math for uint256;
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
-    using FixedPointDecimalArithmeticOpenZeppelin for uint256;
-    using FixedPointDecimalScale for uint256;
     using LibOrder for Order;
     using LibUint256Array for uint256;
+    using Math for uint256;
+    using FixedPointDecimalScale for uint256;
+    using FixedPointDecimalArithmeticOpenZeppelin for uint256;
 
     /// All hashes of all active orders. There's nothing interesting in the value
     /// it's just nonzero if the order is live. The key is the hash of the order.
@@ -197,6 +234,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
         uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        // Don't allow withdrawals to exceed the current vault balance.
         uint256 withdrawAmount = targetAmount.min(currentVaultBalance);
         if (withdrawAmount > 0) {
             // The overflow check here is redundant with .min above, so
@@ -244,14 +282,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         }
     }
 
-    function _calculateOrderDispatch(address expression_) internal pure returns (EncodedDispatch) {
-        return LibEncodedDispatch.encode(expression_, CALCULATE_ORDER_ENTRYPOINT, CALCULATE_ORDER_MAX_OUTPUTS);
-    }
-
-    function _handleIODispatch(address expression_) internal pure returns (EncodedDispatch) {
-        return LibEncodedDispatch.encode(expression_, HANDLE_IO_ENTRYPOINT, HANDLE_IO_MAX_OUTPUTS);
-    }
-
     /// @inheritdoc IOrderBookV3
     function removeOrder(Order calldata order_) external nonReentrant {
         if (msg.sender != order_.owner) {
@@ -263,72 +293,73 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function takeOrders(TakeOrdersConfig calldata takeOrders_)
+    function takeOrders(TakeOrdersConfig calldata config)
         external
         nonReentrant
-        returns (uint256 totalInput_, uint256 totalOutput_)
+        returns (uint256 totalInput, uint256 totalOutput)
     {
-        uint256 i_ = 0;
-        TakeOrderConfig memory takeOrder_;
-        Order memory order_;
-        uint256 remainingInput_ = takeOrders_.maximumInput;
-        while (i_ < takeOrders_.orders.length && remainingInput_ > 0) {
-            takeOrder_ = takeOrders_.orders[i_];
-            order_ = takeOrder_.order;
-            uint256 orderHash_ = order_.hash();
-            if (sOrders[orderHash_] == DEAD_ORDER) {
-                emit OrderNotFound(msg.sender, order_.owner, orderHash_);
+        uint256 i = 0;
+        TakeOrderConfig memory takeOrder;
+        Order memory order;
+        uint256 remainingInput = config.maximumInput;
+        while (i < config.orders.length && remainingInput > 0) {
+            takeOrder = config.orders[i];
+            order = takeOrder.order;
+            uint256 orderHash = order.hash();
+            if (sOrders[orderHash] == DEAD_ORDER) {
+                emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
-                if (order_.validInputs[takeOrder_.inputIOIndex].token != takeOrders_.output) {
-                    revert TokenMismatch(order_.validInputs[takeOrder_.inputIOIndex].token, takeOrders_.output);
+                if (order.validInputs[takeOrder.inputIOIndex].token != config.output) {
+                    revert TokenMismatch(order.validInputs[takeOrder.inputIOIndex].token, config.output);
                 }
-                if (order_.validOutputs[takeOrder_.outputIOIndex].token != takeOrders_.input) {
-                    revert TokenMismatch(order_.validOutputs[takeOrder_.outputIOIndex].token, takeOrders_.input);
+                if (order.validOutputs[takeOrder.outputIOIndex].token != config.input) {
+                    revert TokenMismatch(order.validOutputs[takeOrder.outputIOIndex].token, config.input);
                 }
 
-                OrderIOCalculation memory orderIOCalculation_ = _calculateOrderIO(
-                    order_, takeOrder_.inputIOIndex, takeOrder_.outputIOIndex, msg.sender, takeOrder_.signedContext
+                OrderIOCalculation memory orderIOCalculation = calculateOrderIO(
+                    order, takeOrder.inputIOIndex, takeOrder.outputIOIndex, msg.sender, takeOrder.signedContext
                 );
 
                 // Skip orders that are too expensive rather than revert as we have
                 // no way of knowing if a specific order becomes too expensive
                 // between submitting to mempool and execution, but other orders may
                 // be valid so we want to take advantage of those if possible.
-                if (orderIOCalculation_.IORatio > takeOrders_.maximumIORatio) {
-                    emit OrderExceedsMaxRatio(msg.sender, order_.owner, orderHash_);
-                } else if (orderIOCalculation_.outputMax == 0) {
-                    emit OrderZeroAmount(msg.sender, order_.owner, orderHash_);
+                if (orderIOCalculation.IORatio > config.maximumIORatio) {
+                    emit OrderExceedsMaxRatio(msg.sender, order.owner, orderHash);
+                } else if (orderIOCalculation.outputMax == 0) {
+                    emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                 } else {
                     // Don't exceed the maximum total input.
-                    uint256 input_ = remainingInput_.min(orderIOCalculation_.outputMax);
+                    uint256 input =
+                        remainingInput > orderIOCalculation.outputMax ? orderIOCalculation.outputMax : remainingInput;
                     // Always round IO calculations up.
-                    uint256 output_ = input_.fixedPointMul(orderIOCalculation_.IORatio, Math.Rounding.Up);
+                    uint256 output = input.fixedPointMul(orderIOCalculation.IORatio, Math.Rounding.Up);
 
-                    remainingInput_ -= input_;
-                    totalOutput_ += output_;
+                    remainingInput -= input;
+                    totalOutput += output;
 
-                    _recordVaultIO(order_, output_, input_, orderIOCalculation_);
-                    emit TakeOrder(msg.sender, takeOrder_, input_, output_);
+                    recordVaultIO(order, output, input, orderIOCalculation);
+                    emit TakeOrder(msg.sender, takeOrder, input, output);
                 }
             }
 
             unchecked {
-                i_++;
+                i++;
             }
         }
-        totalInput_ = takeOrders_.maximumInput - remainingInput_;
+        totalInput = config.maximumInput - remainingInput;
 
-        if (totalInput_ < takeOrders_.minimumInput) {
-            revert MinimumInput(takeOrders_.minimumInput, totalInput_);
+        if (totalInput < config.minimumInput) {
+            revert MinimumInput(config.minimumInput, totalInput);
         }
 
         // We already updated vault balances before we took tokens from
         // `msg.sender` which is usually NOT the correct order of operations for
         // depositing to a vault. We rely on reentrancy guards to make this safe.
-        IERC20(takeOrders_.output).safeTransferFrom(msg.sender, address(this), totalOutput_);
+        IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalOutput);
         // Prioritise paying down any active flash loans before sending any
         // tokens to `msg.sender`.
-        _decreaseFlashDebtThenSendToken(takeOrders_.input, msg.sender, totalInput_);
+        _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
     }
 
     /// @inheritdoc IOrderBookV3
@@ -378,17 +409,17 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // Emit the Clear event before `eval`.
             emit Clear(msg.sender, alice_, bob_, clearConfig_);
         }
-        OrderIOCalculation memory aliceOrderIOCalculation_ = _calculateOrderIO(
+        OrderIOCalculation memory aliceOrderIOCalculation_ = calculateOrderIO(
             alice_, clearConfig_.aliceInputIOIndex, clearConfig_.aliceOutputIOIndex, bob_.owner, bobSignedContext_
         );
-        OrderIOCalculation memory bobOrderIOCalculation_ = _calculateOrderIO(
+        OrderIOCalculation memory bobOrderIOCalculation_ = calculateOrderIO(
             bob_, clearConfig_.bobInputIOIndex, clearConfig_.bobOutputIOIndex, alice_.owner, aliceSignedContext_
         );
         ClearStateChange memory clearStateChange_ =
-            LibOrderBook._clearStateChange(aliceOrderIOCalculation_, bobOrderIOCalculation_);
+            calculateClearStateChange(aliceOrderIOCalculation_, bobOrderIOCalculation_);
 
-        _recordVaultIO(alice_, clearStateChange_.aliceInput, clearStateChange_.aliceOutput, aliceOrderIOCalculation_);
-        _recordVaultIO(bob_, clearStateChange_.bobInput, clearStateChange_.bobOutput, bobOrderIOCalculation_);
+        recordVaultIO(alice_, clearStateChange_.aliceInput, clearStateChange_.aliceOutput, aliceOrderIOCalculation_);
+        recordVaultIO(bob_, clearStateChange_.bobInput, clearStateChange_.bobOutput, bobOrderIOCalculation_);
 
         {
             // At least one of these will overflow due to negative bounties if
@@ -419,13 +450,13 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// being cleared against.
     /// @param signedContext Any signed context provided by the clearer/taker
     /// that the order may need for its calculations.
-    function _calculateOrderIO(
+    function calculateOrderIO(
         Order memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         address counterparty,
         SignedContextV1[] memory signedContext
-    ) internal view virtual returns (OrderIOCalculation memory) {
+    ) internal view returns (OrderIOCalculation memory) {
         unchecked {
             uint256 orderHash = order.hash();
 
@@ -502,10 +533,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
             // The order owner can't send more than the smaller of their vault
             // balance or their per-order limit.
-            orderOutputMax = orderOutputMax.min(
-                sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
-                    .vaultId]
-            );
+            uint256 ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
+                .validOutputs[outputIOIndex].vaultId];
+            orderOutputMax = orderOutputMax > ownerVaultBalance ? ownerVaultBalance : orderOutputMax;
 
             // Populate the context with the output max rescaled and vault capped
             // and the rescaled ratio.
@@ -525,12 +555,12 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// vault.
     /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
-    function _recordVaultIO(
+    function recordVaultIO(
         Order memory order,
         uint256 input,
         uint256 output,
         OrderIOCalculation memory orderIOCalculation
-    ) internal virtual {
+    ) internal {
         orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input;
         orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output;
 
@@ -592,5 +622,51 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
                 order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
             }
         }
+    }
+
+    /// Calculates the clear state change given both order calculations for order
+    /// alice and order bob. The input of each is their output multiplied by
+    /// their IO ratio and the output of each is the smaller of their maximum
+    /// output and the counterparty IO * max output.
+    /// @param aliceOrderIOCalculation Order calculation for Alice.
+    /// @param bobOrderIOCalculation Order calculation for Bob.
+    /// @return clearStateChange The clear state change with absolute inputs and
+    /// outputs for Alice and Bob.
+    function calculateClearStateChange(
+        OrderIOCalculation memory aliceOrderIOCalculation,
+        OrderIOCalculation memory bobOrderIOCalculation
+    ) internal pure returns (ClearStateChange memory clearStateChange) {
+        // Alice's output is the smaller of their max output and Bob's input.
+        clearStateChange.aliceOutput = aliceOrderIOCalculation.outputMax.min(
+            // Bob's input is Alice's output.
+            // Alice cannot output more than their max.
+            // Bob wants input of their IO ratio * their output.
+            // Always round IO calculations up.
+            bobOrderIOCalculation.outputMax.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up)
+        );
+        // Bob's output is the smaller of their max output and Alice's input.
+        clearStateChange.bobOutput = bobOrderIOCalculation.outputMax.min(
+            // Alice's input is Bob's output.
+            // Bob cannot output more than their max.
+            // Alice wants input of their IO ratio * their output.
+            // Always round IO calculations up.
+            aliceOrderIOCalculation.outputMax.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
+        );
+        // Alice's input is Alice's output * their IO ratio.
+        // Always round IO calculations up.
+        clearStateChange.aliceInput =
+            clearStateChange.aliceOutput.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
+        // Bob's input is Bob's output * their IO ratio.
+        // Always round IO calculations up.
+        clearStateChange.bobInput =
+            clearStateChange.bobOutput.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up);
+    }
+
+    function _calculateOrderDispatch(address expression_) internal pure returns (EncodedDispatch) {
+        return LibEncodedDispatch.encode(expression_, CALCULATE_ORDER_ENTRYPOINT, CALCULATE_ORDER_MAX_OUTPUTS);
+    }
+
+    function _handleIODispatch(address expression_) internal pure returns (EncodedDispatch) {
+        return LibEncodedDispatch.encode(expression_, HANDLE_IO_ENTRYPOINT, HANDLE_IO_MAX_OUTPUTS);
     }
 }

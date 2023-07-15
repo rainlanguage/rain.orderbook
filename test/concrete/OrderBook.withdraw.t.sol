@@ -5,12 +5,12 @@ import "forge-std/Test.sol";
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import "test/util/abstract/OrderBookTest.sol";
+import "test/util/abstract/OrderBookExternalTest.sol";
 import "test/util/concrete/Reenteroor.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
-contract OrderBookWithdrawTest is OrderBookTest {
+contract OrderBookWithdrawTest is OrderBookExternalTest {
     using Math for uint256;
 
     /// Withdrawing a zero target amount should revert.

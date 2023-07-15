@@ -10,8 +10,9 @@ import "test/util/lib/LibOrderBookConstants.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 import "src/concrete/OrderBook.sol";
 
-/// @title OrderBookTest
-/// Abstract contract that performs common setup needed for most orderbook tests.
+/// @title OrderBookExternalTest
+/// Abstract contract that performs common setup needed for testing an orderbook
+/// from its external interface.
 ///
 /// Notably:
 /// - Deploys a real orderbook contract with correct meta.
@@ -20,7 +21,7 @@ import "src/concrete/OrderBook.sol";
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV2 so that it has access to all the relevant events.
-abstract contract OrderBookTest is Test, IOrderBookV3 {
+abstract contract OrderBookExternalTest is Test, IOrderBookV3 {
     IExpressionDeployerV1 immutable deployer;
     IOrderBookV3 immutable orderbook;
     IERC20 immutable token0;
