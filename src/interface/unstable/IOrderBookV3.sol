@@ -141,7 +141,7 @@ struct ClearStateChange {
     uint256 bobInput;
 }
 
-/// @title IOrderBookV2
+/// @title IOrderBookV3
 /// @notice An orderbook that deploys _strategies_ represented as interpreter
 /// expressions rather than individual orders. The order book contract itself
 /// behaves similarly to an `ERC4626` vault but with much more fine grained
@@ -272,6 +272,13 @@ struct ClearStateChange {
 ///
 /// Main differences between `IOrderBookV2` and `IOderBookV3`:
 /// - Most structs are now primitives to save gas.
+/// - Order hash is `bytes32`.
+/// - `deposit` and `withdraw` MUST revert if the amount is zero.
+/// - adding an order MUST revert if there is no calculation entrypoint.
+/// - adding an order MUST revert if there is no handle IO entrypoint.
+/// - adding an order MUST revert if there are no inputs.
+/// - adding an order MUST revert if there are no outputs.
+/// - adding an order MUST revert if the order already exists.
 interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// MUST be thrown by `deposit` if the amount is zero.
     /// @param sender `msg.sender` depositing tokens.
@@ -287,10 +294,26 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param vaultId The vault ID the tokens are being withdrawn from.
     error ZeroWithdrawTargetAmount(address sender, address token, uint256 vaultId);
 
+    /// MUST be thrown by `addOrder` if the order has no associated calculation.
+    /// @param sender `msg.sender` adding the order.
+    error OrderNoSources(address sender);
+
+    /// MUST be thrown by `addOrder` if the order has no associated handle IO.
+    /// @param sender `msg.sender` adding the order.
+    error OrderNoHandleIO(address sender);
+
+    /// MUST be thrown by `addOrder` if the order has no inputs.
+    /// @param sender `msg.sender` adding the order.
+    error OrderNoInputs(address sender);
+
+    /// MUST be thrown by `addOrder` if the order has no outputs.
+    /// @param sender `msg.sender` adding the order.
+    error OrderNoOutputs(address sender);
+
     /// MUST be thrown by `addOrder` if the order already exists.
     /// @param sender `msg.sender` adding the order.
     /// @param orderHash The hash of the order that already exists.
-    error OrderExists(address sender, uint256 orderHash);
+    error OrderExists(address sender, bytes32 orderHash);
 
     /// Some tokens have been deposited to a vault.
     /// @param sender `msg.sender` depositing tokens. Delegated deposits are NOT
@@ -325,14 +348,14 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param orderHash The hash of the order as it is recorded onchain. Only
     /// the hash is stored in Orderbook storage to avoid paying gas to store the
     /// entire order.
-    event AddOrder(address sender, IExpressionDeployerV1 expressionDeployer, Order order, uint256 orderHash);
+    event AddOrder(address sender, IExpressionDeployerV1 expressionDeployer, Order order, bytes32 orderHash);
 
     /// An order has been removed from the orderbook. This effectively
     /// deactivates it. Orders can be added again after removal.
     /// @param sender `msg.sender` removing the order and is owner of the order.
     /// @param order The removed order.
     /// @param orderHash The hash of the removed order.
-    event RemoveOrder(address sender, Order order, uint256 orderHash);
+    event RemoveOrder(address sender, Order order, bytes32 orderHash);
 
     /// Some order has been taken by `msg.sender`. This is the same as them
     /// placing inverse orders then immediately clearing them all, but costs less
@@ -351,7 +374,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param sender `msg.sender` clearing the order that wasn't found.
     /// @param owner Owner of the order that was not found.
     /// @param orderHash Hash of the order that was not found.
-    event OrderNotFound(address sender, address owner, uint256 orderHash);
+    event OrderNotFound(address sender, address owner, bytes32 orderHash);
 
     /// Emitted when an order evaluates to a zero amount. An event rather than an
     /// error so that we allow attempting many orders in a loop and NOT rollback
@@ -359,7 +382,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param sender `msg.sender` clearing the order that had a 0 amount.
     /// @param owner Owner of the order that evaluated to a 0 amount.
     /// @param orderHash Hash of the order that evaluated to a 0 amount.
-    event OrderZeroAmount(address sender, address owner, uint256 orderHash);
+    event OrderZeroAmount(address sender, address owner, bytes32 orderHash);
 
     /// Emitted when an order evaluates to a ratio exceeding the counterparty's
     /// maximum limit. An error rather than an error so that we allow attempting
@@ -367,7 +390,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param sender `msg.sender` clearing the order that had an excess ratio.
     /// @param owner Owner of the order that had an excess ratio.
     /// @param orderHash Hash of the order that had an excess ratio.
-    event OrderExceedsMaxRatio(address sender, address owner, uint256 orderHash);
+    event OrderExceedsMaxRatio(address sender, address owner, bytes32 orderHash);
 
     /// Emitted before two orders clear. Covers both orders and includes all the
     /// state before anything is calculated.
@@ -423,6 +446,12 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// withrawer has an active flash loan debt denominated in the same token
     /// being withdrawn then Orderbook will merely reduce the debt and NOT send
     /// the amount of tokens repaid to the flashloan debt.
+    ///
+    /// MUST revert if the amount _requested_ to withdraw is zero. The withdrawal
+    /// MAY still not move any tokens (without revert) if the vault balance is
+    /// zero, or the withdrawal is used to repay a flash loan, or due to any
+    /// other internal accounting.
+    ///
     /// @param token The token to withdraw.
     /// @param vaultId The vault ID to withdraw from.
     /// @param targetAmount The amount of tokens to attempt to withdraw. MAY
@@ -435,6 +464,18 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// for the config, then records it as an active order. Delegated adding an
     /// order is NOT supported. The `msg.sender` that adds an order is ALWAYS
     /// the owner and all resulting vault movements are their own.
+    ///
+    /// MUST revert with `OrderNoSources` if the order has no associated
+    /// calculation and `OrderNoHandleIO` if the order has no handle IO
+    /// entrypoint. The calculation MUST return at least two values from
+    /// evaluation, the maximum amount and the IO ratio. The handle IO entrypoint
+    /// SHOULD return zero values from evaluation. Either MAY revert during
+    /// evaluation on the interpreter, which MUST prevent the order from
+    /// clearing.
+    ///
+    /// MUST revert with `OrderExists` if the order already exists.
+    /// MUST revert with `OrderNoInputs` if the order has no inputs.
+    /// MUST revert with `OrderNoOutputs` if the order has no outputs.
     /// @param config All config required to build an `Order`.
     function addOrder(OrderConfig calldata config) external;
 

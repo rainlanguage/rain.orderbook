@@ -17,7 +17,7 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
     function testWithdrawZero(address alice, address token, uint256 vaultId) external {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(ZeroWithdrawTargetAmount.selector, alice, token, vaultId));
-        orderbook.withdraw(token, vaultId, 0);
+        iOrderbook.withdraw(token, vaultId, 0);
     }
 
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
@@ -26,8 +26,8 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
         vm.prank(alice);
         vm.record();
         vm.recordLogs();
-        orderbook.withdraw(token, vaultId, amount);
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(orderbook));
+        iOrderbook.withdraw(token, vaultId, amount);
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // Zero logs because nothing happened.
         assertEq(vm.getRecordedLogs().length, 0, "logs");
         // - reentrancy guard x3
@@ -45,21 +45,21 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
         vm.assume(withdrawAmount >= depositAmount);
         vm.prank(alice);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(orderbook), depositAmount),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        orderbook.deposit(address(token0), vaultId, depositAmount);
-        assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), depositAmount);
+        iOrderbook.deposit(address(iToken0), vaultId, depositAmount);
+        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         vm.prank(alice);
         vm.mockCall(
-            address(token0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
+            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
         );
         vm.expectEmit(false, false, false, true);
-        emit Withdraw(alice, address(token0), vaultId, withdrawAmount, depositAmount);
-        orderbook.withdraw(address(token0), vaultId, withdrawAmount);
-        assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), 0);
+        emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, depositAmount);
+        iOrderbook.withdraw(address(iToken0), vaultId, withdrawAmount);
+        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), 0);
     }
 
     /// Withdrawing a partial amount from a vault should reduce the vault balance.
@@ -71,23 +71,23 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
         vm.assume(withdrawAmount < depositAmount);
         vm.prank(alice);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(orderbook), depositAmount),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        orderbook.deposit(address(token0), vaultId, depositAmount);
-        assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), depositAmount);
+        iOrderbook.deposit(address(iToken0), vaultId, depositAmount);
+        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         vm.prank(alice);
         vm.mockCall(
-            address(token0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
+            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
         );
         vm.expectEmit(false, false, false, true);
         // The full withdraw amount is possible as it's only a partial withdraw.
-        emit Withdraw(alice, address(token0), vaultId, withdrawAmount, withdrawAmount);
-        orderbook.withdraw(address(token0), vaultId, withdrawAmount);
+        emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, withdrawAmount);
+        iOrderbook.withdraw(address(iToken0), vaultId, withdrawAmount);
         // The vault balance is reduced by the withdraw amount.
-        assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), depositAmount - withdrawAmount);
+        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount - withdrawAmount);
     }
 
     /// Any failure in the withdrawal should revert the entire transaction.
@@ -98,26 +98,26 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
         vm.assume(withdrawAmount > 0);
         vm.prank(alice);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(orderbook), depositAmount),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        orderbook.deposit(address(token0), vaultId, depositAmount);
-        assertEq(orderbook.vaultBalance(address(alice), address(token0), vaultId), depositAmount);
+        iOrderbook.deposit(address(iToken0), vaultId, depositAmount);
+        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         // The token contract always reverts when not mocked.
         vm.prank(alice);
         vm.expectRevert("SafeERC20: low-level call failed");
-        orderbook.withdraw(address(token0), vaultId, withdrawAmount);
+        iOrderbook.withdraw(address(iToken0), vaultId, withdrawAmount);
 
         vm.prank(alice);
         vm.mockCall(
-            address(token0),
+            address(iToken0),
             abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount.min(depositAmount)),
             abi.encode(false)
         );
         vm.expectRevert("SafeERC20: ERC20 operation did not succeed");
-        orderbook.withdraw(address(token0), vaultId, withdrawAmount);
+        iOrderbook.withdraw(address(iToken0), vaultId, withdrawAmount);
     }
 
     /// Defines an action that can be taken in withdrawal tests.
@@ -146,28 +146,28 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
             // Avoid errors from attempting to etch precompiles.
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             // Avoid errors from attempting to etch the orderbook.
-            vm.assume(actions[i].token != address(orderbook));
+            vm.assume(actions[i].token != address(iOrderbook));
         }
         Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(action.token, REVERTING_MOCK_BYTECODE);
             action = actions[i];
-            uint256 balance = orderbook.vaultBalance(action.alice, action.token, action.vaultId);
+            uint256 balance = iOrderbook.vaultBalance(action.alice, action.token, action.vaultId);
 
             vm.prank(action.alice);
             if (action.actionKind) {
                 vm.mockCall(
                     action.token,
                     abi.encodeWithSelector(
-                        IERC20.transferFrom.selector, action.alice, address(orderbook), uint256(action.amount)
+                        IERC20.transferFrom.selector, action.alice, address(iOrderbook), uint256(action.amount)
                     ),
                     abi.encode(true)
                 );
                 vm.expectEmit(false, false, false, true);
                 emit Deposit(action.alice, action.token, action.vaultId, action.amount);
-                orderbook.deposit(action.token, action.vaultId, action.amount);
+                iOrderbook.deposit(action.token, action.vaultId, action.amount);
                 assertEq(
-                    orderbook.vaultBalance(action.alice, action.token, action.vaultId),
+                    iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
                     balance + action.amount,
                     "vault balance on deposit"
                 );
@@ -182,9 +182,9 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
                     vm.expectEmit(false, false, false, true);
                     emit Withdraw(action.alice, action.token, action.vaultId, action.amount, expectedActualAmount);
                 }
-                orderbook.withdraw(action.token, action.vaultId, action.amount);
+                iOrderbook.withdraw(action.token, action.vaultId, action.amount);
                 assertEq(
-                    orderbook.vaultBalance(action.alice, action.token, action.vaultId),
+                    iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
                     balance - expectedActualAmount,
                     "vault balance on withdraw"
                 );
@@ -210,13 +210,13 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
         vm.prank(alice);
         vm.mockCall(
             address(reenteroor),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(orderbook), amount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount),
             abi.encode(true)
         );
-        orderbook.deposit(address(reenteroor), vaultIdAlice, amount);
+        iOrderbook.deposit(address(reenteroor), vaultIdAlice, amount);
 
         vm.prank(alice);
         vm.expectRevert(ReentrancyGuardReentrantCall.selector);
-        orderbook.withdraw(address(reenteroor), vaultIdAlice, amount);
+        iOrderbook.withdraw(address(reenteroor), vaultIdAlice, amount);
     }
 }

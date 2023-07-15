@@ -22,31 +22,37 @@ import "src/concrete/OrderBook.sol";
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV2 so that it has access to all the relevant events.
 abstract contract OrderBookExternalTest is Test, IOrderBookV3 {
-    IExpressionDeployerV1 immutable deployer;
-    IOrderBookV3 immutable orderbook;
-    IERC20 immutable token0;
-    IERC20 immutable token1;
+    IInterpreterV1 immutable iInterpreter;
+    IInterpreterStoreV1 immutable iStore;
+    IExpressionDeployerV1 immutable iDeployer;
+    IOrderBookV3 immutable iOrderbook;
+    IERC20 immutable iToken0;
+    IERC20 immutable iToken1;
 
     constructor() {
         vm.pauseGasMetering();
-        deployer = IExpressionDeployerV1(address(uint160(uint256(keccak256("deployer.rain.test")))));
+        iInterpreter = IInterpreterV1(address(uint160(uint256(keccak256("interpreter.rain.test")))));
+        vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
+        iStore = IInterpreterStoreV1(address(uint160(uint256(keccak256("store.rain.test")))));
+        vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
+        iDeployer = IExpressionDeployerV1(address(uint160(uint256(keccak256("deployer.rain.test")))));
         // All non-mocked calls will revert.
-        vm.etch(address(deployer), REVERTING_MOCK_BYTECODE);
+        vm.etch(address(iDeployer), REVERTING_MOCK_BYTECODE);
         vm.mockCall(
-            address(deployer),
+            address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
-            abi.encode(address(0), address(0), address(0))
+            abi.encode(iInterpreter, iStore, address(0))
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.log("meta hash:");
         console2.logBytes(abi.encodePacked(keccak256(meta)));
-        orderbook =
-            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(deployer), meta))));
+        iOrderbook =
+            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(iDeployer), meta))));
 
-        token0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
-        vm.etch(address(token0), REVERTING_MOCK_BYTECODE);
-        token1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
-        vm.etch(address(token1), REVERTING_MOCK_BYTECODE);
+        iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
+        vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
+        iToken1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
+        vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
         vm.resumeGasMetering();
     }
 

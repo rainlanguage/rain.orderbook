@@ -173,7 +173,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// order hash => order is live
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(uint256 => uint256) internal sOrders;
+    mapping(bytes32 => uint256) internal sOrders;
 
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
     /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
@@ -248,6 +248,18 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
     /// @inheritdoc IOrderBookV3
     function addOrder(OrderConfig calldata config) external nonReentrant {
+        if (config.evaluableConfig.sources.length == 0) {
+            revert OrderNoSources(msg.sender);
+        }
+        if (config.evaluableConfig.sources.length == 1) {
+            revert OrderNoHandleIO(msg.sender);
+        }
+        if (config.validInputs.length == 0) {
+            revert OrderNoInputs(msg.sender);
+        }
+        if (config.validOutputs.length == 0) {
+            revert OrderNoOutputs(msg.sender);
+        }
         (IInterpreterV1 interpreter, IInterpreterStoreV1 store, address expression) = config
             .evaluableConfig
             .deployer
@@ -256,6 +268,10 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             config.evaluableConfig.constants,
             LibUint256Array.arrayFrom(CALCULATE_ORDER_MIN_OUTPUTS, HANDLE_IO_MIN_OUTPUTS)
         );
+
+        // Merge our view on the sender/owner and handle IO emptiness with the
+        // config and deployer's view on the `Evaluable` to produce the final
+        // order.
         Order memory order = Order(
             msg.sender,
             config.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
@@ -263,7 +279,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             config.validInputs,
             config.validOutputs
         );
-        uint256 orderHash = order.hash();
+        bytes32 orderHash = order.hash();
 
         // Check that the order is not already live. As the order hash includes
         // the expression address, this can only happen if the deployer returns
@@ -276,20 +292,22 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         sOrders[orderHash] = LIVE_ORDER;
         emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
 
+        // We only emit the meta event if there is meta to emit. We do require
+        // that the meta self describes as a Rain meta document.
         if (config.meta.length > 0) {
             LibMeta.checkMetaUnhashed(config.meta);
-            emit MetaV1(msg.sender, orderHash, config.meta);
+            emit MetaV1(msg.sender, uint256(orderHash), config.meta);
         }
     }
 
     /// @inheritdoc IOrderBookV3
-    function removeOrder(Order calldata order_) external nonReentrant {
-        if (msg.sender != order_.owner) {
-            revert NotOrderOwner(msg.sender, order_.owner);
+    function removeOrder(Order calldata order) external nonReentrant {
+        if (msg.sender != order.owner) {
+            revert NotOrderOwner(msg.sender, order.owner);
         }
-        uint256 orderHash_ = order_.hash();
+        bytes32 orderHash_ = order.hash();
         delete (sOrders[orderHash_]);
-        emit RemoveOrder(msg.sender, order_, orderHash_);
+        emit RemoveOrder(msg.sender, order, orderHash_);
     }
 
     /// @inheritdoc IOrderBookV3
@@ -305,7 +323,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         while (i < config.orders.length && remainingInput > 0) {
             takeOrder = config.orders[i];
             order = takeOrder.order;
-            uint256 orderHash = order.hash();
+            bytes32 orderHash = order.hash();
             if (sOrders[orderHash] == DEAD_ORDER) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
@@ -364,62 +382,62 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
     /// @inheritdoc IOrderBookV3
     function clear(
-        Order memory alice_,
-        Order memory bob_,
-        ClearConfig calldata clearConfig_,
-        SignedContextV1[] memory aliceSignedContext_,
-        SignedContextV1[] memory bobSignedContext_
+        Order memory alice,
+        Order memory bob,
+        ClearConfig calldata clearConfig,
+        SignedContextV1[] memory aliceSignedContext,
+        SignedContextV1[] memory bobSignedContext
     ) external nonReentrant {
         {
-            if (alice_.owner == bob_.owner) {
-                revert SameOwner(alice_.owner);
+            if (alice.owner == bob.owner) {
+                revert SameOwner(alice.owner);
             }
             if (
-                alice_.validOutputs[clearConfig_.aliceOutputIOIndex].token
-                    != bob_.validInputs[clearConfig_.bobInputIOIndex].token
+                alice.validOutputs[clearConfig.aliceOutputIOIndex].token
+                    != bob.validInputs[clearConfig.bobInputIOIndex].token
             ) {
                 revert TokenMismatch(
-                    alice_.validOutputs[clearConfig_.aliceOutputIOIndex].token,
-                    bob_.validInputs[clearConfig_.bobInputIOIndex].token
+                    alice.validOutputs[clearConfig.aliceOutputIOIndex].token,
+                    bob.validInputs[clearConfig.bobInputIOIndex].token
                 );
             }
 
             if (
-                bob_.validOutputs[clearConfig_.bobOutputIOIndex].token
-                    != alice_.validInputs[clearConfig_.aliceInputIOIndex].token
+                bob.validOutputs[clearConfig.bobOutputIOIndex].token
+                    != alice.validInputs[clearConfig.aliceInputIOIndex].token
             ) {
                 revert TokenMismatch(
-                    alice_.validInputs[clearConfig_.aliceInputIOIndex].token,
-                    bob_.validOutputs[clearConfig_.bobOutputIOIndex].token
+                    alice.validInputs[clearConfig.aliceInputIOIndex].token,
+                    bob.validOutputs[clearConfig.bobOutputIOIndex].token
                 );
             }
 
             // If either order is dead the clear is a no-op other than emitting
             // `OrderNotFound`. Returning rather than erroring makes it easier to
             // bulk clear using `Multicall`.
-            if (sOrders[alice_.hash()] == DEAD_ORDER) {
-                emit OrderNotFound(msg.sender, alice_.owner, alice_.hash());
+            if (sOrders[alice.hash()] == DEAD_ORDER) {
+                emit OrderNotFound(msg.sender, alice.owner, alice.hash());
                 return;
             }
-            if (sOrders[bob_.hash()] == DEAD_ORDER) {
-                emit OrderNotFound(msg.sender, bob_.owner, bob_.hash());
+            if (sOrders[bob.hash()] == DEAD_ORDER) {
+                emit OrderNotFound(msg.sender, bob.owner, bob.hash());
                 return;
             }
 
             // Emit the Clear event before `eval`.
-            emit Clear(msg.sender, alice_, bob_, clearConfig_);
+            emit Clear(msg.sender, alice, bob, clearConfig);
         }
         OrderIOCalculation memory aliceOrderIOCalculation_ = calculateOrderIO(
-            alice_, clearConfig_.aliceInputIOIndex, clearConfig_.aliceOutputIOIndex, bob_.owner, bobSignedContext_
+            alice, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bob.owner, bobSignedContext
         );
         OrderIOCalculation memory bobOrderIOCalculation_ = calculateOrderIO(
-            bob_, clearConfig_.bobInputIOIndex, clearConfig_.bobOutputIOIndex, alice_.owner, aliceSignedContext_
+            bob, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, alice.owner, aliceSignedContext
         );
         ClearStateChange memory clearStateChange_ =
             calculateClearStateChange(aliceOrderIOCalculation_, bobOrderIOCalculation_);
 
-        recordVaultIO(alice_, clearStateChange_.aliceInput, clearStateChange_.aliceOutput, aliceOrderIOCalculation_);
-        recordVaultIO(bob_, clearStateChange_.bobInput, clearStateChange_.bobOutput, bobOrderIOCalculation_);
+        recordVaultIO(alice, clearStateChange_.aliceInput, clearStateChange_.aliceOutput, aliceOrderIOCalculation_);
+        recordVaultIO(bob, clearStateChange_.bobInput, clearStateChange_.bobOutput, bobOrderIOCalculation_);
 
         {
             // At least one of these will overflow due to negative bounties if
@@ -427,11 +445,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             uint256 aliceBounty_ = clearStateChange_.aliceOutput - clearStateChange_.bobInput;
             uint256 bobBounty_ = clearStateChange_.bobOutput - clearStateChange_.aliceInput;
             if (aliceBounty_ > 0) {
-                sVaultBalances[msg.sender][alice_.validOutputs[clearConfig_.aliceOutputIOIndex].token][clearConfig_
+                sVaultBalances[msg.sender][alice.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
                     .aliceBountyVaultId] += aliceBounty_;
             }
             if (bobBounty_ > 0) {
-                sVaultBalances[msg.sender][bob_.validOutputs[clearConfig_.bobOutputIOIndex].token][clearConfig_
+                sVaultBalances[msg.sender][bob.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
                     .bobBountyVaultId] += bobBounty_;
             }
         }
@@ -458,15 +476,16 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         SignedContextV1[] memory signedContext
     ) internal view returns (OrderIOCalculation memory) {
         unchecked {
-            uint256 orderHash = order.hash();
+            bytes32 orderHash = order.hash();
 
             uint256[][] memory context;
             {
                 uint256[][] memory callingContext = new uint256[][](
                     CALLING_CONTEXT_COLUMNS
                 );
-                callingContext[CONTEXT_CALLING_CONTEXT_COLUMN - 1] =
-                    LibUint256Array.arrayFrom(orderHash, uint256(uint160(order.owner)), uint256(uint160(counterparty)));
+                callingContext[CONTEXT_CALLING_CONTEXT_COLUMN - 1] = LibUint256Array.arrayFrom(
+                    uint256(orderHash), uint256(uint160(order.owner)), uint256(uint160(counterparty))
+                );
 
                 callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
                     uint256(uint160(order.validInputs[inputIOIndex].token)),

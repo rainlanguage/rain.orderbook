@@ -11,7 +11,7 @@ import "test/util/concrete/Reenteroor.sol";
 contract OrderBookDepositTest is OrderBookExternalTest {
     /// Test that reading the vault balance without deposits is always zero.
     function testVaultBalanceNoDeposits(address token, uint256 vaultId) external {
-        assertEq(orderbook.vaultBalance(address(this), token, vaultId), 0);
+        assertEq(iOrderbook.vaultBalance(address(this), token, vaultId), 0);
     }
 
     /// Test that depositing can't reentrantly read the vault balance.
@@ -28,6 +28,6 @@ contract OrderBookDepositTest is OrderBookExternalTest {
         Reenteroor reenteroor = new Reenteroor();
         reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV3.vaultBalance.selector, bob, tokenBob, vaultIdBob));
         vm.expectRevert(ReentrancyGuardReentrantCall.selector);
-        orderbook.deposit(address(reenteroor), vaultIdAlice, amount);
+        iOrderbook.deposit(address(reenteroor), vaultIdAlice, amount);
     }
 }
