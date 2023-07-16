@@ -26,4 +26,3 @@ fs_permissions = [{ access = "read", path = "./meta"}]
 
 [fuzz]
 runs = 5096
-seed = "0xdeadbeef"

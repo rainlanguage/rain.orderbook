@@ -62,6 +62,16 @@ abstract contract OrderBookExternalTest is Test, IOrderBookV3 {
     }
 
     /// @inheritdoc IOrderBookV3
+    function orderExists(bytes32) external pure returns (bool) {
+        revert("orderExists");
+    }
+
+    /// @inheritdoc IOrderBookV3
+    function removeOrder(Order calldata) external pure {
+        revert("removeOrder");
+    }
+
+    /// @inheritdoc IOrderBookV3
     function clear(Order memory, Order memory, ClearConfig calldata, SignedContextV1[] memory, SignedContextV1[] memory)
         external
         pure
@@ -87,11 +97,6 @@ abstract contract OrderBookExternalTest is Test, IOrderBookV3 {
     /// @inheritdoc IERC3156FlashLender
     function maxFlashLoan(address) external pure returns (uint256) {
         revert("maxFlashLoan");
-    }
-
-    /// @inheritdoc IOrderBookV3
-    function removeOrder(Order calldata) external pure {
-        revert("removeOrder");
     }
 
     /// @inheritdoc IOrderBookV3

@@ -143,8 +143,7 @@ contract OrderBookWithdrawTest is OrderBookExternalTest {
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit and withdrawal amounts must be positive.
             vm.assume(actions[i].amount > 0);
-            // Avoid errors from attempting to etch precompiles.
-            vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
+            assumeNoPrecompiles(actions[i].token);
             // Avoid errors from attempting to etch the orderbook.
             vm.assume(actions[i].token != address(iOrderbook));
         }

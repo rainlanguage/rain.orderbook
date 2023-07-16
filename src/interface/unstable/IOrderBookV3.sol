@@ -279,6 +279,7 @@ struct ClearStateChange {
 /// - adding an order MUST revert if there are no inputs.
 /// - adding an order MUST revert if there are no outputs.
 /// - adding an order MUST revert if the order already exists.
+/// - new `orderExists` method.
 interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// MUST be thrown by `deposit` if the amount is zero.
     /// @param sender `msg.sender` depositing tokens.
@@ -478,6 +479,11 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// MUST revert with `OrderNoOutputs` if the order has no outputs.
     /// @param config All config required to build an `Order`.
     function addOrder(OrderConfig calldata config) external;
+
+    /// Returns true if the order exists, false otherwise.
+    /// @param orderHash The hash of the order to check.
+    /// @return exists True if the order exists, false otherwise.
+    function orderExists(bytes32 orderHash) external view returns (bool exists);
 
     /// Order owner can remove their own orders. Delegated order removal is NOT
     /// supported and will revert. Removing an order multiple times or removing

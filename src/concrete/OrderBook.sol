@@ -301,6 +301,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
+    function orderExists(bytes32 orderHash) external view override returns (bool) {
+        return sOrders[orderHash] == LIVE_ORDER;
+    }
+
+    /// @inheritdoc IOrderBookV3
     function removeOrder(Order calldata order) external nonReentrant {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
