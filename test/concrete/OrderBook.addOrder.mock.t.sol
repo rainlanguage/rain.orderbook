@@ -4,29 +4,11 @@ pragma solidity =0.8.19;
 import "rain.metadata/LibMeta.sol";
 
 import "test/util/abstract/OrderBookExternalMockTest.sol";
+import "test/util/lib/LibTestAddOrder.sol";
 
 /// @title OrderBookAddOrderMockTest
 /// @notice Tests the addOrder function of the OrderBook contract.
 contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
-    /// A little boilerplate to make it easier to build the order that we expect
-    /// for a given order config.
-    function expectedOrder(address owner, OrderConfig memory config, address expression)
-        internal
-        view
-        returns (Order memory, bytes32)
-    {
-        Evaluable memory expectedEvaluable = Evaluable(iInterpreter, iStore, expression);
-        Order memory order = Order(
-            owner,
-            config.evaluableConfig.sources.length > 1
-                && config.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
-            expectedEvaluable,
-            config.validInputs,
-            config.validOutputs
-        );
-        return (order, LibOrder.hash(order));
-    }
-
     /// Boilerplate to add an order with a mocked deployer and checks events and
     /// storage accesses.
     function addOrderWithChecks(address owner, OrderConfig memory config, address expression)
@@ -34,7 +16,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         returns (Order memory, bytes32)
     {
         config.evaluableConfig.deployer = iDeployer;
-        (Order memory order, bytes32 orderHash) = expectedOrder(owner, config, expression);
+        (Order memory order, bytes32 orderHash) =
+            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
         assertTrue(!iOrderbook.orderExists(orderHash));
         vm.mockCall(
             address(iDeployer),
@@ -75,26 +58,14 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         return (order, orderHash);
     }
 
-    /// Valid config has a few requirements, this boilerplate makes it easier to
-    /// get the fuzzer to meet them.
-    function assumeValidConfig(OrderConfig memory config) internal pure {
-        vm.assume(config.evaluableConfig.sources.length >= 2);
-        vm.assume(config.validInputs.length > 0);
-        vm.assume(config.validOutputs.length > 0);
-        if (config.meta.length > 0) {
-            // This is a bit of a hack, but it's the easiest way to get a valid
-            // meta document.
-            config.meta = abi.encodePacked(META_MAGIC_NUMBER_V1, config.meta);
-        }
-    }
-
     /// Adding an order without calculations MUST revert.
     function testAddOrderWithoutCalculationsReverts(address owner, OrderConfig memory config) public {
         vm.prank(owner);
         config.evaluableConfig.sources = new bytes[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
         iOrderbook.addOrder(config);
-        (Order memory order, bytes32 orderHash) = expectedOrder(owner, config, address(0));
+        (Order memory order, bytes32 orderHash) =
+            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -106,7 +77,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         config.validInputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector, owner));
         iOrderbook.addOrder(config);
-        (Order memory order, bytes32 orderHash) = expectedOrder(owner, config, address(0));
+        (Order memory order, bytes32 orderHash) =
+            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -119,7 +91,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         config.validOutputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector, owner));
         iOrderbook.addOrder(config);
-        (Order memory order, bytes32 orderHash) = expectedOrder(owner, config, address(0));
+        (Order memory order, bytes32 orderHash) =
+            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -160,7 +133,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
         iOrderbook.addOrder(config);
 
-        (Order memory order, bytes32 orderHash) = expectedOrder(owner, config, expression);
+        (Order memory order, bytes32 orderHash) =
+            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -193,7 +167,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         address expression
     ) public {
         vm.assume(alice != bob);
-        assumeValidConfig(config);
+        vm.assume(LibTestAddOrder.conformConfig(config, iDeployer));
         (Order memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
         (Order memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
         (aliceOrder);
@@ -212,8 +186,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         address bobExpression
     ) public {
         vm.assume(alice != bob);
-        assumeValidConfig(aliceConfig);
-        assumeValidConfig(bobConfig);
+        vm.assume(LibTestAddOrder.conformConfig(aliceConfig, iDeployer));
+        vm.assume(LibTestAddOrder.conformConfig(bobConfig, iDeployer));
         (Order memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
         (Order memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, bobExpression);
         (aliceOrder);
@@ -230,10 +204,12 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         address expressionOne,
         address expressionTwo
     ) public {
-        assumeValidConfig(configOne);
-        assumeValidConfig(configTwo);
-        (Order memory expectedOrderOne, bytes32 expectedOrderOneHash) = expectedOrder(alice, configOne, expressionOne);
-        (Order memory expectedOrderTwo, bytes32 expectedOrderTwoHash) = expectedOrder(alice, configTwo, expressionTwo);
+        vm.assume(LibTestAddOrder.conformConfig(configOne, iDeployer));
+        vm.assume(LibTestAddOrder.conformConfig(configTwo, iDeployer));
+        (Order memory expectedOrderOne, bytes32 expectedOrderOneHash) =
+            LibTestAddOrder.expectedOrder(alice, configOne, iInterpreter, iStore, expressionOne);
+        (Order memory expectedOrderTwo, bytes32 expectedOrderTwoHash) =
+            LibTestAddOrder.expectedOrder(alice, configTwo, iInterpreter, iStore, expressionTwo);
         (expectedOrderOne);
         (expectedOrderTwo);
         assertTrue(expectedOrderOneHash != expectedOrderTwoHash);

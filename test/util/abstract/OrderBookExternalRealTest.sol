@@ -29,17 +29,23 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         vm.mockCall(
             address(IERC1820_REGISTRY),
             abi.encodeWithSelector(IERC1820Registry.interfaceHash.selector),
-            abi.encode(bytes32(uint256(5))));
-        vm.mockCall(address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), "");
+            abi.encode(bytes32(uint256(5)))
+        );
+        vm.mockCall(
+            address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
+        );
         bytes memory deployerMeta = LibRainterpreterExpressionDeployerNPMeta.authoringMeta();
         console2.log("current deployer meta hash:");
         console2.logBytes32(keccak256(deployerMeta));
-        iDeployer = IExpressionDeployerV1(address(
+        iDeployer = IExpressionDeployerV1(
+            address(
                 new RainterpreterExpressionDeployerNP(RainterpreterExpressionDeployerConstructionConfig(
                 address(iInterpreter),
                 address(iStore),
                 deployerMeta
-                ))));
+                ))
+            )
+        );
         bytes memory orderbookMeta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.log("orderbook meta hash:");
         console2.logBytes(abi.encodePacked(keccak256(orderbookMeta)));
