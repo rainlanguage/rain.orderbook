@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.18;
+pragma solidity ^0.8.18;
 
 /// @dev Mocks need to be etched with some bytecode or they cannot even be
 /// called. This is because Solidity first checks the bytecode size before

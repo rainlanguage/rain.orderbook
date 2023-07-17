@@ -16,3 +16,6 @@
 [submodule "lib/rain.metadata"]
 	path = lib/rain.metadata
 	url = https://github.com/rainprotocol/rain.metadata
+[submodule "lib/rain.erc1820"]
+	path = lib/rain.erc1820
+	url = https://github.com/rainprotocol/rain.erc1820

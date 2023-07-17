@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.18;
+pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
 
 import "test/util/lib/LibTestConstants.sol";
-import "test/util/abstract/OrderBookExternalTest.sol";
+import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/concrete/Reenteroor.sol";
 
 /// @title OrderBookDepositTest
 /// Tests depositing to an order book.
-contract OrderBookDepositTest is OrderBookExternalTest {
+contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// Tests that we can deposit some amount and view the new vault balance.
     function testDepositSimple(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);

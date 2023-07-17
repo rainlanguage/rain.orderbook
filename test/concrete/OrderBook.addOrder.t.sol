@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.18;
+pragma solidity =0.8.19;
 
 import "rain.metadata/LibMeta.sol";
 
-import "test/util/abstract/OrderBookExternalTest.sol";
+import "test/util/abstract/OrderBookExternalMockTest.sol";
 
 /// @title OrderBookAddOrderTest
 /// @notice Tests the addOrder function of the OrderBook contract.
-contract OrderBookAddOrderTest is OrderBookExternalTest, IMetaV1 {
+contract OrderBookAddOrderTest is OrderBookExternalMockTest, IMetaV1 {
     /// A little boilerplate to make it easier to build the order that we expect
     /// for a given order config.
     function expectedOrder(address owner, OrderConfig memory config, address expression)

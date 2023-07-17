@@ -5,7 +5,7 @@ libs = ['lib']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
-solc = "0.8.18"
+solc = "0.8.19"
 
 # optimizer settings for debugging
 # via_ir = false

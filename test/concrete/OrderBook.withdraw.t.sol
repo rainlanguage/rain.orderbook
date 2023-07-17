@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.18;
+pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import "test/util/abstract/OrderBookExternalTest.sol";
+import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/concrete/Reenteroor.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
-contract OrderBookWithdrawTest is OrderBookExternalTest {
+contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     using Math for uint256;
 
     /// Withdrawing a zero target amount should revert.
