@@ -106,7 +106,7 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xccb725aa09e1c62951d95bc8e34abc49b4678da5b64bb75c366054659b3f3b3b);
+bytes32 constant CALLER_META_HASH = bytes32(0xd55ed91accdfd893ecc4028057ab2894d6eb88b88f59a27f0b73eaef92d20430);
 
 /// @dev Value that signifies that an order is live in the internal mapping.
 /// Anything nonzero is equally useful.
