@@ -192,6 +192,7 @@ contract OrderBookAddOrderTest is OrderBookExternalMockTest, IMetaV1 {
         OrderConfig memory config,
         address expression
     ) public {
+        vm.assume(alice != bob);
         assumeValidConfig(config);
         (Order memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
         (Order memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
@@ -210,6 +211,7 @@ contract OrderBookAddOrderTest is OrderBookExternalMockTest, IMetaV1 {
         address aliceExpression,
         address bobExpression
     ) public {
+        vm.assume(alice != bob);
         assumeValidConfig(aliceConfig);
         assumeValidConfig(bobConfig);
         (Order memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
