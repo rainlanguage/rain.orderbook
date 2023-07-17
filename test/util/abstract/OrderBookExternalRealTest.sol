@@ -27,11 +27,15 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
 
         // Deploy the expression deployer.
         bytes memory deployerMeta = LibRainterpreterExpressionDeployerNPMeta.authoringMeta();
-        iDeployer = IExpressionDeployerV1(address(new RainterpreterExpressionDeployerNP(RainterpreterExpressionDeployerConstructionConfig(
-            address(iInterpreter),
-            address(iStore),
-            deployerMeta
-        ))));
+        iDeployer = IExpressionDeployerV1(
+            address(
+                new RainterpreterExpressionDeployerNP(RainterpreterExpressionDeployerConstructionConfig(
+                address(iInterpreter),
+                address(iStore),
+                deployerMeta
+                ))
+            )
+        );
         // All non-mocked calls will revert.
         vm.etch(address(iDeployer), REVERTING_MOCK_BYTECODE);
         vm.mockCall(
@@ -42,8 +46,9 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         bytes memory orderbookMeta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.log("orderbook meta hash:");
         console2.logBytes(abi.encodePacked(keccak256(orderbookMeta)));
-        iOrderbook =
-            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(iDeployer), orderbookMeta))));
+        iOrderbook = IOrderBookV3(
+            address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(iDeployer), orderbookMeta)))
+        );
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
@@ -51,5 +56,4 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
         vm.resumeGasMetering();
     }
-
 }
