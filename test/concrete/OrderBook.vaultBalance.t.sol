@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.18;
+pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
 
-import "test/util/abstract/OrderBookTest.sol";
+import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/concrete/Reenteroor.sol";
 
 /// @title OrderBookVaultBalanceTest
 /// Tests the basic functionality of reading from the vault balance.
-contract OrderBookDepositTest is OrderBookTest {
+contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// Test that reading the vault balance without deposits is always zero.
     function testVaultBalanceNoDeposits(address token, uint256 vaultId) external {
-        assertEq(orderbook.vaultBalance(address(this), token, vaultId), 0);
+        assertEq(iOrderbook.vaultBalance(address(this), token, vaultId), 0);
     }
 
     /// Test that depositing can't reentrantly read the vault balance.
@@ -28,6 +28,6 @@ contract OrderBookDepositTest is OrderBookTest {
         Reenteroor reenteroor = new Reenteroor();
         reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV3.vaultBalance.selector, bob, tokenBob, vaultIdBob));
         vm.expectRevert(ReentrancyGuardReentrantCall.selector);
-        orderbook.deposit(address(reenteroor), vaultIdAlice, amount);
+        iOrderbook.deposit(address(reenteroor), vaultIdAlice, amount);
     }
 }

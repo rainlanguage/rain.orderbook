@@ -1,26 +1,27 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.18;
+pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
 
-import "test/util/abstract/OrderBookTest.sol";
+import "test/util/lib/LibTestConstants.sol";
+import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/concrete/Reenteroor.sol";
 
 /// @title OrderBookDepositTest
 /// Tests depositing to an order book.
-contract OrderBookDepositTest is OrderBookTest {
+contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// Tests that we can deposit some amount and view the new vault balance.
     function testDepositSimple(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
         vm.prank(depositor);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amount),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(true)
         );
 
-        orderbook.deposit(address(token0), vaultId, amount);
-        assertEq(orderbook.vaultBalance(depositor, address(token0), vaultId), amount);
+        iOrderbook.deposit(address(iToken0), vaultId, amount);
+        assertEq(iOrderbook.vaultBalance(depositor, address(iToken0), vaultId), amount);
     }
 
     /// Depositing zero should revert.
@@ -28,10 +29,10 @@ contract OrderBookDepositTest is OrderBookTest {
         vm.prank(depositor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IOrderBookV3.ZeroDepositAmount.selector, address(depositor), address(token0), vaultId
+                IOrderBookV3.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
-        orderbook.deposit(address(token0), vaultId, 0);
+        iOrderbook.deposit(address(iToken0), vaultId, 0);
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -41,18 +42,18 @@ contract OrderBookDepositTest is OrderBookTest {
         vm.pauseGasMetering();
         // warm up storage
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(orderbook), 1),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        orderbook.deposit(address(token0), 0, 1);
+        iOrderbook.deposit(address(iToken0), 0, 1);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(orderbook), 1),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        orderbook.deposit(address(token0), 0, 1);
+        iOrderbook.deposit(address(iToken0), 0, 1);
     }
 
     /// Test a cold deposit, which is the worst case scenario for gas. In this
@@ -62,12 +63,12 @@ contract OrderBookDepositTest is OrderBookTest {
     function testDepositGas01() external {
         vm.pauseGasMetering();
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(orderbook), 1),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        orderbook.deposit(address(token0), 0, 1);
+        iOrderbook.deposit(address(iToken0), 0, 1);
     }
 
     /// Any failure in the deposit should revert the entire transaction.
@@ -77,18 +78,18 @@ contract OrderBookDepositTest is OrderBookTest {
         // The token contract always reverts when not mocked.
         vm.prank(depositor);
         vm.expectRevert(bytes("SafeERC20: low-level call failed"));
-        orderbook.deposit(address(token0), vaultId, amount);
+        iOrderbook.deposit(address(iToken0), vaultId, amount);
 
         // Mocking the token to return false should also revert.
         vm.prank(depositor);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amount),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(false)
         );
         // This error string appears when the call completes but returns false.
         vm.expectRevert(bytes("SafeERC20: ERC20 operation did not succeed"));
-        orderbook.deposit(address(token0), vaultId, amount);
+        iOrderbook.deposit(address(iToken0), vaultId, amount);
     }
 
     /// Defines a deposit to be used in testDepositMany.
@@ -113,7 +114,7 @@ contract OrderBookDepositTest is OrderBookTest {
             // Avoid errors from attempting to etch precompiles.
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             // Avoid errors from attempting to etch the orderbook.
-            vm.assume(actions[i].token != address(orderbook));
+            vm.assume(actions[i].token != address(iOrderbook));
             // Avoid errors from attempting to etch test harness internals.
             vm.assume(actions[i].token != address(CONSOLE_ADDRESS));
             vm.assume(actions[i].token != address(vm));
@@ -122,12 +123,12 @@ contract OrderBookDepositTest is OrderBookTest {
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(actions[i].token, REVERTING_MOCK_BYTECODE);
             uint256 vaultBalanceBefore =
-                orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId);
+                iOrderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId);
             vm.prank(actions[i].depositor);
             vm.mockCall(
                 actions[i].token,
                 abi.encodeWithSelector(
-                    IERC20.transferFrom.selector, actions[i].depositor, address(orderbook), uint256(actions[i].amount)
+                    IERC20.transferFrom.selector, actions[i].depositor, address(iOrderbook), uint256(actions[i].amount)
                 ),
                 abi.encode(true)
             );
@@ -135,8 +136,8 @@ contract OrderBookDepositTest is OrderBookTest {
             emit Deposit(actions[i].depositor, actions[i].token, actions[i].vaultId, uint256(actions[i].amount));
             vm.record();
             vm.recordLogs();
-            orderbook.deposit(actions[i].token, actions[i].vaultId, actions[i].amount);
-            (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(orderbook));
+            iOrderbook.deposit(actions[i].token, actions[i].vaultId, actions[i].amount);
+            (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
             assertEq(vm.getRecordedLogs().length, 1, "logs");
             // - reentrancy guard x3
             // - vault balance x2
@@ -145,7 +146,7 @@ contract OrderBookDepositTest is OrderBookTest {
             // - vault balance x1
             assertEq(writes.length, 3, "writes");
             assertEq(
-                orderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId),
+                iOrderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId),
                 actions[i].amount + vaultBalanceBefore,
                 "vault balance"
             );
@@ -157,13 +158,13 @@ contract OrderBookDepositTest is OrderBookTest {
         vm.assume(amount != 0);
         vm.prank(depositor);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amount),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(true)
         );
         vm.expectEmit(false, false, false, true);
-        emit Deposit(depositor, address(token0), vaultId, amount);
-        orderbook.deposit(address(token0), vaultId, amount);
+        emit Deposit(depositor, address(iToken0), vaultId, amount);
+        iOrderbook.deposit(address(iToken0), vaultId, amount);
     }
 
     /// Depositing should NOT allow reentrancy.
@@ -181,7 +182,7 @@ contract OrderBookDepositTest is OrderBookTest {
         Reenteroor reenteroor = new Reenteroor();
         reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV3.deposit.selector, reToken, reVaultId, reAmount));
         vm.expectRevert(bytes("ReentrancyGuard: reentrant call"));
-        orderbook.deposit(address(reenteroor), vaultId, amount);
+        iOrderbook.deposit(address(reenteroor), vaultId, amount);
     }
 
     /// Vault balances MUST NOT silently overflow.
@@ -194,20 +195,20 @@ contract OrderBookDepositTest is OrderBookTest {
 
         vm.prank(depositor);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amountOne),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amountOne),
             abi.encode(true)
         );
-        orderbook.deposit(address(token0), vaultId, amountOne);
+        iOrderbook.deposit(address(iToken0), vaultId, amountOne);
 
         vm.prank(depositor);
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(orderbook), amountTwo),
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amountTwo),
             abi.encode(true)
         );
         vm.expectRevert(stdError.arithmeticError);
-        orderbook.deposit(address(token0), vaultId, amountTwo);
+        iOrderbook.deposit(address(iToken0), vaultId, amountTwo);
     }
 
     // Invariant testing doesn't seem to work currently.

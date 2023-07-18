@@ -11,8 +11,8 @@ library LibOrder {
     /// than abi.encodePacked to guard against potential collisions where many
     /// inputs encode to the same output bytes.
     /// @param order The order to hash.
-    /// @return The hash of `order` as a `uint256` rather than `bytes32`.
-    function hash(Order memory order) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encode(order)));
+    /// @return The hash of `order`.
+    function hash(Order memory order) internal pure returns (bytes32) {
+        return keccak256(abi.encode(order));
     }
 }
