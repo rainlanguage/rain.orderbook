@@ -108,13 +108,6 @@ uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 /// @dev Hash of the caller contract metadata for construction.
 bytes32 constant CALLER_META_HASH = bytes32(0xd55ed91accdfd893ecc4028057ab2894d6eb88b88f59a27f0b73eaef92d20430);
 
-/// @dev Value that signifies that an order is live in the internal mapping.
-/// Anything nonzero is equally useful.
-uint256 constant LIVE_ORDER = 1;
-
-/// @dev Value that signifies that an order is dead in the internal mapping.
-uint256 constant DEAD_ORDER = 0;
-
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
 /// @param outputMax The UNSCALED maximum output calculated by the order
@@ -167,13 +160,13 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// All hashes of all active orders. There's nothing interesting in the value
     /// it's just nonzero if the order is live. The key is the hash of the order.
     /// Removing an order sets the value back to zero so it is identical to the
-    /// order never existing and gives a gas refund on removal.
+    /// order never existing.
     /// The order hash includes its owner so there's no need to build a multi
     /// level mapping, each order hash MUST uniquely identify the order globally.
     /// order hash => order is live
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(bytes32 => uint256) internal sOrders;
+    mapping(bytes32 => bool) internal sOrders;
 
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
     /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
@@ -247,7 +240,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfig calldata config) external nonReentrant {
+    function addOrder(OrderConfig calldata config) external nonReentrant returns (bool stateChanged) {
         if (config.evaluableConfig.sources.length == 0) {
             revert OrderNoSources(msg.sender);
         }
@@ -281,38 +274,39 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         );
         bytes32 orderHash = order.hash();
 
-        // Check that the order is not already live. As the order hash includes
-        // the expression address, this can only happen if the deployer returns
-        // the same expression address for multiple deployments. This is
-        // technically possible but not something we want to support.
-        if (sOrders[orderHash] != DEAD_ORDER) {
-            revert OrderExists(msg.sender, orderHash);
-        }
-        //slither-disable-next-line reentrancy-benign
-        sOrders[orderHash] = LIVE_ORDER;
-        emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
+        // If the order is not dead we return early without state changes.
+        if (!sOrders[orderHash]) {
+            stateChanged = true;
 
-        // We only emit the meta event if there is meta to emit. We do require
-        // that the meta self describes as a Rain meta document.
-        if (config.meta.length > 0) {
-            LibMeta.checkMetaUnhashed(config.meta);
-            emit MetaV1(msg.sender, uint256(orderHash), config.meta);
+            //slither-disable-next-line reentrancy-benign
+            sOrders[orderHash] = true;
+            emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
+
+            // We only emit the meta event if there is meta to emit. We do require
+            // that the meta self describes as a Rain meta document.
+            if (config.meta.length > 0) {
+                LibMeta.checkMetaUnhashed(config.meta);
+                emit MetaV1(msg.sender, uint256(orderHash), config.meta);
+            }
         }
     }
 
     /// @inheritdoc IOrderBookV3
     function orderExists(bytes32 orderHash) external view override returns (bool) {
-        return sOrders[orderHash] == LIVE_ORDER;
+        return sOrders[orderHash];
     }
 
     /// @inheritdoc IOrderBookV3
-    function removeOrder(Order calldata order) external nonReentrant {
+    function removeOrder(Order calldata order) external nonReentrant returns (bool stateChanged) {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
         }
-        bytes32 orderHash_ = order.hash();
-        delete (sOrders[orderHash_]);
-        emit RemoveOrder(msg.sender, order, orderHash_);
+        bytes32 orderHash = order.hash();
+        if (sOrders[orderHash]) {
+            stateChanged = true;
+            sOrders[orderHash] = false;
+            emit RemoveOrder(msg.sender, order, orderHash);
+        }
     }
 
     /// @inheritdoc IOrderBookV3
@@ -329,7 +323,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             takeOrder = config.orders[i];
             order = takeOrder.order;
             bytes32 orderHash = order.hash();
-            if (sOrders[orderHash] == DEAD_ORDER) {
+            if (!sOrders[orderHash]) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
                 if (order.validInputs[takeOrder.inputIOIndex].token != config.output) {
@@ -420,11 +414,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // If either order is dead the clear is a no-op other than emitting
             // `OrderNotFound`. Returning rather than erroring makes it easier to
             // bulk clear using `Multicall`.
-            if (sOrders[alice.hash()] == DEAD_ORDER) {
+            if (!sOrders[alice.hash()]) {
                 emit OrderNotFound(msg.sender, alice.owner, alice.hash());
                 return;
             }
-            if (sOrders[bob.hash()] == DEAD_ORDER) {
+            if (!sOrders[bob.hash()]) {
                 emit OrderNotFound(msg.sender, bob.owner, bob.hash());
                 return;
             }

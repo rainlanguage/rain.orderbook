@@ -34,7 +34,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        iOrderbook.addOrder(config);
+        assertTrue(iOrderbook.addOrder(config));
         // MetaV1 is NOT emitted if the meta is empty.
         assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -44,17 +44,25 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         assertEq(writes.length, 3);
         assertTrue(iOrderbook.orderExists(orderHash));
 
-        // Adding the same order again MUST revert. This MAY be impossible to
-        // encounter for a real expression deployer, as the deployer MAY NOT
-        // return the same address twice, but it is possible to mock.
-        vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(OrderExists.selector, owner, orderHash));
+        // Adding the same order again MUST NOT change state. This MAY be
+        // impossible to encounter for a real expression deployer, as the
+        // deployer MAY NOT return the same address twice, but it is possible to
+        // mock.
         vm.mockCall(
             address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
             abi.encode(iInterpreter, iStore, expression)
         );
-        iOrderbook.addOrder(config);
+        vm.record();
+        vm.recordLogs();
+        vm.prank(owner);
+        assertFalse(iOrderbook.addOrder(config));
+        assertEq(vm.getRecordedLogs().length, 0);
+        (reads, writes) = vm.accesses(address(iOrderbook));
+        // 3x for reentrancy guard, 1x for dead order check.
+        assertEq(reads.length, 4);
+        // 2x for reentrancy guard.
+        assertEq(writes.length, 2);
         return (order, orderHash);
     }
 
@@ -137,6 +145,21 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
             LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
+    }
+
+    function testDebugZ() external {
+        IO[] memory inputs = new IO[](1);
+        inputs[0] = IO(address(0), 0, 0);
+        IO[] memory outputs = new IO[](1);
+        outputs[0] = IO(address(0), 0, 0);
+        OrderConfig memory config =
+            OrderConfig(
+                inputs,
+                outputs,
+                                EvaluableConfig(IExpressionDeployerV1(address(0)), new bytes[](0), new uint256[](0)),
+                new bytes(0)
+            );
+        iOrderbook.addOrder(config);
     }
 
     /// Adding a valid order with a non-empty meta MUST emit MetaV1 if the meta
