@@ -278,7 +278,8 @@ struct ClearStateChange {
 /// - adding an order MUST revert if there is no handle IO entrypoint.
 /// - adding an order MUST revert if there are no inputs.
 /// - adding an order MUST revert if there are no outputs.
-/// - adding an order MUST revert if the order already exists.
+/// - adding and removing orders MUST return a boolean indicating if the state
+/// changed.
 /// - new `orderExists` method.
 interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// MUST be thrown by `deposit` if the amount is zero.
@@ -310,11 +311,6 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// MUST be thrown by `addOrder` if the order has no outputs.
     /// @param sender `msg.sender` adding the order.
     error OrderNoOutputs(address sender);
-
-    /// MUST be thrown by `addOrder` if the order already exists.
-    /// @param sender `msg.sender` adding the order.
-    /// @param orderHash The hash of the order that already exists.
-    error OrderExists(address sender, bytes32 orderHash);
 
     /// Some tokens have been deposited to a vault.
     /// @param sender `msg.sender` depositing tokens. Delegated deposits are NOT
@@ -474,11 +470,18 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// evaluation on the interpreter, which MUST prevent the order from
     /// clearing.
     ///
-    /// MUST revert with `OrderExists` if the order already exists.
     /// MUST revert with `OrderNoInputs` if the order has no inputs.
     /// MUST revert with `OrderNoOutputs` if the order has no outputs.
+    ///
+    /// If the order already exists, the order book MUST NOT change state, which
+    /// includes not emitting an event. Instead it MUST return false. If the
+    /// order book modifies state it MUST emit an `AddOrder` event and return
+    /// true.
+    ///
     /// @param config All config required to build an `Order`.
-    function addOrder(OrderConfig calldata config) external;
+    /// @return stateChanged True if the order was added, false if it already
+    /// existed.
+    function addOrder(OrderConfig calldata config) external returns (bool stateChanged);
 
     /// Returns true if the order exists, false otherwise.
     /// @param orderHash The hash of the order to check.
@@ -491,7 +494,9 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// transaction will complete with that order hash definitely, redundantly
     /// not live.
     /// @param order The `Order` data exactly as it was added.
-    function removeOrder(Order calldata order) external;
+    /// @return stateChanged True if the order was removed, false if it did not
+    /// exist.
+    function removeOrder(Order calldata order) external returns (bool stateChanged);
 
     /// Allows `msg.sender` to attempt to fill a list of orders in sequence
     /// without needing to place their own order and clear them. This works like

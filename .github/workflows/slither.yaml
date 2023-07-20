@@ -1,7 +1,7 @@
-name: QAKit Slither Analysis
+name: Slither Analysis
 on: [push]
 jobs:
-  analyze:
+  slither-analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -10,7 +10,8 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          # https://github.com/foundry-rs/foundry/issues/3440#issuecomment-1641853058
+          version: nightly-cc5637a979050c39b3d06bc4cc6134f0591ee8d0
       - name: Use Node.js
         uses: actions/setup-node@v3
 

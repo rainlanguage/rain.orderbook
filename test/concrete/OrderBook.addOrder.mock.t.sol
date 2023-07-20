@@ -1,63 +1,12 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "rain.metadata/LibMeta.sol";
-
 import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/lib/LibTestAddOrder.sol";
 
 /// @title OrderBookAddOrderMockTest
 /// @notice Tests the addOrder function of the OrderBook contract.
-contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
-    /// Boilerplate to add an order with a mocked deployer and checks events and
-    /// storage accesses.
-    function addOrderWithChecks(address owner, OrderConfig memory config, address expression)
-        internal
-        returns (Order memory, bytes32)
-    {
-        config.evaluableConfig.deployer = iDeployer;
-        (Order memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
-        assertTrue(!iOrderbook.orderExists(orderHash));
-        vm.mockCall(
-            address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
-            abi.encode(iInterpreter, iStore, expression)
-        );
-        vm.expectEmit(false, false, false, true);
-        emit AddOrder(owner, iDeployer, order, orderHash);
-        if (config.meta.length > 0) {
-            vm.expectEmit(false, false, true, false);
-            // The subject of the meta is the order hash.
-            emit MetaV1(owner, uint256(orderHash), config.meta);
-        }
-        vm.record();
-        vm.recordLogs();
-        vm.prank(owner);
-        iOrderbook.addOrder(config);
-        // MetaV1 is NOT emitted if the meta is empty.
-        assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        // 3x for reentrancy guard, 1x for dead order check, 1x for live write.
-        assertEq(reads.length, 5);
-        // 2x for reentrancy guard, 1x for live write.
-        assertEq(writes.length, 3);
-        assertTrue(iOrderbook.orderExists(orderHash));
-
-        // Adding the same order again MUST revert. This MAY be impossible to
-        // encounter for a real expression deployer, as the deployer MAY NOT
-        // return the same address twice, but it is possible to mock.
-        vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(OrderExists.selector, owner, orderHash));
-        vm.mockCall(
-            address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
-            abi.encode(iInterpreter, iStore, expression)
-        );
-        iOrderbook.addOrder(config);
-        return (order, orderHash);
-    }
-
+contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without calculations MUST revert.
     function testAddOrderWithoutCalculationsReverts(address owner, OrderConfig memory config) public {
         vm.prank(owner);
@@ -167,7 +116,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         address expression
     ) public {
         vm.assume(alice != bob);
-        vm.assume(LibTestAddOrder.conformConfig(config, iDeployer));
+        LibTestAddOrder.conformConfig(config, iDeployer);
         (Order memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
         (Order memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
         (aliceOrder);
@@ -186,8 +135,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         address bobExpression
     ) public {
         vm.assume(alice != bob);
-        vm.assume(LibTestAddOrder.conformConfig(aliceConfig, iDeployer));
-        vm.assume(LibTestAddOrder.conformConfig(bobConfig, iDeployer));
+        LibTestAddOrder.conformConfig(aliceConfig, iDeployer);
+        LibTestAddOrder.conformConfig(bobConfig, iDeployer);
         (Order memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
         (Order memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, bobExpression);
         (aliceOrder);
@@ -204,8 +153,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest, IMetaV1 {
         address expressionOne,
         address expressionTwo
     ) public {
-        vm.assume(LibTestAddOrder.conformConfig(configOne, iDeployer));
-        vm.assume(LibTestAddOrder.conformConfig(configTwo, iDeployer));
+        LibTestAddOrder.conformConfig(configOne, iDeployer);
+        LibTestAddOrder.conformConfig(configTwo, iDeployer);
         (Order memory expectedOrderOne, bytes32 expectedOrderOneHash) =
             LibTestAddOrder.expectedOrder(alice, configOne, iInterpreter, iStore, expressionOne);
         (Order memory expectedOrderTwo, bytes32 expectedOrderTwoHash) =

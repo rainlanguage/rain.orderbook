@@ -5,7 +5,7 @@ import "src/interface/unstable/IOrderBookV3.sol";
 
 abstract contract IOrderBookV3Stub is IOrderBookV3 {
     /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfig calldata) external pure {
+    function addOrder(OrderConfig calldata) external pure returns (bool) {
         revert("addOrder");
     }
 
@@ -15,7 +15,7 @@ abstract contract IOrderBookV3Stub is IOrderBookV3 {
     }
 
     /// @inheritdoc IOrderBookV3
-    function removeOrder(Order calldata) external pure {
+    function removeOrder(Order calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
