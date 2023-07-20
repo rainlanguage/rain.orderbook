@@ -1,7 +1,7 @@
-name: QAKit Slither Analysis
+name: Slither Analysis
 on: [push]
 jobs:
-  analyze:
+  slither-analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
