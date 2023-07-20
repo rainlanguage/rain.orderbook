@@ -1,4 +1,4 @@
-name: QAKit test
+name: Gas snapshot
 
 on: [push]
 
@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: true
 
-    name: QAKit Tests
+    name: Gas snapshot
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,19 +20,8 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
-
-      - name: Run Forge fmt
-        run: forge fmt --check
-        id: fmt
-
-      - name: Run Forge build
-        run: forge build --sizes
-        id: build
-
-      - name: Run Forge tests
-        run: forge test -vvv --gas-report
-        id: test
+          # https://github.com/foundry-rs/foundry/issues/3440#issuecomment-1641853058
+          version: nightly-cc5637a979050c39b3d06bc4cc6134f0591ee8d0
 
       - name: Check gas snapshots
         run: forge snapshot --check
