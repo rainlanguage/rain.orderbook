@@ -44,6 +44,15 @@ error MinimumInput(uint256 minimumInput, uint256 input);
 /// @param owner The owner of both orders.
 error SameOwner(address owner);
 
+/// @dev Stored value for a live order. NOT a boolean because storing a boolean
+/// is more expensive than storing a uint256.
+uint256 constant ORDER_LIVE = 1;
+
+/// @dev Stored value for a dead order. `0` is chosen because it is the default
+/// value for a mapping, which means all orders are dead unless explicitly made
+/// live.
+uint256 constant ORDER_DEAD = 0;
+
 /// @dev Entrypoint to a calculate the amount and ratio of an order.
 SourceIndex constant CALCULATE_ORDER_ENTRYPOINT = SourceIndex.wrap(0);
 /// @dev Entrypoint to handle the final internal vault movements resulting from
@@ -166,7 +175,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// order hash => order is live
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(bytes32 => bool) internal sOrders;
+    mapping(bytes32 => uint256) internal sOrders;
 
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
     /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
@@ -205,6 +214,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         returns (uint256)
     {
         return sVaultBalances[owner][token][vaultId];
+    }
+
+    /// @inheritdoc IOrderBookV3
+    function orderExists(bytes32 orderHash) external view override nonReentrantView returns (bool) {
+        return sOrders[orderHash] == ORDER_LIVE;
     }
 
     /// @inheritdoc IOrderBookV3
@@ -275,11 +289,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         bytes32 orderHash = order.hash();
 
         // If the order is not dead we return early without state changes.
-        if (!sOrders[orderHash]) {
+        if (sOrders[orderHash] == ORDER_DEAD) {
             stateChanged = true;
 
             //slither-disable-next-line reentrancy-benign
-            sOrders[orderHash] = true;
+            sOrders[orderHash] = ORDER_LIVE;
             emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
 
             // We only emit the meta event if there is meta to emit. We do require
@@ -292,19 +306,14 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function orderExists(bytes32 orderHash) external view override returns (bool) {
-        return sOrders[orderHash];
-    }
-
-    /// @inheritdoc IOrderBookV3
     function removeOrder(Order calldata order) external nonReentrant returns (bool stateChanged) {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
         }
         bytes32 orderHash = order.hash();
-        if (sOrders[orderHash]) {
+        if (sOrders[orderHash] == ORDER_LIVE) {
             stateChanged = true;
-            sOrders[orderHash] = false;
+            sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrder(msg.sender, order, orderHash);
         }
     }
@@ -323,7 +332,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             takeOrder = config.orders[i];
             order = takeOrder.order;
             bytes32 orderHash = order.hash();
-            if (!sOrders[orderHash]) {
+            if (sOrders[orderHash] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
                 if (order.validInputs[takeOrder.inputIOIndex].token != config.output) {
@@ -414,11 +423,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             // If either order is dead the clear is a no-op other than emitting
             // `OrderNotFound`. Returning rather than erroring makes it easier to
             // bulk clear using `Multicall`.
-            if (!sOrders[alice.hash()]) {
+            if (sOrders[alice.hash()] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, alice.owner, alice.hash());
                 return;
             }
-            if (!sOrders[bob.hash()]) {
+            if (sOrders[bob.hash()] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, bob.owner, bob.hash());
                 return;
             }

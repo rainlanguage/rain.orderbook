@@ -2,11 +2,14 @@
 pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
+
 import "rain.interpreter/interface/IExpressionDeployerV1.sol";
+import "rain.metadata/LibMeta.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibOrderBookConstants.sol";
 import "test/util/abstract/IOrderBookV3Stub.sol";
+import "test/util/lib/LibTestAddOrder.sol";
 
 import "src/concrete/OrderBook.sol";
 
@@ -21,7 +24,7 @@ import "src/concrete/OrderBook.sol";
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV2 so that it has access to all the relevant events.
-abstract contract OrderBookExternalMockTest is Test, IOrderBookV3Stub {
+abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
     IInterpreterV1 immutable iInterpreter;
     IInterpreterStoreV1 immutable iStore;
     IExpressionDeployerV1 immutable iDeployer;
@@ -54,5 +57,100 @@ abstract contract OrderBookExternalMockTest is Test, IOrderBookV3Stub {
         iToken1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
         vm.resumeGasMetering();
+    }
+
+    /// Boilerplate to add an order with a mocked deployer and checks events and
+    /// storage accesses.
+    function addOrderWithChecks(address owner, OrderConfig memory config, address expression)
+        internal
+        returns (Order memory, bytes32)
+    {
+        config.evaluableConfig.deployer = iDeployer;
+        (Order memory order, bytes32 orderHash) =
+            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
+        assertTrue(!iOrderbook.orderExists(orderHash));
+        vm.mockCall(
+            address(iDeployer),
+            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encode(iInterpreter, iStore, expression)
+        );
+        vm.expectEmit(false, false, false, true);
+        emit AddOrder(owner, iDeployer, order, orderHash);
+        if (config.meta.length > 0) {
+            vm.expectEmit(false, false, true, false);
+            // The subject of the meta is the order hash.
+            emit MetaV1(owner, uint256(orderHash), config.meta);
+        }
+        vm.record();
+        vm.recordLogs();
+        vm.prank(owner);
+        assertTrue(iOrderbook.addOrder(config));
+        // MetaV1 is NOT emitted if the meta is empty.
+        assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
+        // 3x for reentrancy guard, 1x for dead order check, 1x for live write.
+        assertEq(reads.length, 5);
+        // 2x for reentrancy guard, 1x for live write.
+        assertEq(writes.length, 3);
+        assertTrue(iOrderbook.orderExists(orderHash));
+
+        // Adding the same order again MUST NOT change state. This MAY be
+        // impossible to encounter for a real expression deployer, as the
+        // deployer MAY NOT return the same address twice, but it is possible to
+        // mock.
+        vm.mockCall(
+            address(iDeployer),
+            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encode(iInterpreter, iStore, expression)
+        );
+        vm.record();
+        vm.recordLogs();
+        vm.prank(owner);
+        assertFalse(iOrderbook.addOrder(config));
+        assertEq(vm.getRecordedLogs().length, 0);
+        (reads, writes) = vm.accesses(address(iOrderbook));
+        // 3x for reentrancy guard, 1x for dead order check.
+        assertEq(reads.length, 4);
+        // 2x for reentrancy guard.
+        assertEq(writes.length, 2);
+        assertTrue(iOrderbook.orderExists(orderHash));
+
+        return (order, orderHash);
+    }
+
+    /// Boilerplate to remove an order with a mocked deployer and checks events
+    /// and storage accesses.
+    function removeOrderWithChecks(address owner, Order memory order) internal {
+        bytes32 orderHash = LibOrder.hash(order);
+        // This check assumes the order exists before we try to remove it.
+        assertTrue(iOrderbook.orderExists(orderHash));
+        vm.expectEmit(false, false, false, true);
+        emit RemoveOrder(owner, order, orderHash);
+        vm.record();
+        vm.recordLogs();
+        vm.prank(owner);
+        // An order was removed so this is true as there is a state change.
+        assertTrue(iOrderbook.removeOrder(order));
+        assertEq(vm.getRecordedLogs().length, 1);
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
+        // 3x for reentrancy guard, 1x for dead order check, 1x for dead write.
+        assertEq(reads.length, 5);
+        // 2x for reentrancy guard, 1x for dead write.
+        assertEq(writes.length, 3);
+        assertFalse(iOrderbook.orderExists(orderHash));
+
+        // Removing the same order again MUST NOT change state.
+        vm.record();
+        vm.recordLogs();
+        vm.prank(owner);
+        // There is no state change so this is false.
+        assertFalse(iOrderbook.removeOrder(order));
+        assertEq(vm.getRecordedLogs().length, 0);
+        (reads, writes) = vm.accesses(address(iOrderbook));
+        // 3x for reentrancy guard, 1x for dead order check.
+        assertEq(reads.length, 4);
+        // 2x for reentrancy guard.
+        assertEq(writes.length, 2);
+        assertFalse(iOrderbook.orderExists(orderHash));
     }
 }
