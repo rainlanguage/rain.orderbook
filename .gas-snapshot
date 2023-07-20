@@ -1,5 +1,7 @@
 GenericPoolOrderBookFlashBorrowerTest:testMinimumOutput(uint256,uint256) (runs: 5096, μ: 2315742, ~: 2319046)
 GenericPoolOrderBookFlashBorrowerTest:testTakeOrdersSender() (gas: 2230881)
+LibOrderTest:testHashEqual((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[])) (runs: 5096, μ: 194389, ~: 191140)
+LibOrderTest:testHashNotEqual((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[])) (runs: 5096, μ: 298734, ~: 298554)
 OrderBookAddOrderMockTest:testAddOrderSameAccountWithDifferentConfig(address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes[],uint256[]),bytes),((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes[],uint256[]),bytes),address,address) (runs: 5096, μ: 3327619, ~: 3300143)
 OrderBookAddOrderMockTest:testAddOrderTwoAccountsWithDifferentConfig(address,address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes[],uint256[]),bytes),((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes[],uint256[]),bytes),address,address) (runs: 5096, μ: 3171805, ~: 3178905)
 OrderBookAddOrderMockTest:testAddOrderTwoAccountsWithSameConfig(address,address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes[],uint256[]),bytes),address) (runs: 5096, μ: 2973414, ~: 2969001)
