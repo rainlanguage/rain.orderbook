@@ -1,2 +1,3 @@
 pub mod cli;
-pub mod subgraph;
+pub mod meta;
+pub mod solc;
