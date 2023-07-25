@@ -3,9 +3,7 @@ use serde_json::Value;
 use std::fs::File;
 use std::io::Read;
 use web3::ethabi::{self, Token};
-use web3::types::{
-    BlockId, BlockNumber, Bytes, TransactionReceipt, TransactionRequest, H256, U256,
-};
+use web3::types::{Address, Bytes};
 use web3::{
     contract::{Contract, Options},
     transports::Http,
@@ -83,37 +81,26 @@ pub async fn rainterpreter_expression_deployer_deploy(
     let bytecode: String = json["bytecode"]["object"].to_string();
     let meta = get_rain_meta_document_from_opmeta()?;
 
+    println!("interpreter {}", Address::from(interpreter));
+    println!("store {}", Address::from(store));
+    println!("meta {:?}", Bytes(meta.clone()));
     let constructor_inputs = ethabi::encode(&[
-        Token::Address(interpreter),
-        Token::Address(store),
-        Token::Bytes(meta),
+        Token::Address(Address::from(interpreter)),
+        Token::Address(Address::from(store)),
+        Token::Bytes(meta.clone()),
     ]);
+    // println!("constructor_inputs {:?}", Bytes(constructor_inputs));
 
-    let constructor_inputs = format!("0x{:?}", hex::encode(constructor_inputs.clone()));
+    // let constructor_inputs = format!("0x{:?}", hex::encode(constructor_inputs.clone()));
     let contract = Contract::deploy(provider.eth(), abi.as_bytes())?;
     let contract = contract
         .confirmations(0)
         .options(Options::with(|opt| {
             opt.gas = Some(30_000_000.into());
         }))
-        .execute(bytecode, constructor_inputs, deployer)
+        .execute(&bytecode, Bytes(constructor_inputs), deployer)
         .await?;
 
-    // let tx = TransactionRequest {
-    //     from: deployer,
-    //     data: Bytes(constructor_inputs).into(),
-    //     value: U256::from("80000000000000000").into(),
-    //     ..Default::default()
-    // };
-
-    // let trx: H256 = provider.eth().send_transaction(tx).await?;
-    // let receipt: TransactionReceipt = provider.eth().transaction_receipt(trx).await?.unwrap();
-    // let expression_deployer = receipt.contract_address.unwrap();
-    // let contract = Contract::from_json(provider.eth(), expression_deployer, abi.as_bytes())?;
-    let store: H160 = contract
-        .query("store", (), None, Options::default(), None)
-        .await?;
-    println!("store {}", store);
     Ok(())
 }
 
