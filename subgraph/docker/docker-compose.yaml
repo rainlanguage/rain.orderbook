@@ -1,9 +1,5 @@
 version: '3'
 services:
-  hardhat:
-    image: vishalkale151071/hardhat-node
-    ports:
-      - '8545:8545'
   graph-node:
     image: graphprotocol/graph-node:97e0adc
     ports:
@@ -15,7 +11,6 @@ services:
     depends_on:
       - ipfs
       - postgres
-      - hardhat
     extra_hosts:
       - host.docker.internal:host-gateway
     environment:
@@ -24,7 +19,7 @@ services:
       postgres_pass: let-me-in
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'localhost:http://hardhat:8545'
+      ethereum: 'localhost:http://host.docker.internal:8545'
       GRAPH_LOG: info
   ipfs:
     image: ipfs/go-ipfs:v0.10.0

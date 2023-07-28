@@ -1,13 +1,19 @@
-use crate::utils::utils::get_web3;
 use anyhow;
-use std::fs::File;
+use ethers::{
+    providers::{Http, Middleware, Provider},
+    types::BlockId,
+    types::{Bytes, NameOrAddress, TransactionRequest, U256},
+    utils::AnvilInstance,
+};
 use std::io::Read;
-use web3::types::{BlockNumber, Bytes, TransactionRequest, H160, U256};
+use std::{fs::File, time::Duration};
 
-pub async fn deploy1820() -> anyhow::Result<()> {
-    let web3 = get_web3();
-    let signature_address: H160 = "0xa990077c3205cbDf861e17Fa532eeB069cE9fF96".parse()?;
-    let registry_address: H160 = "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24".parse()?;
+pub async fn deploy1820(anvil: &AnvilInstance) -> anyhow::Result<()> {
+    let provider =
+        Provider::<Http>::try_from(anvil.endpoint())?.interval(Duration::from_millis(10));
+
+    let signature_address: NameOrAddress = "0xa990077c3205cbDf861e17Fa532eeB069cE9fF96".parse()?;
+    let registry_address = "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24";
     let cost: U256 = U256::from("80000000000000000");
     let mut file = File::open("tests/utils/deploy/deploy1820/ERC1820RegistryABI.json")?;
     let mut erc1820_registry_abi = String::new();
@@ -19,30 +25,26 @@ pub async fn deploy1820() -> anyhow::Result<()> {
     let tx_erc1820_registry_deployment = hex::decode(tx_erc1820_registry_deployment)?;
     let tx_erc1820_registry_deployment = Bytes::from(tx_erc1820_registry_deployment);
 
-    let block = web3.eth().block_number().await?;
+    let block = BlockId::from(provider.get_block_number().await?);
 
-    let code = web3
-        .eth()
-        .code(registry_address, BlockNumber::from(block).into())
-        .await?;
+    let code = provider.get_code(registry_address, block.into()).await?;
 
     if code == Bytes::default() {
-        let deployer = web3.eth().accounts().await?[1];
-        let nonce = web3
-            .eth()
-            .transaction_count(deployer, Some(BlockNumber::from(block)))
+        let deployer = anvil.addresses()[0];
+        let nonce = provider
+            .get_transaction_count(deployer, block.into())
             .await?;
 
         let tx: TransactionRequest = TransactionRequest {
             to: Some(signature_address),
             value: Some(cost),
-            from: web3.eth().accounts().await?[1],
+            from: Some(deployer),
             nonce: Some(nonce),
             ..Default::default()
         };
 
-        web3.eth().send_transaction(tx).await?;
-        web3.eth()
+        provider.send_transaction(tx, None).await?;
+        provider
             .send_raw_transaction(tx_erc1820_registry_deployment)
             .await?;
     }

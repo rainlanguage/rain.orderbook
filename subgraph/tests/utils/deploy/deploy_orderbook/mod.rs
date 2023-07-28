@@ -1,13 +1,9 @@
-use serde_json::Value;
-use std::fs::File;
-use std::io::Read;
-use web3::ethabi::Contract as C;
-use web3::{contract::Contract, transports::Http};
+use ethers::utils::AnvilInstance;
 
 use super::touch_deployer::deploy_touch_deployer;
 
-pub async fn deploy_orderbook() -> anyhow::Result<()> {
-    let touch_deployer = deploy_touch_deployer().await?;
+pub async fn deploy_orderbook(anvil: &AnvilInstance) -> anyhow::Result<()> {
+    let _touch_deployer = deploy_touch_deployer(anvil).await?;
     // let mut json = String::new();
     // let mut file = File::open("tests/utils/deploy/deploy_orderbook/OrderBook.json")?;
     // file.read_to_string(&mut json)?;

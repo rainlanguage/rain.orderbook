@@ -1,10 +1,15 @@
-use utils::deploy::{deploy1820::deploy1820, deploy_orderbook::deploy_orderbook};
+use utils::{
+    deploy::{deploy1820::deploy1820, deploy_orderbook::deploy_orderbook},
+    utils::{deploy_anvil_and_docker, stop_docker},
+};
 
 mod utils;
 #[tokio::main]
 #[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
-    deploy1820().await?;
-    deploy_orderbook().await?;
+    let anvil = deploy_anvil_and_docker()?;
+    deploy1820(&anvil).await?;
+    deploy_orderbook(&anvil).await?;
+
     Ok(())
-} 
+}
