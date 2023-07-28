@@ -4,6 +4,9 @@ use clap::{Parser, Subcommand};
 use crate::cli::order::Order;
 
 mod order;
+pub mod registry;
+pub mod deposit;
+pub mod withdraw;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -15,7 +18,9 @@ struct Cli {
 #[derive(Subcommand)]
 pub enum Orderbook {
     #[command(subcommand)]
-    Order(Order)
+    Order(Order),
+    Deposit(deposit::Deposit),
+    Withdraw(withdraw::Withdraw)
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
@@ -24,6 +29,14 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
             match order {
                 Order::Ls => Ok(order::ls().await?),
             }
+        },
+        Orderbook::Deposit(deposit) => {
+            let _ =deposit::deposit(deposit).await ; 
+            Ok(())
+        },
+        Orderbook::Withdraw(withdraw) => {
+            let _ =withdraw::withdraw(withdraw).await;
+            Ok(())
         }
     }
 }
