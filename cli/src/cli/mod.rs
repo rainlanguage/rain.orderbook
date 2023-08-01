@@ -7,6 +7,7 @@ mod order;
 pub mod registry;
 pub mod deposit;
 pub mod withdraw;
+pub mod addorder;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -20,7 +21,8 @@ pub enum Orderbook {
     #[command(subcommand)]
     Order(Order),
     Deposit(deposit::Deposit),
-    Withdraw(withdraw::Withdraw)
+    Withdraw(withdraw::Withdraw),
+    AddOrder(addorder::AddOrder)
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
@@ -31,11 +33,15 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
             }
         },
         Orderbook::Deposit(deposit) => {
-            let _ =deposit::deposit(deposit).await ; 
+            let _ = deposit::deposit(deposit).await ; 
             Ok(())
         },
         Orderbook::Withdraw(withdraw) => {
-            let _ =withdraw::withdraw(withdraw).await;
+            let _ = withdraw::withdraw(withdraw).await;
+            Ok(())
+        },
+        Orderbook::AddOrder(order) => {
+            let _ = addorder::add_order(order).await;
             Ok(())
         }
     }

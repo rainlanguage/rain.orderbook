@@ -25,3 +25,4 @@ serde_json = "1.0.96"
 eyre = "0.6"
 spinners = "4.1.0"
 hex = "0.4.3"
+ethers-signers = { version = "2.0.8", features = ["ledger"] }

@@ -1,0 +1,695 @@
+{
+    "abi": [
+      {
+        "inputs": [],
+        "name": "authoringMetaHash",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "",
+            "type": "bytes32"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "bytes",
+            "name": "data",
+            "type": "bytes"
+          }
+        ],
+        "name": "parse",
+        "outputs": [
+          {
+            "internalType": "bytes[]",
+            "name": "",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "",
+            "type": "uint256[]"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "parseMeta",
+        "outputs": [
+          {
+            "internalType": "bytes",
+            "name": "",
+            "type": "bytes"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "bytes",
+            "name": "data",
+            "type": "bytes"
+          }
+        ],
+        "name": "verifyAuthoringMeta",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+      }
+    ],
+    "bytecode": {
+      "object": "0x",
+      "sourceMap": "",
+      "linkReferences": {}
+    },
+    "deployedBytecode": {
+      "object": "0x",
+      "sourceMap": "",
+      "linkReferences": {}
+    },
+    "methodIdentifiers": {
+      "authoringMetaHash()": "b6c7175a",
+      "parse(bytes)": "fab4087a",
+      "parseMeta()": "ffc25704",
+      "verifyAuthoringMeta(bytes)": "9f8526da"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"authoringMetaHash\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"parse\",\"outputs\":[{\"internalType\":\"bytes[]\",\"name\":\"\",\"type\":\"bytes[]\"},{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"parseMeta\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"verifyAuthoringMeta\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"verifyAuthoringMeta(bytes)\":{\"params\":{\"data\":\"The authoring meta.\"},\"returns\":{\"_0\":\"True if the authoring meta is valid, false otherwise.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"authoringMetaHash()\":{\"notice\":\"Returns the bytes of the authoring meta hash. Authoring meta is the data used by the authoring tool to give authors a better experience when writing Rainlang strings. The authoring meta is also used to generate the parse meta. As the authoring meta can be quite large, including potentially hundreds of long string descriptions of individual words, only the hash is required to be reported by the parser. This hash MUST NOT be modified after deployment. There MUST be a one-to-one mapping between authoring meta and parse meta that can be verified externally in a deterministic way.\"},\"parse(bytes)\":{\"notice\":\"Parses a Rainlang string into an evaluable expression. MUST be deterministic and MUST NOT have side effects. The only inputs are the Rainlang string and the parse meta. MAY revert if the Rainlang string is invalid. This function takes `bytes` instead of `string` to allow for definitions of \\\"string\\\" other than UTF-8.\"},\"parseMeta()\":{\"notice\":\"Returns the bytes of the parse meta. Parse meta is the data used by the parser to convert a Rainlang string into an evaluable expression. These bytes MUST NOT be modified after deployment. The function is marked `external` so that it can be externally verified against the authoring meta, but is likely to be `public` in practice so that it can also be used internally by `parse`.\"},\"verifyAuthoringMeta(bytes)\":{\"notice\":\"Verifies that the authoring meta is valid. MUST be deterministic and MUST NOT have side effects. The only input is the authoring meta. The authoring meta MUST match the authoring meta hash returned by `authoringMetaHash` and MUST determine the parse meta returned by `parseMeta`.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interface/unstable/IParserV1.sol\":\"IParserV1\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"appendCBOR\":false,\"bytecodeHash\":\"none\"},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/openzeppelin-contracts/contracts/\",\":rain.chainlink/=lib/rain.chainlink/src/\",\":rain.datacontract/=lib/rain.datacontract/src/\",\":rain.erc1820/=lib/rain.erc1820/src/\",\":rain.lib.hash/=lib/rain.lib.memkv/lib/rain.lib.hash/src/\",\":rain.lib.memkv/=lib/rain.lib.memkv/src/\",\":rain.lib.typecast/=lib/rain.lib.typecast/src/\",\":rain.math.fixedpoint/=lib/rain.chainlink/lib/rain.math.fixedpoint/src/\",\":rain.math.saturating/=lib/rain.chainlink/lib/rain.math.fixedpoint/lib/rain.math.saturating/src/\",\":rain.metadata/=lib/rain.metadata/src/\",\":rain.solmem/=lib/rain.solmem/src/\"]},\"sources\":{\"src/interface/IInterpreterStoreV1.sol\":{\"keccak256\":\"0xbd9baa8cd30406576f876a76f1c08396561ba93131741af338f63e2414e20619\",\"license\":\"CAL\",\"urls\":[\"bzz-raw://30bb6f09d8b8f27f77e6c44591c4f2070286a91dad202043cf2351ae802e3df5\",\"dweb:/ipfs/QmRz5pfzf5w84iNmKaYYbqP8oQywzc5xbd3xzKmxgFyf9y\"]},\"src/interface/IInterpreterV1.sol\":{\"keccak256\":\"0xebde08ca2e1c25fc733e0bb8867598715f8ba79772f86db1c8960ad7d68a5293\",\"license\":\"CAL\",\"urls\":[\"bzz-raw://b93fb28a09aeea4afe7f0d4afc67354c0fa538e5a9b274b0c5f10ed1dd6b6b00\",\"dweb:/ipfs/QmatNhoHRSJ1ZvoCNo61YMt9jb1vvEkWy3mkcoPkB4FFA9\"]},\"src/interface/unstable/IParserV1.sol\":{\"keccak256\":\"0x8a1b62fa8a2ca4331549786a9353a4d3e0e7af5442a45b9310a9b28e7b9957fc\",\"license\":\"CAL\",\"urls\":[\"bzz-raw://2265b4e69888061e79de114f3bfbbc4838ddd41c4d7d1d7918d936afd072c962\",\"dweb:/ipfs/Qmcwejo4UJ8rUqWwt2gmFbeSnZfzQrYLUrbY74Suy1pz3c\"]}},\"version\":1}",
+    "metadata": {
+      "compiler": {
+        "version": "0.8.19+commit.7dd6d404"
+      },
+      "language": "Solidity",
+      "output": {
+        "abi": [
+          {
+            "inputs": [],
+            "stateMutability": "pure",
+            "type": "function",
+            "name": "authoringMetaHash",
+            "outputs": [
+              {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+              }
+            ]
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              }
+            ],
+            "stateMutability": "pure",
+            "type": "function",
+            "name": "parse",
+            "outputs": [
+              {
+                "internalType": "bytes[]",
+                "name": "",
+                "type": "bytes[]"
+              },
+              {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+              }
+            ]
+          },
+          {
+            "inputs": [],
+            "stateMutability": "pure",
+            "type": "function",
+            "name": "parseMeta",
+            "outputs": [
+              {
+                "internalType": "bytes",
+                "name": "",
+                "type": "bytes"
+              }
+            ]
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              }
+            ],
+            "stateMutability": "pure",
+            "type": "function",
+            "name": "verifyAuthoringMeta",
+            "outputs": [
+              {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "devdoc": {
+          "kind": "dev",
+          "methods": {
+            "verifyAuthoringMeta(bytes)": {
+              "params": {
+                "data": "The authoring meta."
+              },
+              "returns": {
+                "_0": "True if the authoring meta is valid, false otherwise."
+              }
+            }
+          },
+          "version": 1
+        },
+        "userdoc": {
+          "kind": "user",
+          "methods": {
+            "authoringMetaHash()": {
+              "notice": "Returns the bytes of the authoring meta hash. Authoring meta is the data used by the authoring tool to give authors a better experience when writing Rainlang strings. The authoring meta is also used to generate the parse meta. As the authoring meta can be quite large, including potentially hundreds of long string descriptions of individual words, only the hash is required to be reported by the parser. This hash MUST NOT be modified after deployment. There MUST be a one-to-one mapping between authoring meta and parse meta that can be verified externally in a deterministic way."
+            },
+            "parse(bytes)": {
+              "notice": "Parses a Rainlang string into an evaluable expression. MUST be deterministic and MUST NOT have side effects. The only inputs are the Rainlang string and the parse meta. MAY revert if the Rainlang string is invalid. This function takes `bytes` instead of `string` to allow for definitions of \"string\" other than UTF-8."
+            },
+            "parseMeta()": {
+              "notice": "Returns the bytes of the parse meta. Parse meta is the data used by the parser to convert a Rainlang string into an evaluable expression. These bytes MUST NOT be modified after deployment. The function is marked `external` so that it can be externally verified against the authoring meta, but is likely to be `public` in practice so that it can also be used internally by `parse`."
+            },
+            "verifyAuthoringMeta(bytes)": {
+              "notice": "Verifies that the authoring meta is valid. MUST be deterministic and MUST NOT have side effects. The only input is the authoring meta. The authoring meta MUST match the authoring meta hash returned by `authoringMetaHash` and MUST determine the parse meta returned by `parseMeta`."
+            }
+          },
+          "version": 1
+        }
+      },
+      "settings": {
+        "remappings": [
+          ":ds-test/=lib/forge-std/lib/ds-test/src/",
+          ":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
+          ":forge-std/=lib/forge-std/src/",
+          ":openzeppelin-contracts/=lib/openzeppelin-contracts/",
+          ":openzeppelin/=lib/openzeppelin-contracts/contracts/",
+          ":rain.chainlink/=lib/rain.chainlink/src/",
+          ":rain.datacontract/=lib/rain.datacontract/src/",
+          ":rain.erc1820/=lib/rain.erc1820/src/",
+          ":rain.lib.hash/=lib/rain.lib.memkv/lib/rain.lib.hash/src/",
+          ":rain.lib.memkv/=lib/rain.lib.memkv/src/",
+          ":rain.lib.typecast/=lib/rain.lib.typecast/src/",
+          ":rain.math.fixedpoint/=lib/rain.chainlink/lib/rain.math.fixedpoint/src/",
+          ":rain.math.saturating/=lib/rain.chainlink/lib/rain.math.fixedpoint/lib/rain.math.saturating/src/",
+          ":rain.metadata/=lib/rain.metadata/src/",
+          ":rain.solmem/=lib/rain.solmem/src/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 1000000
+        },
+        "metadata": {
+          "bytecodeHash": "none",
+          "appendCBOR": false
+        },
+        "compilationTarget": {
+          "src/interface/unstable/IParserV1.sol": "IParserV1"
+        },
+        "libraries": {}
+      },
+      "sources": {
+        "src/interface/IInterpreterStoreV1.sol": {
+          "keccak256": "0xbd9baa8cd30406576f876a76f1c08396561ba93131741af338f63e2414e20619",
+          "urls": [
+            "bzz-raw://30bb6f09d8b8f27f77e6c44591c4f2070286a91dad202043cf2351ae802e3df5",
+            "dweb:/ipfs/QmRz5pfzf5w84iNmKaYYbqP8oQywzc5xbd3xzKmxgFyf9y"
+          ],
+          "license": "CAL"
+        },
+        "src/interface/IInterpreterV1.sol": {
+          "keccak256": "0xebde08ca2e1c25fc733e0bb8867598715f8ba79772f86db1c8960ad7d68a5293",
+          "urls": [
+            "bzz-raw://b93fb28a09aeea4afe7f0d4afc67354c0fa538e5a9b274b0c5f10ed1dd6b6b00",
+            "dweb:/ipfs/QmatNhoHRSJ1ZvoCNo61YMt9jb1vvEkWy3mkcoPkB4FFA9"
+          ],
+          "license": "CAL"
+        },
+        "src/interface/unstable/IParserV1.sol": {
+          "keccak256": "0x8a1b62fa8a2ca4331549786a9353a4d3e0e7af5442a45b9310a9b28e7b9957fc",
+          "urls": [
+            "bzz-raw://2265b4e69888061e79de114f3bfbbc4838ddd41c4d7d1d7918d936afd072c962",
+            "dweb:/ipfs/Qmcwejo4UJ8rUqWwt2gmFbeSnZfzQrYLUrbY74Suy1pz3c"
+          ],
+          "license": "CAL"
+        }
+      },
+      "version": 1
+    },
+    "ast": {
+      "absolutePath": "src/interface/unstable/IParserV1.sol",
+      "id": 48871,
+      "exportedSymbols": {
+        "DEFAULT_STATE_NAMESPACE": [
+          48704
+        ],
+        "EncodedDispatch": [
+          48692
+        ],
+        "FullyQualifiedNamespace": [
+          48653
+        ],
+        "IInterpreterStoreV1": [
+          48685
+        ],
+        "IInterpreterV1": [
+          48735
+        ],
+        "IParserV1": [
+          48870
+        ],
+        "NO_STORE": [
+          48662
+        ],
+        "Operand": [
+          48696
+        ],
+        "SourceIndex": [
+          48690
+        ],
+        "StateNamespace": [
+          48694
+        ]
+      },
+      "nodeType": "SourceUnit",
+      "src": "32:2265:61",
+      "nodes": [
+        {
+          "id": 48836,
+          "nodeType": "PragmaDirective",
+          "src": "32:24:61",
+          "nodes": [],
+          "literals": [
+            "solidity",
+            "^",
+            "0.8",
+            ".18"
+          ]
+        },
+        {
+          "id": 48837,
+          "nodeType": "ImportDirective",
+          "src": "58:31:61",
+          "nodes": [],
+          "absolutePath": "src/interface/IInterpreterV1.sol",
+          "file": "../IInterpreterV1.sol",
+          "nameLocation": "-1:-1:-1",
+          "scope": 48871,
+          "sourceUnit": 48736,
+          "symbolAliases": [],
+          "unitAlias": ""
+        },
+        {
+          "id": 48870,
+          "nodeType": "ContractDefinition",
+          "src": "91:2205:61",
+          "nodes": [
+            {
+              "id": 48843,
+              "nodeType": "FunctionDefinition",
+              "src": "772:61:61",
+              "nodes": [],
+              "documentation": {
+                "id": 48838,
+                "nodeType": "StructuredDocumentation",
+                "src": "117:650:61",
+                "text": "Returns the bytes of the authoring meta hash. Authoring meta is the data\n used by the authoring tool to give authors a better experience when\n writing Rainlang strings. The authoring meta is also used to generate the\n parse meta. As the authoring meta can be quite large, including\n potentially hundreds of long string descriptions of individual words,\n only the hash is required to be reported by the parser. This hash MUST\n NOT be modified after deployment. There MUST be a one-to-one mapping\n between authoring meta and parse meta that can be verified externally in\n a deterministic way."
+              },
+              "functionSelector": "b6c7175a",
+              "implemented": false,
+              "kind": "function",
+              "modifiers": [],
+              "name": "authoringMetaHash",
+              "nameLocation": "781:17:61",
+              "parameters": {
+                "id": 48839,
+                "nodeType": "ParameterList",
+                "parameters": [],
+                "src": "798:2:61"
+              },
+              "returnParameters": {
+                "id": 48842,
+                "nodeType": "ParameterList",
+                "parameters": [
+                  {
+                    "constant": false,
+                    "id": 48841,
+                    "mutability": "mutable",
+                    "name": "",
+                    "nameLocation": "-1:-1:-1",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48843,
+                    "src": "824:7:61",
+                    "stateVariable": false,
+                    "storageLocation": "default",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    },
+                    "typeName": {
+                      "id": 48840,
+                      "name": "bytes32",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "824:7:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "visibility": "internal"
+                  }
+                ],
+                "src": "823:9:61"
+              },
+              "scope": 48870,
+              "stateMutability": "pure",
+              "virtual": false,
+              "visibility": "external"
+            },
+            {
+              "id": 48851,
+              "nodeType": "FunctionDefinition",
+              "src": "1269:77:61",
+              "nodes": [],
+              "documentation": {
+                "id": 48844,
+                "nodeType": "StructuredDocumentation",
+                "src": "839:425:61",
+                "text": "Verifies that the authoring meta is valid. MUST be deterministic and\n MUST NOT have side effects. The only input is the authoring meta.\n The authoring meta MUST match the authoring meta hash returned by\n `authoringMetaHash` and MUST determine the parse meta returned by\n `parseMeta`.\n @param data The authoring meta.\n @return True if the authoring meta is valid, false otherwise."
+              },
+              "functionSelector": "9f8526da",
+              "implemented": false,
+              "kind": "function",
+              "modifiers": [],
+              "name": "verifyAuthoringMeta",
+              "nameLocation": "1278:19:61",
+              "parameters": {
+                "id": 48847,
+                "nodeType": "ParameterList",
+                "parameters": [
+                  {
+                    "constant": false,
+                    "id": 48846,
+                    "mutability": "mutable",
+                    "name": "data",
+                    "nameLocation": "1311:4:61",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48851,
+                    "src": "1298:17:61",
+                    "stateVariable": false,
+                    "storageLocation": "memory",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_memory_ptr",
+                      "typeString": "bytes"
+                    },
+                    "typeName": {
+                      "id": 48845,
+                      "name": "bytes",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1298:5:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes_storage_ptr",
+                        "typeString": "bytes"
+                      }
+                    },
+                    "visibility": "internal"
+                  }
+                ],
+                "src": "1297:19:61"
+              },
+              "returnParameters": {
+                "id": 48850,
+                "nodeType": "ParameterList",
+                "parameters": [
+                  {
+                    "constant": false,
+                    "id": 48849,
+                    "mutability": "mutable",
+                    "name": "",
+                    "nameLocation": "-1:-1:-1",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48851,
+                    "src": "1340:4:61",
+                    "stateVariable": false,
+                    "storageLocation": "default",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    },
+                    "typeName": {
+                      "id": 48848,
+                      "name": "bool",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1340:4:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "visibility": "internal"
+                  }
+                ],
+                "src": "1339:6:61"
+              },
+              "scope": 48870,
+              "stateMutability": "pure",
+              "virtual": false,
+              "visibility": "external"
+            },
+            {
+              "id": 48857,
+              "nodeType": "FunctionDefinition",
+              "src": "1781:58:61",
+              "nodes": [],
+              "documentation": {
+                "id": 48852,
+                "nodeType": "StructuredDocumentation",
+                "src": "1352:424:61",
+                "text": "Returns the bytes of the parse meta. Parse meta is the data used by the\n parser to convert a Rainlang string into an evaluable expression.\n These bytes MUST NOT be modified after deployment. The function is\n marked `external` so that it can be externally verified against the\n authoring meta, but is likely to be `public` in practice so that it can\n also be used internally by `parse`."
+              },
+              "functionSelector": "ffc25704",
+              "implemented": false,
+              "kind": "function",
+              "modifiers": [],
+              "name": "parseMeta",
+              "nameLocation": "1790:9:61",
+              "parameters": {
+                "id": 48853,
+                "nodeType": "ParameterList",
+                "parameters": [],
+                "src": "1799:2:61"
+              },
+              "returnParameters": {
+                "id": 48856,
+                "nodeType": "ParameterList",
+                "parameters": [
+                  {
+                    "constant": false,
+                    "id": 48855,
+                    "mutability": "mutable",
+                    "name": "",
+                    "nameLocation": "-1:-1:-1",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48857,
+                    "src": "1825:12:61",
+                    "stateVariable": false,
+                    "storageLocation": "memory",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_memory_ptr",
+                      "typeString": "bytes"
+                    },
+                    "typeName": {
+                      "id": 48854,
+                      "name": "bytes",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1825:5:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes_storage_ptr",
+                        "typeString": "bytes"
+                      }
+                    },
+                    "visibility": "internal"
+                  }
+                ],
+                "src": "1824:14:61"
+              },
+              "scope": 48870,
+              "stateMutability": "pure",
+              "virtual": false,
+              "visibility": "external"
+            },
+            {
+              "id": 48869,
+              "nodeType": "FunctionDefinition",
+              "src": "2203:91:61",
+              "nodes": [],
+              "documentation": {
+                "id": 48858,
+                "nodeType": "StructuredDocumentation",
+                "src": "1845:353:61",
+                "text": "Parses a Rainlang string into an evaluable expression. MUST be\n deterministic and MUST NOT have side effects. The only inputs are the\n Rainlang string and the parse meta. MAY revert if the Rainlang string\n is invalid. This function takes `bytes` instead of `string` to allow\n for definitions of \"string\" other than UTF-8."
+              },
+              "functionSelector": "fab4087a",
+              "implemented": false,
+              "kind": "function",
+              "modifiers": [],
+              "name": "parse",
+              "nameLocation": "2212:5:61",
+              "parameters": {
+                "id": 48861,
+                "nodeType": "ParameterList",
+                "parameters": [
+                  {
+                    "constant": false,
+                    "id": 48860,
+                    "mutability": "mutable",
+                    "name": "data",
+                    "nameLocation": "2231:4:61",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48869,
+                    "src": "2218:17:61",
+                    "stateVariable": false,
+                    "storageLocation": "memory",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_memory_ptr",
+                      "typeString": "bytes"
+                    },
+                    "typeName": {
+                      "id": 48859,
+                      "name": "bytes",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "2218:5:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes_storage_ptr",
+                        "typeString": "bytes"
+                      }
+                    },
+                    "visibility": "internal"
+                  }
+                ],
+                "src": "2217:19:61"
+              },
+              "returnParameters": {
+                "id": 48868,
+                "nodeType": "ParameterList",
+                "parameters": [
+                  {
+                    "constant": false,
+                    "id": 48864,
+                    "mutability": "mutable",
+                    "name": "",
+                    "nameLocation": "-1:-1:-1",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48869,
+                    "src": "2260:14:61",
+                    "stateVariable": false,
+                    "storageLocation": "memory",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_bytes_memory_ptr_$dyn_memory_ptr",
+                      "typeString": "bytes[]"
+                    },
+                    "typeName": {
+                      "baseType": {
+                        "id": 48862,
+                        "name": "bytes",
+                        "nodeType": "ElementaryTypeName",
+                        "src": "2260:5:61",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes_storage_ptr",
+                          "typeString": "bytes"
+                        }
+                      },
+                      "id": 48863,
+                      "nodeType": "ArrayTypeName",
+                      "src": "2260:7:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                        "typeString": "bytes[]"
+                      }
+                    },
+                    "visibility": "internal"
+                  },
+                  {
+                    "constant": false,
+                    "id": 48867,
+                    "mutability": "mutable",
+                    "name": "",
+                    "nameLocation": "-1:-1:-1",
+                    "nodeType": "VariableDeclaration",
+                    "scope": 48869,
+                    "src": "2276:16:61",
+                    "stateVariable": false,
+                    "storageLocation": "memory",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint256_$dyn_memory_ptr",
+                      "typeString": "uint256[]"
+                    },
+                    "typeName": {
+                      "baseType": {
+                        "id": 48865,
+                        "name": "uint256",
+                        "nodeType": "ElementaryTypeName",
+                        "src": "2276:7:61",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      "id": 48866,
+                      "nodeType": "ArrayTypeName",
+                      "src": "2276:9:61",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+                        "typeString": "uint256[]"
+                      }
+                    },
+                    "visibility": "internal"
+                  }
+                ],
+                "src": "2259:34:61"
+              },
+              "scope": 48870,
+              "stateMutability": "pure",
+              "virtual": false,
+              "visibility": "external"
+            }
+          ],
+          "abstract": false,
+          "baseContracts": [],
+          "canonicalName": "IParserV1",
+          "contractDependencies": [],
+          "contractKind": "interface",
+          "fullyImplemented": false,
+          "linearizedBaseContracts": [
+            48870
+          ],
+          "name": "IParserV1",
+          "nameLocation": "101:9:61",
+          "scope": 48871,
+          "usedErrors": []
+        }
+      ],
+      "license": "CAL"
+    },
+    "id": 61
+  }

@@ -11,8 +11,8 @@ use ethers::core::abi::Abi ;
 use ethers::contract::Contract;
 use ethers::contract::abigen ;
 use ethers::contract::Abigen ;
-use spinners::{Spinner, Spinners};
-
+use spinners::{Spinner, Spinners}; 
+use ethers_signers::{Ledger, HDPath};
 use super::registry::RainNetworkOptions;
 
 
@@ -29,11 +29,11 @@ pub struct Deposit{
     orderbook : String, 
 
     /// address of the token to deposit
-    #[arg(short='t', long)]
+    #[arg(short='t', long, num_args = 1..)]
     token_address : String, 
 
     /// decimals coressponding to the token
-    #[arg(short='d', long)]
+    #[arg(short='d', long, num_args = 1..)]
     token_decimals : u32, 
 
     /// amount to deposit.
@@ -43,10 +43,6 @@ pub struct Deposit{
     /// optional vault id to deposit in
     #[arg(short, long)]
     vault_id : Option<String> , 
-
-    /// private key (unprefixed) provided when deploy is set to true
-    #[arg(short ='k' , long = "priavte-key" )]
-    pub private_key: String, 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
@@ -140,16 +136,16 @@ pub async fn deposit(deposit : Deposit) -> anyhow::Result<()> {
         }
     } ; 
 
-    let rpc_url = deposit.get_network_rpc().unwrap() ;
-
-    let wallet: LocalWallet = deposit.private_key.parse().unwrap() ;
-
+    let rpc_url = deposit.get_network_rpc().unwrap() ; 
 
     let provider = Provider::<Http>::try_from(rpc_url)
-    .expect("\n❌Could not instantiate HTTP Provider"); 
+    .expect("\n❌Could not instantiate HTTP Provider");  
 
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?; 
-    let signer_address =  client.address() ;
+    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
+    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?;
+
+    // let client = SignerMiddleware::new(provider, wallet); 
+    let signer_address =  wallet.get_address().await.unwrap() ;
 
     abigen!(IOrderBookV2, "src/cli/abis/IOrderBookV2.json"); 
 
@@ -167,8 +163,8 @@ pub async fn deposit(deposit : Deposit) -> anyhow::Result<()> {
         ]"#,
     ); 
 
-    let token_contract = IERC20::new(token_address,Arc::new(client.clone())) ; 
-    let token_balance: U256 = token_contract.balance_of(signer_address.clone()).call().await.unwrap() ;  
+    let token_contract = IERC20::new(token_address,Arc::new(provider.clone())) ; 
+    let token_balance: U256 = token_contract.balance_of(signer_address).call().await.unwrap() ;  
 
     if token_balance.gt(&token_amount.clone()) {
         let approve_tx = token_contract.approve(orderbook_address.clone(), token_amount.clone()) ; 
@@ -192,7 +188,7 @@ pub async fn deposit(deposit : Deposit) -> anyhow::Result<()> {
         return Err(anyhow!("\n ❌Insufficent balance for deposit.\nCurrent Balance : {}.",token_balance)) ;
     } 
 
-    let orderbook = IOrderBookV2::new(orderbook_address, Arc::new(client)); 
+    let orderbook = IOrderBookV2::new(orderbook_address, Arc::new(SignerMiddleware::new(provider, wallet))); 
 
     let deposit_config = DepositConfig{
         token : token_address ,

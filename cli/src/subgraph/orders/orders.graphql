@@ -4,18 +4,14 @@ query OrdersQuery {
   ) {
     id
     handleIO
-    orderJSONString
     owner {
       id
     }
-    orderActive
     expression
     interpreter
     interpreterStore
-    transaction {
-      id
-    }
-    validInputs {
+    validInputs(orderBy: index, orderDirection: asc) {
+      index
       token {
         id
         symbol
@@ -28,7 +24,8 @@ query OrdersQuery {
         id
       }
     }
-    validOutputs {
+    validOutputs(orderBy: index, orderDirection: asc) {
+      index
       token {
         id
         symbol

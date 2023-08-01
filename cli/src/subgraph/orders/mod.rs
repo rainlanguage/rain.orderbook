@@ -7,7 +7,7 @@ use serde_bytes::ByteBuf as Bytes;
 use once_cell::sync::Lazy;
 
 static BASE_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://api.thegraph.com/subgraphs/name/siddharth2207/rainorderbook").unwrap());
+    Lazy::new(|| Url::parse("https://api.thegraph.com/subgraphs/name/siddharth2207/nhstestbot").unwrap());
 
 #[derive(GraphQLQuery)]
 #[graphql(
