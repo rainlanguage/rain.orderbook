@@ -1,47 +1,53 @@
 use anyhow::Result;
 use clap::command;
 use clap::{Parser, Subcommand};
-use crate::cli::order::Order;
 
-mod order;
 pub mod registry;
 pub mod deposit;
 pub mod withdraw;
 pub mod addorder;
+pub mod removeorder;
+
+
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     orderbook: Orderbook,
-}
+} 
+
+
 
 #[derive(Subcommand)]
 pub enum Orderbook {
-    #[command(subcommand)]
-    Order(Order),
     Deposit(deposit::Deposit),
     Withdraw(withdraw::Withdraw),
-    AddOrder(addorder::AddOrder)
+    AddOrder(addorder::AddOrder),
+    RemoveOrder(removeorder::RemoveOrder),
+    ListOrders
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
     match orderbook {
-        Orderbook::Order(order) => {
-            match order {
-                Order::Ls => Ok(order::ls().await?),
-            }
-        },
         Orderbook::Deposit(deposit) => {
-            let _ = deposit::deposit(deposit).await ; 
+            let _ = deposit::handle_deposit(deposit).await ; 
             Ok(())
         },
         Orderbook::Withdraw(withdraw) => {
-            let _ = withdraw::withdraw(withdraw).await;
+            let _ = withdraw::handle_withdraw(withdraw).await;
             Ok(())
         },
         Orderbook::AddOrder(order) => {
-            let _ = addorder::add_order(order).await;
+            let _ = addorder::handle_add_order(order).await;
+            Ok(())
+        },
+        Orderbook::RemoveOrder(order) => {
+            let _ = removeorder::handle_remove_order(order).await;
+            Ok(())
+        } ,
+        Orderbook::ListOrders => {
+            let _ = crate::subgraph::showorder::query().await ;
             Ok(())
         }
     }

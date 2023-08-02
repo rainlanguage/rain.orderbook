@@ -1,21 +1,18 @@
 
 use std::str::FromStr;
-use std::{convert::TryFrom, sync::Arc};
+use std::convert::TryFrom;
 use clap::Parser; 
 use ethers::types::Address;
-use ethers::utils::{parse_units, Units};
-use ethers::{providers::{Provider, Middleware, Http}, types::{H160, H256, U256,Bytes}} ; 
-use ethers::{signers::LocalWallet, types::{Eip1559TransactionRequest, U64}, prelude::SignerMiddleware};
-use anyhow::{Result, anyhow};
-use ethers::core::abi::Abi ;
-use ethers::contract::Contract;
-use ethers::contract::abigen ;
-use ethers::contract::Abigen ;
-use spinners::{Spinner, Spinners}; 
+use ethers::utils::parse_units;
+use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
+use anyhow::anyhow;
+
 use ethers_signers::{Ledger, HDPath};
+use self::deposit::deposit_token;
+
 use super::registry::RainNetworkOptions;
 
-
+pub mod deposit ;
 
 #[derive(Parser,Debug,Clone)]
 pub struct Deposit{ 
@@ -95,7 +92,7 @@ impl Deposit{
 }
 
 
-pub async fn deposit(deposit : Deposit) -> anyhow::Result<()> { 
+pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> { 
 
     let orderbook_address = match Address::from_str(&deposit.orderbook) {
         Ok(address) => {
@@ -137,81 +134,20 @@ pub async fn deposit(deposit : Deposit) -> anyhow::Result<()> {
     } ; 
 
     let rpc_url = deposit.get_network_rpc().unwrap() ; 
-
-    let provider = Provider::<Http>::try_from(rpc_url)
+    let provider = Provider::<Http>::try_from(rpc_url.clone())
     .expect("\n❌Could not instantiate HTTP Provider");  
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
     let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?;
 
-    // let client = SignerMiddleware::new(provider, wallet); 
-    let signer_address =  wallet.get_address().await.unwrap() ;
-
-    abigen!(IOrderBookV2, "src/cli/abis/IOrderBookV2.json"); 
-
-    abigen!(
-        IERC20,
-        r#"[
-            function totalSupply() external view returns (uint256)
-            function balanceOf(address account) external view returns (uint256)
-            function transfer(address recipient, uint256 amount) external returns (bool)
-            function allowance(address owner, address spender) external view returns (uint256)
-            function approve(address spender, uint256 amount) external returns (bool)
-            function transferFrom( address sender, address recipient, uint256 amount) external returns (bool)
-            event Transfer(address indexed from, address indexed to, uint256 value)
-            event Approval(address indexed owner, address indexed spender, uint256 value)
-        ]"#,
-    ); 
-
-    let token_contract = IERC20::new(token_address,Arc::new(provider.clone())) ; 
-    let token_balance: U256 = token_contract.balance_of(signer_address).call().await.unwrap() ;  
-
-    if token_balance.gt(&token_amount.clone()) {
-        let approve_tx = token_contract.approve(orderbook_address.clone(), token_amount.clone()) ; 
-        let mut sp = Spinner::new(
-            Spinners::from_str("Dots9").unwrap(),
-            "Approving tokens for deposit...".into(),
-        );  
-        let approve_pending_tx = approve_tx.send().await? ;
-        let approve_receipt = approve_pending_tx.confirmations(4).await?.unwrap();  
-
-        let end_msg = format!(
-            "{}{}{}" ,
-            String::from("\nTokens Approved for deposit !!\n#################################\n✅ Hash : "),
-            format!("0x{}",hex::encode(approve_receipt.transaction_hash.as_bytes().to_vec())), 
-            String::from("\n-----------------------------------\n")
-        ) ; 
-        sp.stop_with_message(end_msg.into()); 
-
-
-    }else{
-        return Err(anyhow!("\n ❌Insufficent balance for deposit.\nCurrent Balance : {}.",token_balance)) ;
-    } 
-
-    let orderbook = IOrderBookV2::new(orderbook_address, Arc::new(SignerMiddleware::new(provider, wallet))); 
-
-    let deposit_config = DepositConfig{
-        token : token_address ,
-        vault_id : vault_id ,
-        amount : token_amount
-    } ; 
-
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Depositing token in vault...".into(),
-    ); 
-
-    let deposit_tx = orderbook.deposit(deposit_config) ;
-    let deposit_pending_tx = deposit_tx.send().await?;
-    let depsoit_receipt = deposit_pending_tx.confirmations(3).await?.unwrap(); 
-
-    let deposit_msg = format!(
-        "{}{}{}" ,
-        String::from("\nTokens deposited in vault !!\n#################################\n✅ Hash : "),
-        format!("0x{}",hex::encode(depsoit_receipt.transaction_hash.as_bytes().to_vec())), 
-        String::from("\n-----------------------------------\n")
-    ) ; 
-    sp.stop_with_message(deposit_msg.into()); 
+    let _ = deposit_token(
+        token_address,
+        token_amount,
+        vault_id,
+        orderbook_address,
+        rpc_url,
+        wallet
+    ).await ;
     
     Ok(())
 }

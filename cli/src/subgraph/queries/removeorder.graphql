@@ -1,0 +1,41 @@
+query RemoveOrder($id : String) {
+    orders(
+        where : {id : $id}
+    ){
+        owner {
+            id
+        }
+        handleIO
+        expression
+        interpreter
+        interpreterStore
+        validInputs(orderBy: index, orderDirection: asc) {
+        index
+        token {
+            id
+            symbol
+            decimals
+        }
+        tokenVault {
+            balance
+        }
+        vault {
+            id
+        }
+        }
+        validOutputs(orderBy: index, orderDirection: asc) {
+        index
+        token {
+            id
+            symbol
+            decimals
+        }
+        tokenVault {
+            balance
+        }
+        vault {
+            id
+        }
+        }
+    }
+}

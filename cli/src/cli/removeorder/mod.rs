@@ -1,50 +1,32 @@
-
-use std::str::FromStr;
-use std::convert::TryFrom;
-use clap::Parser; 
-use ethers::providers::Middleware;
-use ethers_signers::{Ledger, HDPath};
-use ethers::{providers::{Provider, Http}, types::H160} ; 
+use clap::Parser;
+use ethers::{providers::{Provider, Middleware, Http}, types::H160} ; 
+use crate::{cli::registry::RainNetworkOptions, subgraph::removeorder::get_remove_order} ;
 use anyhow::anyhow;
+use ethers_signers::{Ledger, HDPath};
+use std::str::FromStr;
 
+use self::removeorder::remove_order;   
 
-use self::addorder::add_ob_order;
-
-use super::registry::RainNetworkOptions; 
-
-pub mod addorder;
+pub mod removeorder;
 
 #[derive(Parser,Debug,Clone)]
-pub struct AddOrder{ 
-
-    /// network to deposit
+pub struct RemoveOrder{ 
+    /// network to remove order from
     #[arg(short, long)]
     pub network: RainNetworkOptions,  
 
     /// address of the orderbook 
-    #[arg(long)]
+    #[arg(short, long)]
     orderbook : String, 
 
-    /// address of the token to deposit
-    #[arg(short='p', long)]
-    parser_address : String, 
-
-    /// token list to be included in order
-    #[arg(short,long,num_args = 1.. )]
-    tokens : Vec<String>, 
-
-    /// token list to be included in order
-    #[arg(short,long,num_args = 1..)]
-    decimals : Vec<u8>, 
-
-    /// address of the token to deposit
+    /// address of the orderbook 
     #[arg(short, long)]
-    order_string : String, 
+    subgraph_url : String, 
 
-    /// address of the token to deposit
-    #[arg(short='m', long)]
-    order_meta : String, 
-    
+    /// id of the order to remove
+    #[arg(short='i', long)]
+    order_id : String, 
+
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
     pub mumbai_rpc_url: Option<String> , 
@@ -63,7 +45,7 @@ pub struct AddOrder{
 
 }  
 
-impl AddOrder{
+impl RemoveOrder{
     pub fn get_network_rpc(&self) -> anyhow::Result<String>{
         let rpc_url = match self.network.clone()  {
             RainNetworkOptions::Ethereum => {
@@ -95,32 +77,24 @@ impl AddOrder{
     } 
 }
 
-pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {  
+pub async fn handle_remove_order(order: RemoveOrder) -> anyhow::Result<()> {  
 
-
-    let rpc_url = add_order.get_network_rpc().unwrap() ; 
+    let rpc_url = order.get_network_rpc().unwrap() ; 
+    let orderbook_address = H160::from_str(&String::from(order.orderbook)).unwrap();
 
     let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider");  
+    .expect("\n❌Could not instantiate HTTP Provider") ;
 
-    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?; 
+    let wallet= Ledger::new(HDPath::LedgerLive(0), provider.get_chainid().await.unwrap().as_u64()).await.unwrap();
 
-    let parser_address = H160::from_str(&String::from(add_order.parser_address)).unwrap(); 
-    let orderbook_address = H160::from_str(&String::from(add_order.orderbook)).unwrap();
-
-
-    let _ = add_ob_order(
+    let order_to_remove = get_remove_order(order.subgraph_url, order.order_id).await.unwrap() ;
+    let _ =  remove_order(
+        order_to_remove,
         orderbook_address,
-        parser_address,
-        add_order.tokens,
-        add_order.decimals,
-        add_order.order_string,
-        add_order.order_meta,
         rpc_url,
         wallet
     ).await ;
 
     Ok(())
+}
 
-} 
