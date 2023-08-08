@@ -1,6 +1,6 @@
 query OrdersQuery {
   orders(
-    where: {id :"0x048335cbe33eeb0f954f1dfc3595dc48437b8b499319f2e3bcbdfab3cef03383"}
+    where: {orderActive: true}
   ) {
     id
     handleIO

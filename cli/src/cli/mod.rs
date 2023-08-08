@@ -7,6 +7,8 @@ pub mod deposit;
 pub mod withdraw;
 pub mod addorder;
 pub mod removeorder;
+pub mod listorders;
+
 
 
 
@@ -20,12 +22,22 @@ struct Cli {
 
 
 #[derive(Subcommand)]
-pub enum Orderbook {
+pub enum Orderbook { 
+
+    /// Deposit tokens into then vault
     Deposit(deposit::Deposit),
+
+    /// Withdraw Tokens from vault
     Withdraw(withdraw::Withdraw),
-    AddOrder(addorder::AddOrder),
+
+    /// Add order to orderbook
+    AddOrder(addorder::AddOrder), 
+
+    /// Remove order from orderbook 
     RemoveOrder(removeorder::RemoveOrder),
-    ListOrders
+
+    /// List all orders from particular schema compatible sg
+    ListOrders(listorders::ListOrder)
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
@@ -46,8 +58,8 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
             let _ = removeorder::handle_remove_order(order).await;
             Ok(())
         } ,
-        Orderbook::ListOrders => {
-            let _ = crate::subgraph::showorder::query().await ;
+        Orderbook::ListOrders(listorders) => {
+            let _ = listorders::handle_list_order(listorders).await ;
             Ok(())
         }
     }

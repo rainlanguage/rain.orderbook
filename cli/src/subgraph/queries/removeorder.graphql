@@ -1,6 +1,6 @@
 query RemoveOrder($id : String) {
     orders(
-        where : {id : $id}
+        where : {id : $id, orderActive: true}
     ){
         owner {
             id
