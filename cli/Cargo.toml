@@ -28,3 +28,4 @@ hex = "0.4.3"
 ethers-signers = { version = "2.0.8", features = ["ledger"] }
 tui = "0.19"
 crossterm = "0.25"
+cbor = "0.4.1"

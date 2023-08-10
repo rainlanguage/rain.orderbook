@@ -7,7 +7,6 @@ use ethers_signers::{Ledger, HDPath};
 use ethers::{providers::{Provider, Http}, types::H160} ; 
 use anyhow::anyhow;
 
-
 use self::addorder::add_ob_order;
 
 use super::registry::RainNetworkOptions; 
@@ -96,7 +95,6 @@ impl AddOrder{
 }
 
 pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {  
-
 
     let rpc_url = add_order.get_network_rpc().unwrap() ; 
 

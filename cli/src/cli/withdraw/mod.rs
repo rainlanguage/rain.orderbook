@@ -35,7 +35,7 @@ pub struct Withdraw{
     #[arg(long)]
     amount : String,
 
-    /// vault id to withdraw from
+    /// decimal vault id to withdraw from
     #[arg(long)]
     vault_id : String , 
 
@@ -116,18 +116,7 @@ pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> {
         }
     } ;
 
-    // let vault_id = match  {
-    //     Ok(id) => id ,
-    //     Err(_) => {
-    //         return Err(anyhow!("\n ❌Invalid vault id.")) ;
-    //     }
-    // } ; 
-    
-    // let i_p = ethers::utils::hex::((withdraw.clone().vault_id)) ;
-    // // let i_p = U256::from_big_endian(&i_p) ;
-    // println!("i_p : {:?}",i_p) ;
-
-    let vault_id = U256::from_str(&String::from(withdraw.clone().vault_id)).unwrap();
+    let vault_id = U256::from_dec_str(&String::from(withdraw.clone().vault_id)).unwrap();
        
     let rpc_url = withdraw.get_network_rpc().unwrap() ;
 

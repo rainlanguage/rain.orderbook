@@ -8,6 +8,8 @@ use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use anyhow::anyhow;
 
 use ethers_signers::{Ledger, HDPath};
+use crate::tokens::approve_tokens;
+
 use self::deposit::deposit_token;
 
 use super::registry::RainNetworkOptions;
@@ -37,7 +39,7 @@ pub struct Deposit{
     #[arg(short, long)]
     amount : String,
 
-    /// optional vault id to deposit in
+    /// optional vault id to deposit in (in decimals)
     #[arg(short, long)]
     vault_id : Option<String> , 
 
@@ -121,7 +123,7 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
 
     let vault_id = match deposit.vault_id.clone() {
         Some(val) => {
-            match U256::from_str(&val) {
+            match U256::from_dec_str(&val) {
                 Ok(id) => id ,
                 Err(_) => {
                     return Err(anyhow!("\n ❌Invalid vault id.")) ;
@@ -131,15 +133,28 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         None => {
             U256::from(H160::random().as_bytes()) 
         }
-    } ; 
+    } ;  
 
     let rpc_url = deposit.get_network_rpc().unwrap() ; 
     let provider = Provider::<Http>::try_from(rpc_url.clone())
     .expect("\n❌Could not instantiate HTTP Provider");  
 
-    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?;
+    let chain_id = provider.get_chainid().await.unwrap().as_u64() ;  
+    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id.clone()).await?; 
 
+    // Approve token for deposit 
+    let _ = approve_tokens(
+        token_address.clone() ,
+        token_amount.clone(),
+        orderbook_address.clone() ,
+        rpc_url.clone(),
+        wallet
+    ).await ;
+
+    // Reinit Wallet Instance
+    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?;  
+
+    // Deposit tokens
     let _ = deposit_token(
         token_address,
         token_amount,

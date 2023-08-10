@@ -8,6 +8,7 @@ use ethers::providers::{Provider, Http} ;
 
 use crate::cli::registry::{IOrderBookV2, IParserV1, Io, EvaluableConfig, OrderConfig};
 
+#[allow(unused_variables)]
 pub async fn add_ob_order(
     orderbook_address : H160,
     parser_address : H160,
@@ -56,11 +57,13 @@ pub async fn add_ob_order(
     } ;
 
     let rain_magic_number = String::from("ff0a89c674ee7874") ; 
- 
+    
+    // TODO cbor encode order_meta 
     let meta_string = hex::decode(
-        format!("{}{}",
+        // format!("{}{}",
+        format!("{}",
         rain_magic_number,
-        hex::encode(order_meta)
+        // hex::encode(order_meta)
         )
     ).unwrap();
 
