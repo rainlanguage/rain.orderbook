@@ -41,7 +41,7 @@ pub async fn get_orders(sg_uri : String) -> anyhow::Result<Vec<Vec<String>>> {
         let order_owner = H160::from_str(order_owner.as_str()).unwrap().to_string() ;
         order_row.push(order_owner) ; 
 
-        let mut ip_io: Vec<_>  = order.valid_inputs.as_ref().unwrap().iter().map(|x| {
+        let ip_io: Vec<String>  = order.valid_inputs.as_ref().unwrap().iter().map(|x| {
             let token_symbol = &x.token.symbol ; 
             let vault_balance = U256::from_dec_str(&x.token_vault.balance.to_string()).unwrap()  ; 
             let token_decimals = u32::from_str(&x.token.decimals.to_string()).unwrap();  
@@ -56,9 +56,11 @@ pub async fn get_orders(sg_uri : String) -> anyhow::Result<Vec<Vec<String>>> {
             ); 
             
             ret_str
-        }).collect() ;   
+        }).collect() ;    
 
-        let mut op_io: Vec<_>  = order.valid_outputs.as_ref().unwrap().iter().map(|x| {
+        let ip_io = ip_io.join("") ;
+
+        let op_io: Vec<String>  = order.valid_outputs.as_ref().unwrap().iter().map(|x| {
             let token_symbol = &x.token.symbol ; 
             let vault_balance = U256::from_dec_str(&x.token_vault.balance.to_string()).unwrap()  ; 
             let token_decimals = u32::from_str(&x.token.decimals.to_string()).unwrap();  
@@ -74,14 +76,14 @@ pub async fn get_orders(sg_uri : String) -> anyhow::Result<Vec<Vec<String>>> {
             ret_str
              
         }).collect() ;
-        
-        order_row.append(&mut ip_io) ;
-        order_row.append(&mut op_io) ;
+        let op_io = op_io.join("") ;
+        order_row.push(ip_io) ;
+        order_row.push(op_io) ;
 
         order_row
         
 
-    }).collect() ; 
+    }).collect() ;  
    
     Ok(orders)
 }
