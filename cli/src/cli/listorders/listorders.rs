@@ -1,174 +1,367 @@
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use std::{error::Error, io};
-use tui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table, TableState, Tabs, BorderType},
-    Frame, Terminal, text::{Spans, Span},
-};
 
-use crate::subgraph::showorder::get_orders;
+use std::cmp::Ordering;
+use cursive::align::HAlign;
+use cursive::traits::*;
+use cursive::views::{Dialog, TextView, CircularFocus};
+use cursive::Cursive;
+use cursive_table_view::{TableView, TableViewItem};
 
-struct App {
-    state: TableState,
-    items: Vec<Vec<String>>,
+use crate::subgraph::showorder::{get_order_details_display, OrdersDetails};
+
+#[derive(Clone, Debug)]
+struct Order {
+    id: String,
+    owner: String
 } 
 
-impl App {
-    async fn new(uri : String) -> App { 
-       
-        let orders = get_orders(uri).await.unwrap() ; 
-         
-        App {
-            state: TableState::default(),
-            items: orders
-        }
-    }
-    pub fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+enum OrderColumn {
+    OrderId,
+    OrderOwner
 
-    pub fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
 }
 
-pub async fn list_orders(uri : String) -> Result<(), Box<dyn Error>> {
-    // setup terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+#[allow(dead_code)]
+impl OrderColumn {
+    fn as_str(&self) -> &str {
+        match *self {
+            OrderColumn::OrderId => "Order ID",
+            OrderColumn::OrderOwner => "Order Owner",
 
-    // create app and run it
-    // let mut sp = Spinner::new(
-    //     Spinners::from_str("Dots9").unwrap(),
-    //     "Fetching Orders...".into(),
-    // ); 
-    let app = App::new(uri).await;
-    // sp.stop(); 
-    let res = run_app(&mut terminal, app);
-
-    // restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    if let Err(err) = res {
-        println!("{:?}", err)
-    }
-
-    Ok(())
-}
-
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
-    loop {
-        terminal.draw(|f| ui(f, &mut app))?;
-
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => app.next(),
-                KeyCode::Up => app.previous(),
-                _ => {}
-            }
         }
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let rects = Layout::default()
-        .constraints(
-            [
-                Constraint::Percentage(90),
-                Constraint::Percentage(10),
-            ].as_ref()
+impl TableViewItem<OrderColumn> for Order {
+    fn to_column(&self, column: OrderColumn) -> String {
+        match column {
+            OrderColumn::OrderId => self.id.to_string(),
+            OrderColumn::OrderOwner => self.owner.to_string()
+
+        }
+    }
+
+    fn cmp(&self, _other: &Self, column: OrderColumn) -> Ordering
+    where
+        Self: Sized,
+    {
+        match column { 
+            _ => Ordering::Equal
+        } 
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Vaults {
+    token : String ,
+    balance : String
+} 
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+enum VaultsColumn{
+    Token,
+    Balance
+}
+
+#[allow(dead_code)]
+impl VaultsColumn {
+    fn as_str(&self) -> &str {
+        match *self {
+            VaultsColumn::Token => "Token",
+            VaultsColumn::Balance => "Balance",
+        }
+    }
+} 
+
+impl TableViewItem<VaultsColumn> for Vaults {
+    fn to_column(&self, column: VaultsColumn) -> String {
+        match column {
+            VaultsColumn::Token => self.token.to_string(),
+            VaultsColumn::Balance => self.balance.to_string(),
+        }
+    }
+
+    fn cmp(&self, _other: &Self, column: VaultsColumn) -> Ordering
+    where
+        Self: Sized,
+    {
+        match column { 
+            _ => Ordering::Equal
+        } 
+    }
+}
+
+#[derive(Clone, Debug)]
+struct TakeOrders{
+    input_token : String , 
+    input_amount : String ,
+    output_token : String ,
+    output_amount : String ,
+    transaction_id : String
+} 
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+enum TakeOrdersColumn{
+    InputToken,
+    InputAmount,
+    OutputToken,
+    OutputAmount,
+    TransactionId
+} 
+
+#[allow(dead_code)]
+impl TakeOrdersColumn {
+    fn as_str(&self) -> &str {
+        match *self {
+            TakeOrdersColumn::InputToken => "Input Token",
+            TakeOrdersColumn::InputAmount => "Input Amount",
+            TakeOrdersColumn::OutputToken => "Output Token",
+            TakeOrdersColumn::OutputAmount => "Output Amount",
+            TakeOrdersColumn::TransactionId => "Transaction Id",
+        }
+    }
+} 
+
+impl TableViewItem<TakeOrdersColumn> for TakeOrders {
+    fn to_column(&self, column: TakeOrdersColumn) -> String {
+        match column {
+            TakeOrdersColumn::InputToken => self.input_token.to_string(),
+            TakeOrdersColumn::InputAmount => self.input_amount.to_string(),
+            TakeOrdersColumn::OutputToken => self.output_token.to_string(),
+            TakeOrdersColumn::OutputAmount => self.output_amount.to_string(),
+            TakeOrdersColumn::TransactionId => self.transaction_id.to_string(),
+        }
+    }
+
+    fn cmp(&self, _other: &Self, column: TakeOrdersColumn) -> Ordering
+    where
+        Self: Sized,
+    {
+        match column { 
+            _ => Ordering::Equal
+        } 
+        
+    }
+}
+
+
+
+pub async fn view_orders(sg_uri : String) {
+
+    let mut siv = cursive::default();
+      
+    let orders = get_order_details_display(sg_uri).await.unwrap() ; 
+
+    // let input_vault_table = 
+    let mut table = get_main_table() ;
+    let items = get_main_table_items(orders.clone()) ;
+    table.set_items(items); 
+
+    table.set_on_submit(move |siv: &mut Cursive, _row: usize, index: usize| { 
+
+        let value = siv
+            .call_on_name("Orders", move |table: &mut TableView<Order, OrderColumn>| { 
+                let order_id = &table.borrow_item(index).unwrap().id ;
+                format!("Order Id : {:?}", order_id)
+            })
+            .unwrap(); 
+        
+        // Move orders value
+        let orders_input = orders.clone() ;
+        let orders_output = orders.clone() ;
+        let take_orders = orders.clone() ;
+
+
+        siv.add_layer(
+            Dialog::around(TextView::new(value))
+            .title("Order Details")
+            .button("View Input Vault Balances", move |s| { 
+                let input_vault_table = get_input_vault_table(orders_input.clone(),index) ;
+                s.add_layer(
+                    Dialog::around(
+                        input_vault_table.with_name("Input Vault").min_size((100, 100))
+                    )
+                            .title("Input Vaults")
+                            .button("Back", move |s| {
+                                s.pop_layer();
+                            })
+                            .wrap_with(CircularFocus::new)
+                            .wrap_tab()        
+                    );
+                
+            })
+            .button("View Output Vault Balances", move |s| {
+                let output_vault_table = get_output_vault_table(orders_output.clone(),index) ;
+                s.add_layer(
+                    Dialog::around(
+                        output_vault_table.with_name("Output Vault").min_size((100, 100))
+                    )
+                            .title("Output Vaults")
+                            .button("Back", move |s| {
+                                s.pop_layer();
+                            })
+                            .wrap_with(CircularFocus::new)
+                            .wrap_tab()        
+                    );
+            })
+            .button("View Take Orders", move |s| {
+                let take_orders_table = get_take_orders_table(take_orders.clone(),index) ;
+                s.add_layer(
+                    Dialog::around(
+                        take_orders_table.with_name("Take Orders").min_size((100, 100))
+                    )
+                            .title("Take Orders")
+                            .button("Back", move |s| {
+                                s.pop_layer();
+                            })
+                            .wrap_with(CircularFocus::new)
+                            .wrap_tab()        
+                    );
+            })
+            .button("Close Menu", move |s| {
+                s.pop_layer();
+            })
+            .wrap_with(CircularFocus::new)
+        ) ;  
+
+
+    }) ; 
+
+    siv.add_layer(
+        Dialog::around(
+            table.with_name("Orders").min_size((100, 100))
         )
-        .margin(5)
-        .split(f.size());
+                .title("Order List")
+                .button("Exit", move |s| {
+                    s.quit();
+                })
+                .wrap_with(CircularFocus::new)
+                .wrap_tab()        
+        );
+    siv.run(); 
+        
+}  
 
-    let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-    let normal_style = Style::default().bg(Color::Blue);
-    let header_cells = ["Order Id", "Owner", "Input Vault Balance", "Output Vault Balance"]
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
-    let header = Row::new(header_cells)
-        .style(normal_style)
-        .height(1)
-        .bottom_margin(1);
-    let rows = app.items.iter().map(|item| {
-        let height = item
-            .iter()
-            .map(|content| content.chars().filter(|c| *c == '\n').count())
-            .max()
-            .unwrap_or(0)
-            + 1;
-        let cells = item.iter().map(|c| Cell::from(&**c));
-        Row::new(cells).height(height as u16).bottom_margin(1)
-    });
-    let t = Table::new(rows)
-        .header(header)
-        .block(Block::default().borders(Borders::ALL).title("ORDERS").border_style(Style::default().fg(Color::Cyan)).border_type(BorderType::Double))
-        .highlight_style(selected_style)
-        .highlight_symbol(">> ")
-        .widths(&[
-            Constraint::Percentage(40),
-            Constraint::Percentage(10),
-            Constraint::Length(25),
-            Constraint::Min(25),
-        ]);
-    f.render_stateful_widget(t.clone(), rects[0], &mut app.state); 
- 
-    let menu = vec![
-        Spans::from(vec![
-            Span::raw("⬆️ "),
-        ]) ,
-        Spans::from(vec![
-            Span::raw("⬇️ "),
-        ]) ,    
-        Spans::from(vec![
-            Span::styled("Q", Style::default().fg(Color::Blue).add_modifier(Modifier::UNDERLINED)),
-            Span::styled("uit", Style::default().fg(Color::White)),
-        ]) 
-    ] ;
+fn get_take_orders_table(
+    orders : Vec<OrdersDetails> ,
+    index : usize
+) -> TableView<TakeOrders, TakeOrdersColumn> { 
 
-    let tabs = Tabs::new(menu)
-        .block(Block::default().title("Menu").borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow))
-        .divider(Span::raw("|")); 
+    let mut take_orders_table = TableView::<TakeOrders, TakeOrdersColumn>::new()
+    .column(TakeOrdersColumn::TransactionId, "Transaction Id", |c| {
+        c.align(HAlign::Center)
+            .width_percent(10)
+    })
+    .column(TakeOrdersColumn::InputToken, "Sold", |c| {
+        c.align(HAlign::Center)
+            .width_percent(12)
+    })
+    .column(TakeOrdersColumn::InputAmount, "Sell Amount", |c| {
+        c.align(HAlign::Center)
+            .width_percent(33)
+    })
+    .column(TakeOrdersColumn::OutputToken, "Bought", |c| {
+        c.align(HAlign::Center)
+            .width_percent(12)
+    })
+    .column(TakeOrdersColumn::OutputAmount, "Buy Amount", |c| {
+        c.align(HAlign::Center)
+            .width_percent(33)
+    }) ; 
 
-    f.render_widget(tabs, rects[1])
+    let mut items: Vec<TakeOrders> = Vec::new() ;
+    for (i,order) in orders.iter().enumerate() {
+        if i == index {
+            for take_order in &order.take_orders { 
+                items.push( TakeOrders { 
+                    input_token : take_order.input_token.clone() ,
+                    input_amount : take_order.input_amount.clone() ,
+                    output_token : take_order.output_token.clone() ,
+                    output_amount : take_order.output_amount.clone() ,
+                    transaction_id : take_order.transaction_id.clone()
+                 }) ;
 
-    
+            }
+        }
+    } 
+
+    take_orders_table.set_items(items) ;
+    take_orders_table
+
+}
+
+fn get_input_vault_table(
+    orders : Vec<OrdersDetails> ,
+    index : usize
+) -> TableView<Vaults, VaultsColumn> { 
+
+    let mut input_vault_table = TableView::<Vaults, VaultsColumn>::new()
+    .column(VaultsColumn::Token, "Token", |c| c.width_percent(20))
+    .column(VaultsColumn::Balance, "Balance", |c| {
+        c.align(HAlign::Center)
+            .width_percent(80)
+    }) ;  
+
+    let mut items: Vec<Vaults> = Vec::new() ;
+    for (i,order) in orders.iter().enumerate() {
+        if i == index {
+            for vault in &order.input_vaults { 
+
+                items.push(Vaults { token: vault.token.clone(), balance: vault.balance.clone() }) ;
+            }
+        }
+    } 
+
+    input_vault_table.set_items(items) ;
+    input_vault_table
+
+}  
+
+fn get_output_vault_table(
+    orders : Vec<OrdersDetails> ,
+    index : usize
+) -> TableView<Vaults, VaultsColumn> { 
+
+    let mut output_vault_table = TableView::<Vaults, VaultsColumn>::new()
+    .column(VaultsColumn::Token, "Token", |c| c.width_percent(20))
+    .column(VaultsColumn::Balance, "Balance", |c| {
+        c.align(HAlign::Center)
+            .width_percent(80)
+    }) ;  
+
+    let mut items: Vec<Vaults> = Vec::new() ;
+    for (i,order) in orders.iter().enumerate() {
+        if i == index {
+            for vault in &order.output_vaults { 
+
+                items.push(Vaults { token: vault.token.clone(), balance: vault.balance.clone() }) ;
+            }
+        }
+    } 
+
+    output_vault_table.set_items(items) ;
+    output_vault_table
+
+} 
+
+
+fn get_main_table() -> TableView<Order, OrderColumn>{
+    let table: TableView<Order, OrderColumn> = TableView::<Order, OrderColumn>::new()
+    .column(OrderColumn::OrderId, "ID", |c| c.width_percent(50))
+    .column(OrderColumn::OrderOwner, "Owner", |c| {
+        c.align(HAlign::Center)
+            .width_percent(50)
+    }) ;
+    table
+}
+
+fn get_main_table_items(orders : Vec<OrdersDetails>) -> Vec<Order>{  
+    let mut items = Vec::new();
+    for order in orders {   
+        items.push(Order {
+            id : order.id,
+            owner : order.owner,
+        });
+    }  
+    items
 }

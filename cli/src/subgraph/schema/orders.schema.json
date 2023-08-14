@@ -11740,13 +11740,23 @@
           "possibleTypes": null
         },
         {
-          "description": null,
+          "description": "4 bytes signed integer\n",
           "enumValues": null,
           "fields": null,
           "inputFields": null,
           "interfaces": null,
           "kind": "SCALAR",
           "name": "Int",
+          "possibleTypes": null
+        },
+        {
+          "description": "8 bytes signed integer\n",
+          "enumValues": null,
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
+          "kind": "SCALAR",
+          "name": "Int8",
           "possibleTypes": null
         },
         {
@@ -13478,6 +13488,148 @@
                   "kind": "SCALAR",
                   "name": "BigInt",
                   "ofType": null
+                }
+              }
+            },
+            {
+              "args": [
+                {
+                  "defaultValue": "0",
+                  "description": null,
+                  "name": "skip",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "Int",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": "100",
+                  "description": null,
+                  "name": "first",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "Int",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": null,
+                  "description": null,
+                  "name": "orderBy",
+                  "type": {
+                    "kind": "ENUM",
+                    "name": "TakeOrderEntity_orderBy",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": null,
+                  "description": null,
+                  "name": "orderDirection",
+                  "type": {
+                    "kind": "ENUM",
+                    "name": "OrderDirection",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": null,
+                  "description": null,
+                  "name": "where",
+                  "type": {
+                    "kind": "INPUT_OBJECT",
+                    "name": "TakeOrderEntity_filter",
+                    "ofType": null
+                  }
+                }
+              ],
+              "deprecationReason": null,
+              "description": "Take Order entities that use this order",
+              "isDeprecated": false,
+              "name": "takeOrders",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "TakeOrderEntity",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "args": [
+                {
+                  "defaultValue": "0",
+                  "description": null,
+                  "name": "skip",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "Int",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": "100",
+                  "description": null,
+                  "name": "first",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "Int",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": null,
+                  "description": null,
+                  "name": "orderBy",
+                  "type": {
+                    "kind": "ENUM",
+                    "name": "OrderClear_orderBy",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": null,
+                  "description": null,
+                  "name": "orderDirection",
+                  "type": {
+                    "kind": "ENUM",
+                    "name": "OrderDirection",
+                    "ofType": null
+                  }
+                },
+                {
+                  "defaultValue": null,
+                  "description": null,
+                  "name": "where",
+                  "type": {
+                    "kind": "INPUT_OBJECT",
+                    "name": "OrderClear_filter",
+                    "ofType": null
+                  }
+                }
+              ],
+              "deprecationReason": null,
+              "description": "Order Clear entities that use this order",
+              "isDeprecated": false,
+              "name": "ordersClears",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "OrderClear",
+                    "ofType": null
+                  }
                 }
               }
             }
@@ -20200,6 +20352,134 @@
             },
             {
               "defaultValue": null,
+              "description": null,
+              "name": "takeOrders_",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "TakeOrderEntity_filter",
+                "ofType": null
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears_not",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears_contains",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears_contains_nocase",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears_not_contains",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears_not_contains_nocase",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "defaultValue": null,
+              "description": null,
+              "name": "ordersClears_",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "OrderClear_filter",
+                "ofType": null
+              }
+            },
+            {
+              "defaultValue": null,
               "description": "Filter for the block changed event.",
               "name": "_change_block",
               "type": {
@@ -20382,6 +20662,18 @@
               "description": null,
               "isDeprecated": false,
               "name": "timestamp"
+            },
+            {
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "takeOrders"
+            },
+            {
+              "deprecationReason": null,
+              "description": null,
+              "isDeprecated": false,
+              "name": "ordersClears"
             }
           ],
           "fields": null,
@@ -27499,7 +27791,7 @@
             {
               "args": [],
               "deprecationReason": null,
-              "description": "The index of the input token in order to match with the take order output.",
+              "description": "The index of the input token in order to match with the take order output",
               "isDeprecated": false,
               "name": "inputIOIndex",
               "type": {
@@ -27515,7 +27807,7 @@
             {
               "args": [],
               "deprecationReason": null,
-              "description": "The index of the output token in `order` to match with the take order input.",
+              "description": "The index of the output token in order to match with the take order input.",
               "isDeprecated": false,
               "name": "outputIOIndex",
               "type": {
@@ -27531,7 +27823,7 @@
             {
               "args": [],
               "deprecationReason": null,
-              "description": null,
+              "description": "Input token from the perspective of the order taker",
               "isDeprecated": false,
               "name": "inputToken",
               "type": {
@@ -27547,7 +27839,7 @@
             {
               "args": [],
               "deprecationReason": null,
-              "description": null,
+              "description": "Output token from the perspective of the order taker",
               "isDeprecated": false,
               "name": "outputToken",
               "type": {

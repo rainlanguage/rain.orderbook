@@ -29,3 +29,7 @@ ethers-signers = { version = "2.0.8", features = ["ledger"] }
 tui = "0.19"
 crossterm = "0.25"
 cbor = "0.4.1"
+cursive = { version = "0.20", features = ["crossterm-backend"] }
+cursive_table_view = {version = "0.14" }
+rand = "0.8"
+bigdecimal = { version = "0.4.1", features = ["serde"] }

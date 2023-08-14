@@ -1,6 +1,6 @@
 
 use clap::Parser;
-use self::listorders::list_orders;  
+use self::listorders::view_orders;
 
 pub mod listorders;
 
@@ -12,6 +12,6 @@ pub struct ListOrder{
 }  
 
 pub async fn handle_list_order(list_order : ListOrder) -> anyhow::Result<()> { 
-     let _= list_orders(list_order.subgraph_url.clone()).await ;
+    view_orders(list_order.subgraph_url.clone()).await ;
     Ok(())
 } 

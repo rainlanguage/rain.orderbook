@@ -37,6 +37,19 @@ query OrdersQuery {
       vault {
         id
       }
+    } 
+    takeOrders(orderBy: timestamp, orderDirection: desc){
+      inputDisplay
+      inputToken{
+        symbol
+      }
+      outputDisplay
+      outputToken{
+        symbol
+      } 
+      transaction{
+        id
+      }
     }
   }
 }

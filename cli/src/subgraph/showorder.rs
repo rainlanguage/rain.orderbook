@@ -5,7 +5,7 @@ use ethers::utils::format_units;
 use graphql_client::GraphQLQuery;
 use graphql_client::Response;
 use rust_bigint::BigInt;
-
+use bigdecimal::BigDecimal;
 
 use std::str::FromStr;
  
@@ -15,9 +15,33 @@ use std::str::FromStr;
     query_path = "src/subgraph/queries/orders.graphql",
     response_derives = "Debug, Serialize, Deserialize"
 )]
-pub struct OrdersQuery;
+pub struct OrdersQuery; 
 
-pub async fn get_orders(sg_uri : String) -> anyhow::Result<Vec<Vec<String>>> { 
+#[derive(Clone, Debug)]
+pub struct OrderVaults{
+    pub token : String,
+    pub balance : String
+}
+
+#[derive(Clone, Debug)]
+pub struct TakeOrderDetails{
+    pub input_token : String , 
+    pub input_amount : String ,
+    pub output_token : String ,
+    pub output_amount : String ,
+    pub transaction_id : String
+}
+
+#[derive(Clone, Debug)]
+pub struct OrdersDetails {
+    pub id : String,
+    pub owner : String ,
+    pub input_vaults : Vec<OrderVaults> ,
+    pub output_vaults : Vec<OrderVaults> ,
+    pub take_orders : Vec<TakeOrderDetails>
+}
+
+pub async fn get_order_details_display(sg_uri : String) -> anyhow::Result<Vec<OrdersDetails>>{ 
 
     let variables = orders_query::Variables {};
     let request_body = OrdersQuery::build_query(variables);
@@ -27,65 +51,66 @@ pub async fn get_orders(sg_uri : String) -> anyhow::Result<Vec<Vec<String>>> {
         .json(&request_body)
         .send()
         .await?;
-    let response_body: Response<orders_query::ResponseData> = res.json().await?;  
+    let response_body: Response<orders_query::ResponseData> = res.json().await?;   
 
-
-    let orders: Vec<_> = response_body.data.unwrap().orders.iter().map(|order| {
-        let mut order_row: Vec<String> = vec![] ; 
-        order_row.push(order.id.clone()) ;  
-
-        // println!("order : {:#?}", &order.transaction.id);
-
+    let orders: Vec<OrdersDetails> = response_body.data.unwrap().orders.iter().map(|order| {
+ 
         let order_owner = &*order.owner.id ; 
         let order_owner = hex::encode(order_owner.to_vec()) ;
-        let order_owner = H160::from_str(order_owner.as_str()).unwrap().to_string() ;
-        order_row.push(order_owner) ; 
-
-        let ip_io: Vec<String>  = order.valid_inputs.as_ref().unwrap().iter().map(|x| {
-            let token_symbol = &x.token.symbol ; 
-            let vault_balance = U256::from_dec_str(&x.token_vault.balance.to_string()).unwrap()  ; 
+        let order_owner = H160::from_str(order_owner.as_str()).unwrap() ;
+        let order_owner = format!("{order_owner:#020x}") ; 
+        
+        let ip_io: Vec<OrderVaults>  = order.valid_inputs.as_ref().unwrap().iter().map(|x| {
+            let token_symbol = &x.token.symbol ;   
+            let vault_balance = U256::from_dec_str(&x.token_vault.balance.to_str_radix(16)).unwrap()  ; 
             let token_decimals = u32::from_str(&x.token.decimals.to_string()).unwrap();  
             let token_amount = format_units(vault_balance,token_decimals).unwrap().to_string() ;  
 
-            let ret_str = format!(
-                "{}{}{}{}" ,
-                token_symbol.to_string(),
-                " : ",
-                token_amount,
-                "\n"
-            ); 
+            OrderVaults{
+                token : token_symbol.to_string() ,
+                balance : token_amount
+            }
             
-            ret_str
         }).collect() ;    
 
-        let ip_io = ip_io.join("") ;
-
-        let op_io: Vec<String>  = order.valid_outputs.as_ref().unwrap().iter().map(|x| {
+        let op_io: Vec<OrderVaults>  = order.valid_outputs.as_ref().unwrap().iter().map(|x| {
             let token_symbol = &x.token.symbol ; 
-            let vault_balance = U256::from_dec_str(&x.token_vault.balance.to_string()).unwrap()  ; 
+            let vault_balance = U256::from_dec_str(&x.token_vault.balance.to_str_radix(16)).unwrap()  ; 
             let token_decimals = u32::from_str(&x.token.decimals.to_string()).unwrap();  
             let token_amount = format_units(vault_balance,token_decimals).unwrap().to_string() ;  
 
-            let ret_str =format!(
-                "{}{}{}{}" ,
-                token_symbol.to_string(),
-                " : ",
-                token_amount,
-                "\n"
-            ) ;
-            ret_str
-             
-        }).collect() ;
-        let op_io = op_io.join("") ;
-        order_row.push(ip_io) ;
-        order_row.push(op_io) ;
+            OrderVaults{
+                token : token_symbol.to_string() ,
+                balance : token_amount
+            }
 
-        order_row
+             
+        }).collect() ; 
+
+        let take_orders : Vec<TakeOrderDetails> = order.take_orders.as_ref().unwrap().iter().map(|t|{
+            TakeOrderDetails{
+                input_token : t.input_token.symbol.clone() ,
+                input_amount : t.input_display.to_string(),
+                output_token : t.output_token.symbol.clone() ,
+                output_amount : t.output_display.to_string() ,
+                transaction_id : t.transaction.id.clone()
+            }
+
+        }).collect() ;
         
 
-    }).collect() ;  
-   
+        OrdersDetails{
+            id : order.id.clone() ,
+            owner : order_owner ,
+            input_vaults : ip_io ,
+            output_vaults : op_io ,
+            take_orders : take_orders
+        }
+        
+    }).collect() ; 
+
     Ok(orders)
+
 }
 
 
