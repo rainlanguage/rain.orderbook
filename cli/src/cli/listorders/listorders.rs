@@ -148,7 +148,7 @@ impl TableViewItem<TakeOrdersColumn> for TakeOrders {
 
 pub async fn view_orders(sg_uri : String) {
 
-    let mut siv = cursive::default();
+    let mut siv = cursive::crossterm();
       
     let orders = get_order_details_display(sg_uri).await.unwrap() ; 
 
