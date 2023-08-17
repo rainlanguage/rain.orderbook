@@ -8,13 +8,11 @@ use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use anyhow::anyhow;
 
 use ethers_signers::{Ledger, HDPath};
+use crate::orderbook::deposit::deposit_token;
 use crate::tokens::approve_tokens;
-
-use self::deposit::deposit_token;
 
 use super::registry::RainNetworkOptions;
 
-pub mod deposit ;
 
 #[derive(Parser,Debug,Clone)]
 pub struct Deposit{ 
@@ -57,7 +55,11 @@ pub struct Deposit{
 
     /// fuji rpc url, default read from env varibales
     #[arg(long,env)]
-    pub fuji_rpc_url: Option<String> ,    
+    pub fuji_rpc_url: Option<String> , 
+
+    /// blocknative api key for gas oracle
+    #[arg(long,env)]
+    pub blocknative_api_key : Option<String> ,    
 
 } 
 
@@ -139,8 +141,8 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
     let provider = Provider::<Http>::try_from(rpc_url.clone())
     .expect("\n❌Could not instantiate HTTP Provider");  
 
-    let chain_id = provider.get_chainid().await.unwrap().as_u64() ;  
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id.clone()).await?; 
+    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
+    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id.clone()).await?;   
 
     // Approve token for deposit 
     let _ = approve_tokens(
@@ -148,10 +150,11 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         token_amount.clone(),
         orderbook_address.clone() ,
         rpc_url.clone(),
-        wallet
+        wallet,
+        deposit.blocknative_api_key.clone()
     ).await ;
 
-    // Reinit Wallet Instance
+    //Reinit Wallet Instance
     let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?;  
 
     // Deposit tokens
@@ -161,7 +164,8 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         vault_id,
         orderbook_address,
         rpc_url,
-        wallet
+        wallet,
+        deposit.blocknative_api_key
     ).await ;
     
     Ok(())

@@ -7,11 +7,11 @@ use ethers_signers::{Ledger, HDPath};
 use ethers::{providers::{Provider, Http}, types::H160} ; 
 use anyhow::anyhow;
 
-use self::addorder::add_ob_order;
+
+use crate::orderbook::addorder::add_ob_order;
 
 use super::registry::RainNetworkOptions; 
 
-pub mod addorder;
 
 #[derive(Parser,Debug,Clone)]
 pub struct AddOrder{ 
@@ -58,7 +58,11 @@ pub struct AddOrder{
 
     /// fuji rpc url, default read from env varibales
     #[arg(long,env)]
-    pub fuji_rpc_url: Option<String> ,    
+    pub fuji_rpc_url: Option<String> ,
+
+    /// blocknative api key for gas oracle
+    #[arg(long,env)]
+    pub blocknative_api_key : Option<String> ,     
 
 }  
 
@@ -116,7 +120,8 @@ pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {
         add_order.order_string,
         add_order.order_meta,
         rpc_url,
-        wallet
+        wallet,
+        add_order.blocknative_api_key
     ).await ;
 
     Ok(())

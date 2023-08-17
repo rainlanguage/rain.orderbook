@@ -7,10 +7,10 @@ use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::U256} ; 
 use anyhow::anyhow;
 use ethers_signers::{Ledger, HDPath};
-use crate::cli::withdraw::withdraw::withdraw_tokens;
+use crate::orderbook::withdraw::withdraw_tokens;
+
 use super::registry::RainNetworkOptions;
 
-pub mod withdraw ;
 
 #[derive(Parser,Debug,Clone)]
 pub struct Withdraw{ 
@@ -53,7 +53,11 @@ pub struct Withdraw{
 
     /// fuji rpc url, default read from env varibales
     #[arg(long,env)]
-    pub fuji_rpc_url: Option<String> ,    
+    pub fuji_rpc_url: Option<String> ,
+
+    /// blocknative api key for gas oracle
+    #[arg(long,env)]
+    pub blocknative_api_key : Option<String> ,     
 
 }  
 
@@ -132,7 +136,8 @@ pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> {
         vault_id,
         orderbook_address,
         rpc_url,
-        wallet
+        wallet,
+        withdraw.blocknative_api_key
     ).await;
     
     Ok(())

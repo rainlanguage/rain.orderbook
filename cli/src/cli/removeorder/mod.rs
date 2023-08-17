@@ -1,13 +1,9 @@
 use clap::Parser;
 use ethers::{providers::{Provider, Middleware, Http}, types::H160} ; 
-use crate::{cli::registry::RainNetworkOptions, subgraph::removeorder::get_remove_order} ;
+use crate::{cli::registry::RainNetworkOptions, subgraph::removeorder::get_remove_order, orderbook::removeorder::remove_order} ;
 use anyhow::anyhow;
 use ethers_signers::{Ledger, HDPath};
 use std::str::FromStr;
-
-use self::removeorder::remove_order;   
-
-pub mod removeorder;
 
 #[derive(Parser,Debug,Clone)]
 pub struct RemoveOrder{ 
@@ -41,7 +37,12 @@ pub struct RemoveOrder{
 
     /// fuji rpc url, default read from env varibales
     #[arg(long,env)]
-    pub fuji_rpc_url: Option<String> ,    
+    pub fuji_rpc_url: Option<String> , 
+
+    /// blocknative api key for gas oracle
+    #[arg(long,env)]
+    pub blocknative_api_key : Option<String> ,     
+   
 
 }  
 
@@ -92,7 +93,8 @@ pub async fn handle_remove_order(order: RemoveOrder) -> anyhow::Result<()> {
         order_to_remove,
         orderbook_address,
         rpc_url,
-        wallet
+        wallet,
+        order.blocknative_api_key
     ).await ;
 
     Ok(())
