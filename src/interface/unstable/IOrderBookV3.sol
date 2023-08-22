@@ -2,8 +2,8 @@
 pragma solidity ^0.8.18;
 
 import "../ierc3156/IERC3156FlashLender.sol";
-import "rain.interpreter/lib/caller/LibEvaluable.sol";
-import "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import "rain.interpreter/src/lib/caller/LibEvaluable.sol";
+import "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// Configuration for a single input or output on an `Order`.
 /// @param token The token to either send from the owner as an output or receive
@@ -40,7 +40,7 @@ struct IO {
 struct OrderConfig {
     IO[] validInputs;
     IO[] validOutputs;
-    EvaluableConfig evaluableConfig;
+    EvaluableConfigV2 evaluableConfig;
     bytes meta;
 }
 
@@ -345,7 +345,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param orderHash The hash of the order as it is recorded onchain. Only
     /// the hash is stored in Orderbook storage to avoid paying gas to store the
     /// entire order.
-    event AddOrder(address sender, IExpressionDeployerV1 expressionDeployer, Order order, bytes32 orderHash);
+    event AddOrder(address sender, IExpressionDeployerV2 expressionDeployer, Order order, bytes32 orderHash);
 
     /// An order has been removed from the orderbook. This effectively
     /// deactivates it. Orders can be added again after removal.

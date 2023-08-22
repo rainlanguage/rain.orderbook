@@ -76,7 +76,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         config.evaluableConfig.deployer = iDeployer;
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
             abi.encode(iInterpreter, iStore, expression)
         );
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));

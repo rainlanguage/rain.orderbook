@@ -9,7 +9,7 @@ import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibGenericPoolOrderBookFlashBorrowerConstants.sol";
 
 import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
-import "src/interface/IOrderBookV2.sol";
+import "src/interface/unstable/IOrderBookV3.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -19,7 +19,7 @@ contract Token is ERC20 {
     }
 }
 
-contract MockOrderBook is IOrderBookV2 {
+contract MockOrderBook is IOrderBookV3 {
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
         external
         returns (bool)
@@ -40,13 +40,13 @@ contract MockOrderBook is IOrderBookV2 {
         SignedContextV1[] memory aliceSignedContextV1,
         SignedContextV1[] memory bobSignedContextV1
     ) external {}
-    function deposit(DepositConfig calldata config) external {}
+    function deposit(address token, uint256 vaultId, uint256 amount) external {}
     function flashFee(address token, uint256 amount) external view returns (uint256) {}
     function maxFlashLoan(address token) external view returns (uint256) {}
     function removeOrder(Order calldata order) external {}
 
     function vaultBalance(address owner, address token, uint256 id) external view returns (uint256 balance) {}
-    function withdraw(WithdrawConfig calldata config) external {}
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external {}
 }
 
 contract Mock0xProxy {
@@ -65,13 +65,13 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         vm.etch(deployer, REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             deployer,
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
             abi.encode(address(0), address(0), address(0))
         );
         bytes memory meta = vm.readFileBinary(GENERIC_POOL_ORDER_BOOK_FLASH_BORROWER_META_PATH);
         console2.logBytes32(keccak256(meta));
         implementation = address(
-            new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV1ConstructionConfig(
+            new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig(
             deployer,
             meta
             ))
@@ -88,9 +88,9 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         GenericPoolOrderBookFlashBorrower arb_ = GenericPoolOrderBookFlashBorrower(Clones.clone(implementation));
         arb_.initialize(
             abi.encode(
-                OrderBookFlashBorrowerConfig(
+                OrderBookFlashBorrowerConfigV2(
                     address(ob_),
-                    EvaluableConfig(IExpressionDeployerV1(address(0)), new bytes[](0), new uint256[](0)),
+                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), new bytes[](0), new uint256[](0)),
                     ""
                 )
             )
@@ -116,9 +116,9 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         GenericPoolOrderBookFlashBorrower arb = GenericPoolOrderBookFlashBorrower(Clones.clone(implementation));
         arb.initialize(
             abi.encode(
-                OrderBookFlashBorrowerConfig(
+                OrderBookFlashBorrowerConfigV2(
                     address(ob),
-                    EvaluableConfig(IExpressionDeployerV1(address(0)), new bytes[](0), new uint256[](0)),
+                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), new bytes[](0), new uint256[](0)),
                     ""
                 )
             )

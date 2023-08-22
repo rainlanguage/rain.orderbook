@@ -9,13 +9,13 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/Reentra
 
 import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
 import "rain.math.fixedpoint/FixedPointDecimalScale.sol";
-import "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
-import "rain.interpreter/lib/caller/LibContext.sol";
+import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import "rain.interpreter/src/lib/caller/LibContext.sol";
 import {
-    DeployerDiscoverableMetaV1,
-    DeployerDiscoverableMetaV1ConstructionConfig,
+    DeployerDiscoverableMetaV2,
+    DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
-} from "rain.interpreter/abstract/DeployerDiscoverableMetaV1.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../lib/LibOrder.sol";
@@ -157,7 +157,7 @@ struct OrderIOCalculation {
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLender, DeployerDiscoverableMetaV1 {
+contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLender, DeployerDiscoverableMetaV2 {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for Order;
@@ -188,8 +188,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
     /// factory deployments as each order is a unique expression deployment
     /// rather than needing to wrap up expressions with proxies.
-    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config)
-        DeployerDiscoverableMetaV1(CALLER_META_HASH, config)
+    constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
+        DeployerDiscoverableMetaV2(CALLER_META_HASH, config)
     {}
 
     /// Guard against read-only reentrancy.
