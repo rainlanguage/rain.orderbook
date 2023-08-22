@@ -37,7 +37,7 @@ struct IO {
 /// @param meta Arbitrary bytes that will NOT be used in the order evaluation
 /// but MUST be emitted as a Rain `MetaV1` when the order is placed so can be
 /// used by offchain processes.
-struct OrderConfig {
+struct OrderConfigV2 {
     IO[] validInputs;
     IO[] validOutputs;
     EvaluableConfigV2 evaluableConfig;
@@ -481,7 +481,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param config All config required to build an `Order`.
     /// @return stateChanged True if the order was added, false if it already
     /// existed.
-    function addOrder(OrderConfig calldata config) external returns (bool stateChanged);
+    function addOrder(OrderConfigV2 calldata config) external returns (bool stateChanged);
 
     /// Returns true if the order exists, false otherwise.
     /// @param orderHash The hash of the order to check.

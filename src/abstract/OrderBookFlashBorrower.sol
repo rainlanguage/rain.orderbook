@@ -246,7 +246,7 @@ abstract contract OrderBookFlashBorrower is
     /// Finally the orders are taken and the remaining assets are sent to the
     /// sender.
     ///
-    /// @param takeOrders As per `IOrderBookV2.takeOrders`.
+    /// @param takeOrders As per `IOrderBookV3.takeOrders`.
     /// @param minimumSenderOutput The minimum output that must be sent to the
     /// sender by the end of the arb call. This, in combination with the
     /// orderbook's own asset handling, is expected to REPLACE the standard

@@ -255,7 +255,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfig calldata config) external nonReentrant returns (bool stateChanged) {
+    function addOrder(OrderConfigV2 calldata config) external nonReentrant returns (bool stateChanged) {
         uint256 sourceCount = LibBytecode.sourceCount(config.evaluableConfig.bytecode);
         if (sourceCount == 0) {
             revert OrderNoSources(msg.sender);

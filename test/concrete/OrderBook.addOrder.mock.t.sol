@@ -8,7 +8,7 @@ import "test/util/lib/LibTestAddOrder.sol";
 /// @notice Tests the addOrder function of the OrderBook contract.
 contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without calculations MUST revert.
-    function testAddOrderWithoutCalculationsReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderWithoutCalculationsReverts(address owner, OrderConfigV2 memory config) public {
         vm.prank(owner);
         config.evaluableConfig.bytecode = "";
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
@@ -20,7 +20,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Adding an order without inputs MUST revert.
-    function testAddOrderWithoutInputsReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderWithoutInputsReverts(address owner, OrderConfigV2 memory config) public {
         vm.prank(owner);
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IO[](0);
@@ -33,7 +33,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Adding an order without outputs MUST revert.
-    function testAddOrderWithoutOutputsReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderWithoutOutputsReverts(address owner, OrderConfigV2 memory config) public {
         vm.prank(owner);
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
@@ -51,7 +51,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// MUST be emitted. This test assumes empty meta.
     function testAddOrderWithCalculationsInputsAndOutputsSucceeds(
         address owner,
-        OrderConfig memory config,
+        OrderConfigV2 memory config,
         address expression
     ) public {
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
@@ -65,7 +65,9 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Adding a valid order with a non-empty meta MUST revert if the meta is
     /// not self describing as a rain meta document.
-    function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfig memory config, address expression) public {
+    function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfigV2 memory config, address expression)
+        public
+    {
         vm.prank(owner);
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
@@ -90,7 +92,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Adding a valid order with a non-empty meta MUST emit MetaV1 if the meta
     /// is self describing as a rain meta document.
-    function testAddOrderWithNonEmptyMetaEmitsMetaV1(address owner, OrderConfig memory config, address expression)
+    function testAddOrderWithNonEmptyMetaEmitsMetaV1(address owner, OrderConfigV2 memory config, address expression)
         public
     {
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
@@ -112,7 +114,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderTwoAccountsWithSameConfig(
         address alice,
         address bob,
-        OrderConfig memory config,
+        OrderConfigV2 memory config,
         address expression
     ) public {
         vm.assume(alice != bob);
@@ -129,8 +131,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderTwoAccountsWithDifferentConfig(
         address alice,
         address bob,
-        OrderConfig memory aliceConfig,
-        OrderConfig memory bobConfig,
+        OrderConfigV2 memory aliceConfig,
+        OrderConfigV2 memory bobConfig,
         address aliceExpression,
         address bobExpression
     ) public {
@@ -148,8 +150,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// be different.
     function testAddOrderSameAccountWithDifferentConfig(
         address alice,
-        OrderConfig memory configOne,
-        OrderConfig memory configTwo,
+        OrderConfigV2 memory configOne,
+        OrderConfigV2 memory configTwo,
         address expressionOne,
         address expressionTwo
     ) public {

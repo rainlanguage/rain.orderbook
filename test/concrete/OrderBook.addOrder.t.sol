@@ -8,7 +8,7 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 /// @notice A test harness for testing the OrderBook addOrder function.
 contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// No sources reverts as we need at least a calculate expression.
-    function testAddOrderRealNoSourcesReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderRealNoSourcesReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         config.evaluableConfig.bytecode = hex"";
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
@@ -17,7 +17,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// No handle IO reverts.
-    function testAddOrderRealNoHandleIOReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderRealNoHandleIOReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;");
         config.evaluableConfig.bytecode = bytecode;
@@ -28,7 +28,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// A stack of 0 for calculate order reverts.
-    function testAddOrderRealZeroStackCalculateReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderRealZeroStackCalculateReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;:;");
         config.evaluableConfig.constants = constants;
@@ -39,7 +39,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// A stack of 1 for calculate order reverts.
-    function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iDeployer)).parse("_:block-timestamp();:;");
@@ -51,7 +51,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// A stack of 2 for calculate order deploys.
-    function testAddOrderRealTwoStackCalculateReverts(address owner, OrderConfig memory config) public {
+    function testAddOrderRealTwoStackCalculateReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iDeployer)).parse("_ _:block-timestamp() chain-id();:;");
@@ -62,7 +62,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// A stack of 3 for calculate order deploys.
-    function testAddOrderRealThreeStackCalculate(address owner, OrderConfig memory config) public {
+    function testAddOrderRealThreeStackCalculate(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iDeployer)).parse("_ _ _:block-timestamp() chain-id() block-number();:;");

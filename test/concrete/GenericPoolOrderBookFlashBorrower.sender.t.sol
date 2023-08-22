@@ -32,7 +32,7 @@ contract MockOrderBook is IOrderBookV3 {
         return (0, 0);
     }
 
-    function addOrder(OrderConfig calldata) external pure returns (bool stateChanged) {
+    function addOrder(OrderConfigV2 calldata) external pure returns (bool stateChanged) {
         return false;
     }
 
