@@ -19,8 +19,9 @@ library LibTestAddOrder {
         Evaluable memory expectedEvaluable = Evaluable(interpreter, store, expression);
         Order memory order = Order(
             owner,
-            config.evaluableConfig.sources.length > 1
-                && config.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
+            LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 1
+                && LibBytecode.sourceOpsLength(config.evaluableConfig.bytecode, SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT))
+                    > 0,
             expectedEvaluable,
             config.validInputs,
             config.validOutputs
@@ -46,15 +47,6 @@ library LibTestAddOrder {
             config.validOutputs = new IO[](1);
             config.validOutputs[0] = IO(address(0), 0, 0);
         }
-        if (config.evaluableConfig.sources.length == 0) {
-            config.evaluableConfig.sources = new bytes[](2);
-            config.evaluableConfig.sources[0] = new bytes(0);
-            config.evaluableConfig.sources[1] = new bytes(0);
-        } else if (config.evaluableConfig.sources.length == 1) {
-            bytes[] memory sources = new bytes[](2);
-            sources[0] = config.evaluableConfig.sources[0];
-            sources[1] = new bytes(0);
-            config.evaluableConfig.sources = sources;
-        }
+        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
     }
 }

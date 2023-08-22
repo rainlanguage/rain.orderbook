@@ -10,7 +10,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without calculations MUST revert.
     function testAddOrderWithoutCalculationsReverts(address owner, OrderConfig memory config) public {
         vm.prank(owner);
-        config.evaluableConfig.sources = new bytes[](0);
+        config.evaluableConfig.bytecode = "";
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
         iOrderbook.addOrder(config);
         (Order memory order, bytes32 orderHash) =
@@ -22,7 +22,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without inputs MUST revert.
     function testAddOrderWithoutInputsReverts(address owner, OrderConfig memory config) public {
         vm.prank(owner);
-        vm.assume(config.evaluableConfig.sources.length > 1);
+        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector, owner));
         iOrderbook.addOrder(config);
@@ -35,7 +35,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without outputs MUST revert.
     function testAddOrderWithoutOutputsReverts(address owner, OrderConfig memory config) public {
         vm.prank(owner);
-        vm.assume(config.evaluableConfig.sources.length > 1);
+        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         config.validOutputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector, owner));
@@ -54,7 +54,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         OrderConfig memory config,
         address expression
     ) public {
-        vm.assume(config.evaluableConfig.sources.length >= 2);
+        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         config.meta = new bytes(0);
@@ -67,7 +67,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// not self describing as a rain meta document.
     function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfig memory config, address expression) public {
         vm.prank(owner);
-        vm.assume(config.evaluableConfig.sources.length >= 2);
+        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         vm.assume(!LibMeta.isRainMetaV1(config.meta));
@@ -93,7 +93,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderWithNonEmptyMetaEmitsMetaV1(address owner, OrderConfig memory config, address expression)
         public
     {
-        vm.assume(config.evaluableConfig.sources.length >= 2);
+        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         vm.assume(config.meta.length > 0);

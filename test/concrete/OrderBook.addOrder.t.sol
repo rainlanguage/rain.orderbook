@@ -10,7 +10,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// No sources reverts as we need at least a calculate expression.
     function testAddOrderRealNoSourcesReverts(address owner, OrderConfig memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        config.evaluableConfig.sources = new bytes[](0);
+        config.evaluableConfig.bytecode = hex"";
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
         vm.prank(owner);
         iOrderbook.addOrder(config);
@@ -19,9 +19,9 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// No handle IO reverts.
     function testAddOrderRealNoHandleIOReverts(address owner, OrderConfig memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes[] memory sources, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;");
-        (constants);
-        config.evaluableConfig.sources = sources;
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;");
+        config.evaluableConfig.bytecode = bytecode;
+        config.evaluableConfig.constants = constants;
         vm.expectRevert(abi.encodeWithSelector(OrderNoHandleIO.selector, owner));
         vm.prank(owner);
         iOrderbook.addOrder(config);
@@ -33,7 +33,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;:;");
         config.evaluableConfig.constants = constants;
         config.evaluableConfig.bytecode = bytecode;
-        // vm.expectRevert(abi.encodeWithSelector(MinFinalStack.selector, 2, 0));
+        vm.expectRevert(abi.encodeWithSelector(EntrypointMinOutputs.selector, 0, 0, 2));
         vm.prank(owner);
         iOrderbook.addOrder(config);
     }
@@ -41,11 +41,11 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// A stack of 1 for calculate order reverts.
     function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfig memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes memory sources, uint256[] memory constants) =
+        (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iDeployer)).parse("_:block-timestamp();:;");
-        (constants);
-        config.evaluableConfig.sources = sources;
-        // vm.expectRevert(abi.encodeWithSelector(MinFinalStack.selector, 2, 1));
+        config.evaluableConfig.constants = constants;
+        config.evaluableConfig.bytecode = bytecode;
+        vm.expectRevert(abi.encodeWithSelector(EntrypointMinOutputs.selector, 0, 1, 2));
         vm.prank(owner);
         iOrderbook.addOrder(config);
     }
@@ -53,10 +53,10 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// A stack of 2 for calculate order deploys.
     function testAddOrderRealTwoStackCalculateReverts(address owner, OrderConfig memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes[] memory sources, uint256[] memory constants) =
+        (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iDeployer)).parse("_ _:block-timestamp() chain-id();:;");
-        (constants);
-        config.evaluableConfig.sources = sources;
+        config.evaluableConfig.constants = constants;
+        config.evaluableConfig.bytecode = bytecode;
         vm.prank(owner);
         iOrderbook.addOrder(config);
     }
@@ -64,10 +64,10 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// A stack of 3 for calculate order deploys.
     function testAddOrderRealThreeStackCalculate(address owner, OrderConfig memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes[] memory sources, uint256[] memory constants) =
+        (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iDeployer)).parse("_ _ _:block-timestamp() chain-id() block-number();:;");
-        (constants);
-        config.evaluableConfig.sources = sources;
+        config.evaluableConfig.constants = constants;
+        config.evaluableConfig.bytecode = bytecode;
         vm.prank(owner);
         iOrderbook.addOrder(config);
     }

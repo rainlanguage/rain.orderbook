@@ -16,6 +16,7 @@ import {
     DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
 } from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../lib/LibOrder.sol";
@@ -255,10 +256,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
 
     /// @inheritdoc IOrderBookV3
     function addOrder(OrderConfig calldata config) external nonReentrant returns (bool stateChanged) {
-        if (config.evaluableConfig.sources.length == 0) {
+        uint256 sourceCount = LibBytecode.sourceCount(config.evaluableConfig.bytecode);
+        if (sourceCount == 0) {
             revert OrderNoSources(msg.sender);
         }
-        if (config.evaluableConfig.sources.length == 1) {
+        if (sourceCount == 1) {
             revert OrderNoHandleIO(msg.sender);
         }
         if (config.validInputs.length == 0) {
@@ -271,7 +273,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             .evaluableConfig
             .deployer
             .deployExpression(
-            config.evaluableConfig.sources,
+            config.evaluableConfig.bytecode,
             config.evaluableConfig.constants,
             LibUint256Array.arrayFrom(CALCULATE_ORDER_MIN_OUTPUTS, HANDLE_IO_MIN_OUTPUTS)
         );
@@ -281,7 +283,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         // order.
         Order memory order = Order(
             msg.sender,
-            config.evaluableConfig.sources[SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)].length > 0,
+            LibBytecode.sourceOpsLength(config.evaluableConfig.bytecode, SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT)) > 0,
             Evaluable(interpreter, store, expression),
             config.validInputs,
             config.validOutputs

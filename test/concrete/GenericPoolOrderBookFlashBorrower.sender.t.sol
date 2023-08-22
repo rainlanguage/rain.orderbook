@@ -32,7 +32,14 @@ contract MockOrderBook is IOrderBookV3 {
         return (0, 0);
     }
 
-    function addOrder(OrderConfig calldata config) external {}
+    function addOrder(OrderConfig calldata) external pure returns (bool stateChanged) {
+        return false;
+    }
+
+    function orderExists(bytes32) external pure returns (bool exists) {
+        return false;
+    }
+
     function clear(
         Order memory alice,
         Order memory bob,
@@ -43,7 +50,7 @@ contract MockOrderBook is IOrderBookV3 {
     function deposit(address token, uint256 vaultId, uint256 amount) external {}
     function flashFee(address token, uint256 amount) external view returns (uint256) {}
     function maxFlashLoan(address token) external view returns (uint256) {}
-    function removeOrder(Order calldata order) external {}
+    function removeOrder(Order calldata order) external returns (bool stateChanged) {}
 
     function vaultBalance(address owner, address token, uint256 id) external view returns (uint256 balance) {}
     function withdraw(address token, uint256 vaultId, uint256 targetAmount) external {}
@@ -89,9 +96,7 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         arb_.initialize(
             abi.encode(
                 OrderBookFlashBorrowerConfigV2(
-                    address(ob_),
-                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), new bytes[](0), new uint256[](0)),
-                    ""
+                    address(ob_), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
                 )
             )
         );
@@ -117,9 +122,7 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         arb.initialize(
             abi.encode(
                 OrderBookFlashBorrowerConfigV2(
-                    address(ob),
-                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), new bytes[](0), new uint256[](0)),
-                    ""
+                    address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
                 )
             )
         );
