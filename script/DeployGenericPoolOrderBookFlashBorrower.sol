@@ -22,7 +22,7 @@ contract DeployGenericPoolOrderBookFlashBorrower is Script {
 
         vm.startBroadcast(deployerPrivateKey);
         GenericPoolOrderBookFlashBorrower deployed =
-        new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV1ConstructionConfig (
+        new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig (
             i9rDeployer,
             meta
         ));

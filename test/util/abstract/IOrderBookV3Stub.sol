@@ -5,7 +5,7 @@ import "src/interface/unstable/IOrderBookV3.sol";
 
 abstract contract IOrderBookV3Stub is IOrderBookV3 {
     /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfig calldata) external pure returns (bool) {
+    function addOrder(OrderConfigV2 calldata) external pure returns (bool) {
         revert("addOrder");
     }
 

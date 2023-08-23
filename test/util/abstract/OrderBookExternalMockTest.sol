@@ -3,7 +3,7 @@ pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
 
-import "rain.interpreter/interface/IExpressionDeployerV1.sol";
+import "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
 import "rain.metadata/LibMeta.sol";
 
 import "test/util/lib/LibTestConstants.sol";
@@ -23,11 +23,11 @@ import "src/concrete/OrderBook.sol";
 /// - Deploys a mockable deployer contract for a DISpair.
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
-/// Implements IOrderBookV2 so that it has access to all the relevant events.
+/// Implements IOrderBookV3 so that it has access to all the relevant events.
 abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
     IInterpreterV1 immutable iInterpreter;
     IInterpreterStoreV1 immutable iStore;
-    IExpressionDeployerV1 immutable iDeployer;
+    IExpressionDeployerV2 immutable iDeployer;
     IOrderBookV3 immutable iOrderbook;
     IERC20 immutable iToken0;
     IERC20 immutable iToken1;
@@ -38,19 +38,19 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV1(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
-        iDeployer = IExpressionDeployerV1(address(uint160(uint256(keccak256("deployer.rain.test")))));
+        iDeployer = IExpressionDeployerV2(address(uint160(uint256(keccak256("deployer.rain.test")))));
         // All non-mocked calls will revert.
         vm.etch(address(iDeployer), REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
             abi.encode(iInterpreter, iStore, address(0))
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.log("meta hash:");
         console2.logBytes(abi.encodePacked(keccak256(meta)));
         iOrderbook =
-            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(address(iDeployer), meta))));
+            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV2ConstructionConfig(address(iDeployer), meta))));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
@@ -61,7 +61,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
 
     /// Boilerplate to add an order with a mocked deployer and checks events and
     /// storage accesses.
-    function addOrderWithChecks(address owner, OrderConfig memory config, address expression)
+    function addOrderWithChecks(address owner, OrderConfigV2 memory config, address expression)
         internal
         returns (Order memory, bytes32)
     {
@@ -71,7 +71,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         assertTrue(!iOrderbook.orderExists(orderHash));
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
             abi.encode(iInterpreter, iStore, expression)
         );
         vm.expectEmit(false, false, false, true);
@@ -100,7 +100,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         // mock.
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
             abi.encode(iInterpreter, iStore, expression)
         );
         vm.record();

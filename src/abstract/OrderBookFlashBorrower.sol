@@ -8,15 +8,16 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import {
-    DeployerDiscoverableMetaV1,
-    DeployerDiscoverableMetaV1ConstructionConfig,
+    DeployerDiscoverableMetaV2,
+    DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
-} from "rain.interpreter/abstract/DeployerDiscoverableMetaV1.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import "rain.interpreter/src/lib/caller/LibContext.sol";
+import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
-import "../interface/IOrderBookV2.sol";
+import "../interface/unstable/IOrderBookV3.sol";
 import "rain.factory/src/interface/ICloneableV2.sol";
-import "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
-import "rain.interpreter/lib/caller/LibContext.sol";
 
 /// Thrown when the lender is not the trusted `OrderBook`.
 /// @param badLender The untrusted lender calling `onFlashLoan`.
@@ -48,9 +49,9 @@ error NonZeroBeforeArbStack();
 /// @param evaluableConfig The config to eval for access control to arb.
 /// @param implementationData Arbitrary bytes to pass to the implementation in
 /// the `beforeInitialize` hook.
-struct OrderBookFlashBorrowerConfig {
+struct OrderBookFlashBorrowerConfigV2 {
     address orderBook;
-    EvaluableConfig evaluableConfig;
+    EvaluableConfigV2 evaluableConfig;
     bytes implementationData;
 }
 
@@ -97,7 +98,7 @@ abstract contract OrderBookFlashBorrower is
     ICloneableV2,
     ReentrancyGuard,
     Initializable,
-    DeployerDiscoverableMetaV1,
+    DeployerDiscoverableMetaV2,
     ERC165
 {
     using Address for address;
@@ -106,10 +107,10 @@ abstract contract OrderBookFlashBorrower is
     /// Emitted when the contract is initialized. Contains the
     /// OrderBookFlashBorrowerConfig struct to ensure the type appears in the
     /// ABI.
-    event Initialize(address sender, OrderBookFlashBorrowerConfig config);
+    event Initialize(address sender, OrderBookFlashBorrowerConfigV2 config);
 
     /// `OrderBook` contract to lend and arb against.
-    IOrderBookV2 public sOrderBook;
+    IOrderBookV3 public sOrderBook;
 
     /// The encoded dispatch that will run for access control to `arb`.
     EncodedDispatch public sI9rDispatch;
@@ -118,8 +119,8 @@ abstract contract OrderBookFlashBorrower is
     /// The associated store for the interpreter.
     IInterpreterStoreV1 public sI9rStore;
 
-    constructor(bytes32 metaHash, DeployerDiscoverableMetaV1ConstructionConfig memory config)
-        DeployerDiscoverableMetaV1(metaHash, config)
+    constructor(bytes32 metaHash, DeployerDiscoverableMetaV2ConstructionConfig memory config)
+        DeployerDiscoverableMetaV2(metaHash, config)
     {
         // Arb contracts are expected to be cloned proxies so allowing
         // initialization of the implementation is a security risk.
@@ -140,26 +141,26 @@ abstract contract OrderBookFlashBorrower is
 
     /// Type hints for the input encoding for the `initialize` function.
     /// Reverts ALWAYS with `InitializeSignatureFn` as per ICloneableV2.
-    function initialize(OrderBookFlashBorrowerConfig memory) external pure returns (bytes32) {
+    function initialize(OrderBookFlashBorrowerConfigV2 memory) external pure returns (bytes32) {
         revert InitializeSignatureFn();
     }
 
     /// @inheritdoc ICloneableV2
     function initialize(bytes memory data) external initializer nonReentrant returns (bytes32) {
-        (OrderBookFlashBorrowerConfig memory config) = abi.decode(data, (OrderBookFlashBorrowerConfig));
+        (OrderBookFlashBorrowerConfigV2 memory config) = abi.decode(data, (OrderBookFlashBorrowerConfigV2));
 
         // Dispatch the hook before any external calls are made.
         _beforeInitialize(config.implementationData);
 
         // @todo This could be paramaterised on `arb`.
-        sOrderBook = IOrderBookV2(config.orderBook);
+        sOrderBook = IOrderBookV3(config.orderBook);
 
         // Emit events before any external calls are made.
         emit Initialize(msg.sender, config);
 
         // If there are sources to eval then initialize the dispatch, otherwise
         // it will remain 0 and we can skip evaluation on `arb`.
-        if (config.evaluableConfig.sources.length > 0 && config.evaluableConfig.sources[0].length > 0) {
+        if (LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 0) {
             address expression;
 
             uint256[] memory entrypoints = new uint256[](1);
@@ -171,7 +172,7 @@ abstract contract OrderBookFlashBorrower is
             // modifier on them so can't be reentered here anyway.
             //slither-disable-next-line reentrancy-benign
             (sI9r, sI9rStore, expression) = config.evaluableConfig.deployer.deployExpression(
-                config.evaluableConfig.sources, config.evaluableConfig.constants, entrypoints
+                config.evaluableConfig.bytecode, config.evaluableConfig.constants, entrypoints
             );
             sI9rDispatch = LibEncodedDispatch.encode(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
         }
@@ -245,7 +246,7 @@ abstract contract OrderBookFlashBorrower is
     /// Finally the orders are taken and the remaining assets are sent to the
     /// sender.
     ///
-    /// @param takeOrders As per `IOrderBookV2.takeOrders`.
+    /// @param takeOrders As per `IOrderBookV3.takeOrders`.
     /// @param minimumSenderOutput The minimum output that must be sent to the
     /// sender by the end of the arb call. This, in combination with the
     /// orderbook's own asset handling, is expected to REPLACE the standard

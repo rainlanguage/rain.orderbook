@@ -25,7 +25,7 @@ contract GenericPoolOrderBookFlashBorrower is OrderBookFlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(DeployerDiscoverableMetaV1ConstructionConfig memory config)
+    constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
         OrderBookFlashBorrower(CALLER_META_HASH, config)
     {}
 

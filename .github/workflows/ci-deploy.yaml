@@ -14,8 +14,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-          # https://github.com/foundry-rs/foundry/issues/3440#issuecomment-1641853058
-          version: nightly-cc5637a979050c39b3d06bc4cc6134f0591ee8d0
+          version: nightly
       - name: Install rain
         run: nix profile install github:rainprotocol/rain.cli
       - run: rain --version

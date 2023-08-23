@@ -2,8 +2,8 @@
 pragma solidity ^0.8.18;
 
 import "../ierc3156/IERC3156FlashLender.sol";
-import "rain.interpreter/lib/caller/LibEvaluable.sol";
-import "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import "rain.interpreter/src/lib/caller/LibEvaluable.sol";
+import "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// Configuration for a single input or output on an `Order`.
 /// @param token The token to either send from the owner as an output or receive
@@ -37,10 +37,10 @@ struct IO {
 /// @param meta Arbitrary bytes that will NOT be used in the order evaluation
 /// but MUST be emitted as a Rain `MetaV1` when the order is placed so can be
 /// used by offchain processes.
-struct OrderConfig {
+struct OrderConfigV2 {
     IO[] validInputs;
     IO[] validOutputs;
-    EvaluableConfig evaluableConfig;
+    EvaluableConfigV2 evaluableConfig;
     bytes meta;
 }
 
@@ -345,7 +345,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param orderHash The hash of the order as it is recorded onchain. Only
     /// the hash is stored in Orderbook storage to avoid paying gas to store the
     /// entire order.
-    event AddOrder(address sender, IExpressionDeployerV1 expressionDeployer, Order order, bytes32 orderHash);
+    event AddOrder(address sender, IExpressionDeployerV2 expressionDeployer, Order order, bytes32 orderHash);
 
     /// An order has been removed from the orderbook. This effectively
     /// deactivates it. Orders can be added again after removal.
@@ -481,7 +481,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param config All config required to build an `Order`.
     /// @return stateChanged True if the order was added, false if it already
     /// existed.
-    function addOrder(OrderConfig calldata config) external returns (bool stateChanged);
+    function addOrder(OrderConfigV2 calldata config) external returns (bool stateChanged);
 
     /// Returns true if the order exists, false otherwise.
     /// @param orderHash The hash of the order to check.

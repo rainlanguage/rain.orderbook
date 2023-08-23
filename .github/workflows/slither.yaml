@@ -10,8 +10,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          # https://github.com/foundry-rs/foundry/issues/3440#issuecomment-1641853058
-          version: nightly-cc5637a979050c39b3d06bc4cc6134f0591ee8d0
+          version: nightly
       - name: Use Node.js
         uses: actions/setup-node@v3
 

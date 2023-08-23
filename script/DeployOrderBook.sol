@@ -15,7 +15,7 @@ contract DeployOrderBook is Script {
         console2.logBytes32(keccak256(meta));
 
         vm.startBroadcast(deployerPrivateKey);
-        OrderBook deployed = new OrderBook(DeployerDiscoverableMetaV1ConstructionConfig (
+        OrderBook deployed = new OrderBook(DeployerDiscoverableMetaV2ConstructionConfig (
             i9rDeployer,
             meta
         ));
