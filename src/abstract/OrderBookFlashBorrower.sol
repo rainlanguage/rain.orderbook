@@ -197,7 +197,7 @@ abstract contract OrderBookFlashBorrower is
     /// @param takeOrders As per `arb`.
     /// @param exchangeData As per `arb`.
     //slither-disable-next-line dead-code
-    function _exchange(TakeOrdersConfig memory takeOrders, bytes memory exchangeData) internal virtual {}
+    function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual {}
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data)
@@ -214,7 +214,7 @@ abstract contract OrderBookFlashBorrower is
             revert BadInitiator(initiator);
         }
 
-        (TakeOrdersConfig memory takeOrders, bytes memory exchangeData) = abi.decode(data, (TakeOrdersConfig, bytes));
+        (TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) = abi.decode(data, (TakeOrdersConfigV2, bytes));
 
         // Dispatch the `_exchange` hook to ensure we have the correct asset
         // type and amount to fill the orders.
@@ -259,7 +259,7 @@ abstract contract OrderBookFlashBorrower is
     /// for decoding this data and defining how it controls interactions with
     /// the external liquidity. For example, `GenericPoolOrderBookFlashBorrower`
     /// uses this data as a literal encoded external call.
-    function arb(TakeOrdersConfig calldata takeOrders, uint256 minimumSenderOutput, bytes calldata exchangeData)
+    function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput, bytes calldata exchangeData)
         external
         nonReentrant
         onlyNotInitializing

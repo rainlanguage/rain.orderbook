@@ -48,7 +48,7 @@ abstract contract IOrderBookV3Stub is IOrderBookV3 {
     }
 
     /// @inheritdoc IOrderBookV3
-    function takeOrders(TakeOrdersConfig calldata) external pure returns (uint256, uint256) {
+    function takeOrders(TakeOrdersConfigV2 calldata) external pure returns (uint256, uint256) {
         revert("takeOrders");
     }
 

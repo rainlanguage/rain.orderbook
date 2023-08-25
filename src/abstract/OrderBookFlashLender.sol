@@ -97,7 +97,8 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
     /// @param token The token being sent or for the debt being paid.
     /// @param receiver The receiver of the token or holder of the debt.
     /// @param sendAmount The amount to send or repay.
-    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount) internal {
+    /// @return The final amount sent after any debt repayment.
+    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount) internal returns (uint256) {
         // If this token transfer matches the active debt then prioritise
         // reducing debt over sending tokens.
         if (token == _sToken && receiver == address(_sReceiver)) {
@@ -112,6 +113,7 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
         if (sendAmount > 0) {
             IERC20(token).safeTransfer(receiver, sendAmount);
         }
+        return sendAmount;
     }
 
     /// @inheritdoc IERC3156FlashLender
