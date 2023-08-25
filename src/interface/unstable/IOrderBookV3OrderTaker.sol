@@ -19,5 +19,11 @@ interface IOrderBookV3OrderTaker {
     /// `IOrderBookV3` will attempt to pull from `IOrderBookV3OrderTaker` after
     /// this callback returns.
     /// @param takeOrdersData The data passed to `takeOrders` by the caller.
-    function onTakeOrders(address inputToken, address outputToken, uint256 inputAmountSent, uint256 totalOutputAmount, bytes calldata takeOrdersData) external;
+    function onTakeOrders(
+        address inputToken,
+        address outputToken,
+        uint256 inputAmountSent,
+        uint256 totalOutputAmount,
+        bytes calldata takeOrdersData
+    ) external;
 }

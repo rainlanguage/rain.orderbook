@@ -395,7 +395,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         //   trades.
         uint256 inputAmountSent = _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
         if (inputAmountSent > 0 && config.data.length > 0) {
-            IOrderBookV3OrderTaker(msg.sender).onTakeOrders(config.input, config.output, inputAmountSent, totalOutput, config.data);
+            IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
+                config.input, config.output, inputAmountSent, totalOutput, config.data
+            );
         }
 
         // We already updated vault balances before we took tokens from
