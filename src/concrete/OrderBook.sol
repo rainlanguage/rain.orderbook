@@ -117,7 +117,7 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xd55ed91accdfd893ecc4028057ab2894d6eb88b88f59a27f0b73eaef92d20430);
+bytes32 constant CALLER_META_HASH = bytes32(0xf0c79e4006636a71899066ac45a478da4eafaa3117769678b6f18d96138bc156);
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.

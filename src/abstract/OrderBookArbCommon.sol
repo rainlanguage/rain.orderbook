@@ -11,3 +11,7 @@ error Initializing();
 
 /// Thrown when the stack is not empty after the access control dispatch.
 error NonZeroBeforeArbStack();
+
+/// Thrown when the lender is not the trusted `OrderBook`.
+/// @param badLender The untrusted lender calling `onFlashLoan`.
+error BadLender(address badLender);

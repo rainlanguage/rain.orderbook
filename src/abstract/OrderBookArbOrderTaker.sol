@@ -41,7 +41,14 @@ uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no return values.
 uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-abstract contract OrderBookFlashOrderTaker is IOrderBookV3OrderTaker, ReentrancyGuard, Initializable, ICloneableV2, DeployerDiscoverableMetaV2, ERC165 {
+abstract contract OrderBookArbOrderTaker is
+    IOrderBookV3OrderTaker,
+    ReentrancyGuard,
+    Initializable,
+    ICloneableV2,
+    DeployerDiscoverableMetaV2,
+    ERC165
+{
     using SafeERC20 for IERC20;
 
     event Initialize(address sender, OrderBookFlashOrderTakerConfigV1 config);
@@ -59,7 +66,8 @@ abstract contract OrderBookFlashOrderTaker is IOrderBookV3OrderTaker, Reentrancy
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IOrderBookV3OrderTaker).interfaceId || interfaceId == type(ICloneableV2).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(IOrderBookV3OrderTaker).interfaceId || interfaceId == type(ICloneableV2).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     function _beforeInitialize(bytes memory data) internal virtual {}
@@ -165,12 +173,14 @@ abstract contract OrderBookFlashOrderTaker is IOrderBookV3OrderTaker, Reentrancy
     }
 
     /// @inheritdoc IOrderBookV3OrderTaker
-    function onTakeOrders(
-        address inputToken,
-        address outputToken,
-        uint256 inputAmountSent,
-        uint256 totalOutputAmount,
-        bytes calldata takeOrdersData
-    ) external override virtual onlyNotInitializing {
+    function onTakeOrders(address, address, uint256, uint256, bytes calldata)
+        public
+        virtual
+        override
+        onlyNotInitializing
+    {
+        if (msg.sender != address(sOrderBook)) {
+            revert BadLender(msg.sender);
+        }
     }
 }

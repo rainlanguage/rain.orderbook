@@ -20,10 +20,6 @@ import "../interface/unstable/IOrderBookV3.sol";
 import "rain.factory/src/interface/ICloneableV2.sol";
 import "./OrderBookArbCommon.sol";
 
-/// Thrown when the lender is not the trusted `OrderBook`.
-/// @param badLender The untrusted lender calling `onFlashLoan`.
-error BadLender(address badLender);
-
 /// Thrown when the initiator is not `ZeroExOrderBookFlashBorrower`.
 /// @param badInitiator The untrusted initiator of the flash loan.
 error BadInitiator(address badInitiator);

@@ -146,6 +146,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             assumeNotPrecompile(actions[i].token);
             // Avoid errors from attempting to etch the orderbook.
             vm.assume(actions[i].token != address(iOrderbook));
+            // Avoid eching the vm.
+            vm.assume(actions[i].token != address(this));
         }
         Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {
