@@ -330,6 +330,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// target amount if the vault does not have the funds available to cover
     /// the target amount. For example an active order might move tokens before
     /// the withdraw completes.
+
     event Withdraw(address sender, address token, uint256 vaultId, uint256 targetAmount, uint256 amount);
 
     /// An order has been added to the orderbook. The order is permanently and
@@ -455,7 +456,11 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// result in fewer tokens withdrawn if the vault balance is lower than the
     /// target amount. MAY NOT be zero, the order book MUST revert with
     /// `ZeroWithdrawTargetAmount` if the amount is zero.
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external;
+    /// @param data Optional arbitrary data that will cause
+    /// `IOrderBookV3TokenWithdrawer.onWithdrawal` to be called on `msg.sender`
+    /// if the data has non-zero length. The data is forwarded to the
+    /// `onWithdrawal` call as-is.
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount, bytes memory data) external;
 
     /// Given an order config, deploys the expression and builds the full `Order`
     /// for the config, then records it as an active order. Delegated adding an

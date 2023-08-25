@@ -7,6 +7,7 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 
 import "../interface/ierc3156/IERC3156FlashBorrower.sol";
 import "../interface/ierc3156/IERC3156FlashLender.sol";
+import "../interface/unstable/IOrderBookV3TokenWithdrawer.sol";
 
 /// Thrown when `flashLoan` token is zero address.
 error ZeroToken();
@@ -97,11 +98,12 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
     /// @param token The token being sent or for the debt being paid.
     /// @param receiver The receiver of the token or holder of the debt.
     /// @param sendAmount The amount to send or repay.
-    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount) internal {
+    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount, bytes memory data) internal {
         // If this token transfer matches the active debt then prioritise
         // reducing debt over sending tokens.
+        uint256 debtReduction = 0;
         if (token == _sToken && receiver == address(_sReceiver)) {
-            uint256 debtReduction = sendAmount.min(_sAmountUnpaid);
+            debtReduction = sendAmount.min(_sAmountUnpaid);
             sendAmount -= debtReduction;
 
             // Even if this completely zeros the amount the debt is considered
@@ -111,6 +113,9 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
 
         if (sendAmount > 0) {
             IERC20(token).safeTransfer(receiver, sendAmount);
+        }
+        if (data.length > 0) {
+            IOrderBookV3TokenWithdrawer(receiver).onWithdrawal(token, sendAmount, debtReduction, data);
         }
     }
 

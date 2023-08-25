@@ -237,7 +237,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external nonReentrant {
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount, bytes memory data) external nonReentrant {
         if (targetAmount == 0) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
@@ -251,6 +251,16 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             _decreaseFlashDebtThenSendToken(token, msg.sender, withdrawAmount);
+        }
+    }
+
+    function _tokenWithdrawal(address token, address receiver, uint256 amount) internal {
+        if (amount > 0) {
+            // The overflow check here is redundant with .min above, so
+            // technically this is overly conservative but we REALLY don't want
+            // withdrawals to exceed vault balances.
+            emit Withdraw(address(this), token, 0, amount, amount);
+            _decreaseFlashDebtThenSendToken(token, receiver, amount);
         }
     }
 
@@ -381,13 +391,14 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             revert MinimumInput(config.minimumInput, totalInput);
         }
 
+        // Prioritise paying down any active flash loans before sending any
+        // tokens to `msg.sender`.
+        _tokenWithdrawal(config.input, msg.sender, totalInput);
+
         // We already updated vault balances before we took tokens from
         // `msg.sender` which is usually NOT the correct order of operations for
         // depositing to a vault. We rely on reentrancy guards to make this safe.
         IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalOutput);
-        // Prioritise paying down any active flash loans before sending any
-        // tokens to `msg.sender`.
-        _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
     }
 
     /// @inheritdoc IOrderBookV3
