@@ -400,10 +400,12 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             );
         }
 
-        // We already updated vault balances before we took tokens from
-        // `msg.sender` which is usually NOT the correct order of operations for
-        // depositing to a vault. We rely on reentrancy guards to make this safe.
-        IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalOutput);
+        if (totalOutput > 0) {
+            // We already updated vault balances before we took tokens from
+            // `msg.sender` which is usually NOT the correct order of operations for
+            // depositing to a vault. We rely on reentrancy guards to make this safe.
+            IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalOutput);
+        }
     }
 
     /// @inheritdoc IOrderBookV3
