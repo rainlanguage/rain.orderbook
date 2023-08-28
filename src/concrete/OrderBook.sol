@@ -394,7 +394,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
         uint256 inputAmountSent = _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
-        if (inputAmountSent > 0 && config.data.length > 0) {
+        if (config.data.length > 0) {
             IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
                 config.input, config.output, inputAmountSent, totalOutput, config.data
             );
