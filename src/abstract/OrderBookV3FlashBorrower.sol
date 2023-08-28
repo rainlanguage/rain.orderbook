@@ -18,9 +18,9 @@ import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "rain.factory/src/interface/ICloneableV2.sol";
-import "./OrderBookArbCommon.sol";
+import "./OrderBookV3ArbCommon.sol";
 
-/// Thrown when the initiator is not `ZeroExOrderBookFlashBorrower`.
+/// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
 error BadInitiator(address badInitiator);
 
@@ -30,12 +30,12 @@ error FlashLoanFailed();
 /// Thrown when the swap fails.
 error SwapFailed();
 
-/// Config for `OrderBookFlashBorrower` to initialize.
+/// Config for `OrderBookV3FlashBorrower` to initialize.
 /// @param orderBook The `IOrderBookV3` contract to arb against.
 /// @param evaluableConfig The config to eval for access control to arb.
 /// @param implementationData Arbitrary bytes to pass to the implementation in
 /// the `beforeInitialize` hook.
-struct OrderBookFlashBorrowerConfigV2 {
+struct OrderBookV3FlashBorrowerConfigV2 {
     address orderBook;
     EvaluableConfigV2 evaluableConfig;
     bytes implementationData;
@@ -49,7 +49,7 @@ uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no outputs.
 uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-/// @title OrderBookFlashBorrower
+/// @title OrderBookV3FlashBorrower
 /// @notice Abstract contract that liq-source specifialized contracts can inherit
 /// to provide flash loan based arbitrage against external liquidity sources to
 /// fill orderbook orders.
@@ -79,7 +79,7 @@ uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookFlashBorrower is
+abstract contract OrderBookV3FlashBorrower is
     IERC3156FlashBorrower,
     ICloneableV2,
     ReentrancyGuard,
@@ -93,7 +93,7 @@ abstract contract OrderBookFlashBorrower is
     /// Emitted when the contract is initialized. Contains the
     /// OrderBookFlashBorrowerConfig struct to ensure the type appears in the
     /// ABI.
-    event Initialize(address sender, OrderBookFlashBorrowerConfigV2 config);
+    event Initialize(address sender, OrderBookV3FlashBorrowerConfigV2 config);
 
     /// `OrderBook` contract to lend and arb against.
     IOrderBookV3 public sOrderBook;
@@ -127,13 +127,13 @@ abstract contract OrderBookFlashBorrower is
 
     /// Type hints for the input encoding for the `initialize` function.
     /// Reverts ALWAYS with `InitializeSignatureFn` as per ICloneableV2.
-    function initialize(OrderBookFlashBorrowerConfigV2 calldata) external pure returns (bytes32) {
+    function initialize(OrderBookV3FlashBorrowerConfigV2 calldata) external pure returns (bytes32) {
         revert InitializeSignatureFn();
     }
 
     /// @inheritdoc ICloneableV2
     function initialize(bytes memory data) external initializer nonReentrant returns (bytes32) {
-        (OrderBookFlashBorrowerConfigV2 memory config) = abi.decode(data, (OrderBookFlashBorrowerConfigV2));
+        (OrderBookV3FlashBorrowerConfigV2 memory config) = abi.decode(data, (OrderBookV3FlashBorrowerConfigV2));
 
         // Dispatch the hook before any external calls are made.
         _beforeInitialize(config.implementationData);
@@ -248,6 +248,7 @@ abstract contract OrderBookFlashBorrower is
     /// uses this data as a literal encoded external call.
     function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput, bytes calldata exchangeData)
         external
+        payable
         nonReentrant
         onlyNotInitializing
     {

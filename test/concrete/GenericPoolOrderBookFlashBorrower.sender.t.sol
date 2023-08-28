@@ -79,7 +79,7 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         console2.log("GenericPoolOrderBookFlashBorrowerTest meta hash:");
         console2.logBytes32(keccak256(meta));
         implementation = address(
-            new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig(
+            new GenericPoolOrderBookV3FlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig(
             deployer,
             meta
             ))
@@ -93,10 +93,10 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         Token input_ = new Token();
         Token output_ = new Token();
 
-        GenericPoolOrderBookFlashBorrower arb_ = GenericPoolOrderBookFlashBorrower(Clones.clone(implementation));
+        GenericPoolOrderBookV3FlashBorrower arb_ = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
         arb_.initialize(
             abi.encode(
-                OrderBookFlashBorrowerConfigV2(
+                OrderBookV3FlashBorrowerConfigV2(
                     address(ob_), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
                 )
             )
@@ -119,10 +119,10 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         Token input = new Token();
         Token output = new Token();
 
-        GenericPoolOrderBookFlashBorrower arb = GenericPoolOrderBookFlashBorrower(Clones.clone(implementation));
+        GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
         arb.initialize(
             abi.encode(
-                OrderBookFlashBorrowerConfigV2(
+                OrderBookV3FlashBorrowerConfigV2(
                     address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
                 )
             )

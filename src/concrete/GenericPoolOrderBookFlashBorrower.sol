@@ -4,15 +4,15 @@ pragma solidity =0.8.19;
 import "src/interface/ierc3156/IERC3156FlashLender.sol";
 import "src/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-import "src/abstract/OrderBookFlashBorrower.sol";
+import "src/abstract/OrderBookV3FlashBorrower.sol";
 
 /// @dev Metadata hash for `DeployerDiscoverableMetaV1`.
 /// - ABI for GenericPoolOrderBookFlashBorrower
 /// - Interpreter caller metadata V1 for GenericPoolOrderBookFlashBorrower
 bytes32 constant CALLER_META_HASH = bytes32(0x3d6909481820fc692906b0477e8f98248e84973bc8b8d5ac935132857d4f4125);
 
-/// @title GenericPoolOrderBookFlashBorrower
-/// Implements the OrderBookFlashBorrower interface for a external liquidity
+/// @title GenericPoolOrderBookV3FlashBorrower
+/// Implements the OrderBookV3FlashBorrower interface for a external liquidity
 /// source that behaves vaguely like a standard AMM. The `exchangeData` from
 /// `arb` is decoded into a spender, pool and callData. The `callData` is
 /// literally the encoded function call to the pool. This allows the `arb`
@@ -21,15 +21,15 @@ bytes32 constant CALLER_META_HASH = bytes32(0x3d6909481820fc692906b0477e8f98248e
 /// The `spender` is the address that will be approved to spend the input token
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
-contract GenericPoolOrderBookFlashBorrower is OrderBookFlashBorrower {
+contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
     constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
-        OrderBookFlashBorrower(CALLER_META_HASH, config)
+        OrderBookV3FlashBorrower(CALLER_META_HASH, config)
     {}
 
-    /// @inheritdoc OrderBookFlashBorrower
+    /// @inheritdoc OrderBookV3FlashBorrower
     function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual override {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(exchangeData, (address, address, bytes));

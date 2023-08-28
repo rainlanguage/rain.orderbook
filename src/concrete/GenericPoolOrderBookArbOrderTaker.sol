@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "../abstract/OrderBookArbOrderTaker.sol";
+import "../abstract/OrderBookV3ArbOrderTaker.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
 bytes32 constant CALLER_META_HASH = bytes32(0x00);
 
-contract GenericPoolOrderBookArbOrderTaker is OrderBookArbOrderTaker {
+contract GenericPoolOrderBookArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
     constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
-        OrderBookArbOrderTaker(CALLER_META_HASH, config)
+        OrderBookV3ArbOrderTaker(CALLER_META_HASH, config)
     {}
 
-    /// @inheritdoc OrderBookArbOrderTaker
+    /// @inheritdoc OrderBookV3ArbOrderTaker
     function onTakeOrders(
         address inputToken,
         address outputToken,
