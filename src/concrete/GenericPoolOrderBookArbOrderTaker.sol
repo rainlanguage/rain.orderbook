@@ -23,7 +23,7 @@ contract GenericPoolOrderBookArbOrderTaker is OrderBookArbOrderTaker {
         uint256 inputAmountSent,
         uint256 totalOutputAmount,
         bytes calldata takeOrdersData
-    ) public virtual override onlyNotInitializing {
+    ) public virtual override {
         super.onTakeOrders(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(takeOrdersData, (address, address, bytes));
