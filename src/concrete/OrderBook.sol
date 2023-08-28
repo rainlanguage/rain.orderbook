@@ -23,6 +23,8 @@ import "../interface/unstable/IOrderBookV3OrderTaker.sol";
 import "../lib/LibOrder.sol";
 import "../abstract/OrderBookV3FlashLender.sol";
 
+import "forge-std/console2.sol";
+
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
 error ReentrancyGuardReentrantCall();
@@ -359,16 +361,23 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                     emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                 } else {
                     // Don't exceed the maximum total input.
-                    uint256 input =
-                        remainingInput > orderIOCalculation.outputMax ? orderIOCalculation.outputMax : remainingInput;
-                    // Always round IO calculations up.
-                    uint256 output = input.fixedPointMul(orderIOCalculation.IORatio, Math.Rounding.Up);
+                    // Round down taker inputs.
+                    uint256 takerInput =
+                        (remainingInput > orderIOCalculation.outputMax ? orderIOCalculation.outputMax : remainingInput).scaleN(
+                            order.validOutputs[takeOrder.outputIOIndex].decimals,
+                            FLAG_SATURATE
+                        );
+                    // Always round IO calculations up so the taker pays more.
+                    uint256 takerOutput = takerInput.fixedPointMul(orderIOCalculation.IORatio, Math.Rounding.Up).scaleN(
+                        order.validInputs[takeOrder.inputIOIndex].decimals,
+                        FLAG_ROUND_UP
+                    );
 
-                    remainingInput -= input;
-                    totalOutput += output;
+                    remainingInput -= takerInput;
+                    totalOutput += takerOutput;
 
-                    recordVaultIO(order, output, input, orderIOCalculation);
-                    emit TakeOrder(msg.sender, takeOrder, input, output);
+                    recordVaultIO(order, takerOutput, takerInput, orderIOCalculation);
+                    emit TakeOrder(msg.sender, takeOrder, takerInput, takerOutput);
                 }
             }
 
@@ -553,30 +562,30 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             uint256 orderOutputMax = calculateOrderStack[calculateOrderStack.length - 2];
             uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
 
-            // Rescale order output max from 18 FP to whatever decimals the
-            // output token is using.
-            // Always round order output down.
-            orderOutputMax = orderOutputMax.scaleN(
-                order.validOutputs[outputIOIndex].decimals,
-                // Saturate the order max output because if we were willing to
-                // give more than this on a scale up, we should be comfortable
-                // giving less.
-                // Round DOWN to be conservative and give away less if there's
-                // any loss of precision during scale down.
-                FLAG_SATURATE
-            );
-            // Rescale the ratio from 18 FP according to the difference in
-            // decimals between input and output.
-            // Always round IO ratio up.
-            orderIORatio = orderIORatio.scaleRatio(
-                order.validOutputs[outputIOIndex].decimals,
-                order.validInputs[inputIOIndex].decimals,
-                // DO NOT saturate ratios because this would reduce the effective
-                // IO ratio, which would mean that saturating would make the deal
-                // worse for the order. Instead we overflow, and round up to get
-                // the best possible deal.
-                FLAG_ROUND_UP
-            );
+            // // Rescale order output max from 18 FP to whatever decimals the
+            // // output token is using.
+            // // Always round order output down.
+            // orderOutputMax = orderOutputMax.scaleN(
+            //     order.validOutputs[outputIOIndex].decimals,
+            //     // Saturate the order max output because if we were willing to
+            //     // give more than this on a scale up, we should be comfortable
+            //     // giving less.
+            //     // Round DOWN to be conservative and give away less if there's
+            //     // any loss of precision during scale down.
+            //     FLAG_SATURATE
+            // );
+            // // Rescale the ratio from 18 FP according to the difference in
+            // // decimals between input and output.
+            // // Always round IO ratio up.
+            // orderIORatio = orderIORatio.scaleRatio(
+            //     order.validOutputs[outputIOIndex].decimals,
+            //     order.validInputs[inputIOIndex].decimals,
+            //     // DO NOT saturate ratios because this would reduce the effective
+            //     // IO ratio, which would mean that saturating would make the deal
+            //     // worse for the order. Instead we overflow, and round up to get
+            //     // the best possible deal.
+            //     FLAG_ROUND_UP
+            // );
 
             // The order owner can't send more than the smaller of their vault
             // balance or their per-order limit.

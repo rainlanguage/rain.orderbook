@@ -65,6 +65,6 @@ contract OrderBookTakeOrderTest is OrderBookExternalRealTest {
         );
         (uint256 totalInput, uint256 totalOutput) = iOrderbook.takeOrders(takeOrdersConfig);
         assertEq(totalInput, 157116365680491867129910);
-        assertEq(totalOutput, 50120121);
+        assertEq(totalOutput, 50000000);
     }
 }
