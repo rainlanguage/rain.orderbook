@@ -19,15 +19,16 @@ import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../interface/unstable/IOrderBookV3OrderTaker.sol";
+import "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
 
-import "./OrderBookArbCommon.sol";
+import "./OrderBookV3ArbCommon.sol";
 
-/// Config for `OrderBookFlashOrderTakerConfigV1` to initialize.
+/// Config for `OrderBookV3ArbOrderTakerConfigV1` to initialize.
 /// @param orderBook The `IOrderBookV3` to use for `takeOrders`.
 /// @param evaluableConfig The config to eval for access control to arb.
 /// @param implementationData Arbitrary bytes to pass to the implementation in
 /// the `beforeInitialize` hook.
-struct OrderBookFlashOrderTakerConfigV1 {
+struct OrderBookV3ArbOrderTakerConfigV1 {
     address orderBook;
     EvaluableConfigV2 evaluableConfig;
     bytes implementationData;
@@ -41,8 +42,8 @@ uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no return values.
 uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-abstract contract OrderBookArbOrderTaker is
-    IOrderBookV3OrderTaker,
+abstract contract OrderBookV3ArbOrderTaker is
+    IOrderBookV3ArbOrderTaker,
     ReentrancyGuard,
     Initializable,
     ICloneableV2,
@@ -51,7 +52,7 @@ abstract contract OrderBookArbOrderTaker is
 {
     using SafeERC20 for IERC20;
 
-    event Initialize(address sender, OrderBookFlashOrderTakerConfigV1 config);
+    event Initialize(address sender, OrderBookV3ArbOrderTakerConfigV1 config);
 
     IOrderBookV3 public sOrderBook;
     EncodedDispatch public sI9rDispatch;
@@ -80,13 +81,13 @@ abstract contract OrderBookArbOrderTaker is
         _;
     }
 
-    function initialize(OrderBookFlashOrderTakerConfigV1 calldata) external pure returns (bytes32) {
+    function initialize(OrderBookV3ArbOrderTakerConfigV1 calldata) external pure returns (bytes32) {
         revert InitializeSignatureFn();
     }
 
     /// @inheritdoc ICloneableV2
     function initialize(bytes memory data) external initializer nonReentrant returns (bytes32) {
-        OrderBookFlashOrderTakerConfigV1 memory config = abi.decode(data, (OrderBookFlashOrderTakerConfigV1));
+        OrderBookV3ArbOrderTakerConfigV1 memory config = abi.decode(data, (OrderBookV3ArbOrderTakerConfigV1));
 
         // Dispatch the hook before any external calls are made.
         _beforeInitialize(config.implementationData);
@@ -119,8 +120,10 @@ abstract contract OrderBookArbOrderTaker is
         return ICLONEABLE_V2_SUCCESS;
     }
 
+    /// @inheritdoc IOrderBookV3ArbOrderTaker
     function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput)
         external
+        payable
         nonReentrant
         onlyNotInitializing
     {

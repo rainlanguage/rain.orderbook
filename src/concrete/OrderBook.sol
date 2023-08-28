@@ -21,7 +21,7 @@ import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 import "../interface/unstable/IOrderBookV3.sol";
 import "../interface/unstable/IOrderBookV3OrderTaker.sol";
 import "../lib/LibOrder.sol";
-import "../abstract/OrderBookFlashLender.sol";
+import "../abstract/OrderBookV3FlashLender.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -159,7 +159,7 @@ struct OrderIOCalculation {
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLender, DeployerDiscoverableMetaV2 {
+contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3FlashLender, DeployerDiscoverableMetaV2 {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for Order;

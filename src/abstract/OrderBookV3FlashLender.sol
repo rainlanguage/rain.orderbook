@@ -33,13 +33,13 @@ error ActiveDebt(address receiver, address token, uint256 amount);
 /// to connect external liquidity to live orders via arbitrage.
 uint256 constant FLASH_FEE = 0;
 
-/// @title OrderBookFlashLender
+/// @title OrderBookV3FlashLender
 /// @notice Implements `IERC3156FlashLender` for `OrderBook`. Based on the
 /// reference implementation by Alberto Cuesta Cañada found at
 /// https://eips.ethereum.org/EIPS/eip-3156
 /// Several features found in the reference implementation are simplified or
-/// hardcoded for `Orderbook`.
-abstract contract OrderBookFlashLender is IERC3156FlashLender {
+/// hardcoded for `OrderBookV3`.
+abstract contract OrderBookV3FlashLender is IERC3156FlashLender {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
