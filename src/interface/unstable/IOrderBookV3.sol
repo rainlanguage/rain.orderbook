@@ -78,13 +78,18 @@ struct Order {
 /// hit. Takers are expected to prioritise orders that appear to be offering
 /// better deals i.e. lower IO ratios. This prioritisation and sorting MUST
 /// happen offchain, e.g. via. some simulator.
-struct TakeOrdersConfig {
+/// @param data If nonzero length, triggers `onTakeOrders` on the caller of
+/// `takeOrders` with this data. This allows the caller to perform arbitrary
+/// onchain actions between receiving their input tokens, before having to send
+/// their output tokens.
+struct TakeOrdersConfigV2 {
     address output;
     address input;
     uint256 minimumInput;
     uint256 maximumInput;
     uint256 maximumIORatio;
     TakeOrderConfig[] orders;
+    bytes data;
 }
 
 /// Config for an individual take order from the overall list of orders in a
@@ -536,7 +541,9 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// vaults processed.
     /// @return totalOutput Total tokens taken from `msg.sender` and distributed
     /// between vaults.
-    function takeOrders(TakeOrdersConfig calldata config) external returns (uint256 totalInput, uint256 totalOutput);
+    function takeOrders(TakeOrdersConfigV2 calldata config)
+        external
+        returns (uint256 totalInput, uint256 totalOutput);
 
     /// Allows `msg.sender` to match two live orders placed earlier by
     /// non-interactive parties and claim a bounty in the process. The clearer is

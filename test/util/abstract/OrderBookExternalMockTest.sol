@@ -47,7 +47,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
             abi.encode(iInterpreter, iStore, address(0))
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        console2.log("meta hash:");
+        console2.log("OrderBookExternalMockTest meta hash:");
         console2.logBytes(abi.encodePacked(keccak256(meta)));
         iOrderbook =
             IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV2ConstructionConfig(address(iDeployer), meta))));

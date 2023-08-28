@@ -11,7 +11,7 @@ contract DeployOrderBook is Script {
         // hardcoded from CI https://github.com/rainprotocol/rain-protocol/actions/runs/5365826502/jobs/9934721206
         address i9rDeployer = 0x12CC9A83C200354bc35e19e6ad18a0F444aB5c86;
 
-        console2.log("meta hash:");
+        console2.log("DeployOrderBook meta hash:");
         console2.logBytes32(keccak256(meta));
 
         vm.startBroadcast(deployerPrivateKey);

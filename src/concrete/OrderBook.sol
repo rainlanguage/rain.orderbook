@@ -19,6 +19,7 @@ import {
 import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
+import "../interface/unstable/IOrderBookV3OrderTaker.sol";
 import "../lib/LibOrder.sol";
 import "../abstract/OrderBookFlashLender.sol";
 
@@ -116,7 +117,7 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xd55ed91accdfd893ecc4028057ab2894d6eb88b88f59a27f0b73eaef92d20430);
+bytes32 constant CALLER_META_HASH = bytes32(0xf0c79e4006636a71899066ac45a478da4eafaa3117769678b6f18d96138bc156);
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
@@ -321,7 +322,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
     }
 
     /// @inheritdoc IOrderBookV3
-    function takeOrders(TakeOrdersConfig calldata config)
+    function takeOrders(TakeOrdersConfigV2 calldata config)
         external
         nonReentrant
         returns (uint256 totalInput, uint256 totalOutput)
@@ -381,13 +382,28 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookFlashLe
             revert MinimumInput(config.minimumInput, totalInput);
         }
 
+        // Prioritise paying down any active flash loans before sending any
+        // tokens to `msg.sender`. We send the tokens to `msg.sender` first
+        // adopting a similar pattern to Uniswap flash swaps. We call the caller
+        // before attempting to pull tokens from them in order to facilitate
+        // better integrations with external liquidity sources. This could be
+        // done by the caller using flash loans but this callback:
+        // - may be simpler for the caller to implement
+        // - allows the caller to call `takeOrders` _before_ placing external
+        //   trades, which is important if the order logic itself is dependent on
+        //   external data (e.g. prices) that could be modified by the caller's
+        //   trades.
+        uint256 inputAmountSent = _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
+        if (config.data.length > 0) {
+            IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
+                config.input, config.output, inputAmountSent, totalOutput, config.data
+            );
+        }
+
         // We already updated vault balances before we took tokens from
         // `msg.sender` which is usually NOT the correct order of operations for
         // depositing to a vault. We rely on reentrancy guards to make this safe.
         IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalOutput);
-        // Prioritise paying down any active flash loans before sending any
-        // tokens to `msg.sender`.
-        _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
     }
 
     /// @inheritdoc IOrderBookV3

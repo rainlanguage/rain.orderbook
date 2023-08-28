@@ -28,7 +28,7 @@ contract MockOrderBook is IOrderBookV3 {
         return true;
     }
 
-    function takeOrders(TakeOrdersConfig calldata) external pure returns (uint256 totalInput, uint256 totalOutput) {
+    function takeOrders(TakeOrdersConfigV2 calldata) external pure returns (uint256 totalInput, uint256 totalOutput) {
         return (0, 0);
     }
 
@@ -76,6 +76,7 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
             abi.encode(address(0), address(0), address(0))
         );
         bytes memory meta = vm.readFileBinary(GENERIC_POOL_ORDER_BOOK_FLASH_BORROWER_META_PATH);
+        console2.log("GenericPoolOrderBookFlashBorrowerTest meta hash:");
         console2.logBytes32(keccak256(meta));
         implementation = address(
             new GenericPoolOrderBookFlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig(
@@ -102,8 +103,8 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         );
 
         arb_.arb(
-            TakeOrdersConfig(
-                address(output_), address(input_), 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0)
+            TakeOrdersConfigV2(
+                address(output_), address(input_), 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), ""
             ),
             0,
             abi.encode(address(proxy_), address(proxy_), "")
@@ -131,8 +132,8 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         arb.arb(
-            TakeOrdersConfig(
-                address(output), address(input), 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0)
+            TakeOrdersConfigV2(
+                address(output), address(input), 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), ""
             ),
             minimumOutput,
             abi.encode(address(proxy), address(proxy), "")
