@@ -151,13 +151,19 @@ bytes32 constant CALLER_META_HASH = bytes32(0xf0c79e4006636a71899066ac45a478da4e
 /// @param kvs KVs returned from calculate order entrypoint to pass to the store
 /// before calling handle IO entrypoint.
 struct OrderIOCalculation {
-    uint256 outputMax;
+    Order order;
+    uint256 outputIOIndex;
+    Output18Amount outputMax;
     //solhint-disable-next-line var-name-mixedcase
     uint256 IORatio;
     uint256[][] context;
     StateNamespace namespace;
     uint256[] kvs;
 }
+
+type Output18Amount is uint256;
+
+type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
@@ -327,28 +333,33 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     function takeOrders(TakeOrdersConfigV2 calldata config)
         external
         nonReentrant
-        returns (uint256 totalInput, uint256 totalOutput)
+        returns (uint256 totalTakerInput, uint256 totalTakerOutput)
     {
         uint256 i = 0;
-        TakeOrderConfig memory takeOrder;
+        TakeOrderConfig memory takeOrderConfig;
         Order memory order;
-        uint256 remainingInput = config.maximumInput;
-        while (i < config.orders.length && remainingInput > 0) {
-            takeOrder = config.orders[i];
-            order = takeOrder.order;
+
+        uint256 remainingTakerInput = config.maximumInput;
+        while (i < config.orders.length && remainingTakerInput > 0) {
+            takeOrderConfig = config.orders[i];
+            order = takeOrderConfig.order;
             bytes32 orderHash = order.hash();
             if (sOrders[orderHash] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
-                if (order.validInputs[takeOrder.inputIOIndex].token != config.output) {
-                    revert TokenMismatch(order.validInputs[takeOrder.inputIOIndex].token, config.output);
+                if (order.validInputs[takeOrderConfig.inputIOIndex].token != config.output) {
+                    revert TokenMismatch(order.validInputs[takeOrderConfig.inputIOIndex].token, config.output);
                 }
-                if (order.validOutputs[takeOrder.outputIOIndex].token != config.input) {
-                    revert TokenMismatch(order.validOutputs[takeOrder.outputIOIndex].token, config.input);
+                if (order.validOutputs[takeOrderConfig.outputIOIndex].token != config.input) {
+                    revert TokenMismatch(order.validOutputs[takeOrderConfig.outputIOIndex].token, config.input);
                 }
 
                 OrderIOCalculation memory orderIOCalculation = calculateOrderIO(
-                    order, takeOrder.inputIOIndex, takeOrder.outputIOIndex, msg.sender, takeOrder.signedContext
+                    order,
+                    takeOrderConfig.inputIOIndex,
+                    takeOrderConfig.outputIOIndex,
+                    msg.sender,
+                    takeOrderConfig.signedContext
                 );
 
                 // Skip orders that are too expensive rather than revert as we have
@@ -357,27 +368,45 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 // be valid so we want to take advantage of those if possible.
                 if (orderIOCalculation.IORatio > config.maximumIORatio) {
                     emit OrderExceedsMaxRatio(msg.sender, order.owner, orderHash);
-                } else if (orderIOCalculation.outputMax == 0) {
+                } else if (Output18Amount.unwrap(orderIOCalculation.outputMax) == 0) {
                     emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                 } else {
-                    // Don't exceed the maximum total input.
-                    // Round down taker inputs.
-                    uint256 takerInput =
-                        (remainingInput > orderIOCalculation.outputMax ? orderIOCalculation.outputMax : remainingInput).scaleN(
-                            order.validOutputs[takeOrder.outputIOIndex].decimals,
-                            FLAG_SATURATE
-                        );
-                    // Always round IO calculations up so the taker pays more.
-                    uint256 takerOutput = takerInput.fixedPointMul(orderIOCalculation.IORatio, Math.Rounding.Up).scaleN(
-                        order.validInputs[takeOrder.inputIOIndex].decimals,
-                        FLAG_ROUND_UP
-                    );
+                    uint8 takerInputDecimals = order.validOutputs[takeOrderConfig.outputIOIndex].decimals;
+                    // Taker is just "market buying" the order output max.
+                    Input18Amount takerInput18 = Input18Amount.wrap(Output18Amount.unwrap(orderIOCalculation.outputMax));
+                    // Cap the taker input at the remaining input before
+                    // calculating the taker output. Keep everything in 18
+                    // decimals at this point, which requires rescaling the
+                    // remaining taker input to match.
+                    {
+                        // Round down and saturate when converting remaining taker input to 18 decimals.
+                        Input18Amount remainingTakerInput18 =
+                            Input18Amount.wrap(remainingTakerInput.scale18(takerInputDecimals, FLAG_SATURATE));
+                        if (Input18Amount.unwrap(takerInput18) > Input18Amount.unwrap(remainingTakerInput18)) {
+                            takerInput18 = remainingTakerInput18;
+                        }
+                    }
 
-                    remainingInput -= takerInput;
-                    totalOutput += takerOutput;
+                    uint256 takerOutput;
+                    {
+                        // Always round IO calculations up so the taker pays more.
+                        Output18Amount takerOutput18 = Output18Amount.wrap(
+                            Input18Amount.unwrap(takerInput18).fixedPointMul(
+                                orderIOCalculation.IORatio, Math.Rounding.Up
+                            )
+                        );
+                        takerOutput = Output18Amount.unwrap(takerOutput18).scaleN(
+                            order.validInputs[takeOrderConfig.inputIOIndex].decimals, FLAG_ROUND_UP
+                        );
+                    }
+
+                    uint256 takerInput = Input18Amount.unwrap(takerInput18).scaleN(takerInputDecimals, FLAG_SATURATE);
+
+                    remainingTakerInput -= takerInput;
+                    totalTakerOutput += takerOutput;
 
                     recordVaultIO(order, takerOutput, takerInput, orderIOCalculation);
-                    emit TakeOrder(msg.sender, takeOrder, takerInput, takerOutput);
+                    emit TakeOrder(msg.sender, takeOrderConfig, takerInput, takerOutput);
                 }
             }
 
@@ -385,10 +414,10 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 i++;
             }
         }
-        totalInput = config.maximumInput - remainingInput;
+        totalTakerInput = config.maximumInput - remainingTakerInput;
 
-        if (totalInput < config.minimumInput) {
-            revert MinimumInput(config.minimumInput, totalInput);
+        if (totalTakerInput < config.minimumInput) {
+            revert MinimumInput(config.minimumInput, totalTakerInput);
         }
 
         // Prioritise paying down any active flash loans before sending any
@@ -402,18 +431,18 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         //   trades, which is important if the order logic itself is dependent on
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
-        uint256 inputAmountSent = _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalInput);
+        uint256 inputAmountSent = _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalTakerInput);
         if (config.data.length > 0) {
             IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
-                config.input, config.output, inputAmountSent, totalOutput, config.data
+                config.input, config.output, inputAmountSent, totalTakerOutput, config.data
             );
         }
 
-        if (totalOutput > 0) {
+        if (totalTakerOutput > 0) {
             // We already updated vault balances before we took tokens from
             // `msg.sender` which is usually NOT the correct order of operations for
             // depositing to a vault. We rely on reentrancy guards to make this safe.
-            IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalOutput);
+            IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalTakerOutput);
         }
     }
 
@@ -470,28 +499,28 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         OrderIOCalculation memory bobOrderIOCalculation_ = calculateOrderIO(
             bob, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, alice.owner, aliceSignedContext
         );
-        ClearStateChange memory clearStateChange_ =
+        ClearStateChange memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation_, bobOrderIOCalculation_);
 
-        recordVaultIO(alice, clearStateChange_.aliceInput, clearStateChange_.aliceOutput, aliceOrderIOCalculation_);
-        recordVaultIO(bob, clearStateChange_.bobInput, clearStateChange_.bobOutput, bobOrderIOCalculation_);
+        recordVaultIO(alice, clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation_);
+        recordVaultIO(bob, clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation_);
 
         {
             // At least one of these will overflow due to negative bounties if
             // there is a spread between the orders.
-            uint256 aliceBounty_ = clearStateChange_.aliceOutput - clearStateChange_.bobInput;
-            uint256 bobBounty_ = clearStateChange_.bobOutput - clearStateChange_.aliceInput;
-            if (aliceBounty_ > 0) {
+            uint256 aliceBounty = clearStateChange.aliceOutput - clearStateChange.bobInput;
+            uint256 bobBounty = clearStateChange.bobOutput - clearStateChange.aliceInput;
+            if (aliceBounty > 0) {
                 sVaultBalances[msg.sender][alice.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
-                    .aliceBountyVaultId] += aliceBounty_;
+                    .aliceBountyVaultId] += aliceBounty;
             }
-            if (bobBounty_ > 0) {
+            if (bobBounty > 0) {
                 sVaultBalances[msg.sender][bob.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
-                    .bobBountyVaultId] += bobBounty_;
+                    .bobBountyVaultId] += bobBounty;
             }
         }
 
-        emit AfterClear(msg.sender, clearStateChange_);
+        emit AfterClear(msg.sender, clearStateChange);
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both
@@ -559,45 +588,36 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 .interpreter
                 .eval(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context);
 
-            uint256 orderOutputMax = calculateOrderStack[calculateOrderStack.length - 2];
+            Output18Amount orderOutputMax = Output18Amount.wrap(calculateOrderStack[calculateOrderStack.length - 2]);
             uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
-
-            // // Rescale order output max from 18 FP to whatever decimals the
-            // // output token is using.
-            // // Always round order output down.
-            // orderOutputMax = orderOutputMax.scaleN(
-            //     order.validOutputs[outputIOIndex].decimals,
-            //     // Saturate the order max output because if we were willing to
-            //     // give more than this on a scale up, we should be comfortable
-            //     // giving less.
-            //     // Round DOWN to be conservative and give away less if there's
-            //     // any loss of precision during scale down.
-            //     FLAG_SATURATE
-            // );
-            // // Rescale the ratio from 18 FP according to the difference in
-            // // decimals between input and output.
-            // // Always round IO ratio up.
-            // orderIORatio = orderIORatio.scaleRatio(
-            //     order.validOutputs[outputIOIndex].decimals,
-            //     order.validInputs[inputIOIndex].decimals,
-            //     // DO NOT saturate ratios because this would reduce the effective
-            //     // IO ratio, which would mean that saturating would make the deal
-            //     // worse for the order. Instead we overflow, and round up to get
-            //     // the best possible deal.
-            //     FLAG_ROUND_UP
-            // );
 
             // The order owner can't send more than the smaller of their vault
             // balance or their per-order limit.
-            uint256 ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
-                .validOutputs[outputIOIndex].vaultId];
-            orderOutputMax = orderOutputMax > ownerVaultBalance ? ownerVaultBalance : orderOutputMax;
+            // uint256 ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
+            //     .validOutputs[outputIOIndex].vaultId];
+            // We round down vault balances and don't saturate because we're
+            // dealing with real token amounts here. If rescaling would somehow
+            // cause an overflow in a real token amount, that's basically an
+            // unsupported token, it implies a very small decimals value with
+            // very large token total supply. E.g. 0 decimals with a total supply
+            // around 10^60. That's beyond what even Uniswap handles, as they use
+            // uint112 values internally for tokens.
+            // It's possible that if a token has large decimals, e.g. much more
+            // than 18, that the owner vault balance could be rounded down enough
+            // to cause significant non-dust amounts to be untradeable. In this
+            // case the token is not really supported.
+            // In either case, the order owner can still withdraw their vault
+            // balances in full, they just can't trade that token effectively.
+            // uint256 ownerVaultBalanceD18 = ownerVaultBalance.scale18(order.validOutputs[outputIOIndex].decimals, 0);
+            // orderOutputMaxD18 = orderOutputMaxD18 > ownerVaultBalanceD18 ? ownerVaultBalanceD18 : orderOutputMaxD18;
 
-            // Populate the context with the output max rescaled and vault capped
-            // and the rescaled ratio.
-            context[CONTEXT_CALCULATIONS_COLUMN] = LibUint256Array.arrayFrom(orderOutputMax, orderIORatio);
+            // Populate the context with the output max rescaled and vault capped.
+            context[CONTEXT_CALCULATIONS_COLUMN] =
+                LibUint256Array.arrayFrom(Output18Amount.unwrap(orderOutputMax), orderIORatio);
 
-            return OrderIOCalculation(orderOutputMax, orderIORatio, context, namespace, calculateOrderKVs);
+            return OrderIOCalculation(
+                order, outputIOIndex, orderOutputMax, orderIORatio, context, namespace, calculateOrderKVs
+            );
         }
     }
 
@@ -692,30 +712,93 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         OrderIOCalculation memory aliceOrderIOCalculation,
         OrderIOCalculation memory bobOrderIOCalculation
     ) internal pure returns (ClearStateChange memory clearStateChange) {
-        // Alice's output is the smaller of their max output and Bob's input.
-        clearStateChange.aliceOutput = aliceOrderIOCalculation.outputMax.min(
-            // Bob's input is Alice's output.
-            // Alice cannot output more than their max.
-            // Bob wants input of their IO ratio * their output.
-            // Always round IO calculations up.
-            bobOrderIOCalculation.outputMax.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up)
-        );
+        calculateClearStateAlice(clearStateChange, aliceOrderIOCalculation, bobOrderIOCalculation);
+        // Flip alice and bob to calculate bob's output.
+        calculateClearStateAlice(clearStateChange, bobOrderIOCalculation, aliceOrderIOCalculation);
+        // {
+        //     // This is the max input that bob can afford, given his own IO ratio
+        //     // and maximum spend/output.
+        //     Input18Amount bobInputMax18 = calculateInputFromIORatio(
+        //         bobOrderIOCalculation.outputMax,
+        //         bobOrderIOCalculation.IORatio
+        //     );
+        //     Output18Amount aliceOutputMax18 = aliceOrderIOCalculation.outputMax;
+        //     // Alice's doesn't need to provide more output than bob's max input.
+        //     if (Output18Amount.unwrap(aliceOutputMax18) > Input18Amount.unwrap(bobInputMax18)) {
+        //         aliceOutputMax18 = Output18Amount.wrap(Input18Amount.unwrap(bobInputMax18));
+        //     }
+        //     // Alice's final output is the scaled version of the 18 decimal output,
+        //     // rounded down to benefit Alice.
+        //     clearStateChange.aliceOutput = OutputTknAmount.wrap(Output18Amount.unwrap(aliceOutputMax18).scaleN(
+        //         aliceOrderIOCalculation.outputDecimals,
+        //         0
+        //     ));
+        // }
+
+        // {
+        //     // Bob's output
+
+        // }
+
+        // // Alice's output is the smaller of their max output and Bob's input.
+        // clearStateChange.aliceOutput = aliceOrderIOCalculation.outputMax.min(
+        //     // Bob's input is Alice's output.
+        //     // Alice cannot output more than their max.
+        //     // Bob wants input of their IO ratio * their output.
+        //     // Always round IO calculations up.
+        //     bobOrderIOCalculation.outputMax.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up)
+        // );
         // Bob's output is the smaller of their max output and Alice's input.
-        clearStateChange.bobOutput = bobOrderIOCalculation.outputMax.min(
-            // Alice's input is Bob's output.
-            // Bob cannot output more than their max.
-            // Alice wants input of their IO ratio * their output.
-            // Always round IO calculations up.
-            aliceOrderIOCalculation.outputMax.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
-        );
+        // clearStateChange.bobOutput = bobOrderIOCalculation.outputMax.min(
+        //     // Alice's input is Bob's output.
+        //     // Bob cannot output more than their max.
+        //     // Alice wants input of their IO ratio * their output.
+        //     // Always round IO calculations up.
+        //     aliceOrderIOCalculation.outputMax.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
+        // );
         // Alice's input is Alice's output * their IO ratio.
         // Always round IO calculations up.
+        // clearStateChange.aliceInput =
+        //     clearStateChange.aliceOutput.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
+        // // Bob's input is Bob's output * their IO ratio.
+        // // Always round IO calculations up.
+        // clearStateChange.bobInput =
+        //     clearStateChange.bobOutput.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up);
+    }
+
+    function calculateClearStateAlice(
+        ClearStateChange memory clearStateChange,
+        OrderIOCalculation memory aliceOrderIOCalculation,
+        OrderIOCalculation memory bobOrderIOCalculation
+    ) internal pure {
+        // Always round IO calculations up so that the counterparty pays more.
+        // This is the max input that bob can afford, given his own IO ratio
+        // and maximum spend/output.
+        Input18Amount bobInputMax18 = Input18Amount.wrap(
+            Output18Amount.unwrap(bobOrderIOCalculation.outputMax).fixedPointMul(
+                bobOrderIOCalculation.IORatio, Math.Rounding.Up
+            )
+        );
+        Output18Amount aliceOutputMax18 = aliceOrderIOCalculation.outputMax;
+        // Alice's doesn't need to provide more output than bob's max input.
+        if (Output18Amount.unwrap(aliceOutputMax18) > Input18Amount.unwrap(bobInputMax18)) {
+            aliceOutputMax18 = Output18Amount.wrap(Input18Amount.unwrap(bobInputMax18));
+        }
+        // Alice's final output is the scaled version of the 18 decimal output,
+        // rounded down to benefit Alice.
+        clearStateChange.aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(
+            aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals, 0
+        );
+
+        // Alice's input is her output * her IO ratio, rounded up.
+        Input18Amount aliceInput18 = Input18Amount.wrap(
+            Output18Amount.unwrap(aliceOutputMax18).fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
+        );
         clearStateChange.aliceInput =
-            clearStateChange.aliceOutput.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
-        // Bob's input is Bob's output * their IO ratio.
-        // Always round IO calculations up.
-        clearStateChange.bobInput =
-            clearStateChange.bobOutput.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up);
+        // Use bob's output decimals as alice's input decimals.
+        Input18Amount.unwrap(aliceInput18).scaleN(
+            bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
+        );
     }
 
     function _calculateOrderDispatch(address expression_) internal pure returns (EncodedDispatch) {
