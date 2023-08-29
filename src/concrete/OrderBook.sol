@@ -39,6 +39,12 @@ error NotOrderOwner(address sender, address owner);
 /// @param bobToken The input or output of the other order that doesn't match a.
 error TokenMismatch(address aliceToken, address bobToken);
 
+/// Thrown when the input and output token decimals don't match, in either
+/// direction.
+/// @param aliceTokenDecimals The input or output decimals of one order.
+/// @param bobTokenDecimals The input or output decimals of the other order.
+error TokenDecimalsMismatch(uint8 aliceTokenDecimals, uint8 bobTokenDecimals);
+
 /// Thrown when the minimum input is not met.
 /// @param minimumInput The minimum input required.
 /// @param input The input that was achieved.
@@ -471,12 +477,32 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             }
 
             if (
+                alice.validOutputs[clearConfig.aliceOutputIOIndex].decimals
+                    != bob.validInputs[clearConfig.bobInputIOIndex].decimals
+            ) {
+                revert TokenDecimalsMismatch(
+                    alice.validOutputs[clearConfig.aliceOutputIOIndex].decimals,
+                    bob.validInputs[clearConfig.bobInputIOIndex].decimals
+                );
+            }
+
+            if (
                 bob.validOutputs[clearConfig.bobOutputIOIndex].token
                     != alice.validInputs[clearConfig.aliceInputIOIndex].token
             ) {
                 revert TokenMismatch(
                     alice.validInputs[clearConfig.aliceInputIOIndex].token,
                     bob.validOutputs[clearConfig.bobOutputIOIndex].token
+                );
+            }
+
+            if (
+                bob.validOutputs[clearConfig.bobOutputIOIndex].decimals
+                    != alice.validInputs[clearConfig.aliceInputIOIndex].decimals
+            ) {
+                revert TokenDecimalsMismatch(
+                    alice.validInputs[clearConfig.aliceInputIOIndex].decimals,
+                    bob.validOutputs[clearConfig.bobOutputIOIndex].decimals
                 );
             }
 
@@ -748,7 +774,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals, 0
         );
 
-        // Alice's input is her output * her IO ratio, rounded up.
+        // Alice's input is her bob-capped output * her IO ratio, rounded up.
         Input18Amount aliceInput18 = Input18Amount.wrap(
             Output18Amount.unwrap(aliceOutputMax18).fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
         );
