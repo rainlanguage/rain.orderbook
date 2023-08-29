@@ -780,6 +780,10 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         );
         clearStateChange.aliceInput =
         // Use bob's output decimals as alice's input decimals.
+        //
+        // This is only safe if we have previously checked that the decimals
+        // match for alice and bob per token, otherwise bob could manipulate
+        // alice's intent.
         Input18Amount.unwrap(aliceInput18).scaleN(
             bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
         );
