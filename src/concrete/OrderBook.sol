@@ -391,6 +391,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                     {
                         // Always round IO calculations up so the taker pays more.
                         Output18Amount takerOutput18 = Output18Amount.wrap(
+                            // Use the capped taker input to calculate the taker
+                            // output.
                             Input18Amount.unwrap(takerInput18).fixedPointMul(
                                 orderIOCalculation.IORatio, Math.Rounding.Up
                             )
