@@ -82,6 +82,5 @@ contract OrderBookTakeOrderTest is OrderBookExternalRealTest {
         checkPrecision(knownBad, 6, 20, 157116365680, 4999999999984331501400);
         checkPrecision(knownBad, 6, 21, 157116365680, 49999999999843315014000);
         checkPrecision(knownBad, 6, 50, 157116365680, 4999999999984331501400000000000000000000000000000000);
-
     }
 }

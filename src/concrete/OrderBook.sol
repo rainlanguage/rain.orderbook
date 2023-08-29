@@ -722,55 +722,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         calculateClearStateAlice(clearStateChange, aliceOrderIOCalculation, bobOrderIOCalculation);
         // Flip alice and bob to calculate bob's output.
         calculateClearStateAlice(clearStateChange, bobOrderIOCalculation, aliceOrderIOCalculation);
-        // {
-        //     // This is the max input that bob can afford, given his own IO ratio
-        //     // and maximum spend/output.
-        //     Input18Amount bobInputMax18 = calculateInputFromIORatio(
-        //         bobOrderIOCalculation.outputMax,
-        //         bobOrderIOCalculation.IORatio
-        //     );
-        //     Output18Amount aliceOutputMax18 = aliceOrderIOCalculation.outputMax;
-        //     // Alice's doesn't need to provide more output than bob's max input.
-        //     if (Output18Amount.unwrap(aliceOutputMax18) > Input18Amount.unwrap(bobInputMax18)) {
-        //         aliceOutputMax18 = Output18Amount.wrap(Input18Amount.unwrap(bobInputMax18));
-        //     }
-        //     // Alice's final output is the scaled version of the 18 decimal output,
-        //     // rounded down to benefit Alice.
-        //     clearStateChange.aliceOutput = OutputTknAmount.wrap(Output18Amount.unwrap(aliceOutputMax18).scaleN(
-        //         aliceOrderIOCalculation.outputDecimals,
-        //         0
-        //     ));
-        // }
-
-        // {
-        //     // Bob's output
-
-        // }
-
-        // // Alice's output is the smaller of their max output and Bob's input.
-        // clearStateChange.aliceOutput = aliceOrderIOCalculation.outputMax.min(
-        //     // Bob's input is Alice's output.
-        //     // Alice cannot output more than their max.
-        //     // Bob wants input of their IO ratio * their output.
-        //     // Always round IO calculations up.
-        //     bobOrderIOCalculation.outputMax.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up)
-        // );
-        // Bob's output is the smaller of their max output and Alice's input.
-        // clearStateChange.bobOutput = bobOrderIOCalculation.outputMax.min(
-        //     // Alice's input is Bob's output.
-        //     // Bob cannot output more than their max.
-        //     // Alice wants input of their IO ratio * their output.
-        //     // Always round IO calculations up.
-        //     aliceOrderIOCalculation.outputMax.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
-        // );
-        // Alice's input is Alice's output * their IO ratio.
-        // Always round IO calculations up.
-        // clearStateChange.aliceInput =
-        //     clearStateChange.aliceOutput.fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up);
-        // // Bob's input is Bob's output * their IO ratio.
-        // // Always round IO calculations up.
-        // clearStateChange.bobInput =
-        //     clearStateChange.bobOutput.fixedPointMul(bobOrderIOCalculation.IORatio, Math.Rounding.Up);
     }
 
     function calculateClearStateAlice(
