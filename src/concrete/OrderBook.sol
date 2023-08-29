@@ -23,8 +23,6 @@ import "../interface/unstable/IOrderBookV3OrderTaker.sol";
 import "../lib/LibOrder.sol";
 import "../abstract/OrderBookV3FlashLender.sol";
 
-import "forge-std/console2.sol";
-
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
 error ReentrancyGuardReentrantCall();
