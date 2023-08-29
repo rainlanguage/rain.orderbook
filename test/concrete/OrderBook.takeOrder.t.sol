@@ -75,10 +75,13 @@ contract OrderBookTakeOrderTest is OrderBookExternalRealTest {
         checkPrecision(knownBad, 50, 6, 15711636568049186712991000000000000000000000000000000000, 50e6);
 
         // Flip the decimals for each token.
-        checkPrecision(knownBad, 6, 18, 157116365680, 49999999999999844580);
-        checkPrecision(knownBad, 6, 19, 157116365680, 499999999999998445800);
-        checkPrecision(knownBad, 6, 20, 157116365680, 4999999999999984458000);
-        checkPrecision(knownBad, 6, 21, 157116365680, 49999999999999844580000);
-        checkPrecision(knownBad, 6, 50, 157116365680, 4999999999999984458000000000000000000000000000000000);
+        // As the output has low decimals, it rounds down which then causes the
+        // input to be slightly smaller prorata.
+        checkPrecision(knownBad, 6, 18, 157116365680, 49999999999843315014);
+        checkPrecision(knownBad, 6, 19, 157116365680, 499999999998433150140);
+        checkPrecision(knownBad, 6, 20, 157116365680, 4999999999984331501400);
+        checkPrecision(knownBad, 6, 21, 157116365680, 49999999999843315014000);
+        checkPrecision(knownBad, 6, 50, 157116365680, 4999999999984331501400000000000000000000000000000000);
+
     }
 }

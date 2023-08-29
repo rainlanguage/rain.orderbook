@@ -590,35 +590,40 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 .interpreter
                 .eval(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context);
 
-            Output18Amount orderOutputMax = Output18Amount.wrap(calculateOrderStack[calculateOrderStack.length - 2]);
+            Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[calculateOrderStack.length - 2]);
             uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
 
-            // The order owner can't send more than the smaller of their vault
-            // balance or their per-order limit.
-            // uint256 ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
-            //     .validOutputs[outputIOIndex].vaultId];
-            // We round down vault balances and don't saturate because we're
-            // dealing with real token amounts here. If rescaling would somehow
-            // cause an overflow in a real token amount, that's basically an
-            // unsupported token, it implies a very small decimals value with
-            // very large token total supply. E.g. 0 decimals with a total supply
-            // around 10^60. That's beyond what even Uniswap handles, as they use
-            // uint112 values internally for tokens.
-            // It's possible that if a token has large decimals, e.g. much more
-            // than 18, that the owner vault balance could be rounded down enough
-            // to cause significant non-dust amounts to be untradeable. In this
-            // case the token is not really supported.
-            // In either case, the order owner can still withdraw their vault
-            // balances in full, they just can't trade that token effectively.
-            // uint256 ownerVaultBalanceD18 = ownerVaultBalance.scale18(order.validOutputs[outputIOIndex].decimals, 0);
-            // orderOutputMaxD18 = orderOutputMaxD18 > ownerVaultBalanceD18 ? ownerVaultBalanceD18 : orderOutputMaxD18;
+            {
+                // The order owner can't send more than the smaller of their vault
+                // balance or their per-order limit.
+                uint256 ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
+                    .validOutputs[outputIOIndex].vaultId];
+                // We round down vault balances and don't saturate because we're
+                // dealing with real token amounts here. If rescaling would somehow
+                // cause an overflow in a real token amount, that's basically an
+                // unsupported token, it implies a very small decimals value with
+                // very large token total supply. E.g. 0 decimals with a total supply
+                // around 10^60. That's beyond what even Uniswap handles, as they use
+                // uint112 values internally for tokens.
+                // It's possible that if a token has large decimals, e.g. much more
+                // than 18, that the owner vault balance could be rounded down enough
+                // to cause significant non-dust amounts to be untradeable. In this
+                // case the token is not really supported.
+                // In either case, the order owner can still withdraw their vault
+                // balances in full, they just can't trade that token effectively.
+                Output18Amount ownerVaultBalance18 =
+                    Output18Amount.wrap(ownerVaultBalance.scale18(order.validOutputs[outputIOIndex].decimals, 0));
+                if (Output18Amount.unwrap(orderOutputMax18) > Output18Amount.unwrap(ownerVaultBalance18)) {
+                    orderOutputMax18 = ownerVaultBalance18;
+                }
+            }
 
             // Populate the context with the output max rescaled and vault capped.
             context[CONTEXT_CALCULATIONS_COLUMN] =
-                LibUint256Array.arrayFrom(Output18Amount.unwrap(orderOutputMax), orderIORatio);
+                LibUint256Array.arrayFrom(Output18Amount.unwrap(orderOutputMax18), orderIORatio);
 
             return OrderIOCalculation(
-                order, outputIOIndex, orderOutputMax, orderIORatio, context, namespace, calculateOrderKVs
+                order, outputIOIndex, orderOutputMax18, orderIORatio, context, namespace, calculateOrderKVs
             );
         }
     }
