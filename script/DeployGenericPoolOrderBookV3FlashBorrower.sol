@@ -2,13 +2,13 @@
 pragma solidity =0.8.19;
 
 import "forge-std/Script.sol";
-import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
+import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 
-/// @title DeployGenericPoolOrderBookFlashBorrower
-/// @notice A script that deploys a `GenericPoolOrderBookFlashBorrower`. This is
-/// intended to be run on every commit by CI to a testnet such as mumbai, then
+/// @title DeployGenericPoolOrderBookV3FlashBorrower
+/// @notice A script that deploys a `GenericPoolOrderBookV3FlashBorrower`. This
+/// is intended to be run on every commit by CI to a testnet such as mumbai, then
 /// cross chain deployed to whatever mainnet is required, by users.
-contract DeployGenericPoolOrderBookFlashBorrower is Script {
+contract DeployGenericPoolOrderBookV3FlashBorrower is Script {
     /// We are avoiding using ffi here, instead forcing the script runner to
     /// provide the built metadata. On CI this is achieved by using the rain cli.
     function run(bytes memory meta) external {

@@ -32,6 +32,9 @@ error ReentrancyGuardReentrantCall();
 /// @param owner The owner of the order.
 error NotOrderOwner(address sender, address owner);
 
+/// Thrown when take orders is called with no orders.
+error NoOrders();
+
 /// Thrown when the input and output tokens don't match, in either direction.
 /// @param aliceToken The input or output of one order.
 /// @param bobToken The input or output of the other order that doesn't match a.
@@ -339,6 +342,10 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         nonReentrant
         returns (uint256 totalTakerInput, uint256 totalTakerOutput)
     {
+        if (config.orders.length == 0) {
+            revert NoOrders();
+        }
+
         uint256 i = 0;
         TakeOrderConfig memory takeOrderConfig;
         Order memory order;

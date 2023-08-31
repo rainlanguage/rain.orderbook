@@ -6,9 +6,9 @@ import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibGenericPoolOrderBookFlashBorrowerConstants.sol";
+import "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
 
-import "src/concrete/GenericPoolOrderBookFlashBorrower.sol";
+import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 
 contract Token is ERC20 {
