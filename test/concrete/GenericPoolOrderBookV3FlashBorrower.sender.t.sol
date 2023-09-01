@@ -62,7 +62,7 @@ contract Mock0xProxy {
     }
 }
 
-contract GenericPoolOrderBookFlashBorrowerTest is Test {
+contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
     address immutable deployer;
     address immutable implementation;
 
@@ -86,38 +86,17 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
         );
     }
 
-    function testTakeOrdersSender() public {
-        MockOrderBook ob_ = new MockOrderBook();
-        Mock0xProxy proxy_ = new Mock0xProxy();
+    function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
+        vm.assume(order.validInputs.length > 0);
+        inputIOIndex = bound(inputIOIndex, 0, order.validInputs.length - 1);
+        vm.assume(order.validOutputs.length > 0);
+        outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
-        Token input_ = new Token();
-        Token output_ = new Token();
-
-        GenericPoolOrderBookV3FlashBorrower arb_ = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
-        arb_.initialize(
-            abi.encode(
-                OrderBookV3FlashBorrowerConfigV2(
-                    address(ob_), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
-                )
-            )
-        );
-
-        arb_.arb(
-            TakeOrdersConfigV2(
-                address(output_), address(input_), 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), ""
-            ),
-            0,
-            abi.encode(address(proxy_), address(proxy_), "")
-        );
-    }
-
-    function testMinimumOutput(uint256 minimumOutput, uint256 mintAmount) public {
-        vm.assume(minimumOutput > mintAmount);
         MockOrderBook ob = new MockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
 
-        Token input = new Token();
-        Token output = new Token();
+        Token takerInput = new Token();
+        Token takerOutput = new Token();
 
         GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
         arb.initialize(
@@ -128,13 +107,58 @@ contract GenericPoolOrderBookFlashBorrowerTest is Test {
             )
         );
 
-        output.mint(address(arb), mintAmount);
+        order.validInputs[inputIOIndex].token = address(takerOutput);
+        order.validOutputs[outputIOIndex].token = address(takerInput);
+
+        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
+        orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+
+        arb.arb(
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
+            0,
+            abi.encode(address(proxy), address(proxy), "")
+        );
+    }
+
+    function testMinimumOutput(
+        Order memory order,
+        uint256 inputIOIndex,
+        uint256 outputIOIndex,
+        uint256 minimumOutput,
+        uint256 mintAmount
+    ) public {
+        vm.assume(order.validInputs.length > 0);
+        inputIOIndex = bound(inputIOIndex, 0, order.validInputs.length - 1);
+        vm.assume(order.validOutputs.length > 0);
+        outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
+
+        vm.assume(minimumOutput > mintAmount);
+        MockOrderBook ob = new MockOrderBook();
+        Mock0xProxy proxy = new Mock0xProxy();
+
+        Token takerInput = new Token();
+        Token takerOutput = new Token();
+
+        GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
+        arb.initialize(
+            abi.encode(
+                OrderBookV3FlashBorrowerConfigV2(
+                    address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
+                )
+            )
+        );
+
+        takerOutput.mint(address(arb), mintAmount);
+
+        order.validInputs[inputIOIndex].token = address(takerOutput);
+        order.validOutputs[outputIOIndex].token = address(takerInput);
+
+        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
+        orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         arb.arb(
-            TakeOrdersConfigV2(
-                address(output), address(input), 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), ""
-            ),
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
             minimumOutput,
             abi.encode(address(proxy), address(proxy), "")
         );

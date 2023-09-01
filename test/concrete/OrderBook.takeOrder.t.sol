@@ -48,7 +48,7 @@ contract OrderBookTakeOrderTest is OrderBookExternalRealTest {
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory takeOrdersConfig =
-            TakeOrdersConfigV2(inputToken, outputToken, 0, type(uint256).max, type(uint256).max, orders, "");
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);
         assertEq(totalTakerInput, expectedTakerTotalInput);
         assertEq(totalTakerOutput, expectedTakerTotalOutput);

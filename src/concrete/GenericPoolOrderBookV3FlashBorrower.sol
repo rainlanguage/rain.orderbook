@@ -34,12 +34,14 @@ contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(exchangeData, (address, address, bytes));
 
-        IERC20(takeOrders.input).safeApprove(spender, 0);
-        IERC20(takeOrders.input).safeApprove(spender, type(uint256).max);
+        address borrowedToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
+
+        IERC20(borrowedToken).safeApprove(spender, 0);
+        IERC20(borrowedToken).safeApprove(spender, type(uint256).max);
         bytes memory returnData = pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         // Nothing can be done with returnData as 3156 does not support it.
         (returnData);
-        IERC20(takeOrders.input).safeApprove(spender, 0);
+        IERC20(borrowedToken).safeApprove(spender, 0);
     }
 
     /// Allow receiving gas.
