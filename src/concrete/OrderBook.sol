@@ -32,9 +32,6 @@ error ReentrancyGuardReentrantCall();
 /// @param owner The owner of the order.
 error NotOrderOwner(address sender, address owner);
 
-/// Thrown when take orders is called with no orders.
-error NoOrders();
-
 /// Thrown when the input and output tokens don't match, in either direction.
 /// @param aliceToken The input or output of one order.
 /// @param bobToken The input or output of the other order that doesn't match a.
@@ -345,6 +342,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         if (config.orders.length == 0) {
             revert NoOrders();
         }
+        address expectedOrderInputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
+        address expectedOrderOutputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
 
         uint256 i = 0;
         TakeOrderConfig memory takeOrderConfig;
@@ -358,11 +357,13 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             if (sOrders[orderHash] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
-                if (order.validInputs[takeOrderConfig.inputIOIndex].token != config.output) {
-                    revert TokenMismatch(order.validInputs[takeOrderConfig.inputIOIndex].token, config.output);
+                if (order.validInputs[takeOrderConfig.inputIOIndex].token != expectedOrderInputToken) {
+                    revert TokenMismatch(order.validInputs[takeOrderConfig.inputIOIndex].token, expectedOrderInputToken);
                 }
-                if (order.validOutputs[takeOrderConfig.outputIOIndex].token != config.input) {
-                    revert TokenMismatch(order.validOutputs[takeOrderConfig.outputIOIndex].token, config.input);
+                if (order.validOutputs[takeOrderConfig.outputIOIndex].token != expectedOrderOutputToken) {
+                    revert TokenMismatch(
+                        order.validOutputs[takeOrderConfig.outputIOIndex].token, expectedOrderOutputToken
+                    );
                 }
 
                 OrderIOCalculation memory orderIOCalculation = calculateOrderIO(
@@ -444,10 +445,11 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         //   trades, which is important if the order logic itself is dependent on
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
-        uint256 inputAmountSent = _decreaseFlashDebtThenSendToken(config.input, msg.sender, totalTakerInput);
+        uint256 takerInputAmountSent =
+            _decreaseFlashDebtThenSendToken(expectedOrderOutputToken, msg.sender, totalTakerInput);
         if (config.data.length > 0) {
             IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
-                config.input, config.output, inputAmountSent, totalTakerOutput, config.data
+                expectedOrderOutputToken, expectedOrderInputToken, takerInputAmountSent, totalTakerOutput, config.data
             );
         }
 
@@ -455,7 +457,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             // We already updated vault balances before we took tokens from
             // `msg.sender` which is usually NOT the correct order of operations for
             // depositing to a vault. We rely on reentrancy guards to make this safe.
-            IERC20(config.output).safeTransferFrom(msg.sender, address(this), totalTakerOutput);
+            IERC20(expectedOrderInputToken).safeTransferFrom(msg.sender, address(this), totalTakerOutput);
         }
     }
 

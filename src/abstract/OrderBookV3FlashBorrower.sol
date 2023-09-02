@@ -252,11 +252,18 @@ abstract contract OrderBookV3FlashBorrower is
         nonReentrant
         onlyNotInitializing
     {
+        // Mimic what OB would do anyway if called with zero orders.
+        if (takeOrders.orders.length == 0) {
+            revert NoOrders();
+        }
+
         // Encode everything that will be used by the flash loan callback.
         bytes memory data = abi.encode(takeOrders, exchangeData);
         // The token we receive from taking the orders is what we will use to
         // repay the flash loan.
-        address flashLoanToken = takeOrders.input;
+        address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
+        address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
+
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
         uint256 flashLoanAmount = takeOrders.minimumInput;
@@ -283,25 +290,25 @@ abstract contract OrderBookV3FlashBorrower is
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
-        IERC20(takeOrders.output).safeApprove(address(sOrderBook), 0);
-        IERC20(takeOrders.output).safeApprove(address(sOrderBook), type(uint256).max);
-        if (!sOrderBook.flashLoan(this, flashLoanToken, flashLoanAmount, data)) {
+        IERC20(ordersInputToken).safeApprove(address(sOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(sOrderBook), type(uint256).max);
+        if (!sOrderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
-        IERC20(takeOrders.output).safeApprove(address(sOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(sOrderBook), 0);
 
         // Send all unspent input tokens to the sender.
-        uint256 inputBalance = IERC20(takeOrders.input).balanceOf(address(this));
+        uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
+        if (inputBalance < minimumSenderOutput) {
+            revert MinimumOutput(minimumSenderOutput, inputBalance);
+        }
         if (inputBalance > 0) {
-            IERC20(takeOrders.input).safeTransfer(msg.sender, inputBalance);
+            IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
         }
         // Send all unspent output tokens to the sender.
-        uint256 outputBalance = IERC20(takeOrders.output).balanceOf(address(this));
-        if (outputBalance < minimumSenderOutput) {
-            revert MinimumOutput(minimumSenderOutput, outputBalance);
-        }
+        uint256 outputBalance = IERC20(ordersOutputToken).balanceOf(address(this));
         if (outputBalance > 0) {
-            IERC20(takeOrders.output).safeTransfer(msg.sender, outputBalance);
+            IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
         }
 
         // Send any remaining gas to the sender.

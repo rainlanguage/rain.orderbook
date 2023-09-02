@@ -5,6 +5,9 @@ import "../ierc3156/IERC3156FlashLender.sol";
 import "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
+/// Thrown when take orders is called with no orders.
+error NoOrders();
+
 /// Configuration for a single input or output on an `Order`.
 /// @param token The token to either send from the owner as an output or receive
 /// from the counterparty to the owner as an input. The tokens are not moved
@@ -67,8 +70,6 @@ struct Order {
 
 /// Config for a list of orders to take sequentially as part of a `takeOrders`
 /// call.
-/// @param output Output token from the perspective of the order taker.
-/// @param input Input token from the perspective of the order taker.
 /// @param minimumInput Minimum input from the perspective of the order taker.
 /// @param maximumInput Maximum input from the perspective of the order taker.
 /// @param maximumIORatio Maximum IO ratio as calculated by the order being
@@ -83,8 +84,6 @@ struct Order {
 /// onchain actions between receiving their input tokens, before having to send
 /// their output tokens.
 struct TakeOrdersConfigV2 {
-    address output;
-    address input;
     uint256 minimumInput;
     uint256 maximumInput;
     uint256 maximumIORatio;

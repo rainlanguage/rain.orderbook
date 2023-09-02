@@ -14,9 +14,9 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
     /// Take orders makes no sense without any orders in the input array and the
     /// caller has full control over this so we error.
-    function testTakeOrderNoopZeroOrders(address input, address output) external {
+    function testTakeOrderNoopZeroOrders() external {
         TakeOrdersConfigV2 memory config =
-            TakeOrdersConfigV2(output, input, 0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), "");
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), "");
         vm.expectRevert(NoOrders.selector);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
         (totalTakerInput, totalTakerOutput);
@@ -27,14 +27,16 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// have been removed by its owner. We don't want to revert the whole
     /// transaction in this case as there may be other orders in the input array
     /// in the general case.
-    function testTakeOrderNoopNonLiveOrder(
-        address input,
-        address output,
+    function testTakeOrderNoopNonLiveOrderOne(
         Order memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         SignedContextV1 memory signedContext
     ) external {
+        vm.assume(order.validInputs.length > 0);
+        inputIOIndex = bound(inputIOIndex, 0, order.validInputs.length - 1);
+        vm.assume(order.validOutputs.length > 0);
+        outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
         // We don't bound the input or output indexes as we want to allow
         // malformed orders to be passed in, and still show that nothing happens.
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
@@ -42,8 +44,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         TakeOrderConfig memory orderConfig = TakeOrderConfig(order, inputIOIndex, outputIOIndex, signedContexts);
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV2 memory config =
-            TakeOrdersConfigV2(output, input, 0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
@@ -56,8 +57,6 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
     /// Same as above but with two orders.
     function testTakeOrderNoopNonLiveOrderTwo(
-        address input,
-        address output,
         Order memory order1,
         Order memory order2,
         uint256 inputIOIndex1,
@@ -67,6 +66,15 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         SignedContextV1 memory signedContext1,
         SignedContextV1 memory signedContext2
     ) external {
+        vm.assume(order1.validInputs.length > 0);
+        inputIOIndex1 = bound(inputIOIndex1, 0, order1.validInputs.length - 1);
+        vm.assume(order1.validOutputs.length > 0);
+        outputIOIndex1 = bound(outputIOIndex1, 0, order1.validOutputs.length - 1);
+        vm.assume(order2.validInputs.length > 0);
+        inputIOIndex2 = bound(inputIOIndex2, 0, order2.validInputs.length - 1);
+        vm.assume(order2.validOutputs.length > 0);
+        outputIOIndex2 = bound(outputIOIndex2, 0, order2.validOutputs.length - 1);
+
         TakeOrdersConfigV2 memory config;
         {
             TakeOrderConfig[] memory orders;
@@ -86,7 +94,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
                 orders[1] = orderConfig2;
             }
 
-            config = TakeOrdersConfigV2(output, input, 0, type(uint256).max, type(uint256).max, orders, "");
+            config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         }
 
         vm.recordLogs();

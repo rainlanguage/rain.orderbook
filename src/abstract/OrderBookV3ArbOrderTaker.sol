@@ -127,6 +127,14 @@ abstract contract OrderBookV3ArbOrderTaker is
         nonReentrant
         onlyNotInitializing
     {
+        // Mimic what OB would do anyway if called with zero orders.
+        if (takeOrders.orders.length == 0) {
+            revert NoOrders();
+        }
+
+        address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
+        address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
+
         // Run the access control dispatch if it is set.
         EncodedDispatch dispatch = sI9rDispatch;
         if (EncodedDispatch.unwrap(dispatch) > 0) {
@@ -146,24 +154,24 @@ abstract contract OrderBookV3ArbOrderTaker is
             }
         }
 
-        IERC20(takeOrders.output).safeApprove(address(sOrderBook), 0);
-        IERC20(takeOrders.output).safeApprove(address(sOrderBook), type(uint256).max);
+        IERC20(ordersInputToken).safeApprove(address(sOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(sOrderBook), type(uint256).max);
         (uint256 totalInput, uint256 totalOutput) = sOrderBook.takeOrders(takeOrders);
         (totalInput, totalOutput);
-        IERC20(takeOrders.output).safeApprove(address(sOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(sOrderBook), 0);
 
         // Send all unspent input tokens to the sender.
-        uint256 inputBalance = IERC20(takeOrders.input).balanceOf(address(this));
+        uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
+        if (inputBalance < minimumSenderOutput) {
+            revert MinimumOutput(minimumSenderOutput, inputBalance);
+        }
         if (inputBalance > 0) {
-            IERC20(takeOrders.input).safeTransfer(msg.sender, inputBalance);
+            IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
         }
         // Send all unspent output tokens to the sender.
-        uint256 outputBalance = IERC20(takeOrders.output).balanceOf(address(this));
-        if (outputBalance < minimumSenderOutput) {
-            revert MinimumOutput(minimumSenderOutput, outputBalance);
-        }
+        uint256 outputBalance = IERC20(ordersOutputToken).balanceOf(address(this));
         if (outputBalance > 0) {
-            IERC20(takeOrders.output).safeTransfer(msg.sender, outputBalance);
+            IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
         }
 
         // Send any remaining gas to the sender.
