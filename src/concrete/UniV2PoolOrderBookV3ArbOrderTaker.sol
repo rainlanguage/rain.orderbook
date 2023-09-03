@@ -8,7 +8,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
-bytes32 constant CALLER_META_HASH = bytes32(0x00);
+bytes32 constant CALLER_META_HASH = bytes32(0x48491f02269873fe4c04ad16b2a11c7ed6e66f5d44a20d848dbb161cdeed3f38);
 
 contract UniV2PoolOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;
