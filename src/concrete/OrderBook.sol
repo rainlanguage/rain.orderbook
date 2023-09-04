@@ -342,8 +342,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         if (config.orders.length == 0) {
             revert NoOrders();
         }
-        address expectedOrderInputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
-        address expectedOrderOutputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
 
         uint256 i = 0;
         TakeOrderConfig memory takeOrderConfig;
@@ -353,19 +351,51 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         while (i < config.orders.length && remainingTakerInput > 0) {
             takeOrderConfig = config.orders[i];
             order = takeOrderConfig.order;
+            // Every order needs the same input token.
+            if (
+                order.validInputs[takeOrderConfig.inputIOIndex].token
+                    != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
+            ) {
+                revert TokenMismatch(
+                    order.validInputs[takeOrderConfig.inputIOIndex].token,
+                    config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
+                );
+            }
+            // Every order needs the same output token.
+            if (
+                order.validOutputs[takeOrderConfig.outputIOIndex].token
+                    != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+            ) {
+                revert TokenMismatch(
+                    order.validOutputs[takeOrderConfig.outputIOIndex].token,
+                    config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+                );
+            }
+            // Every order needs the same input token decimals.
+            if (
+                order.validInputs[takeOrderConfig.inputIOIndex].decimals
+                    != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
+            ) {
+                revert TokenDecimalsMismatch(
+                    order.validInputs[takeOrderConfig.inputIOIndex].decimals,
+                    config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
+                );
+            }
+            // Every order needs the same output token decimals.
+            if (
+                order.validOutputs[takeOrderConfig.outputIOIndex].decimals
+                    != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
+            ) {
+                revert TokenDecimalsMismatch(
+                    order.validOutputs[takeOrderConfig.outputIOIndex].decimals,
+                    config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
+                );
+            }
+
             bytes32 orderHash = order.hash();
             if (sOrders[orderHash] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
-                if (order.validInputs[takeOrderConfig.inputIOIndex].token != expectedOrderInputToken) {
-                    revert TokenMismatch(order.validInputs[takeOrderConfig.inputIOIndex].token, expectedOrderInputToken);
-                }
-                if (order.validOutputs[takeOrderConfig.outputIOIndex].token != expectedOrderOutputToken) {
-                    revert TokenMismatch(
-                        order.validOutputs[takeOrderConfig.outputIOIndex].token, expectedOrderOutputToken
-                    );
-                }
-
                 OrderIOCalculation memory orderIOCalculation = calculateOrderIO(
                     order,
                     takeOrderConfig.inputIOIndex,
@@ -445,11 +475,16 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         //   trades, which is important if the order logic itself is dependent on
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
-        uint256 takerInputAmountSent =
-            _decreaseFlashDebtThenSendToken(expectedOrderOutputToken, msg.sender, totalTakerInput);
+        uint256 takerInputAmountSent = _decreaseFlashDebtThenSendToken(
+            config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token, msg.sender, totalTakerInput
+        );
         if (config.data.length > 0) {
             IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
-                expectedOrderOutputToken, expectedOrderInputToken, takerInputAmountSent, totalTakerOutput, config.data
+                config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
+                config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
+                takerInputAmountSent,
+                totalTakerOutput,
+                config.data
             );
         }
 
@@ -457,7 +492,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             // We already updated vault balances before we took tokens from
             // `msg.sender` which is usually NOT the correct order of operations for
             // depositing to a vault. We rely on reentrancy guards to make this safe.
-            IERC20(expectedOrderInputToken).safeTransferFrom(msg.sender, address(this), totalTakerOutput);
+            IERC20(config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token).safeTransferFrom(
+                msg.sender, address(this), totalTakerOutput
+            );
         }
     }
 

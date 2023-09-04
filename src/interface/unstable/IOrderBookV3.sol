@@ -5,28 +5,11 @@ import "../ierc3156/IERC3156FlashLender.sol";
 import "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
+/// Import unmodified structures from older versions of `IOrderBook`.
+import {IO, Order, TakeOrderConfig, ClearConfig, ClearStateChange} from "../IOrderBookV2.sol";
+
 /// Thrown when take orders is called with no orders.
 error NoOrders();
-
-/// Configuration for a single input or output on an `Order`.
-/// @param token The token to either send from the owner as an output or receive
-/// from the counterparty to the owner as an input. The tokens are not moved
-/// during an order, only internal vault balances are updated, until a separate
-/// withdraw step.
-/// @param decimals The decimals to use for internal scaling calculations for
-/// `token`. This is provided directly in IO to save gas on external lookups and
-/// to respect the ERC20 spec that mandates NOT assuming or using the `decimals`
-/// method for onchain calculations. Ostensibly the decimals exists so that all
-/// calculate order entrypoints can treat amounts and ratios as 18 decimal fixed
-/// point values. Order max amounts MUST be rounded down and IO ratios rounded up
-/// to compensate for any loss of precision during decimal rescaling.
-/// @param vaultId The vault ID that tokens will move into if this is an input
-/// or move out from if this is an output.
-struct IO {
-    address token;
-    uint8 decimals;
-    uint256 vaultId;
-}
 
 /// Config the order owner may provide to define their order. The `msg.sender`
 /// that adds an order cannot modify the owner nor bypass the integrity check of
@@ -45,27 +28,6 @@ struct OrderConfigV2 {
     IO[] validOutputs;
     EvaluableConfigV2 evaluableConfig;
     bytes meta;
-}
-
-/// Defines a fully deployed order ready to evaluate by Orderbook.
-/// @param owner The owner of the order is the `msg.sender` that added the order.
-/// @param handleIO true if there is a "handle IO" entrypoint to run. If false
-/// the order book MAY skip calling the interpreter to save gas.
-/// @param evaluable Standard `Evaluable` with entrypoints for both
-/// "calculate order" and "handle IO". The latter MAY be empty bytes, in which
-/// case it will be skipped at runtime to save gas.
-/// @param validInputs A list of input tokens that are economically equivalent
-/// for the purpose of processing this order. Inputs are relative to the order
-/// so these tokens will be sent to the owners vault.
-/// @param validOutputs A list of output tokens that are economically equivalent
-/// for the purpose of processing this order. Outputs are relative to the order
-/// so these tokens will be sent from the owners vault.
-struct Order {
-    address owner;
-    bool handleIO;
-    Evaluable evaluable;
-    IO[] validInputs;
-    IO[] validOutputs;
 }
 
 /// Config for a list of orders to take sequentially as part of a `takeOrders`
@@ -89,60 +51,6 @@ struct TakeOrdersConfigV2 {
     uint256 maximumIORatio;
     TakeOrderConfig[] orders;
     bytes data;
-}
-
-/// Config for an individual take order from the overall list of orders in a
-/// call to `takeOrders`.
-/// @param order The order being taken this iteration.
-/// @param inputIOIndex The index of the input token in `order` to match with the
-/// take order output.
-/// @param outputIOIndex The index of the output token in `order` to match with
-/// the take order input.
-/// @param signedContext Optional additional signed context relevant to the
-/// taken order.
-struct TakeOrderConfig {
-    Order order;
-    uint256 inputIOIndex;
-    uint256 outputIOIndex;
-    SignedContextV1[] signedContext;
-}
-
-/// Additional config to a `clear` that allows two orders to be fully matched to
-/// a specific token moment. Also defines the bounty for the clearer.
-/// @param aliceInputIOIndex The index of the input token in order A.
-/// @param aliceOutputIOIndex The index of the output token in order A.
-/// @param bobInputIOIndex The index of the input token in order B.
-/// @param bobOutputIOIndex The index of the output token in order B.
-/// @param aliceBountyVaultId The vault ID that the bounty from order A should
-/// move to for the clearer.
-/// @param bobBountyVaultId The vault ID that the bounty from order B should move
-/// to for the clearer.
-struct ClearConfig {
-    uint256 aliceInputIOIndex;
-    uint256 aliceOutputIOIndex;
-    uint256 bobInputIOIndex;
-    uint256 bobOutputIOIndex;
-    uint256 aliceBountyVaultId;
-    uint256 bobBountyVaultId;
-}
-
-/// Summary of the vault state changes due to clearing an order. NOT the state
-/// changes sent to the interpreter store, these are the LOCAL CHANGES in vault
-/// balances. Note that the difference in inputs/outputs overall between the
-/// counterparties is the bounty paid to the entity that cleared the order.
-/// @param aliceOutput Amount of counterparty A's output token that moved out of
-/// their vault.
-/// @param bobOutput Amount of counterparty B's output token that moved out of
-/// their vault.
-/// @param aliceInput Amount of counterparty A's input token that moved into
-/// their vault.
-/// @param bobInput Amount of counterparty B's input token that moved into their
-/// vault.
-struct ClearStateChange {
-    uint256 aliceOutput;
-    uint256 bobOutput;
-    uint256 aliceInput;
-    uint256 bobInput;
 }
 
 /// @title IOrderBookV3

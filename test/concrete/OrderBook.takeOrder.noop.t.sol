@@ -75,6 +75,13 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         vm.assume(order2.validOutputs.length > 0);
         outputIOIndex2 = bound(outputIOIndex2, 0, order2.validOutputs.length - 1);
 
+        // The inputs and outputs need to match or we will trigger the token
+        // mismatch error.
+        order1.validInputs[inputIOIndex1].token = order2.validInputs[inputIOIndex2].token;
+        order1.validInputs[inputIOIndex1].decimals = order2.validInputs[inputIOIndex2].decimals;
+        order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
+        order1.validOutputs[outputIOIndex1].decimals = order2.validOutputs[outputIOIndex2].decimals;
+
         TakeOrdersConfigV2 memory config;
         {
             TakeOrderConfig[] memory orders;
