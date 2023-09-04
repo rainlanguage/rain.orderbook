@@ -353,19 +353,19 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         while (i < config.orders.length && remainingTakerInput > 0) {
             takeOrderConfig = config.orders[i];
             order = takeOrderConfig.order;
+            // Every order needs the same input token.
+            if (order.validInputs[takeOrderConfig.inputIOIndex].token != expectedOrderInputToken) {
+                revert TokenMismatch(order.validInputs[takeOrderConfig.inputIOIndex].token, expectedOrderInputToken);
+            }
+            // Every order needs the same output token.
+            if (order.validOutputs[takeOrderConfig.outputIOIndex].token != expectedOrderOutputToken) {
+                revert TokenMismatch(order.validOutputs[takeOrderConfig.outputIOIndex].token, expectedOrderOutputToken);
+            }
+
             bytes32 orderHash = order.hash();
             if (sOrders[orderHash] == ORDER_DEAD) {
                 emit OrderNotFound(msg.sender, order.owner, orderHash);
             } else {
-                if (order.validInputs[takeOrderConfig.inputIOIndex].token != expectedOrderInputToken) {
-                    revert TokenMismatch(order.validInputs[takeOrderConfig.inputIOIndex].token, expectedOrderInputToken);
-                }
-                if (order.validOutputs[takeOrderConfig.outputIOIndex].token != expectedOrderOutputToken) {
-                    revert TokenMismatch(
-                        order.validOutputs[takeOrderConfig.outputIOIndex].token, expectedOrderOutputToken
-                    );
-                }
-
                 OrderIOCalculation memory orderIOCalculation = calculateOrderIO(
                     order,
                     takeOrderConfig.inputIOIndex,
