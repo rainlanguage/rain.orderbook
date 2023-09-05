@@ -98,11 +98,14 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is Test {
         Token takerInput = new Token();
         Token takerOutput = new Token();
 
-        RouteProcessorOrderBookV3ArbOrderTaker arb = RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(implementation));
+        RouteProcessorOrderBookV3ArbOrderTaker arb =
+            RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(implementation));
         arb.initialize(
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
-                    address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), abi.encode(address(proxy))
+                    address(ob),
+                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
+                    abi.encode(address(proxy))
                 )
             )
         );
@@ -113,10 +116,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is Test {
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
 
-        arb.arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
-            0
-        );
+        arb.arb(TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0);
     }
 
     function testMinimumOutput(
@@ -138,11 +138,14 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is Test {
         Token takerInput = new Token();
         Token takerOutput = new Token();
 
-        RouteProcessorOrderBookV3ArbOrderTaker arb = RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(implementation));
+        RouteProcessorOrderBookV3ArbOrderTaker arb =
+            RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(implementation));
         arb.initialize(
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
-                    address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), abi.encode(address(proxy))
+                    address(ob),
+                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
+                    abi.encode(address(proxy))
                 )
             )
         );

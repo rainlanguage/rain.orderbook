@@ -114,7 +114,9 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is Test {
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
 
         arb.arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(address(proxy), address(proxy), "")),
+            TakeOrdersConfigV2(
+                0, type(uint256).max, type(uint256).max, orders, abi.encode(address(proxy), address(proxy), "")
+            ),
             0
         );
     }
@@ -157,7 +159,9 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         arb.arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(address(proxy), address(proxy), "")),
+            TakeOrdersConfigV2(
+                0, type(uint256).max, type(uint256).max, orders, abi.encode(address(proxy), address(proxy), "")
+            ),
             minimumOutput
         );
     }
