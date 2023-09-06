@@ -7,8 +7,8 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "lib/rain.math.fixedpoint/src/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
-import "lib/rain.math.fixedpoint/src/LibFixedPointDecimalScale.sol";
+import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalScale.sol";
 import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
 import {
