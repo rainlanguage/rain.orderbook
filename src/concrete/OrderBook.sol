@@ -7,8 +7,8 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
-import "rain.math.fixedpoint/FixedPointDecimalScale.sol";
+import "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 import "rain.interpreter/src/lib/caller/LibContext.sol";
 import {
@@ -177,8 +177,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     using LibOrder for Order;
     using LibUint256Array for uint256;
     using Math for uint256;
-    using FixedPointDecimalScale for uint256;
-    using FixedPointDecimalArithmeticOpenZeppelin for uint256;
+    using LibFixedPointDecimalScale for uint256;
+    using LibFixedPointDecimalArithmeticOpenZeppelin for uint256;
 
     /// All hashes of all active orders. There's nothing interesting in the value
     /// it's just nonzero if the order is live. The key is the hash of the order.

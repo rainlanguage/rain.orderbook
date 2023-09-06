@@ -19,9 +19,9 @@
 [submodule "lib/rain.factory"]
 	path = lib/rain.factory
 	url = https://github.com/rainprotocol/rain.factory
-[submodule "lib/rain.interpreter"]
-	path = lib/rain.interpreter
-	url = https://github.com/rainprotocol/rain.interpreter
 [submodule "lib/v2-periphery"]
 	path = lib/v2-periphery
 	url = https://github.com/Uniswap/v2-periphery
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainprotocol/rain.interpreter
