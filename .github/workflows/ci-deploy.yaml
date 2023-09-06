@@ -17,7 +17,7 @@ jobs:
       - name: Report public key to make it easy to send funds for deployments
         run: cast wallet address "${DEPLOYMENT_KEY}"
       - name: Forge shallow install
-        run: foundry install --shallow
+        run: forge install --shallow
       - name: Forge deploy contracts to mumbai
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
