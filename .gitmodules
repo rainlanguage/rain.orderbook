@@ -22,9 +22,12 @@
 [submodule "lib/v2-periphery"]
 	path = lib/v2-periphery
 	url = https://github.com/Uniswap/v2-periphery
-[submodule "lib/rain.interpreter"]
-	path = lib/rain.interpreter
-	url = https://github.com/rainprotocol/rain.interpreter
 [submodule "lib/rain.math.fixedpoint"]
 	path = lib/rain.math.fixedpoint
 	url = https://github.com/rainprotocol/rain.math.fixedpoint
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainprotocol/rain.interpreter
+[submodule "lib/rain.solmem"]
+	path = lib/rain.solmem
+	url = https://github.com/rainprotocol/rain.solmem
