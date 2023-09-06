@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
-import {RainterpreterNP} from "rain.interpreter/src/concrete/RainterpreterNP.sol";
-import "rain.interpreter/src/concrete/RainterpreterStore.sol";
-import "rain.interpreter/src/concrete/RainterpreterExpressionDeployerNP.sol";
+import "lib/forge-std/src/Test.sol";
+import {RainterpreterNP} from "lib/rain.interpreter/src/concrete/RainterpreterNP.sol";
+import "lib/rain.interpreter/src/concrete/RainterpreterStore.sol";
+import "lib/rain.interpreter/src/concrete/RainterpreterExpressionDeployerNP.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibOrderBookConstants.sol";

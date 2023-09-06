@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
+import {ERC165, IERC165} from "lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
+import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {Initializable} from "lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import {
     DeployerDiscoverableMetaV2,
     DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
-} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import "rain.factory/src/interface/ICloneableV2.sol";
-import "rain.interpreter/src/lib/caller/LibContext.sol";
-import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+import "lib/rain.factory/src/interface/ICloneableV2.sol";
+import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
+import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../interface/unstable/IOrderBookV3OrderTaker.sol";
