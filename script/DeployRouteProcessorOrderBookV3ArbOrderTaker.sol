@@ -11,8 +11,7 @@ import "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 contract DeployRouteProcessorOrderBookV3ArbOrderTaker is Script {
     /// We are avoiding using ffi here, instead forcing the script runner to
     /// provide the built metadata. On CI this is achieved by using the rain cli.
-    function run(bytes memory meta) external { 
-
+    function run(bytes memory meta) external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
         // @todo pull this from subgraph.
         // hardcoded from CI https://github.com/rainprotocol/rain.interpreter/actions/runs/6062778321/job/16449363038
