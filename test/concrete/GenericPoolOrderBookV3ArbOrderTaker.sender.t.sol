@@ -10,8 +10,6 @@ import "test/util/lib/LibGenericPoolOrderBookV3ArbOrderTakerConstants.sol";
 import "src/concrete/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 
-import "test/util/concrete/FlashLendingMockOrderBook.sol";
-
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
@@ -19,7 +17,15 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker(config)));
     }
 
-    constructor() ArbTest(buildArbTestConstructorConfig()) {}
+    constructor() ArbTest(buildArbTestConstructorConfig()) {
+        ICloneableV2(iArb).initialize(
+            abi.encode(
+                OrderBookV3ArbOrderTakerConfigV1(
+                    address(iOrderBook), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
+                )
+            )
+        );
+    }
 
     function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
         vm.assume(order.validInputs.length > 0);
@@ -27,24 +33,13 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         vm.assume(order.validOutputs.length > 0);
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
-        FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-
-        GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
-        arb.initialize(
-            abi.encode(
-                OrderBookV3ArbOrderTakerConfigV1(
-                    address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
-                )
-            )
-        );
-
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
 
-        arb.arb(
+        GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0
         );
@@ -63,18 +58,8 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
         vm.assume(minimumOutput > mintAmount);
-        FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
 
-        GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
-        arb.initialize(
-            abi.encode(
-                OrderBookV3ArbOrderTakerConfigV1(
-                    address(ob), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
-                )
-            )
-        );
-
-        iTakerOutput.mint(address(arb), mintAmount);
+        iTakerOutput.mint(iArb, mintAmount);
 
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
@@ -83,7 +68,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        arb.arb(
+        GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             minimumOutput
         );

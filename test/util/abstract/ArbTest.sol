@@ -2,6 +2,7 @@
 pragma solidity =0.8.19;
 
 import "forge-std/Test.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import {DeployerDiscoverableMetaV2ConstructionConfig} from
@@ -9,6 +10,7 @@ import {DeployerDiscoverableMetaV2ConstructionConfig} from
 import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "test/util/concrete/Refundoor.sol";
+import "test/util/concrete/FlashLendingMockOrderBook.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -29,13 +31,17 @@ abstract contract ArbTest is Test {
     Token immutable iTakerInput;
     Token immutable iTakerOutput;
     address immutable iRefundoor;
+    FlashLendingMockOrderBook immutable iOrderBook;
+    address iArb;
 
     constructor(ArbTestConstructorConfig memory config) {
         iDeployer = config.deployer;
         iImplementation = config.implementation;
+        iArb = Clones.clone(iImplementation);
         iTakerInput = new Token();
         iTakerOutput = new Token();
         iRefundoor = address(new Refundoor());
+        iOrderBook = new FlashLendingMockOrderBook();
     }
 
     function buildConstructorConfig(string memory metaPath)
