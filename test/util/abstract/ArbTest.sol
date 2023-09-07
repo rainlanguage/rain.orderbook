@@ -62,6 +62,28 @@ abstract contract ArbTest is Test {
         config = DeployerDiscoverableMetaV2ConstructionConfig(deployer, meta);
     }
 
+    function buildTakeOrderConfig(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+        internal
+        view
+        returns (TakeOrderConfig[] memory)
+    {
+        if (order.validInputs.length == 0) {
+            order.validInputs = new IO[](1);
+        }
+        if (order.validOutputs.length == 0) {
+            order.validOutputs = new IO[](1);
+        }
+        inputIOIndex = bound(inputIOIndex, 0, order.validInputs.length - 1);
+        outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
+
+        order.validInputs[inputIOIndex].token = address(iTakerOutput);
+        order.validOutputs[outputIOIndex].token = address(iTakerInput);
+
+        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
+        orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+        return orders;
+    }
+
     // Allow receiving funds at end of arb.
     fallback() external {}
 }
