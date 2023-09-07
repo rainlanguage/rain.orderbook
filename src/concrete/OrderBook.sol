@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Multicall} from "lib/openzeppelin-contracts/contracts/utils/Multicall.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "rain.math.fixedpoint/FixedPointDecimalArithmeticOpenZeppelin.sol";
-import "rain.math.fixedpoint/FixedPointDecimalScale.sol";
-import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import "rain.interpreter/src/lib/caller/LibContext.sol";
+import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalScale.sol";
+import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
 import {
     DeployerDiscoverableMetaV2,
     DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
-} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+import "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../interface/unstable/IOrderBookV3OrderTaker.sol";
@@ -177,8 +177,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     using LibOrder for Order;
     using LibUint256Array for uint256;
     using Math for uint256;
-    using FixedPointDecimalScale for uint256;
-    using FixedPointDecimalArithmeticOpenZeppelin for uint256;
+    using LibFixedPointDecimalScale for uint256;
+    using LibFixedPointDecimalArithmeticOpenZeppelin for uint256;
 
     /// All hashes of all active orders. There's nothing interesting in the value
     /// it's just nonzero if the order is live. The key is the hash of the order.

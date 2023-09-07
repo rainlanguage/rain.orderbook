@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
+import "lib/forge-std/src/Test.sol";
 
-import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/concrete/Reenteroor.sol";

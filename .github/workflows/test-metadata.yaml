@@ -6,7 +6,11 @@ jobs:
   test:
     strategy:
       matrix:
+<<<<<<< HEAD
         meta-file: [src/concrete/OrderBook.meta.json, src/concrete/GenericPoolOrderBookV3FlashBorrower.meta.json, src/concrete/GenericPoolOrderBookV3ArbOrderTaker.meta.json, src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.meta.json]
+=======
+        meta-file: [src/concrete/OrderBook.meta.json, src/concrete/GenericPoolOrderBookV3FlashBorrower.meta.json]
+>>>>>>> 29553542f23172cb378843a4a0089906daa3d96c
     name: Test metadata
     runs-on: ubuntu-latest
     steps:

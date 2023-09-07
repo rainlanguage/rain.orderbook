@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/proxy/Clones.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "lib/forge-std/src/Test.sol";
+import "lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
+import "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";

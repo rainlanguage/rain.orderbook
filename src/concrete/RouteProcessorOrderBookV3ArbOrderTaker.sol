@@ -4,9 +4,9 @@ pragma solidity =0.8.19;
 import "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
 
 import "../abstract/OrderBookV3ArbOrderTaker.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 bytes32 constant CALLER_META_HASH = bytes32(0xe45ec12419e88f2fed9938b77267520926dc4a2b09229e92f25c2f512ac445b2);
 
