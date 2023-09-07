@@ -16,9 +16,9 @@
 [submodule "lib/rain.factory"]
 	path = lib/rain.factory
 	url = https://github.com/rainprotocol/rain.factory
-[submodule "lib/v2-periphery"]
-	path = lib/v2-periphery
-	url = https://github.com/Uniswap/v2-periphery
+[submodule "lib/sushixswap-v2"]
+	path = lib/sushixswap-v2
+	url = https://github.com/rainprotocol/sushixswap-v2
 [submodule "lib/rain.math.fixedpoint"]
 	path = lib/rain.math.fixedpoint
 	url = https://github.com/rainprotocol/rain.math.fixedpoint

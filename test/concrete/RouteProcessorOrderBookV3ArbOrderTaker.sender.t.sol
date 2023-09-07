@@ -1,27 +1,30 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
-import "lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
-
 import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
+import "test/util/lib/LibRouteProcessorOrderBookV3ArbOrderTakerConstants.sol";
 
-import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
+
+import "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 
-contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
+import "rain.factory/src/interface/ICloneableV2.sol";
+
+contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
-            buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH);
-        return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3FlashBorrower(config)));
+            buildConstructorConfig(ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
+        return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(config)));
     }
 
     constructor() ArbTest(buildArbTestConstructorConfig()) {
         ICloneableV2(iArb).initialize(
             abi.encode(
-                OrderBookV3FlashBorrowerConfigV2(
-                    address(iOrderBook), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
+                OrderBookV3ArbOrderTakerConfigV1(
+                    address(iOrderBook),
+                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
+                    abi.encode(iRefundoor)
                 )
             )
         );
@@ -30,10 +33,8 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
         TakeOrderConfig[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV3FlashBorrower(iArb).arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
-            0,
-            abi.encode(iRefundoor, iRefundoor, "")
+        RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0
         );
     }
 
@@ -51,10 +52,9 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         TakeOrderConfig[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        GenericPoolOrderBookV3FlashBorrower(iArb).arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
-            minimumOutput,
-            abi.encode(iRefundoor, iRefundoor, "")
+        RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
+            minimumOutput
         );
     }
 }

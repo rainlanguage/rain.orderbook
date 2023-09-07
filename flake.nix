@@ -15,7 +15,7 @@
 
       in rec {
         packages = rec {
-          concrete-contracts = ["OrderBook" "GenericPoolOrderBookV3FlashBorrower"];
+          concrete-contracts = ["OrderBook" "GenericPoolOrderBookV3FlashBorrower" "GenericPoolOrderBookV3ArbOrderTaker" "RouteProcessorOrderBookV3ArbOrderTaker"];
           build-meta-cmd = contract: ''
             ${rain-cli} meta build \
               -i <(${rain-cli} meta solc artifact -c abi -i out/${contract}.sol/${contract}.json) -m solidity-abi-v2 -t json -e deflate -l en \
