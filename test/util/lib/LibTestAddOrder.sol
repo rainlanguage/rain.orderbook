@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import "rain.metadata/LibMeta.sol";
+import "lib/rain.metadata/src/LibMeta.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 import "src/lib/LibOrder.sol";
 import "src/concrete/OrderBook.sol";
