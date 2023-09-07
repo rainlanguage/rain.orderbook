@@ -7,6 +7,7 @@ import "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
+import "test/util/concrete/FlashLendingMockOrderBook.sol";
 
 import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
@@ -17,43 +18,6 @@ contract Token is ERC20 {
     function mint(address receiver_, uint256 amount_) external {
         _mint(receiver_, amount_);
     }
-}
-
-contract MockOrderBook is IOrderBookV3 {
-    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
-        external
-        returns (bool)
-    {
-        receiver.onFlashLoan(msg.sender, token, amount, 0, data);
-        return true;
-    }
-
-    function takeOrders(TakeOrdersConfigV2 calldata) external pure returns (uint256 totalInput, uint256 totalOutput) {
-        return (0, 0);
-    }
-
-    function addOrder(OrderConfigV2 calldata) external pure returns (bool stateChanged) {
-        return false;
-    }
-
-    function orderExists(bytes32) external pure returns (bool exists) {
-        return false;
-    }
-
-    function clear(
-        Order memory alice,
-        Order memory bob,
-        ClearConfig calldata clearConfig,
-        SignedContextV1[] memory aliceSignedContextV1,
-        SignedContextV1[] memory bobSignedContextV1
-    ) external {}
-    function deposit(address token, uint256 vaultId, uint256 amount) external {}
-    function flashFee(address token, uint256 amount) external view returns (uint256) {}
-    function maxFlashLoan(address token) external view returns (uint256) {}
-    function removeOrder(Order calldata order) external returns (bool stateChanged) {}
-
-    function vaultBalance(address owner, address token, uint256 id) external view returns (uint256 balance) {}
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external {}
 }
 
 contract Mock0xProxy {
@@ -92,7 +56,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
         vm.assume(order.validOutputs.length > 0);
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
-        MockOrderBook ob = new MockOrderBook();
+        FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
 
         Token takerInput = new Token();
@@ -133,7 +97,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
         vm.assume(minimumOutput > mintAmount);
-        MockOrderBook ob = new MockOrderBook();
+        FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
 
         Token takerInput = new Token();

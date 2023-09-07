@@ -36,16 +36,6 @@ OrderBookRemoveOrderMockTest:testRemoveOrderDifferentOwners(address,address,((ad
 OrderBookRemoveOrderMockTest:testRemoveOrderDifferentOwnersDifferent(address,address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes,uint256[]),bytes),address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes,uint256[]),bytes),address) (runs: 5096, μ: 10466985, ~: 10453491)
 OrderBookRemoveOrderMockTest:testRemoveOrderDoesNotExist(address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes,uint256[]),bytes),address) (runs: 5096, μ: 386811, ~: 382063)
 OrderBookRemoveOrderMockTest:testRemoveOrderOnlyOwner(address,address,((address,uint8,uint256)[],(address,uint8,uint256)[],(address,bytes,uint256[]),bytes),address) (runs: 5096, μ: 2603402, ~: 2601080)
-<<<<<<< HEAD
-OrderBookTakeOrderNoopTest:testTakeOrderNoopNonLiveOrderOne((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,uint256[],bytes)) (runs: 5096, μ: 431663, ~: 427913)
-OrderBookTakeOrderNoopTest:testTakeOrderNoopNonLiveOrderTwo((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,uint256,uint256,(address,uint256[],bytes),(address,uint256[],bytes)) (runs: 5096, μ: 851327, ~: 847158)
-OrderBookTakeOrderNoopTest:testTakeOrderNoopZeroOrders() (gas: 12403)
-OrderBookTakeOrderTest:testTakeOrderPrecisionKnownBad01() (gas: 2629509)
-OrderBookTakeOrderTokenMismatchDecimalsTest:testTokenMismatchInputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 622408, ~: 616988)
-OrderBookTakeOrderTokenMismatchDecimalsTest:testTokenMismatchOutputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 622810, ~: 617092)
-OrderBookTakeOrderTokenMismatchTest:testTokenMismatchInputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 618341, ~: 612011)
-OrderBookTakeOrderTokenMismatchTest:testTokenMismatchOutputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 619601, ~: 613271)
-=======
 OrderBookTakeOrderNoopTest:testTakeOrderNoopNonLiveOrderOne((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,uint256[],bytes)) (runs: 5096, μ: 431665, ~: 427913)
 OrderBookTakeOrderNoopTest:testTakeOrderNoopNonLiveOrderTwo((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,uint256,uint256,(address,uint256[],bytes),(address,uint256[],bytes)) (runs: 5096, μ: 851326, ~: 847158)
 OrderBookTakeOrderNoopTest:testTakeOrderNoopZeroOrders() (gas: 12403)
@@ -54,17 +44,12 @@ OrderBookTakeOrderTokenMismatchDecimalsTest:testTokenMismatchInputs((address,boo
 OrderBookTakeOrderTokenMismatchDecimalsTest:testTokenMismatchOutputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 622684, ~: 616897)
 OrderBookTakeOrderTokenMismatchTest:testTokenMismatchInputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 618341, ~: 611981)
 OrderBookTakeOrderTokenMismatchTest:testTokenMismatchOutputs((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 619601, ~: 613241)
->>>>>>> 29553542f23172cb378843a4a0089906daa3d96c
 OrderBookWithdrawTest:testWithdrawEmptyVault(address,address,uint256,uint256) (runs: 5096, μ: 15251, ~: 15251)
 OrderBookWithdrawTest:testWithdrawFailure(address,uint256,uint256,uint256) (runs: 5096, μ: 8937393460516719704, ~: 8937393460516738938)
 OrderBookWithdrawTest:testWithdrawFullVault(address,uint256,uint256,uint256) (runs: 5096, μ: 41257, ~: 41256)
 OrderBookWithdrawTest:testWithdrawMany((bool,address,address,uint256,uint248)[]) (runs: 5096, μ: 1437729, ~: 1357542)
 OrderBookWithdrawTest:testWithdrawPartialVault(address,uint256,uint256,uint256) (runs: 5096, μ: 51929, ~: 51929)
 OrderBookWithdrawTest:testWithdrawReentrant(address,uint256,uint256,address,address,uint256) (runs: 5096, μ: 506228, ~: 507997)
-<<<<<<< HEAD
 OrderBookWithdrawTest:testWithdrawZero(address,address,uint256) (runs: 5096, μ: 12809, ~: 12809)
 RouteProcessorOrderBookV3ArbOrderTakerTest:testMinimumOutput((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,uint256,uint256) (runs: 5096, μ: 2525859, ~: 2525280)
 RouteProcessorOrderBookV3ArbOrderTakerTest:testTakeOrdersSender((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256) (runs: 5096, μ: 2468311, ~: 2468803)
-=======
-OrderBookWithdrawTest:testWithdrawZero(address,address,uint256) (runs: 5096, μ: 12809, ~: 12809)
->>>>>>> 29553542f23172cb378843a4a0089906daa3d96c
