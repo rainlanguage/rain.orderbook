@@ -8,8 +8,7 @@ pub mod withdraw;
 pub mod addorder;
 pub mod removeorder;
 pub mod listorders;
-
-
+pub mod serve;
 
 
 #[derive(Parser)]
@@ -37,7 +36,10 @@ pub enum Orderbook {
     RemoveOrder(removeorder::RemoveOrder),
 
     /// List all orders from particular schema compatible sg
-    ListOrders(listorders::ListOrder)
+    ListOrders(listorders::ListOrder),
+
+    /// Serve the browser-based GUI
+    Serve(serve::Serve)
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
@@ -60,6 +62,10 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
         } ,
         Orderbook::ListOrders(listorders) => {
             let _ = listorders::handle_list_order(listorders).await ;
+            Ok(())
+        },
+        Orderbook::Serve(serve) => {
+            let _ = serve::handle_serve().await ;
             Ok(())
         }
     }

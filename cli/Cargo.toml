@@ -29,7 +29,14 @@ crossterm = "0.25"
 cbor = "0.4.1"
 cursive_table_view = {version = "0.14" }
 bigdecimal = { version = "0.4.1", features = ["serde"] } 
+
+actix-web = "4"
+static-files = "0.2"
+
 [dependencies.cursive]
 version = "0.20"
 default-features = false
 features = ["crossterm-backend"]
+
+[build-dependencies]
+static-files = "0.2"
