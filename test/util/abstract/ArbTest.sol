@@ -7,6 +7,15 @@ import "test/util/lib/LibTestConstants.sol";
 import {DeployerDiscoverableMetaV2ConstructionConfig} from
     "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
 import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+
+contract Token is ERC20 {
+    constructor() ERC20("Token", "TKN") {}
+
+    function mint(address receiver, uint256 amount) external {
+        _mint(receiver, amount);
+    }
+}
 
 struct ArbTestConstructorConfig {
     address deployer;
@@ -16,10 +25,14 @@ struct ArbTestConstructorConfig {
 abstract contract ArbTest is Test {
     address immutable iDeployer;
     address immutable iImplementation;
+    Token immutable iTakerInput;
+    Token immutable iTakerOutput;
 
     constructor(ArbTestConstructorConfig memory config) {
         iDeployer = config.deployer;
         iImplementation = config.implementation;
+        iTakerInput = new Token();
+        iTakerOutput = new Token();
     }
 
     function buildConstructorConfig(string memory metaPath)

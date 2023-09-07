@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "test/util/abstract/ArbTest.sol";
+import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
 import "lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
-import "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
@@ -11,14 +10,6 @@ import "test/util/concrete/FlashLendingMockOrderBook.sol";
 
 import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
-
-contract Token is ERC20 {
-    constructor() ERC20("Token", "TKN") {}
-
-    function mint(address receiver_, uint256 amount_) external {
-        _mint(receiver_, amount_);
-    }
-}
 
 contract Mock0xProxy {
     fallback() external {
@@ -44,9 +35,6 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
 
-        Token takerInput = new Token();
-        Token takerOutput = new Token();
-
         GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(iImplementation));
         arb.initialize(
             abi.encode(
@@ -56,8 +44,8 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
             )
         );
 
-        order.validInputs[inputIOIndex].token = address(takerOutput);
-        order.validOutputs[outputIOIndex].token = address(takerInput);
+        order.validInputs[inputIOIndex].token = address(iTakerOutput);
+        order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
@@ -85,9 +73,6 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
 
-        Token takerInput = new Token();
-        Token takerOutput = new Token();
-
         GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(iImplementation));
         arb.initialize(
             abi.encode(
@@ -97,10 +82,10 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
             )
         );
 
-        takerOutput.mint(address(arb), mintAmount);
+        iTakerOutput.mint(address(arb), mintAmount);
 
-        order.validInputs[inputIOIndex].token = address(takerOutput);
-        order.validOutputs[outputIOIndex].token = address(takerInput);
+        order.validInputs[inputIOIndex].token = address(iTakerOutput);
+        order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));

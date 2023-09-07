@@ -2,24 +2,15 @@
 pragma solidity =0.8.19;
 
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibRouteProcessorOrderBookV3ArbOrderTakerConstants.sol";
 
-import "test/util/abstract/ArbTest.sol";
+import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
 import "test/util/concrete/FlashLendingMockOrderBook.sol";
 
 import "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
-
-contract Token is ERC20 {
-    constructor() ERC20("Token", "TKN") {}
-
-    function mint(address receiver_, uint256 amount_) external {
-        _mint(receiver_, amount_);
-    }
-}
 
 contract Mock0xProxy {
     fallback() external {
@@ -34,9 +25,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
         return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(config)));
     }
 
-    constructor()
-        ArbTest(buildArbTestConstructorConfig())
-    {}
+    constructor() ArbTest(buildArbTestConstructorConfig()) {}
 
     function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
         vm.assume(order.validInputs.length > 0);
@@ -46,9 +35,6 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
 
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
-
-        Token takerInput = new Token();
-        Token takerOutput = new Token();
 
         RouteProcessorOrderBookV3ArbOrderTaker arb =
             RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
@@ -62,8 +48,8 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
             )
         );
 
-        order.validInputs[inputIOIndex].token = address(takerOutput);
-        order.validOutputs[outputIOIndex].token = address(takerInput);
+        order.validInputs[inputIOIndex].token = address(iTakerOutput);
+        order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
@@ -87,9 +73,6 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
         Mock0xProxy proxy = new Mock0xProxy();
 
-        Token takerInput = new Token();
-        Token takerOutput = new Token();
-
         RouteProcessorOrderBookV3ArbOrderTaker arb =
             RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
         arb.initialize(
@@ -102,10 +85,10 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
             )
         );
 
-        takerOutput.mint(address(arb), mintAmount);
+        iTakerOutput.mint(address(arb), mintAmount);
 
-        order.validInputs[inputIOIndex].token = address(takerOutput);
-        order.validOutputs[outputIOIndex].token = address(takerInput);
+        order.validInputs[inputIOIndex].token = address(iTakerOutput);
+        order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
