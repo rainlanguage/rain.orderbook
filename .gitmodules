@@ -13,15 +13,18 @@
 [submodule "lib/rain.lib.memkv"]
 	path = lib/rain.lib.memkv
 	url = https://github.com/rainprotocol/rain.lib.memkv
-[submodule "lib/rain.datacontract"]
-	path = lib/rain.datacontract
-	url = https://github.com/rainprotocol/rain.datacontract
 [submodule "lib/rain.factory"]
 	path = lib/rain.factory
 	url = https://github.com/rainprotocol/rain.factory
-[submodule "lib/rain.interpreter"]
-	path = lib/rain.interpreter
-	url = https://github.com/rainprotocol/rain.interpreter
 [submodule "lib/v2-periphery"]
 	path = lib/v2-periphery
 	url = https://github.com/Uniswap/v2-periphery
+[submodule "lib/rain.math.fixedpoint"]
+	path = lib/rain.math.fixedpoint
+	url = https://github.com/rainprotocol/rain.math.fixedpoint
+[submodule "lib/rain.solmem"]
+	path = lib/rain.solmem
+	url = https://github.com/rainprotocol/rain.solmem
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainprotocol/rain.interpreter

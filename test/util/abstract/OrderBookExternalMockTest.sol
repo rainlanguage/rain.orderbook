@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
+import "lib/forge-std/src/Test.sol";
 
-import "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
-import "rain.metadata/LibMeta.sol";
+import "lib/rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
+import "lib/rain.metadata/src/LibMeta.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibOrderBookConstants.sol";
