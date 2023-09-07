@@ -12,12 +12,6 @@ import "test/util/concrete/FlashLendingMockOrderBook.sol";
 import "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 
-contract Mock0xProxy {
-    fallback() external {
-        Address.sendValue(payable(msg.sender), address(this).balance);
-    }
-}
-
 contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
@@ -34,7 +28,6 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-        Mock0xProxy proxy = new Mock0xProxy();
 
         RouteProcessorOrderBookV3ArbOrderTaker arb =
             RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
@@ -43,7 +36,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
                 OrderBookV3ArbOrderTakerConfigV1(
                     address(ob),
                     EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
-                    abi.encode(address(proxy))
+                    abi.encode(iRefundoor)
                 )
             )
         );
@@ -71,7 +64,6 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
 
         vm.assume(minimumOutput > mintAmount);
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-        Mock0xProxy proxy = new Mock0xProxy();
 
         RouteProcessorOrderBookV3ArbOrderTaker arb =
             RouteProcessorOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
@@ -80,7 +72,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
                 OrderBookV3ArbOrderTakerConfigV1(
                     address(ob),
                     EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
-                    abi.encode(address(proxy))
+                    abi.encode(iRefundoor)
                 )
             )
         );

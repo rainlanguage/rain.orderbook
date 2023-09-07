@@ -11,12 +11,6 @@ import "test/util/concrete/FlashLendingMockOrderBook.sol";
 import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 import "src/interface/unstable/IOrderBookV3.sol";
 
-contract Mock0xProxy {
-    fallback() external {
-        Address.sendValue(payable(msg.sender), address(this).balance);
-    }
-}
-
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
@@ -33,7 +27,6 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-        Mock0xProxy proxy = new Mock0xProxy();
 
         GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(iImplementation));
         arb.initialize(
@@ -53,7 +46,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         arb.arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
             0,
-            abi.encode(address(proxy), address(proxy), "")
+            abi.encode(iRefundoor, iRefundoor, "")
         );
     }
 
@@ -71,7 +64,6 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
 
         vm.assume(minimumOutput > mintAmount);
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-        Mock0xProxy proxy = new Mock0xProxy();
 
         GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(iImplementation));
         arb.initialize(
@@ -94,7 +86,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         arb.arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
             minimumOutput,
-            abi.encode(address(proxy), address(proxy), "")
+            abi.encode(iRefundoor, iRefundoor, "")
         );
     }
 }

@@ -8,6 +8,7 @@ import {DeployerDiscoverableMetaV2ConstructionConfig} from
     "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
 import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "test/util/concrete/Refundoor.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -27,12 +28,14 @@ abstract contract ArbTest is Test {
     address immutable iImplementation;
     Token immutable iTakerInput;
     Token immutable iTakerOutput;
+    address immutable iRefundoor;
 
     constructor(ArbTestConstructorConfig memory config) {
         iDeployer = config.deployer;
         iImplementation = config.implementation;
         iTakerInput = new Token();
         iTakerOutput = new Token();
+        iRefundoor = address(new Refundoor());
     }
 
     function buildConstructorConfig(string memory metaPath)

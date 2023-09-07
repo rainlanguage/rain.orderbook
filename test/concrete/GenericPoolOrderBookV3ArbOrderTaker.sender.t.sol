@@ -12,12 +12,6 @@ import "src/interface/unstable/IOrderBookV3.sol";
 
 import "test/util/concrete/FlashLendingMockOrderBook.sol";
 
-contract Mock0xProxy {
-    fallback() external {
-        Address.sendValue(payable(msg.sender), address(this).balance);
-    }
-}
-
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
@@ -34,7 +28,6 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-        Mock0xProxy proxy = new Mock0xProxy();
 
         GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
         arb.initialize(
@@ -52,9 +45,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
 
         arb.arb(
-            TakeOrdersConfigV2(
-                0, type(uint256).max, type(uint256).max, orders, abi.encode(address(proxy), address(proxy), "")
-            ),
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0
         );
     }
@@ -73,7 +64,6 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
 
         vm.assume(minimumOutput > mintAmount);
         FlashLendingMockOrderBook ob = new FlashLendingMockOrderBook();
-        Mock0xProxy proxy = new Mock0xProxy();
 
         GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
         arb.initialize(
@@ -94,9 +84,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         arb.arb(
-            TakeOrdersConfigV2(
-                0, type(uint256).max, type(uint256).max, orders, abi.encode(address(proxy), address(proxy), "")
-            ),
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             minimumOutput
         );
     }
