@@ -17,7 +17,7 @@ contract DeployGenericPoolOrderBookV3FlashBorrower is Script {
         // https://github.com/rainprotocol/rain.interpreter/actions/runs/6000630847/job/16273099850
         address i9rDeployer = 0xCA0Ef6E0d9cd47d44aF5d87098f8482669303b06;
 
-        console2.log("DeployGenericPoolOrderBookFlashBorrower meta hash:");
+        console2.log("DeployGenericPoolOrderBookV3FlashBorrower meta hash:");
         console2.logBytes32(keccak256(meta));
 
         vm.startBroadcast(deployerPrivateKey);

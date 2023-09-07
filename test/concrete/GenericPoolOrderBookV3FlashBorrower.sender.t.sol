@@ -76,7 +76,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
             abi.encode(address(0), address(0), address(0))
         );
         bytes memory meta = vm.readFileBinary(GENERIC_POOL_ORDER_BOOK_FLASH_BORROWER_META_PATH);
-        console2.log("GenericPoolOrderBookFlashBorrowerTest meta hash:");
+        console2.log("GenericPoolOrderBookV3FlashBorrowerTest meta hash:");
         console2.logBytes32(keccak256(meta));
         implementation = address(
             new GenericPoolOrderBookV3FlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig(
