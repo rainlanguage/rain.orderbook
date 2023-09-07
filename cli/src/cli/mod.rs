@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::command;
 use clap::{Parser, Subcommand};
+use std::thread;
 
 pub mod registry;
 pub mod deposit;
@@ -64,8 +65,11 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
             let _ = listorders::handle_list_order(listorders).await ;
             Ok(())
         },
-        Orderbook::Serve(serve) => {
-            let _ = serve::handle_serve().await ;
+        Orderbook::Serve(_) => {
+            // the actix server needs its own thread
+            thread::spawn(|| {
+            let _ = serve::handle_serve();
+            }).join().expect("Thread panicked");
             Ok(())
         }
     }

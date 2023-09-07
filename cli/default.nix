@@ -24,6 +24,7 @@ pkgs.mkShell {
     pkgs.darwin.apple_sdk.frameworks.Security
     pkgs.darwin.apple_sdk.frameworks.CoreFoundation
     pkgs.darwin.apple_sdk.frameworks.CoreServices
+    pkgs.darwin.apple_sdk.frameworks.AppKit
   ]);
 
   shellHook = ''
