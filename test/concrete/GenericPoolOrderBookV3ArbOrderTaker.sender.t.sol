@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
+import "test/util/abstract/ArbTest.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
@@ -27,29 +27,16 @@ contract Mock0xProxy {
     }
 }
 
-contract GenericPoolOrderBookV3ArbOrderTakerTest is Test {
-    address immutable deployer;
-    address immutable implementation;
-
-    constructor() {
-        deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
-        // All non-mocked calls will revert.
-        vm.etch(deployer, REVERTING_MOCK_BYTECODE);
-        vm.mockCall(
-            deployer,
-            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
-            abi.encode(address(0), address(0), address(0))
-        );
-        bytes memory meta = vm.readFileBinary(GENERIC_POOL_ORDER_BOOK_ARB_ORDER_TAKER_META_PATH);
-        console2.log("GenericPoolOrderBookV3ArbOrderTakerTest meta hash:");
-        console2.logBytes32(keccak256(meta));
-        implementation = address(
-            new GenericPoolOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV2ConstructionConfig(
-            deployer,
-            meta
-            ))
-        );
+contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
+    function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
+        (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
+            buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
+        return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker(config)));
     }
+
+    constructor()
+        ArbTest(buildArbTestConstructorConfig())
+    {}
 
     function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
         vm.assume(order.validInputs.length > 0);
@@ -63,7 +50,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is Test {
         Token takerInput = new Token();
         Token takerOutput = new Token();
 
-        GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(implementation));
+        GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
         arb.initialize(
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
@@ -105,7 +92,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is Test {
         Token takerInput = new Token();
         Token takerOutput = new Token();
 
-        GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(implementation));
+        GenericPoolOrderBookV3ArbOrderTaker arb = GenericPoolOrderBookV3ArbOrderTaker(Clones.clone(iImplementation));
         arb.initialize(
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
@@ -130,7 +117,4 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is Test {
             minimumOutput
         );
     }
-
-    // Allow receiving funds at end of arb.
-    fallback() external {}
 }

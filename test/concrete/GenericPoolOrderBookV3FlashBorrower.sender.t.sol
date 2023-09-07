@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/forge-std/src/Test.sol";
+import "test/util/abstract/ArbTest.sol";
 import "lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
@@ -26,29 +26,14 @@ contract Mock0xProxy {
     }
 }
 
-contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
-    address immutable deployer;
-    address immutable implementation;
-
-    constructor() {
-        deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
-        // All non-mocked calls will revert.
-        vm.etch(deployer, REVERTING_MOCK_BYTECODE);
-        vm.mockCall(
-            deployer,
-            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
-            abi.encode(address(0), address(0), address(0))
-        );
-        bytes memory meta = vm.readFileBinary(GENERIC_POOL_ORDER_BOOK_FLASH_BORROWER_META_PATH);
-        console2.log("GenericPoolOrderBookV3FlashBorrowerTest meta hash:");
-        console2.logBytes32(keccak256(meta));
-        implementation = address(
-            new GenericPoolOrderBookV3FlashBorrower(DeployerDiscoverableMetaV2ConstructionConfig(
-            deployer,
-            meta
-            ))
-        );
+contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
+    function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
+        (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
+            buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH);
+        return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3FlashBorrower(config)));
     }
+
+    constructor() ArbTest(buildArbTestConstructorConfig()) {}
 
     function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
         vm.assume(order.validInputs.length > 0);
@@ -62,7 +47,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
         Token takerInput = new Token();
         Token takerOutput = new Token();
 
-        GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
+        GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(iImplementation));
         arb.initialize(
             abi.encode(
                 OrderBookV3FlashBorrowerConfigV2(
@@ -103,7 +88,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
         Token takerInput = new Token();
         Token takerOutput = new Token();
 
-        GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(implementation));
+        GenericPoolOrderBookV3FlashBorrower arb = GenericPoolOrderBookV3FlashBorrower(Clones.clone(iImplementation));
         arb.initialize(
             abi.encode(
                 OrderBookV3FlashBorrowerConfigV2(
@@ -127,7 +112,4 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is Test {
             abi.encode(address(proxy), address(proxy), "")
         );
     }
-
-    // Allow receiving funds at end of arb.
-    fallback() external {}
 }
