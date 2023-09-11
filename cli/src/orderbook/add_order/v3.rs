@@ -6,8 +6,12 @@ use std::str::FromStr;
 use std::{convert::TryFrom, sync::Arc};
 
 
-use crate::{cli::registry::{IOrderBookV2, IParserV1, Io, EvaluableConfig, OrderConfig}, gasoracle::{is_block_native_supported, gas_price_oracle}};
+use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, OrderConfigV2}, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
+/// Add an order to orderbook(V3)
+/// 
+/// # Example 
+/// ```
 #[allow(unused_variables)]
 pub async fn add_ob_order(
     orderbook_address : H160,
@@ -26,7 +30,7 @@ pub async fn add_ob_order(
 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64(); 
 
-    let orderbook = IOrderBookV2::new(orderbook_address.clone(), Arc::new(provider.clone())); 
+    let orderbook = IOrderBookV3::new(orderbook_address.clone(), Arc::new(provider.clone())); 
 
     let parser_contract = IParserV1::new(parser_address.clone(),Arc::new(provider.clone())) ;   
 
@@ -51,9 +55,9 @@ pub async fn add_ob_order(
         }
     }).collect() ; 
 
-    let eval_config = EvaluableConfig {
+    let eval_config = EvaluableConfigV2 {
         deployer : parser_address,
-        sources : sources ,
+        bytecode : sources ,
         constants : constants
     } ;
 
@@ -70,7 +74,7 @@ pub async fn add_ob_order(
 
     let meta_bytes = Bytes::from(meta_string) ; 
 
-    let order_config = OrderConfig {
+    let order_config = OrderConfigV2 {
         valid_inputs : io_arr.clone() ,
         valid_outputs : io_arr.clone(),
         evaluable_config : eval_config ,

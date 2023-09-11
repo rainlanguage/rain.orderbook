@@ -8,7 +8,7 @@ use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use anyhow::anyhow;
 
 use ethers_signers::{Ledger, HDPath};
-use crate::orderbook::deposit::deposit_token;
+use crate::orderbook::deposit::v3::deposit_token;
 use crate::tokens::approve_tokens;
 
 use super::registry::RainNetworkOptions;
@@ -40,7 +40,11 @@ pub struct Deposit{
 
     /// optional vault id to deposit in (in decimals)
     #[arg(short, long)]
-    pub vault_id : Option<String> , 
+    pub vault_id : Option<String> ,
+
+    /// address index of the wallet to accessed. defualt 0.
+    #[arg(long, default_value="0")]
+    address_index : Option<usize> , 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
@@ -104,7 +108,7 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
             address
         },
         Err(_) => {
-            return Err(anyhow!("\n ❌Incorrect orderbook address.")) ;
+            return Err(anyhow!("\n❌Incorrect orderbook address.")) ;
         }
     };
 
@@ -113,14 +117,14 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
             address
         },
         Err(_) => {
-            return Err(anyhow!("\n ❌Incorrect token address.")) ;
+            return Err(anyhow!("\n❌Incorrect token address.")) ;
         }
     };  
 
     let token_amount: U256 = match parse_units(deposit.amount.clone(),deposit.token_decimals.clone()) {
         Ok(amount) => amount.into() ,
         Err(_) => {
-            return Err(anyhow!("\n ❌Incorrect amount.")) ;
+            return Err(anyhow!("\n❌Incorrect amount.")) ;
         }
     } ;
 
@@ -129,7 +133,7 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
             match U256::from_dec_str(&val) {
                 Ok(id) => id ,
                 Err(_) => {
-                    return Err(anyhow!("\n ❌Invalid vault id.")) ;
+                    return Err(anyhow!("\n❌Invalid vault id.")) ;
                 }
             }
         } ,
@@ -143,7 +147,13 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
     .expect("\n❌Could not instantiate HTTP Provider");  
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id.clone()).await?;   
+    let wallet= Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            deposit.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");    
 
     // Approve token for deposit 
     let _ = approve_tokens(

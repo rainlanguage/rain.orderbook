@@ -7,7 +7,7 @@ use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::U256} ; 
 use anyhow::anyhow;
 use ethers_signers::{Ledger, HDPath};
-use crate::orderbook::withdraw::withdraw_tokens;
+use crate::orderbook::withdraw::v3::withdraw_tokens;
 
 use super::registry::RainNetworkOptions;
 
@@ -38,6 +38,10 @@ pub struct Withdraw{
     /// decimal vault id to withdraw from
     #[arg(long)]
     vault_id : String , 
+
+    /// address index of the wallet to accessed. defualt 0.
+    #[arg(long, default_value="0")]
+    address_index : Option<usize> , 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
@@ -128,7 +132,13 @@ pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> {
     .expect("\n❌Could not instantiate HTTP Provider");  
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?;
+    let wallet= Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            withdraw.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
 
     let _ = withdraw_tokens(
         token_address,

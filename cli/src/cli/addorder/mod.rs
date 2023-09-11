@@ -8,7 +8,7 @@ use ethers::{providers::{Provider, Http}, types::H160} ;
 use anyhow::anyhow;
 
 
-use crate::orderbook::addorder::add_ob_order;
+use crate::orderbook::add_order::v3::add_ob_order;
 
 use super::registry::RainNetworkOptions; 
 
@@ -43,6 +43,10 @@ pub struct AddOrder{
     /// address of the token to deposit
     #[arg(short='m', long)]
     order_meta : String, 
+
+    /// address index of the wallet to accessed. defualt 0.
+    #[arg(long, default_value="0")]
+    address_index : Option<usize> , 
     
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
@@ -106,7 +110,13 @@ pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {
     .expect("\n❌Could not instantiate HTTP Provider");  
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await?; 
+    let wallet= Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            add_order.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
 
     let parser_address = H160::from_str(&String::from(add_order.parser_address)).unwrap(); 
     let orderbook_address = H160::from_str(&String::from(add_order.orderbook)).unwrap();
