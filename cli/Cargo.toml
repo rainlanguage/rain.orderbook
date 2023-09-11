@@ -32,6 +32,7 @@ bigdecimal = { version = "0.4.1", features = ["serde"] }
 
 actix-web = "4"
 static-files = "0.2"
+derive_more = "0.99.17"
 
 [dependencies.cursive]
 version = "0.20"

@@ -3096,6 +3096,7 @@ dependencies = [
  "crossterm",
  "cursive",
  "cursive_table_view",
+ "derive_more",
  "ethers",
  "ethers-signers",
  "graphql_client",

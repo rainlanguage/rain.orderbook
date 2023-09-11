@@ -13,8 +13,9 @@ use crate::tokens::approve_tokens;
 
 use super::registry::RainNetworkOptions;
 
+use serde::Deserialize;
 
-#[derive(Parser,Debug,Clone)]
+#[derive(Parser,Debug,Clone,Deserialize)]
 pub struct Deposit{ 
 
     /// network to deposit
@@ -23,23 +24,23 @@ pub struct Deposit{
 
     /// address of the orderbook 
     #[arg(short, long)]
-    orderbook : String, 
+    pub orderbook : String, 
 
     /// address of the token to deposit
     #[arg(short='t', long, num_args = 1..)]
-    token_address : String, 
+    pub token_address : String, 
 
     /// decimals coressponding to the token
     #[arg(short='d', long, num_args = 1..)]
-    token_decimals : u32, 
+    pub token_decimals : u32, 
 
     /// amount to deposit.
     #[arg(short, long)]
-    amount : String,
+    pub amount : String,
 
     /// optional vault id to deposit in (in decimals)
     #[arg(short, long)]
-    vault_id : Option<String> , 
+    pub vault_id : Option<String> , 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]

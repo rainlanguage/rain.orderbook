@@ -1,12 +1,14 @@
 
 use clap::ValueEnum;
 
-use ethers::contract::abigen ; 
+use ethers::contract::abigen; 
+
+use serde::Deserialize;
 
 /// # RainNetworkOptions
 /// Enum representing options for supported networks for cross deploying contracts.
  #[derive(Debug)]
- #[derive(Copy,Clone,ValueEnum)]
+ #[derive(Copy,Clone,ValueEnum, Deserialize)]
 pub enum RainNetworkOptions{
     Ethereum,
     Polygon,
