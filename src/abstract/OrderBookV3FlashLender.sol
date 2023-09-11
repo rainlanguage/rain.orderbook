@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.18;
 
-import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../interface/ierc3156/IERC3156FlashBorrower.sol";
 import "../interface/ierc3156/IERC3156FlashLender.sol";
@@ -33,13 +33,13 @@ error ActiveDebt(address receiver, address token, uint256 amount);
 /// to connect external liquidity to live orders via arbitrage.
 uint256 constant FLASH_FEE = 0;
 
-/// @title OrderBookFlashLender
+/// @title OrderBookV3FlashLender
 /// @notice Implements `IERC3156FlashLender` for `OrderBook`. Based on the
 /// reference implementation by Alberto Cuesta Cañada found at
 /// https://eips.ethereum.org/EIPS/eip-3156
 /// Several features found in the reference implementation are simplified or
-/// hardcoded for `Orderbook`.
-abstract contract OrderBookFlashLender is IERC3156FlashLender {
+/// hardcoded for `OrderBookV3`.
+abstract contract OrderBookV3FlashLender is IERC3156FlashLender {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -97,7 +97,11 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
     /// @param token The token being sent or for the debt being paid.
     /// @param receiver The receiver of the token or holder of the debt.
     /// @param sendAmount The amount to send or repay.
-    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount) internal {
+    /// @return The final amount sent after any debt repayment.
+    function _decreaseFlashDebtThenSendToken(address token, address receiver, uint256 sendAmount)
+        internal
+        returns (uint256)
+    {
         // If this token transfer matches the active debt then prioritise
         // reducing debt over sending tokens.
         if (token == _sToken && receiver == address(_sReceiver)) {
@@ -112,6 +116,7 @@ abstract contract OrderBookFlashLender is IERC3156FlashLender {
         if (sendAmount > 0) {
             IERC20(token).safeTransfer(receiver, sendAmount);
         }
+        return sendAmount;
     }
 
     /// @inheritdoc IERC3156FlashLender

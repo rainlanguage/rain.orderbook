@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
+import "lib/forge-std/src/Test.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibOrderBookConstants.sol";
@@ -20,7 +20,7 @@ abstract contract OrderBookSelfTest is Test, OrderBook {
         vm.etch(address(deployer), REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             address(deployer),
-            abi.encodeWithSelector(IExpressionDeployerV1.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
             abi.encode(address(0), address(0), address(0))
         );
         vm.resumeGasMetering();
@@ -32,5 +32,5 @@ abstract contract OrderBookSelfTest is Test, OrderBook {
         vm.resumeGasMetering();
     }
 
-    constructor() OrderBook(DeployerDiscoverableMetaV1ConstructionConfig(constructDeployer(), constructMeta())) {}
+    constructor() OrderBook(DeployerDiscoverableMetaV2ConstructionConfig(constructDeployer(), constructMeta())) {}
 }

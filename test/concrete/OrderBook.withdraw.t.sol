@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
+import "lib/forge-std/src/Test.sol";
 
-import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import "test/util/abstract/OrderBookExternalMockTest.sol";
 import "test/util/concrete/Reenteroor.sol";
@@ -142,10 +142,10 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit and withdrawal amounts must be positive.
-            vm.assume(actions[i].amount > 0);
-            assumeNotPrecompile(actions[i].token);
-            // Avoid errors from attempting to etch the orderbook.
-            vm.assume(actions[i].token != address(iOrderbook));
+            actions[i].amount = uint248(bound(actions[i].amount, 1, type(uint248).max));
+            // Ensure the token doesn't hit some known address and cause bad
+            // etching.
+            actions[i].token = address(uint160(uint256(keccak256(abi.encodePacked(actions[i].token)))));
         }
         Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {

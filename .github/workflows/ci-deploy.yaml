@@ -8,26 +8,19 @@ jobs:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-          # https://github.com/foundry-rs/foundry/issues/3440#issuecomment-1641853058
-          version: nightly-cc5637a979050c39b3d06bc4cc6134f0591ee8d0
-      - name: Install rain
-        run: nix profile install github:rainprotocol/rain.cli
-      - run: rain --version
+        with:
+          version: nightly
       - name: Report public key to make it easy to send funds for deployments
         run: cast wallet address "${DEPLOYMENT_KEY}"
+      - name: Forge shallow install
+        run: forge install --shallow
       - name: Forge deploy contracts to mumbai
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
         run: nix run .#deploy-contracts
-      # - name: Forge deploy contract to mumbai
-      #   env:
-      #     CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
-      #     EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-      #   run: forge build && forge script script/DeployCloneFactory.sol:DeployCloneFactory --legacy --verify --broadcast --rpc-url "${CI_DEPLOY_RPC_URL}" --etherscan-api-key "${EXPLORER_VERIFICATION_KEY}" --sig='run(bytes)' $(rain meta build -i <(rain meta solc artifact -c abi -i out/CloneFactory.sol/CloneFactory.json) -m solidity-abi-v2 -t json -e deflate -l en -E hex)

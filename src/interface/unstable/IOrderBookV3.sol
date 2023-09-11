@@ -2,28 +2,14 @@
 pragma solidity ^0.8.18;
 
 import "../ierc3156/IERC3156FlashLender.sol";
-import "rain.interpreter/lib/caller/LibEvaluable.sol";
-import "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import "lib/rain.interpreter/src/lib/caller/LibEvaluable.sol";
+import "lib/rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
-/// Configuration for a single input or output on an `Order`.
-/// @param token The token to either send from the owner as an output or receive
-/// from the counterparty to the owner as an input. The tokens are not moved
-/// during an order, only internal vault balances are updated, until a separate
-/// withdraw step.
-/// @param decimals The decimals to use for internal scaling calculations for
-/// `token`. This is provided directly in IO to save gas on external lookups and
-/// to respect the ERC20 spec that mandates NOT assuming or using the `decimals`
-/// method for onchain calculations. Ostensibly the decimals exists so that all
-/// calculate order entrypoints can treat amounts and ratios as 18 decimal fixed
-/// point values. Order max amounts MUST be rounded down and IO ratios rounded up
-/// to compensate for any loss of precision during decimal rescaling.
-/// @param vaultId The vault ID that tokens will move into if this is an input
-/// or move out from if this is an output.
-struct IO {
-    address token;
-    uint8 decimals;
-    uint256 vaultId;
-}
+/// Import unmodified structures from older versions of `IOrderBook`.
+import {IO, Order, TakeOrderConfig, ClearConfig, ClearStateChange} from "../IOrderBookV2.sol";
+
+/// Thrown when take orders is called with no orders.
+error NoOrders();
 
 /// Config the order owner may provide to define their order. The `msg.sender`
 /// that adds an order cannot modify the owner nor bypass the integrity check of
@@ -37,38 +23,15 @@ struct IO {
 /// @param meta Arbitrary bytes that will NOT be used in the order evaluation
 /// but MUST be emitted as a Rain `MetaV1` when the order is placed so can be
 /// used by offchain processes.
-struct OrderConfig {
+struct OrderConfigV2 {
     IO[] validInputs;
     IO[] validOutputs;
-    EvaluableConfig evaluableConfig;
+    EvaluableConfigV2 evaluableConfig;
     bytes meta;
-}
-
-/// Defines a fully deployed order ready to evaluate by Orderbook.
-/// @param owner The owner of the order is the `msg.sender` that added the order.
-/// @param handleIO true if there is a "handle IO" entrypoint to run. If false
-/// the order book MAY skip calling the interpreter to save gas.
-/// @param evaluable Standard `Evaluable` with entrypoints for both
-/// "calculate order" and "handle IO". The latter MAY be empty bytes, in which
-/// case it will be skipped at runtime to save gas.
-/// @param validInputs A list of input tokens that are economically equivalent
-/// for the purpose of processing this order. Inputs are relative to the order
-/// so these tokens will be sent to the owners vault.
-/// @param validOutputs A list of output tokens that are economically equivalent
-/// for the purpose of processing this order. Outputs are relative to the order
-/// so these tokens will be sent from the owners vault.
-struct Order {
-    address owner;
-    bool handleIO;
-    Evaluable evaluable;
-    IO[] validInputs;
-    IO[] validOutputs;
 }
 
 /// Config for a list of orders to take sequentially as part of a `takeOrders`
 /// call.
-/// @param output Output token from the perspective of the order taker.
-/// @param input Input token from the perspective of the order taker.
 /// @param minimumInput Minimum input from the perspective of the order taker.
 /// @param maximumInput Maximum input from the perspective of the order taker.
 /// @param maximumIORatio Maximum IO ratio as calculated by the order being
@@ -78,67 +41,16 @@ struct Order {
 /// hit. Takers are expected to prioritise orders that appear to be offering
 /// better deals i.e. lower IO ratios. This prioritisation and sorting MUST
 /// happen offchain, e.g. via. some simulator.
-struct TakeOrdersConfig {
-    address output;
-    address input;
+/// @param data If nonzero length, triggers `onTakeOrders` on the caller of
+/// `takeOrders` with this data. This allows the caller to perform arbitrary
+/// onchain actions between receiving their input tokens, before having to send
+/// their output tokens.
+struct TakeOrdersConfigV2 {
     uint256 minimumInput;
     uint256 maximumInput;
     uint256 maximumIORatio;
     TakeOrderConfig[] orders;
-}
-
-/// Config for an individual take order from the overall list of orders in a
-/// call to `takeOrders`.
-/// @param order The order being taken this iteration.
-/// @param inputIOIndex The index of the input token in `order` to match with the
-/// take order output.
-/// @param outputIOIndex The index of the output token in `order` to match with
-/// the take order input.
-/// @param signedContext Optional additional signed context relevant to the
-/// taken order.
-struct TakeOrderConfig {
-    Order order;
-    uint256 inputIOIndex;
-    uint256 outputIOIndex;
-    SignedContextV1[] signedContext;
-}
-
-/// Additional config to a `clear` that allows two orders to be fully matched to
-/// a specific token moment. Also defines the bounty for the clearer.
-/// @param aliceInputIOIndex The index of the input token in order A.
-/// @param aliceOutputIOIndex The index of the output token in order A.
-/// @param bobInputIOIndex The index of the input token in order B.
-/// @param bobOutputIOIndex The index of the output token in order B.
-/// @param aliceBountyVaultId The vault ID that the bounty from order A should
-/// move to for the clearer.
-/// @param bobBountyVaultId The vault ID that the bounty from order B should move
-/// to for the clearer.
-struct ClearConfig {
-    uint256 aliceInputIOIndex;
-    uint256 aliceOutputIOIndex;
-    uint256 bobInputIOIndex;
-    uint256 bobOutputIOIndex;
-    uint256 aliceBountyVaultId;
-    uint256 bobBountyVaultId;
-}
-
-/// Summary of the vault state changes due to clearing an order. NOT the state
-/// changes sent to the interpreter store, these are the LOCAL CHANGES in vault
-/// balances. Note that the difference in inputs/outputs overall between the
-/// counterparties is the bounty paid to the entity that cleared the order.
-/// @param aliceOutput Amount of counterparty A's output token that moved out of
-/// their vault.
-/// @param bobOutput Amount of counterparty B's output token that moved out of
-/// their vault.
-/// @param aliceInput Amount of counterparty A's input token that moved into
-/// their vault.
-/// @param bobInput Amount of counterparty B's input token that moved into their
-/// vault.
-struct ClearStateChange {
-    uint256 aliceOutput;
-    uint256 bobOutput;
-    uint256 aliceInput;
-    uint256 bobInput;
+    bytes data;
 }
 
 /// @title IOrderBookV3
@@ -345,7 +257,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param orderHash The hash of the order as it is recorded onchain. Only
     /// the hash is stored in Orderbook storage to avoid paying gas to store the
     /// entire order.
-    event AddOrder(address sender, IExpressionDeployerV1 expressionDeployer, Order order, bytes32 orderHash);
+    event AddOrder(address sender, IExpressionDeployerV2 expressionDeployer, Order order, bytes32 orderHash);
 
     /// An order has been removed from the orderbook. This effectively
     /// deactivates it. Orders can be added again after removal.
@@ -481,7 +393,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param config All config required to build an `Order`.
     /// @return stateChanged True if the order was added, false if it already
     /// existed.
-    function addOrder(OrderConfig calldata config) external returns (bool stateChanged);
+    function addOrder(OrderConfigV2 calldata config) external returns (bool stateChanged);
 
     /// Returns true if the order exists, false otherwise.
     /// @param orderHash The hash of the order to check.
@@ -536,7 +448,9 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// vaults processed.
     /// @return totalOutput Total tokens taken from `msg.sender` and distributed
     /// between vaults.
-    function takeOrders(TakeOrdersConfig calldata config) external returns (uint256 totalInput, uint256 totalOutput);
+    function takeOrders(TakeOrdersConfigV2 calldata config)
+        external
+        returns (uint256 totalInput, uint256 totalOutput);
 
     /// Allows `msg.sender` to match two live orders placed earlier by
     /// non-interactive parties and claim a bounty in the process. The clearer is
