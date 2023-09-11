@@ -20,6 +20,7 @@ pkgs.mkShell {
     pkgs.iconv
     pkgs.graphql-client
     pkgs.gmp
+    pkgs.nodejs
   ] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
     pkgs.darwin.apple_sdk.frameworks.Security
     pkgs.darwin.apple_sdk.frameworks.CoreFoundation
@@ -29,5 +30,26 @@ pkgs.mkShell {
 
   shellHook = ''
     export PATH="$PATH:$HOME/.cargo/bin"
+
+    # shell function for the build steps
+    build_project() {
+      # Go to the /gui directory and run npm build
+      echo "Building the gui..."
+      pushd gui
+      npm install
+      npm run build
+      popd
+
+      # Go back to the root directory and run cargo build
+      echo "Building rust..."
+      cargo build
+
+      echo "Build steps completed."
+    }
+
+    # Call the function initially when entering the shell
+    build_project
+
+    echo "To rebuild gui+rust, run: build_project"
   '';
 }

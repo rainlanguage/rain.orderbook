@@ -6,7 +6,8 @@ use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use ethers_signers::{Ledger, HDPath};
 use crate::cli::deposit::Deposit;
-use crate::orderbook::deposit::deposit_token;
+
+use crate::orderbook::deposit::v3::deposit_token;
 use crate::tokens::approve_tokens;
 use derive_more::{Display, Error};
 
