@@ -15,7 +15,8 @@ pub enum RainNetworkOptions{
 }  
 
 
-abigen!(IOrderBookV2, "src/cli/abis/IOrderBookV2.json"); 
+abigen!(IOrderBookV3, "src/orderbook/abi/v3/IOrderBookV3.json"); 
+abigen!(IParserV1, "src/interpreter/abi/v1/IParserV1.json"); 
 
 abigen!(
     IERC20,
@@ -32,4 +33,4 @@ abigen!(
 );
 
 
-abigen!(IParserV1, "src/cli/abis/IParserV1.json");  
+ 

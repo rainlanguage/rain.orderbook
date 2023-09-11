@@ -1,6 +1,6 @@
 use clap::Parser;
 use ethers::{providers::{Provider, Middleware, Http}, types::H160} ; 
-use crate::{cli::registry::RainNetworkOptions, subgraph::removeorder::get_remove_order, orderbook::removeorder::remove_order} ;
+use crate::{cli::registry::RainNetworkOptions, subgraph::remove_order::v3::get_remove_order, orderbook::remove_order::v3::remove_order} ;
 use anyhow::anyhow;
 use ethers_signers::{Ledger, HDPath};
 use std::str::FromStr;
@@ -22,6 +22,10 @@ pub struct RemoveOrder{
     /// id of the order to remove
     #[arg(short='i', long)]
     order_id : String, 
+
+    /// address index of the wallet to accessed. defualt 0.
+    #[arg(long, default_value="0")]
+    address_index : Option<usize> , 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
@@ -84,9 +88,16 @@ pub async fn handle_remove_order(order: RemoveOrder) -> anyhow::Result<()> {
     let orderbook_address = H160::from_str(&String::from(order.orderbook)).unwrap();
 
     let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider") ;
+    .expect("\n❌Could not instantiate HTTP Provider") ; 
 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), provider.get_chainid().await.unwrap().as_u64()).await.unwrap();
+    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
+    let wallet= Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            order.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
 
     let order_to_remove = get_remove_order(order.subgraph_url, order.order_id).await.unwrap() ;
     let _ =  remove_order(

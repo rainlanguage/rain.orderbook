@@ -5,7 +5,7 @@ use spinners::{Spinner, Spinners};
 use std::str::FromStr;
 use anyhow::anyhow;
 
-use crate::{cli::registry::{IOrderBookV2, WithdrawConfig}, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
+use crate::{cli::registry::IOrderBookV3, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
 
 pub async fn withdraw_tokens(
     withdraw_token_address : H160 ,
@@ -23,7 +23,7 @@ pub async fn withdraw_tokens(
     let signer_address =  wallet.get_address().await.unwrap()  ;
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
 
-    let orderbook = IOrderBookV2::new(orderbook_address, Arc::new(provider.clone()));  
+    let orderbook = IOrderBookV3::new(orderbook_address, Arc::new(provider.clone()));  
 
     let vault_balance: U256 = orderbook.vault_balance(signer_address, withdraw_token_address, wihtdraw_vault_id).call().await.unwrap() ; 
 
@@ -37,13 +37,7 @@ pub async fn withdraw_tokens(
         return Err(anyhow!(err_msg)); 
     }
 
-    let withdraw_config = WithdrawConfig{
-        token : withdraw_token_address ,
-        vault_id : wihtdraw_vault_id ,
-        amount : withdraw_token_amount
-    } ; 
-
-    let withdraw_tx = orderbook.withdraw(withdraw_config) ; 
+    let withdraw_tx = orderbook.withdraw(withdraw_token_address,wihtdraw_vault_id,withdraw_token_amount) ; 
     let withdraw_data: Bytes = withdraw_tx.calldata().unwrap() ;
 
     let mut withdraw_tx = Eip1559TransactionRequest::new();

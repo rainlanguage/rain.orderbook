@@ -4,7 +4,7 @@ use std::{convert::TryFrom, sync::Arc};
 use spinners::{Spinner, Spinners};  
 use std::str::FromStr;
 
-use crate::{cli::registry::{IOrderBookV2, DepositConfig}, gasoracle::{is_block_native_supported, gas_price_oracle}};
+use crate::{cli::registry::IOrderBookV3, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
 pub async fn deposit_token( 
     deposit_token_address : H160 ,
@@ -21,15 +21,9 @@ pub async fn deposit_token(
 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64(); 
 
-    let orderbook = IOrderBookV2::new(orderbook_address.clone(), Arc::new(provider.clone())); 
+    let orderbook = IOrderBookV3::new(orderbook_address.clone(), Arc::new(provider.clone())); 
 
-    let deposit_config = DepositConfig{
-        token : deposit_token_address ,
-        vault_id : deposit_vault_id ,
-        amount : deposit_token_amount
-    } ; 
-
-    let deposit_tx = orderbook.deposit(deposit_config) ; 
+    let deposit_tx = orderbook.deposit(deposit_token_address,deposit_vault_id,deposit_token_amount) ; 
     let deposit_data: Bytes = deposit_tx.calldata().unwrap() ;
 
     let mut deposit_tx = Eip1559TransactionRequest::new();
@@ -79,4 +73,9 @@ pub async fn deposit_token(
     }
 
     Ok(())
+}
+
+#[cfg(test)] 
+mod test {
+    
 }

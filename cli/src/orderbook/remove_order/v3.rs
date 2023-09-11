@@ -4,7 +4,7 @@ use ethers_signers::Ledger;
 use spinners::{Spinner, Spinners};
 use std::str::FromStr;
 
-use crate::{cli::registry::{Order, IOrderBookV2}, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
+use crate::{cli::registry::{Order, IOrderBookV3}, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
 
 
 pub async fn remove_order(
@@ -19,7 +19,7 @@ pub async fn remove_order(
     .expect("\n❌Could not instantiate HTTP Provider"); 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
 
-    let orderbook = IOrderBookV2::new(orderbook_address.clone(), Arc::new(provider.clone())); 
+    let orderbook = IOrderBookV3::new(orderbook_address.clone(), Arc::new(provider.clone())); 
 
     let remove_order_tx = orderbook.remove_order(order_to_remove) ; 
 

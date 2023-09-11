@@ -6,7 +6,7 @@ use cursive::views::{Dialog, TextView, CircularFocus};
 use cursive::Cursive;
 use cursive_table_view::{TableView, TableViewItem};
 
-use crate::subgraph::showorder::{get_order_details_display, OrdersDetails};
+use crate::subgraph::show_order::{get_order_details_display, OrdersDetails};
 
 #[derive(Clone, Debug)]
 struct Order {
