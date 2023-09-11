@@ -32,7 +32,7 @@ pkgs.mkShell {
     export PATH="$PATH:$HOME/.cargo/bin"
 
     # shell function for the build steps
-    build_project() {
+    build() {
       # Go to the /gui directory and run npm build
       echo "Building the gui..."
       pushd gui
@@ -48,8 +48,8 @@ pkgs.mkShell {
     }
 
     # Call the function initially when entering the shell
-    build_project
+    build
 
-    echo "To rebuild gui+rust, run: build_project"
+    echo "To rebuild gui+rust, run: build"
   '';
 }
