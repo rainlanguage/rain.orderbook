@@ -3,6 +3,8 @@ use clap::command;
 use clap::{Parser, Subcommand};
 use std::thread;
 
+use self::trace::initialize_tracing;
+
 pub mod registry;
 pub mod deposit;
 pub mod withdraw;
@@ -10,6 +12,7 @@ pub mod addorder;
 pub mod removeorder;
 pub mod listorders;
 pub mod serve;
+pub mod trace;
 
 
 #[derive(Parser)]
@@ -68,7 +71,7 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
         Orderbook::Serve(_) => {
             // the actix server needs its own thread
             thread::spawn(|| {
-            let _ = serve::handle_serve();
+                let _ = serve::handle_serve();
             }).join().expect("Thread panicked");
             Ok(())
         }
@@ -76,8 +79,9 @@ pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
 }
 
 pub async fn main() -> Result<()> {
-    tracing::subscriber::set_global_default(tracing_subscriber::fmt::Subscriber::new())?;
 
+    initialize_tracing();
+    
     let cli = Cli::parse();
     dispatch(cli.orderbook).await
 }

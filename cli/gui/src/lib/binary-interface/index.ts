@@ -1,6 +1,6 @@
 import type * as types from './types'
 
-class BinaryInterface {
+export class BinaryInterface {
     public uri = 'http://localhost:8080';
 
     constructor(_uri?: string) {

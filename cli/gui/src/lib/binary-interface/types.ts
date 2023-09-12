@@ -1,20 +1,17 @@
-export enum RainNetworkOptions {
-    Ethereum,
-    Polygon,
-    Mumbai,
-    Fuji
-}
-
 export type DepositConfig = {
-    network: RainNetworkOptions;  // Assuming RainNetworkOptions has an equivalent in TypeScript
-    orderbook: string;
-    tokenAddress: string;  // Converted snake_case to camelCase
-    tokenDecimals: number;
-    amount: string;
-    vaultId?: string;  // Converted Option<T> to T | undefined
-    mumbaiRpcUrl?: string;  // Converted snake_case to camelCase
-    polygonRpcUrl?: string;  // Converted snake_case to camelCase
-    ethereumRpcUrl?: string;  // Converted snake_case to camelCase
-    fujiRpcUrl?: string;  // Converted snake_case to camelCase
-    blocknativeApiKey?: string;  // Converted snake_case to camelCase
+    orderbook: string; // address of the orderbook
+
+    tokenAddress: string; // address of the token to deposit
+
+    tokenDecimals: number; // decimals corresponding to the token
+
+    amount: string; // amount to deposit
+
+    vaultId?: string; // optional vault id to deposit in (in decimals)
+
+    addressIndex?: number; // address index of the wallet to accessed. default 0.
+
+    rpcUrl: string; // mumbai rpc url, default read from env variables
+
+    blocknativeApiKey?: string; // blocknative api key for gas oracle
 };
