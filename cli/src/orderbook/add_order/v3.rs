@@ -1,17 +1,12 @@
-use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units, prelude::SignerMiddleware} ; 
+use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units} ; 
 
-use ethers_signers::Ledger;
-use spinners::{Spinner, Spinners};
 use std::str::FromStr;
 use std::{convert::TryFrom, sync::Arc};
 
 
 use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, OrderConfigV2}, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
-/// Add an order to orderbook(V3)
-/// 
-/// # Example 
-/// ```
+
 #[allow(unused_variables)]
 pub async fn add_ob_order(
     orderbook_address : H160,
@@ -21,9 +16,8 @@ pub async fn add_ob_order(
     order_string: String ,
     order_meta : String ,
     rpc_url : String,
-    wallet : Ledger,
     blocknative_api_key : Option<String>
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Eip1559TransactionRequest> {
 
     let provider = Provider::<Http>::try_from(rpc_url)
     .expect("\n❌Could not instantiate HTTP Provider"); 
@@ -99,35 +93,6 @@ pub async fn add_ob_order(
         order_tx.max_priority_fee_per_gas = Some(max_priority);
         order_tx.max_fee_per_gas = Some(max_fee);
     }
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;  
 
-    println!("\n-----------------------------------\nAdding order to Orderbook\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let order_tx = client.send_transaction(order_tx, None).await;   
-    sp.stop() ;   
-
-    match order_tx {
-        Ok(order_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let order_receipt = order_tx.confirmations(1).await?.unwrap();  
-            let order_msg = format!(
-                "{}{}{}" ,
-                String::from("\nOrder added !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(order_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(order_msg.into()); 
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    }
-
-    Ok(())
+    Ok(order_tx)
 }
