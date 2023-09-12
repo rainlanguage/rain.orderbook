@@ -1,8 +1,5 @@
-use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units, prelude::SignerMiddleware} ; 
+use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units} ; 
 use std::{convert::TryFrom, sync::Arc};
-use ethers_signers::Ledger;
-use spinners::{Spinner, Spinners};
-use std::str::FromStr;
 
 use crate::{cli::registry::{Order, IOrderBookV3}, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
 
@@ -11,9 +8,8 @@ pub async fn remove_order(
     order_to_remove : Order ,  
     orderbook_address : H160 ,
     rpc_url : String ,
-    wallet : Ledger ,
     blocknative_api_key : Option<String>
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Eip1559TransactionRequest> {
 
     let provider = Provider::<Http>::try_from(rpc_url)
     .expect("\n❌Could not instantiate HTTP Provider"); 
@@ -39,35 +35,7 @@ pub async fn remove_order(
         remove_order_tx.max_priority_fee_per_gas = Some(max_priority);
         remove_order_tx.max_fee_per_gas = Some(max_fee);
     }
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;
 
-    println!("\n-----------------------------------\nRemoving Orders\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let remove_order_tx = client.send_transaction(remove_order_tx, None).await;   
-    sp.stop() ;
-
-    match remove_order_tx {
-        Ok(remove_order_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let remove_order_receipt = remove_order_tx.confirmations(1).await?.unwrap();  
-            let order_msg = format!(
-                "{}{}{}" ,
-                String::from("\nOrder Removed !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(remove_order_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(order_msg.into());   
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    }  
-    Ok(())
+    Ok(remove_order_tx)
 
 }

@@ -5,97 +5,48 @@ use clap::Parser;
 use ethers::types::Address;
 use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::U256} ; 
+use ethers::prelude::SignerMiddleware ;
 use anyhow::anyhow;
 use ethers_signers::{Ledger, HDPath};
 use crate::orderbook::withdraw::v3::withdraw_tokens;
-
-use super::registry::RainNetworkOptions;
-
+use spinners::{Spinner, Spinners};
 
 #[derive(Parser,Debug,Clone)]
 pub struct Withdraw{ 
 
-    /// network to withdraw
-    #[arg(short, long)]
-    pub network: RainNetworkOptions,  
-
     /// address of the orderbook 
     #[arg(short, long)]
-    orderbook : String, 
+    pub orderbook : String, 
 
     /// address of the token to withdraw
     #[arg(long)]
-    token_address : String, 
+    pub token_address : String, 
 
     /// decimals coressponding to the token
     #[arg( long)]
-    token_decimals : u32, 
+    pub token_decimals : u32, 
 
     /// amount to withdraw.
     #[arg(long)]
-    amount : String,
+    pub amount : String,
 
     /// decimal vault id to withdraw from
     #[arg(long)]
-    vault_id : String , 
+    pub vault_id : String , 
 
     /// address index of the wallet to accessed. defualt 0.
     #[arg(long, default_value="0")]
-    address_index : Option<usize> , 
+    pub address_index : Option<usize> , 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
-    pub mumbai_rpc_url: Option<String> , 
-
-    /// polygon rpc url, default read from env varibales
-    #[arg(long,env)]
-    pub polygon_rpc_url: Option<String> ,
-
-    /// ethereum rpc url, default read from env varibales
-    #[arg(long,env)]
-    pub ethereum_rpc_url: Option<String> ,  
-
-    /// fuji rpc url, default read from env varibales
-    #[arg(long,env)]
-    pub fuji_rpc_url: Option<String> ,
+    pub rpc_url: Option<String> , 
 
     /// blocknative api key for gas oracle
     #[arg(long,env)]
     pub blocknative_api_key : Option<String> ,     
 
 }  
-
-impl Withdraw{
-    pub fn get_network_rpc(&self) -> anyhow::Result<String>{
-        let rpc_url = match self.network.clone()  {
-            RainNetworkOptions::Ethereum => {
-                if self.ethereum_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --ethereum-rpc-url argument.")) ;
-                }
-                self.ethereum_rpc_url.clone().unwrap()
-            } ,
-            RainNetworkOptions::Polygon => {
-                if self.polygon_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --polygon-rpc-url argument.")) ;
-                }
-                self.polygon_rpc_url.clone().unwrap()
-            },
-            RainNetworkOptions::Mumbai => { 
-                if self.mumbai_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --mumbai-rpc-url argument.")) ;
-                }  
-                self.mumbai_rpc_url.clone().unwrap()
-            },
-            RainNetworkOptions::Fuji => {
-                if self.fuji_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --fuji-rpc-url argument.")) ;
-                }
-                self.fuji_rpc_url.clone().unwrap()
-            }
-        } ; 
-        Ok(rpc_url)
-    } 
-} 
 
 pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> { 
 
@@ -126,7 +77,7 @@ pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> {
 
     let vault_id = U256::from_dec_str(&String::from(withdraw.clone().vault_id)).unwrap();
        
-    let rpc_url = withdraw.get_network_rpc().unwrap() ;
+    let rpc_url = withdraw.rpc_url.unwrap() ;
 
     let provider = Provider::<Http>::try_from(rpc_url.clone())
     .expect("\n❌Could not instantiate HTTP Provider");  
@@ -138,17 +89,50 @@ pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> {
             String::from("m/44'/60'/0'/0/"),
             withdraw.address_index.unwrap().to_string()
         )
-    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
+    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet"); 
 
-    let _ = withdraw_tokens(
+    let wallet_address =  wallet.get_address().await.unwrap() ; 
+
+    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;     
+ 
+
+    let withdraw_tx = withdraw_tokens(
         token_address,
         token_amount,
         vault_id,
         orderbook_address,
         rpc_url,
-        wallet,
+        wallet_address,
         withdraw.blocknative_api_key
-    ).await;
+    ).await?; 
+
+    println!("\n-----------------------------------\nWithdrawing tokens from vault.\n");
+    let mut sp = Spinner::new(
+        Spinners::from_str("Dots9").unwrap(),
+        "Awaiting confirmation from wallet...".into(),
+    );  
+    let withdraw_tx = client.send_transaction(withdraw_tx, None).await;   
+    sp.stop();
+
+    match withdraw_tx {
+        Ok(withdraw_tx) => {
+            let mut sp = Spinner::new(
+                Spinners::from_str("Dots9").unwrap(),
+                "Transaction submitted. Awaiting block confirmations...".into(),
+            );
+            let withdraw_receipt = withdraw_tx.confirmations(1).await?.unwrap();  
+            let withdraw_msg = format!(
+                "{}{}{}" ,
+                String::from("\nTokens withdrawn !!\n#################################\n✅ Hash : "),
+                format!("0x{}",hex::encode(withdraw_receipt.transaction_hash.as_bytes().to_vec())), 
+                String::from("\n-----------------------------------\n")
+            ) ; 
+            sp.stop_with_message(withdraw_msg.into()); 
+        }
+        Err(_) => {
+            println!("\n❌ Transaction Rejected.");
+        }
+    } 
     
     Ok(())
 }

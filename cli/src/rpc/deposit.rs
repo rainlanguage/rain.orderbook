@@ -6,6 +6,7 @@ use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use ethers_signers::{Ledger, HDPath};
 use crate::cli::deposit::Deposit;
+use ethers::prelude::SignerMiddleware ; 
 
 use crate::orderbook::deposit::v3::deposit_token;
 use crate::tokens::approve_tokens;
@@ -65,36 +66,56 @@ async fn rpc_deposit(deposit: web::Json<Deposit>) -> Result<HttpResponse, Deposi
         }
     } ;  
 
-    let rpc_url = deposit.get_network_rpc().unwrap() ; 
+    let rpc_url = deposit.rpc_url.clone().unwrap(); 
     let provider = Provider::<Http>::try_from(rpc_url.clone())
     .expect("\n❌Could not instantiate HTTP Provider");  
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
     let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id.clone()).await.map_err(|_| DepositErr{message: "\n❌Could not instantiate ledger wallet"})?;   
+    let wallet_address =  wallet.get_address().await.unwrap() ; 
+
+    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await.unwrap();     
 
     // Approve token for deposit 
-    let _ = approve_tokens(
+    let approve_tx = approve_tokens(
         token_address.clone() ,
         token_amount.clone(),
         orderbook_address.clone() ,
         rpc_url.clone(),
-        wallet,
+        wallet_address,
         deposit.blocknative_api_key.clone()
-    ).await ;
+    ).await.unwrap() ;
 
-    //Reinit Wallet Instance
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id).await.map_err(|_| DepositErr{message: "\n❌Could not instantiate ledger wallet"})?;     
+    let approve_tx = client.send_transaction(approve_tx, None).await;   
+    match approve_tx {
+        Ok(approve_tx) => {
+            let _ = approve_tx.confirmations(1).await ;
+        },
+        Err(_) => {
+            return Err(DepositErr{message: "\n ❌Token approval failed"});
+        }
+    }
 
     // Deposit tokens
-    let _ = deposit_token(
+    let deposit_tx = deposit_token(
         token_address,
         token_amount,
         vault_id,
         orderbook_address,
         rpc_url,
-        wallet,
         deposit.blocknative_api_key.clone()
-    ).await ;
+    ).await.unwrap() ;
+
+    let deposit_tx = client.send_transaction(deposit_tx, None).await;  
+
+    match deposit_tx {
+        Ok(deposit_tx) => {
+            let _ = deposit_tx.confirmations(1).await ;
+        },
+        Err(_) => {
+            return Err(DepositErr{message: "\n ❌Failed to deposit tokens"});
+        }
+    }
 
     Ok(HttpResponse::Ok().finish())
 }

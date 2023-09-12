@@ -1,90 +1,43 @@
 use clap::Parser;
-use ethers::{providers::{Provider, Middleware, Http}, types::H160} ; 
-use crate::{cli::registry::RainNetworkOptions, subgraph::remove_order::v3::get_remove_order, orderbook::remove_order::v3::remove_order} ;
-use anyhow::anyhow;
+use ethers::{providers::{Provider, Middleware, Http}, types::H160};
+use crate::{subgraph::remove_order::v3::get_remove_order, orderbook::remove_order::v3::remove_order} ;
 use ethers_signers::{Ledger, HDPath};
 use std::str::FromStr;
-
+use ethers::prelude::SignerMiddleware ; 
+use spinners::{Spinner, Spinners};
 #[derive(Parser,Debug,Clone)]
 pub struct RemoveOrder{ 
-    /// network to remove order from
-    #[arg(short, long)]
-    pub network: RainNetworkOptions,  
 
     /// address of the orderbook 
     #[arg(short, long)]
-    orderbook : String, 
+    pub orderbook : String, 
 
     /// address of the orderbook 
     #[arg(short, long)]
-    subgraph_url : String, 
+    pub subgraph_url : String, 
 
     /// id of the order to remove
     #[arg(short='i', long)]
-    order_id : String, 
+    pub order_id : String, 
 
     /// address index of the wallet to accessed. defualt 0.
     #[arg(long, default_value="0")]
-    address_index : Option<usize> , 
+    pub address_index : Option<usize> , 
 
     /// mumbai rpc url, default read from env varibales
     #[arg(long,env)]
-    pub mumbai_rpc_url: Option<String> , 
-
-    /// polygon rpc url, default read from env varibales
-    #[arg(long,env)]
-    pub polygon_rpc_url: Option<String> ,
-
-    /// ethereum rpc url, default read from env varibales
-    #[arg(long,env)]
-    pub ethereum_rpc_url: Option<String> ,  
-
-    /// fuji rpc url, default read from env varibales
-    #[arg(long,env)]
-    pub fuji_rpc_url: Option<String> , 
+    pub rpc_url: Option<String> ,
 
     /// blocknative api key for gas oracle
     #[arg(long,env)]
-    pub blocknative_api_key : Option<String> ,     
-   
+    pub blocknative_api_key : Option<String> ,  
 
 }  
 
-impl RemoveOrder{
-    pub fn get_network_rpc(&self) -> anyhow::Result<String>{
-        let rpc_url = match self.network.clone()  {
-            RainNetworkOptions::Ethereum => {
-                if self.ethereum_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --ethereum-rpc-url argument.")) ;
-                }
-                self.ethereum_rpc_url.clone().unwrap()
-            } ,
-            RainNetworkOptions::Polygon => {
-                if self.polygon_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --polygon-rpc-url argument.")) ;
-                }
-                self.polygon_rpc_url.clone().unwrap()
-            },
-            RainNetworkOptions::Mumbai => { 
-                if self.mumbai_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --mumbai-rpc-url argument.")) ;
-                }  
-                self.mumbai_rpc_url.clone().unwrap()
-            },
-            RainNetworkOptions::Fuji => {
-                if self.fuji_rpc_url.is_none(){
-                    return Err(anyhow!("\n ❌Please provide --fuji-rpc-url argument.")) ;
-                }
-                self.fuji_rpc_url.clone().unwrap()
-            }
-        } ; 
-        Ok(rpc_url)
-    } 
-}
 
 pub async fn handle_remove_order(order: RemoveOrder) -> anyhow::Result<()> {  
 
-    let rpc_url = order.get_network_rpc().unwrap() ; 
+    let rpc_url = order.rpc_url.unwrap() ; 
     let orderbook_address = H160::from_str(&String::from(order.orderbook)).unwrap();
 
     let provider = Provider::<Http>::try_from(rpc_url.clone())
@@ -99,14 +52,44 @@ pub async fn handle_remove_order(order: RemoveOrder) -> anyhow::Result<()> {
         )
     ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
 
-    let order_to_remove = get_remove_order(order.subgraph_url, order.order_id).await.unwrap() ;
-    let _ =  remove_order(
+    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;     
+
+    let order_to_remove = get_remove_order(order.subgraph_url, order.order_id).await.unwrap() ; 
+
+    let remove_order_tx =  remove_order(
         order_to_remove,
         orderbook_address,
         rpc_url,
-        wallet,
         order.blocknative_api_key
-    ).await ;
+    ).await? ; 
+
+    println!("\n-----------------------------------\nRemoving Orders\n");
+    let mut sp = Spinner::new(
+        Spinners::from_str("Dots9").unwrap(),
+        "Awaiting confirmation from wallet...".into(),
+    );  
+    let remove_order_tx = client.send_transaction(remove_order_tx, None).await;   
+    sp.stop() ;
+
+    match remove_order_tx {
+        Ok(remove_order_tx) => {
+            let mut sp = Spinner::new(
+                Spinners::from_str("Dots9").unwrap(),
+                "Transaction submitted. Awaiting block confirmations...".into(),
+            );
+            let remove_order_receipt = remove_order_tx.confirmations(1).await?.unwrap();  
+            let order_msg = format!(
+                "{}{}{}" ,
+                String::from("\nOrder Removed !!\n#################################\n✅ Hash : "),
+                format!("0x{}",hex::encode(remove_order_receipt.transaction_hash.as_bytes().to_vec())), 
+                String::from("\n-----------------------------------\n")
+            ) ; 
+            sp.stop_with_message(order_msg.into());   
+        }
+        Err(_) => {
+            println!("\n❌ Transaction Rejected.");
+        }
+    }  
 
     Ok(())
 }

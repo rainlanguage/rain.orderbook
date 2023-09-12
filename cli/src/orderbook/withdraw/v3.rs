@@ -1,8 +1,5 @@
-use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units, prelude::SignerMiddleware} ; 
-use ethers_signers::Ledger;
+use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units} ; 
 use std::{convert::TryFrom, sync::Arc};
-use spinners::{Spinner, Spinners};
-use std::str::FromStr;
 use anyhow::anyhow;
 
 use crate::{cli::registry::IOrderBookV3, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
@@ -13,14 +10,13 @@ pub async fn withdraw_tokens(
     wihtdraw_vault_id : U256,
     orderbook_address : H160,
     rpc_url : String,
-    wallet: Ledger,
+    signer_address: H160,
     blocknative_api_key : Option<String>
-) -> anyhow::Result<()>{ 
+) -> anyhow::Result<Eip1559TransactionRequest>{ 
 
     let provider = Provider::<Http>::try_from(rpc_url)
     .expect("\n❌Could not instantiate HTTP Provider"); 
 
-    let signer_address =  wallet.get_address().await.unwrap()  ;
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
 
     let orderbook = IOrderBookV3::new(orderbook_address, Arc::new(provider.clone()));  
@@ -53,35 +49,6 @@ pub async fn withdraw_tokens(
 
         withdraw_tx.max_priority_fee_per_gas = Some(max_priority);
         withdraw_tx.max_fee_per_gas = Some(max_fee);
-    }
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;   
-
-    println!("\n-----------------------------------\nWithdrawing tokens from vault.\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let withdraw_tx = client.send_transaction(withdraw_tx, None).await;   
-    sp.stop();
-
-    match withdraw_tx {
-        Ok(withdraw_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let withdraw_receipt = withdraw_tx.confirmations(1).await?.unwrap();  
-            let withdraw_msg = format!(
-                "{}{}{}" ,
-                String::from("\nTokens withdrawn !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(withdraw_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(withdraw_msg.into()); 
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    } 
-    Ok(())
+    }   
+    Ok(withdraw_tx)
 }
