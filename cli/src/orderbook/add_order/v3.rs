@@ -2,6 +2,7 @@ use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559
 use tracing::error;
 use anyhow::anyhow;
 use std::str::FromStr;
+use rain_cli_meta::meta::magic::KnownMagic;
 use std::{convert::TryFrom, sync::Arc};
 use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, OrderConfigV2}, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
@@ -61,18 +62,9 @@ pub async fn add_ob_order(
         constants : constants
     } ;
 
-    let rain_magic_number = String::from("ff0a89c674ee7874") ; 
-    
-    // TODO cbor encode order_meta 
-    let meta_string = hex::decode(
-        // format!("{}{}",
-        format!("{}",
-        rain_magic_number,
-        // hex::encode(order_meta)
-        )
-    ).unwrap();
+    let rain_magic_number = KnownMagic::RainMetaDocumentV1.to_prefix_bytes().to_vec() ; 
 
-    let meta_bytes = Bytes::from(meta_string) ; 
+    let meta_bytes = Bytes::from(rain_magic_number) ; 
 
     let order_config = OrderConfigV2 {
         valid_inputs : io_arr.clone() ,
