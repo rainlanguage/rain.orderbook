@@ -5,11 +5,9 @@ use clap::Parser;
 use ethers::providers::Middleware;
 use ethers_signers::{Ledger, HDPath};
 use ethers::{providers::{Provider, Http}, types::H160} ; 
-
-use ethers::prelude::SignerMiddleware ; 
-use crate::orderbook::add_order::v3::add_ob_order;
-use spinners::{Spinner, Spinners};
-
+use tracing::{error, info}; 
+use crate::{orderbook::add_order::v3::add_ob_order, transaction::execute_transaction};
+use anyhow::anyhow;
 
 #[derive(Parser,Debug,Clone)]
 pub struct AddOrder{ 
@@ -54,21 +52,43 @@ pub struct AddOrder{
 
 pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {  
 
-    let rpc_url = add_order.rpc_url.unwrap() ; 
+    let rpc_url = match add_order.rpc_url {
+        Some(url) => {
+            url
+        },
+        None => {
+            error!("RPC URL NOT PROVIDED") ; 
+            return Err(anyhow!("RPC URL not provided.")) ;
+        }
+    } ; 
 
-    let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider");  
+    let provider = match Provider::<Http>::try_from(rpc_url.clone()){
+        Ok(provider) => {
+            provider
+        },
+        Err(err) => {
+            error!("INVALID RPC URL: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ;  
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::Other(
+    let wallet= match Ledger::new(HDPath::Other(
         format!(
             "{}{}",
             String::from("m/44'/60'/0'/0/"),
             add_order.address_index.unwrap().to_string()
         )
-    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
+    ), chain_id.clone()).await {
+        Ok(wallet) => {
+            wallet
+        },
+        Err(err) => {
+            error!("ERROR INSTANTIATING LEDGER WALLET: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ; 
 
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;  
     let parser_address = H160::from_str(&String::from(add_order.parser_address)).unwrap(); 
     let orderbook_address = H160::from_str(&String::from(add_order.orderbook)).unwrap();
 
@@ -80,38 +100,12 @@ pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {
         add_order.decimals,
         add_order.order_string,
         add_order.order_meta,
-        rpc_url,
+        rpc_url.clone(),
         add_order.blocknative_api_key
     ).await? ; 
 
-    println!("\n-----------------------------------\nAdding order to Orderbook\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let order_tx = client.send_transaction(order_tx, None).await;   
-    sp.stop() ;   
-
-    match order_tx {
-        Ok(order_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let order_receipt = order_tx.confirmations(1).await?.unwrap();  
-            let order_msg = format!(
-                "{}{}{}" ,
-                String::from("\nOrder added !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(order_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(order_msg.into()); 
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    }
-
+    info!("Adding order to Orderbook");
+    let _ = execute_transaction(rpc_url.clone(),wallet,order_tx).await? ;
     Ok(())
 
 } 

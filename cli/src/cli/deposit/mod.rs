@@ -6,11 +6,10 @@ use ethers::types::Address;
 use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use anyhow::anyhow;
-
+use tracing::{error, info};
 use ethers_signers::{Ledger, HDPath};
-use crate::orderbook::deposit::v3::deposit_token; 
-use spinners::{Spinner, Spinners};  
-use ethers::prelude::SignerMiddleware ; 
+use crate::orderbook::deposit::v3::deposit_token;
+use crate::transaction::execute_transaction; 
 
 use crate::tokens::approve_tokens;
 
@@ -59,8 +58,9 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         Ok(address) => {
             address
         },
-        Err(_) => {
-            return Err(anyhow!("\n❌Incorrect orderbook address.")) ;
+        Err(err) => {
+            error!("ERROR PARSING ORDERBOOK ADDRESS: {}",err) ; 
+            return Err(anyhow!(err)) ;
         }
     };
 
@@ -68,15 +68,17 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         Ok(address) => {
             address
         },
-        Err(_) => {
-            return Err(anyhow!("\n❌Incorrect token address.")) ;
+        Err(err) => {
+            error!("ERROR PARSING TOKEN ADDRESS: {}",err) ; 
+            return Err(anyhow!(err)) ;
         }
     };  
 
     let token_amount: U256 = match parse_units(deposit.amount.clone(),deposit.token_decimals.clone()) {
         Ok(amount) => amount.into() ,
-        Err(_) => {
-            return Err(anyhow!("\n❌Incorrect amount.")) ;
+        Err(err) => {
+            error!("INVALID TOKEN AMOUNT: {}",err) ; 
+            return Err(anyhow!(err)) ;
         }
     } ;
 
@@ -84,8 +86,9 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         Some(val) => {
             match U256::from_dec_str(&val) {
                 Ok(id) => id ,
-                Err(_) => {
-                    return Err(anyhow!("\n❌Invalid vault id.")) ;
+                Err(err) => {
+                    error!("INVALID VAULT ID: {}",err) ;
+                    return Err(anyhow!(err)) ;
                 }
             }
         } ,
@@ -94,22 +97,45 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         }
     } ;  
 
-    let rpc_url = deposit.rpc_url.unwrap() ; 
-    let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider");  
+    let rpc_url = match deposit.rpc_url {
+        Some(url) => {
+            url
+        },
+        None => {
+            error!("RPC URL NOT PROVIDED") ; 
+            return Err(anyhow!("RPC URL not provided.")) ;
+        }
+    } ; 
+    
+    let provider = match Provider::<Http>::try_from(rpc_url.clone()){
+        Ok(provider) => {
+            provider
+        },
+        Err(err) => {
+            error!("INVALID RPC URL: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ;
+    
 
     let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::Other(
+    let wallet= match Ledger::new(HDPath::Other(
         format!(
             "{}{}",
             String::from("m/44'/60'/0'/0/"),
             deposit.address_index.unwrap().to_string()
         )
-    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet");  
+    ), chain_id.clone()).await {
+        Ok(wallet) => {
+            wallet
+        },
+        Err(err) => {
+            error!("ERROR INSTANTIATING LEDGER WALLET: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ;  
 
     let wallet_address =  wallet.get_address().await.unwrap() ; 
-
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;     
 
     // Approve token for deposit 
     let approve_tx = approve_tokens(
@@ -122,74 +148,39 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
     ).await? ;  
     
     // Approve Tokens For deposit
-    println!("\n-----------------------------------\nApproving token for deposit\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let approve_tx = client.send_transaction(approve_tx, None).await;   
-    sp.stop() ;
-
-    match approve_tx {
-        Ok(approve_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let approve_receipt = approve_tx.confirmations(1).await?.unwrap();  
-            let end_msg = format!(
-                "{}{}{}" ,
-                String::from("\nTokens Approved for deposit !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(approve_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(end_msg.into()); 
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    }
+    info!("Approving token for deposit");
+    let _ = execute_transaction(rpc_url.clone(),wallet,approve_tx).await? ;
     // Tokens approved. 
 
-    // Deposit tokens
+    // Deposit tokens 
+    let wallet= match Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            deposit.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await {
+        Ok(wallet) => {
+            wallet
+        },
+        Err(err) => {
+            error!("ERROR INSTANTIATING LEDGER WALLET: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ; 
+
     let deposit_tx = deposit_token(
         token_address,
         token_amount,
         vault_id.clone(),
         orderbook_address,
-        rpc_url,
+        rpc_url.clone(),
         deposit.blocknative_api_key
     ).await? ; 
 
-    println!("\n-----------------------------------\nDepositing Tokens Into Vaults\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let deposit_tx = client.send_transaction(deposit_tx, None).await;   
-    sp.stop() ;
-
-    match deposit_tx {
-        Ok(deposit_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let depsoit_receipt = deposit_tx.confirmations(1).await?.unwrap();  
-            let deposit_msg = format!(
-                "{}{}{}{}{}" ,
-                String::from("\nTokens deposited in vault !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(depsoit_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\nVault Id : "),
-                vault_id ,
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(deposit_msg.into());  
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    }
+    println!("Depositing Tokens Into Vaults"); 
+    let _ = execute_transaction(rpc_url.clone(),wallet,deposit_tx).await? ; 
     // Tokens Deposited.
-    Ok(())
+    Ok(()) 
+    
 }

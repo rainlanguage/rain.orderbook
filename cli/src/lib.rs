@@ -4,6 +4,8 @@ pub mod tokens;
 pub mod gasoracle;
 pub mod orderbook;
 pub mod rpc;
+pub mod transaction;
+
 
 
 

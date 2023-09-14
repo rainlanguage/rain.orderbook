@@ -6,8 +6,9 @@ use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use ethers_signers::{Ledger, HDPath};
 use crate::cli::deposit::Deposit;
+use crate::transaction::execute_transaction;
 use ethers::prelude::SignerMiddleware ; 
-
+use tracing::{error, info};
 use crate::orderbook::deposit::v3::deposit_token;
 use crate::tokens::approve_tokens;
 use derive_more::{Display, Error};
@@ -66,15 +67,43 @@ async fn rpc_deposit(deposit: web::Json<Deposit>) -> Result<HttpResponse, Deposi
         }
     } ;  
 
-    let rpc_url = deposit.rpc_url.clone().unwrap(); 
-    let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider");  
+    let rpc_url = match deposit.rpc_url.clone() {
+        Some(url) => url,
+        None => {
+            error!("RPC URL NOT PROVIDED") ; 
+            return Err(DepositErr{message: "RPC URL not provided."}) ;
+        }
+    } ;  
 
-    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::LedgerLive(0), chain_id.clone()).await.map_err(|_| DepositErr{message: "\n❌Could not instantiate ledger wallet"})?;   
-    let wallet_address =  wallet.get_address().await.unwrap() ; 
+    let provider = match Provider::<Http>::try_from(rpc_url.clone()){
+        Ok(provider) => {
+            provider
+        },
+        Err(err) => {
+            error!("INVALID RPC URL: {}",err) ; 
+            return Err(DepositErr{message: "INVALID RPC URL"}) ;
+        }
+    } ; 
 
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await.unwrap();     
+    let chain_id = provider.get_chainid().await.unwrap().as_u64() ;  
+    
+    let wallet= match Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            deposit.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await {
+        Ok(wallet) => {
+            wallet
+        },
+        Err(err) => {
+            error!("ERROR INSTANTIATING LEDGER WALLET: {}",err) ; 
+            return Err(DepositErr{message: "ERROR INSTANTIATING LEDGER WALLET"}) ;
+        }
+    } ;      
+
+    let wallet_address =  wallet.get_address().await.unwrap() ;   
 
     // Approve token for deposit 
     let approve_tx = approve_tokens(
@@ -85,37 +114,38 @@ async fn rpc_deposit(deposit: web::Json<Deposit>) -> Result<HttpResponse, Deposi
         wallet_address,
         deposit.blocknative_api_key.clone()
     ).await.unwrap() ;
+    info!("Approving token for deposit");
+    let _ = execute_transaction(rpc_url.clone(),wallet,approve_tx).await ;
+    // Tokens approved. 
 
-    let approve_tx = client.send_transaction(approve_tx, None).await;   
-    match approve_tx {
-        Ok(approve_tx) => {
-            let _ = approve_tx.confirmations(1).await ;
+    // Deposit tokens 
+    let wallet= match Ledger::new(HDPath::Other(
+        format!(
+            "{}{}",
+            String::from("m/44'/60'/0'/0/"),
+            deposit.address_index.unwrap().to_string()
+        )
+    ), chain_id.clone()).await {
+        Ok(wallet) => {
+            wallet
         },
-        Err(_) => {
-            return Err(DepositErr{message: "\n ❌Token approval failed"});
+        Err(err) => {
+            error!("ERROR INSTANTIATING LEDGER WALLET: {}",err) ; 
+            return Err(DepositErr{message: "ERROR INSTANTIATING LEDGER WALLET"}) ;
         }
-    }
+    } ; 
 
-    // Deposit tokens
     let deposit_tx = deposit_token(
         token_address,
         token_amount,
         vault_id,
         orderbook_address,
-        rpc_url,
+        rpc_url.clone(),
         deposit.blocknative_api_key.clone()
     ).await.unwrap() ;
 
-    let deposit_tx = client.send_transaction(deposit_tx, None).await;  
-
-    match deposit_tx {
-        Ok(deposit_tx) => {
-            let _ = deposit_tx.confirmations(1).await ;
-        },
-        Err(_) => {
-            return Err(DepositErr{message: "\n ❌Failed to deposit tokens"});
-        }
-    }
+    println!("Depositing Tokens Into Vaults"); 
+    let _ = execute_transaction(rpc_url.clone(),wallet,deposit_tx).await ; 
 
     Ok(HttpResponse::Ok().finish())
 }

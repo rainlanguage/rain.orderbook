@@ -5,11 +5,11 @@ use clap::Parser;
 use ethers::types::Address;
 use ethers::utils::parse_units;
 use ethers::{providers::{Provider, Middleware, Http}, types::U256} ; 
-use ethers::prelude::SignerMiddleware ;
 use anyhow::anyhow;
 use ethers_signers::{Ledger, HDPath};
 use crate::orderbook::withdraw::v3::withdraw_tokens;
-use spinners::{Spinner, Spinners};
+use crate::transaction::execute_transaction;
+use tracing::{error, info}; 
 
 #[derive(Parser,Debug,Clone)]
 pub struct Withdraw{ 
@@ -51,88 +51,89 @@ pub struct Withdraw{
 pub async fn handle_withdraw(withdraw : Withdraw) -> anyhow::Result<()> { 
 
     let orderbook_address = match Address::from_str(&withdraw.orderbook) {
-        Ok(address) => {
-            address
-        },
-        Err(_) => {
-            return Err(anyhow!("\n ❌Incorrect orderbook address.")) ;
+        Ok(address) => address ,
+        Err(err) => {
+            error!("ERROR PARSING ORDERBOOK ADDRESS: {}",err) ; 
+            return Err(anyhow!(err)) ;
         }
     };
 
     let token_address = match Address::from_str(&withdraw.token_address) {
-        Ok(address) => {
-            address
-        },
-        Err(_) => {
-            return Err(anyhow!("\n ❌Incorrect token address.")) ;
+        Ok(address) => address ,
+        Err(err) => {
+            error!("ERROR PARSING TOKEN ADDRESS: {}",err) ; 
+            return Err(anyhow!(err)) ;
         }
     };  
 
     let token_amount: U256 = match parse_units(withdraw.amount.clone(),withdraw.token_decimals.clone()) {
         Ok(amount) => amount.into() ,
-        Err(_) => {
-            return Err(anyhow!("\n ❌Incorrect amount.")) ;
+        Err(err) => {
+            error!("INVALID TOKEN AMOUNT: {}",err) ; 
+            return Err(anyhow!(err)) ;
         }
     } ;
 
-    let vault_id = U256::from_dec_str(&String::from(withdraw.clone().vault_id)).unwrap();
+    let vault_id = match U256::from_dec_str(&String::from(withdraw.clone().vault_id)){
+        Ok(id) => id ,
+        Err(err) => {
+            error!("INVALID VAULT ID: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    };
        
-    let rpc_url = withdraw.rpc_url.unwrap() ;
+    let rpc_url = match withdraw.rpc_url {
+        Some(url) => {
+            url
+        },
+        None => {
+            error!("RPC URL NOT PROVIDED") ; 
+            return Err(anyhow!("RPC URL not provided.")) ;
+        }
+    } ; 
 
-    let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider");  
+    let provider = match Provider::<Http>::try_from(rpc_url.clone()){
+        Ok(provider) => {
+            provider
+        },
+        Err(err) => {
+            error!("INVALID RPC URL: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ; 
 
-    let chain_id = provider.get_chainid().await.unwrap().as_u64() ; 
-    let wallet= Ledger::new(HDPath::Other(
+    let chain_id = provider.get_chainid().await.unwrap().as_u64() ;  
+
+    let wallet= match Ledger::new(HDPath::Other(
         format!(
             "{}{}",
             String::from("m/44'/60'/0'/0/"),
             withdraw.address_index.unwrap().to_string()
         )
-    ), chain_id.clone()).await.expect("\n❌Could not instantiate Ledger Wallet"); 
+    ), chain_id.clone()).await {
+        Ok(wallet) => {
+            wallet
+        },
+        Err(err) => {
+            error!("ERROR INSTANTIATING LEDGER WALLET: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ;  
 
     let wallet_address =  wallet.get_address().await.unwrap() ; 
-
-    let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;     
- 
-
+    
     let withdraw_tx = withdraw_tokens(
         token_address,
         token_amount,
         vault_id,
         orderbook_address,
-        rpc_url,
+        rpc_url.clone(),
         wallet_address,
         withdraw.blocknative_api_key
     ).await?; 
 
-    println!("\n-----------------------------------\nWithdrawing tokens from vault.\n");
-    let mut sp = Spinner::new(
-        Spinners::from_str("Dots9").unwrap(),
-        "Awaiting confirmation from wallet...".into(),
-    );  
-    let withdraw_tx = client.send_transaction(withdraw_tx, None).await;   
-    sp.stop();
+    info!("Withdrawing tokens from vault.");
+    let _ = execute_transaction(rpc_url.clone(),wallet,withdraw_tx).await? ;
 
-    match withdraw_tx {
-        Ok(withdraw_tx) => {
-            let mut sp = Spinner::new(
-                Spinners::from_str("Dots9").unwrap(),
-                "Transaction submitted. Awaiting block confirmations...".into(),
-            );
-            let withdraw_receipt = withdraw_tx.confirmations(1).await?.unwrap();  
-            let withdraw_msg = format!(
-                "{}{}{}" ,
-                String::from("\nTokens withdrawn !!\n#################################\n✅ Hash : "),
-                format!("0x{}",hex::encode(withdraw_receipt.transaction_hash.as_bytes().to_vec())), 
-                String::from("\n-----------------------------------\n")
-            ) ; 
-            sp.stop_with_message(withdraw_msg.into()); 
-        }
-        Err(_) => {
-            println!("\n❌ Transaction Rejected.");
-        }
-    } 
-    
     Ok(())
 }
