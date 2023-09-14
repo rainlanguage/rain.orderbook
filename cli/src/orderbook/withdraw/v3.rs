@@ -1,7 +1,7 @@
 use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units} ; 
 use std::{convert::TryFrom, sync::Arc};
 use anyhow::anyhow;
-
+use tracing::error;
 use crate::{cli::registry::IOrderBookV3, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
 
 pub async fn withdraw_tokens(
@@ -14,8 +14,15 @@ pub async fn withdraw_tokens(
     blocknative_api_key : Option<String>
 ) -> anyhow::Result<Eip1559TransactionRequest>{ 
 
-    let provider = Provider::<Http>::try_from(rpc_url)
-    .expect("\n❌Could not instantiate HTTP Provider"); 
+    let provider = match Provider::<Http>::try_from(rpc_url.clone()){
+        Ok(provider) => {
+            provider
+        },
+        Err(err) => {
+            error!("INVALID RPC URL: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ;
 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
 
@@ -24,13 +31,8 @@ pub async fn withdraw_tokens(
     let vault_balance: U256 = orderbook.vault_balance(signer_address, withdraw_token_address, wihtdraw_vault_id).call().await.unwrap() ; 
 
     if withdraw_token_amount.gt(&vault_balance) {
-        let err_msg = format!(
-            "{}{}" ,
-            String::from("\n#################################\nInsufficient vault balance for withdrawal.\nCurrent vault balance :"),
-            vault_balance.to_string()
-        ) ;  
-        println!("{}",err_msg) ;
-        return Err(anyhow!(err_msg)); 
+        error!("INSUFFICIENT VAULT BALANCE FOR WITHDRAWAL"); 
+        return Err(anyhow!("INSUFFICIENT VAULT BALANCE FOR WITHDRAWAL")); 
     }
 
     let withdraw_tx = orderbook.withdraw(withdraw_token_address,wihtdraw_vault_id,withdraw_token_amount) ; 

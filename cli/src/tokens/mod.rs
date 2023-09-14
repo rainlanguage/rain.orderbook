@@ -1,8 +1,8 @@
 
 use anyhow::anyhow;
-use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units, prelude::SignerMiddleware} ; 
+use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units} ; 
 use std::{convert::TryFrom, sync::Arc};
-
+use tracing::error;
 use crate::{cli::registry::IERC20, gasoracle::{is_block_native_supported, gas_price_oracle}};  
 
 
@@ -16,8 +16,15 @@ pub async fn approve_tokens(
     blocknative_api_key : Option<String>
 ) -> anyhow::Result<(Eip1559TransactionRequest)> {  
 
-    let provider = Provider::<Http>::try_from(rpc_url.clone())
-    .expect("\n❌Could not instantiate HTTP Provider");
+    let provider = match Provider::<Http>::try_from(rpc_url.clone()){
+        Ok(provider) => {
+            provider
+        },
+        Err(err) => {
+            error!("INVALID RPC URL: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    } ;
 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();  
 
@@ -47,7 +54,8 @@ pub async fn approve_tokens(
         Ok(approve_tx)
         
     }else{
-        return Err(anyhow!("\n ❌Insufficent balance for deposit.\nCurrent Balance : {}.",token_balance)) ;
+        error!("INSUFFICIENT BALANCE") ; 
+        return Err(anyhow!("INSUFFICIENT BALANCE")) ;
     } 
 
 }
