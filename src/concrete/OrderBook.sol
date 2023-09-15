@@ -189,14 +189,15 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     /// order hash => order is live
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(bytes32 => uint256) internal sOrders;
+    mapping(bytes32 orderHash => uint256 liveness) internal sOrders;
 
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
     /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(address => mapping(address => mapping(uint256 => uint256))) internal sVaultBalances;
+    mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
+        sVaultBalances;
 
     /// Initializes the orderbook upon construction for compatibility with
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
