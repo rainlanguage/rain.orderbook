@@ -349,6 +349,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         Order memory order;
 
         uint256 remainingTakerInput = config.maximumInput;
+        if (remainingTakerInput == 0) {
+            revert ZeroMaximumInput();
+        }
         while (i < config.orders.length && remainingTakerInput > 0) {
             takeOrderConfig = config.orders[i];
             order = takeOrderConfig.order;

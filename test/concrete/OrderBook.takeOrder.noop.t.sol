@@ -133,4 +133,5 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
             assertEq(orderHash2, order2.hash());
         }
     }
+
 }
