@@ -2,7 +2,7 @@
 use std::str::FromStr;
 use std::convert::TryFrom;
 use clap::Parser; 
-use ethers::providers::Middleware;
+use ethers::{providers::Middleware, types::U256};
 use ethers_signers::{Ledger, HDPath};
 use ethers::{providers::{Provider, Http}, types::H160} ; 
 use tracing::{error, info}; 
@@ -27,6 +27,10 @@ pub struct AddOrder{
     /// token list to be included in order
     #[arg(short,long,num_args = 1..)]
     pub decimals : Vec<u8>, 
+
+    /// associated vault id
+    #[arg(short, long)]
+    pub vault_id : String ,
 
     /// address of the token to deposit
     #[arg(short, long)]
@@ -60,7 +64,15 @@ pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {
             error!("RPC URL NOT PROVIDED") ; 
             return Err(anyhow!("RPC URL not provided.")) ;
         }
-    } ; 
+    } ;  
+
+    let vault_id = match U256::from_dec_str(&String::from(add_order.vault_id)){
+        Ok(id) => id ,
+        Err(err) => {
+            error!("INVALID VAULT ID: {}",err) ; 
+            return Err(anyhow!(err)) ;
+        }
+    };
 
     let provider = match Provider::<Http>::try_from(rpc_url.clone()){
         Ok(provider) => {
@@ -98,6 +110,7 @@ pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {
         parser_address,
         add_order.tokens,
         add_order.decimals,
+        vault_id,
         add_order.order_string,
         add_order.order_meta,
         rpc_url.clone(),

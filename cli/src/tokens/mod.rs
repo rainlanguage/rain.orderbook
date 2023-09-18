@@ -14,7 +14,7 @@ pub async fn approve_tokens(
     rpc_url : String , 
     signer_address : H160,
     blocknative_api_key : Option<String>
-) -> anyhow::Result<(Eip1559TransactionRequest)> {  
+) -> anyhow::Result<Eip1559TransactionRequest> {  
 
     let provider = match Provider::<Http>::try_from(rpc_url.clone()){
         Ok(provider) => {

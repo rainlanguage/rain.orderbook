@@ -7,12 +7,14 @@ use std::{convert::TryFrom, sync::Arc};
 use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, OrderConfigV2}, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
 
+
 #[allow(unused_variables)]
 pub async fn add_ob_order(
     orderbook_address : H160,
     parser_address : H160,
     tokens : Vec<String>,
-    decimals : Vec<u8>,
+    decimals : Vec<u8>, 
+    vault_id : U256,
     order_string: String ,
     order_meta : String ,
     rpc_url : String,
@@ -44,7 +46,6 @@ pub async fn add_ob_order(
     let tokens = tokens ;
     let decimals = decimals ;
 
-    let vault_id = U256::from(H160::random().as_bytes()) ;   
     let mut decimals = decimals.iter() ;
 
     let io_arr: Vec<_> = tokens.iter().map(|x| {
@@ -94,3 +95,359 @@ pub async fn add_ob_order(
 
     Ok(order_tx)
 }
+
+#[cfg(test)] 
+pub mod test { 
+    use std::str::FromStr;
+    use crate::{orderbook::add_order::v3::add_ob_order, cli::registry::{Io, EvaluableConfigV2}}; 
+    use ethers::{types::{U256, H160, Bytes, transaction::eip2718::TypedTransaction}, abi::{ParamType, Token}};
+    use ethers::providers::{Provider, Middleware, Http} ;
+    use rain_cli_meta::meta::magic::KnownMagic;
+
+    #[tokio::test]
+    pub async fn test_add_order() -> anyhow::Result<()> { 
+
+        let rpc_url = "https://polygon.llamarpc.com/".to_string() ;
+        let orderbook_address = H160::from_str(&String::from("0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d")).unwrap() ;  
+        let parser_address = H160::from_str(&String::from("0x7b463524F7449593959FfeA70BE0301b42Ef7Be2")).unwrap() ; 
+
+        let tokens = [
+            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
+            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
+        ] ; 
+
+        let decimals:[u8;2] = [6,6] ;  
+        let order_string = String::from("max-amount ratio : 11e70 1001e15;:;");
+        let order_meta = String::from("");    
+
+        let vault_id = U256::from(H160::random().as_bytes()) ;   
+
+        let order_tx = add_ob_order(
+            orderbook_address,
+            parser_address.clone(),
+            tokens.to_vec(),
+            decimals.to_vec(),
+            vault_id,
+            order_string,
+            order_meta,
+            rpc_url,
+            None
+        ).await.unwrap() ;  
+
+        let tx_bytes = order_tx.data.unwrap().to_vec() ;
+        let tx_bytes = &tx_bytes[4..]; 
+
+        let io_tuple = ParamType::Tuple([
+            ParamType::Address,
+            ParamType::Uint(8),
+            ParamType::Uint(256),
+        ].to_vec()) ;    
+
+        let evaluable_config_tuple = ParamType::Tuple([
+            ParamType::Address,
+            ParamType::Bytes,
+            ParamType::Array(Box::new(ParamType::Uint(256))) 
+        ].to_vec()) ;  
+
+        let order_tuple = ParamType::Tuple([
+            ParamType::Array(Box::new(io_tuple.clone())),
+            ParamType::Array(Box::new(io_tuple.clone())),
+            evaluable_config_tuple,
+            ParamType::Bytes 
+        ].to_vec()) ;   
+
+        let order_abi = [order_tuple] ;
+
+        let decoded_data = ethers::abi::decode(&order_abi, tx_bytes).unwrap() ;  
+        
+        let actual_order = match &decoded_data[0] {
+            Token::Tuple(tuple) => tuple,
+            _ => panic!("Unable To Decode Order") 
+        } ;  
+
+        let input_vaults = match &actual_order[0]{
+            Token::Array(input_vault) => input_vault,
+            _ => panic!("Invalid input vaults") 
+        };
+        
+        let ouput_vaults = match &actual_order[1]{
+            Token::Array(output_vaults) => output_vaults ,
+            _ => panic!("Invalid input vaults")
+        } ;  
+
+        let evaulable = match &actual_order[2]{
+            Token::Tuple(evaluable) => evaluable,
+            _ => panic!("Invalid evaluable")  
+        } ;
+
+        let meta = match &actual_order[3]{
+            Token::Bytes(meta) => meta,
+            _ => panic!("Invalid meta")  
+        } ;  
+
+        let rain_magic_number = KnownMagic::RainMetaDocumentV1.to_prefix_bytes().to_vec();  
+        let expected_meta = Bytes::from(rain_magic_number); 
+        let actual_meta = Bytes::from(meta.clone()); 
+        assert_eq!(expected_meta,actual_meta) ;
+
+        let actual_ip_vaults = desturcture_vault(input_vaults) ;
+        let actual_op_vaults = desturcture_vault(ouput_vaults) ; 
+        let expected_vaults = construct_io(
+            tokens.to_vec(),
+            decimals.to_vec(),
+            vault_id
+        ) ;
+        check_io(actual_ip_vaults,expected_vaults.clone()) ;
+        check_io(actual_op_vaults,expected_vaults) ;
+
+        let actual_evaluable = destructure_evaluable_config(evaulable); 
+        let expected_evaluable = construct_evaluable(
+            parser_address,
+            Bytes::from_str(&String::from("0x020000000c02020002010000000100000100000000")).unwrap(),
+            vec![
+                U256::from_dec_str("110000000000000000000000000000000000000000000000000000000000000000000000").unwrap(),
+                U256::from_dec_str("1001000000000000000").unwrap(),
+            ]
+        ) ;
+
+        check_evaluable(expected_evaluable,actual_evaluable);
+        
+        Ok(()) 
+
+    }   
+    
+    #[tokio::test]
+    pub async fn test_add_order_estimate() -> anyhow::Result<()> {
+        let rpc_url = "https://polygon.llamarpc.com/".to_string() ;
+        let orderbook_address = H160::from_str(&String::from("0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d")).unwrap() ;  
+        let parser_address = H160::from_str(&String::from("0x7b463524F7449593959FfeA70BE0301b42Ef7Be2")).unwrap() ;
+        let from_address = H160::from_str(&String::from("0xF977814e90dA44bFA03b6295A0616a897441aceC")).unwrap(); 
+
+        let tokens = [
+            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
+            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
+        ] ; 
+
+        let decimals:[u8;2] = [6,6] ;  
+        let order_string = String::from("max-amount ratio : 11e70 1001e15;:;");
+        let order_meta = String::from("");    
+
+        let vault_id = U256::from(H160::random().as_bytes()) ;   
+
+        let mut order_tx = add_ob_order(
+            orderbook_address,
+            parser_address.clone(),
+            tokens.to_vec(),
+            decimals.to_vec(),
+            vault_id,
+            order_string,
+            order_meta,
+            rpc_url.clone(),
+            None
+        ).await.unwrap() ;    
+
+        order_tx.from = Some(from_address.into()) ;
+
+        let provider =  Provider::<Http>::try_from(rpc_url.clone()).unwrap() ;   
+        let deposit_tx = TypedTransaction::Eip1559(order_tx.clone()) ;
+        let estimate = provider.estimate_gas(&deposit_tx, None).await.unwrap() ; 
+        assert!(estimate > U256::zero()) ;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    pub async fn test_rainlang_parse_order() -> anyhow::Result<()>{
+        let rpc_url = "https://polygon.llamarpc.com/".to_string() ;
+        let orderbook_address = H160::from_str(&String::from("0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d")).unwrap() ;  
+        let parser_address = H160::from_str(&String::from("0x7b463524F7449593959FfeA70BE0301b42Ef7Be2")).unwrap() ; 
+
+        let tokens = [
+            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
+            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
+        ] ; 
+
+        let decimals:[u8;2] = [6,6] ;  
+        let order_string = String::from(
+            "order-hash: context<1 0>(),       
+            delay: int-add(block-timestamp() 3600),
+            comparison: less-than(order-hash delay),
+            max-amount ratio : 11e70 1001e15 ;
+            :;"
+        );
+        let order_meta = String::from("");    
+
+        let vault_id = U256::from(H160::random().as_bytes()) ;   
+
+        let order_tx = add_ob_order(
+            orderbook_address,
+            parser_address.clone(),
+            tokens.to_vec(),
+            decimals.to_vec(),
+            vault_id,
+            order_string,
+            order_meta,
+            rpc_url,
+            None
+        ).await.unwrap() ;  
+
+        let tx_bytes = order_tx.data.unwrap().to_vec() ;
+        let tx_bytes = &tx_bytes[4..]; 
+
+        let io_tuple = ParamType::Tuple([
+            ParamType::Address,
+            ParamType::Uint(8),
+            ParamType::Uint(256),
+        ].to_vec()) ;    
+
+        let evaluable_config_tuple = ParamType::Tuple([
+            ParamType::Address,
+            ParamType::Bytes,
+            ParamType::Array(Box::new(ParamType::Uint(256))) 
+        ].to_vec()) ;  
+
+        let order_tuple = ParamType::Tuple([
+            ParamType::Array(Box::new(io_tuple.clone())),
+            ParamType::Array(Box::new(io_tuple.clone())),
+            evaluable_config_tuple,
+            ParamType::Bytes 
+        ].to_vec()) ;   
+
+        let order_abi = [order_tuple] ;
+
+        let decoded_data = ethers::abi::decode(&order_abi, tx_bytes).unwrap() ;  
+        
+        let actual_order = match &decoded_data[0] {
+            Token::Tuple(tuple) => tuple,
+            _ => panic!("Unable To Decode Order") 
+        } ;  
+
+        let evaulable = match &actual_order[2]{
+            Token::Tuple(evaluable) => evaluable,
+            _ => panic!("Invalid evaluable")  
+        } ;
+
+        let actual_evaluable = destructure_evaluable_config(evaulable); 
+        let expected_evaluable = construct_evaluable(
+            parser_address,
+            Bytes::from_str(&String::from("0x02000000280905000502000001010000000800000019020000000000010000000012020000010000010100000200000000")).unwrap(),
+            vec![
+                U256::from_dec_str("3600").unwrap(),
+                U256::from_dec_str("110000000000000000000000000000000000000000000000000000000000000000000000").unwrap(),
+                U256::from_dec_str("1001000000000000000").unwrap(),
+            ]
+        ) ;
+
+        check_evaluable(expected_evaluable,actual_evaluable);
+        
+        Ok(()) 
+    }
+
+    pub fn construct_io(tokens : Vec<String>, decimals : Vec<u8>, vault_id : U256) -> Vec<Io>{
+        let io_arr: Vec<Io> = tokens.iter().map(|x| {
+            Io {
+                token : H160::from_str(x).unwrap() ,
+                decimals : *decimals.iter().next().unwrap(),
+                vault_id : vault_id.clone()
+
+            }
+        }).collect() ;  
+        io_arr
+    }  
+
+    pub fn destructure_io(token : &Token) -> Io{
+        
+        let tuple = match token {
+            Token::Tuple(tuple) => tuple,
+            _ => panic!("Invalid IO") 
+        } ;   
+      
+        let token_address = match tuple[0]{
+            Token::Address(address) => address,
+            _ => panic!("Invalid address") 
+        } ;
+        let token_decimal = match tuple[1]{
+            Token::Uint(decimal) => decimal,
+            _ => panic!("Invalid address") 
+        } ;
+        let vault_id = match tuple[2]{
+            Token::Uint(vault_id) => vault_id,
+            _ => panic!("Invalid address") 
+        } ;
+
+        Io {
+            token : token_address ,
+            decimals : u8::from_str(token_decimal.to_string().as_str()).unwrap(),
+            vault_id : vault_id
+        }        
+
+    }
+    
+    pub fn desturcture_vault(tokens: &Vec<Token>) -> Vec<Io>{
+        let mut io_arr: Vec<Io> = vec![] ;
+        for token in tokens {
+            let io = destructure_io(token) ;
+            io_arr.push(io) ;
+        }
+        io_arr
+    }
+
+    pub fn check_io(expected: Vec<Io>, actual: Vec<Io>) { 
+        for (i,io) in expected.iter().enumerate() {
+            assert_eq!(io.token, actual[i].token) ;
+            assert_eq!(io.decimals, actual[i].decimals) ;
+            assert_eq!(io.vault_id, actual[i].vault_id) ;
+        }
+    } 
+
+    pub fn construct_evaluable(deployer: H160, bytecode: Bytes, constants: Vec<U256>) -> EvaluableConfigV2 {
+        EvaluableConfigV2 {
+            deployer : deployer,
+            bytecode : bytecode,
+            constants : constants
+        }
+    } 
+
+    pub fn destructure_evaluable_config(token : &Vec<Token>) -> EvaluableConfigV2 {
+        let expression_deployer = match &token[0] {
+            Token::Address(address) => address ,
+            _ => panic!("Invalid address")
+        } ;
+        let bytcode = match &token[1] {
+            Token::Bytes(bytes) => bytes ,
+            _ => panic!("Invalid bytecode")
+        } ; 
+
+        let constants = match &token[2] {
+            Token::Array(constants) => constants ,
+            _ => panic!("Invalid constants")
+        } ; 
+
+        let mut actual_constants: Vec<U256> = vec![] ;
+        for constant in constants {
+            let constant = match constant {
+                Token::Uint(constant) => constant ,
+                _ => panic!("Invalid constant")
+            } ; 
+            actual_constants.push(constant.clone()) ;
+        } 
+
+        EvaluableConfigV2 {
+            deployer : expression_deployer.clone() ,
+            bytecode : Bytes::from(bytcode.clone()),
+            constants : actual_constants.clone()
+        }
+
+    } 
+     
+    pub fn check_evaluable(expected: EvaluableConfigV2, actual: EvaluableConfigV2) {
+        assert_eq!(expected.deployer, actual.deployer) ;
+        assert_eq!(expected.bytecode, actual.bytecode) ;
+        for (i, constant) in expected.constants.iter().enumerate()  {
+            assert_eq!(constant.clone(), actual.constants[i]);
+        }
+    }
+
+
+} 
+

@@ -30,10 +30,10 @@ pub async fn withdraw_tokens(
 
     let vault_balance: U256 = orderbook.vault_balance(signer_address, withdraw_token_address, wihtdraw_vault_id).call().await.unwrap() ; 
 
-    if withdraw_token_amount.gt(&vault_balance) {
-        error!("INSUFFICIENT VAULT BALANCE FOR WITHDRAWAL"); 
-        return Err(anyhow!("INSUFFICIENT VAULT BALANCE FOR WITHDRAWAL")); 
-    }
+    // if withdraw_token_amount.gt(&vault_balance) {
+    //     error!("INSUFFICIENT VAULT BALANCE FOR WITHDRAWAL"); 
+    //     return Err(anyhow!("INSUFFICIENT VAULT BALANCE FOR WITHDRAWAL")); 
+    // }
 
     let withdraw_tx = orderbook.withdraw(withdraw_token_address,wihtdraw_vault_id,withdraw_token_amount) ; 
     let withdraw_data: Bytes = withdraw_tx.calldata().unwrap() ;
@@ -53,4 +53,60 @@ pub async fn withdraw_tokens(
         withdraw_tx.max_fee_per_gas = Some(max_fee);
     }   
     Ok(withdraw_tx)
+}
+
+#[cfg(test)] 
+mod test { 
+    use std::str::FromStr;
+    use ethers::{types::{U256, H160}, abi::{ParamType, Token}};
+    use crate::orderbook::withdraw::v3::withdraw_tokens;
+
+    #[tokio::test]
+    pub async fn test_withdraw() { 
+
+        let rpc_url = "https://polygon.llamarpc.com".to_string() ; 
+        let orderbook_address = H160::from_str(&String::from("0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d")).unwrap() ;  
+        let withdraw_token_address = H160::from_str(&String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")).unwrap() ; 
+        let withdraw_token_amount = U256::from(H160::random().as_bytes());
+        let withdraw_vault_id = U256::from(H160::random().as_bytes()) ; 
+        let signer_address = H160::from_str(&String::from("0x53AB61eE41FA202227Eb4e7B176208FC626DC8A9")).unwrap() ;
+
+        let withdraw_tx = withdraw_tokens(
+            withdraw_token_address,
+            withdraw_token_amount,
+            withdraw_vault_id,
+            orderbook_address,
+            rpc_url,
+            signer_address,
+            None
+        ).await.unwrap() ;  
+
+        let tx_bytes = withdraw_tx.data.unwrap().to_vec() ; 
+        let tx_bytes = &tx_bytes[4..];  
+        
+        let dep_param = [
+            ParamType::Address,
+            ParamType::Uint(256),
+            ParamType::Uint(256),
+        ] ;  
+
+        let decoded_data = ethers::abi::decode(&dep_param, tx_bytes).unwrap() ;   
+        
+        match decoded_data[0] {
+            Token::Address(address) => assert_eq!(address,withdraw_token_address),
+            _ => {}
+        }
+
+        match decoded_data[1] {
+            Token::Uint(vault_id) => assert_eq!(vault_id,withdraw_vault_id),
+            _ => {}
+        }
+        
+        match decoded_data[0] {
+            Token::Uint(amount) => assert_eq!(amount,withdraw_token_amount),
+            _ => {}
+        }
+        
+    } 
+
 }
