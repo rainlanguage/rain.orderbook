@@ -20,11 +20,11 @@ pub struct Withdraw {
     pub orderbook: String,
 
     /// address of the token to withdraw
-    #[arg(short='t', long)]
+    #[arg(short = 't', long)]
     pub token_address: String,
 
     /// decimals coressponding to the token
-    #[arg(short='d', long)]
+    #[arg(short = 'd', long)]
     pub token_decimals: u32,
 
     /// string representing the amount of tokens to be withdrawn
