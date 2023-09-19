@@ -20,20 +20,20 @@ pub struct Withdraw {
     pub orderbook: String,
 
     /// address of the token to withdraw
-    #[arg(long)]
+    #[arg(short='t', long)]
     pub token_address: String,
 
     /// decimals coressponding to the token
-    #[arg(long)]
+    #[arg(short='d', long)]
     pub token_decimals: u32,
 
     /// string representing the amount of tokens to be withdrawn
     /// amount will be denominated according to token_decimals
-    #[arg(long)]
+    #[arg(short, long)]
     pub amount: String,
 
     /// decimal vault id to withdraw from
-    #[arg(long)]
+    #[arg(short, long)]
     pub vault_id: String,
 
     /// address index of the wallet to accessed. defualt 0.
