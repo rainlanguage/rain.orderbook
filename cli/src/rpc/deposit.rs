@@ -1,4 +1,4 @@
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, Error};
+use actix_web::{post, web, HttpResponse};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use ethers::types::Address;
@@ -7,7 +7,6 @@ use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use ethers_signers::{Ledger, HDPath};
 use crate::cli::deposit::Deposit;
 use crate::transaction::execute_transaction;
-use ethers::prelude::SignerMiddleware ; 
 use tracing::{error, info};
 use crate::orderbook::deposit::v3::deposit_tokens;
 use crate::tokens::approve_tokens;
