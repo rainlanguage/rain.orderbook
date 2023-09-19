@@ -1,7 +1,6 @@
 use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256, Eip1559TransactionRequest, Bytes, U64}, utils::parse_units} ; 
 use tracing::error;
 use anyhow::anyhow;
-use std::str::FromStr;
 use rain_cli_meta::meta::magic::KnownMagic;
 use std::{convert::TryFrom, sync::Arc};
 use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, OrderConfigV2}, gasoracle::{is_block_native_supported, gas_price_oracle}};
@@ -12,7 +11,7 @@ use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, Orde
 pub async fn add_ob_order(
     orderbook_address : H160,
     parser_address : H160,
-    tokens : Vec<String>,
+    tokens : Vec<H160>,
     decimals : Vec<u8>, 
     vault_id : U256,
     order_string: String ,
@@ -50,7 +49,7 @@ pub async fn add_ob_order(
 
     let io_arr: Vec<_> = tokens.iter().map(|x| {
         Io {
-            token : H160::from_str(x).unwrap() ,
+            token : *x ,
             decimals : *decimals.next().unwrap(),
             vault_id : vault_id.clone()
 
@@ -112,11 +111,14 @@ pub mod test {
         let parser_address = H160::from_str(&String::from("0x7b463524F7449593959FfeA70BE0301b42Ef7Be2")).unwrap() ; 
 
         let tokens = [
-            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
-            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
-        ] ; 
+            H160::random(),
+            H160::random(),
+            H160::random(),
+            H160::random(),
+            H160::random(),
+        ] ;  
 
-        let decimals:[u8;2] = [6,6] ;  
+        let decimals:[u8;5] = [6,6,12,18,9] ;  
         let order_string = String::from("max-amount ratio : 11e70 1001e15;:;");
         let order_meta = String::from("");    
 
@@ -224,8 +226,8 @@ pub mod test {
         let from_address = H160::from_str(&String::from("0xF977814e90dA44bFA03b6295A0616a897441aceC")).unwrap(); 
 
         let tokens = [
-            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
-            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
+            H160::random(),
+            H160::random()
         ] ; 
 
         let decimals:[u8;2] = [6,6] ;  
@@ -263,8 +265,8 @@ pub mod test {
         let parser_address = H160::from_str(&String::from("0x7b463524F7449593959FfeA70BE0301b42Ef7Be2")).unwrap() ; 
 
         let tokens = [
-            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
-            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
+            H160::random(),
+            H160::random()
         ] ; 
 
         let decimals:[u8;2] = [6,6] ;  
@@ -343,15 +345,17 @@ pub mod test {
         Ok(()) 
     }
 
-    pub fn construct_io(tokens : Vec<String>, decimals : Vec<u8>, vault_id : U256) -> Vec<Io>{
-        let io_arr: Vec<Io> = tokens.iter().map(|x| {
-            Io {
-                token : H160::from_str(x).unwrap() ,
-                decimals : *decimals.iter().next().unwrap(),
-                vault_id : vault_id.clone()
-
-            }
-        }).collect() ;  
+    pub fn construct_io(tokens : Vec<H160>, decimals : Vec<u8>, vault_id : U256) -> Vec<Io>{ 
+        let mut io_arr: Vec<Io> = vec![] ;
+        for (i,token) in tokens.iter().enumerate() {
+            io_arr.push(
+                Io {
+                    token : token.clone() ,
+                    decimals : decimals[i].clone(),
+                    vault_id : vault_id.clone()
+                }
+            )
+        } 
         io_arr
     }  
 
@@ -392,7 +396,7 @@ pub mod test {
         io_arr
     }
 
-    pub fn check_io(expected: Vec<Io>, actual: Vec<Io>) { 
+    pub fn check_io(expected: Vec<Io>, actual: Vec<Io>) {   
         for (i,io) in expected.iter().enumerate() {
             assert_eq!(io.token, actual[i].token) ;
             assert_eq!(io.decimals, actual[i].decimals) ;

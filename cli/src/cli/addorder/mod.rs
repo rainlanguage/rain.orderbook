@@ -102,13 +102,17 @@ pub async fn handle_add_order(add_order : AddOrder) -> anyhow::Result<()> {
     } ; 
 
     let parser_address = H160::from_str(&String::from(add_order.parser_address)).unwrap(); 
-    let orderbook_address = H160::from_str(&String::from(add_order.orderbook)).unwrap();
+    let orderbook_address = H160::from_str(&String::from(add_order.orderbook)).unwrap(); 
+
+    let tokens = add_order.tokens.iter().map(|t| {
+        H160::from_str(&String::from(t)).unwrap()
+    }).collect::<Vec<H160>>() ;
 
 
     let order_tx = add_ob_order(
         orderbook_address,
         parser_address,
-        add_order.tokens,
+        tokens,
         add_order.decimals,
         vault_id,
         add_order.order_string,

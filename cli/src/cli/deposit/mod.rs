@@ -8,7 +8,7 @@ use ethers::{providers::{Provider, Middleware, Http}, types::{H160,U256}};
 use anyhow::anyhow;
 use tracing::{error, info};
 use ethers_signers::{Ledger, HDPath};
-use crate::orderbook::deposit::v3::deposit_token;
+use crate::orderbook::deposit::v3::deposit_tokens;
 use crate::transaction::execute_transaction; 
 
 use crate::tokens::approve_tokens;
@@ -169,7 +169,7 @@ pub async fn handle_deposit(deposit : Deposit) -> anyhow::Result<()> {
         }
     } ; 
 
-    let deposit_tx = deposit_token(
+    let deposit_tx = deposit_tokens(
         token_address,
         token_amount,
         vault_id.clone(),

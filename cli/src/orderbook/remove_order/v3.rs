@@ -50,8 +50,8 @@ pub async fn remove_order(
 
 #[cfg(test)] 
 mod test { 
-    use std::{str::FromStr, sync::Arc};
-    use ethers::{types::{U256, H160, Bytes}, abi::{ParamType, Token}};
+    use std::str::FromStr;
+    use ethers::{types::{U256, H160}, abi::{ParamType, Token}};
     use crate::orderbook::{remove_order::v3::remove_order, add_order::v3::test::check_io};
     use crate::cli::registry::{Io, Order, Evaluable}; 
     use crate::orderbook::add_order::v3::test::desturcture_vault ;
@@ -70,11 +70,14 @@ mod test {
         let vault_id = U256::from(H160::random().as_bytes()) ;
         
         let tokens = [
-            String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"),
-            String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")
-        ] ; 
+            H160::random(),
+            H160::random(),
+            H160::random(),
+            H160::random(),
+            H160::random(),
+        ] ;  
 
-        let decimals:[u8;2] = [6,6] ;  
+        let decimals:[u8;5] = [6,6,12,18,9] ;
         
         let tokens = tokens ;
         let decimals = decimals ;
@@ -83,7 +86,7 @@ mod test {
         
         let io_arr: Vec<_> = tokens.iter().map(|x| {
             Io {
-                token : H160::from_str(x).unwrap() ,
+                token : *x ,
                 decimals : *decimals.next().unwrap(),
                 vault_id : vault_id.clone()
         
@@ -139,8 +142,6 @@ mod test {
         let remove_order_abi = [order_tuple] ;
         
         let decoded_data = ethers::abi::decode(&remove_order_abi, tx_bytes).unwrap() ;  
-
-        println!("decoded_data : {:#?}",decoded_data) ; 
 
         let actual_order = match &decoded_data[0] {
             Token::Tuple(tuple) => tuple,

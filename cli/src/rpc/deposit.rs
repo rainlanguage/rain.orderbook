@@ -9,7 +9,7 @@ use crate::cli::deposit::Deposit;
 use crate::transaction::execute_transaction;
 use ethers::prelude::SignerMiddleware ; 
 use tracing::{error, info};
-use crate::orderbook::deposit::v3::deposit_token;
+use crate::orderbook::deposit::v3::deposit_tokens;
 use crate::tokens::approve_tokens;
 use derive_more::{Display, Error};
 
@@ -135,7 +135,7 @@ async fn rpc_deposit(deposit: web::Json<Deposit>) -> Result<HttpResponse, Deposi
         }
     } ; 
 
-    let deposit_tx = deposit_token(
+    let deposit_tx = deposit_tokens(
         token_address,
         token_amount,
         vault_id,

@@ -4,7 +4,7 @@ use tracing::error;
 use anyhow::anyhow;
 use crate::{cli::registry::IOrderBookV3, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
-pub async fn deposit_token( 
+pub async fn deposit_tokens( 
     deposit_token_address : H160 ,
     deposit_token_amount : U256 ,
     deposit_vault_id : U256,
@@ -52,18 +52,18 @@ pub async fn deposit_token(
 mod test { 
     use std::str::FromStr;
     use ethers::{types::{U256, H160}, abi::{ParamType, Token}};
-    use crate::orderbook::deposit::v3::deposit_token; 
+    use crate::orderbook::deposit::v3::deposit_tokens; 
 
     #[tokio::test]
     pub async fn test_deposit() { 
 
         let rpc_url = "https://polygon.llamarpc.com".to_string() ;
         let orderbook_address = H160::from_str(&String::from("0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d")).unwrap() ; 
-        let deposit_token_address = H160::from_str(&String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")).unwrap() ; 
+        let deposit_token_address = H160::random() ; 
         let deposit_token_amount = U256::from(H160::random().as_bytes());
         let deposit_vault_id = U256::from(H160::random().as_bytes()) ; 
 
-        let deposit_tx = deposit_token(
+        let deposit_tx = deposit_tokens(
             deposit_token_address,
             deposit_token_amount,
             deposit_vault_id,
