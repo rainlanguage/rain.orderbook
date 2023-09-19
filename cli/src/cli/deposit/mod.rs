@@ -30,7 +30,8 @@ pub struct Deposit {
     #[arg(short='d', long, num_args = 1..)]
     pub token_decimals: u32,
 
-    /// amount to deposit.
+    /// string representing the amount of tokens to be deposited
+    /// amount will be deominated according to token_decimals
     #[arg(short, long)]
     pub amount: String,
 

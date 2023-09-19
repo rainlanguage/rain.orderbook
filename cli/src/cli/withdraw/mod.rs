@@ -27,7 +27,8 @@ pub struct Withdraw {
     #[arg(long)]
     pub token_decimals: u32,
 
-    /// amount to withdraw.
+    /// string representing the amount of tokens to be withdrawn
+    /// amount will be denominated according to token_decimals
     #[arg(long)]
     pub amount: String,
 
