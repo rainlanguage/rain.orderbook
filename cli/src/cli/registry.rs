@@ -1,24 +1,21 @@
-
 use clap::ValueEnum;
 
-use ethers::contract::abigen; 
+use ethers::contract::abigen;
 
 use serde::Deserialize;
 
 /// # RainNetworkOptions
 /// Enum representing options for supported networks for cross deploying contracts.
- #[derive(Debug)]
- #[derive(Copy,Clone,ValueEnum, Deserialize)]
-pub enum RainNetworkOptions{
+#[derive(Debug, Copy, Clone, ValueEnum, Deserialize)]
+pub enum RainNetworkOptions {
     Ethereum,
     Polygon,
     Mumbai,
-    Fuji
-}  
+    Fuji,
+}
 
-
-abigen!(IOrderBookV3, "src/orderbook/abi/v3/IOrderBookV3.json"); 
-abigen!(IParserV1, "src/interpreter/abi/v1/IParserV1.json"); 
+abigen!(IOrderBookV3, "src/orderbook/abi/v3/IOrderBookV3.json");
+abigen!(IParserV1, "src/interpreter/abi/v1/IParserV1.json");
 
 abigen!(
     IERC20,
@@ -33,6 +30,3 @@ abigen!(
         event Approval(address indexed owner, address indexed spender, uint256 value)
     ]"#,
 );
-
-
- 

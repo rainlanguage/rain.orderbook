@@ -1,7 +1,7 @@
-use actix::{Actor, StreamHandler, Message, Handler};
-use actix_web_actors::ws;
 use crate::cli::trace::WS_CONNECTION;
 use actix::AsyncContext;
+use actix::{Actor, Handler, Message, StreamHandler};
+use actix_web_actors::ws;
 
 #[derive(Message)]
 #[rtype(result = "()")]

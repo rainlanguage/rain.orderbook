@@ -1,13 +1,13 @@
-use lazy_static::lazy_static;
-use tracing_subscriber::filter::LevelFilter;
-use std::sync::{Mutex, Arc};
-use actix::Addr;
-use tracing::Event;
-use tracing_subscriber::layer::Context;
-use tracing_subscriber::Layer;
 use crate::cli::serve::websocket::MyWs;
+use actix::Addr;
+use lazy_static::lazy_static;
+use std::sync::{Arc, Mutex};
+use tracing::Event;
+use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::layer::Context;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
 
 use super::serve::websocket::TraceEvent;
 

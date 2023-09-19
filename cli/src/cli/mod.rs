@@ -5,28 +5,24 @@ use std::thread;
 
 use self::trace::initialize_tracing;
 
-pub mod registry;
-pub mod deposit;
-pub mod withdraw;
 pub mod addorder;
-pub mod removeorder;
+pub mod deposit;
 pub mod listorders;
+pub mod registry;
+pub mod removeorder;
 pub mod serve;
 pub mod trace;
-
+pub mod withdraw;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     orderbook: Orderbook,
-} 
-
-
+}
 
 #[derive(Subcommand)]
-pub enum Orderbook { 
-
+pub enum Orderbook {
     /// Deposit tokens into then vault
     Deposit(deposit::Deposit),
 
@@ -34,54 +30,55 @@ pub enum Orderbook {
     Withdraw(withdraw::Withdraw),
 
     /// Add order to orderbook
-    AddOrder(addorder::AddOrder), 
+    AddOrder(addorder::AddOrder),
 
-    /// Remove order from orderbook 
+    /// Remove order from orderbook
     RemoveOrder(removeorder::RemoveOrder),
 
     /// List all orders from particular schema compatible sg
     ListOrders(listorders::ListOrder),
 
     /// Serve the browser-based GUI
-    Serve(serve::Serve)
+    Serve(serve::Serve),
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
     match orderbook {
         Orderbook::Deposit(deposit) => {
-            let _ = deposit::handle_deposit(deposit).await ; 
+            let _ = deposit::handle_deposit(deposit).await;
             Ok(())
-        },
+        }
         Orderbook::Withdraw(withdraw) => {
             let _ = withdraw::handle_withdraw(withdraw).await;
             Ok(())
-        },
+        }
         Orderbook::AddOrder(order) => {
             let _ = addorder::handle_add_order(order).await;
             Ok(())
-        },
+        }
         Orderbook::RemoveOrder(order) => {
             let _ = removeorder::handle_remove_order(order).await;
             Ok(())
-        } ,
+        }
         Orderbook::ListOrders(listorders) => {
-            let _ = listorders::handle_list_order(listorders).await ;
+            let _ = listorders::handle_list_order(listorders).await;
             Ok(())
-        },
+        }
         Orderbook::Serve(_) => {
             // the actix server needs its own thread
             thread::spawn(|| {
                 let _ = serve::handle_serve();
-            }).join().expect("Thread panicked");
+            })
+            .join()
+            .expect("Thread panicked");
             Ok(())
         }
     }
 }
 
 pub async fn main() -> Result<()> {
-
     initialize_tracing();
-    
+
     let cli = Cli::parse();
     dispatch(cli.orderbook).await
 }

@@ -5,13 +5,19 @@ use std::path::PathBuf;
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 pub async fn static_fie(req: HttpRequest) -> impl Responder {
-    let assets = Lazy::new(|| {
-        generate()
-    });
+    let assets = Lazy::new(|| generate());
 
-    let path = req.match_info().query("filename").parse::<PathBuf>().unwrap();
+    let path = req
+        .match_info()
+        .query("filename")
+        .parse::<PathBuf>()
+        .unwrap();
     let path = path.to_str();
-    let path = if let Some(path) = path { path } else {return HttpResponse::BadRequest().finish() };
+    let path = if let Some(path) = path {
+        path
+    } else {
+        return HttpResponse::BadRequest().finish();
+    };
     let path = if path.is_empty() { "index.html" } else { path };
     let static_file = assets.get(path);
     match static_file {
