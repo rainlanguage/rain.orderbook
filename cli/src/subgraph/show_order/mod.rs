@@ -17,12 +17,18 @@ use std::str::FromStr;
 )]
 pub struct OrdersQuery; 
 
+/// Struct representing the OrderVaults to be displayed via the [view_orders](crate::cli::listorders::listorders::view_orders) function.
+/// This is intended to be used by the [view_orders](crate::cli::listorders::listorders::view_orders) function within the crate itself.
+/// Use of struct is outside of the crate is unlikely and is not recommended.
 #[derive(Clone, Debug)]
 pub struct OrderVaults{
     pub token : String,
     pub balance : String
 }
 
+/// Struct representing the TakeOrders to be displayed via the [view_orders](crate::cli::listorders::listorders::view_orders) function.
+/// This is intended to be used by the [view_orders](crate::cli::listorders::listorders::view_orders) function within the crate itself.
+/// Use of struct is outside of the crate is unlikely and is not recommended.
 #[derive(Clone, Debug)]
 pub struct TakeOrderDetails{
     pub input_token : String , 
@@ -32,6 +38,9 @@ pub struct TakeOrderDetails{
     pub transaction_id : String
 }
 
+/// Struct representing the Order to be displayed via the [view_orders](crate::cli::listorders::listorders::view_orders) function.
+/// This is intended to be used by the [view_orders](crate::cli::listorders::listorders::view_orders) function within the crate itself.
+/// Use of struct is outside of the crate is unlikely and is not recommended.
 #[derive(Clone, Debug)]
 pub struct OrdersDetails {
     pub id : String,
@@ -41,6 +50,12 @@ pub struct OrdersDetails {
     pub take_orders : Vec<TakeOrderDetails>
 }
 
+/// Fetches the order from the subgraph and build the a vector of [OrdersDetails] struct for the orders to be displayed
+/// via the [view_orders](crate::cli::listorders::listorders::view_orders) function. 
+/// This is intended to be used by the [view_orders](crate::cli::listorders::listorders::view_orders) function within the crate itself.
+/// 
+/// # Arguments
+/// * - `sg_uri`: Subgraph api endpoint.
 pub async fn get_order_details_display(sg_uri : String) -> anyhow::Result<Vec<OrdersDetails>>{ 
 
     let variables = orders_query::Variables {};

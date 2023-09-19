@@ -5,8 +5,56 @@ use rain_cli_meta::meta::magic::KnownMagic;
 use std::{convert::TryFrom, sync::Arc};
 use crate::{cli::registry::{IOrderBookV3, IParserV1, Io, EvaluableConfigV2, OrderConfigV2}, gasoracle::{is_block_native_supported, gas_price_oracle}};
 
-
-
+/// Builds and returns [Eip1559TransactionRequest] instance for `adding an order to the OrderBook`.
+/// The integrity of the transaction data is ensured, provided that the input parameters are valid.
+/// The transaction can then be submitted to the blockchain via any valid signer. 
+/// 
+/// # Arguments
+/// * `orderbook_address` - Address of the `OrderBook` contract.
+/// * `parser_address` - Address of the `RainterpreterExpressionDeployer` contract implementing `IParserV1` interface.
+/// * `tokens` - Array of token addresses, to be associated with the order.
+/// * `decimals` - Array of token decimals corresponding to the `tokens` array.
+/// * `vault_id` - vault_id of the vault to be associated with the order.
+/// * `order_string` - String representing rainlang expression for the order.
+/// * `order_meta` - String representing metadata for the order.
+/// * `rpc_url` - Provider RPC.
+/// * `blocknative_api_key` - Optional Blocknative API key.
+/// 
+/// # Example
+/// ```
+/// use std::str::FromStr;
+/// use rain_cli_ob::orderbook::add_order::v3::add_ob_order; 
+/// use ethers::types::{U256, H160, Eip1559TransactionRequest};
+/// 
+/// async fn add_order() {
+///     let rpc_url = "https://polygon.llamarpc.com/".to_string() ;
+///     let orderbook_address = H160::from_str(&String::from("0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d")).unwrap() ;  
+///     let parser_address = H160::from_str(&String::from("0x7b463524F7449593959FfeA70BE0301b42Ef7Be2")).unwrap() ; 
+///     let tokens = [
+///         H160::from_str(&String::from("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")).unwrap(),
+///         H160::from_str(&String::from("0xc2132D05D31c914a87C6611C10748AEb04B58e8F")).unwrap()
+///     ] ; 
+///
+///     let decimals:[u8;2] = [6,6] ;   
+///     let order_string = String::from("max-amount ratio : 11e70 1001e15;:;");
+///     let order_meta = String::from("");    
+///
+///     let vault_id = U256::from(H160::random().as_bytes()) ;   
+///
+///     let order_tx: Eip1559TransactionRequest = add_ob_order(
+///        orderbook_address,
+///        parser_address.clone(),
+///        tokens.to_vec(),
+///        decimals.to_vec(),
+///        vault_id,
+///        order_string,
+///        order_meta,
+///        rpc_url,
+///        None
+///     ).await.unwrap() ;  
+///     
+/// }
+/// ```
 #[allow(unused_variables)]
 pub async fn add_ob_order(
     orderbook_address : H160,

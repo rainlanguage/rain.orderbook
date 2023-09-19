@@ -16,6 +16,13 @@ use crate::cli::registry::{Evaluable,Io,Order} ;
 )]
 pub struct RemoveOrder;
 
+/// Fetches the order from the subgraph and build the [Order] struct for the order that is to be removed.
+/// Returns the [Order] struct representing the order to be removed, which can be passed as an argument
+/// to the [remove_order](crate::orderbook::remove_order::v3::remove_order) function.
+/// 
+/// # Arguments
+/// * - `rpc_url`: Subgraph api endpoint.
+/// * - `order_id`: ID of the order to be removed.
 pub async fn get_remove_order(
     rpc_url : String ,
     order_id : String

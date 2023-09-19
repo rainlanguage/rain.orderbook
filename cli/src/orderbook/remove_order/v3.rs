@@ -4,7 +4,15 @@ use tracing::error;
 use anyhow::anyhow;
 use crate::{cli::registry::{Order, IOrderBookV3}, gasoracle::{is_block_native_supported, gas_price_oracle}}; 
 
-
+/// Builds and returns [Eip1559TransactionRequest] instance for `removing an from OrderBook`.
+/// The integrity of the transaction data is ensured, provided that the input parameters are valid.
+/// The transaction can then be submitted to the blockchain via any valid signer. 
+/// 
+/// # Arguments
+/// * `order_to_remove` - [Order] to be removed from the OrderBook.
+/// * `orderbook_address` - Address of the OrderBook contract.
+/// * `rpc_url` - Provider RPC URL.
+/// * `blocknative_api_key` - Optional Blocknative API key.
 pub async fn remove_order(
     order_to_remove : Order ,  
     orderbook_address : H160 ,

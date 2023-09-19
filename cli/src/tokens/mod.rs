@@ -6,7 +6,17 @@ use tracing::error;
 use crate::{cli::registry::IERC20, gasoracle::{is_block_native_supported, gas_price_oracle}};  
 
 
-
+/// Builds and returns [Eip1559TransactionRequest] instance for token approval.
+/// The integrity of the transaction data is ensured, provided that the input parameters are valid.
+/// The transaction can then be submitted to the blockchain via any valid signer. 
+/// 
+/// # Arguments
+/// * `token_address` - Address of the ERC20 token to be approved.
+/// * `token_amount` - Fully denominated amount of tokens to be approved.
+/// * `approver_address` - Address of the entity to be approved.
+/// * `rpc_url` - Provider RPC URL.
+/// * `signer_address` - Address of the signer.
+/// * `blocknative_api_key` - Optional Blocknative API key.
 pub async fn approve_tokens(
     token_address : H160 ,
     token_amount : U256 , 

@@ -4,6 +4,12 @@ use ethers::prelude::SignerMiddleware ;
 use tracing::{info,error}; 
 use anyhow::anyhow; 
 
+/// Submits [Eip1559TransactionRequest] to the blockchain via the signer.
+/// 
+/// # Arguments
+/// * `rpc_url` - Provider RPC URL.
+/// * `wallet` - Ledger wallet instance.
+/// * `transaction` - [Eip1559TransactionRequest] instance to be submitted to the blockchain.
 pub async fn execute_transaction(
     rpc_url : String ,
     wallet : Ledger , 
