@@ -1,0 +1,44 @@
+# subgraph
+build
+generated
+subgraph.yaml
+
+# npm
+node_modules
+
+# hardhat
+cache
+
+#vscode
+.vscode
+
+#docker
+docker/data
+
+#rain-protocol
+rain-protocol/artifacts
+rain-protocol/.nix-node
+rain-protocol/node_modules
+rain-protocol/public/build
+rain-protocol/.env
+rain-protocol/cache
+rain-protocol/typechain
+rain-protocol/artifacts
+rain-protocol/build
+rain-protocol/venv
+rain-protocol/bin
+rain-protocol/docs/api
+rain-protocol/*.tgz
+rain-protocol/.npmrc
+rain-protocol/solt
+rain-protocol/!dist/**
+rain-protocol/tenderly.yaml
+rain-protocol/test-template.ts
+rain-protocol/dumpfile
+rain-protocol/.DS_Store
+
+# Echidna
+rain-protocol/crytic-export
+
+rain-protocol/cache_forge
+rain-protocol/out

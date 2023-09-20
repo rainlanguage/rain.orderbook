@@ -1,0 +1,68 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: OrderBook
+    network: {{ network }}
+    source:
+      address: "{{ orderbook }}"
+      abi: OrderBook
+      startBlock: {{ blockNumber }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - OrderBook
+      abis:
+        - name: OrderBook
+          file: ./abis/OrderBook.json
+        - name: ReserveToken
+          file: ./abis/ReserveToken.json
+      eventHandlers:
+        - event: AddOrder(address,address,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),bytes32)
+          handler: handleAddOrder
+        - event: AfterClear(address,(uint256,uint256,uint256,uint256))
+          handler: handleAfterClear
+        - event: Clear(address,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),(uint256,uint256,uint256,uint256,uint256,uint256))
+          handler: handleClear
+        - event: Context(address,uint256[][])
+          handler: handleContext
+          receipt: true
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+        - event: MetaV1(address,uint256,bytes)
+          handler: handleMetaV1
+        - event: OrderExceedsMaxRatio(address,address,bytes32)
+          handler: handleOrderExceedsMaxRatio
+        - event: OrderNotFound(address,address,bytes32)
+          handler: handleOrderNotFound
+        - event: OrderZeroAmount(address,address,bytes32)
+          handler: handleOrderZeroAmount
+        - event: RemoveOrder(address,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),bytes32)
+          handler: handleRemoveOrder
+        - event: TakeOrder(address,((address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),uint256,uint256,(address,uint256[],bytes)[]),uint256,uint256)
+          handler: handleTakeOrder
+        - event: Withdraw(address,address,uint256,uint256,uint256)
+          handler: handleWithdraw
+      file: ./src/orderBook.ts  
+templates: 
+  - kind: ethereum/contract
+    name: ERC20Template
+    network: {{ network }}
+    source:
+      abi: ReserveToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - EmissionsERC20
+      abis:
+        - name: ReserveToken
+          file: ./abis/ReserveToken.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/erc20.ts

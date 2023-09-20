@@ -1,0 +1,24 @@
+## Deps
+node_modules
+lib
+out
+schema
+utils
+
+## Hardhat
+cache
+artifacts
+contracts
+typechain
+
+## Subgraph
+subgraph.template.yaml
+build
+generated
+./docker
+/docker/**/*
+/docker/*
+/docker/data/postgres
+/scripts
+contracts
+utils
