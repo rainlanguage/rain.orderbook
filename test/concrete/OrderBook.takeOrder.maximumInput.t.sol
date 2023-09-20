@@ -75,15 +75,26 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, expectedTakerInput, type(uint256).max, orders, "");
 
+        // Mock and expect the token transfers.
         vm.mockCall(
             address(iToken1),
             abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput),
             abi.encode(true)
         );
+        vm.expectCall(
+            address(iToken1),
+            abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput),
+            1
+        );
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput),
             abi.encode(true)
+        );
+        vm.expectCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput),
+            1
         );
 
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
