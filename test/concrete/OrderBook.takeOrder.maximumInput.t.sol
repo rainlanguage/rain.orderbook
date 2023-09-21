@@ -32,61 +32,78 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         (totalTakerInput, totalTakerOutput);
     }
 
+    struct TestOrder {
+        address owner;
+        bytes orderString;
+    }
+
+    struct TestVault {
+        address owner;
+        address token;
+        uint256 deposit;
+        uint256 expect;
+    }
+
     function checkTakeOrderMaximumInput(
-        bytes[] memory orderStrings,
-        uint256 ownerDepositAmount,
+        TestOrder[] memory testOrders,
+        TestVault[] memory testVaults,
         uint256 maximumTakerInput,
         uint256 expectedTakerInput,
         uint256 expectedTakerOutput
     ) internal {
-        address alice = address(uint160(uint256(keccak256("alice.rain.test"))));
         address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
         uint256 vaultId = 0;
 
-        Order[] memory orders = new Order[](orderStrings.length);
+        Order[] memory orders = new Order[](testOrders.length);
 
-        for (uint256 i = 0; i < orderStrings.length; i++) {
+        for (uint256 i = 0; i < testOrders.length; i++) {
             {
+                OrderConfigV2 memory orderConfig;
                 {
                     (bytes memory bytecode, uint256[] memory constants) =
-                        IParserV1(address(iDeployer)).parse(orderStrings[i]);
+                        IParserV1(address(iDeployer)).parse(testOrders[i].orderString);
                     IO[] memory inputs = new IO[](1);
                     inputs[0] = IO(address(iToken0), 18, vaultId);
                     IO[] memory outputs = new IO[](1);
                     outputs[0] = IO(address(iToken1), 18, vaultId);
                     EvaluableConfigV2 memory evaluableConfig = EvaluableConfigV2(iDeployer, bytecode, constants);
-                    OrderConfigV2 memory orderConfig = OrderConfigV2(inputs, outputs, evaluableConfig, "");
-
-                    vm.prank(alice);
-                    vm.recordLogs();
-                    iOrderbook.addOrder(orderConfig);
-                    Vm.Log[] memory entries = vm.getRecordedLogs();
-                    assertEq(entries.length, 3);
-                    (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
-                    orders[i] = order;
+                    orderConfig = OrderConfigV2(inputs, outputs, evaluableConfig, "");
                 }
 
-                if (ownerDepositAmount > 0) {
-                    vm.prank(alice);
-                    // Deposit the amount of tokens required to take the order.
-                    vm.mockCall(
-                        address(iToken1),
-                        abi.encodeWithSelector(
-                            IERC20.transferFrom.selector, alice, address(iOrderbook), ownerDepositAmount
-                        ),
-                        abi.encode(true)
-                    );
-                    vm.expectCall(
-                        address(iToken1),
-                        abi.encodeWithSelector(
-                            IERC20.transferFrom.selector, alice, address(iOrderbook), ownerDepositAmount
-                        ),
-                        1
-                    );
-                    iOrderbook.deposit(address(iToken1), vaultId, ownerDepositAmount);
-                }
+                vm.prank(testOrders[i].owner);
+                vm.recordLogs();
+                iOrderbook.addOrder(orderConfig);
+                Vm.Log[] memory entries = vm.getRecordedLogs();
+                assertEq(entries.length, 3);
+                (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+                orders[i] = order;
+            }
+        }
+
+        for (uint256 i = 0; i < testVaults.length; i++) {
+            if (testVaults[i].deposit > 0) {
+                // Deposit the amount of tokens required to take the order.
+                vm.mockCall(
+                    address(iToken1),
+                    abi.encodeWithSelector(
+                        IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook), testVaults[i].deposit
+                    ),
+                    abi.encode(true)
+                );
+                vm.expectCall(
+                    address(iToken1),
+                    abi.encodeWithSelector(
+                        IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook), testVaults[i].deposit
+                    ),
+                    1
+                );
+                uint256 balanceBefore = iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId);
+                vm.prank(testVaults[i].owner);
+                iOrderbook.deposit(testVaults[i].token, vaultId, testVaults[i].deposit);
                 assertEq(
-                    iOrderbook.vaultBalance(alice, address(iToken1), vaultId), ownerDepositAmount, "vaultBalance before"
+                    iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId),
+                    balanceBefore + testVaults[i].deposit,
+                    "vaultBalance before"
                 );
             }
         }
@@ -123,41 +140,50 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
         assertEq(totalTakerInput, expectedTakerInput, "totalTakerInput");
         assertEq(totalTakerOutput, expectedTakerOutput, "totalTakerOutput");
-        /// The vault balance should be exactly what was deposited minus the
-        /// amount sent to the order taker. This can never be negative.
-        assertEq(
-            iOrderbook.vaultBalance(alice, address(iToken1), vaultId),
-            ownerDepositAmount - expectedTakerInput,
-            "vaultBalance deposited"
-        );
-        assertEq(
-            iOrderbook.vaultBalance(alice, address(iToken0), vaultId), expectedTakerOutput, "vaultBalance received"
-        );
+
+        for (uint256 i = 0; i < testVaults.length; i++) {
+            assertEq(
+                iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId),
+                testVaults[i].expect,
+                "vaultBalance"
+            );
+        }
     }
 
     /// Add an order with unlimited maximum output and take it with a maximum
     /// input. Only the maximum input should be taken.
-    function testTakeOrderMaximumInputSingleOrder(uint256 expectedTakerInput) external {
+    function testTakeOrderMaximumInputSingleOrderUnlimitedMax(uint256 expectedTakerInput) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
+
         expectedTakerInput = bound(expectedTakerInput, 1, type(uint128).max);
         uint256 expectedTakerOutput = expectedTakerInput * 2;
-        bytes[] memory orderStrings = new bytes[](1);
-        orderStrings[0] = "_ _:max-decimal18-value() 2e18;:;";
-        checkTakeOrderMaximumInput(
-            orderStrings, expectedTakerInput, expectedTakerInput, expectedTakerInput, expectedTakerOutput
-        );
+
+        TestOrder[] memory testOrders = new TestOrder[](1);
+        testOrders[0] = TestOrder(owner, "_ _:max-decimal18-value() 2e18;:;");
+
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault(owner, address(iToken1), expectedTakerInput, 0);
+        testVaults[1] = TestVault(owner, address(iToken0), 0, expectedTakerOutput);
+
+        checkTakeOrderMaximumInput(testOrders, testVaults, expectedTakerInput, expectedTakerInput, expectedTakerOutput);
     }
 
     /// Add an order with less than the maximum output. Only the limit from the
     /// order should be taken.
     function testTakeOrderMaximumInputSingleOrderLessThanMaximumOutput(uint256 maximumTakerInput) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         maximumTakerInput = bound(maximumTakerInput, 1000, type(uint256).max);
         uint256 expectedTakerInput = 1000;
         uint256 expectedTakerOutput = expectedTakerInput * 2;
-        bytes[] memory orderStrings = new bytes[](1);
-        orderStrings[0] = "_ _:1000 2e18;:;";
-        checkTakeOrderMaximumInput(
-            orderStrings, expectedTakerInput, maximumTakerInput, expectedTakerInput, expectedTakerOutput
-        );
+
+        TestOrder[] memory testOrders = new TestOrder[](1);
+        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault(owner, address(iToken1), expectedTakerInput, 0);
+        testVaults[1] = TestVault(owner, address(iToken0), 0, expectedTakerOutput);
+
+        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
     }
 
     /// If the vault balance is less than both the maximum input and the order
@@ -166,16 +192,21 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 ownerDepositAmount,
         uint256 maximumTakerInput
     ) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit = 1000;
         ownerDepositAmount = bound(ownerDepositAmount, 0, orderLimit - 1);
         maximumTakerInput = bound(maximumTakerInput, 1000, type(uint256).max);
         uint256 expectedTakerInput = ownerDepositAmount;
         uint256 expectedTakerOutput = expectedTakerInput * 2;
-        bytes[] memory orderStrings = new bytes[](1);
-        orderStrings[0] = "_ _:1000 2e18;:;";
-        checkTakeOrderMaximumInput(
-            orderStrings, ownerDepositAmount, maximumTakerInput, expectedTakerInput, expectedTakerOutput
-        );
+
+        TestOrder[] memory testOrders = new TestOrder[](1);
+        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault(owner, address(iToken1), ownerDepositAmount, 0);
+        testVaults[1] = TestVault(owner, address(iToken0), 0, expectedTakerOutput);
+
+        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
     }
 
     /// The deposit amount can be anything actually, the order taking should
@@ -183,21 +214,94 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     function testTakeOrderMaximumInputSingleAnyDeposit(uint256 ownerDepositAmount, uint256 maximumTakerInput)
         external
     {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit = 1000;
-        bytes[] memory orderStrings = new bytes[](1);
-        orderStrings[0] = "_ _:1000 2e18;:;";
+
+        TestOrder[] memory testOrders = new TestOrder[](1);
+        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+
         maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
         // The expected input is the minimum of the maximum input and the order
         // limit.
         uint256 expectedTakerInput = maximumTakerInput < orderLimit ? maximumTakerInput : orderLimit;
 
-        ownerDepositAmount = bound(ownerDepositAmount, 0, type(uint256).max);
         expectedTakerInput = expectedTakerInput < ownerDepositAmount ? expectedTakerInput : ownerDepositAmount;
-
         uint256 expectedTakerOutput = expectedTakerInput * 2;
 
-        checkTakeOrderMaximumInput(
-            orderStrings, ownerDepositAmount, maximumTakerInput, expectedTakerInput, expectedTakerOutput
-        );
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault(owner, address(iToken1), ownerDepositAmount, ownerDepositAmount - expectedTakerInput);
+        testVaults[1] = TestVault(owner, address(iToken0), 0, expectedTakerOutput);
+
+        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
+    }
+
+    /// The taker input can be sourced from multiple orders. Tests two orders
+    /// that combined make up the maximum taker input. Both orders have the
+    /// same owner.
+    function testTakeOrderMaximumInputMultipleOrders(uint256 ownerDepositAmount, uint256 maximumTakerInput) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
+        uint256 orderLimit = 1500;
+
+        TestOrder[] memory testOrders = new TestOrder[](2);
+        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+        testOrders[1] = TestOrder(owner, "_ _:500 2e18;:;");
+
+        maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
+        // The expected input is the minimum of the maximum input and the order
+        // limit.
+        uint256 expectedTakerInput = maximumTakerInput < orderLimit ? maximumTakerInput : orderLimit;
+
+        expectedTakerInput = expectedTakerInput < ownerDepositAmount ? expectedTakerInput : ownerDepositAmount;
+        uint256 expectedTakerOutput = expectedTakerInput * 2;
+
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault(owner, address(iToken1), ownerDepositAmount, ownerDepositAmount - expectedTakerInput);
+        testVaults[1] = TestVault(owner, address(iToken0), 0, expectedTakerOutput);
+
+        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
+    }
+
+    /// The taker input can be source from multiple orders with multiple owners.
+    /// Tests two orders that combined make up the maximum taker input. Both
+    /// orders have different owners.
+    function testTakeOrderMaximumInputMultipleOrdersMultipleOwners(
+        uint256 ownerOneDepositAmount,
+        uint256 ownerTwoDepositAmount,
+        uint256 maximumTakerInput
+    ) external {
+        // Avoid information free overflow.
+        ownerTwoDepositAmount = bound(ownerTwoDepositAmount, 0, type(uint256).max - ownerOneDepositAmount);
+
+        address ownerOne = address(uint160(uint256(keccak256("ownerOne.rain.test"))));
+        address ownerTwo = address(uint160(uint256(keccak256("ownerTwo.rain.test"))));
+        uint256 orderLimit = 1500;
+
+        TestOrder[] memory testOrders = new TestOrder[](2);
+        testOrders[0] = TestOrder(ownerOne, "_ _:1000 2e18;:;");
+        testOrders[1] = TestOrder(ownerTwo, "_ _:500 2e18;:;");
+
+        maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
+        // The expected input is the minimum of the maximum input and the order
+        // limit.
+        uint256 expectedTakerInput = maximumTakerInput < orderLimit ? maximumTakerInput : orderLimit;
+
+        uint256 totalDepositAmount = ownerOneDepositAmount + ownerTwoDepositAmount;
+        expectedTakerInput = expectedTakerInput < totalDepositAmount ? expectedTakerInput : totalDepositAmount;
+        uint256 expectedTakerOutput = expectedTakerInput * 2;
+
+        // The first owner's deposit is fully used before the second owner's
+        // deposit is used.
+        TestVault[] memory testVaults = new TestVault[](2);
+
+        uint256 ownerOneRemainingDeposit = expectedTakerInput > ownerOneDepositAmount ? 0 : ownerOneDepositAmount - expectedTakerInput;
+        uint256 ownerOneExpectedTakerInput = ownerOneDepositAmount - ownerOneRemainingDeposit;
+        testVaults[0] = TestVault(ownerOne, address(iToken1), ownerOneDepositAmount, ownerOneRemainingDeposit);
+
+        uint256 ownerTwoExpectedTakerInput = expectedTakerInput > ownerOneExpectedTakerInput ? expectedTakerInput - ownerOneExpectedTakerInput : 0;
+        uint256 ownerTwoRemainingDeposit = ownerTwoDepositAmount - ownerTwoExpectedTakerInput;
+        testVaults[1] = TestVault(ownerTwo, address(iToken1), ownerTwoDepositAmount, ownerTwoRemainingDeposit);
+        // testVaults[1] = TestVault(ownerOne, address(iToken0), 0, expectedTakerOutput);
+
+        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
     }
 }
