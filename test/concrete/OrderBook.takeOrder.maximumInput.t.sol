@@ -34,6 +34,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
     function checkTakeOrderMaximumInput(
         bytes[] memory orderStrings,
+        uint256 ownerDepositAmount,
         uint256 maximumTakerInput,
         uint256 expectedTakerInput,
         uint256 expectedTakerOutput
@@ -65,20 +66,26 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                     orders[i] = order;
                 }
 
-                vm.prank(alice);
-                // Deposit the amount of tokens required to take the order.
-                vm.mockCall(
-                    address(iToken1),
-                    abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), expectedTakerInput),
-                    abi.encode(true)
-                );
-                vm.expectCall(
-                    address(iToken1),
-                    abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), expectedTakerInput),
-                    1
-                );
-                iOrderbook.deposit(address(iToken1), vaultId, expectedTakerInput);
-                assertEq(iOrderbook.vaultBalance(alice, address(iToken1), vaultId), expectedTakerInput);
+                if (ownerDepositAmount > 0) {
+                    vm.prank(alice);
+                    // Deposit the amount of tokens required to take the order.
+                    vm.mockCall(
+                        address(iToken1),
+                        abi.encodeWithSelector(
+                            IERC20.transferFrom.selector, alice, address(iOrderbook), expectedTakerInput
+                        ),
+                        abi.encode(true)
+                    );
+                    vm.expectCall(
+                        address(iToken1),
+                        abi.encodeWithSelector(
+                            IERC20.transferFrom.selector, alice, address(iOrderbook), expectedTakerInput
+                        ),
+                        1
+                    );
+                    iOrderbook.deposit(address(iToken1), vaultId, ownerDepositAmount);
+                }
+                assertEq(iOrderbook.vaultBalance(alice, address(iToken1), vaultId), ownerDepositAmount);
             }
         }
 
@@ -95,7 +102,11 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput),
             abi.encode(true)
         );
-        vm.expectCall(address(iToken1), abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput), 1);
+        vm.expectCall(
+            address(iToken1),
+            abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput),
+            expectedTakerInput > 0 ? 1 : 0
+        );
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput),
@@ -104,7 +115,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         vm.expectCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput),
-            1
+            expectedTakerOutput > 0 ? 1 : 0
         );
 
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
@@ -121,7 +132,9 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 expectedTakerOutput = expectedTakerInput * 2;
         bytes[] memory orderStrings = new bytes[](1);
         orderStrings[0] = "_ _:max-decimal18-value() 2e18;:;";
-        checkTakeOrderMaximumInput(orderStrings, expectedTakerInput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumInput(
+            orderStrings, expectedTakerInput, expectedTakerInput, expectedTakerInput, expectedTakerOutput
+        );
     }
 
     /// Add an order with less than the maximum output. Only the limit from the
@@ -132,6 +145,26 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 expectedTakerOutput = expectedTakerInput * 2;
         bytes[] memory orderStrings = new bytes[](1);
         orderStrings[0] = "_ _:1000 2e18;:;";
-        checkTakeOrderMaximumInput(orderStrings, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumInput(
+            orderStrings, expectedTakerInput, maximumTakerInput, expectedTakerInput, expectedTakerOutput
+        );
+    }
+
+    /// If the vault balance is less than both the maximum input and the order
+    /// limit, the vault balance should be taken.
+    function testTakeOrderMaximumInputSingleOrderLessThanMaximumInput(
+        uint256 ownerDepositAmount,
+        uint256 maximumTakerInput
+    ) external {
+        uint256 orderLimit = 1000;
+        ownerDepositAmount = bound(ownerDepositAmount, 0, orderLimit - 1);
+        maximumTakerInput = bound(maximumTakerInput, 1000, type(uint256).max);
+        uint256 expectedTakerInput = ownerDepositAmount;
+        uint256 expectedTakerOutput = expectedTakerInput * 2;
+        bytes[] memory orderStrings = new bytes[](1);
+        orderStrings[0] = "_ _:1000 2e18;:;";
+        checkTakeOrderMaximumInput(
+            orderStrings, ownerDepositAmount, maximumTakerInput, expectedTakerInput, expectedTakerOutput
+        );
     }
 }
