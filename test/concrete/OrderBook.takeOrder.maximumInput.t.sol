@@ -72,20 +72,22 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                     vm.mockCall(
                         address(iToken1),
                         abi.encodeWithSelector(
-                            IERC20.transferFrom.selector, alice, address(iOrderbook), expectedTakerInput
+                            IERC20.transferFrom.selector, alice, address(iOrderbook), ownerDepositAmount
                         ),
                         abi.encode(true)
                     );
                     vm.expectCall(
                         address(iToken1),
                         abi.encodeWithSelector(
-                            IERC20.transferFrom.selector, alice, address(iOrderbook), expectedTakerInput
+                            IERC20.transferFrom.selector, alice, address(iOrderbook), ownerDepositAmount
                         ),
                         1
                     );
                     iOrderbook.deposit(address(iToken1), vaultId, ownerDepositAmount);
                 }
-                assertEq(iOrderbook.vaultBalance(alice, address(iToken1), vaultId), ownerDepositAmount);
+                assertEq(
+                    iOrderbook.vaultBalance(alice, address(iToken1), vaultId), ownerDepositAmount, "vaultBalance before"
+                );
             }
         }
 
@@ -119,10 +121,18 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         );
 
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
-        assertEq(totalTakerInput, expectedTakerInput);
-        assertEq(totalTakerOutput, expectedTakerOutput);
-        assertEq(iOrderbook.vaultBalance(alice, address(iToken1), vaultId), 0);
-        assertEq(iOrderbook.vaultBalance(alice, address(iToken0), vaultId), expectedTakerOutput);
+        assertEq(totalTakerInput, expectedTakerInput, "totalTakerInput");
+        assertEq(totalTakerOutput, expectedTakerOutput, "totalTakerOutput");
+        /// The vault balance should be exactly what was deposited minus the
+        /// amount sent to the order taker. This can never be negative.
+        assertEq(
+            iOrderbook.vaultBalance(alice, address(iToken1), vaultId),
+            ownerDepositAmount - expectedTakerInput,
+            "vaultBalance deposited"
+        );
+        assertEq(
+            iOrderbook.vaultBalance(alice, address(iToken0), vaultId), expectedTakerOutput, "vaultBalance received"
+        );
     }
 
     /// Add an order with unlimited maximum output and take it with a maximum
@@ -163,6 +173,29 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 expectedTakerOutput = expectedTakerInput * 2;
         bytes[] memory orderStrings = new bytes[](1);
         orderStrings[0] = "_ _:1000 2e18;:;";
+        checkTakeOrderMaximumInput(
+            orderStrings, ownerDepositAmount, maximumTakerInput, expectedTakerInput, expectedTakerOutput
+        );
+    }
+
+    /// The deposit amount can be anything actually, the order taking should
+    /// adjust accordingly, and leave any unspent deposited tokens in the vault.
+    function testTakeOrderMaximumInputSingleAnyDeposit(uint256 ownerDepositAmount, uint256 maximumTakerInput)
+        external
+    {
+        uint256 orderLimit = 1000;
+        bytes[] memory orderStrings = new bytes[](1);
+        orderStrings[0] = "_ _:1000 2e18;:;";
+        maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
+        // The expected input is the minimum of the maximum input and the order
+        // limit.
+        uint256 expectedTakerInput = maximumTakerInput < orderLimit ? maximumTakerInput : orderLimit;
+
+        ownerDepositAmount = bound(ownerDepositAmount, 0, type(uint256).max);
+        expectedTakerInput = expectedTakerInput < ownerDepositAmount ? expectedTakerInput : ownerDepositAmount;
+
+        uint256 expectedTakerOutput = expectedTakerInput * 2;
+
         checkTakeOrderMaximumInput(
             orderStrings, ownerDepositAmount, maximumTakerInput, expectedTakerInput, expectedTakerOutput
         );
