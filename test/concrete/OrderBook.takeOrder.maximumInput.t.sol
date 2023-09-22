@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {console2} from "forge-std/console2.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
@@ -114,8 +113,6 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             takeOrders[i] = TakeOrderConfig(orders[i], 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maximumTakerInput, type(uint256).max, takeOrders, "");
-
-        console2.log(expectedTakerInput, expectedTakerOutput, maximumTakerInput);
 
         // Mock and expect the token transfers.
         vm.mockCall(
