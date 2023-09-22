@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
+import {console2} from "forge-std/console2.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
@@ -108,12 +109,13 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             }
         }
 
-        vm.prank(bob);
         TakeOrderConfig[] memory takeOrders = new TakeOrderConfig[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             takeOrders[i] = TakeOrderConfig(orders[i], 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maximumTakerInput, type(uint256).max, takeOrders, "");
+
+        console2.log(expectedTakerInput, expectedTakerOutput, maximumTakerInput);
 
         // Mock and expect the token transfers.
         vm.mockCall(
@@ -137,6 +139,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             expectedTakerOutput > 0 ? 1 : 0
         );
 
+        vm.prank(bob);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
         assertEq(totalTakerInput, expectedTakerInput, "totalTakerInput");
         assertEq(totalTakerOutput, expectedTakerOutput, "totalTakerOutput");
@@ -274,33 +277,45 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
         address ownerOne = address(uint160(uint256(keccak256("ownerOne.rain.test"))));
         address ownerTwo = address(uint160(uint256(keccak256("ownerTwo.rain.test"))));
-        uint256 orderLimit = 1500;
 
         TestOrder[] memory testOrders = new TestOrder[](2);
         testOrders[0] = TestOrder(ownerOne, "_ _:1000 2e18;:;");
         testOrders[1] = TestOrder(ownerTwo, "_ _:500 2e18;:;");
 
         maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
-        // The expected input is the minimum of the maximum input and the order
-        // limit.
-        uint256 expectedTakerInput = maximumTakerInput < orderLimit ? maximumTakerInput : orderLimit;
-
-        uint256 totalDepositAmount = ownerOneDepositAmount + ownerTwoDepositAmount;
-        expectedTakerInput = expectedTakerInput < totalDepositAmount ? expectedTakerInput : totalDepositAmount;
-        uint256 expectedTakerOutput = expectedTakerInput * 2;
 
         // The first owner's deposit is fully used before the second owner's
         // deposit is used.
         TestVault[] memory testVaults = new TestVault[](2);
 
-        uint256 ownerOneRemainingDeposit = expectedTakerInput > ownerOneDepositAmount ? 0 : ownerOneDepositAmount - expectedTakerInput;
-        uint256 ownerOneExpectedTakerInput = ownerOneDepositAmount - ownerOneRemainingDeposit;
-        testVaults[0] = TestVault(ownerOne, address(iToken1), ownerOneDepositAmount, ownerOneRemainingDeposit);
+        uint256 expectedTakerInput;
+        uint256 ownerOneTakerInput;
+        {
+            // Owner one can't pay more than either their deposit or 1000 set in
+            // the order.
+            uint256 ownerOneMaxPayment = ownerOneDepositAmount < 1000 ? ownerOneDepositAmount : 1000;
+            // taker input from owner one is either the maximum taker input if
+            // it is less than the max owner one payment, or the max owner one
+            // payment.
+            ownerOneTakerInput = maximumTakerInput < ownerOneMaxPayment ? maximumTakerInput : ownerOneMaxPayment;
+            testVaults[0] =
+                TestVault(ownerOne, address(iToken1), ownerOneDepositAmount, ownerOneDepositAmount - ownerOneTakerInput);
+        }
 
-        uint256 ownerTwoExpectedTakerInput = expectedTakerInput > ownerOneExpectedTakerInput ? expectedTakerInput - ownerOneExpectedTakerInput : 0;
-        uint256 ownerTwoRemainingDeposit = ownerTwoDepositAmount - ownerTwoExpectedTakerInput;
-        testVaults[1] = TestVault(ownerTwo, address(iToken1), ownerTwoDepositAmount, ownerTwoRemainingDeposit);
-        // testVaults[1] = TestVault(ownerOne, address(iToken0), 0, expectedTakerOutput);
+        {
+            // Owner two can't pay more than either their deposit or 500 set in
+            // the order.
+            uint256 ownerTwoMaxPayment = ownerTwoDepositAmount < 500 ? ownerTwoDepositAmount : 500;
+            // Taker input from owner two is either whatever is remaining after
+            // owner one's payment, or the max owner two payment.
+            uint256 ownerTwoTakerInput =
+                ownerOneTakerInput < maximumTakerInput ? maximumTakerInput - ownerOneTakerInput : 0;
+            ownerTwoTakerInput = ownerTwoTakerInput < ownerTwoMaxPayment ? ownerTwoTakerInput : ownerTwoMaxPayment;
+            testVaults[1] =
+                TestVault(ownerTwo, address(iToken1), ownerTwoDepositAmount, ownerTwoDepositAmount - ownerTwoTakerInput);
+            expectedTakerInput = ownerOneTakerInput + ownerTwoTakerInput;
+        }
+        uint256 expectedTakerOutput = expectedTakerInput * 2;
 
         checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput);
     }
