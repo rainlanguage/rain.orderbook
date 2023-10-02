@@ -1,4 +1,4 @@
-let
+`let
   pkgs = import
     (builtins.fetchTarball {
       name = "nixos-unstable-2021-10-01";
@@ -16,13 +16,13 @@ let
   '';
 
   docker-up = pkgs.writeShellScriptBin "docker-up" ''
-    docker-down
-    rm -rf docker/data
-    docker-compose -f docker/docker-compose.yml up --build -d
+    # docker-down
+    # rm -rf docker/data
+    docker-compose -f docker/docker-compose.yaml up --build -d
   '';
 
   docker-down = pkgs.writeShellScriptBin "docker-down" ''
-    docker-compose -f docker/docker-compose.yml down
+    docker-compose -f docker/docker-compose.yaml down
   '';
 
   flush-all = pkgs.writeShellScriptBin "flush-all" ''
@@ -47,7 +47,8 @@ let
   ci-test = pkgs.writeShellScriptBin "ci-test" ''
     npx mustache config/localhost.json subgraph.template.yaml subgraph.yaml
     codegen
-    npx hardhat test --no-compile
+    # npx hardhat test --no-compile
+    cargo run --manifest-path ./Cargo.toml test
   '';
 
   init = pkgs.writeShellScriptBin "init" ''
