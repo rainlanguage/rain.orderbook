@@ -3,16 +3,16 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    rain_subgraph.url = "github:rainprotocol/rain.subgraph-cli";
+    rain_subgraph_cli.url = "github:rainprotocol/rain.subgraph-cli";
     flake-utils.url = "github:numtide/flake-utils";
 
   };
 
-  outputs = {self, nixpkgs, rain, flake-utils }:
+  outputs = {self, nixpkgs, rain_subgraph_cli, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        rain-subgraph-cli = "${rain_subgraph.defaultPackage.${system}}/bin/rain_subgraph";
+        rain-subgraph-cli = "${rain_subgraph_cli.defaultPackage.${system}}/bin/rain_subgraph";
 
       in rec {
         packages = rec {
@@ -26,7 +26,10 @@
           # '';
    
 
-          default = "echo lol";
+          check = pkgs.writeShellScriptBin "check" ("echo lol");
+
+          default = check;
+
 
           # build-meta-cmd = contract: ''
           #   ${rain-cli} meta build \
