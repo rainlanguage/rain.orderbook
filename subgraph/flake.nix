@@ -17,7 +17,7 @@
       in rec {
         packages = rec {
           check-aver = ["Aver" "xd"];
-          check-build = "rain-subgraph-cli build";
+          check-build =  pkgs.writeShellScriptBin "check-build" (''${rain-subgraph-cli} build'');
 
 
 
@@ -28,7 +28,7 @@
 
           check = pkgs.writeShellScriptBin "check" ("echo lol");
 
-          default = check;
+          default = check-build;
 
 
           # build-meta-cmd = contract: ''
