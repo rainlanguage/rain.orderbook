@@ -20,7 +20,7 @@
 
           checkxd = pkgs.writeShellScriptBin "checkxd" ("echo lol");
 
-          default = checkxd;
+          default = check-build;
 
 
           # build-meta-cmd = contract: ''
