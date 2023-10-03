@@ -100,31 +100,31 @@
         "type": "github"
       }
     },
-    "rain_subgraph_cli": {
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs",
+        "subgraph-cli": "subgraph-cli"
+      }
+    },
+    "subgraph-cli": {
       "inputs": {
         "flake-utils": "flake-utils_2",
         "naersk": "naersk",
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1696295789,
-        "narHash": "sha256-j7WhQBQii1BVRr3+2IK2DGI/tLSlEnNC1iBrdPds2Mg=",
+        "lastModified": 1696298217,
+        "narHash": "sha256-2SEJE2YTRPipiKWcB8X65lVYpqLEMgfRR7GJjnf/rRU=",
         "owner": "rainprotocol",
         "repo": "rain.subgraph-cli",
-        "rev": "029b04c9904a1d67b6dac8cfc85c2780a69aa4ac",
+        "rev": "bf4bd6f51bd734050c41f0cb97a6c752d2b65c67",
         "type": "github"
       },
       "original": {
         "owner": "rainprotocol",
         "repo": "rain.subgraph-cli",
         "type": "github"
-      }
-    },
-    "root": {
-      "inputs": {
-        "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs",
-        "rain_subgraph_cli": "rain_subgraph_cli"
       }
     },
     "systems": {
