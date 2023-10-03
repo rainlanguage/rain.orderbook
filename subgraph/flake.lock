@@ -107,11 +107,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1696277476,
-        "narHash": "sha256-TzYlpSFKSWDZ37F5S8VeDatchJElkNsuSuqVO27bse8=",
+        "lastModified": 1696295789,
+        "narHash": "sha256-j7WhQBQii1BVRr3+2IK2DGI/tLSlEnNC1iBrdPds2Mg=",
         "owner": "rainprotocol",
         "repo": "rain.subgraph-cli",
-        "rev": "c99fac646003f8a12d2f9964159c485690fb63b2",
+        "rev": "029b04c9904a1d67b6dac8cfc85c2780a69aa4ac",
         "type": "github"
       },
       "original": {

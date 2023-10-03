@@ -12,11 +12,13 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        rain-subgraph-cli = "${rain_subgraph_cli.defaultPackage.${system}}/bin/rain_subgraph";
+        rain-subgraph-cli = "${rain_subgraph_cli.defaultPackage.${system}}/bin/rain_subgraph_cli";
 
       in rec {
         packages = rec {
-          check-build = "${rain-subgraph-cli} build";
+          check-build = "${rain-subgraph-cli}";
+          # check-build = pkgs.writeShellScriptBin "check-build" ("echo ${rain-subgraph-cli}");
+
 
           checkxd = pkgs.writeShellScriptBin "checkxd" ("echo lol");
 
