@@ -8,10 +8,7 @@ use ethers::{
 use std::io::Read;
 use std::{fs::File, time::Duration};
 
-pub async fn deploy1820(anvil: &AnvilInstance) -> anyhow::Result<()> {
-    let provider =
-        Provider::<Http>::try_from(anvil.endpoint())?.interval(Duration::from_millis(10));
-
+pub async fn deploy1820(provider: &Provider<Http>) -> anyhow::Result<()> {
     let signature_address: NameOrAddress = "0xa990077c3205cbDf861e17Fa532eeB069cE9fF96".parse()?;
     let registry_address = "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24";
     let cost: U256 = U256::from("80000000000000000");
@@ -30,7 +27,12 @@ pub async fn deploy1820(anvil: &AnvilInstance) -> anyhow::Result<()> {
     let code = provider.get_code(registry_address, block.into()).await?;
 
     if code == Bytes::default() {
-        let deployer = anvil.addresses()[0];
+        // let deployer = anvil.addresses()[0];
+        let deployer = provider
+            .get_accounts()
+            .await
+            .expect("Not deployer [1820Registry]")[0];
+
         let nonce = provider
             .get_transaction_count(deployer, block.into())
             .await?;

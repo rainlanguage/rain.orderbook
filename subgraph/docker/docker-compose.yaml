@@ -1,5 +1,9 @@
 version: '3'
 services:
+  evm_node:
+    image: vishalkale151071/hardhat-node
+    ports:
+      - '8545:8545'
   graph-node:
     image: graphprotocol/graph-node:97e0adc
     ports:
