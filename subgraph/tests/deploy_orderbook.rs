@@ -11,8 +11,11 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
         .await
         .expect("cannot deploy expression_deployer");
 
-    println!("i_interpreter: {:?}", expression_deployer.i_interpreter());
-    println!("i_store: {:?}", expression_deployer.i_store());
+    println!(
+        "i_interpreter: {:?}",
+        expression_deployer.i_interpreter().await
+    );
+    println!("i_store: {:?}", expression_deployer.i_store().await);
     println!("expression_deployer: {:?}", expression_deployer.address());
 
     let _ = is_sugraph_node_init()
