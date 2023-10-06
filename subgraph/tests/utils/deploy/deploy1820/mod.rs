@@ -3,10 +3,9 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     types::BlockId,
     types::{Bytes, NameOrAddress, TransactionRequest, U256},
-    utils::AnvilInstance,
 };
+use std::fs::File;
 use std::io::Read;
-use std::{fs::File, time::Duration};
 
 pub async fn deploy1820(provider: &Provider<Http>) -> anyhow::Result<()> {
     let signature_address: NameOrAddress = "0xa990077c3205cbDf861e17Fa532eeB069cE9fF96".parse()?;

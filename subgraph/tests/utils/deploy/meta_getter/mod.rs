@@ -71,8 +71,6 @@ pub async fn get_authoring_meta() -> Bytes {
         .get()
         .expect("AuthoringMetaGetter has not being initialized");
 
-    println!("meta_address: {}", meta_address);
-
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");
 
     let deployer = Arc::new(SignerMiddleware::new(

@@ -2,15 +2,15 @@ use ethers::prelude::abigen;
 
 abigen!(
   RainterpreterExpressionDeployer,
-  "tests/utils/deploy/touch_deployer/RainterpreterExpressionDeployer.json",
+  "tests/generated/RainterpreterExpressionDeployerNP.json",
   derives(serde::Deserialize, serde::Serialize);
 
   Rainterpreter,
-  "tests/utils/deploy/touch_deployer/Rainterpreter.json";
+  "tests/generated/RainterpreterNP.json";
 
   RainterpreterStore,
-  "tests/utils/deploy/touch_deployer/RainterpreterStore.json";
+  "tests/generated/RainterpreterStore.json";
 
   AuthoringMetaGetter,
-  "tests/utils/deploy/touch_deployer/AuthoringMetaGetter.json"
+  "tests/generated/AuthoringMetaGetter.json";
 );
