@@ -23,7 +23,7 @@
 
             # Generating the contracts. This way, they will be updating by commit
             forge build --root ../
-
+ 
             # Copying the new abis into the SG abi folder
             cp ../out/OrderBook.sol/OrderBook.json ./abis/
             cp ../out/ERC20.sol/ERC20.json ./abis/ReserveToken.json            

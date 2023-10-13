@@ -3,6 +3,9 @@
 /generated
 /subgraph.yaml
 
+# Rust generated files
+/tests/generated/abigen
+
 # npm
 /node_modules
 

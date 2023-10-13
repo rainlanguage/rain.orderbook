@@ -5,6 +5,7 @@ use crate::generated::{
 };
 use crate::utils::setup::get_provider;
 use crate::utils::utils::get_wallet;
+use anyhow::Result;
 use ethers::{
     abi::Token,
     contract::ContractFactory,
@@ -18,9 +19,7 @@ use std::sync::Arc;
 
 pub async fn deploy_touch_deployer(
     wallet: Option<Wallet<SigningKey>>,
-) -> anyhow::Result<
-    RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
-> {
+) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let wallet = Some(wallet.unwrap_or(get_wallet(0)));
 
     let rainterpreter = rainterpreter_deploy(wallet.clone()).await?;
@@ -37,7 +36,7 @@ pub async fn deploy_touch_deployer(
 
 pub async fn rainterpreter_deploy(
     wallet: Option<Wallet<SigningKey>>,
-) -> anyhow::Result<Rainterpreter<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
+) -> Result<Rainterpreter<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let wallet = wallet.unwrap_or(get_wallet(0));
     let provider = get_provider().await.expect("cannot get provider");
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");
@@ -54,7 +53,7 @@ pub async fn rainterpreter_deploy(
 
 pub async fn rainterpreter_store_deploy(
     wallet: Option<Wallet<SigningKey>>,
-) -> anyhow::Result<RainterpreterStore<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
+) -> Result<RainterpreterStore<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let wallet = wallet.unwrap_or(get_wallet(0));
     let provider = get_provider().await.expect("cannot get provider");
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");
@@ -73,9 +72,7 @@ pub async fn rainterpreter_expression_deployer_deploy(
     rainiterpreter_address: H160,
     store_address: H160,
     wallet: Option<Wallet<SigningKey>>,
-) -> anyhow::Result<
-    RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
-> {
+) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let wallet = wallet.unwrap_or(get_wallet(0));
     let provider = get_provider().await.expect("cannot get provider");
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");

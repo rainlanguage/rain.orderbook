@@ -1,6 +1,7 @@
 use crate::generated::AuthoringMetaGetter;
 use crate::utils::setup::get_provider;
 use crate::utils::utils::get_wallet;
+use anyhow::Result;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Http, Middleware};
 use ethers::types::{Bytes, H160};
@@ -42,7 +43,7 @@ pub async fn get_meta_address(provider: &Provider<Http>) -> Result<&'static H160
         .map_err(|e| MetaGetterError::DeployError(Box::new(e)))
 }
 
-pub async fn authoring_meta_getter_deploy(provider: &Provider<Http>) -> anyhow::Result<H160> {
+pub async fn authoring_meta_getter_deploy(provider: &Provider<Http>) -> Result<H160> {
     let wallet = get_wallet(0);
 
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");

@@ -1,11 +1,11 @@
-use anyhow;
+use anyhow::Result;
 use ethers::{
     providers::{Http, Middleware, Provider},
     types::BlockId,
     types::{Bytes, NameOrAddress, TransactionRequest, U256},
 };
 
-pub async fn deploy1820(provider: &Provider<Http>) -> anyhow::Result<()> {
+pub async fn deploy1820(provider: &Provider<Http>) -> Result<()> {
     let signature_address: NameOrAddress = "0xa990077c3205cbDf861e17Fa532eeB069cE9fF96".parse()?;
     let registry_address = "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24";
     let cost: U256 = U256::from("80000000000000000");

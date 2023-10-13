@@ -1,0 +1,10 @@
+query OrderBook($metaboard: String) {
+  orderbook(id: $metaboard) {
+    id
+    deployer
+    address
+    meta {
+      id
+    }
+  }
+}

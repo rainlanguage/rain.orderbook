@@ -1390,11 +1390,6 @@
           "name": "StackUnderflow"
         },
         {
-          "inputs": [],
-          "type": "error",
-          "name": "StackUnderflow"
-        },
-        {
           "inputs": [
             {
               "internalType": "uint256",

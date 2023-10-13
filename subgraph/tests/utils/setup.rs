@@ -1,4 +1,4 @@
-use super::deploy::{deploy1820::deploy1820, meta_getter::get_meta_address};
+use super::deploy::{registry1820::deploy1820, meta_getter::get_meta_address};
 use ethers::providers::{Http, Provider};
 use once_cell::sync::Lazy;
 use reqwest;

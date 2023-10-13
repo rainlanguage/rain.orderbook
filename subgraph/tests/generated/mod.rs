@@ -1,4 +1,4 @@
-use ethers::prelude::abigen;
+use ethers::prelude::*;
 
 abigen!(
   RainterpreterExpressionDeployer,
@@ -13,4 +13,11 @@ abigen!(
 
   AuthoringMetaGetter,
   "tests/generated/AuthoringMetaGetter.json";
+
+  OrderBook,
+  "tests/generated/OrderBook.json";
+
+  // ERC20Mock should not be replaced. It's for testing purpose
+  ERC20Mock,
+  "tests/generated/ERC20Mock.json";
 );
