@@ -1,0 +1,29 @@
+name: OrderBook Subgraph CI
+on: [push]
+
+jobs:
+  subgraph-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Install stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Start docker container
+        run: docker-compose -f subgraph/docker/docker-compose.yml up -d
+
+      - name: install npm dependencies
+        working-directory: ./subgraph
+        run: npm install
+
+      - name: Run test
+        working-directory: ./subgraph
+        run: RUST_TEST_THREADS=1 cargo test
+
+      - name: Stop docker container
+        run: docker-compose -f subgraph/docker/docker-compose.yml down
