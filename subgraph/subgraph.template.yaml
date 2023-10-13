@@ -19,7 +19,7 @@ dataSources:
         - name: OrderBook
           file: ./abis/OrderBook.json
         - name: ReserveToken
-          file: ./abis/ReserveToken.json
+          file: ./abis/ERC20.json
       eventHandlers:
         - event: AddOrder(address,address,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),bytes32)
           handler: handleAddOrder
@@ -61,7 +61,7 @@ templates:
         - EmissionsERC20
       abis:
         - name: ReserveToken
-          file: ./abis/ReserveToken.json
+          file: ./abis/ERC20.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer

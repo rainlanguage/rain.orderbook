@@ -4,56 +4,49 @@ mod common;
 mod generated;
 mod utils;
 
+use anyhow::Result;
 use common::{
     deploy::{deploy, Config},
+    query::orderbook::get_orderbook_query,
     wait::wait,
 };
-
-use abigen::OrderBook::{EvaluableConfigV2, Io, Order, OrderConfigV2, TakeOrderConfig};
-use hex::FromHex;
+use ethers::signers::Signer;
 use utils::deploy::orderbook::deploy_orderbook;
-use utils::gen_abigen::_abigen_rust_generation;
-use utils::setup::get_provider;
+use utils::setup::{get_provider, is_sugraph_node_init};
 use utils::utils::_get_block_number;
-
-use std::ops::Mul;
-use std::path::{self, Path};
-
-use anyhow::Result;
-use ethers::{abi::AbiEncode, prelude::*};
-use ethers::{
-    abi::{encode, Token},
-    signers::Signer,
-    types::{Address, Bytes, U256},
-};
-
-use utils::deploy::{erc20_mock::deploy_erc20_mock, touch_deployer::deploy_touch_deployer};
-use utils::events::{get_matched_log, get_transfer_event};
-use utils::number::get_amount_tokens;
-
-use std::fs::File;
-use std::io::{self, Read};
-use std::{env, fs};
+// use utils::gen_abigen::_abigen_rust_generation;
 
 #[tokio::main]
 #[test]
 async fn orderbook_entity_test() -> Result<()> {
+    let _ = is_sugraph_node_init().await.expect("failed sg node init");
+
     let provider = get_provider().await.expect("cannot get provider");
     let block_number = _get_block_number(provider.clone()).await;
+    let wallet_0 = utils::utils::get_wallet(0);
 
-    let orderbook = deploy_orderbook(None)
+    let orderbook = deploy_orderbook(Some(wallet_0.clone()))
         .await
         .expect("failed when calling deploy orderbook");
 
+    let ob_address = format!("{:?}", orderbook.address());
+
     let sg_config = Config {
-        contract_address: orderbook.address().to_string(),
+        contract_address: ob_address.clone(),
         block_number: block_number.as_u64(),
     };
 
     let _ = deploy(sg_config).await.expect("cannot deploy sg");
 
-    // let is_sync = wait().await.expect("cannot get SG sync status");
-    // println!("Sg sync: {}", is_sync);
+    let _ = wait().await.expect("cannot get SG sync status");
+
+    let response = get_orderbook_query(&ob_address.clone())
+        .await
+        .expect("cannot get the ob query response");
+
+    assert_eq!(orderbook.address(), response.id);
+    assert_eq!(orderbook.address(), response.address);
+    assert_eq!(wallet_0.address(), response.deployer);
 
     // _abigen_rust_generation();
     // let mut file = File::open("../meta/OrderBook.rain.meta")?;

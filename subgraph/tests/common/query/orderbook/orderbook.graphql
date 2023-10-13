@@ -1,5 +1,5 @@
-query OrderBook($metaboard: String) {
-  orderbook(id: $metaboard) {
+query OrderBook($orderbook: String) {
+  orderBook(id: $orderbook) {
     id
     deployer
     address

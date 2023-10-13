@@ -1,9 +1,5 @@
 use crate::utils::{setup::get_provider, utils::get_wallet};
 
-// #[path = "../../../generated/abigen/mod.rs"]
-// mod abigen;
-// use abigen::ERC20Mock::ERC20Mock;
-// use abige
 use crate::generated::ERC20Mock;
 
 use anyhow::Result;
