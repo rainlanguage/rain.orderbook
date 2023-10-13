@@ -15,7 +15,7 @@ jobs:
           toolchain: stable
 
       - name: Start docker container
-        run: docker-compose -f subgraph/docker/docker-compose.yml up -d
+        run: docker-compose -f subgraph/docker/docker-compose.yaml up -d
 
       - name: install npm dependencies
         working-directory: ./subgraph
@@ -26,4 +26,4 @@ jobs:
         run: RUST_TEST_THREADS=1 cargo test
 
       - name: Stop docker container
-        run: docker-compose -f subgraph/docker/docker-compose.yml down
+        run: docker-compose -f subgraph/docker/docker-compose.yaml down
