@@ -1,5 +1,5 @@
-#[path = "./generated/abigen/mod.rs"]
-mod abigen;
+// #[path = "./generated/abigen/mod.rs"]
+// mod abigen;
 mod common;
 mod generated;
 mod utils;
