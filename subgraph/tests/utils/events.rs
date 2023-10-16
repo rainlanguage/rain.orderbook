@@ -1,25 +1,21 @@
-// use ethers::{abi::AbiEncode, prelude::*};
-use ethers::{
-    providers::PendingTransaction,
-    types::{Log, Topic, TransactionReceipt, TxHash, ValueOrArray},
-};
-
-// use crate::abigen::ERC20Mock::{ERC20Mock, TransferFilter};
+use crate::generated::{AddOrderFilter, OrderBook};
 use crate::generated::{ERC20Mock, TransferFilter};
-
-// use crate::generated::{erc20_mock, ERC20MockEvents};
-
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::SignerMiddleware,
-    providers::{Http, Provider},
+    providers::{Http, PendingTransaction, Provider},
     signers::Wallet,
+    types::{Filter, Log, Topic, TransactionReceipt, TxHash, ValueOrArray},
 };
 
-pub fn _get_matched_log(logs: Vec<Log>, topic: ValueOrArray<Option<TxHash>>) -> Option<Log> {
-    let topic_hash = extract_topic_hash(topic).expect("cannot get the hash from the topic");
+async fn _get_matched_log(tx: PendingTransaction<'_, Http>, filter: Filter) -> Option<Log> {
+    let tx_receipt: TransactionReceipt = tx.await.expect("Failed to get the receipt").unwrap();
 
-    for log in logs.iter() {
+    let topic = filter.topics[0].clone().expect("failed to get the topic");
+
+    let topic_hash = _extract_topic_hash(topic).expect("cannot get the hash from the topic");
+
+    for log in tx_receipt.logs.iter() {
         if let Some(first_topic) = log.topics.get(0) {
             if first_topic == &topic_hash {
                 return Some(log.clone());
@@ -30,41 +26,8 @@ pub fn _get_matched_log(logs: Vec<Log>, topic: ValueOrArray<Option<TxHash>>) -> 
     None
 }
 
-/// Transfer event decode from receipt
-///
-/// ## Arguments
-///
-/// * `contract` -  The contract that contain the event/filter/topic
-///
-/// ## Returns
-///
-/// The struct value
-pub async fn _get_transfer_event(
-    contract: ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
-    tx: PendingTransaction<'_, Http>,
-) -> () {
-    let tx_receipt: TransactionReceipt = tx.await.expect("Failed to get the receipt").unwrap();
-
-    let topic: ValueOrArray<Option<TxHash>> =
-        contract.transfer_filter().filter.topics[0].clone().unwrap();
-
-    let log = _get_matched_log(tx_receipt.logs.clone(), topic)
-        .expect("there is no topic matched in the transaction");
-
-    // contract.transfer_filter()
-    // TransferFilter::default()
-    // ERC20MockEvents::TransferFilter((TransferFilter:))
-
-    let aver = contract
-        .decode_event::<TransferFilter>("Transfer", log.topics, log.data)
-        .unwrap();
-
-    println!("aver: {:?}", aver);
-    println!("aver: {:?}", aver.value);
-}
-
 /// Try to extract the hash value from a Topic (ValueOrArray) type
-fn extract_topic_hash(topic: ValueOrArray<Option<TxHash>>) -> Option<TxHash> {
+fn _extract_topic_hash(topic: ValueOrArray<Option<TxHash>>) -> Option<TxHash> {
     match topic {
         Topic::Value(Some(data)) => Some(data),
         Topic::Array(topic) => {
@@ -76,4 +39,34 @@ fn extract_topic_hash(topic: ValueOrArray<Option<TxHash>>) -> Option<TxHash> {
         }
         _ => None,
     }
+}
+
+pub async fn _get_transfer_event(
+    contract: ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx: PendingTransaction<'_, Http>,
+) -> TransferFilter {
+    let filter = contract.transfer_filter().filter;
+
+    let log = _get_matched_log(tx, filter)
+        .await
+        .expect("there is no topic matched in the transaction");
+
+    return contract
+        .decode_event::<TransferFilter>("Transfer", log.topics, log.data)
+        .expect("cannot decode the event");
+}
+
+pub async fn _get_add_order_event(
+    contract: OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx: PendingTransaction<'_, Http>,
+) -> AddOrderFilter {
+    let filter: Filter = contract.clone().add_order_filter().filter;
+
+    let log = _get_matched_log(tx, filter)
+        .await
+        .expect("there is no topic matched in the transaction");
+
+    return contract
+        .decode_event::<AddOrderFilter>("AddOrder", log.topics, log.data)
+        .expect("cannot decode the event");
 }

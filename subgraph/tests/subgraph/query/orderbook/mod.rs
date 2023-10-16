@@ -1,6 +1,5 @@
-// use self::orderbook::ResponseData;
 use self::order_book::ResponseData;
-use crate::common::wait::wait;
+use crate::subgraph::wait::wait;
 use anyhow::{anyhow, Result};
 use ethers::types::{Address, Bytes};
 use graphql_client::{GraphQLQuery, Response};
@@ -12,8 +11,8 @@ use std::str::FromStr;
 // Both json and the GraphQL schema language are supported as sources for the schema
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "tests/common/query/schema.json",
-    query_path = "tests/common/query/orderbook/orderbook.graphql",
+    schema_path = "tests/subgraph/query/schema.json",
+    query_path = "tests/subgraph/query/orderbook/orderbook.graphql",
     reseponse_derives = "Debug, Serialize, Deserialize"
 )]
 pub struct OrderBook;
@@ -46,7 +45,7 @@ impl OrderBookResponse {
     }
 }
 
-pub async fn get_orderbook_query(orderbook_id: &str) -> Result<OrderBookResponse> {
+pub async fn get_orderbook_query(orderbook_address: Address) -> Result<OrderBookResponse> {
     wait().await?;
 
     // TODO: Make a fix string to share
@@ -54,7 +53,7 @@ pub async fn get_orderbook_query(orderbook_id: &str) -> Result<OrderBookResponse
         .expect("cannot get the sg url");
 
     let variables = order_book::Variables {
-        orderbook: orderbook_id.to_string().into(),
+        orderbook: format!("{:?}", orderbook_address).to_string().into(),
     };
     let request_body = OrderBook::build_query(variables);
     let client = reqwest::Client::new();

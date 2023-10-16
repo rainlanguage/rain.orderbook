@@ -2,7 +2,7 @@ use ethers::prelude::*;
 use std::{env, fs};
 
 pub fn _abigen_rust_generation() -> anyhow::Result<()> {
-    process_abi_json_to_rust("tests/generated");
+    _process_abi_json_to_rust("tests/generated");
 
     Ok(())
 }
@@ -11,7 +11,7 @@ pub fn _abigen_rust_generation() -> anyhow::Result<()> {
 /// files and generate a definition in Rust using abigen.
 ///
 /// The output path will be the same that the provided.
-fn process_abi_json_to_rust(dir_path: &str) {
+fn _process_abi_json_to_rust(dir_path: &str) {
     let current_directory = env::current_dir().expect("cannot get current directory");
     let output_directory = current_directory.join(dir_path.to_owned() + "/abigen");
 

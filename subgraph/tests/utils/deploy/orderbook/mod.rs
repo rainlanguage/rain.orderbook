@@ -1,6 +1,6 @@
-use super::touch_deployer::deploy_touch_deployer;
+use super::touch_deployer::touch_deployer;
 use crate::generated::{OrderBook, ORDERBOOK_ABI, ORDERBOOK_BYTECODE};
-use crate::utils::{setup::get_provider, utils::get_wallet};
+use crate::utils::{get_provider, get_wallet};
 use anyhow::Result;
 use ethers::{
     abi::Token,
@@ -11,6 +11,9 @@ use ethers::{
     signers::{Signer, Wallet},
 };
 use std::{env, fs::File, io::Read, sync::Arc};
+
+mod setup;
+pub use setup::get_orderbook;
 
 pub async fn deploy_orderbook(
     wallet: Option<Wallet<SigningKey>>,
@@ -25,25 +28,16 @@ pub async fn deploy_orderbook(
     ));
 
     // Deploying deployer
-    let expression_deployer = deploy_touch_deployer(Some(wallet.clone()))
+    let expression_deployer = touch_deployer(Some(wallet.clone()))
         .await
         .expect("cannot touch deployer (ob)");
 
     // Obtaining OB Meta bytes
-    let meta_directory = env::current_dir()
-        .expect("cannot get the current directory")
-        .parent()
-        .expect("cannot get the parent from current dir")
-        .join("meta/OrderBook.rain.meta");
-
-    let mut file = File::open(meta_directory).expect("cannot open the file");
-    let mut contents = Vec::new();
-    file.read_to_end(&mut contents)
-        .expect("failed on read_to_end");
+    let meta = read_orderbook_meta();
 
     let args = vec![Token::Tuple(vec![
         Token::Address(expression_deployer.address()),
-        Token::Bytes(contents),
+        Token::Bytes(meta),
     ])];
 
     // Obtaining OB deploy transaction
@@ -63,4 +57,19 @@ pub async fn deploy_orderbook(
     let orderbook = OrderBook::new(contract.address(), client);
 
     return Ok(orderbook);
+}
+
+pub fn read_orderbook_meta() -> Vec<u8> {
+    let meta_directory = env::current_dir()
+        .expect("cannot get the current directory")
+        .parent()
+        .expect("cannot get the parent from current dir")
+        .join("meta/OrderBook.rain.meta");
+
+    let mut file = File::open(meta_directory).expect("cannot open the file");
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)
+        .expect("failed on read_to_end");
+
+    return contents;
 }

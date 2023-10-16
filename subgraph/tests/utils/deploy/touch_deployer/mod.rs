@@ -1,10 +1,11 @@
 use super::meta_getter::get_authoring_meta;
-use crate::generated::{
-    Rainterpreter, RainterpreterExpressionDeployer, RainterpreterStore,
-    RAINTERPRETEREXPRESSIONDEPLOYER_ABI, RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE,
+use crate::{
+    generated::{
+        Rainterpreter, RainterpreterExpressionDeployer, RainterpreterStore,
+        RAINTERPRETEREXPRESSIONDEPLOYER_ABI, RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE,
+    },
+    utils::{get_provider, get_wallet},
 };
-use crate::utils::setup::get_provider;
-use crate::utils::utils::get_wallet;
 use anyhow::Result;
 use ethers::{
     abi::Token,
@@ -17,7 +18,7 @@ use ethers::{
 };
 use std::sync::Arc;
 
-pub async fn deploy_touch_deployer(
+pub async fn touch_deployer(
     wallet: Option<Wallet<SigningKey>>,
 ) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let wallet = Some(wallet.unwrap_or(get_wallet(0)));

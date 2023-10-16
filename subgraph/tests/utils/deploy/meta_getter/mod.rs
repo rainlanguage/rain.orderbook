@@ -1,6 +1,7 @@
-use crate::generated::AuthoringMetaGetter;
-use crate::utils::setup::get_provider;
-use crate::utils::utils::get_wallet;
+use crate::{
+    generated::AuthoringMetaGetter,
+    utils::{get_provider, get_wallet},
+};
 use anyhow::Result;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Http, Middleware};

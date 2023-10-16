@@ -1,7 +1,7 @@
-use crate::utils::{setup::get_provider, utils::get_wallet};
-
-use crate::generated::ERC20Mock;
-
+use crate::{
+    generated::ERC20Mock,
+    utils::{get_provider, get_wallet},
+};
 use anyhow::Result;
 use ethers::{
     core::k256::ecdsa::SigningKey,
