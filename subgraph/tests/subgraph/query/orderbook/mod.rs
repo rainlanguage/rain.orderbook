@@ -1,5 +1,5 @@
 use self::order_book::ResponseData;
-use crate::subgraph::wait::wait;
+use crate::subgraph::wait;
 use anyhow::{anyhow, Result};
 use ethers::types::{Address, Bytes};
 use graphql_client::{GraphQLQuery, Response};
@@ -27,7 +27,7 @@ pub struct OrderBookResponse {
 
 impl OrderBookResponse {
     pub fn from(response: ResponseData) -> OrderBookResponse {
-        let orderbook = response.order_book.unwrap();
+        let orderbook: order_book::OrderBookOrderBook = response.order_book.unwrap();
 
         let meta_bytes = orderbook
             .meta
@@ -55,6 +55,7 @@ pub async fn get_orderbook_query(orderbook_address: Address) -> Result<OrderBook
     let variables = order_book::Variables {
         orderbook: format!("{:?}", orderbook_address).to_string().into(),
     };
+
     let request_body = OrderBook::build_query(variables);
     let client = reqwest::Client::new();
     let res = client.post(url.clone()).json(&request_body).send().await?;

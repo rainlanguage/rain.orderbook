@@ -37,7 +37,13 @@ async fn orderbook_entity_test() -> Result<()> {
     //     .expect("cannot deploy expression_deployer");
 
     // ///////////////////////////////////////////////
-    // // Deploy ERC20 token contract (A)
+    // // Deploy ERC20 token contract (A)command) and convert to Bytes
+    // let ob_meta_hashed = Bytes::from(keccak256(read_orderbook_meta()));
+
+    // assert_eq!(response.id, orderbook.address());
+    // assert_eq!(response.address, orderbook.address());
+    // assert_eq!(response.deployer, wallet_0.address());
+    // assert_eq!(response.meta, ob_meta_hashed);
     // let token_a = deploy_erc20_mock(None)
     //     .await
     //     .expect("failed on deploy erc20 token A");
@@ -103,6 +109,44 @@ async fn orderbook_entity_test() -> Result<()> {
     // let _ = is_sugraph_node_init()
     //     .await
     //     .expect("cannot check subgraph node");
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn rain_meta_v1_entity_test() -> Result<()> {
+    // Always checking if OB is deployed, so we attemp to obtaing it
+    let _ = get_orderbook().await.expect("cannot get OB");
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    // Read meta from root repository (output from nix command) and convert to Bytes
+    let ob_meta = read_orderbook_meta();
+    let ob_meta_bytes = Bytes::from(ob_meta.clone());
+    let ob_meta_hashed = Bytes::from(keccak256(ob_meta));
+
+    // Query the RainMetaV1 entity
+    let response = Query::rain_meta_v1(ob_meta_hashed.clone())
+        .await
+        .expect("cannot get the rain meta query response");
+
+    assert_eq!(response.id, ob_meta_hashed);
+    assert_eq!(response.meta_bytes, ob_meta_bytes);
+    // assert_eq!(response.content, ob_meta_bytes);
+
+    println!("response.content: {:?}", response.content);
+
+    // let response = Query::rain_meta_v1(orderbook.address())
+    //     .await
+    //     .expect("cannot get the rain meta query response");
+
+    // // This wallet is used to deploy the OrderBook at initialization, so it is the deployer
+    // let wallet_0 = utils::get_wallet(0);
+
+    // // Read meta from root repository (output from nix command) and convert to Bytes
+    // let ob_meta_hashed = Bytes::from(keccak256(read_orderbook_meta()));
 
     Ok(())
 }

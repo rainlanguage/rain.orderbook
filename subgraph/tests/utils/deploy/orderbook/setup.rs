@@ -1,6 +1,6 @@
 use crate::{
-    subgraph::{deploy, Config},
     generated::OrderBook,
+    subgraph::{deploy, Config},
     utils::get_block_number,
 };
 use anyhow::Result;
@@ -35,9 +35,6 @@ pub async fn init_orderbook(
     let orderbook = deploy_orderbook(None)
         .await
         .expect("cannot deploy OB at setup initialization");
-
-    // let addrr = orderbook.address();
-    // let ob_address = format!("{:?}", orderbook.address());
 
     let sg_config = Config {
         contract_address: &format!("{:?}", orderbook.address()),

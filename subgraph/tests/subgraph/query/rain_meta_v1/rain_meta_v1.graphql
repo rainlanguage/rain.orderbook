@@ -1,0 +1,9 @@
+query RainMetaV1($rain_meta: String) {
+  rainMetaV1(id: $rain_meta) {
+    id
+    metaBytes
+    content {
+      id
+    }
+  }
+}

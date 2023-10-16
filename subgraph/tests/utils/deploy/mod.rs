@@ -1,6 +1,6 @@
 mod erc20_mock;
 mod meta_getter;
-mod orderbook;
+pub mod orderbook;
 mod registry1820;
 mod touch_deployer;
 

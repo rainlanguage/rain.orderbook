@@ -25,6 +25,8 @@ pub struct SyncStatus;
 pub async fn wait() -> anyhow::Result<bool> {
     let block_number = get_block_number().await;
 
+    // let _ = get_orderbook().await.expect("cannot get OB in waiting");
+
     let url = Url::from_str(&"http://localhost:8030/graphql")?;
 
     let variables = sync_status::Variables {};
