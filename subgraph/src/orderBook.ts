@@ -357,8 +357,9 @@ export function handleAfterClear(event: AfterClear): void {
       const tokenVaultBounty_A = TokenVault.load(config.tokenVaultBountyAlice);
 
       if (tokenVaultBounty_A) {
-        tokenVaultBounty_A.balance =
-          tokenVaultBounty_A.balance.plus(bountyAmountA);
+        tokenVaultBounty_A.balance = tokenVaultBounty_A.balance.plus(
+          bountyAmountA
+        );
         tokenVaultBounty_A.balanceDisplay = toDisplay(
           tokenVaultBounty_A.balance,
           tokenVaultBounty_A.token
@@ -372,8 +373,9 @@ export function handleAfterClear(event: AfterClear): void {
       const tokenVaultBounty_B = TokenVault.load(config.tokenVaultBountyBob);
 
       if (tokenVaultBounty_B) {
-        tokenVaultBounty_B.balance =
-          tokenVaultBounty_B.balance.plus(bountyAmountB);
+        tokenVaultBounty_B.balance = tokenVaultBounty_B.balance.plus(
+          bountyAmountB
+        );
         tokenVaultBounty_B.balanceDisplay = toDisplay(
           tokenVaultBounty_B.balance,
           tokenVaultBounty_B.token
@@ -392,8 +394,9 @@ export function handleAfterClear(event: AfterClear): void {
     // Updating alice input/output balance
     const aliceTokenVaultInput = TokenVault.load(aliceTokenVaultInput_ID);
     if (aliceTokenVaultInput) {
-      aliceTokenVaultInput.balance =
-        aliceTokenVaultInput.balance.plus(aliceInput);
+      aliceTokenVaultInput.balance = aliceTokenVaultInput.balance.plus(
+        aliceInput
+      );
       aliceTokenVaultInput.balanceDisplay = toDisplay(
         aliceTokenVaultInput.balance,
         aliceTokenVaultInput.token
@@ -403,8 +406,9 @@ export function handleAfterClear(event: AfterClear): void {
 
     const aliceTokenVaultOutput = TokenVault.load(aliceTokenVaultOutput_ID);
     if (aliceTokenVaultOutput) {
-      aliceTokenVaultOutput.balance =
-        aliceTokenVaultOutput.balance.minus(aliceOutput);
+      aliceTokenVaultOutput.balance = aliceTokenVaultOutput.balance.minus(
+        aliceOutput
+      );
       aliceTokenVaultOutput.balanceDisplay = toDisplay(
         aliceTokenVaultOutput.balance,
         aliceTokenVaultOutput.token
@@ -425,8 +429,9 @@ export function handleAfterClear(event: AfterClear): void {
 
     const bobTokenVaultOutput = TokenVault.load(bobTokenVaultOutput_ID);
     if (bobTokenVaultOutput) {
-      bobTokenVaultOutput.balance =
-        bobTokenVaultOutput.balance.minus(bobOutput);
+      bobTokenVaultOutput.balance = bobTokenVaultOutput.balance.minus(
+        bobOutput
+      );
       bobTokenVaultOutput.balanceDisplay = toDisplay(
         bobTokenVaultOutput.balance,
         bobTokenVaultOutput.token
@@ -943,6 +948,7 @@ export function handleMetaV1(event: MetaV1): void {
     return;
   }
 }
+// TODO: Update the ContentMeta to the Interpreter.ContentMeta code
 export class ContentMeta {
   rainMetaId: Bytes;
   payload: Bytes = Bytes.empty();

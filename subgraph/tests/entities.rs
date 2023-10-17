@@ -5,10 +5,13 @@ mod utils;
 use anyhow::Result;
 use ethers::{signers::Signer, types::Bytes, utils::keccak256};
 use subgraph::{wait, Query};
-use utils::deploy::{get_orderbook, read_orderbook_meta};
+use utils::{
+    cbor::{decode_rain_meta, RainMapDoc},
+    deploy::{get_orderbook, read_orderbook_meta},
+};
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn orderbook_entity_test() -> Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -114,7 +117,7 @@ async fn orderbook_entity_test() -> Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn rain_meta_v1_entity_test() -> Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -138,15 +141,17 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
 
     println!("response.content: {:?}", response.content);
 
-    // let response = Query::rain_meta_v1(orderbook.address())
-    //     .await
-    //     .expect("cannot get the rain meta query response");
+    Ok(())
+}
 
-    // // This wallet is used to deploy the OrderBook at initialization, so it is the deployer
-    // let wallet_0 = utils::get_wallet(0);
+#[test]
+fn aver_test() -> Result<()> {
+    // Read meta from root repository (output from nix command) and convert to Bytes
+    let ob_meta = read_orderbook_meta();
 
-    // // Read meta from root repository (output from nix command) and convert to Bytes
-    // let ob_meta_hashed = Bytes::from(keccak256(read_orderbook_meta()));
+    let output: Vec<RainMapDoc> = decode_rain_meta(ob_meta.into())?;
+
+    println!("output.len: {}", output.len());
 
     Ok(())
 }
