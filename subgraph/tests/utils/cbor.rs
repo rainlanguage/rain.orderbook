@@ -2,7 +2,8 @@ use super::MagicNumber;
 use anyhow::{anyhow, Result};
 use ethers::types::{Bytes, U256};
 use minicbor::data::Type;
-use minicbor::decode::{Decode, Decoder, Error};
+use minicbor::decode::{Decode, Decoder, Error as DecodeError};
+use minicbor::encode::{Encode, Encoder, Error as EncodeError};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -15,16 +16,16 @@ pub struct RainMapDoc {
 }
 
 impl RainMapDoc {
-    fn bad_meta_map() -> Result<Self, Error> {
-        return Err(Error::message("Bad rain meta map"));
+    fn bad_meta_map() -> Result<Self, DecodeError> {
+        return Err(DecodeError::message("bad rain meta map"));
     }
-    fn no_meta_map() -> Result<Self, Error> {
-        return Err(Error::message("It is not a rain meta map"));
+    fn no_meta_map() -> Result<Self, DecodeError> {
+        return Err(DecodeError::message("not rain meta map"));
     }
 }
 
 impl<'b> Decode<'b, ()> for RainMapDoc {
-    fn decode(d: &mut Decoder<'b>, _: &mut ()) -> Result<Self, Error> {
+    fn decode(d: &mut Decoder<'b>, _: &mut ()) -> Result<Self, DecodeError> {
         // Check what it's the current datatype.
         let datatype = d.datatype()?;
 
@@ -82,28 +83,48 @@ impl<'b> Decode<'b, ()> for RainMapDoc {
     }
 }
 
-/// Receive a Rain Meta document with his prefix bytes and try to decode it.
+/// Receive a Rain Meta document with his prefix bytes and try to decode it usin cbor.
 pub fn decode_rain_meta(meta_data: Bytes) -> Result<Vec<RainMapDoc>> {
     let (doc_magic_number, cbor_data) = meta_data.split_at(8);
 
     if MagicNumber::rain_meta_document_v1() == doc_magic_number.to_vec() {
-        let cbor_data = cbor_data.to_vec();
+        let mut decoder = Decoder::new(cbor_data);
 
-        return decode_cbor(cbor_data);
+        let mut all_docs: Vec<RainMapDoc> = vec![];
+
+        while decoder.position() < decoder.input().len() {
+            let doc: std::result::Result<RainMapDoc, DecodeError> = decoder.decode();
+
+            if doc.is_err() {
+                let errorsito = doc.unwrap_err();
+                return Err(anyhow!("{}", errorsito.to_string()));
+            }
+
+            all_docs.push(doc.unwrap());
+        }
+
+        return Ok(all_docs);
     }
-    return Err(anyhow!("Cannot decode as a rain meta"));
+    return Err(anyhow!("Unable to decode - missing rain doc prefix"));
 }
 
-pub fn decode_cbor(cbor_data: Vec<u8>) -> Result<Vec<RainMapDoc>> {
-    let mut decoder = Decoder::new(&cbor_data);
+// pub fn decode_cbor(cbor_data: Vec<u8>) -> Result<Vec<RainMapDoc>> {
+//     let mut decoder = Decoder::new(&cbor_data);
 
-    let mut all_docs: Vec<RainMapDoc> = vec![];
+//     let mut all_docs: Vec<RainMapDoc> = vec![];
 
-    while decoder.position() < decoder.input().len() {
-        let doc: RainMapDoc = decoder.decode().unwrap();
+//     while decoder.position() < decoder.input().len() {
+//         // TODO: Create error response
+//         let doc: RainMapDoc = decoder.decode().unwrap();
 
-        all_docs.push(doc);
-    }
+//         all_docs.push(doc);
+//     }
 
-    return Ok(all_docs);
+//     return Ok(all_docs);
+// }
+
+/// Receive a vec of RainMapDoc and try to encode it.
+pub fn _encode_rain_meta(_docs: Vec<RainMapDoc>) -> Result<Vec<u8>> {
+    //
+    Ok([0].to_vec())
 }

@@ -147,9 +147,13 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
 #[test]
 fn aver_test() -> Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
-    let ob_meta = read_orderbook_meta();
+    // let ob_meta = read_orderbook_meta();
 
-    let output: Vec<RainMapDoc> = decode_rain_meta(ob_meta.into())?;
+    // let  ob_meta = <Bytes as hex::FromHex>::from_hex("0xff0a89c674ee7874A3011BFFE5FFB4A3FF2CDE0052946869735F69735F616E5F6578616D706C8502706170706C69636174696F6E2F6A736F6EA4011BFFE5FFB4A3FF2CDF0052746869735F69735F616E5F6578616D706C6502706170706C69636174696F6E2F63626F720362656E").expect("bad hex");
+
+    let  ob_meta = <Bytes as hex::FromHex>::from_hex("0xff0a89c674ee7874A2011BFFE5FFB4A3FF2CDE0052946869735F69735F616E5F6578616D706C8502706170706C69636174696F6E2F6A736F6EA4011BFFE5FFB4A3FF2CDF0052746869735F69735F616E5F6578616D706C6502706170706C69636174696F6E2F63626F720362656E").expect("bad hex");
+
+    let output: Vec<RainMapDoc> = decode_rain_meta(ob_meta)?;
 
     println!("output.len: {}", output.len());
 
