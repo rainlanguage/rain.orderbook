@@ -111,6 +111,24 @@ pub fn _run_cmd(main_cmd: &str, args: &[&str]) -> bool {
     }
 }
 
+pub fn string_to_bytes(value: String) -> Bytes {
+    Bytes::from(value.as_bytes().to_vec())
+}
+
+pub fn _remove_trailing_zeros(arr: &[u8]) -> Vec<u8> {
+    // Find the position of the last non-zero element
+    let length = arr.iter().rposition(|&x| x != 0).map(|pos| pos + 1);
+
+    match length {
+        Some(len) => {
+            // Create a new Vec<u8> with the non-zero data
+            arr[0..len].to_vec()
+        }
+        // All elements are zeros, so return just one zero
+        None => vec![0],
+    }
+}
+
 /// Rain Magic Numbers
 pub struct MagicNumber;
 
@@ -119,31 +137,31 @@ impl MagicNumber {
         Bytes::from_hex("0xff0a89c674ee7874").unwrap()
     }
 
-    pub fn solidity_abi_v2() -> Bytes {
+    pub fn _solidity_abi_v2() -> Bytes {
         Bytes::from_hex("0xffe5ffb4a3ff2cde").unwrap()
     }
 
-    pub fn op_meta_v1() -> Bytes {
+    pub fn _op_meta_v1() -> Bytes {
         Bytes::from_hex("0xffe5282f43e495b4").unwrap()
     }
 
-    pub fn interpreter_caller_meta_v1() -> Bytes {
+    pub fn _interpreter_caller_meta_v1() -> Bytes {
         Bytes::from_hex("0xffc21bbf86cc199b").unwrap()
     }
 
-    pub fn authoring_meta_v1() -> Bytes {
+    pub fn _authoring_meta_v1() -> Bytes {
         Bytes::from_hex("0xffe9e3a02ca8e235").unwrap()
     }
 
-    pub fn rainlang_v1() -> Bytes {
+    pub fn _rainlang_v1() -> Bytes {
         Bytes::from_hex("0xff1c198cec3b48a7").unwrap()
     }
 
-    pub fn dotrain_v1() -> Bytes {
+    pub fn _dotrain_v1() -> Bytes {
         Bytes::from_hex("0xffdac2f2f37be894").unwrap()
     }
 
-    pub fn expression_deployer_v2() -> Bytes {
+    pub fn _expression_deployer_v2() -> Bytes {
         Bytes::from_hex("0xffdb988a8cd04d32").unwrap()
     }
 }

@@ -6,7 +6,7 @@ use anyhow::Result;
 use ethers::{signers::Signer, types::Bytes, utils::keccak256};
 use subgraph::{wait, Query};
 use utils::{
-    cbor::{_encode_rain_meta, decode_rain_meta, RainMapDoc},
+    cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{get_orderbook, read_orderbook_meta},
 };
 
@@ -147,12 +147,15 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
 #[test]
 fn cbor_test() -> Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
-    let ob_meta = read_orderbook_meta();
-    // println!("ob_meta: {}", Bytes::from(ob_meta.clone()));
+    let ob_meta: Vec<u8> = read_orderbook_meta();
 
-    let output: Vec<RainMapDoc> = decode_rain_meta(ob_meta.into())?;
+    let output: Vec<RainMapDoc> = decode_rain_meta(ob_meta.clone().into())?;
 
-    println!("output.len: {}\n", output.len());
+    let (_, cbor_data) = ob_meta.split_at(8);
+
+    let encoded_again = encode_rain_docs(output);
+
+    assert_eq!(cbor_data.to_vec(), encoded_again);
 
     Ok(())
 }
