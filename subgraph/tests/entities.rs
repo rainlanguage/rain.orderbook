@@ -11,7 +11,7 @@ use utils::{
 };
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -117,7 +117,7 @@ async fn orderbook_entity_test() -> Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -128,7 +128,8 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta = read_orderbook_meta();
     let ob_meta_bytes = Bytes::from(ob_meta.clone());
-    let ob_meta_hashed = Bytes::from(keccak256(ob_meta));
+    let ob_meta_hashed = Bytes::from(keccak256(ob_meta.clone()));
+    let ob_meta_decoded = decode_rain_meta(ob_meta.clone().into())?;
 
     // Query the RainMetaV1 entity
     let response = Query::rain_meta_v1(ob_meta_hashed.clone())
@@ -137,25 +138,30 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
 
     assert_eq!(response.id, ob_meta_hashed);
     assert_eq!(response.meta_bytes, ob_meta_bytes);
-    // assert_eq!(response.content, ob_meta_bytes);
 
-    println!("response.content: {:?}", response.content);
+    for content in ob_meta_decoded {
+        let content_id: Bytes = content.hash().to_fixed_bytes().into();
+        assert!(
+            response.content.contains(&content_id),
+            "Missing id '{}' in decoded contents: {:?}",
+            content_id,
+            response.content
+        );
+    }
 
     Ok(())
 }
 
 #[test]
-fn cbor_test() -> Result<()> {
+fn util_cbor_meta_test() -> Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
 
     let output: Vec<RainMapDoc> = decode_rain_meta(ob_meta.clone().into())?;
 
-    let (_, cbor_data) = ob_meta.split_at(8);
-
     let encoded_again = encode_rain_docs(output);
 
-    assert_eq!(cbor_data.to_vec(), encoded_again);
+    assert_eq!(ob_meta, encoded_again);
 
     Ok(())
 }

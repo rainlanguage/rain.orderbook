@@ -3286,6 +3286,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "thiserror",
+ "tiny-keccak",
  "tokio",
  "web3",
 ]

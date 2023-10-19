@@ -1,10 +1,13 @@
 use super::{string_to_bytes, MagicNumber};
 use anyhow::{anyhow, Result};
-use ethers::types::{Bytes, U256};
+use ethers::types::{Bytes, H256, U256};
 use minicbor::data::Type;
 use minicbor::decode::{Decode, Decoder, Error as DecodeError};
 use minicbor::encode::{Encode, Encoder, Error as EncodeError, Write};
 use serde::Deserialize;
+
+use tiny_keccak::Hasher;
+use tiny_keccak::Keccak;
 
 #[derive(Debug, Deserialize)]
 pub struct RainMapDoc {
@@ -77,6 +80,29 @@ impl RainMapDoc {
 
         // return it
         count
+    }
+
+    /// Hash the rain map document using Keccak256
+    pub fn hash(&self) -> H256 {
+        let doc_encoded = self.encode();
+
+        let mut keccak = Keccak::v256();
+        keccak.update(&doc_encoded);
+
+        let mut output = [0u8; 32];
+        keccak.finalize(&mut output);
+
+        H256::from(output)
+    }
+
+    /// CBOR encode the Rain Document using CBOR.
+    pub fn encode(&self) -> Vec<u8> {
+        let mut buffer: Vec<u8> = vec![0u8; self.len_bytes()];
+        let mut encoder = Encoder::new(&mut buffer[..]);
+
+        let _ = encoder.encode(self);
+
+        return buffer;
     }
 
     fn bad_meta_map() -> Result<Self, DecodeError> {
@@ -214,17 +240,13 @@ pub fn decode_rain_meta(meta_data: Bytes) -> Result<Vec<RainMapDoc>> {
 /// Receive a vec of RainMapDoc and try to encode it. If the length of the Vec is greater than one (1), then the output will be
 /// an cbor sequence.
 ///
-/// **NOTE:** Do NOT include the rain doc magic number at the start.
 pub fn encode_rain_docs(docs: Vec<RainMapDoc>) -> Vec<u8> {
-    let mut main_buffer: Vec<u8> = Vec::new();
+    let mut main_buffer = MagicNumber::rain_meta_document_v1().to_vec();
 
     for doc_index in 0..docs.len() {
         let doc = docs.get(doc_index).unwrap();
 
-        let mut inner_buffer: Vec<u8> = vec![0u8; doc.len_bytes()];
-        let mut inner_encoder = Encoder::new(&mut inner_buffer[..]);
-
-        let _ = inner_encoder.encode(doc);
+        let mut inner_buffer = doc.encode();
 
         main_buffer.append(&mut inner_buffer);
     }
