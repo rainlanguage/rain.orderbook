@@ -5,18 +5,40 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    # jq.url = "github:jqlang/jq";
   };
+
 
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        jq = "${pkgs.jq}/bin/jq";
 
       in rec {
         packages = rec {
           install = pkgs.writeShellScriptBin "install" ("npm install");
 
           build = pkgs.writeShellScriptBin "build" ("npm run codegen && npm run build");
+
+          # ERC20Mock is not present here. It's hardcoded because It's just a ERC20 contract with a mint method.
+          concrete-contracts = ["AuthoringMetaGetter" "OrderBook" "RainterpreterExpressionDeployerNP" "RainterpreterNP" "RainterpreterStore"];
+
+          copy-abis = contract: ''
+            echo Copying ${contract}...
+            cp ../out/${contract}.sol/${contract}.json ./tests/generated/
+
+            # # Remove component duplicated that conflict with abigen
+            # ${jq} '.abi |= map(select(.name != "StackUnderflow"))' contract.json > updated_contract.json
+            # mv updated_contract.json tests/generated/RainterpreterExpressionDeployerNP.json
+          '';
+
+          remove-duplicate = ''
+            contract_path="tests/generated/RainterpreterExpressionDeployerNP.json"
+            ${jq} '.abi |= map(select(.name != "StackUnderflow"))' $contract_path > updated_contract.json
+            mv updated_contract.json $contract_path
+            echo Removed duplicated at: $contract_path
+          '';
 
           init-setup =  pkgs.writeShellScriptBin "init-setup" (''
             # NOTE: This should be called after `npm install`
@@ -26,8 +48,8 @@
  
             # Copying the new abis into the SG abi folder
             cp ../out/OrderBook.sol/OrderBook.json ./abis/
-            cp ../out/ERC20.sol/ERC20.json ./abis/ReserveToken.json            
-            ''
+            cp ../out/ERC20.sol/ERC20.json ./abis/ReserveToken.json
+            '' + pkgs.lib.concatStrings (map copy-abis concrete-contracts) + (remove-duplicate)
           );
 
           docker-up = pkgs.writeShellScriptBin "docker-up" ''
@@ -37,7 +59,6 @@
           docker-down = pkgs.writeShellScriptBin "docker-down" ''
             docker-compose -f docker/docker-compose.yaml down
           '';
-
 
           check-args = pkgs.writeShellScriptBin "check-args" (''
             echo "All parameters: $@"
@@ -57,8 +78,6 @@
             clear;
             cargo test -- --nocapture;
           '');
-
-          
 
           default = install;
 
