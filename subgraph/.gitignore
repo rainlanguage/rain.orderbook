@@ -2,6 +2,7 @@
 /build
 /generated
 /subgraph.yaml
+/abis/*.json
 
 # Rust generated files
 /tests/generated/abigen

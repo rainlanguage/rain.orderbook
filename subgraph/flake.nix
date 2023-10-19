@@ -1,11 +1,9 @@
-# TODO: Improve tooling here
 {
   description = "Flake for development orderbook subgraph workflows.";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    # jq.url = "github:jqlang/jq";
   };
 
 
@@ -34,6 +32,8 @@
           '';
 
           remove-duplicate = ''
+            # Remove a component duplicated on RainterpreterExpressionDeployerNP abi that 
+            # conflict with abigen
             contract_path="tests/generated/RainterpreterExpressionDeployerNP.json"
             ${jq} '.abi |= map(select(.name != "StackUnderflow"))' $contract_path > updated_contract.json
             mv updated_contract.json $contract_path
