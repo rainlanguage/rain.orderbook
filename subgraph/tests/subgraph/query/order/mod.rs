@@ -43,8 +43,7 @@ pub struct OrderResponse {
 }
 
 impl OrderResponse {
-    // pub fn from(response: ResponseData) -> OrderResponse {
-    pub fn from(response: ResponseData) -> () {
+    pub fn from(response: ResponseData) -> OrderResponse {
         println!("OrderResponse.from()");
         let data = response.order.unwrap();
 
@@ -73,8 +72,7 @@ impl OrderResponse {
     }
 }
 
-// pub async fn get_content_meta_v1(id: Bytes) -> Result<OrderResponse> {
-pub async fn get_order(id: Bytes) -> Result<()> {
+pub async fn get_content_meta_v1(id: Bytes) -> Result<OrderResponse> {
     wait().await?;
     println!("get_order_0");
 

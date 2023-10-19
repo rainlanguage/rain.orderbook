@@ -1,13 +1,10 @@
 use self::order_book::ResponseData;
-use crate::subgraph::wait;
+use super::SG_URL;
 use anyhow::{anyhow, Result};
 use ethers::types::{Address, Bytes};
 use graphql_client::{GraphQLQuery, Response};
 use serde::{Deserialize, Serialize};
-use super::SG_URL;
 
-// The paths are relative to the directory where your `Cargo.toml` is located.
-// Both json and the GraphQL schema language are supported as sources for the schema
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "tests/subgraph/query/schema.json",
@@ -45,8 +42,6 @@ impl OrderBookResponse {
 }
 
 pub async fn get_orderbook_query(orderbook_address: Address) -> Result<OrderBookResponse> {
-    wait().await?;
-
     let variables = order_book::Variables {
         orderbook: format!("{:?}", orderbook_address).to_string().into(),
     };

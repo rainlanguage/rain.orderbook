@@ -1,6 +1,5 @@
 use self::rain_meta_v1::{RainMetaV1RainMetaV1Content, ResponseData};
 use super::SG_URL;
-use crate::subgraph::wait;
 use anyhow::{anyhow, Result};
 use ethers::types::Bytes;
 use graphql_client::{GraphQLQuery, Response};
@@ -38,8 +37,6 @@ impl RainMetaV1Response {
 }
 
 pub async fn get_rain_meta_v1(rain_meta_id: Bytes) -> Result<RainMetaV1Response> {
-    wait().await?;
-
     let variables = rain_meta_v1::Variables {
         rain_meta: rain_meta_id.to_string().into(),
     };

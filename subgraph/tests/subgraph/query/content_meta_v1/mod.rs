@@ -1,6 +1,6 @@
 use self::content_meta_v1::ResponseData;
 use super::SG_URL;
-use crate::{subgraph::wait, utils::mn_mpz_to_u256};
+use crate::utils::mn_mpz_to_u256;
 use anyhow::{anyhow, Result};
 use ethers::types::{Bytes, U256};
 use graphql_client::{GraphQLQuery, Response};
@@ -47,8 +47,6 @@ impl ContentMetaV1Response {
 }
 
 pub async fn get_content_meta_v1(id: Bytes) -> Result<ContentMetaV1Response> {
-    wait().await?;
-
     let variables = content_meta_v1::Variables {
         content_meta: id.to_string().into(),
     };
