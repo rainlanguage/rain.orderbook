@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use ethers::types::{Bytes, U256};
 use minicbor::data::Type;
 use minicbor::decode::{Decode, Decoder, Error as DecodeError};
-use minicbor::encode::Encoder;
+use minicbor::encode::{Encode, Encoder, Error as EncodeError, Write};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -146,6 +146,45 @@ impl<'b> Decode<'b, ()> for RainMapDoc {
     }
 }
 
+impl<C> Encode<C> for RainMapDoc {
+    fn encode<W: Write>(
+        &self,
+        enc: &mut Encoder<W>,
+        _: &mut C,
+    ) -> Result<(), EncodeError<W::Error>> {
+        let doc_len = self.len() as u8;
+
+        // Creating the map based on the rain document length
+        let _ = enc.map(doc_len.into());
+
+        // Key 0
+        let _ = enc.u8(0);
+        let _ = enc.bytes(&self.payload);
+
+        // Key 1
+        // Low_u64 to not panic (max u64 as the spec
+        let _ = enc.u8(1);
+        let _ = enc.u64(self.magic_number.low_u64());
+
+        if self.content_type.is_some() {
+            let _ = enc.u8(2);
+            let _ = enc.str(&self.content_type.clone().unwrap());
+        }
+
+        if self.content_encoding.is_some() {
+            let _ = enc.u8(3);
+            let _ = enc.str(&self.content_encoding.clone().unwrap());
+        }
+
+        if self.content_language.is_some() {
+            let _ = enc.u8(4);
+            let _ = enc.str(&self.content_language.clone().unwrap());
+        }
+
+        Ok(())
+    }
+}
+
 /// Receive a Rain Meta document with his prefix bytes and try to decode it usin cbor.
 pub fn decode_rain_meta(meta_data: Bytes) -> Result<Vec<RainMapDoc>> {
     let (doc_magic_number, cbor_data) = meta_data.split_at(8);
@@ -181,42 +220,11 @@ pub fn encode_rain_docs(docs: Vec<RainMapDoc>) -> Vec<u8> {
 
     for doc_index in 0..docs.len() {
         let doc = docs.get(doc_index).unwrap();
-        let doc_len = doc.len() as u8;
 
         let mut inner_buffer: Vec<u8> = vec![0u8; doc.len_bytes()];
         let mut inner_encoder = Encoder::new(&mut inner_buffer[..]);
 
-        // Creating the map based on the rain document length
-        let _ = inner_encoder.map(doc_len.into());
-
-        // Key 0
-        let _ = inner_encoder.u8(0);
-        let _ = inner_encoder.bytes(&doc.payload);
-
-        // Key 1
-        // Low_u64 to not panic (max u64 as the spec
-        let _ = inner_encoder.u8(1);
-        let _ = inner_encoder.u64(doc.magic_number.low_u64());
-
-        if doc.content_type.is_some() {
-            let _ = inner_encoder.u8(2);
-            let _ = inner_encoder.str(&doc.content_type.clone().unwrap());
-        }
-
-        if doc.content_encoding.is_some() {
-            let _ = inner_encoder.u8(3);
-            let _ = inner_encoder.str(&doc.content_encoding.clone().unwrap());
-        }
-
-        if doc.content_language.is_some() {
-            let _ = inner_encoder.u8(4);
-            let _ = inner_encoder.str(&doc.content_language.clone().unwrap());
-        }
-
-        // println!(
-        //     "inner_buffer: {}",
-        //     Bytes::from(_remove_trailing_zeros(&inner_buffer.as_slice()))
-        // );
+        let _ = inner_encoder.encode(doc);
 
         main_buffer.append(&mut inner_buffer);
     }

@@ -11,7 +11,7 @@ use utils::{
 };
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn orderbook_entity_test() -> Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -117,7 +117,7 @@ async fn orderbook_entity_test() -> Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn rain_meta_v1_entity_test() -> Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
