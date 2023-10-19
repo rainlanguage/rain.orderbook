@@ -7,13 +7,27 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        # with:
-        #   submodules: recursive
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Forge shallow install
+        run: forge install --shallow
 
       - name: Install rustup stable
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
+      - name: Initialize setup
+        run: nix run .#init-setup
 
       - name: Start docker container
         run: docker-compose -f subgraph/docker/docker-compose.yaml up -d
