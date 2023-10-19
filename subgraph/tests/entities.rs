@@ -10,7 +10,7 @@ use ethers::{
 };
 use generated::{EvaluableConfigV2, Io, OrderConfigV2};
 use hex::FromHex;
-use subgraph::{wait, Query};
+use subgraph::{query::get_order, wait, Query};
 use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
@@ -269,7 +269,11 @@ async fn order_entity_test() -> Result<()> {
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
+    let id = Bytes::from(add_order_data.order_hash);
+
     // let id = response;
+
+    let _ = get_order(id).await;
 
     // let response = Query::content_meta_v1(content.hash().as_fixed_bytes().into())
     //     .await

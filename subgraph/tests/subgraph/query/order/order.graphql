@@ -2,9 +2,6 @@ query Order($id: String) {
   order(id: $id) {
     id
     orderHash
-    owner {
-      id
-    }
     interpreter
     interpreterStore
     expressionDeployer
@@ -23,6 +20,9 @@ query Order($id: String) {
     orderJSONString
     expressionJSONString
     transaction {
+      id
+    }
+    owner {
       id
     }
     emitter {

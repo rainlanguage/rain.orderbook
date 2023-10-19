@@ -45,12 +45,14 @@ pub struct OrderResponse {
 impl OrderResponse {
     // pub fn from(response: ResponseData) -> OrderResponse {
     pub fn from(response: ResponseData) -> () {
+        println!("OrderResponse.from()");
         let data = response.order.unwrap();
 
         // Check here.
         let owner: Bytes = data.owner.id;
         println!("owner: {}", owner);
         let emitter = data.emitter.id;
+        println!("emitter: {}", emitter);
 
         let meta = data.meta.unwrap().id;
 
@@ -72,8 +74,9 @@ impl OrderResponse {
 }
 
 // pub async fn get_content_meta_v1(id: Bytes) -> Result<OrderResponse> {
-pub async fn get_content_meta_v1(id: Bytes) -> Result<()> {
+pub async fn get_order(id: Bytes) -> Result<()> {
     wait().await?;
+    println!("get_order_0");
 
     let variables = order::Variables {
         id: id.to_string().into(),
@@ -87,12 +90,14 @@ pub async fn get_content_meta_v1(id: Bytes) -> Result<()> {
         .send()
         .await?;
 
+    println!("get_order_1");
+
     let response_body: Response<order::ResponseData> = res.json().await?;
+    println!("get_order_2.is_some: {}", response_body.data.is_some());
 
     match response_body.data {
         Some(data) => {
-            let response = ();
-            // let response: OrderResponse = OrderResponse::from(data);
+            let response = OrderResponse::from(data);
             Ok(response)
         }
         None => Err(anyhow!("Failed to get query")),
