@@ -1,7 +1,7 @@
 import {
   Bounty,
   IO,
-  MetaContentV1,
+  ContentMetaV1,
   Order,
   OrderClearStateChange,
   ClearOrderConfig,
@@ -67,7 +67,7 @@ import {
   toDisplay,
   tuplePrefix,
 } from "./utils";
-import { CBORDecoder } from "@rainprotocol/assemblyscript-cbor";
+import { CBORDecoder, CBOREncoder } from "@rainprotocol/assemblyscript-cbor";
 import { ExpressionJSONString, OrderString } from "./orderJsonString";
 
 export function handleContext(event: Context): void {
@@ -904,6 +904,9 @@ export function handleMetaV1(event: MetaV1): void {
     const data = new CBORDecoder(stringToArrayBuffer(meta));
     const res = data.parse();
 
+    // MetaV1.content
+    const auxContent = metaV1.content;
+
     const contentArr: ContentMeta[] = [];
 
     if (res.isSequence) {
@@ -940,23 +943,43 @@ export function handleMetaV1(event: MetaV1): void {
     }
 
     for (let i = 0; i < contentArr.length; i++) {
-      contentArr[i].generate();
+      const metaContent_ = contentArr[i].generate(event.address.toHex());
+
+      // This include each meta content on the RainMeta related
+      if (!auxContent.includes(metaContent_.id)) {
+        auxContent.push(metaContent_.id);
+      }
     }
+
+    // Saving
+    for (let i = 0; i < contentArr.length; i++) {
+      contentArr[i].saveMeta();
+    }
+
+    metaV1.content = auxContent;
+    metaV1.save();
   } else {
     // The meta emitted does not include the RainMeta magic number, so does not
     // follow the RainMeta Desing
     return;
   }
 }
-// TODO: Update the ContentMeta to the Interpreter.ContentMeta code
 export class ContentMeta {
   rainMetaId: Bytes;
+  encodedData: Bytes = Bytes.empty();
   payload: Bytes = Bytes.empty();
   // eslint-disable-next-line @typescript-eslint/ban-types
   magicNumber: BigInt = BigInt.zero();
   contentType: string = "";
   contentEncoding: string = "";
   contentLanguage: string = "";
+
+  private contentTypeAdded: boolean = false;
+  private contentEncodingAdded: boolean = false;
+  private contentLanguageAdded: boolean = false;
+
+  private metaContent: ContentMetaV1 = new ContentMetaV1(Bytes.empty());
+  private metaStored: boolean = false;
 
   constructor(
     metaContentV1Object_: TypedMap<string, JSONValue>,
@@ -988,9 +1011,20 @@ export class ContentMeta {
     if (magicNumber) this.magicNumber = magicNumber.toBigInt();
 
     // Keys optionals
-    if (contentType) this.contentType = contentType.toString();
-    if (contentEncoding) this.contentEncoding = contentEncoding.toString();
-    if (contentLanguage) this.contentLanguage = contentLanguage.toString();
+    if (contentType) {
+      this.contentTypeAdded = true;
+      this.contentType = contentType.toString();
+    }
+
+    if (contentEncoding) {
+      this.contentEncodingAdded = true;
+      this.contentEncoding = contentEncoding.toString();
+    }
+
+    if (contentLanguage) {
+      this.contentLanguageAdded = true;
+      this.contentLanguage = contentLanguage.toString();
+    }
   }
 
   /**
@@ -1050,43 +1084,67 @@ export class ContentMeta {
 
   private getContentId(): Bytes {
     // Values as Bytes
-    const payloadB = this.payload;
-    const magicNumberB = Bytes.fromHexString(this.magicNumber.toHex());
-    const contentTypeB = Bytes.fromUTF8(this.contentType);
-    const contentEncodingB = Bytes.fromUTF8(this.contentEncoding);
-    const contentLanguageB = Bytes.fromUTF8(this.contentLanguage);
+    const encoder = new CBOREncoder();
+    // Initially, the map always have two keys/values (payload and magic number)
+    let mapLength = 2;
 
-    // payload +  magicNumber + contentType + contentEncoding + contentLanguage
-    const contentId = getKeccak256FromBytes(
-      payloadB
-        .concat(magicNumberB)
-        .concat(contentTypeB)
-        .concat(contentEncodingB)
-        .concat(contentLanguageB)
-    );
+    if (this.contentTypeAdded) mapLength += 1;
+    if (this.contentEncodingAdded) mapLength += 1;
+    if (this.contentLanguageAdded) mapLength += 1;
 
-    return contentId;
+    encoder.addObject(mapLength);
+
+    // -- Add key 0 (payload)
+    encoder.addUint8(0);
+    encoder.addBytes(this.payload);
+
+    // -- Add key 1 (magic number)
+    encoder.addUint8(1);
+    encoder.addUint64(this.magicNumber.toU64());
+
+    if (this.contentTypeAdded) {
+      // -- Add key 2 (Content-Type)
+      encoder.addUint8(2);
+      encoder.addString(this.contentType);
+    }
+
+    if (this.contentEncodingAdded) {
+      // -- Add key 3 (Content-Encoding)
+      encoder.addUint8(3);
+      encoder.addString(this.contentEncoding);
+    }
+
+    if (this.contentLanguageAdded) {
+      // -- Add key 4 (Content-Language)
+      encoder.addUint8(4);
+      encoder.addString(this.contentLanguage);
+    }
+
+    this.encodedData = Bytes.fromHexString(encoder.serializeString());
+
+    return getKeccak256FromBytes(this.encodedData);
   }
 
   /**
-   * Create or generate a MetaContentV1 entity based on the current fields:
+   * Create or generate a ContentMetaV1 entity based on the current fields:
    *
-   * - If the MetaContentV1 does not exist, create the MetaContentV1 entity and
+   * - If the ContentMetaV1 does not exist, create the ContentMetaV1 entity and
    * made the relation to the rainMetaId.
    *
-   * - If the MetaContentV1 does exist, add the relation to the rainMetaId.
+   * - If the ContentMetaV1 does exist, add the relation to the rainMetaId.
    */
-  generate(): MetaContentV1 {
+  generate(addressID: string): ContentMetaV1 {
     const contentId = this.getContentId();
 
-    let metaContent = MetaContentV1.load(contentId);
+    let metaContent = ContentMetaV1.load(contentId);
 
     if (!metaContent) {
-      metaContent = new MetaContentV1(contentId);
+      metaContent = new ContentMetaV1(contentId);
 
-      metaContent.payload = this.payload;
+      metaContent.rawBytes = this.encodedData;
       metaContent.magicNumber = this.magicNumber;
-      metaContent.documents = [];
+      metaContent.payload = this.payload;
+      metaContent.parents = [];
 
       if (this.contentType != "") metaContent.contentType = this.contentType;
 
@@ -1097,13 +1155,20 @@ export class ContentMeta {
         metaContent.contentLanguage = this.contentLanguage;
     }
 
-    const aux = metaContent.documents;
-    if (!aux.includes(this.rainMetaId)) aux.push(this.rainMetaId);
+    const auxParents = metaContent.parents;
+    if (!auxParents.includes(this.rainMetaId)) auxParents.push(this.rainMetaId);
+    metaContent.parents = auxParents;
 
-    metaContent.documents = aux;
+    this.metaContent = metaContent;
+    this.metaStored = true;
+    // metaContent.save();
 
-    metaContent.save();
+    return this.metaContent;
+  }
 
-    return metaContent;
+  saveMeta(): void {
+    if (this.metaStored && this.metaContent.id.notEqual(Bytes.empty())) {
+      this.metaContent.save();
+    }
   }
 }

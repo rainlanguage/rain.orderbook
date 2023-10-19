@@ -12,24 +12,26 @@ type RainMetaV1 @entity {
   "Original meta bytes directly emitted from the contract"
   metaBytes: Bytes! # Original meta bytes emitted from the contract
   "The meta content V1 decoded from the meta bytes emitted"
-  content: [MetaContentV1!] @derivedFrom(field: "documents")
+  content: [ContentMetaV1!]!
 }
 
-type MetaContentV1 @entity {
-  "The hash of the Map Rain Meta document or CBOR Item"
-  id: Bytes! # Hash of the whole stringify data.
-  "The payload present on the index 0 of the Rain meta Document"
-  payload: Bytes!
-  "The magic number that is used to track the payload"
+type ContentMetaV1 @entity {
+  "The hash of this meta, this basically is the hash of 'rawBytes' field"
+  id: Bytes!
+  "The cbor map item bytes."
+  rawBytes: Bytes!
+  "The magic number associated with this meta"
   magicNumber: BigInt!
+  "The payload of this content"
+  payload: Bytes!
+  "The RainMeta records that have this cbor map as part of their sequence"
+  parents: [RainMetaV1!]!
   "The header name info for Content-Type"
   contentType: String
   "The header name info for Content-Encoding. It's optional"
   contentEncoding: String
   "The header name info for Content-Language. It's optional"
   contentLanguage: String
-  "RainMeta documents bytes that have this content"
-  documents: [RainMetaV1!]!
 }
 
 # Created with the first AddOrder event, then updated on the corresponding AddOrder/RemoveOrder events

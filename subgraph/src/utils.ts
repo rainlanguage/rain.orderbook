@@ -247,6 +247,7 @@ export function getRainMetaV1(meta_: Bytes): RainMetaV1 {
   if (!metaV1) {
     metaV1 = new RainMetaV1(metaV1_ID);
     metaV1.metaBytes = meta_;
+    metaV1.content = [];
     metaV1.save();
   }
 
