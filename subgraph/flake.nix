@@ -48,7 +48,7 @@
  
             # Copying the new abis into the SG abi folder
             cp ../out/OrderBook.sol/OrderBook.json ./abis/
-            cp ../out/ERC20.sol/ERC20.json ./abis/ReserveToken.json
+            cp ../out/ERC20.sol/ERC20.json ./abis/ERC20.json
             '' + pkgs.lib.concatStrings (map copy-abis concrete-contracts) + (remove-duplicate)
           );
 
