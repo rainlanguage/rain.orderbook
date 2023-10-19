@@ -3,9 +3,8 @@ use crate::subgraph::wait;
 use anyhow::{anyhow, Result};
 use ethers::types::{Address, Bytes};
 use graphql_client::{GraphQLQuery, Response};
-use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use super::SG_URL;
 
 // The paths are relative to the directory where your `Cargo.toml` is located.
 // Both json and the GraphQL schema language are supported as sources for the schema
@@ -48,17 +47,17 @@ impl OrderBookResponse {
 pub async fn get_orderbook_query(orderbook_address: Address) -> Result<OrderBookResponse> {
     wait().await?;
 
-    // TODO: Make a fix string to share
-    let url = Url::from_str(&"http://localhost:8000/subgraphs/name/test/test")
-        .expect("cannot get the sg url");
-
     let variables = order_book::Variables {
         orderbook: format!("{:?}", orderbook_address).to_string().into(),
     };
 
     let request_body = OrderBook::build_query(variables);
     let client = reqwest::Client::new();
-    let res = client.post(url.clone()).json(&request_body).send().await?;
+    let res = client
+        .post((*SG_URL).clone())
+        .json(&request_body)
+        .send()
+        .await?;
 
     let response_body: Response<order_book::ResponseData> = res.json().await?;
 
@@ -67,6 +66,6 @@ pub async fn get_orderbook_query(orderbook_address: Address) -> Result<OrderBook
             let response = OrderBookResponse::from(data);
             Ok(response)
         }
-        None => Err(anyhow!("Failed to get OrderBookResponse")),
+        None => Err(anyhow!("Failed to get query")),
     }
 }

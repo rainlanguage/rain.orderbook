@@ -56,7 +56,6 @@
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
             clear;
             cargo test -- --nocapture;
-            kill -9 $(lsof -t -i :8545);
           '');
 
           

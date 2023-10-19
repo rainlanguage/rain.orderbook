@@ -11,9 +11,10 @@ use ethers::{
     core::k256::ecdsa::SigningKey,
     providers::Middleware,
     signers::{coins_bip39::English, MnemonicBuilder, Wallet},
-    types::{Bytes, U64},
+    types::{Bytes, U256, U64},
 };
 use hex::FromHex;
+use rust_bigint::BigInt;
 use std::{
     env,
     io::{BufRead, BufReader},
@@ -127,6 +128,16 @@ pub fn _remove_trailing_zeros(arr: &[u8]) -> Vec<u8> {
         // All elements are zeros, so return just one zero
         None => vec![0],
     }
+}
+
+/// Parse a given `BigInt`/`Mpz(rust_bigint::BigInt)` comming from Subgraph responses
+/// to a value to an `ethers::U256`.
+/// ### NOTE:
+/// For some reason, the BigInt comming from Subgraph responses consider the BigInt
+/// as an hexadecimal value and parse it (internally) to a decimal. In this function
+/// the parse logic is made considering that, so parse it from "hex" to "decimal".
+pub fn mn_mpz_to_u256(value: &BigInt) -> U256 {
+    U256::from_dec_str(&value.to_str_radix(16)).unwrap()
 }
 
 /// Rain Magic Numbers

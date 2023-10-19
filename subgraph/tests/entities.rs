@@ -152,6 +152,47 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
     Ok(())
 }
 
+#[tokio::main]
+#[test]
+async fn content_meta_v1_entity_test() -> Result<()> {
+    // Always checking if OB is deployed, so we attemp to obtaing it
+    let _ = get_orderbook().await.expect("cannot get OB");
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    // Read meta from root repository (output from nix command) and convert to Bytes
+    let ob_meta = read_orderbook_meta();
+    let ob_meta_hashed = Bytes::from(keccak256(ob_meta.clone()));
+    let ob_meta_decoded = decode_rain_meta(ob_meta.clone().into())?;
+
+    for content in ob_meta_decoded {
+        // Query the ContentMetaV1 entity
+        let response = Query::content_meta_v1(content.hash().as_fixed_bytes().into())
+            .await
+            .expect("cannot get the query response");
+
+        // Make the asserts
+        assert_eq!(response.id, content.hash().as_bytes().to_vec());
+        assert_eq!(response.raw_bytes, content.encode());
+        assert_eq!(response.magic_number, content.magic_number);
+        assert_eq!(response.payload, content.payload);
+
+        assert_eq!(response.content_type, content.content_type);
+        assert_eq!(response.content_encoding, content.content_encoding);
+        assert_eq!(response.content_language, content.content_language);
+
+        assert!(
+            response.parents.contains(&ob_meta_hashed),
+            "Missing parent id '{}' in {:?}",
+            ob_meta_hashed,
+            response.parents
+        );
+    }
+
+    Ok(())
+}
+
 #[test]
 fn util_cbor_meta_test() -> Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes

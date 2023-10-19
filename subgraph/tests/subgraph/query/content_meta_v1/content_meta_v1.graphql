@@ -1,0 +1,14 @@
+query ContentMetaV1($content_meta: String) {
+  contentMetaV1(id: $content_meta) {
+    id
+    rawBytes
+    magicNumber
+    payload
+    parents {
+      id
+    }
+    contentType
+    contentEncoding
+    contentLanguage
+  }
+}
