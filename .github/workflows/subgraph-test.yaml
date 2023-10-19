@@ -21,13 +21,14 @@ jobs:
       - name: Forge shallow install
         run: forge install --shallow
 
+      - name: Initialize setup
+        working-directory: ./subgraph
+        run: nix run .#init-setup
+
       - name: Install rustup stable
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-
-      - name: Initialize setup
-        run: nix run .#init-setup
 
       - name: Start docker container
         run: docker-compose -f subgraph/docker/docker-compose.yaml up -d
