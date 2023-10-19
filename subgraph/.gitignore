@@ -6,6 +6,10 @@
 
 # Rust generated files
 /tests/generated/abigen
+# Ignore all JSON files
+/tests/generated/*.json
+# But include ERC20Mock.json
+!/tests/generated/ERC20Mock.json
 
 # npm
 /node_modules
