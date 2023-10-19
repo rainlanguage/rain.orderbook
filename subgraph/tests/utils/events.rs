@@ -56,7 +56,7 @@ pub async fn _get_transfer_event(
         .expect("cannot decode the event");
 }
 
-pub async fn _get_add_order_event(
+pub async fn get_add_order_event(
     contract: OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx: PendingTransaction<'_, Http>,
 ) -> AddOrderFilter {

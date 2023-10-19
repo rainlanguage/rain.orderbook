@@ -1,0 +1,39 @@
+query Order($id: String) {
+  order(id: $id) {
+    id
+    orderHash
+    owner {
+      id
+    }
+    interpreter
+    interpreterStore
+    expressionDeployer
+    expression
+    orderActive
+    handleIO
+    meta {
+      id
+    }
+    validInputs {
+      id
+    }
+    validOutputs {
+      id
+    }
+    orderJSONString
+    expressionJSONString
+    transaction {
+      id
+    }
+    emitter {
+      id
+    }
+    timestamp
+    takeOrders {
+      id
+    }
+    ordersClears {
+      id
+    }
+  }
+}
