@@ -63,7 +63,7 @@ impl NewExpressionJson {
                     _array_to_vec_256(obj.get("constants").unwrap().as_array().unwrap());
 
                 let min_outputs =
-                    array_to_vec_256(obj.get("minOutputs").unwrap().as_array().unwrap());
+                    _array_to_vec_256(obj.get("minOutputs").unwrap().as_array().unwrap());
 
                 Ok(NewExpressionJson {
                     bytecode,
