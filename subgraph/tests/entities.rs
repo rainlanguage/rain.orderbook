@@ -7,17 +7,13 @@ use ethers::{
     types::{Address, Bytes, U256},
     utils::keccak256,
 };
-// use generated::{EvaluableConfigV2, Io, OrderConfigV2};
 use subgraph::{wait, Query};
 use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
-    deploy::{
-        deploy_erc20_mock, get_orderbook, ob_connect_to, read_orderbook_meta, touch_deployer,
-    },
+    deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
     events::{get_add_order_event, get_new_expression_event},
     get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
-    // mock_rain_doc,
     transactions::generate_order_config,
 };
 
@@ -132,7 +128,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 
     // Connect the orderbook to another wallet
     let wallet_1 = get_wallet(1);
-    let orderbook = ob_connect_to(orderbook, &wallet_1).await;
+    let orderbook = orderbook.connect(&wallet_1).await;
 
     // Deploy ExpressionDeployerNP for the config
     let expression_deployer = touch_deployer(None)

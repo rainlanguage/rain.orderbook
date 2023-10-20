@@ -22,7 +22,6 @@ pub async fn deploy_orderbook(
     let provider = get_provider().await.expect("cannot get provider");
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");
 
-
     let client = Arc::new(SignerMiddleware::new(
         provider.clone(),
         wallet.clone().with_chain_id(chain_id.as_u64()),
@@ -60,20 +59,21 @@ pub async fn deploy_orderbook(
     return Ok(orderbook);
 }
 
-/// Connect the OB to a new wallet
-pub async fn ob_connect_to(
-    orderbook: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
-    wallet: &Wallet<SigningKey>,
-) -> OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
-    let provider = get_provider().await.expect("cannot get provider");
-    let chain_id = provider.get_chainid().await.expect("cannot get chain id");
+impl OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
+    pub async fn connect(
+        &self,
+        wallet: &Wallet<SigningKey>,
+    ) -> OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
+        let provider = get_provider().await.expect("cannot get provider");
+        let chain_id = provider.get_chainid().await.expect("cannot get chain id");
 
-    let client = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.clone().with_chain_id(chain_id.as_u64()),
-    ));
+        let client = Arc::new(SignerMiddleware::new(
+            provider.clone(),
+            wallet.clone().with_chain_id(chain_id.as_u64()),
+        ));
 
-    OrderBook::new(orderbook.address(), client)
+        OrderBook::new(self.address(), client)
+    }
 }
 
 pub fn read_orderbook_meta() -> Vec<u8> {
