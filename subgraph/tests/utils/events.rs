@@ -7,7 +7,7 @@ use ethers::{
     prelude::SignerMiddleware,
     providers::{Http, PendingTransaction, Provider},
     signers::Wallet,
-    types::{Filter, Log, Topic, TransactionReceipt, TxHash, ValueOrArray},
+    types::{Filter, Log, Topic, TransactionReceipt, TxHash},
 };
 
 use super::get_provider;
@@ -23,9 +23,7 @@ async fn get_matched_log(tx: &PendingTransaction<'_, Http>, filter: Filter) -> O
         .expect("Failed to get the receipt")
         .unwrap();
 
-    let topic = filter.topics[0].clone().expect("failed to get the topic");
-    let topic_hash = extract_topic_hash(topic).expect("cannot get the hash from the topic");
-    println!("topic_hash: {}", topic_hash);
+    let topic_hash = extract_topic_hash(filter).expect("cannot get the topic hash");
 
     for log in tx_receipt.logs.iter() {
         if let Some(first_topic) = log.topics.get(0) {
@@ -36,33 +34,15 @@ async fn get_matched_log(tx: &PendingTransaction<'_, Http>, filter: Filter) -> O
     }
 
     None
-
-    // let topic = filter.topics[0].clone().expect("failed to get the topic");
-    // let topic_hash = extract_topic_hash(topic).expect("cannot get the hash from the topic");
-
-    // for log in tx_receipt.logs.iter() {
-    //     if let Some(first_topic) = log.topics.get(0) {
-    //         if first_topic == &topic_hash {
-    //             return Some(log.clone());
-    //         }
-    //     }
-    // }
-
-    // let tx_receipt: TransactionReceipt = tx.await.expect("Failed to get the receipt").unwrap();
-
-    // for log in tx_receipt.logs.iter() {
-    //     if let Some(first_topic) = log.topics.get(0) {
-    //         if first_topic == &topic_hash {
-    //             return Some(log.clone());
-    //         }
-    //     }
-    // }
-
-    // None
 }
 
 /// Try to extract the hash value from a Topic (ValueOrArray) type
-fn extract_topic_hash(topic: ValueOrArray<Option<TxHash>>) -> Option<TxHash> {
+// fn extract_topic_hash(topic: ValueOrArray<Option<TxHash>>) -> Option<TxHash> {
+fn extract_topic_hash(filter: Filter) -> Option<TxHash> {
+    let topic = filter.topics[0]
+        .clone()
+        .expect("failed to get the topic from filter");
+
     match topic {
         Topic::Value(Some(data)) => Some(data),
         Topic::Array(topic) => {
