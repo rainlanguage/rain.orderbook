@@ -86,7 +86,7 @@ impl OrderResponse {
             valid_outputs,
             order_json_string: data.order_json_string,
             expression_json_string: data.expression_json_string,
-            transaction: Bytes::from(data.transaction.id.as_bytes().to_vec()),
+            transaction: hex_string_to_bytes(&data.transaction.id).unwrap(),
             emitter: Address::from_slice(&data.emitter.id),
             timestamp: mn_mpz_to_u256(&data.timestamp),
             take_orders,
