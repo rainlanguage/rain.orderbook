@@ -95,7 +95,7 @@ impl OrderResponse {
     }
 }
 
-pub async fn get_order(id: Bytes) -> Result<OrderResponse> {
+pub async fn get_order(id: &Bytes) -> Result<OrderResponse> {
     let variables = order::Variables {
         id: id.to_string().into(),
     };

@@ -41,9 +41,9 @@ impl OrderBookResponse {
     }
 }
 
-pub async fn get_orderbook_query(orderbook_address: Address) -> Result<OrderBookResponse> {
+pub async fn get_orderbook_query(id: &Address) -> Result<OrderBookResponse> {
     let variables = order_book::Variables {
-        orderbook: format!("{:?}", orderbook_address).to_string().into(),
+        orderbook: format!("{:?}", id).to_string().into(),
     };
 
     let request_body = OrderBook::build_query(variables);

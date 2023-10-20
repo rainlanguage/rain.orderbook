@@ -5,6 +5,7 @@ pub mod gen_abigen;
 pub mod json_structs;
 pub mod numbers;
 pub mod setup;
+pub mod transactions;
 
 pub use setup::get_provider;
 

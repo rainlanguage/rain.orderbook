@@ -46,7 +46,7 @@ impl ContentMetaV1Response {
     }
 }
 
-pub async fn get_content_meta_v1(id: Bytes) -> Result<ContentMetaV1Response> {
+pub async fn get_content_meta_v1(id: &Bytes) -> Result<ContentMetaV1Response> {
     let variables = content_meta_v1::Variables {
         content_meta: id.to_string().into(),
     };

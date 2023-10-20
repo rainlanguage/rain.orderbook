@@ -36,9 +36,9 @@ impl RainMetaV1Response {
     }
 }
 
-pub async fn get_rain_meta_v1(rain_meta_id: Bytes) -> Result<RainMetaV1Response> {
+pub async fn get_rain_meta_v1(id: &Bytes) -> Result<RainMetaV1Response> {
     let variables = rain_meta_v1::Variables {
-        rain_meta: rain_meta_id.to_string().into(),
+        rain_meta: id.to_string().into(),
     };
 
     let request_body = RainMetaV1::build_query(variables);

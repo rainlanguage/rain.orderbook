@@ -7,7 +7,7 @@ use ethers::{
     types::{Address, Bytes, U256},
     utils::keccak256,
 };
-use generated::{EvaluableConfigV2, Io, OrderConfigV2};
+// use generated::{EvaluableConfigV2, Io, OrderConfigV2};
 use subgraph::{wait, Query};
 use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
@@ -17,7 +17,8 @@ use utils::{
     events::{get_add_order_event, get_new_expression_event},
     get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
-    mock_rain_doc,
+    // mock_rain_doc,
+    transactions::generate_order_config,
 };
 
 #[tokio::main]
@@ -29,7 +30,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
     wait().await.expect("cannot get SG sync status");
 
     // Query the OrderBook entity
-    let response = Query::orderbook(orderbook.address())
+    let response = Query::orderbook(&orderbook.address())
         .await
         .expect("cannot get the ob query response");
 
@@ -63,7 +64,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     let ob_meta_decoded = decode_rain_meta(ob_meta.clone().into())?;
 
     // Query the RainMetaV1 entity
-    let response = Query::rain_meta_v1(ob_meta_hashed.clone())
+    let response = Query::rain_meta_v1(&ob_meta_hashed.clone())
         .await
         .expect("cannot get the rain meta query response");
 
@@ -99,7 +100,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 
     for content in ob_meta_decoded {
         // Query the ContentMetaV1 entity
-        let response = Query::content_meta_v1(content.hash().as_fixed_bytes().into())
+        let response = Query::content_meta_v1(&content.hash().as_fixed_bytes().into())
             .await
             .expect("cannot get the query response");
 
@@ -148,45 +149,11 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
         .await
         .expect("failed on deploy erc20 token B");
 
-    // * Build OrderConfig
-    // Build IO (input)
-    let io_input = Io {
-        token: token_a.address(),
-        decimals: token_a.decimals().await.unwrap(),
-        vault_id: U256::from(0),
-    };
-
-    // Build IO (output)
-    let io_output = Io {
-        token: token_b.address(),
-        decimals: token_b.decimals().await.unwrap(),
-        vault_id: U256::from(0),
-    };
-
-    let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
-    let (bytecode, constants) = expression_deployer
-        .parse(data_parse.clone())
-        .await
-        .expect("cannot get value from parse");
-
-    let rain_doc = mock_rain_doc();
-
-    // Build EvaluableConfigV2
-    let eval_config = EvaluableConfigV2 {
-        deployer: expression_deployer.address(),
-        bytecode,
-        constants,
-    };
-
-    let config = OrderConfigV2 {
-        valid_inputs: vec![io_input],
-        valid_outputs: vec![io_output],
-        evaluable_config: eval_config,
-        meta: rain_doc.clone(),
-    };
+    // Build OrderConfig
+    let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
 
     // Add the order
-    let add_order_func = orderbook.add_order(config);
+    let add_order_func = orderbook.add_order(order_config.clone());
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     // Decode events from the transaction
@@ -197,9 +164,9 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
-    let order_id = Bytes::from(add_order_data.order_hash);
+    let order_hash = Bytes::from(add_order_data.order_hash);
 
-    let response = Query::order(order_id)
+    let response = Query::order(&order_hash)
         .await
         .expect("cannot get the query response");
 
@@ -208,10 +175,10 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 
     // Expected values
     let transaction_hash = tx_add_order.tx_hash().clone();
-    let order_hash = Bytes::from(&add_order_data.order_hash);
     let interpreter: Address = expression_deployer.i_interpreter().call().await?;
     let store: Address = expression_deployer.i_store().call().await?;
-    let rain_doc_hashed = Bytes::from(keccak256(rain_doc));
+    // let rain_doc_hashed = Bytes::from(keccak256(rain_doc));
+    let rain_doc_hashed = Bytes::from(keccak256(order_config.meta));
     let order_json_string = OrderJson::from_order(order_data.clone()).to_json_string();
     let expression_json_string =
         NewExpressionJson::from_event(new_expression_data).to_json_string();

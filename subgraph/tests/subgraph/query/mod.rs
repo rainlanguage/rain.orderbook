@@ -19,19 +19,19 @@ pub static SG_URL: Lazy<Url> =
 pub struct Query;
 
 impl Query {
-    pub async fn orderbook(address: Address) -> Result<OrderBookResponse> {
-        get_orderbook_query(address).await
+    pub async fn orderbook(id: &Address) -> Result<OrderBookResponse> {
+        get_orderbook_query(id).await
     }
 
-    pub async fn rain_meta_v1(id: Bytes) -> Result<RainMetaV1Response> {
+    pub async fn rain_meta_v1(id: &Bytes) -> Result<RainMetaV1Response> {
         get_rain_meta_v1(id).await
     }
 
-    pub async fn content_meta_v1(id: Bytes) -> Result<ContentMetaV1Response> {
+    pub async fn content_meta_v1(id: &Bytes) -> Result<ContentMetaV1Response> {
         get_content_meta_v1(id).await
     }
 
-    pub async fn order(id: Bytes) -> Result<OrderResponse> {
+    pub async fn order(id: &Bytes) -> Result<OrderResponse> {
         get_order(id).await
     }
 }
