@@ -68,7 +68,7 @@ export class OrderString extends JsonString {
     }
 
     _map.set("owner", getEvenHex(order_.owner.toHex()));
-    _map.set("handleIO", (order_.handleIO as bool).toString());
+    _map.set("handleIo", (order_.handleIO as bool).toString());
     _map.set("evaluable", evaluable_.stringify());
     _map.set("validInputs", `[${validInputsArr.join(",")}]`);
     _map.set("validOutputs", `[${validOutputsArr.join(",")}]`);
@@ -100,7 +100,7 @@ class IO_String extends JsonString {
 
     _map.set("token", getEvenHex(token_.toHex()));
     _map.set("decimals", decimals_.toString().split(".")[0]);
-    _map.set("vaultId", getEvenHex(vaultId_.toHex()));
+    _map.set("vaultId", vaultId_.toHex());
 
     super(_map);
   }

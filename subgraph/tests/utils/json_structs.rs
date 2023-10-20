@@ -1,5 +1,5 @@
 use ethers::types::{Address, Bytes, U256};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{Result, Value};
 
 use crate::generated::{Evaluable, Io, NewExpressionFilter, Order};
@@ -180,7 +180,7 @@ impl EvaluableJson {
 #[serde(rename_all = "camelCase")]
 pub struct IoJson {
     token: Address,
-    decimals: u8,
+    decimals: QuotedU8,
     vault_id: U256,
 }
 
@@ -188,7 +188,7 @@ impl IoJson {
     fn from(data: Io) -> IoJson {
         IoJson {
             token: data.token,
-            decimals: data.decimals,
+            decimals: QuotedU8(data.decimals),
             vault_id: data.vault_id,
         }
     }
@@ -207,9 +207,40 @@ impl IoJson {
 
         IoJson {
             token,
-            decimals,
+            decimals: QuotedU8(decimals),
             vault_id,
         }
+    }
+}
+// #[derive(Debug, Clone, Deserialize)]
+// struct U256WithLeadingZeros(U256);
+
+// impl Serialize for U256WithLeadingZeros {
+//     fn serialize<S>(&self, serializer: S) -> anyhow::Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         // Format the U256 as a hexadecimal string with leading zeros
+//         let hex_string = format!("0x{:02X}", self.0);
+
+//         // Serialize the formatted string
+//         serializer.serialize_str(&hex_string)
+//     }
+// }
+
+#[derive(Debug, Clone, Deserialize)]
+struct QuotedU8(u8);
+
+impl Serialize for QuotedU8 {
+    fn serialize<S>(&self, serializer: S) -> anyhow::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Format the u8 as a string enclosed in double quotes
+        let quoted_value = format!("{}", self.0);
+
+        // Serialize the quoted value as a string
+        serializer.serialize_str(&quoted_value)
     }
 }
 

@@ -16,7 +16,7 @@ use utils::{
     },
     events::{get_add_order_event, get_new_expression_event},
     get_wallet,
-    json_structs::NewExpressionJson,
+    json_structs::{NewExpressionJson, OrderJson},
     mock_rain_doc,
 };
 
@@ -214,6 +214,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let interpreter: Address = expression_deployer.i_interpreter().call().await?;
     let store: Address = expression_deployer.i_store().call().await?;
     let rain_doc_hashed = Bytes::from(keccak256(rain_doc));
+    let order_json_string = OrderJson::from_order(order_data.clone()).to_json_string();
     let expression_json_string =
         NewExpressionJson::from_event(new_expression_data).to_json_string();
 
@@ -230,10 +231,16 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     assert_eq!(response.handle_i_o, order_data.handle_io);
     assert_eq!(response.meta, rain_doc_hashed);
 
+    assert_eq!(response.order_json_string, order_json_string);
     assert_eq!(
         response.expression_json_string.unwrap(),
         expression_json_string
     );
+
+    println!("res.order_json_string: {:?}\n", response.order_json_string);
+
+    let order_json_string = OrderJson::from_order(order_data).to_json_string();
+    println!("order_json_string: {:?}\n", order_json_string);
 
     // "validInputs
     // validInputs: [IO!]
