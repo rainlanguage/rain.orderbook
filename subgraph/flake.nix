@@ -75,7 +75,7 @@
           '');
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
-            clear;
+            # clear;
             cargo test -- --nocapture;
           '');
 

@@ -140,6 +140,12 @@ pub fn mn_mpz_to_u256(value: &BigInt) -> U256 {
     U256::from_dec_str(&value.to_str_radix(16)).unwrap()
 }
 
+/// Get a mock encoded rain document with hardcoded data.
+/// Does not contain any well info. Only rain doc well formed.
+pub fn mock_rain_doc() -> Bytes {
+    Bytes::from_hex("0xff0a89c674ee7874a30052746869735f69735f616e5f6578616d706c65011bffe5ffb4a3ff2cde02706170706c69636174696f6e2f6a736f6e").unwrap()
+}
+
 /// Rain Magic Numbers
 pub struct MagicNumber;
 

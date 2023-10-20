@@ -31,3 +31,19 @@ pub async fn deploy_erc20_mock(
 
     Ok(contract)
 }
+
+/// Connect the ERC20Mock to a new wallet
+pub async fn erc20_mock_connect_to(
+    contract: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    wallet: Wallet<SigningKey>,
+) -> ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
+    let provider = get_provider().await.expect("cannot get provider");
+    let chain_id = provider.get_chainid().await.expect("cannot get chain id");
+
+    let client = Arc::new(SignerMiddleware::new(
+        provider.clone(),
+        wallet.clone().with_chain_id(chain_id.as_u64()),
+    ));
+
+    ERC20Mock::new(contract.address(), client)
+}

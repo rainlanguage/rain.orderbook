@@ -9,12 +9,14 @@ use ethers::{
     utils::keccak256,
 };
 use generated::{EvaluableConfigV2, Io, OrderConfigV2};
-use hex::FromHex;
-use subgraph::{query::get_order, wait, Query};
+use subgraph::{wait, Query};
 use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
-    deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
+    deploy::{
+        deploy_erc20_mock, get_orderbook, ob_connect_to, read_orderbook_meta, touch_deployer,
+    },
     events::get_add_order_event,
+    get_wallet, mock_rain_doc,
 };
 
 #[tokio::main]
@@ -31,7 +33,7 @@ async fn orderbook_entity_test() -> Result<()> {
         .expect("cannot get the ob query response");
 
     // This wallet is used to deploy the OrderBook at initialization, so it is the deployer
-    let wallet_0 = utils::get_wallet(0);
+    let wallet_0 = get_wallet(0);
 
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta_hashed = Bytes::from(keccak256(read_orderbook_meta()));
@@ -40,85 +42,6 @@ async fn orderbook_entity_test() -> Result<()> {
     assert_eq!(response.address, orderbook.address());
     assert_eq!(response.deployer, wallet_0.address());
     assert_eq!(response.meta, ob_meta_hashed);
-
-    // // Deploy ExpressionDeployerNP for the config
-    // let expression_deployer = deploy_touch_deployer(None)
-    //     .await
-    //     .expect("cannot deploy expression_deployer");
-
-    // ///////////////////////////////////////////////
-    // // Deploy ERC20 token contract (A)command) and convert to Bytes
-    // let ob_meta_hashed = Bytes::from(keccak256(read_orderbook_meta()));
-
-    // assert_eq!(response.id, orderbook.address());
-    // assert_eq!(response.address, orderbook.address());
-    // assert_eq!(response.deployer, wallet_0.address());
-    // assert_eq!(response.meta, ob_meta_hashed);
-    // let token_a = deploy_erc20_mock(None)
-    //     .await
-    //     .expect("failed on deploy erc20 token A");
-
-    // // Deploy ERC20 token contract (B)
-    // let token_b = deploy_erc20_mock(None)
-    //     .await
-    //     .expect("failed on deploy erc20 token B");
-
-    // // * Build OrderConfig
-    // // Build IO (input)
-    // let io_input = Io {
-    //     token: token_a.address(),
-    //     decimals: token_a.decimals().await.unwrap(),
-    //     vault_id: U256::from(0),
-    // };
-
-    // // Build IO (output)
-    // let io_output = Io {
-    //     token: token_b.address(),
-    //     decimals: token_b.decimals().await.unwrap(),
-    //     vault_id: U256::from(0),
-    // };
-
-    // let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
-    // let (bytecode, constants) = expression_deployer
-    //     .parse(data_parse.clone())
-    //     .await
-    //     .expect("cannot get value from parse");
-
-    // // An example rain doc (hardcoded - does not contain any well info. Only rain doc well formed)
-    // let rain_doc = Bytes::from_hex("0xff0a89c674ee7874a30052746869735f69735f616e5f6578616d706c65011bffe5ffb4a3ff2cde02706170706c69636174696f6e2f6a736f6e")?;
-
-    // // Build EvaluableConfigV2
-    // let eval_config = EvaluableConfigV2 {
-    //     deployer: expression_deployer.address(),
-    //     bytecode,
-    //     constants,
-    // };
-
-    // let config = OrderConfigV2 {
-    //     valid_inputs: vec![io_input],
-    //     valid_outputs: vec![io_output],
-    //     evaluable_config: eval_config,
-    //     meta: rain_doc.clone(),
-    // };
-
-    // // Add the order
-    // let add_order_func = orderbook.add_order(config);
-    // let tx_add_order = add_order_func.send().await.expect("order not sent");
-
-    // let add_order_data = _get_add_order_event(orderbook, tx_add_order).await;
-    // println!("add_order_data: {:?}", add_order_data);
-
-    // // // ///////////////////////////////////////////////
-
-    // let mint_func = token_a.mint(wallet_0.address(), _get_amount_tokens(20, 18));
-    // let tx_mint = mint_func.send().await.expect("mint not sent");
-
-    // let mint_data = _get_transfer_event(token_a, tx_mint).await;
-    // println!("mint_data: {:?}", mint_data);
-
-    // let _ = is_sugraph_node_init()
-    //     .await
-    //     .expect("cannot check subgraph node");
 
     Ok(())
 }
@@ -205,12 +128,15 @@ async fn content_meta_v1_entity_test() -> Result<()> {
 async fn order_entity_test() -> Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
-    // // Deploy ExpressionDeployerNP for the config
+    // Connect the orderbook to another wallet
+    let wallet_1 = get_wallet(1);
+    let orderbook = ob_connect_to(orderbook, wallet_1).await;
+
+    // Deploy ExpressionDeployerNP for the config
     let expression_deployer = touch_deployer(None)
         .await
         .expect("cannot deploy expression_deployer");
 
-    ///////////////////////////////////////////////
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None)
         .await
@@ -242,8 +168,7 @@ async fn order_entity_test() -> Result<()> {
         .await
         .expect("cannot get value from parse");
 
-    // An example rain doc (hardcoded - does not contain any well info. Only rain doc well formed)
-    let rain_doc = Bytes::from_hex("0xff0a89c674ee7874a30052746869735f69735f616e5f6578616d706c65011bffe5ffb4a3ff2cde02706170706c69636174696f6e2f6a736f6e")?;
+    let rain_doc = mock_rain_doc();
 
     // Build EvaluableConfigV2
     let eval_config = EvaluableConfigV2 {
@@ -264,30 +189,23 @@ async fn order_entity_test() -> Result<()> {
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     let add_order_data = get_add_order_event(orderbook.clone(), tx_add_order).await;
-    println!("add_order_data: {:?}", add_order_data);
+    println!("add_order_data: {:?}\n", add_order_data);
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
     let id = Bytes::from(add_order_data.order_hash);
+    println!("Order_id: {}\n", id);
 
-    // let id = response;
+    let response = Query::order(id)
+        .await
+        .expect("cannot get the query response");
 
-    let _ = get_order(id).await;
+    println!("Response: {:?}\n", response);
 
-    // let response = Query::content_meta_v1(content.hash().as_fixed_bytes().into())
-    //     .await
-    //     .expect("cannot get the query response");
-
-    // let mint_func = token_a.mint(wallet_0.address(), _get_amount_tokens(20, 18));
-    // let tx_mint = mint_func.send().await.expect("mint not sent");
-
-    // let mint_data = _get_transfer_event(token_a, tx_mint).await;
-    // println!("mint_data: {:?}", mint_data);
-
-    // let _ = is_sugraph_node_init()
-    //     .await
-    //     .expect("cannot check subgraph node");
+    assert_eq!(response.id, Bytes::from(&add_order_data.order_hash));
+    assert_eq!(response.order_hash, Bytes::from(&add_order_data.order_hash));
+    // assert_eq!(response.owner,);
 
     Ok(())
 }

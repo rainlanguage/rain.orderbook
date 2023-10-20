@@ -28,54 +28,104 @@ pub struct OrderResponse {
     pub order_active: bool,
     pub handle_i_o: bool,
     pub meta: Bytes,
-
-    pub valid_inputs: Vec<Bytes>,
-    pub valid_outputs: Vec<Bytes>,
-    pub order_jsonstring: String,
-    pub expression_jsonstring: String,
-
+    pub valid_inputs: Vec<String>,
+    pub valid_outputs: Vec<String>,
+    pub order_json_string: String,
+    pub expression_json_string: Option<String>,
     pub transaction: Bytes,
     pub emitter: Address,
     pub timestamp: U256,
-
-    pub take_orders: Vec<Bytes>,
-    pub orders_clears: Vec<Bytes>,
+    pub take_orders: Vec<String>,
+    pub orders_clears: Vec<String>,
 }
 
 impl OrderResponse {
     pub fn from(response: ResponseData) -> OrderResponse {
-        println!("OrderResponse.from()");
+        // pub fn from(response: ResponseData) -> () {
         let data = response.order.unwrap();
 
-        // Check here.
-        let owner: Bytes = data.owner.id;
-        println!("owner: {}", owner);
-        let emitter = data.emitter.id;
-        println!("emitter: {}", emitter);
+        let valid_inputs: Vec<String> = data
+            .valid_inputs
+            .unwrap()
+            .iter()
+            .map(|data| data.id.clone())
+            .collect();
 
-        let meta = data.meta.unwrap().id;
+        let valid_outputs: Vec<String> = data
+            .valid_outputs
+            .unwrap()
+            .iter()
+            .map(|data| data.id.clone())
+            .collect();
 
-        let valid_inputs = data.valid_inputs.unwrap().get(0).unwrap().id.clone();
-        let valid_outputs = data.valid_outputs.unwrap().get(0).unwrap().id.clone();
+        let take_orders: Vec<String> = data
+            .take_orders
+            .unwrap()
+            .iter()
+            .map(|data| data.id.clone())
+            .collect();
 
-        let transaction = data.transaction.id;
+        let orders_clears: Vec<String> = data
+            .orders_clears
+            .unwrap()
+            .iter()
+            .map(|data| data.id.clone())
+            .collect();
 
-        let take_orders = data.take_orders.unwrap().get(0).unwrap().id.clone();
-        let orders_clears = data.orders_clears.unwrap().get(0).unwrap().id.clone();
+        println!("data.interpreter: {:?}", data.interpreter);
+        let interpreter_address = Address::from_slice(&data.interpreter);
+        println!("interpreter_address: {:?}", interpreter_address);
 
-        // OrderResponse {
-        //     id: data.id
+        let id_bytes = Bytes::from(data.id.as_bytes().to_vec());
+        println!("id_str: {:?}", data.id);
+        println!("id_bytes: {:?}", id_bytes);
+
+        // let order = OrderResponse {
+        //     id: Bytes::from(data.id.as_bytes().to_vec()),
+        //     order_hash: data.order_hash,
+        //     owner: Address::from_slice(&data.owner.id),
+        //     interpreter: Address::from_slice(&data.interpreter),
+        //     interpreter_store: Address::from_slice(&data.interpreter_store),
+        //     expression_deployer: Address::from_slice(&data.expression_deployer),
+        //     expression: Address::from_slice(&data.expression),
         //     order_active: data.order_active,
-        //     owner: data.owner
-        // }
-        ()
+        //     handle_i_o: data.handle_io,
+        //     meta: data.meta.unwrap().id,
+        //     valid_inputs,
+        //     valid_outputs,
+        //     order_json_string: data.order_json_string,
+        //     expression_json_string: data.expression_json_string,
+        //     transaction: Bytes::from(data.transaction.id.as_bytes().to_vec()),
+        //     emitter: Address::from_slice(&data.emitter.id),
+        //     timestamp: mn_mpz_to_u256(&data.timestamp),
+        //     take_orders,
+        //     orders_clears,
+        // };
+        OrderResponse {
+            id: Bytes::from(data.id.as_bytes().to_vec()),
+            order_hash: data.order_hash,
+            owner: Address::from_slice(&data.owner.id),
+            interpreter: Address::from_slice(&data.interpreter),
+            interpreter_store: Address::from_slice(&data.interpreter_store),
+            expression_deployer: Address::from_slice(&data.expression_deployer),
+            expression: Address::from_slice(&data.expression),
+            order_active: data.order_active,
+            handle_i_o: data.handle_io,
+            meta: data.meta.unwrap().id,
+            valid_inputs,
+            valid_outputs,
+            order_json_string: data.order_json_string,
+            expression_json_string: data.expression_json_string,
+            transaction: Bytes::from(data.transaction.id.as_bytes().to_vec()),
+            emitter: Address::from_slice(&data.emitter.id),
+            timestamp: mn_mpz_to_u256(&data.timestamp),
+            take_orders,
+            orders_clears,
+        }
     }
 }
 
-pub async fn get_content_meta_v1(id: Bytes) -> Result<OrderResponse> {
-    wait().await?;
-    println!("get_order_0");
-
+pub async fn get_order(id: Bytes) -> Result<OrderResponse> {
     let variables = order::Variables {
         id: id.to_string().into(),
     };
@@ -88,10 +138,7 @@ pub async fn get_content_meta_v1(id: Bytes) -> Result<OrderResponse> {
         .send()
         .await?;
 
-    println!("get_order_1");
-
     let response_body: Response<order::ResponseData> = res.json().await?;
-    println!("get_order_2.is_some: {}", response_body.data.is_some());
 
     match response_body.data {
         Some(data) => {
