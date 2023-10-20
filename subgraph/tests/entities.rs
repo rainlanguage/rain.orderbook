@@ -2,8 +2,6 @@ mod generated;
 mod subgraph;
 mod utils;
 
-use serde_json::{Result, Value};
-
 use ethers::{
     signers::Signer,
     types::{Address, Bytes, U256},
