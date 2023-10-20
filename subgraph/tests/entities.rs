@@ -2,8 +2,6 @@ mod generated;
 mod subgraph;
 mod utils;
 
-use serde::Serialize;
-use serde_json::to_string;
 use serde_json::{Result, Value};
 
 use ethers::{
@@ -11,7 +9,7 @@ use ethers::{
     types::{Address, Bytes, U256},
     utils::keccak256,
 };
-use generated::{EvaluableConfigV2, Io, Order, OrderConfigV2};
+use generated::{EvaluableConfigV2, Io, OrderConfigV2};
 use subgraph::{wait, Query};
 use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
@@ -19,10 +17,10 @@ use utils::{
         deploy_erc20_mock, get_orderbook, ob_connect_to, read_orderbook_meta, touch_deployer,
     },
     events::{get_add_order_event, get_new_expression_event},
-    get_wallet, mock_rain_doc,
+    get_wallet,
+    json_structs::NewExpressionJson,
+    mock_rain_doc,
 };
-
-use crate::utils::gen_abigen::_abigen_rust_generation;
 
 #[tokio::main]
 #[test]
@@ -218,6 +216,8 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let interpreter: Address = expression_deployer.i_interpreter().call().await?;
     let store: Address = expression_deployer.i_store().call().await?;
     let rain_doc_hashed = Bytes::from(keccak256(rain_doc));
+    let expression_json_string =
+        NewExpressionJson::from_event(new_expression_data).to_json_string();
 
     assert_eq!(response.id, Bytes::from(&add_order_data.order_hash));
     assert_eq!(response.order_hash, Bytes::from(&add_order_data.order_hash));
@@ -232,17 +232,10 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     assert_eq!(response.handle_i_o, order_data.handle_io);
     assert_eq!(response.meta, rain_doc_hashed);
 
-    // Parse the JSON string
-    let parsed_order: Result<Value> = serde_json::from_str(&response.order_json_string);
-    println!("parsed_order: {:?}", parsed_order.unwrap());
-
-    // let json_string = to_string(&order_data).expect("Failed to serialize struct to JSON");
-
-    if response.expression_json_string.is_some() {
-        let parsed_expression: Result<Value> =
-            serde_json::from_str(&response.expression_json_string.unwrap());
-        println!("parsed_expression: {:?}", parsed_expression.unwrap());
-    }
+    assert_eq!(
+        response.expression_json_string.unwrap(),
+        expression_json_string
+    );
 
     // "validInputs
     // validInputs: [IO!]
@@ -250,10 +243,8 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     // "validOutputs"
     // validOutputs: [IO!]
 
-    // TODO: Only check if they are valid JSON
     // OrderJSON could be parsed and used to send other transaction
     // orderJSONString: String!
-    // expressionJSONString: String
 
     // orderJSONString: String!
     // expressionJSONString: String
@@ -279,8 +270,6 @@ fn util_cbor_meta_test() -> anyhow::Result<()> {
     let encoded_again = encode_rain_docs(output);
 
     assert_eq!(ob_meta, encoded_again);
-
-    let _ = _abigen_rust_generation();
 
     Ok(())
 }

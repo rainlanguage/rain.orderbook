@@ -2,6 +2,7 @@ pub mod cbor;
 pub mod deploy;
 pub mod events;
 pub mod gen_abigen;
+pub mod json_structs;
 pub mod numbers;
 pub mod setup;
 
