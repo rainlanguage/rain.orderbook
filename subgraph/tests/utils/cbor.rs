@@ -1,4 +1,4 @@
-use super::{string_to_bytes, MagicNumber};
+use super::{ascii_string_to_bytes, MagicNumber};
 use anyhow::{anyhow, Result};
 use ethers::types::{Bytes, H256, U256};
 use minicbor::data::Type;
@@ -57,21 +57,21 @@ impl RainMapDoc {
 
         // Check for optional fiedls
         if self.content_type.is_some() {
-            let string_bytes = string_to_bytes(self.content_type.clone().unwrap());
+            let string_bytes = ascii_string_to_bytes(self.content_type.clone().unwrap());
             let type_size = key_bytes_size(&string_bytes);
 
             // Key(1 byte) + string type(1 byte) + arg bytes + data bytes
             count += 2 + type_size + string_bytes.len();
         }
         if self.content_encoding.is_some() {
-            let string_bytes = string_to_bytes(self.content_encoding.clone().unwrap());
+            let string_bytes = ascii_string_to_bytes(self.content_encoding.clone().unwrap());
             let type_size = key_bytes_size(&string_bytes);
 
             // Key(1 byte) + string type(1 byte) + arg bytes + data bytes
             count += 2 + type_size + string_bytes.len();
         }
         if self.content_language.is_some() {
-            let string_bytes = string_to_bytes(self.content_language.clone().unwrap());
+            let string_bytes = ascii_string_to_bytes(self.content_language.clone().unwrap());
             let type_size = key_bytes_size(&string_bytes);
 
             // Key(1 byte) + string type(1 byte) + arg bytes + data bytes

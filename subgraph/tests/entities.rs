@@ -2,26 +2,31 @@ mod generated;
 mod subgraph;
 mod utils;
 
-use anyhow::Result;
+use serde::Serialize;
+use serde_json::to_string;
+use serde_json::{Result, Value};
+
 use ethers::{
     signers::Signer,
-    types::{Bytes, U256},
+    types::{Address, Bytes, U256},
     utils::keccak256,
 };
-use generated::{EvaluableConfigV2, Io, OrderConfigV2};
+use generated::{EvaluableConfigV2, Io, Order, OrderConfigV2};
 use subgraph::{wait, Query};
 use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{
         deploy_erc20_mock, get_orderbook, ob_connect_to, read_orderbook_meta, touch_deployer,
     },
-    events::get_add_order_event,
+    events::{get_add_order_event, get_new_expression_event},
     get_wallet, mock_rain_doc,
 };
 
+use crate::utils::gen_abigen::_abigen_rust_generation;
+
 #[tokio::main]
 #[test]
-async fn orderbook_entity_test() -> Result<()> {
+async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
     // Wait for Subgraph sync
@@ -48,7 +53,7 @@ async fn orderbook_entity_test() -> Result<()> {
 
 #[tokio::main]
 #[test]
-async fn rain_meta_v1_entity_test() -> Result<()> {
+async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
 
@@ -84,7 +89,7 @@ async fn rain_meta_v1_entity_test() -> Result<()> {
 
 #[tokio::main]
 #[test]
-async fn content_meta_v1_entity_test() -> Result<()> {
+async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
 
@@ -125,12 +130,12 @@ async fn content_meta_v1_entity_test() -> Result<()> {
 
 #[tokio::main]
 #[test]
-async fn order_entity_test() -> Result<()> {
+async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
     // Connect the orderbook to another wallet
     let wallet_1 = get_wallet(1);
-    let orderbook = ob_connect_to(orderbook, wallet_1).await;
+    let orderbook = ob_connect_to(orderbook, &wallet_1).await;
 
     // Deploy ExpressionDeployerNP for the config
     let expression_deployer = touch_deployer(None)
@@ -188,30 +193,84 @@ async fn order_entity_test() -> Result<()> {
     let add_order_func = orderbook.add_order(config);
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
-    let add_order_data = get_add_order_event(orderbook.clone(), tx_add_order).await;
+    let add_order_data = get_add_order_event(orderbook.clone(), &tx_add_order).await;
     println!("add_order_data: {:?}\n", add_order_data);
+
+    let new_expression_data =
+        get_new_expression_event(expression_deployer.clone(), tx_add_order).await;
+    println!("new_expression_data: {:?}\n", new_expression_data);
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
-    let id = Bytes::from(add_order_data.order_hash);
-    println!("Order_id: {}\n", id);
+    let order_id = Bytes::from(add_order_data.order_hash);
 
-    let response = Query::order(id)
+    let response = Query::order(order_id)
         .await
         .expect("cannot get the query response");
 
     println!("Response: {:?}\n", response);
 
+    // Data from the event in tx
+    let order_data = add_order_data.order;
+
+    // Expected values
+    let interpreter: Address = expression_deployer.i_interpreter().call().await?;
+    let store: Address = expression_deployer.i_store().call().await?;
+    let rain_doc_hashed = Bytes::from(keccak256(rain_doc));
+
     assert_eq!(response.id, Bytes::from(&add_order_data.order_hash));
     assert_eq!(response.order_hash, Bytes::from(&add_order_data.order_hash));
-    // assert_eq!(response.owner,);
+    assert_eq!(response.owner, wallet_1.address());
+
+    assert_eq!(response.interpreter, interpreter);
+    assert_eq!(response.interpreter_store, store);
+    assert_eq!(response.expression_deployer, expression_deployer.address());
+    assert_eq!(response.expression, order_data.evaluable.expression);
+
+    assert_eq!(response.order_active, true, "order not active");
+    assert_eq!(response.handle_i_o, order_data.handle_io);
+    assert_eq!(response.meta, rain_doc_hashed);
+
+    // Parse the JSON string
+    let parsed_order: Result<Value> = serde_json::from_str(&response.order_json_string);
+    println!("parsed_order: {:?}", parsed_order.unwrap());
+
+    // let json_string = to_string(&order_data).expect("Failed to serialize struct to JSON");
+
+    if response.expression_json_string.is_some() {
+        let parsed_expression: Result<Value> =
+            serde_json::from_str(&response.expression_json_string.unwrap());
+        println!("parsed_expression: {:?}", parsed_expression.unwrap());
+    }
+
+    // "validInputs
+    // validInputs: [IO!]
+
+    // "validOutputs"
+    // validOutputs: [IO!]
+
+    // TODO: Only check if they are valid JSON
+    // OrderJSON could be parsed and used to send other transaction
+    // orderJSONString: String!
+    // expressionJSONString: String
+
+    // orderJSONString: String!
+    // expressionJSONString: String
+    // "Timestamp when the order was added"
+    // transaction: Transaction!
+    // emitter: Account!
+    // timestamp: BigInt!
+    // "Take Order entities that use this order"
+    // takeOrders: [TakeOrderEntity!] @derivedFrom(field: "order")
+    // "Order Clear entities that use this order"
+    // ordersClears: [OrderClear!]
 
     Ok(())
 }
 
 #[test]
-fn util_cbor_meta_test() -> Result<()> {
+fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
 
@@ -220,6 +279,8 @@ fn util_cbor_meta_test() -> Result<()> {
     let encoded_again = encode_rain_docs(output);
 
     assert_eq!(ob_meta, encoded_again);
+
+    let _ = _abigen_rust_generation();
 
     Ok(())
 }

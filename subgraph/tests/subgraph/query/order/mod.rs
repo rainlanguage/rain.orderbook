@@ -1,6 +1,6 @@
-use self::order::{OrderOrder, OrderOrderOwner, ResponseData};
+use self::order::ResponseData;
 use super::SG_URL;
-use crate::{subgraph::wait, utils::mn_mpz_to_u256};
+use crate::utils::{hex_string_to_bytes, mn_mpz_to_u256};
 use anyhow::{anyhow, Result};
 use ethers::types::{Address, Bytes, U256};
 use graphql_client::{GraphQLQuery, Response};
@@ -41,7 +41,6 @@ pub struct OrderResponse {
 
 impl OrderResponse {
     pub fn from(response: ResponseData) -> OrderResponse {
-        // pub fn from(response: ResponseData) -> () {
         let data = response.order.unwrap();
 
         let valid_inputs: Vec<String> = data
@@ -72,37 +71,8 @@ impl OrderResponse {
             .map(|data| data.id.clone())
             .collect();
 
-        println!("data.interpreter: {:?}", data.interpreter);
-        let interpreter_address = Address::from_slice(&data.interpreter);
-        println!("interpreter_address: {:?}", interpreter_address);
-
-        let id_bytes = Bytes::from(data.id.as_bytes().to_vec());
-        println!("id_str: {:?}", data.id);
-        println!("id_bytes: {:?}", id_bytes);
-
-        // let order = OrderResponse {
-        //     id: Bytes::from(data.id.as_bytes().to_vec()),
-        //     order_hash: data.order_hash,
-        //     owner: Address::from_slice(&data.owner.id),
-        //     interpreter: Address::from_slice(&data.interpreter),
-        //     interpreter_store: Address::from_slice(&data.interpreter_store),
-        //     expression_deployer: Address::from_slice(&data.expression_deployer),
-        //     expression: Address::from_slice(&data.expression),
-        //     order_active: data.order_active,
-        //     handle_i_o: data.handle_io,
-        //     meta: data.meta.unwrap().id,
-        //     valid_inputs,
-        //     valid_outputs,
-        //     order_json_string: data.order_json_string,
-        //     expression_json_string: data.expression_json_string,
-        //     transaction: Bytes::from(data.transaction.id.as_bytes().to_vec()),
-        //     emitter: Address::from_slice(&data.emitter.id),
-        //     timestamp: mn_mpz_to_u256(&data.timestamp),
-        //     take_orders,
-        //     orders_clears,
-        // };
         OrderResponse {
-            id: Bytes::from(data.id.as_bytes().to_vec()),
+            id: hex_string_to_bytes(&data.id).expect("not a hex value"),
             order_hash: data.order_hash,
             owner: Address::from_slice(&data.owner.id),
             interpreter: Address::from_slice(&data.interpreter),

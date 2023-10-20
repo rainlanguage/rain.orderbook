@@ -112,8 +112,14 @@ pub fn _run_cmd(main_cmd: &str, args: &[&str]) -> bool {
     }
 }
 
-pub fn string_to_bytes(value: String) -> Bytes {
+/// Convert an string to bytes using their ASCII corresponding values.
+pub fn ascii_string_to_bytes(value: String) -> Bytes {
     Bytes::from(value.as_bytes().to_vec())
+}
+
+/// Convert an hexadecimal string to bytes
+pub fn hex_string_to_bytes(value: &str) -> anyhow::Result<Bytes> {
+    Ok(Bytes::from_hex(value)?)
 }
 
 pub fn _remove_trailing_zeros(arr: &[u8]) -> Vec<u8> {
