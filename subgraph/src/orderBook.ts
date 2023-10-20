@@ -293,19 +293,21 @@ export function handleAddOrder(event: AddOrder): void {
       const dataTuple = tuplePrefix.concat(log_callerMeta.data);
 
       const decodedData = ethereum.decode(
-        "(address,bytes[],uint256[],uint256[])",
+        "(address,bytes,uint256[],uint256[])",
         dataTuple
       );
 
       if (decodedData && decodedData.kind === ethereum.ValueKind.TUPLE) {
         const newExpressionTuple = decodedData.toTuple();
 
-        const sources_ = newExpressionTuple[1].toBytesArray();
+        const bytecode_ = newExpressionTuple[1].toBytes();
         const constants_ = newExpressionTuple[2].toBigIntArray();
+        const minOutputs_ = newExpressionTuple[3].toBigIntArray();
 
         const expressionJsonString = new ExpressionJSONString(
-          sources_,
-          constants_
+          bytecode_,
+          constants_,
+          minOutputs_
         );
         order.expressionJSONString = expressionJsonString.stringify();
       }

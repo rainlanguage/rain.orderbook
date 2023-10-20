@@ -119,18 +119,19 @@ class Evaluable_String extends JsonString {
 }
 
 export class ExpressionJSONString extends JsonString {
-  constructor(sources_: Bytes[], constants_: BigInt[]) {
+  constructor(bytecode_: Bytes, constants_: BigInt[], minOutputs_: BigInt[]) {
     const _map: Map<string, string> = new Map();
 
-    const sources_string = sources_.map<string>(
-      (x: Bytes): string => `"${x.toHexString()}"`
+    const minOutputs_string = minOutputs_.map<string>(
+      (x): string => `"${x.toHexString()}"`
     );
     const constants_string = constants_.map<string>(
       (x): string => `"${x.toHexString()}"`
     );
 
-    _map.set("sources", `[${sources_string.join(",")}]`);
+    _map.set("bytecode", bytecode_.toHexString());
     _map.set("constants", `[${constants_string.join(",")}]`);
+    _map.set("minOutputs", `[${minOutputs_string.join(",")}]`);
 
     super(_map);
   }
