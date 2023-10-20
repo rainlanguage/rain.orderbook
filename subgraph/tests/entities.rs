@@ -189,12 +189,10 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let add_order_func = orderbook.add_order(config);
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
+    // Decode events from the transaction
     let add_order_data = get_add_order_event(orderbook.clone(), &tx_add_order).await;
-    println!("add_order_data: {:?}\n", add_order_data);
-
     let new_expression_data =
-        get_new_expression_event(expression_deployer.clone(), tx_add_order).await;
-    println!("new_expression_data: {:?}\n", new_expression_data);
+        get_new_expression_event(expression_deployer.clone(), &tx_add_order).await;
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
@@ -205,12 +203,12 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
         .await
         .expect("cannot get the query response");
 
-    println!("Response: {:?}\n", response);
-
     // Data from the event in tx
     let order_data = add_order_data.order;
 
     // Expected values
+    let transaction_hash = tx_add_order.tx_hash().clone();
+    let order_hash = Bytes::from(&add_order_data.order_hash);
     let interpreter: Address = expression_deployer.i_interpreter().call().await?;
     let store: Address = expression_deployer.i_store().call().await?;
     let rain_doc_hashed = Bytes::from(keccak256(rain_doc));
@@ -218,8 +216,9 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let expression_json_string =
         NewExpressionJson::from_event(new_expression_data).to_json_string();
 
-    assert_eq!(response.id, Bytes::from(&add_order_data.order_hash));
-    assert_eq!(response.order_hash, Bytes::from(&add_order_data.order_hash));
+    // Assertions
+    assert_eq!(response.id, order_hash);
+    assert_eq!(response.order_hash, order_hash);
     assert_eq!(response.owner, wallet_1.address());
 
     assert_eq!(response.interpreter, interpreter);
@@ -230,37 +229,43 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     assert_eq!(response.order_active, true, "order not active");
     assert_eq!(response.handle_i_o, order_data.handle_io);
     assert_eq!(response.meta, rain_doc_hashed);
+    assert_eq!(response.emitter, wallet_1.address());
 
     assert_eq!(response.order_json_string, order_json_string);
     assert_eq!(
         response.expression_json_string.unwrap(),
         expression_json_string
     );
+    assert_eq!(
+        response.transaction,
+        Bytes::from(transaction_hash.as_fixed_bytes())
+    );
 
-    println!("res.order_json_string: {:?}\n", response.order_json_string);
+    assert!(
+        response.take_orders.is_empty(),
+        "take orders not empty at initial addOrder"
+    );
+    assert!(
+        response.orders_clears.is_empty(),
+        "order clears not empty at initial addOrder"
+    );
 
-    let order_json_string = OrderJson::from_order(order_data).to_json_string();
-    println!("order_json_string: {:?}\n", order_json_string);
+    // Iterate over each IO to generate the ID and check if present
+    for input in order_data.valid_inputs {
+        let token: Address = input.token;
+        let vault_id: U256 = input.vault_id;
+        let id = format!("{}-{:?}-{}", order_hash, token, vault_id);
 
-    // "validInputs
-    // validInputs: [IO!]
+        assert!(response.valid_inputs.contains(&id), "Missing IO in order");
+    }
 
-    // "validOutputs"
-    // validOutputs: [IO!]
+    for output in order_data.valid_outputs {
+        let token: Address = output.token;
+        let vault_id: U256 = output.vault_id;
+        let id = format!("{}-{:?}-{}", order_hash, token, vault_id);
 
-    // OrderJSON could be parsed and used to send other transaction
-    // orderJSONString: String!
-
-    // orderJSONString: String!
-    // expressionJSONString: String
-    // "Timestamp when the order was added"
-    // transaction: Transaction!
-    // emitter: Account!
-    // timestamp: BigInt!
-    // "Take Order entities that use this order"
-    // takeOrders: [TakeOrderEntity!] @derivedFrom(field: "order")
-    // "Order Clear entities that use this order"
-    // ordersClears: [OrderClear!]
+        assert!(response.valid_outputs.contains(&id), "Missing IO in order");
+    }
 
     Ok(())
 }

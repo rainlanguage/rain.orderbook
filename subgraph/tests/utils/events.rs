@@ -88,11 +88,11 @@ pub async fn get_add_order_event(
 
 pub async fn get_new_expression_event(
     contract: RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
-    tx: PendingTransaction<'_, Http>,
+    tx: &PendingTransaction<'_, Http>,
 ) -> NewExpressionFilter {
     let filter: Filter = contract.clone().new_expression_filter().filter;
 
-    let log = get_matched_log(&tx, filter)
+    let log = get_matched_log(tx, filter)
         .await
         .expect("there is no topic matched in the transaction");
 

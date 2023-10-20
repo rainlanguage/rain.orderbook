@@ -87,7 +87,7 @@ impl OrderJson {
         }
     }
 
-    pub fn from_json_string(json_data: &String) -> anyhow::Result<OrderJson> {
+    pub fn _from_json_string(json_data: &String) -> anyhow::Result<OrderJson> {
         let parsed_json: Result<Value> = serde_json::from_str(json_data);
 
         match parsed_json {
@@ -100,7 +100,7 @@ impl OrderJson {
 
                 let handle_io = obj.get("handleIo").unwrap().as_bool().unwrap();
 
-                let evaluable = EvaluableJson::from_value(obj.get("evaluable").unwrap());
+                let evaluable = EvaluableJson::_from_value(obj.get("evaluable").unwrap());
 
                 let valid_inputs: Vec<IoJson> = obj
                     .get("validInputs")
@@ -108,7 +108,7 @@ impl OrderJson {
                     .as_array()
                     .unwrap()
                     .iter()
-                    .map(|data| IoJson::from_value(data))
+                    .map(|data| IoJson::_from_value(data))
                     .collect();
 
                 let valid_outputs: Vec<IoJson> = obj
@@ -117,7 +117,7 @@ impl OrderJson {
                     .as_array()
                     .unwrap()
                     .iter()
-                    .map(|data| IoJson::from_value(data))
+                    .map(|data| IoJson::_from_value(data))
                     .collect();
 
                 Ok(OrderJson {
@@ -153,7 +153,7 @@ impl EvaluableJson {
         }
     }
 
-    fn from_value(value: &Value) -> EvaluableJson {
+    fn _from_value(value: &Value) -> EvaluableJson {
         let obj = value.as_object().unwrap();
 
         let interpreter = Address::from_slice(
@@ -193,7 +193,7 @@ impl IoJson {
         }
     }
 
-    fn from_value(value: &Value) -> IoJson {
+    fn _from_value(value: &Value) -> IoJson {
         let obj = value.as_object().unwrap();
 
         let token = Address::from_slice(
@@ -212,21 +212,6 @@ impl IoJson {
         }
     }
 }
-// #[derive(Debug, Clone, Deserialize)]
-// struct U256WithLeadingZeros(U256);
-
-// impl Serialize for U256WithLeadingZeros {
-//     fn serialize<S>(&self, serializer: S) -> anyhow::Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         // Format the U256 as a hexadecimal string with leading zeros
-//         let hex_string = format!("0x{:02X}", self.0);
-
-//         // Serialize the formatted string
-//         serializer.serialize_str(&hex_string)
-//     }
-// }
 
 #[derive(Debug, Clone, Deserialize)]
 struct QuotedU8(u8);
