@@ -10,6 +10,7 @@ use once_cell::sync::Lazy;
 use reqwest::Url;
 
 use content_meta_v1::{get_content_meta_v1, ContentMetaV1Response};
+use io::{get_i_o, IOResponse};
 use order::{get_order, OrderResponse};
 use orderbook::{get_orderbook_query, OrderBookResponse};
 use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
@@ -34,5 +35,9 @@ impl Query {
 
     pub async fn order(id: &Bytes) -> Result<OrderResponse> {
         get_order(id).await
+    }
+
+    pub async fn i_o(id: &String) -> Result<IOResponse> {
+        get_i_o(id).await
     }
 }

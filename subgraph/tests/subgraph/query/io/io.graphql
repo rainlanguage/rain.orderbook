@@ -5,10 +5,10 @@ query IO($id: String) {
       id
     }
     decimals
+    vaultId
     vault {
       id
     }
-    vaultId
     order {
       id
     }

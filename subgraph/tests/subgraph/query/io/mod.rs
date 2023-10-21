@@ -21,28 +21,33 @@ pub struct IOResponse {
     pub id: String,
     pub token: Address,
     pub decimals: u8,
-    pub vault: String,
-    pub vaultId: U256,
+    pub vault_id: U256,
     pub order: Bytes,
-    pub tokenVault: String,
     pub index: u8,
+    pub vault: String,
+    pub token_vault: String,
 }
 
 impl IOResponse {
     pub fn from(response: ResponseData) -> IOResponse {
         let data = response.io.unwrap();
 
-        let id = data.id;
+        let token = Address::from_slice(
+            hex_string_to_bytes(&data.token.id)
+                .unwrap()
+                .to_vec()
+                .as_slice(),
+        );
 
         IOResponse {
-            id: "".to_string(),
-            token: Address::from([0u8; 20]),
-            decimals: 0,
-            vault: "".to_string(),
-            vaultId: U256::from(0),
-            order: Bytes::from(vec![0]),
-            tokenVault: "".to_string(),
-            index: 0,
+            id: data.id,
+            token,
+            decimals: data.decimals as u8,
+            vault: data.vault.id,
+            vault_id: mn_mpz_to_u256(&data.vault_id),
+            order: hex_string_to_bytes(&data.order.id).expect("not a hex value"),
+            token_vault: data.token_vault.id,
+            index: data.index as u8,
         }
     }
 }

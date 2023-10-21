@@ -288,13 +288,56 @@ async fn io_entity() -> anyhow::Result<()> {
 
     // Order hash
     let order_hash = Bytes::from(add_order_data.order_hash);
+    let order_owner: Address = add_order_data.order.owner;
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
-    let response = Query::order(&order_hash)
-        .await
-        .expect("cannot get the query response");
+    // Inputs
+    for (index, input) in order_config.valid_inputs.iter().enumerate() {
+        let token: Address = input.token;
+        let vault_id: U256 = input.vault_id;
+        let input_id = format!("{}-{:?}-{}", order_hash, token, vault_id);
+
+        let vault_entity_id = format!("{}-{:?}", vault_id, order_owner);
+        let token_vault_entity_id = format!("{}-{:?}-{:?}", vault_id, order_owner, token);
+
+        let response = Query::i_o(&input_id)
+            .await
+            .expect("cannot get the query response");
+
+        assert_eq!(response.id, input_id);
+        assert_eq!(response.token, token);
+        assert_eq!(response.decimals, 18); // TODO: Make a wrapper around the token address with the ERC20Mock
+        assert_eq!(response.vault_id, vault_id);
+        assert_eq!(response.order, order_hash);
+        assert_eq!(response.index, index as u8);
+        assert_eq!(response.vault, vault_entity_id);
+        assert_eq!(response.token_vault, token_vault_entity_id);
+    }
+
+    // Outputs
+    for (index, output) in order_config.valid_outputs.iter().enumerate() {
+        let token: Address = output.token;
+        let vault_id: U256 = output.vault_id;
+        let output_id = format!("{}-{:?}-{}", order_hash, token, vault_id);
+
+        let vault_entity_id = format!("{}-{:?}", vault_id, order_owner);
+        let token_vault_entity_id = format!("{}-{:?}-{:?}", vault_id, order_owner, token);
+
+        let response = Query::i_o(&output_id)
+            .await
+            .expect("cannot get the query response");
+
+        assert_eq!(response.id, output_id);
+        assert_eq!(response.token, token);
+        assert_eq!(response.decimals, 18); // TODO: Make a wrapper around the token address with the ERC20Mock
+        assert_eq!(response.vault_id, vault_id);
+        assert_eq!(response.order, order_hash);
+        assert_eq!(response.index, index as u8);
+        assert_eq!(response.vault, vault_entity_id);
+        assert_eq!(response.token_vault, token_vault_entity_id);
+    }
 
     Ok(())
 }
