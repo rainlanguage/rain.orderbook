@@ -123,7 +123,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 
 #[tokio::main]
 #[test]
-async fn order_entity_add_order_test() -> anyhow::Result<()> {
+async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
     // Connect the orderbook to another wallet
