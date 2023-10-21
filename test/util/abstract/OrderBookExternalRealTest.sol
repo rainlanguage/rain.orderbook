@@ -5,9 +5,7 @@ import "lib/forge-std/src/Test.sol";
 import {RainterpreterNP} from "lib/rain.interpreter/src/concrete/RainterpreterNP.sol";
 import "lib/rain.interpreter/src/concrete/RainterpreterStore.sol";
 import "lib/rain.interpreter/src/concrete/RainterpreterExpressionDeployerNP.sol";
-
 import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibOrderBookConstants.sol";
 import "test/util/abstract/IOrderBookV3Stub.sol";
 
 import {OrderBook, IERC20, DeployerDiscoverableMetaV2ConstructionConfig} from "src/concrete/OrderBook.sol";
