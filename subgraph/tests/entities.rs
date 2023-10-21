@@ -154,7 +154,7 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     // Decode events from the transaction
-    let add_order_data = get_add_order_event(orderbook.clone(), &tx_add_order).await;
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await;
     let new_expression_data =
         get_new_expression_event(expression_deployer.clone(), &tx_add_order).await;
 
@@ -252,6 +252,49 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
         .expect("cannot get the query response");
 
     assert_eq!(response.order_active, is_order_exist, "fail order status");
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn io_entity() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await.expect("cannot get OB");
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = touch_deployer(None)
+        .await
+        .expect("cannot deploy expression_deployer");
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token A");
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token B");
+
+    // Build OrderConfig
+    let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
+
+    // Add the order
+    let add_order_func = orderbook.add_order(order_config.clone());
+    let tx_add_order = add_order_func.send().await.expect("order not sent");
+
+    // Decode events from the transaction
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await;
+
+    // Order hash
+    let order_hash = Bytes::from(add_order_data.order_hash);
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    let response = Query::order(&order_hash)
+        .await
+        .expect("cannot get the query response");
 
     Ok(())
 }

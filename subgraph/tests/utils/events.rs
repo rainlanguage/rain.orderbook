@@ -72,7 +72,7 @@ pub async fn _get_transfer_event(
 }
 
 pub async fn get_add_order_event(
-    contract: OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx: &PendingTransaction<'_, Http>,
 ) -> AddOrderFilter {
     let filter: Filter = contract.clone().add_order_filter().filter;
