@@ -13,7 +13,7 @@ use ethers::{
     core::k256::ecdsa::SigningKey,
     providers::Middleware,
     signers::{coins_bip39::English, MnemonicBuilder, Wallet},
-    types::{Bytes, U256, U64},
+    types::{Bytes, H256, U256, U64},
 };
 use hex::FromHex;
 use rust_bigint::BigInt;
@@ -146,6 +146,17 @@ pub fn _remove_trailing_zeros(arr: &[u8]) -> Vec<u8> {
 /// the parse logic is made considering that, so parse it from "hex" to "decimal".
 pub fn mn_mpz_to_u256(value: &BigInt) -> U256 {
     U256::from_dec_str(&value.to_str_radix(16)).unwrap()
+}
+
+/// Take a Bytes value and parse it to an H256. Take in count that if the Bytes value
+/// is bigger than 32 Bytes, will be truncated.
+pub fn bytes_to_h256(value: &Bytes) -> H256 {
+    H256::from_slice(value.to_vec().as_slice())
+}
+
+/// Take a H256 value and parse it to a Bytes
+pub fn _h256_to_bytes(value: &H256) -> Bytes {
+    Bytes::from(value.as_bytes().to_vec())
 }
 
 /// Get a mock encoded rain document with hardcoded data.

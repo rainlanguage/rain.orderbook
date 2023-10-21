@@ -9,6 +9,7 @@ use ethers::{
 };
 use subgraph::{wait, Query};
 use utils::{
+    bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
     events::{get_add_order_event, get_new_expression_event},
@@ -179,6 +180,11 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     let expression_json_string =
         NewExpressionJson::from_event(new_expression_data).to_json_string();
 
+    let is_order_exist: bool = orderbook
+        .order_exists(bytes_to_h256(&order_hash).into())
+        .call()
+        .await?;
+
     // Assertions
     assert_eq!(response.id, order_hash);
     assert_eq!(response.order_hash, order_hash);
@@ -189,7 +195,7 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     assert_eq!(response.expression_deployer, expression_deployer.address());
     assert_eq!(response.expression, order_data.evaluable.expression);
 
-    assert_eq!(response.order_active, true, "order not active");
+    assert_eq!(response.order_active, is_order_exist, "fail order status");
     assert_eq!(response.handle_i_o, order_data.handle_io);
     assert_eq!(response.meta, rain_doc_hashed);
     assert_eq!(response.emitter, wallet_1.address());
@@ -214,7 +220,7 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     );
 
     // Iterate over each IO to generate the ID and check if present
-    for input in order_data.valid_inputs {
+    for input in &order_data.valid_inputs {
         let token: Address = input.token;
         let vault_id: U256 = input.vault_id;
         let id = format!("{}-{:?}-{}", order_hash, token, vault_id);
@@ -222,13 +228,30 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
         assert!(response.valid_inputs.contains(&id), "Missing IO in order");
     }
 
-    for output in order_data.valid_outputs {
+    for output in &order_data.valid_outputs {
         let token: Address = output.token;
         let vault_id: U256 = output.vault_id;
         let id = format!("{}-{:?}-{}", order_hash, token, vault_id);
 
         assert!(response.valid_outputs.contains(&id), "Missing IO in order");
     }
+
+    let remove_order_fnc = orderbook.remove_order(order_data);
+    let _ = remove_order_fnc.send().await.expect("order not removed");
+
+    let is_order_exist: bool = orderbook
+        .order_exists(bytes_to_h256(&order_hash).into())
+        .call()
+        .await?;
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    let response = Query::order(&order_hash)
+        .await
+        .expect("cannot get the query response");
+
+    assert_eq!(response.order_active, is_order_exist, "fail order status");
 
     Ok(())
 }
