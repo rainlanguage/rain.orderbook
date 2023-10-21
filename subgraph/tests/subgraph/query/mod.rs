@@ -1,4 +1,5 @@
 pub(crate) mod content_meta_v1;
+pub(crate) mod io;
 pub(crate) mod order;
 pub(crate) mod orderbook;
 pub(crate) mod rain_meta_v1;

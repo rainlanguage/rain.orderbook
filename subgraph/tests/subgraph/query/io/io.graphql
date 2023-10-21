@@ -1,0 +1,20 @@
+query IO($id: String) {
+  io(id: $id) {
+    id
+    token {
+      id
+    }
+    decimals
+    vault {
+      id
+    }
+    vaultId
+    order {
+      id
+    }
+    tokenVault {
+      id
+    }
+    index
+  }
+}
