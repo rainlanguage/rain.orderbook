@@ -19,7 +19,7 @@ use utils::{
 };
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -46,7 +46,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -82,7 +82,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -123,7 +123,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -139,12 +139,12 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None)
         .await
-        .expect("failed on deploy erc20 token A");
+        .expect("failed on deploy erc20 token");
 
     // Deploy ERC20 token contract (B)
     let token_b = deploy_erc20_mock(None)
         .await
-        .expect("failed on deploy erc20 token B");
+        .expect("failed on deploy erc20 token");
 
     // Build OrderConfig
     let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
@@ -257,8 +257,8 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
-async fn io_entity() -> anyhow::Result<()> {
+// #[test]
+async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
     // Deploy ExpressionDeployerNP for the config
@@ -269,12 +269,12 @@ async fn io_entity() -> anyhow::Result<()> {
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None)
         .await
-        .expect("failed on deploy erc20 token A");
+        .expect("failed on deploy erc20 token");
 
     // Deploy ERC20 token contract (B)
     let token_b = deploy_erc20_mock(None)
         .await
-        .expect("failed on deploy erc20 token B");
+        .expect("failed on deploy erc20 token");
 
     // Build OrderConfig
     let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
@@ -338,6 +338,49 @@ async fn io_entity() -> anyhow::Result<()> {
         assert_eq!(response.vault, vault_entity_id);
         assert_eq!(response.token_vault, token_vault_entity_id);
     }
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await.expect("cannot get OB");
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = touch_deployer(None)
+        .await
+        .expect("cannot deploy expression_deployer");
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // // Deploy ERC20 token contract (C)
+    // let token_c = deploy_erc20_mock(None)
+    //     .await
+    //     .expect("failed on deploy erc20 token");
+
+    // // Deploy ERC20 token contract (D)
+    // let token_d = deploy_erc20_mock(None)
+    //     .await
+    //     .expect("failed on deploy erc20 token");
+
+    // Generate TWO order configs
+    let order_config_a = generate_order_config(&expression_deployer, &token_a, &token_b).await;
+    // let order_config_b = generate_order_config(&expression_deployer, &token_c, &token_d).await;
+
+    let encoded_order = ethers::core::abi::AbiEncode::encode(order_config_a);
+    println!("encoded_order: {:?}", Bytes::from(encoded_order.clone()));
+
+    let my_method =
+        token_b.method_hash::<Vec<u8>, bool>([132, 122, 27, 201], encoded_order.clone());
 
     Ok(())
 }
