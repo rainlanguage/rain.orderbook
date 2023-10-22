@@ -67,15 +67,28 @@ async fn generate_eval_config(
 
 /// From given orders, encode them to a collection of Bytes to be used with multicall
 pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
-    let selector = AddOrderCall::selector();
+    let selector: [u8; 4] = AddOrderCall::selector();
 
     let mut data: Vec<Bytes> = Vec::new();
 
     for order in orders {
-        //
-        
+        // The OrderConfigV2 from abigen implemented the `AbiEncode` trait, so
+        // it could be easily encoded
+        let encoded_order: Vec<u8> = ethers::core::abi::AbiEncode::encode(order.to_owned());
+
+        // Create a new Vec<u8> that will contain the function selector and the
+        // current encoded_order
+        let mut order_bytes: Vec<u8> = Vec::new();
+
+        // Add selector to the new Vec
+        order_bytes.extend_from_slice(&selector);
+
+        // Add encoded_order to the new Vec
+        order_bytes.extend(encoded_order);
+
+        // Push the order bytes
+        data.push(Bytes::from(order_bytes));
     }
 
-    //
-    vec![Bytes::from([0])]
+    return data;
 }

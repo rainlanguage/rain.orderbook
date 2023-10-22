@@ -384,29 +384,39 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 
     let multi_orders = generate_multi_add_order(vec![&order_config_a, &order_config_b]);
 
-    let encoded_order = ethers::core::abi::AbiEncode::encode(order_config_a.clone());
-    println!("encoded_order: {:?}", Bytes::from(encoded_order.clone()));
+    // Add the order
+    let multicall_func = orderbook.multicall(multi_orders);
 
-    let add_order_call = AddOrderCall {
-        config: order_config_a.clone(),
-    };
+    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
 
-    let encoded_possible_call = ethers::core::abi::AbiEncode::encode(add_order_call.clone());
-    println!(
-        "encoded_possible_call: {:?}",
-        Bytes::from(encoded_possible_call.clone())
-    );
+    println!("tx_multicall: {:?}", tx_multicall);
 
-    let aver = order_book::OrderBookCalls::AddOrder(add_order_call);
-    // order_book::OrderBookCalls::param_type();
-
-    let param_type = AddOrderCall::param_type();
-    println!("param_type: {}", param_type);
-
-    let selector = AddOrderCall::selector();
-    println!("selector: {}", Bytes::from(selector));
+    let receipt = tx_multicall.await.expect("cannot get receipt");
+    println!("receipt: {:?}", receipt);
 
     // let aver = orderbook.add_order(order_config_a);
+
+    // let encoded_order = ethers::core::abi::AbiEncode::encode(order_config_a.clone());
+    // println!("encoded_order: {:?}", Bytes::from(encoded_order.clone()));
+
+    // let add_order_call = AddOrderCall {
+    //     config: order_config_a.clone(),
+    // };
+
+    // let encoded_possible_call = ethers::core::abi::AbiEncode::encode(add_order_call.clone());
+    // println!(
+    //     "encoded_possible_call: {:?}",
+    //     Bytes::from(encoded_possible_call.clone())
+    // );
+
+    // let aver = order_book::OrderBookCalls::AddOrder(add_order_call);
+    // // order_book::OrderBookCalls::param_type();
+
+    // let param_type = AddOrderCall::param_type();
+    // println!("param_type: {}", param_type);
+
+    // let selector = AddOrderCall::selector();
+    // println!("selector: {}", Bytes::from(selector));
 
     // let my_method =
     //     token_b.method_hash::<Vec<u8>, bool>([132, 122, 27, 201], encoded_order.clone());
