@@ -15,8 +15,13 @@ use utils::{
     events::{get_add_order_event, get_new_expression_event},
     get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
-    transactions::generate_order_config,
+    transactions::{generate_multi_add_order, generate_order_config},
 };
+
+use ethers::contract::EthCall;
+use ethers::core::abi::AbiType;
+
+use generated::{order_book, AddOrderCall, AddOrderFilter, AddOrderReturn};
 
 #[tokio::main]
 // #[test]
@@ -151,6 +156,7 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
+
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     // Decode events from the transaction
@@ -362,25 +368,48 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
         .await
         .expect("failed on deploy erc20 token");
 
-    // // Deploy ERC20 token contract (C)
-    // let token_c = deploy_erc20_mock(None)
-    //     .await
-    //     .expect("failed on deploy erc20 token");
+    // Deploy ERC20 token contract (C)
+    let token_c = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
 
-    // // Deploy ERC20 token contract (D)
-    // let token_d = deploy_erc20_mock(None)
-    //     .await
-    //     .expect("failed on deploy erc20 token");
+    // Deploy ERC20 token contract (D)
+    let token_d = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
 
     // Generate TWO order configs
     let order_config_a = generate_order_config(&expression_deployer, &token_a, &token_b).await;
-    // let order_config_b = generate_order_config(&expression_deployer, &token_c, &token_d).await;
+    let order_config_b = generate_order_config(&expression_deployer, &token_c, &token_d).await;
 
-    let encoded_order = ethers::core::abi::AbiEncode::encode(order_config_a);
+    let multi_orders = generate_multi_add_order(vec![&order_config_a, &order_config_b]);
+
+    let encoded_order = ethers::core::abi::AbiEncode::encode(order_config_a.clone());
     println!("encoded_order: {:?}", Bytes::from(encoded_order.clone()));
 
-    let my_method =
-        token_b.method_hash::<Vec<u8>, bool>([132, 122, 27, 201], encoded_order.clone());
+    let add_order_call = AddOrderCall {
+        config: order_config_a.clone(),
+    };
+
+    let encoded_possible_call = ethers::core::abi::AbiEncode::encode(add_order_call.clone());
+    println!(
+        "encoded_possible_call: {:?}",
+        Bytes::from(encoded_possible_call.clone())
+    );
+
+    let aver = order_book::OrderBookCalls::AddOrder(add_order_call);
+    // order_book::OrderBookCalls::param_type();
+
+    let param_type = AddOrderCall::param_type();
+    println!("param_type: {}", param_type);
+
+    let selector = AddOrderCall::selector();
+    println!("selector: {}", Bytes::from(selector));
+
+    // let aver = orderbook.add_order(order_config_a);
+
+    // let my_method =
+    //     token_b.method_hash::<Vec<u8>, bool>([132, 122, 27, 201], encoded_order.clone());
 
     Ok(())
 }
