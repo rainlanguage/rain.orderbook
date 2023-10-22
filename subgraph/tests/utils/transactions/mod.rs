@@ -1,7 +1,11 @@
 use crate::{
-    generated::{ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2, RainterpreterExpressionDeployer},
+    generated::{
+        AddOrderCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
+        RainterpreterExpressionDeployer,
+    },
     utils::mock_rain_doc,
 };
+use ethers::contract::EthCall;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::SignerMiddleware,
@@ -59,4 +63,19 @@ async fn generate_eval_config(
         bytecode,
         constants,
     }
+}
+
+/// From given orders, encode them to a collection of Bytes to be used with multicall
+pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
+    let selector = AddOrderCall::selector();
+
+    let mut data: Vec<Bytes> = Vec::new();
+
+    for order in orders {
+        //
+        
+    }
+
+    //
+    vec![Bytes::from([0])]
 }
