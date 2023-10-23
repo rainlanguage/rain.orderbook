@@ -12,7 +12,7 @@ use utils::{
     bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
-    events::{get_add_order_event, get_new_expression_event},
+    events::{get_add_order_event, get_add_order_events, get_new_expression_event},
     get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     transactions::{generate_multi_add_order, generate_order_config},
@@ -152,7 +152,8 @@ async fn order_entity_add_test() -> anyhow::Result<()> {
         .expect("failed on deploy erc20 token");
 
     // Build OrderConfig
-    let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
+    let order_config =
+        generate_order_config(&expression_deployer, &token_a, None, &token_b, None).await;
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
@@ -270,7 +271,8 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
         .expect("failed on deploy erc20 token");
 
     // Build OrderConfig
-    let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
+    let order_config =
+        generate_order_config(&expression_deployer, &token_a, None, &token_b, None).await;
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
@@ -327,7 +329,8 @@ async fn io_entity_test() -> anyhow::Result<()> {
         .expect("failed on deploy erc20 token");
 
     // Build OrderConfig
-    let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
+    let order_config =
+        generate_order_config(&expression_deployer, &token_a, None, &token_b, None).await;
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
@@ -422,46 +425,27 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
         .await
         .expect("failed on deploy erc20 token");
 
-    // Generate TWO order configs
-    let order_config_a = generate_order_config(&expression_deployer, &token_a, &token_b).await;
-    let order_config_b = generate_order_config(&expression_deployer, &token_c, &token_d).await;
+    // Generate TWO order configs with similar vault IDs.
+    // All the TokenVaults inside the Vault should be present
+    let order_config_a =
+        generate_order_config(&expression_deployer, &token_a, None, &token_b, None).await;
+    let order_config_b =
+        generate_order_config(&expression_deployer, &token_c, None, &token_d, None).await;
 
-    // Encode them to send them with multicall.
+    // Encode them to send them with multicall
     let multi_orders = generate_multi_add_order(vec![&order_config_a, &order_config_b]);
 
-    // Add the order
+    // Add the orders with multicall
     let multicall_func = orderbook.multicall(multi_orders);
-
     let tx_multicall = multicall_func.send().await.expect("multicall not sent");
 
-    let receipt = tx_multicall.await.expect("cannot get receipt");
+    // Get all orders events (logs) from the transaction
+    let order_events = get_add_order_events(orderbook, &tx_multicall).await;
 
-    // let aver = orderbook.add_order(order_config_a);
+    println!("order_events: \n {:?}\n", order_events);
 
-    // let encoded_order = ethers::core::abi::AbiEncode::encode(order_config_a.clone());
-    // println!("encoded_order: {:?}", Bytes::from(encoded_order.clone()));
-
-    // let add_order_call = AddOrderCall {
-    //     config: order_config_a.clone(),
-    // };
-
-    // let encoded_possible_call = ethers::core::abi::AbiEncode::encode(add_order_call.clone());
-    // println!(
-    //     "encoded_possible_call: {:?}",
-    //     Bytes::from(encoded_possible_call.clone())
-    // );
-
-    // let aver = order_book::OrderBookCalls::AddOrder(add_order_call);
-    // // order_book::OrderBookCalls::param_type();
-
-    // let param_type = AddOrderCall::param_type();
-    // println!("param_type: {}", param_type);
-
-    // let selector = AddOrderCall::selector();
-    // println!("selector: {}", Bytes::from(selector));
-
-    // let my_method =
-    //     token_b.method_hash::<Vec<u8>, bool>([132, 122, 27, 201], encoded_order.clone());
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
 
     Ok(())
 }

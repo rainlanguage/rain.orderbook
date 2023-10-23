@@ -5,8 +5,8 @@ use crate::{
     },
     utils::mock_rain_doc,
 };
-use ethers::contract::EthCall;
 use ethers::{
+    contract::EthCall,
     core::k256::ecdsa::SigningKey,
     prelude::SignerMiddleware,
     providers::{Http, Provider},
@@ -19,10 +19,12 @@ pub async fn generate_order_config(
         SignerMiddleware<Provider<Http>, Wallet<SigningKey>>,
     >,
     token_input: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    vault_id_input: Option<U256>,
     token_output: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    vault_id_output: Option<U256>,
 ) -> OrderConfigV2 {
-    let io_input = generate_io(token_input).await;
-    let io_output = generate_io(token_output).await;
+    let io_input = generate_io(token_input, vault_id_input).await;
+    let io_output = generate_io(token_output, vault_id_output).await;
 
     let eval_config = generate_eval_config(expression_deployer).await;
 
@@ -37,12 +39,13 @@ pub async fn generate_order_config(
 
 async fn generate_io(
     token: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    vault_id: Option<U256>,
 ) -> Io {
     // Build the IO and return it
     Io {
         token: token.address(),
         decimals: token.decimals().await.unwrap(),
-        vault_id: U256::from(0),
+        vault_id: vault_id.unwrap_or_default(),
     }
 }
 
