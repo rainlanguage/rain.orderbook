@@ -170,7 +170,7 @@ type TokenVaultTakeOrder @entity {
 
 # Created for every Deposit event
 type VaultDeposit implements Event @entity {
-  id: ID! # use txhash of the event
+  id: ID! # use txhash of the event + N Deposit on the tx
   "The transaction sender of this deposit"
   sender: Account! # Deposit.sender
   "The token that was deposited"
@@ -191,7 +191,7 @@ type VaultDeposit implements Event @entity {
 
 # Created for every Withdraw event
 type VaultWithdraw implements Event @entity {
-  id: ID! # use txhash of the event
+  id: ID! # use txhash of the event + N Withdraw on the tx
   "The transaction sender of this withdrawal"
   sender: Account! # Withdrawal.sender
   "The token that was withdrawn"

@@ -3,6 +3,7 @@ pub(crate) mod io;
 pub(crate) mod order;
 pub(crate) mod orderbook;
 pub(crate) mod rain_meta_v1;
+pub(crate) mod vault;
 
 use anyhow::Result;
 use ethers::types::{Address, Bytes};
@@ -14,6 +15,7 @@ use io::{get_i_o, IOResponse};
 use order::{get_order, OrderResponse};
 use orderbook::{get_orderbook_query, OrderBookResponse};
 use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
+use vault::{get_vault, VaultResponse};
 
 pub static SG_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://localhost:8000/subgraphs/name/test/test").unwrap());
@@ -39,5 +41,9 @@ impl Query {
 
     pub async fn i_o(id: &String) -> Result<IOResponse> {
         get_i_o(id).await
+    }
+
+    pub async fn vault(id: &String) -> Result<VaultResponse> {
+        get_vault(id).await
     }
 }

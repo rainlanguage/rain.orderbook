@@ -449,14 +449,26 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     // Encode them to send them with multicall
     let multi_orders = generate_multi_add_order(vec![&order_config_a, &order_config_b]);
 
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let wallet_owner = get_wallet(2);
+    let orderbook = orderbook.connect(&wallet_owner).await;
+
     // Add the orders with multicall
     let multicall_func = orderbook.multicall(multi_orders);
     let tx_multicall = multicall_func.send().await.expect("multicall not sent");
 
     // Get all orders events (logs) from the transaction
-    let order_events = get_add_order_events(orderbook, &tx_multicall).await;
+    let order_events = get_add_order_events(&orderbook, &tx_multicall).await;
 
     println!("order_events: \n {:?}\n", order_events);
+
+    let vault_entity_id = format!("{}-{:?}", vault_id, wallet_owner.address());
+
+    let response = Query::vault(&vault_entity_id)
+        .await
+        .expect("cannot get the query response");
+
+    println!("response: {:?}", response);
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
