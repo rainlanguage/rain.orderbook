@@ -75,7 +75,7 @@
           '');
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
-            cargo test -- --nocapture;
+            cargo test -- --test-threads=1 --nocapture;
           '');
 
           default = install;
