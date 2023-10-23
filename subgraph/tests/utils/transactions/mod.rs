@@ -7,7 +7,7 @@ use crate::{
 };
 use ethers::{
     contract::EthCall,
-    core::k256::ecdsa::SigningKey,
+    core::{k256::ecdsa::SigningKey, rand::random},
     prelude::SignerMiddleware,
     providers::{Http, Provider},
     signers::Wallet,
@@ -45,7 +45,7 @@ async fn generate_io(
     Io {
         token: token.address(),
         decimals: token.decimals().await.unwrap(),
-        vault_id: vault_id.unwrap_or_default(),
+        vault_id: vault_id.unwrap_or(generate_random_u256()),
     }
 }
 
@@ -101,6 +101,11 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
     }
 
     return data;
+}
+
+pub fn generate_random_u256() -> U256 {
+    // This trully is a random u64, but it's work for testing
+    return U256::from(random::<u64>());
 }
 
 /// The extra 32 bytes for the start of the tuples.
