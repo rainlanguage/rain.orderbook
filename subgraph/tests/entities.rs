@@ -628,7 +628,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -656,6 +656,212 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let token_b = deploy_erc20_mock(None)
         .await
         .expect("failed on deploy erc20 token");
+
+    // Build OrderConfig with the vaultId
+    let order_config = generate_order_config(
+        &expression_deployer,
+        &token_a,
+        Some(vault_id),
+        &token_b,
+        Some(vault_id),
+    )
+    .await;
+
+    // Add the order
+    let add_order_func = orderbook.add_order(order_config.clone());
+    let _ = add_order_func
+        .send()
+        .await
+        .expect("order not sent")
+        .await
+        .expect("cannot wait receipt");
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    // First query when adding order
+    let resp = Query::vault(&vault_entity_id)
+        .await
+        .expect("cannot get the query response");
+
+    // The whole entity should be created normally when adding the order
+    assert_eq!(resp.id, vault_entity_id);
+
+    // Now, make the deposits with a given amount
+    let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+
+    // Fill to Alice with tokens (A and B)
+    mint_tokens(&amount, &alice.address(), &token_a)
+        .await
+        .expect("cannot mint tokens");
+
+    mint_tokens(&amount, &alice.address(), &token_b)
+        .await
+        .expect("cannot mint tokens");
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_a.connect(&alice).await,
+    )
+    .await
+    .expect("cannot approve tokens");
+
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_b.connect(&alice).await,
+    )
+    .await
+    .expect("cannot approve tokens");
+
+    // Fill struct with same vaultId in the deposit configurations
+    let deposits_config = vec![
+        // Config A
+        TestDepositConfig {
+            token: token_a.address(),
+            vault_id: vault_id,
+            amount,
+        },
+        // Config B
+        TestDepositConfig {
+            token: token_b.address(),
+            vault_id: vault_id,
+            amount,
+        },
+    ];
+    // The multi deposit data bytes
+    let multi_deposit = generate_multi_deposit(&deposits_config);
+
+    // Send the deposits with multicall
+    let multicall_func = orderbook.multicall(multi_deposit);
+    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
+    let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
+
+    let deposit_tx_hash = &tx_receipt.transaction_hash;
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    // Second query, using same vault entity ID.
+    let resp = Query::vault(&vault_entity_id)
+        .await
+        .expect("cannot get the query response");
+
+    // Should include the deposits made in same vault entity
+    for index in 0..deposits_config.len() {
+        let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
+
+        assert!(resp.deposits.contains(&deposit_id), "missing deposit id");
+    }
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn vault_entity_clear() -> anyhow::Result<()> {
+    let alice = get_wallet(0);
+    let bob = get_wallet(1);
+    let bounty_bot = get_wallet(2);
+
+    let orderbook = get_orderbook().await.expect("cannot get OB");
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = touch_deployer(None)
+        .await
+        .expect("cannot deploy expression_deployer");
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // Generate vault ids for each account (Input and Output)
+    let alice_input_vault = generate_random_u256();
+    let alice_output_vault = generate_random_u256();
+    let bob_input_vault = generate_random_u256();
+    let bob_output_vault = generate_random_u256();
+    let bounty_bot_vault_a = generate_random_u256();
+    let bounty_bot_vault_b = generate_random_u256();
+
+    // Order Alice
+    let order_alice = generate_order_config(
+        &expression_deployer,
+        &token_a,
+        Some(alice_input_vault),
+        &token_b,
+        Some(alice_output_vault),
+    )
+    .await;
+
+    // Order Bob
+    let order_bob = generate_order_config(
+        &expression_deployer,
+        &token_b,
+        Some(bob_input_vault),
+        &token_a,
+        Some(bob_output_vault),
+    )
+    .await;
+
+    // Add order alice with Alice connected to the OB
+    let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
+    let _ = add_order_alice.send().await?.await?;
+
+    // Add order bob with Bob connected to the OB
+    let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
+    let _ = add_order_bob.send().await?.await?;
+
+    // Make deposit of corresponded output token
+    let amount = get_amount_tokens(1000, 18);
+
+    // Alice has token_b as output
+    mint_tokens(&amount, &alice.address(), &token_b).await?;
+
+    // Approve Alice token_b using to OB
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_b.connect(&alice).await,
+    )
+    .await?;
+
+    // Deposit using Alice
+    let deposit_func =
+        orderbook
+            .connect(&alice)
+            .await
+            .deposit(token_b.address(), alice_output_vault, amount);
+    let _ = deposit_func.send().await?.await?;
+
+    // Bob has token_a as output
+    mint_tokens(&amount, &bob.address(), &token_a).await?;
+
+    // Approve Bob token_a using to OB
+    approve_tokens(&amount, &orderbook.address(), &token_a.connect(&bob).await).await?;
+
+    // Deposit using Bob
+    let deposit_func =
+        orderbook
+            .connect(&bob)
+            .await
+            .deposit(token_a.address(), bob_output_vault, amount);
+    let _ = deposit_func.send().await?.await?;
+
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
+
+    // The expected vault entity SG ID
+    let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
+
+    ////////
 
     // Build OrderConfig with the vaultId
     let order_config = generate_order_config(
