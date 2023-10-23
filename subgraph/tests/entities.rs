@@ -16,7 +16,7 @@ use utils::{
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::get_amount_tokens,
-    transactions::{generate_multi_add_order, generate_order_config},
+    transactions::{generate_multi_add_order, generate_order_config, mint_tokens},
 };
 
 #[tokio::main]
@@ -540,21 +540,29 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
 
     // Fill to Alice with tokens (A and B)
-    token_a
-        .mint(alice.address(), amount)
-        .send()
+    mint_tokens(&amount, &alice.address(), &token_a)
         .await
-        .expect("cannot mint tokens")
-        .await
-        .expect("cannot get the receipt");
+        .expect("cannot mint");
 
-    token_b
-        .mint(alice.address(), amount)
-        .send()
+    mint_tokens(&amount, &alice.address(), &token_b)
         .await
-        .expect("cannot mint tokens")
-        .await
-        .expect("cannot get the receipt");
+        .expect("cannot mint");
+
+    // token_a
+    //     .mint(alice.address(), amount)
+    //     .send()
+    //     .await
+    //     .expect("cannot mint tokens")
+    //     .await
+    //     .expect("cannot get the receipt");
+
+    // token_b
+    //     .mint(alice.address(), amount)
+    //     .send()
+    //     .await
+    //     .expect("cannot mint tokens")
+    //     .await
+    //     .expect("cannot get the receipt");
 
     // Connect token to Alice and approve Orderbook to move tokens
     token_a
@@ -576,6 +584,22 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
         .expect("cannot approve tokens")
         .await
         .expect("cannot get the receipt");
+
+    let allowance_a: U256 = token_a
+        .allowance(alice.address(), orderbook.address())
+        .call()
+        .await
+        .expect("cannot get allowance");
+    let allowance_b: U256 = token_b
+        .allowance(alice.address(), orderbook.address())
+        .call()
+        .await
+        .expect("cannot get allowance");
+
+    println!(
+        "allowance_a: {} - allowance_b: {}",
+        allowance_a, allowance_b
+    );
 
     // Generate TWO order configs with identical vault ID.
     // All the TokenVaults with same VaultId should be present in the Vault

@@ -11,8 +11,18 @@ use ethers::{
     prelude::SignerMiddleware,
     providers::{Http, Provider},
     signers::Wallet,
-    types::{Bytes, U256},
+    types::{Address, Bytes, U256},
 };
+
+pub async fn mint_tokens(
+    amount: &U256,
+    target: &Address,
+    token: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+) -> anyhow::Result<()> {
+    token.mint(*target, *amount).send().await?.await?;
+
+    Ok(())
+}
 
 pub async fn generate_order_config(
     expression_deployer: &RainterpreterExpressionDeployer<
