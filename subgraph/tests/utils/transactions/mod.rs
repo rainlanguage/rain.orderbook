@@ -69,6 +69,8 @@ async fn generate_eval_config(
 pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
     let selector: [u8; 4] = AddOrderCall::selector();
 
+    let tuple_bytes: [u8; 32] = byte_for_tuples();
+
     let mut data: Vec<Bytes> = Vec::new();
 
     for order in orders {
@@ -82,13 +84,27 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
 
         // Add selector to the new Vec
         order_bytes.extend_from_slice(&selector);
+        order_bytes.extend_from_slice(&tuple_bytes);
 
         // Add encoded_order to the new Vec
         order_bytes.extend(encoded_order);
 
+        let order_data = Bytes::from(order_bytes);
+
+        println!("order_data: {:?}\n", order_data);
+
         // Push the order bytes
-        data.push(Bytes::from(order_bytes));
+        data.push(order_data);
     }
 
     return data;
+}
+
+/// The extra 32 bytes for the start of the tuples.
+///
+/// `*TODO*`: Search why the encode function not give this
+fn byte_for_tuples() -> [u8; 32] {
+    let mut result = [0u8; 32]; // Initialize an array with all elements set to 0
+    result[31] = 32; // Set the last element to 32
+    result
 }

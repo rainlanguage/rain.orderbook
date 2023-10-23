@@ -382,6 +382,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let order_config_a = generate_order_config(&expression_deployer, &token_a, &token_b).await;
     let order_config_b = generate_order_config(&expression_deployer, &token_c, &token_d).await;
 
+    // Encode them to send them with multicall.
     let multi_orders = generate_multi_add_order(vec![&order_config_a, &order_config_b]);
 
     // Add the order
@@ -389,10 +390,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 
     let tx_multicall = multicall_func.send().await.expect("multicall not sent");
 
-    println!("tx_multicall: {:?}", tx_multicall);
-
     let receipt = tx_multicall.await.expect("cannot get receipt");
-    println!("receipt: {:?}", receipt);
 
     // let aver = orderbook.add_order(order_config_a);
 
