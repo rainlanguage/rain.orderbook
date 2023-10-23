@@ -94,8 +94,6 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
 
         let order_data = Bytes::from(order_bytes);
 
-        println!("order_data: {:?}\n", order_data);
-
         // Push the order bytes
         data.push(order_data);
     }

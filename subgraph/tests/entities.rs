@@ -451,13 +451,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     // Add the orders with multicall
     let multicall_func = orderbook.multicall(multi_orders);
     let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-
-    // Get all orders events (logs) from the transaction
-    let order_events = get_add_order_events(&orderbook, &tx_multicall).await;
-
-    for (i, event) in order_events.iter().enumerate() {
-        println!("event_{i}: \n {:?}\n\n", event);
-    }
+    let _ = tx_multicall.await.expect("failed to wait receipt");
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
