@@ -566,7 +566,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     // Get a random vaultId
     let vault_id = generate_random_u256();
 
-    // Fill struct with the deposit configurations
+    // Fill struct with same vaultId in the deposit configurations
     let deposits_config = vec![
         // Config A
         TestDepositConfig {
@@ -593,20 +593,35 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 
     let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
 
+    // Generate the expetect Token Vault IDs
+    let token_vault_a = format!("{}-{:?}-{:?}", vault_id, alice.address(), token_a.address());
+    let token_vault_b = format!("{}-{:?}-{:?}", vault_id, alice.address(), token_b.address());
+
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
-    let response = Query::vault(&vault_entity_id)
+    let resp = Query::vault(&vault_entity_id)
         .await
         .expect("cannot get the query response");
 
+    // The whole entity should be created normally
+    assert_eq!(resp.id, vault_entity_id);
+    assert_eq!(resp.vault_id, vault_id);
+    assert_eq!(resp.owner, alice.address());
+    assert!(
+        resp.token_vaults.contains(&token_vault_a),
+        "Missing tokenVault id"
+    );
+    assert!(
+        resp.token_vaults.contains(&token_vault_b),
+        "Missing tokenVault id"
+    );
+
+    // Should include the deposits made
     for index in 0..deposits_config.len() {
         let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
 
-        assert!(
-            response.deposits.contains(&deposit_id),
-            "missing deposit id"
-        );
+        assert!(resp.deposits.contains(&deposit_id), "missing deposit id");
     }
 
     Ok(())
