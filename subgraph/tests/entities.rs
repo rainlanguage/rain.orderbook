@@ -4,7 +4,7 @@ mod utils;
 
 use ethers::{
     signers::Signer,
-    types::{Address, Bytes, TransactionReceipt, U256},
+    types::{Address, Bytes, U256},
     utils::keccak256,
 };
 use subgraph::{wait, Query};
@@ -23,7 +23,7 @@ use utils::{
 };
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -50,7 +50,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -86,7 +86,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -127,7 +127,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -246,7 +246,7 @@ async fn order_entity_add_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -308,7 +308,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -395,7 +395,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -587,13 +587,11 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     // Send the deposits with multicall
     let multicall_func = orderbook.multicall(multi_deposit);
     let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-    let tx_receipt = tx_multicall.await.expect("failed to wait receipt");
+    let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
 
-    let deposit_tx_hash = tx_receipt.unwrap().transaction_hash;
-    println!("deposit_tx_hash: {:?}\n", deposit_tx_hash);
+    let deposit_tx_hash = &tx_receipt.transaction_hash;
 
     let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
-    println!("vault_entity_id: {:?}\n", vault_entity_id);
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
@@ -604,19 +602,19 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 
     println!("response: {:?}\n", response);
 
-    // for (index, deposit) in deposits_config.iter().enumerate() {
-    //     let deposit_id = format!("{}-{}", deposit_tx_hash, index);
+    for index in 0..deposits_config.len() {
+        let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
 
-    //     assert!(
-    //         response.deposits.contains(&deposit_id),
-    //         "missing deposit id"
-    //     );
-    // }
+        assert!(
+            response.deposits.contains(&deposit_id),
+            "missing deposit id"
+        );
+    }
 
     Ok(())
 }
 
-// #[test]
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
