@@ -460,7 +460,10 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     // Get all orders events (logs) from the transaction
     let order_events = get_add_order_events(&orderbook, &tx_multicall).await;
 
-    println!("order_events: \n {:?}\n", order_events);
+    for (i, event) in order_events.iter().enumerate() {
+        println!("event_{i}: \n {:?}\n\n", event);
+    }
+    wait().await.expect("cannot get SG sync status");
 
     let vault_entity_id = format!("{}-{:?}", vault_id, wallet_owner.address());
 
@@ -471,7 +474,6 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     println!("response: {:?}", response);
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
 
     Ok(())
 }
