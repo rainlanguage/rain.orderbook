@@ -129,7 +129,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 
 #[tokio::main]
 // #[test]
-async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
+async fn order_entity_add_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
     // Connect the orderbook to another wallet
@@ -201,7 +201,7 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
     assert_eq!(response.expression_deployer, expression_deployer.address());
     assert_eq!(response.expression, order_data.evaluable.expression);
 
-    assert_eq!(response.order_active, is_order_exist, "fail order status");
+    assert_eq!(response.order_active, is_order_exist, "wrong order status");
     assert_eq!(response.handle_i_o, order_data.handle_io);
     assert_eq!(response.meta, rain_doc_hashed);
     assert_eq!(response.emitter, wallet_1.address());
@@ -242,9 +242,53 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
         assert!(response.valid_outputs.contains(&id), "Missing IO in order");
     }
 
+    Ok(())
+}
+
+#[tokio::main]
+// #[test]
+async fn order_entity_remove_order_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await.expect("cannot get OB");
+
+    // Connect the orderbook to another wallet
+    let wallet_1 = get_wallet(1);
+    let orderbook = orderbook.connect(&wallet_1).await;
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = touch_deployer(None)
+        .await
+        .expect("cannot deploy expression_deployer");
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // Build OrderConfig
+    let order_config = generate_order_config(&expression_deployer, &token_a, &token_b).await;
+
+    // Add the order
+    let add_order_func = orderbook.add_order(order_config.clone());
+    let tx_add_order = add_order_func.send().await.expect("order not sent");
+
+    // Decode events from the transaction
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await;
+
+    let order_hash = Bytes::from(add_order_data.order_hash);
+
+    // Data from the event in tx
+    let order_data = add_order_data.order;
+
+    // Remove the order
     let remove_order_fnc = orderbook.remove_order(order_data);
     let _ = remove_order_fnc.send().await.expect("order not removed");
 
+    // Current order status
     let is_order_exist: bool = orderbook
         .order_exists(bytes_to_h256(&order_hash).into())
         .call()
@@ -257,7 +301,7 @@ async fn order_entity_add_and_remove_order_test() -> anyhow::Result<()> {
         .await
         .expect("cannot get the query response");
 
-    assert_eq!(response.order_active, is_order_exist, "fail order status");
+    assert_eq!(response.order_active, is_order_exist, "wrong order status");
 
     Ok(())
 }

@@ -36,6 +36,37 @@ async fn get_matched_log(tx: &PendingTransaction<'_, Http>, filter: Filter) -> O
     None
 }
 
+/// Get all the logs in a transaction for a given filter.
+async fn get_matched_logs(tx: &PendingTransaction<'_, Http>, filter: Filter) -> Option<Vec<Log>> {
+    let tx_hash = tx.tx_hash().clone();
+
+    let provider = get_provider().await.unwrap();
+
+    let tx_receipt: TransactionReceipt = provider
+        .get_transaction_receipt(tx_hash)
+        .await
+        .expect("Failed to get the receipt")
+        .unwrap();
+
+    let topic_hash = extract_topic_hash(filter).expect("cannot get the topic hash");
+
+    let mut logs: Vec<Log> = Vec::new();
+
+    for log in tx_receipt.logs.iter() {
+        if let Some(first_topic) = log.topics.get(0) {
+            if first_topic == &topic_hash {
+                logs.push(log.clone())
+            }
+        }
+    }
+
+    if logs.len() > 0 {
+        return Some(logs);
+    }
+
+    None
+}
+
 /// Try to extract the hash value from a Topic (ValueOrArray) type
 // fn extract_topic_hash(topic: ValueOrArray<Option<TxHash>>) -> Option<TxHash> {
 fn extract_topic_hash(filter: Filter) -> Option<TxHash> {
@@ -84,6 +115,29 @@ pub async fn get_add_order_event(
     return contract
         .decode_event::<AddOrderFilter>("AddOrder", log.topics, log.data)
         .expect("cannot decode the event");
+}
+
+pub async fn get_add_order_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx: &PendingTransaction<'_, Http>,
+) -> Vec<AddOrderFilter> {
+    let filter: Filter = contract.clone().add_order_filter().filter;
+
+    let logs = get_matched_logs(tx, filter)
+        .await
+        .expect("there is no topic matched in the transaction");
+
+    let mut events: Vec<AddOrderFilter> = Vec::new();
+
+    for log in logs {
+        let event: AddOrderFilter = contract
+            .decode_event::<AddOrderFilter>("AddOrder", log.topics, log.data)
+            .expect("cannot decode the event");
+
+        events.push(event);
+    }
+
+    return events;
 }
 
 pub async fn get_new_expression_event(
