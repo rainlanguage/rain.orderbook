@@ -15,9 +15,9 @@ use ethers::{
 
 /// A Deposit configuration struct to encode deposit to be used with multicall
 pub struct TestDepositConfig {
-    pub tokens: Vec<Address>,
-    pub vault_ids: Vec<U256>,
-    pub amounts: Vec<U256>,
+    pub token: Address,
+    pub vault_id: U256,
+    pub amount: U256,
 }
 
 pub async fn mint_tokens(
@@ -113,28 +113,14 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
 }
 
 /// From given arguments, encode them to a collection of Bytes to be used with multicall
-pub fn generate_multi_deposit(deposit_config: &TestDepositConfig) -> Vec<Bytes> {
-    let TestDepositConfig {
-        tokens,
-        vault_ids,
-        amounts,
-    } = deposit_config;
-
-    if tokens.len() != vault_ids.len() || tokens.len() != amounts.len() {
-        panic!("Mismatch length between provide data");
-    }
-
+pub fn generate_multi_deposit(deposit_configs: &Vec<TestDepositConfig>) -> Vec<Bytes> {
     let mut data: Vec<Bytes> = Vec::new();
 
-    for (index, token) in tokens.iter().enumerate() {
-        // Unwrap since already check the length matched between data
-        let vault_id = *vault_ids.get(index).unwrap();
-        let amount = *amounts.get(index).unwrap();
-
+    for config in deposit_configs {
         let call_config = DepositCall {
-            token: *token,
-            vault_id,
-            amount,
+            token: config.token,
+            vault_id: config.vault_id,
+            amount: config.amount,
         };
 
         let encoded_call = Bytes::from(AbiEncode::encode(call_config));
