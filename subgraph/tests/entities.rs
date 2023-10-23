@@ -600,8 +600,6 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
         .await
         .expect("cannot get the query response");
 
-    println!("response: {:?}\n", response);
-
     for index in 0..deposits_config.len() {
         let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
 
