@@ -16,7 +16,10 @@ use utils::{
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::get_amount_tokens,
-    transactions::{generate_multi_add_order, generate_order_config, mint_tokens},
+    transactions::{
+        approve_tokens, generate_multi_add_order, generate_multi_deposit, generate_order_config,
+        mint_tokens,
+    },
 };
 
 #[tokio::main]
@@ -522,11 +525,6 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let alice = get_wallet(2);
     let orderbook = orderbook.connect(&alice).await;
 
-    // // Deploy ExpressionDeployerNP for the config
-    // let expression_deployer = touch_deployer(None)
-    //     .await
-    //     .expect("cannot deploy expression_deployer");
-
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None)
         .await
@@ -542,64 +540,35 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     // Fill to Alice with tokens (A and B)
     mint_tokens(&amount, &alice.address(), &token_a)
         .await
-        .expect("cannot mint");
+        .expect("cannot mint tokens");
 
     mint_tokens(&amount, &alice.address(), &token_b)
         .await
-        .expect("cannot mint");
-
-    // token_a
-    //     .mint(alice.address(), amount)
-    //     .send()
-    //     .await
-    //     .expect("cannot mint tokens")
-    //     .await
-    //     .expect("cannot get the receipt");
-
-    // token_b
-    //     .mint(alice.address(), amount)
-    //     .send()
-    //     .await
-    //     .expect("cannot mint tokens")
-    //     .await
-    //     .expect("cannot get the receipt");
+        .expect("cannot mint tokens");
 
     // Connect token to Alice and approve Orderbook to move tokens
-    token_a
-        .connect(&alice)
-        .await
-        .approve(orderbook.address(), amount)
-        .send()
-        .await
-        .expect("cannot approve tokens")
-        .await
-        .expect("cannot get the receipt");
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_a.connect(&alice).await,
+    )
+    .await
+    .expect("cannot approve tokens");
 
-    token_b
-        .connect(&alice)
-        .await
-        .approve(orderbook.address(), amount)
-        .send()
-        .await
-        .expect("cannot approve tokens")
-        .await
-        .expect("cannot get the receipt");
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_b.connect(&alice).await,
+    )
+    .await
+    .expect("cannot approve tokens");
 
-    let allowance_a: U256 = token_a
-        .allowance(alice.address(), orderbook.address())
-        .call()
-        .await
-        .expect("cannot get allowance");
-    let allowance_b: U256 = token_b
-        .allowance(alice.address(), orderbook.address())
-        .call()
-        .await
-        .expect("cannot get allowance");
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
 
-    println!(
-        "allowance_a: {} - allowance_b: {}",
-        allowance_a, allowance_b
-    );
+    let _ = generate_multi_deposit(vec![&token_a.address()], vec![&vault_id], vec![&amount]);
+
+    // orderbook.deposit(token, vault_id, amount)
 
     // Generate TWO order configs with identical vault ID.
     // All the TokenVaults with same VaultId should be present in the Vault

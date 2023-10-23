@@ -1,13 +1,13 @@
 use crate::{
     generated::{
-        AddOrderCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
+        AddOrderCall, DepositCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
         RainterpreterExpressionDeployer,
     },
     utils::{generate_random_u256, mock_rain_doc},
 };
 use ethers::{
     contract::EthCall,
-    core::k256::ecdsa::SigningKey,
+    core::{abi::AbiEncode, k256::ecdsa::SigningKey},
     prelude::SignerMiddleware,
     providers::{Http, Provider},
     signers::Wallet,
@@ -20,6 +20,16 @@ pub async fn mint_tokens(
     token: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
 ) -> anyhow::Result<()> {
     token.mint(*target, *amount).send().await?.await?;
+
+    Ok(())
+}
+
+pub async fn approve_tokens(
+    amount: &U256,
+    spender: &Address,
+    token: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+) -> anyhow::Result<()> {
+    token.approve(*spender, *amount).send().await?.await?;
 
     Ok(())
 }
@@ -89,7 +99,7 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
     for order in orders {
         // The OrderConfigV2 from abigen implemented the `AbiEncode` trait, so
         // it could be easily encoded
-        let encoded_order: Vec<u8> = ethers::core::abi::AbiEncode::encode(order.to_owned());
+        let encoded_order: Vec<u8> = AbiEncode::encode(order.to_owned());
 
         // Create a new Vec<u8> that will contain the function selector and the
         // current encoded_order
@@ -106,6 +116,40 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
 
         // Push the order bytes
         data.push(order_data);
+    }
+
+    return data;
+}
+
+/// From given arguments, encode them to a collection of Bytes to be used with multicall
+pub fn generate_multi_deposit(
+    tokens: Vec<&Address>,
+    vault_ids: Vec<&U256>,
+    amounts: Vec<&U256>,
+) -> Vec<Bytes> {
+    if tokens.len() != vault_ids.len() || tokens.len() != amounts.len() {
+        panic!("Mismatch length between provide data");
+    }
+
+    let selector: [u8; 4] = DepositCall::selector();
+    println!("Selector: {}", Bytes::from(selector));
+
+    let tuple_bytes: [u8; 32] = byte_for_tuples();
+
+    let mut data: Vec<Bytes> = Vec::new();
+
+    for token in tokens {
+        let vault_id = vault_ids.get(0).unwrap().to_owned().to_owned();
+        let amount = amounts.get(0).unwrap().to_owned().to_owned();
+
+        let call_config = DepositCall {
+            token: token.to_owned(),
+            vault_id,
+            amount,
+        };
+
+        let encoded_call = AbiEncode::encode(call_config);
+        println!("encoded_call: {}", Bytes::from(encoded_call));
     }
 
     return data;
