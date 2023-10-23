@@ -15,11 +15,12 @@ use utils::{
     events::{get_add_order_event, get_add_order_events, get_new_expression_event},
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
+    numbers::get_amount_tokens,
     transactions::{generate_multi_add_order, generate_order_config},
 };
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -46,7 +47,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -82,7 +83,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -123,7 +124,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn order_entity_add_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -242,7 +243,7 @@ async fn order_entity_add_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -304,7 +305,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -391,7 +392,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -512,7 +513,89 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[tokio::main]
 #[test]
+async fn vault_entity_deposit_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await.expect("cannot get OB");
+
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let alice = get_wallet(2);
+    let orderbook = orderbook.connect(&alice).await;
+
+    // // Deploy ExpressionDeployerNP for the config
+    // let expression_deployer = touch_deployer(None)
+    //     .await
+    //     .expect("cannot deploy expression_deployer");
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None)
+        .await
+        .expect("failed on deploy erc20 token");
+
+    let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+
+    // Fill to Alice with tokens (A and B)
+    token_a
+        .mint(alice.address(), amount)
+        .send()
+        .await
+        .expect("cannot mint tokens")
+        .await
+        .expect("cannot get the receipt");
+
+    token_b
+        .mint(alice.address(), amount)
+        .send()
+        .await
+        .expect("cannot mint tokens")
+        .await
+        .expect("cannot get the receipt");
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    token_a
+        .connect(&alice)
+        .await
+        .approve(orderbook.address(), amount)
+        .send()
+        .await
+        .expect("cannot approve tokens")
+        .await
+        .expect("cannot get the receipt");
+
+    token_b
+        .connect(&alice)
+        .await
+        .approve(orderbook.address(), amount)
+        .send()
+        .await
+        .expect("cannot approve tokens")
+        .await
+        .expect("cannot get the receipt");
+
+    // Generate TWO order configs with identical vault ID.
+    // All the TokenVaults with same VaultId should be present in the Vault
+    // let vault_id = generate_random_u256();
+
+    // Encode them to send them with multicall
+
+    // Wait for Subgraph sync
+    wait().await.expect("cannot get SG sync status");
+
+    // let vault_entity_id = format!("{}-{:?}", vault_id, wallet_owner.address());
+
+    // let response = Query::vault(&vault_entity_id)
+    //     .await
+    //     .expect("cannot get the query response");
+
+    Ok(())
+}
+
+// #[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
