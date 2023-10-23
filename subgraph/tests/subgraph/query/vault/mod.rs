@@ -1,7 +1,8 @@
 use self::vault::ResponseData;
 use super::SG_URL;
+use crate::utils::mn_mpz_to_u256;
 use anyhow::{anyhow, Result};
-use ethers::types::{Address, Bytes};
+use ethers::types::{Address, Bytes, U256};
 use graphql_client::{GraphQLQuery, Response};
 use rust_bigint::BigInt;
 use serde::{Deserialize, Serialize};
@@ -18,6 +19,7 @@ pub struct Vault;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct VaultResponse {
     pub id: String,
+    pub vault_id: U256,
     pub owner: Address,
     pub token_vaults: Vec<String>,
     pub deposits: Vec<String>,
@@ -51,6 +53,7 @@ impl VaultResponse {
 
         VaultResponse {
             id: data.id,
+            vault_id: mn_mpz_to_u256(&data.vault_id),
             owner: Address::from_slice(&data.owner.id),
             token_vaults,
             deposits,

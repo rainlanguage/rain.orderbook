@@ -463,6 +463,8 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     for (i, event) in order_events.iter().enumerate() {
         println!("event_{i}: \n {:?}\n\n", event);
     }
+
+    // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
 
     let vault_entity_id = format!("{}-{:?}", vault_id, wallet_owner.address());
@@ -471,9 +473,52 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
         .await
         .expect("cannot get the query response");
 
-    println!("response: {:?}", response);
+    // Generate the expetect Token Vault IDs
+    let token_vault_a = format!(
+        "{}-{:?}-{:?}",
+        vault_id,
+        wallet_owner.address(),
+        token_a.address()
+    );
+    let token_vault_b = format!(
+        "{}-{:?}-{:?}",
+        vault_id,
+        wallet_owner.address(),
+        token_b.address()
+    );
+    let token_vault_c = format!(
+        "{}-{:?}-{:?}",
+        vault_id,
+        wallet_owner.address(),
+        token_c.address()
+    );
+    let token_vault_d = format!(
+        "{}-{:?}-{:?}",
+        vault_id,
+        wallet_owner.address(),
+        token_d.address()
+    );
 
-    // Wait for Subgraph sync
+    assert_eq!(response.id, vault_entity_id);
+    assert_eq!(response.vault_id, vault_id);
+    assert_eq!(response.owner, wallet_owner.address());
+
+    assert!(
+        response.token_vaults.contains(&token_vault_a),
+        "Missing tokenVault id"
+    );
+    assert!(
+        response.token_vaults.contains(&token_vault_b),
+        "Missing tokenVault id"
+    );
+    assert!(
+        response.token_vaults.contains(&token_vault_c),
+        "Missing tokenVault id"
+    );
+    assert!(
+        response.token_vaults.contains(&token_vault_d),
+        "Missing tokenVault id"
+    );
 
     Ok(())
 }
