@@ -10,7 +10,7 @@ pub mod transactions;
 pub use setup::get_provider;
 
 use ethers::{
-    core::k256::ecdsa::SigningKey,
+    core::{k256::ecdsa::SigningKey, rand::random},
     providers::Middleware,
     signers::{coins_bip39::English, MnemonicBuilder, Wallet},
     types::{Bytes, H256, U256, U64},
@@ -163,6 +163,11 @@ pub fn _h256_to_bytes(value: &H256) -> Bytes {
 /// Does not contain any well info. Only rain doc well formed.
 pub fn mock_rain_doc() -> Bytes {
     Bytes::from_hex("0xff0a89c674ee7874a30052746869735f69735f616e5f6578616d706c65011bffe5ffb4a3ff2cde02706170706c69636174696f6e2f6a736f6e").unwrap()
+}
+
+pub fn generate_random_u256() -> U256 {
+    // This trully is a random u64, but it's work for testing
+    return U256::from(random::<u64>());
 }
 
 /// Rain Magic Numbers

@@ -3,11 +3,11 @@ use crate::{
         AddOrderCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
         RainterpreterExpressionDeployer,
     },
-    utils::mock_rain_doc,
+    utils::{generate_random_u256, mock_rain_doc},
 };
 use ethers::{
     contract::EthCall,
-    core::{k256::ecdsa::SigningKey, rand::random},
+    core::k256::ecdsa::SigningKey,
     prelude::SignerMiddleware,
     providers::{Http, Provider},
     signers::Wallet,
@@ -101,11 +101,6 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
     }
 
     return data;
-}
-
-pub fn generate_random_u256() -> U256 {
-    // This trully is a random u64, but it's work for testing
-    return U256::from(random::<u64>());
 }
 
 /// The extra 32 bytes for the start of the tuples.
