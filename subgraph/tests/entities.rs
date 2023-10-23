@@ -18,7 +18,7 @@ use utils::{
     numbers::get_amount_tokens,
     transactions::{
         approve_tokens, generate_multi_add_order, generate_multi_deposit, generate_order_config,
-        mint_tokens,
+        mint_tokens, TestDepositConfig,
     },
 };
 
@@ -566,9 +566,19 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     // Get a random vaultId
     let vault_id = generate_random_u256();
 
-    let _ = generate_multi_deposit(vec![&token_a.address()], vec![&vault_id], vec![&amount]);
+    // Fill struct with the deposit configurations
+    let deposits_config = TestDepositConfig {
+        tokens: vec![token_a.address(), token_b.address()],
+        vault_ids: vec![vault_id; 2],
+        amounts: vec![amount; 2],
+    };
 
-    // orderbook.deposit(token, vault_id, amount)
+    let multi_deposit = generate_multi_deposit(&deposits_config);
+
+    // Send the deposits with multicall
+    let multicall_func = orderbook.multicall(multi_deposit);
+    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
+    let _ = tx_multicall.await.expect("failed to wait receipt");
 
     // Generate TWO order configs with identical vault ID.
     // All the TokenVaults with same VaultId should be present in the Vault

@@ -6,13 +6,19 @@ use crate::{
     utils::{generate_random_u256, mock_rain_doc},
 };
 use ethers::{
-    contract::EthCall,
     core::{abi::AbiEncode, k256::ecdsa::SigningKey},
     prelude::SignerMiddleware,
     providers::{Http, Provider},
     signers::Wallet,
     types::{Address, Bytes, U256},
 };
+
+/// A Deposit configuration struct to encode deposit to be used with multicall
+pub struct TestDepositConfig {
+    pub tokens: Vec<Address>,
+    pub vault_ids: Vec<U256>,
+    pub amounts: Vec<U256>,
+}
 
 pub async fn mint_tokens(
     amount: &U256,
@@ -107,11 +113,13 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
 }
 
 /// From given arguments, encode them to a collection of Bytes to be used with multicall
-pub fn generate_multi_deposit(
-    tokens: Vec<&Address>,
-    vault_ids: Vec<&U256>,
-    amounts: Vec<&U256>,
-) -> Vec<Bytes> {
+pub fn generate_multi_deposit(deposit_config: &TestDepositConfig) -> Vec<Bytes> {
+    let TestDepositConfig {
+        tokens,
+        vault_ids,
+        amounts,
+    } = deposit_config;
+
     if tokens.len() != vault_ids.len() || tokens.len() != amounts.len() {
         panic!("Mismatch length between provide data");
     }
@@ -120,11 +128,11 @@ pub fn generate_multi_deposit(
 
     for (index, token) in tokens.iter().enumerate() {
         // Unwrap since already check the length matched between data
-        let vault_id = **vault_ids.get(index).unwrap();
-        let amount = **amounts.get(index).unwrap();
+        let vault_id = *vault_ids.get(index).unwrap();
+        let amount = *amounts.get(index).unwrap();
 
         let call_config = DepositCall {
-            token: *token.to_owned(),
+            token: *token,
             vault_id,
             amount,
         };
