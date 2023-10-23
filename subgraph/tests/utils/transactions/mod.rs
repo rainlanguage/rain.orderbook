@@ -96,11 +96,10 @@ pub fn generate_multi_add_order(orders: Vec<&OrderConfigV2>) -> Vec<Bytes> {
         let call_config = AddOrderCall {
             config: order.to_owned(),
         };
-        let encoded_call: Bytes = Bytes::from(AbiEncode::encode(call_config));
 
-        println!("encoded_call_2: {}", encoded_call);
+        let encoded_call = Bytes::from(AbiEncode::encode(call_config));
 
-        // Push the order bytes
+        // Push the bytes
         data.push(encoded_call);
     }
 
@@ -117,35 +116,24 @@ pub fn generate_multi_deposit(
         panic!("Mismatch length between provide data");
     }
 
-    let selector: [u8; 4] = DepositCall::selector();
-    println!("Selector: {}", Bytes::from(selector));
-
-    let tuple_bytes: [u8; 32] = byte_for_tuples();
-
     let mut data: Vec<Bytes> = Vec::new();
 
-    for token in tokens {
-        let vault_id = vault_ids.get(0).unwrap().to_owned().to_owned();
-        let amount = amounts.get(0).unwrap().to_owned().to_owned();
+    for (index, token) in tokens.iter().enumerate() {
+        // Unwrap since already check the length matched between data
+        let vault_id = **vault_ids.get(index).unwrap();
+        let amount = **amounts.get(index).unwrap();
 
         let call_config = DepositCall {
-            token: token.to_owned(),
+            token: *token.to_owned(),
             vault_id,
             amount,
         };
 
-        let encoded_call = AbiEncode::encode(call_config);
-        println!("encoded_call: {}", Bytes::from(encoded_call));
+        let encoded_call = Bytes::from(AbiEncode::encode(call_config));
+
+        // Push the bytes
+        data.push(encoded_call);
     }
 
     return data;
-}
-
-/// The extra 32 bytes for the start of the tuples.
-///
-/// `*TODO*`: Search why the encode function not give this
-fn byte_for_tuples() -> [u8; 32] {
-    let mut result = [0u8; 32]; // Initialize an array with all elements set to 0
-    result[31] = 32; // Set the last element to 32
-    result
 }
