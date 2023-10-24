@@ -791,7 +791,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let bounty_bot_vault_a = generate_random_u256();
     let bounty_bot_vault_b = generate_random_u256();
 
-    // Order Alice
+    // Order Alice Configuration
     let order_alice = generate_order_config(
         &expression_deployer,
         &token_a,
@@ -801,7 +801,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     )
     .await;
 
-    // Order Bob
+    // Order Bob Configuration
     let order_bob = generate_order_config(
         &expression_deployer,
         &token_b,
@@ -813,11 +813,13 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
     // Add order alice with Alice connected to the OB
     let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
-    let _ = add_order_alice.send().await?.await?;
+    let tx = add_order_alice.send().await.expect("cannot send order");
+    let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
 
     // Add order bob with Bob connected to the OB
     let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
-    let _ = add_order_bob.send().await?.await?;
+    let tx = add_order_bob.send().await.expect("cannot send order");
+    let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
 
     // Make deposit of corresponded output token
     let amount = get_amount_tokens(1000, 18);
