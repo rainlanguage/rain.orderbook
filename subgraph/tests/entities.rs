@@ -766,7 +766,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
 
-    let orderbook = get_orderbook().await?;
+    let orderbook = get_orderbook().await.expect("cannot get OB");
 
     // Deploy ExpressionDeployerNP for the config
     let expression_deployer = touch_deployer(None).await?;
