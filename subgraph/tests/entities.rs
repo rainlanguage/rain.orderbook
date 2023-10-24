@@ -766,23 +766,15 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
 
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None)
-        .await
-        .expect("cannot deploy expression_deployer");
+    let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
-
+    let token_a = deploy_erc20_mock(None).await?;
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
-
+    let token_b = deploy_erc20_mock(None).await?;
     // Generate vault ids for each account (Input and Output)
     let alice_input_vault = generate_random_u256();
     let alice_output_vault = generate_random_u256();
@@ -813,12 +805,12 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
     // Add order alice with Alice connected to the OB
     let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
-    let tx = add_order_alice.send().await.expect("cannot send order");
+    let tx = add_order_alice.send().await?;
     let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
 
     // Add order bob with Bob connected to the OB
     let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
-    let tx = add_order_bob.send().await.expect("cannot send order");
+    let tx = add_order_bob.send().await?;
     let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
 
     // Make deposit of corresponded output token
