@@ -70,9 +70,14 @@
             anvil -m "$(cat ./test-mnemonic)"
           '');
 
+          strong-anvil = pkgs.writeShellScriptBin "strong-anvil" (''
+            anvil -m "$(cat ./test-mnemonic)" --code-size-limit 36864
+          '');
+
           end-anvil = pkgs.writeShellScriptBin "end-anvil" (''
             kill -9 $(lsof -t -i :8545)
           '');
+
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
             cargo test -- --test-threads=1 --nocapture;

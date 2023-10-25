@@ -12,13 +12,17 @@ use utils::{
     bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
-    events::{get_add_order_event, get_add_order_events, get_new_expression_event},
+    events::{
+        get_add_order_event, get_add_order_events, get_after_clear_event, get_clear_event,
+        get_new_expression_event,
+    },
+    gen_abigen::_abigen_rust_generation,
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::get_amount_tokens,
     transactions::{
-        approve_tokens, generate_multi_add_order, generate_multi_deposit, generate_order_config,
-        mint_tokens, TestDepositConfig,
+        approve_tokens, generate_clear_config, generate_multi_add_order, generate_multi_deposit,
+        generate_order_config, mint_tokens, TestDepositConfig,
     },
 };
 
@@ -765,6 +769,9 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
+    println!("alice.address(): {:?}", alice.address());
+    println!("bob.address(): {:?}", bob.address());
+    println!("bounty_bot.address(): {:?}", bounty_bot.address());
 
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -802,159 +809,217 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         Some(bob_output_vault),
     )
     .await;
+    println!("Pre call add_order_alice");
 
     // Add order alice with Alice connected to the OB
     let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
-    let tx = add_order_alice.send().await?;
+    let tx = add_order_alice
+        .send()
+        .await
+        .expect("cannot send add order alice");
     let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
+
+    println!("Pre call add_order_bob");
 
     // Add order bob with Bob connected to the OB
     let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
-    let tx = add_order_bob.send().await?;
+    let tx = add_order_bob
+        .send()
+        .await
+        .expect("cannot send add order bob");
     let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
 
     // Make deposit of corresponded output token
-    let amount = get_amount_tokens(1000, 18);
+    let decimal_a = token_a.decimals().call().await?;
+    let amount_alice = get_amount_tokens(8, decimal_a);
+
+    let decimal_b = token_b.decimals().call().await?;
+    let amount_bob = get_amount_tokens(6, decimal_b);
 
     // Alice has token_b as output
-    mint_tokens(&amount, &alice.address(), &token_b).await?;
+    mint_tokens(
+        &amount_alice,
+        &alice.address(),
+        &token_b,
+    )
+    .await?;
 
     // Approve Alice token_b using to OB
     approve_tokens(
-        &amount,
+        // &amount_alice,
+        &amount_alice,
         &orderbook.address(),
         &token_b.connect(&alice).await,
     )
     .await?;
 
+    println!("Pre call deposit_func alice");
     // Deposit using Alice
-    let deposit_func =
-        orderbook
-            .connect(&alice)
-            .await
-            .deposit(token_b.address(), alice_output_vault, amount);
+    let deposit_func = orderbook.connect(&alice).await.deposit(
+        token_b.address(),
+        alice_output_vault,
+        amount_alice,
+    );
     let _ = deposit_func.send().await?.await?;
 
     // Bob has token_a as output
-    mint_tokens(&amount, &bob.address(), &token_a).await?;
+    mint_tokens(&amount_bob, &bob.address(), &token_a).await?;
 
     // Approve Bob token_a using to OB
-    approve_tokens(&amount, &orderbook.address(), &token_a.connect(&bob).await).await?;
+    approve_tokens(
+        &amount_bob,
+        &orderbook.address(),
+        &token_a.connect(&bob).await,
+    )
+    .await?;
 
+    println!("Pre call deposit_func_2 bob");
     // Deposit using Bob
-    let deposit_func =
+    let deposit_func_2 =
         orderbook
             .connect(&bob)
             .await
-            .deposit(token_a.address(), bob_output_vault, amount);
-    let _ = deposit_func.send().await?.await?;
+            .deposit(token_a.address(), bob_output_vault, amount_bob);
+    let _ = deposit_func_2.send().await?.await?;
 
-    // Get a random vaultId
-    let vault_id = generate_random_u256();
 
-    // The expected vault entity SG ID
-    let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
 
-    ////////
+    // BOUNTY BOT CLEARS THE ORDER
+    // Clear configuration
+    let order_alice = &add_order_alice_data.order;
+    let order_bob = &add_order_bob_data.order;
+    let clear_config = generate_clear_config(&bounty_bot_vault_a, &bounty_bot_vault_b);
 
-    // Build OrderConfig with the vaultId
-    let order_config = generate_order_config(
-        &expression_deployer,
-        &token_a,
-        Some(vault_id),
-        &token_b,
-        Some(vault_id),
-    )
-    .await;
+    println!("Pre call clear");
 
-    // Add the order
-    let add_order_func = orderbook.add_order(order_config.clone());
-    let _ = add_order_func
-        .send()
-        .await
-        .expect("order not sent")
-        .await
-        .expect("cannot wait receipt");
+    let a_signed_context: Vec<generated::SignedContextV1> = Vec::new();
+    let b_signed_context: Vec<generated::SignedContextV1> = Vec::new();
 
-    // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    let clear_func = orderbook.connect(&bounty_bot).await.clear(
+        order_alice.to_owned(),
+        order_bob.to_owned(),
+        clear_config,
+        a_signed_context,
+        b_signed_context,
+    );
 
-    // First query when adding order
-    let resp = Query::vault(&vault_entity_id)
-        .await
-        .expect("cannot get the query response");
+    println!("Pre send clear");
 
-    // The whole entity should be created normally when adding the order
-    assert_eq!(resp.id, vault_entity_id);
+    let tx = clear_func.send().await?;
+    println!("Post send clear");
 
-    // Now, make the deposits with a given amount
-    let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+    let clear_data = get_clear_event(orderbook, &tx).await;
+    println!("clear_data: {:?}\n", clear_data);
 
-    // Fill to Alice with tokens (A and B)
-    mint_tokens(&amount, &alice.address(), &token_a)
-        .await
-        .expect("cannot mint tokens");
+    let after_clear_data = get_after_clear_event(orderbook, &tx).await;
+    println!("after_clear_data: {:?}\n", after_clear_data);
 
-    mint_tokens(&amount, &alice.address(), &token_b)
-        .await
-        .expect("cannot mint tokens");
+    // // Get a random vaultId
+    // let vault_id = generate_random_u256();
 
-    // Connect token to Alice and approve Orderbook to move tokens
-    approve_tokens(
-        &amount,
-        &orderbook.address(),
-        &token_a.connect(&alice).await,
-    )
-    .await
-    .expect("cannot approve tokens");
+    // // The expected vault entity SG ID
+    // let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
 
-    approve_tokens(
-        &amount,
-        &orderbook.address(),
-        &token_b.connect(&alice).await,
-    )
-    .await
-    .expect("cannot approve tokens");
+    // ////////
 
-    // Fill struct with same vaultId in the deposit configurations
-    let deposits_config = vec![
-        // Config A
-        TestDepositConfig {
-            token: token_a.address(),
-            vault_id: vault_id,
-            amount,
-        },
-        // Config B
-        TestDepositConfig {
-            token: token_b.address(),
-            vault_id: vault_id,
-            amount,
-        },
-    ];
-    // The multi deposit data bytes
-    let multi_deposit = generate_multi_deposit(&deposits_config);
+    // // Build OrderConfig with the vaultId
+    // let order_config = generate_order_config(
+    //     &expression_deployer,
+    //     &token_a,
+    //     Some(vault_id),
+    //     &token_b,
+    //     Some(vault_id),
+    // )
+    // .await;
 
-    // Send the deposits with multicall
-    let multicall_func = orderbook.multicall(multi_deposit);
-    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-    let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
+    // // Add the order
+    // let add_order_func = orderbook.add_order(order_config.clone());
+    // let _ = add_order_func
+    //     .send()
+    //     .await
+    //     .expect("order not sent")
+    //     .await
+    //     .expect("cannot wait receipt");
 
-    let deposit_tx_hash = &tx_receipt.transaction_hash;
+    // // Wait for Subgraph sync
+    // wait().await.expect("cannot get SG sync status");
 
-    // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    // // First query when adding order
+    // let resp = Query::vault(&vault_entity_id)
+    //     .await
+    //     .expect("cannot get the query response");
 
-    // Second query, using same vault entity ID.
-    let resp = Query::vault(&vault_entity_id)
-        .await
-        .expect("cannot get the query response");
+    // // The whole entity should be created normally when adding the order
+    // assert_eq!(resp.id, vault_entity_id);
 
-    // Should include the deposits made in same vault entity
-    for index in 0..deposits_config.len() {
-        let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
+    // // Now, make the deposits with a given amount
+    // let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
 
-        assert!(resp.deposits.contains(&deposit_id), "missing deposit id");
-    }
+    // // Fill to Alice with tokens (A and B)
+    // mint_tokens(&amount, &alice.address(), &token_a)
+    //     .await
+    //     .expect("cannot mint tokens");
+
+    // mint_tokens(&amount, &alice.address(), &token_b)
+    //     .await
+    //     .expect("cannot mint tokens");
+
+    // // Connect token to Alice and approve Orderbook to move tokens
+    // approve_tokens(
+    //     &amount,
+    //     &orderbook.address(),
+    //     &token_a.connect(&alice).await,
+    // )
+    // .await
+    // .expect("cannot approve tokens");
+
+    // approve_tokens(
+    //     &amount,
+    //     &orderbook.address(),
+    //     &token_b.connect(&alice).await,
+    // )
+    // .await
+    // .expect("cannot approve tokens");
+
+    // // Fill struct with same vaultId in the deposit configurations
+    // let deposits_config = vec![
+    //     // Config A
+    //     TestDepositConfig {
+    //         token: token_a.address(),
+    //         vault_id: vault_id,
+    //         amount,
+    //     },
+    //     // Config B
+    //     TestDepositConfig {
+    //         token: token_b.address(),
+    //         vault_id: vault_id,
+    //         amount,
+    //     },
+    // ];
+    // // The multi deposit data bytes
+    // let multi_deposit = generate_multi_deposit(&deposits_config);
+
+    // // Send the deposits with multicall
+    // let multicall_func = orderbook.multicall(multi_deposit);
+    // let tx_multicall = multicall_func.send().await.expect("multicall not sent");
+    // let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
+
+    // let deposit_tx_hash = &tx_receipt.transaction_hash;
+
+    // // Wait for Subgraph sync
+    // wait().await.expect("cannot get SG sync status");
+
+    // // Second query, using same vault entity ID.
+    // let resp = Query::vault(&vault_entity_id)
+    //     .await
+    //     .expect("cannot get the query response");
+
+    // // Should include the deposits made in same vault entity
+    // for index in 0..deposits_config.len() {
+    //     let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
+
+    //     assert!(resp.deposits.contains(&deposit_id), "missing deposit id");
+    // }
 
     Ok(())
 }

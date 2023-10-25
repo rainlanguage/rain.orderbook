@@ -1,6 +1,6 @@
 use crate::{
     generated::{
-        AddOrderCall, DepositCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
+        AddOrderCall, ClearConfig, DepositCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
         RainterpreterExpressionDeployer,
     },
     utils::{generate_random_u256, mock_rain_doc},
@@ -63,6 +63,7 @@ pub async fn generate_order_config(
     }
 }
 
+
 async fn generate_io(
     token: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     vault_id: Option<U256>,
@@ -80,11 +81,15 @@ async fn generate_eval_config(
         SignerMiddleware<Provider<Http>, Wallet<SigningKey>>,
     >,
 ) -> EvaluableConfigV2 {
-    let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
+    // let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
+    let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1;:;");
     let (bytecode, constants) = expression_deployer
         .parse(data_parse.clone())
         .await
         .expect("cannot get value from parse");
+
+    println!("Bytecode: {:?}", bytecode);
+    println!("constants: {:?}", constants);
 
     // Build the EvaluableConfig and return it
     EvaluableConfigV2 {
@@ -130,4 +135,19 @@ pub fn generate_multi_deposit(deposit_configs: &Vec<TestDepositConfig>) -> Vec<B
     }
 
     return data;
+}
+
+/// The function assume that all the IO index are zero.
+pub fn generate_clear_config(
+    alice_bounty_vault_id: &U256,
+    bob_bounty_vault_id: &U256,
+) -> ClearConfig {
+    ClearConfig {
+        alice_input_io_index: U256::zero(),
+        alice_output_io_index: U256::zero(),
+        bob_input_io_index: U256::zero(),
+        bob_output_io_index: U256::zero(),
+        alice_bounty_vault_id: *alice_bounty_vault_id,
+        bob_bounty_vault_id: *bob_bounty_vault_id,
+    }
 }

@@ -1,4 +1,4 @@
-use crate::generated::{AddOrderFilter, OrderBook};
+use crate::generated::{AddOrderFilter, AfterClearFilter, ClearFilter, OrderBook};
 use crate::generated::{ERC20Mock, TransferFilter};
 use crate::generated::{NewExpressionFilter, RainterpreterExpressionDeployer};
 use ethers::providers::Middleware;
@@ -14,14 +14,16 @@ use super::get_provider;
 
 async fn get_matched_log(tx: &PendingTransaction<'_, Http>, filter: Filter) -> Option<Log> {
     let tx_hash = tx.tx_hash().clone();
+    println!("tx_hash: {:?}", tx_hash);
 
     let provider = get_provider().await.unwrap();
+
 
     let tx_receipt: TransactionReceipt = provider
         .get_transaction_receipt(tx_hash)
         .await
         .expect("Failed to get the receipt")
-        .unwrap();
+        .expect("receipt empty - maybe not minted yet");
 
     let topic_hash = extract_topic_hash(filter).expect("cannot get the topic hash");
 
@@ -152,5 +154,35 @@ pub async fn get_new_expression_event(
 
     return contract
         .decode_event::<NewExpressionFilter>("NewExpression", log.topics, log.data)
+        .expect("cannot decode the event");
+}
+
+pub async fn get_clear_event(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx: &PendingTransaction<'_, Http>,
+) -> ClearFilter {
+    let filter: Filter = contract.clear_filter().filter;
+
+    let log = get_matched_log(tx, filter)
+        .await
+        .expect("there is no topic matched in the transaction");
+
+    return contract
+        .decode_event::<ClearFilter>("Clear", log.topics, log.data)
+        .expect("cannot decode the event");
+}
+
+pub async fn get_after_clear_event(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx: &PendingTransaction<'_, Http>,
+) -> AfterClearFilter {
+    let filter: Filter = contract.after_clear_filter().filter;
+
+    let log = get_matched_log(tx, filter)
+        .await
+        .expect("there is no topic matched in the transaction");
+
+    return contract
+        .decode_event::<AfterClearFilter>("AfterClear", log.topics, log.data)
         .expect("cannot decode the event");
 }
