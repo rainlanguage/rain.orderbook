@@ -818,6 +818,10 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         .await
         .expect("cannot send add order alice");
     let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
+    println!(
+        "alice sender: {:?} --- owner: {:?}",
+        add_order_alice_data.sender, add_order_alice_data.order.owner
+    );
 
     println!("Pre call add_order_bob");
 
@@ -828,6 +832,10 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         .await
         .expect("cannot send add order bob");
     let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
+    println!(
+        "bob sender: {:?} --- owner: {:?}",
+        add_order_bob_data.sender, add_order_bob_data.order.owner
+    );
 
     // Make deposit of corresponded output token
     let decimal_a = token_a.decimals().call().await?;
@@ -837,12 +845,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let amount_bob = get_amount_tokens(6, decimal_b);
 
     // Alice has token_b as output
-    mint_tokens(
-        &amount_alice,
-        &alice.address(),
-        &token_b,
-    )
-    .await?;
+    mint_tokens(&amount_alice, &alice.address(), &token_b).await?;
 
     // Approve Alice token_b using to OB
     approve_tokens(
@@ -881,8 +884,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
             .await
             .deposit(token_a.address(), bob_output_vault, amount_bob);
     let _ = deposit_func_2.send().await?.await?;
-
-
 
     // BOUNTY BOT CLEARS THE ORDER
     // Clear configuration
