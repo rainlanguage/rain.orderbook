@@ -21,47 +21,55 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV2 memory bobConfig,
         uint256 bobVaultId,
         address expression,
-        address bountyBot
+        address bountyBot,
+        uint256 aliceBountyVaultId,
+        uint256 bobBountyVaultId
     ) public {
         // Different accounts
         vm.assume(alice != bob);
         vm.assume(alice != bountyBot);
         vm.assume(bob != bountyBot);
 
-        (Order memory aliceOrder, ) = _addOrderMockInternal(alice, aliceConfig, expression, iToken0, iToken1);
+        // -- Add two orders with similar IO tokens (swapped)
+        // Add alice order with a input token (iToken0) and output token (iToken1)
+        (Order memory aliceOrder, bytes32 aliceOrderHash) = _addOrderMockInternal(alice, aliceConfig, expression, iToken0, iToken1);
+        assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
-        (Order memory bobOrder, ) = _addOrderMockInternal(bob, bobConfig, expression, iToken1, iToken0);
+        // Add bob order with a input token (iToken1) and output token (iToken0)
+        (Order memory bobOrder, bytes32 bobOrderHash) = _addOrderMockInternal(bob, bobConfig, expression, iToken1, iToken0);
+        assertTrue(iOrderbook.orderExists(bobOrderHash));
 
         // 2e18 tokens will be deposit for both (alice and bob)
         uint256 amount = 2e18; 
-    
+
         // Alice deposit his output token
         _depositInternal(alice, iToken1, aliceVaultId, amount);
-        assertEq(iOrderbook.vaultBalance(alice, address(iToken1), aliceVaultId), amount);
 
         // Bob deposit his output token
         _depositInternal(bob, iToken0, bobVaultId, amount);
-        assertEq(iOrderbook.vaultBalance(bob, address(iToken0), bobVaultId), amount);
 
-        ClearConfig memory configClear = ClearConfig(0, 0, 0, 0, 0, 0);
+        // Since all the IO are just 1 length, the IOIndex will be zero (0).
+        // And vaultIds for the clearer
+        ClearConfig memory configClear = ClearConfig(0, 0, 0, 0, aliceBountyVaultId, bobBountyVaultId);
 
-        vm.prank(bountyBot);
-
+        // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
+        // Produce the stack output for OB
         uint256[] memory orderStack = new uint256[](2);
         orderStack[0] = 1e18; // orderOutputMax
-        orderStack[1] = 1; // orderIORatio  
-
-        // Mock the interpreter.eval 
+        orderStack[1] = 1; // orderIORatio
         vm.mockCall(
             address(iInterpreter),
             abi.encodeWithSelector(IInterpreterV1.eval.selector),
             abi.encode(orderStack, new uint256[](0))
         );
 
+        // Clear the order using `bountyBot` address as caller clearer.
+        vm.prank(bountyBot);
         iOrderbook.clear(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
     }
 
-
+    /// Add an order using an owner (the caller) and modify the valid IOs to have 
+    /// just one valid IO from an input and output tokens.
     function _addOrderMockInternal(
         address owner,
         OrderConfigV2 memory config,
@@ -89,6 +97,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         iOrderbook.deposit(address(token), vaultId, amount);
+
+        assertEq(iOrderbook.vaultBalance(depositor, address(token), vaultId), amount);
     }
 
     // Remove a given IO to have only index, with a given token and decimal
