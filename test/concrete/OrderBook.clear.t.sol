@@ -28,6 +28,13 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 inputIOIndex = 0;
         uint256 outputIOIndex = 0;
 
+
+        // The inputs and outpus will match this way. Alice input should match with bob output and viceversa.
+        aliceConfig.validInputs[inputIOIndex1].token = bobConfig.validOutputs[inputIOIndex2].token;
+        aliceConfig.validInputs[inputIOIndex1].decimals = bobConfig.validOutputs[inputIOIndex2].decimals;
+        aliceConfig.validOutputs[outputIOIndex1].token = bobConfig.validInputs[outputIOIndex2].token;
+        aliceConfig.validOutputs[outputIOIndex1].decimals = bobConfig.validInputs[outputIOIndex2].decimals;
+
         console.log("Here_1");
 
         // 
