@@ -19,21 +19,22 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV2 memory bobConfig,
         address bobExpression
     ) public {
-        // Reducing length to one (1) in both ordes (at the moment)
-        vm.assume(aliceConfig.validInputs.length == 1);
-        vm.assume(aliceConfig.validOutputs.length == 1);
-        vm.assume(aliceConfig.validInputs.length == 1);
-        vm.assume(aliceConfig.validOutputs.length == 1);
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+
+        // // Reducing length to one (1) in both ordes (at the moment)
+        aliceConfig.validInputs = helperBuildIO(aliceConfig.validInputs);
+        aliceConfig.validOutputs = helperBuildIO(aliceConfig.validOutputs);
+
+        // // Bob will have the valid IO swapped.
+        bobConfig.validInputs = aliceConfig.validOutputs;
+        bobConfig.validOutputs = aliceConfig.validInputs;
         
         // Both index will be zero (since their valid inputs are reduced)
         uint256 inputIOIndex = 0;
         uint256 outputIOIndex = 0;
-
-        // The inputs and outpus will match this way. Alice input should match with bob output and viceversa.
-        aliceConfig.validInputs[inputIOIndex].token = bobConfig.validOutputs[inputIOIndex].token;
-        aliceConfig.validInputs[inputIOIndex].decimals = bobConfig.validOutputs[inputIOIndex].decimals;
-        aliceConfig.validOutputs[outputIOIndex].token = bobConfig.validInputs[outputIOIndex].token;
-        aliceConfig.validOutputs[outputIOIndex].decimals = bobConfig.validInputs[outputIOIndex].decimals;
 
         console.log("Here_1");
 
@@ -56,6 +57,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
     //   (Order memory aliceOrder, bytes32 aliceOrderhash) = addOrderMockInternal(alice, aliceConfig, aliceExpression);
     //   (Order memory bobOrder, bytes32 bobOrderhash) = addOrderMockInternal(bob, bobConfig, bobExpression);
+    }
+
+    // Reduce
+    function helperBuildIO(IO[] memory io) pure internal returns (IO[] memory) {
+        IO[] memory ioAux = new IO[](1);
+        ioAux[0] = io[0];
+
+        return ioAux;
     }
 
     function addOrderMockInternal(
