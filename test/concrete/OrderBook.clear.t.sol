@@ -19,21 +19,21 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV2 memory bobConfig,
         address bobExpression
     ) public {
-        // Reducing length to this in both ordes (at the moment)
+        // Reducing length to one (1) in both ordes (at the moment)
         vm.assume(aliceConfig.validInputs.length == 1);
         vm.assume(aliceConfig.validOutputs.length == 1);
         vm.assume(aliceConfig.validInputs.length == 1);
         vm.assume(aliceConfig.validOutputs.length == 1);
         
+        // Both index will be zero (since their valid inputs are reduced)
         uint256 inputIOIndex = 0;
         uint256 outputIOIndex = 0;
 
-
         // The inputs and outpus will match this way. Alice input should match with bob output and viceversa.
-        aliceConfig.validInputs[inputIOIndex1].token = bobConfig.validOutputs[inputIOIndex2].token;
-        aliceConfig.validInputs[inputIOIndex1].decimals = bobConfig.validOutputs[inputIOIndex2].decimals;
-        aliceConfig.validOutputs[outputIOIndex1].token = bobConfig.validInputs[outputIOIndex2].token;
-        aliceConfig.validOutputs[outputIOIndex1].decimals = bobConfig.validInputs[outputIOIndex2].decimals;
+        aliceConfig.validInputs[inputIOIndex].token = bobConfig.validOutputs[inputIOIndex].token;
+        aliceConfig.validInputs[inputIOIndex].decimals = bobConfig.validOutputs[inputIOIndex].decimals;
+        aliceConfig.validOutputs[outputIOIndex].token = bobConfig.validInputs[outputIOIndex].token;
+        aliceConfig.validOutputs[outputIOIndex].decimals = bobConfig.validInputs[outputIOIndex].decimals;
 
         console.log("Here_1");
 
