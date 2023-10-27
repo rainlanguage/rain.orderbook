@@ -6,13 +6,9 @@ import "lib/forge-std/src/Test.sol";
 import "test/util/abstract/OrderBookExternalMockTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 
-
-
 /// @title OrderBookClearTest
 /// Tests clearing an order.
 contract OrderBookClearTest is OrderBookExternalMockTest {
-    //
-    // function testClearSimple(address alice) public {
     function testClearSimple(
         address alice,
         OrderConfigV2 memory aliceConfig,
@@ -85,10 +81,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         config.validInputs = _helperBuildIO(config.validInputs, address(inputToken), 18);
         config.validOutputs = _helperBuildIO(config.validOutputs, address(outputToken), 18);
 
-
         return addOrderWithChecks(owner, config, expression);
     }
 
+    /// Make a deposit to the OB mocking the internal transferFrom call.
     function _depositInternal(address depositor, IERC20 token, uint256 vaultId, uint256 amount) internal {
         vm.prank(depositor);
         vm.mockCall(
@@ -98,10 +94,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         iOrderbook.deposit(address(token), vaultId, amount);
 
+        // Check that the vaultBalance was updated
         assertEq(iOrderbook.vaultBalance(depositor, address(token), vaultId), amount);
     }
 
-    // Remove a given IO to have only index, with a given token and decimal
+    /// Edit a given IO array to have only one index, with a given token and decimal.
+    /// This is useful to make matched Orders to do clears.
     function _helperBuildIO(IO[] memory io, address newToken, uint8 newDecimals) pure internal returns (IO[] memory) {
         IO[] memory ioAux = new IO[](1);
 
