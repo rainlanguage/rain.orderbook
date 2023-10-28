@@ -52,7 +52,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
-        console2.log("Mocking interpreter.eval");
         uint256[] memory orderStack = new uint256[](2);
         orderStack[0] = 1e18; // orderOutputMax
         orderStack[1] = 1e18; // orderIORatio
@@ -61,8 +60,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IInterpreterV1.eval.selector),
             abi.encode(orderStack, new uint256[](0))
         );
-        console2.log("orderStack[0] = %s", orderStack[0]);
-        console2.logBytes(abi.encode(orderStack, new uint256[](0)));
 
         // Clear the order using `bountyBot` address as caller clearer.
         vm.prank(bountyBot);
