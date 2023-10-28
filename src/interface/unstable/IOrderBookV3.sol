@@ -2,7 +2,9 @@
 pragma solidity ^0.8.18;
 
 import "../ierc3156/IERC3156FlashLender.sol";
-import "lib/rain.interpreter/src/lib/caller/LibEvaluable.sol";
+import {
+    EvaluableConfigV2, IExpressionDeployerV2, Evaluable
+} from "lib/rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import "lib/rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// Import unmodified structures from older versions of `IOrderBook`.
@@ -10,6 +12,9 @@ import {IO, Order, TakeOrderConfig, ClearConfig, ClearStateChange} from "../IOrd
 
 /// Thrown when take orders is called with no orders.
 error NoOrders();
+
+/// Thrown when take orders is called with a zero maximum input.
+error ZeroMaximumInput();
 
 /// Config the order owner may provide to define their order. The `msg.sender`
 /// that adds an order cannot modify the owner nor bypass the integrity check of

@@ -19,7 +19,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         uint256 aOutputIOIndex,
         Order memory b,
         uint256 bInputIOIndex,
-        uint256 bOutputIOIndex
+        uint256 bOutputIOIndex,
+        uint256 maxTakerInput,
+        uint256 maxIORatio
     ) external {
         vm.assume(a.validInputs.length > 0);
         aInputIOIndex = bound(aInputIOIndex, 0, a.validInputs.length - 1);
@@ -29,6 +31,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         aOutputIOIndex = bound(aOutputIOIndex, 0, a.validOutputs.length - 1);
         vm.assume(b.validOutputs.length > 0);
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
+        maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
 
         // Mismatch on inputs across orders taken.
         vm.assume(a.validInputs[aInputIOIndex].token != b.validInputs[bInputIOIndex].token);
@@ -38,7 +41,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](2);
         orders[0] = TakeOrderConfig(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfig(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
                 TokenMismatch.selector, b.validInputs[bInputIOIndex].token, a.validInputs[aInputIOIndex].token
@@ -55,7 +58,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         uint256 aOutputIOIndex,
         Order memory b,
         uint256 bInputIOIndex,
-        uint256 bOutputIOIndex
+        uint256 bOutputIOIndex,
+        uint256 maxTakerInput,
+        uint256 maxIORatio
     ) external {
         vm.assume(a.validInputs.length > 0);
         aInputIOIndex = bound(aInputIOIndex, 0, a.validInputs.length - 1);
@@ -65,6 +70,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         aOutputIOIndex = bound(aOutputIOIndex, 0, a.validOutputs.length - 1);
         vm.assume(b.validOutputs.length > 0);
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
+        maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
 
         // Mismatch on outputs across orders taken.
         vm.assume(a.validOutputs[aOutputIOIndex].token != b.validOutputs[bOutputIOIndex].token);
@@ -74,7 +80,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         TakeOrderConfig[] memory orders = new TakeOrderConfig[](2);
         orders[0] = TakeOrderConfig(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfig(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
                 TokenMismatch.selector, b.validOutputs[bOutputIOIndex].token, a.validOutputs[aOutputIOIndex].token
