@@ -3,9 +3,9 @@ pragma solidity =0.8.19;
 
 import "test/util/abstract/OrderBookExternalRealTest.sol";
 
-/// @title OrderBookTakeOrderTest
+/// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
-contract OrderBookTakeOrderTest is OrderBookExternalRealTest {
+contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
     function checkPrecision(
         bytes memory rainString,
         uint8 outputTokenDecimals,
