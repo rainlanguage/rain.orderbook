@@ -36,7 +36,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         assertTrue(iOrderbook.orderExists(bobOrderHash));
 
         // 2e18 tokens will be deposit for both (alice and bob)
-        uint256 amount = 2e18; 
+        uint256 amount = 2e18;
 
         // Alice deposit his output token
         _depositInternal(alice, iToken1, aliceVaultId, amount);
@@ -52,7 +52,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         // Produce the stack output for OB
         uint256[] memory orderStack = new uint256[](2);
         orderStack[0] = 1e18; // orderOutputMax
-        orderStack[1] = 1; // orderIORatio
+        orderStack[1] = 1e18; // orderIORatio
         vm.mockCall(
             address(iInterpreter),
             abi.encodeWithSelector(IInterpreterV1.eval.selector),
@@ -64,7 +64,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         iOrderbook.clear(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
     }
 
-    /// Add an order using an owner (the caller) and modify the valid IOs to have 
+    /// Add an order using an owner (the caller) and modify the valid IOs to have
     /// just one valid IO from an input and output tokens.
     function _addOrderMockInternal(
         address owner,
