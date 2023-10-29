@@ -123,7 +123,7 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0x71fe2f4f68f17dfe6ae7aba2bbd6cbfe5a2a48a93ebbc8b1f1900887b978eeee);
+bytes32 constant CALLER_META_HASH = bytes32(0x1317ffd909f4ca1cd6402c7dd02501ba5965a5b8787a9627cde7b5f3f8f6f840);
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
@@ -349,6 +349,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         Order memory order;
 
         uint256 remainingTakerInput = config.maximumInput;
+        if (remainingTakerInput == 0) {
+            revert ZeroMaximumInput();
+        }
         while (i < config.orders.length && remainingTakerInput > 0) {
             takeOrderConfig = config.orders[i];
             order = takeOrderConfig.order;
