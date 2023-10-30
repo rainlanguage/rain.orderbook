@@ -88,9 +88,6 @@ async fn generate_eval_config(
         .await
         .expect("cannot get value from parse");
 
-    println!("Bytecode: {:?}", bytecode);
-    println!("constants: {:?}", constants);
-
     // Build the EvaluableConfig and return it
     EvaluableConfigV2 {
         deployer: expression_deployer.address(),

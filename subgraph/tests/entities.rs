@@ -13,10 +13,8 @@ use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
     events::{
-        get_add_order_event, get_add_order_events, get_after_clear_event, get_clear_event,
-        get_new_expression_event,
+        get_add_order_event, get_after_clear_event, get_clear_event, get_new_expression_event,
     },
-    gen_abigen::_abigen_rust_generation,
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::get_amount_tokens,
@@ -27,7 +25,7 @@ use utils::{
 };
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -54,7 +52,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -90,7 +88,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await.expect("cannot get OB");
@@ -131,7 +129,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -164,9 +162,9 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     // Decode events from the transaction
-    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await;
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
     let new_expression_data =
-        get_new_expression_event(expression_deployer.clone(), &tx_add_order).await;
+        get_new_expression_event(expression_deployer.clone(), &tx_add_order).await?;
 
     // Wait for Subgraph sync
     wait().await.expect("cannot get SG sync status");
@@ -250,7 +248,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -282,7 +280,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     // Decode events from the transaction
-    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await;
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
 
     let order_hash = Bytes::from(add_order_data.order_hash);
 
@@ -312,7 +310,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -340,7 +338,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
     let tx_add_order = add_order_func.send().await.expect("order not sent");
 
     // Decode events from the transaction
-    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await;
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
 
     // Order hash
     let order_hash = Bytes::from(add_order_data.order_hash);
@@ -399,7 +397,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -521,7 +519,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -632,7 +630,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -769,9 +767,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
-    println!("alice.address(): {:?}", alice.address());
-    println!("bob.address(): {:?}", bob.address());
-    println!("bounty_bot.address(): {:?}", bounty_bot.address());
 
     let orderbook = get_orderbook().await.expect("cannot get OB");
 
@@ -809,29 +804,31 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         Some(bob_output_vault),
     )
     .await;
-    println!("Pre call add_order_alice");
 
+    println!("Pre call add_order_alice");
     // Add order alice with Alice connected to the OB
     let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
     let tx = add_order_alice
         .send()
-        .await
-        .expect("cannot send add order alice");
-    let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
+        .await?
+        .log_msg("Pending transfer hash");
+
+    // let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
+    let add_order_alice_data = get_add_order_event(orderbook, &tx).await?;
     println!(
         "alice sender: {:?} --- owner: {:?}",
         add_order_alice_data.sender, add_order_alice_data.order.owner
     );
 
     println!("Pre call add_order_bob");
-
     // Add order bob with Bob connected to the OB
     let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
     let tx = add_order_bob
         .send()
         .await
         .expect("cannot send add order bob");
-    let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
+    // let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
+    let add_order_bob_data = get_add_order_event(orderbook, &tx).await?;
     println!(
         "bob sender: {:?} --- owner: {:?}",
         add_order_bob_data.sender, add_order_bob_data.order.owner
@@ -876,14 +873,14 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     )
     .await?;
 
-    println!("Pre call deposit_func_2 bob");
+    println!("Pre call deposit_func bob");
     // Deposit using Bob
-    let deposit_func_2 =
+    let deposit_func =
         orderbook
             .connect(&bob)
             .await
             .deposit(token_a.address(), bob_output_vault, amount_bob);
-    let _ = deposit_func_2.send().await?.await?;
+    let _ = deposit_func.send().await?.await?;
 
     // BOUNTY BOT CLEARS THE ORDER
     // Clear configuration
@@ -908,6 +905,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
     let tx = clear_func.send().await?;
     println!("Post send clear");
+    println!("hash: {:?}", &tx.tx_hash());
 
     let clear_data = get_clear_event(orderbook, &tx).await;
     println!("clear_data: {:?}\n", clear_data);
@@ -1025,7 +1023,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     Ok(())
 }
 
-// #[test]
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
