@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::{
     generated::{
-        AddOrderCall, ClearConfig, DepositCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
-        RainterpreterExpressionDeployer, WithdrawCall,
+        AddOrderCall, ClearCall, ClearConfig, DepositCall, ERC20Mock, EvaluableConfigV2, Io,
+        OrderConfigV2, RainterpreterExpressionDeployer, WithdrawCall,
     },
     utils::{generate_random_u256, mock_rain_doc},
 };
@@ -214,4 +214,18 @@ pub fn generate_clear_config(
         alice_bounty_vault_id: *alice_bounty_vault_id,
         bob_bounty_vault_id: *bob_bounty_vault_id,
     }
+}
+
+/// From given arguments, encode them to a collection of Bytes to be used with multicall
+pub fn generate_multi_clear(configs: &Vec<ClearCall>) -> Vec<Bytes> {
+    let mut data: Vec<Bytes> = Vec::new();
+
+    for config in configs {
+        let encoded_call = Bytes::from(AbiEncode::encode(config.to_owned()));
+
+        // Push the bytes
+        data.push(encoded_call);
+    }
+
+    return data;
 }

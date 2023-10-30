@@ -262,3 +262,58 @@ pub async fn get_deposit_events(
         None => return Err(Error::msg("events not found")),
     }
 }
+
+pub async fn get_clear_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<Vec<ClearFilter>> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.clone().clear_filter().filter;
+
+    let option_logs = _get_matched_logs(receipt, filter).await;
+
+    match option_logs {
+        Some(logs) => {
+            let mut events: Vec<ClearFilter> = Vec::new();
+
+            for log in logs {
+                let event: ClearFilter =
+                    contract.decode_event::<ClearFilter>("Clear", log.topics, log.data)?;
+
+                events.push(event);
+            }
+
+            return Ok(events);
+        }
+        None => return Err(Error::msg("events not found")),
+    }
+}
+
+pub async fn get_after_clear_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<Vec<AfterClearFilter>> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.clone().after_clear_filter().filter;
+
+    let option_logs = _get_matched_logs(receipt, filter).await;
+
+    match option_logs {
+        Some(logs) => {
+            let mut events: Vec<AfterClearFilter> = Vec::new();
+
+            for log in logs {
+                let event: AfterClearFilter = contract.decode_event::<AfterClearFilter>(
+                    "AfterClear",
+                    log.topics,
+                    log.data,
+                )?;
+
+                events.push(event);
+            }
+
+            return Ok(events);
+        }
+        None => return Err(Error::msg("events not found")),
+    }
+}
