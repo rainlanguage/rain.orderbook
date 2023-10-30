@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {Multicall} from "lib/openzeppelin-contracts/contracts/utils/Multicall.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
-import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalScale.sol";
-import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
+import "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
+import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import "rain.interpreter/src/lib/caller/LibContext.sol";
 import {
     DeployerDiscoverableMetaV2,
     DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
-} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../interface/unstable/IOrderBookV3OrderTaker.sol";
@@ -569,17 +569,17 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             // Emit the Clear event before `eval`.
             emit Clear(msg.sender, alice, bob, clearConfig);
         }
-        OrderIOCalculation memory aliceOrderIOCalculation_ = calculateOrderIO(
+        OrderIOCalculation memory aliceOrderIOCalculation = calculateOrderIO(
             alice, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bob.owner, bobSignedContext
         );
-        OrderIOCalculation memory bobOrderIOCalculation_ = calculateOrderIO(
+        OrderIOCalculation memory bobOrderIOCalculation = calculateOrderIO(
             bob, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, alice.owner, aliceSignedContext
         );
         ClearStateChange memory clearStateChange =
-            calculateClearStateChange(aliceOrderIOCalculation_, bobOrderIOCalculation_);
+            calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
-        recordVaultIO(alice, clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation_);
-        recordVaultIO(bob, clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation_);
+        recordVaultIO(alice, clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation);
+        recordVaultIO(bob, clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
 
         {
             // At least one of these will overflow due to negative bounties if
@@ -793,16 +793,19 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         OrderIOCalculation memory aliceOrderIOCalculation,
         OrderIOCalculation memory bobOrderIOCalculation
     ) internal pure returns (ClearStateChange memory clearStateChange) {
-        calculateClearStateAlice(clearStateChange, aliceOrderIOCalculation, bobOrderIOCalculation);
+        // Calculate the clear state change for Alice.
+        (clearStateChange.aliceInput, clearStateChange.aliceOutput) =
+            calculateClearStateAlice(aliceOrderIOCalculation, bobOrderIOCalculation);
+
         // Flip alice and bob to calculate bob's output.
-        calculateClearStateAlice(clearStateChange, bobOrderIOCalculation, aliceOrderIOCalculation);
+        (clearStateChange.bobInput, clearStateChange.bobOutput) =
+            calculateClearStateAlice(bobOrderIOCalculation, aliceOrderIOCalculation);
     }
 
     function calculateClearStateAlice(
-        ClearStateChange memory clearStateChange,
         OrderIOCalculation memory aliceOrderIOCalculation,
         OrderIOCalculation memory bobOrderIOCalculation
-    ) internal pure {
+    ) internal pure returns (uint256 aliceInput, uint256 aliceOutput) {
         // Always round IO calculations up so that the counterparty pays more.
         // This is the max input that bob can afford, given his own IO ratio
         // and maximum spend/output.
@@ -818,7 +821,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         }
         // Alice's final output is the scaled version of the 18 decimal output,
         // rounded down to benefit Alice.
-        clearStateChange.aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(
+        aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(
             aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals, 0
         );
 
@@ -826,7 +829,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         Input18Amount aliceInput18 = Input18Amount.wrap(
             Output18Amount.unwrap(aliceOutputMax18).fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
         );
-        clearStateChange.aliceInput =
+        aliceInput =
         // Use bob's output decimals as alice's input decimals.
         //
         // This is only safe if we have previously checked that the decimals
