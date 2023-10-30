@@ -31,7 +31,7 @@ pub struct TestWithdrawConfig {
     pub target_amount: U256,
 }
 
-pub async fn get_block_data(tx_hash: &TxHash) -> anyhow::Result<(Block<H256>)> {
+pub async fn get_block_data(tx_hash: &TxHash) -> anyhow::Result<Block<H256>> {
     let provider = get_provider().await?;
 
     let pending_tx = PendingTransaction::new(*tx_hash, provider);

@@ -1194,9 +1194,6 @@ async fn vault_withdraw_multiple_withdraws() -> anyhow::Result<()> {
     // Get a random vaultId
     let vault_id = generate_random_u256();
 
-    // Vault Entity ID
-    let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
-
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
 
