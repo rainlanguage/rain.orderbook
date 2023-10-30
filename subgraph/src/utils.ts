@@ -92,11 +92,21 @@ export function createToken(address: Bytes): ERC20 {
     token.totalSupplyDisplay = BigDecimal.zero();
     token.save();
   }
+
   let totalSupply = reserveToken.try_totalSupply();
-  token.totalSupply = !totalSupply.reverted
-    ? totalSupply.value
-    : token.totalSupply;
-  token.save();
+  if (!totalSupply.reverted) {
+    let value = totalSupply.value;
+
+    token.totalSupply = value;
+    token.totalSupplyDisplay = toDisplay(value, address.toHex());
+
+    token.save();
+  }
+
+  // token.totalSupply = !totalSupply.reverted
+  //   ? totalSupply.value
+  //   : token.totalSupply;
+  // token.save();
   return token;
 }
 
