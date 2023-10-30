@@ -28,15 +28,17 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         // -- Add two orders with similar IO tokens (swapped)
         // Add alice order with a input token (iToken0) and output token (iToken1)
-        (Order memory aliceOrder, bytes32 aliceOrderHash) = _addOrderMockInternal(alice, aliceConfig, expression, iToken0, iToken1);
+        (Order memory aliceOrder, bytes32 aliceOrderHash) =
+            _addOrderMockInternal(alice, aliceConfig, expression, iToken0, iToken1);
         assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
         // Add bob order with a input token (iToken1) and output token (iToken0)
-        (Order memory bobOrder, bytes32 bobOrderHash) = _addOrderMockInternal(bob, bobConfig, expression, iToken1, iToken0);
+        (Order memory bobOrder, bytes32 bobOrderHash) =
+            _addOrderMockInternal(bob, bobConfig, expression, iToken1, iToken0);
         assertTrue(iOrderbook.orderExists(bobOrderHash));
 
         // 2e18 tokens will be deposit for both (alice and bob)
-        uint256 amount = 2e18; 
+        uint256 amount = 2e18;
 
         // Alice deposit his output token
         _depositInternal(alice, iToken1, aliceVaultId, amount);
@@ -52,7 +54,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         // Produce the stack output for OB
         uint256[] memory orderStack = new uint256[](2);
         orderStack[0] = 1e18; // orderOutputMax
-        orderStack[1] = 1; // orderIORatio
+        orderStack[1] = 1e18; // orderIORatio
         vm.mockCall(
             address(iInterpreter),
             abi.encodeWithSelector(IInterpreterV1.eval.selector),
@@ -64,7 +66,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         iOrderbook.clear(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
     }
 
-    /// Add an order using an owner (the caller) and modify the valid IOs to have 
+    /// Add an order using an owner (the caller) and modify the valid IOs to have
     /// just one valid IO from an input and output tokens.
     function _addOrderMockInternal(
         address owner,
@@ -100,7 +102,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
     /// Edit a given IO array to have only one index, with a given token and decimal.
     /// This is useful to make matched Orders to do clears.
-    function _helperBuildIO(IO[] memory io, address newToken, uint8 newDecimals) pure internal returns (IO[] memory) {
+    function _helperBuildIO(IO[] memory io, address newToken, uint8 newDecimals) internal pure returns (IO[] memory) {
         IO[] memory ioAux = new IO[](1);
 
         ioAux[0] = io[0];
