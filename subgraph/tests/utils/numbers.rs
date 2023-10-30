@@ -8,17 +8,28 @@ pub fn get_amount_tokens(amount: u64, decimals: u8) -> U256 {
 }
 
 pub fn format_number_with_decimals(number: U256, decimals: u8) -> String {
+    if decimals == 0 {
+        return number.to_string();
+    }
+
     let mut result = number.to_string();
+    let len = result.len() as u32;
+    let decimals_u32 = decimals as u32;
 
-    if decimals > 0 {
-        if result.len() > decimals as usize {
-            let integer_part = &result[..result.len() - decimals as usize];
-            let decimal_part = &result[result.len() - decimals as usize..];
+    if len > decimals_u32 {
+        let integer_part = &result[0..(len - decimals_u32) as usize];
+        let mut decimal_part = &result[(len - decimals_u32) as usize..];
 
+        // Remove trailing zeros from the decimal part
+        decimal_part = decimal_part.trim_end_matches('0');
+
+        if !decimal_part.is_empty() {
             result = format!("{}.{}", integer_part, decimal_part);
         } else {
-            result = format!("0.{}", "0".repeat(decimals as usize - result.len()));
+            result = integer_part.to_string();
         }
+    } else {
+        result = format!("0.{}", "0".repeat((decimals_u32 - len) as usize));
     }
 
     result

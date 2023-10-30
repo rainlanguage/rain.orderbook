@@ -1,0 +1,29 @@
+query VaultWithdraw($id: String) {
+  vaultWithdraw(id: $id) {
+    id
+    sender {
+      id
+    }
+    token {
+      id
+    }
+    vaultId
+    vault {
+      id
+    }
+    requestedAmount
+    requestedAmountDisplay
+    amount
+    amountDisplay
+    tokenVault {
+      id
+    }
+    transaction {
+      id
+    }
+    emitter {
+      id
+    }
+    timestamp
+  }
+}

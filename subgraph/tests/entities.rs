@@ -14,7 +14,9 @@ use utils::{
     bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
-    events::{_get_new_expression_event, get_add_order_event, get_deposit_events},
+    events::{
+        _get_new_expression_event, get_add_order_event, get_deposit_events, get_withdraw_events,
+    },
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::{format_number_with_decimals, get_amount_tokens},
@@ -26,7 +28,7 @@ use utils::{
 };
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -51,7 +53,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -85,7 +87,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -124,7 +126,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -235,7 +237,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -289,7 +291,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_clear() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -433,7 +435,7 @@ async fn order_entity_clear() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -510,7 +512,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -620,7 +622,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -719,7 +721,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -811,7 +813,7 @@ async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -922,7 +924,7 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_clear() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -1146,6 +1148,9 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
 
     let deposit_events = get_deposit_events(&orderbook, &deposits_tx_hash).await?;
 
+    // Wait for Subgraph sync
+    wait().await?;
+
     for (index, deposit) in deposit_events.iter().enumerate() {
         let deposit_id = format!("{:?}-{}", deposits_tx_hash, index);
 
@@ -1157,7 +1162,7 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
             "{}-{:?}-{:?}",
             deposit.vault_id,
             alice.address(),
-            deposit.sender,
+            deposit.token,
         );
 
         let resp = Query::vault_deposit(&deposit_id).await?;
@@ -1177,7 +1182,113 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
     Ok(())
 }
 
-// #[test]
+#[tokio::main]
+#[test]
+async fn vault_withdraw_multiple_withdraws() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await?;
+
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let alice = get_wallet(2);
+    let orderbook = orderbook.connect(&alice).await;
+
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
+
+    // Vault Entity ID
+    let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None).await?;
+
+    // Amount to deposit
+    let amount_to_deposit = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+
+    // Fill to Alice with tokens
+    mint_tokens(&amount_to_deposit, &alice.address(), &token_a).await?;
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    approve_tokens(
+        &amount_to_deposit,
+        &orderbook.address(),
+        &token_a.connect(&alice).await,
+    )
+    .await?;
+
+    // Send the deposits with multicall
+    let deposit_func = orderbook.deposit(token_a.address(), vault_id, amount_to_deposit);
+    let _ = deposit_func.send().await?.await?;
+
+    // Make two withdraw with the half of what was deposited
+    let amount_to_withdaw = amount_to_deposit.div(2);
+
+    // Fill struct with same vaultId and tokens in the Withdaws configurations
+    let withdraws_config = vec![
+        // Config A
+        TestWithdrawConfig {
+            token: token_a.address(),
+            vault_id: vault_id,
+            target_amount: amount_to_withdaw,
+        },
+        // Config B
+        TestWithdrawConfig {
+            token: token_a.address(),
+            vault_id: vault_id,
+            target_amount: amount_to_withdaw,
+        },
+    ];
+
+    // Encode the withdaws
+    let multi_withdaws = generate_multi_withdraw(&withdraws_config);
+
+    // Send the deposits with multicall
+    let multicall_func = orderbook.multicall(multi_withdaws);
+    let tx_multicall_withdraws = multicall_func.send().await?;
+    let withdraw_tx_hash = tx_multicall_withdraws.tx_hash();
+
+    let block_data = get_block_data(&withdraw_tx_hash).await?;
+
+    let withdraw_events = get_withdraw_events(&orderbook, &withdraw_tx_hash).await?;
+
+    // Wait for Subgraph sync
+    wait().await?;
+
+    for (index, withdraw) in withdraw_events.iter().enumerate() {
+        let withdraw_id = format!("{:?}-{}", withdraw_tx_hash, index);
+
+        let vault_entity_id = format!("{}-{:?}", withdraw.vault_id, alice.address());
+        let decimals = get_decimals(withdraw.token).await?;
+        let amount_display = format_number_with_decimals(withdraw.amount, decimals);
+
+        let requested_amount_display =
+            format_number_with_decimals(withdraw.target_amount, decimals);
+
+        let token_vault_entity = format!(
+            "{}-{:?}-{:?}",
+            withdraw.vault_id,
+            alice.address(),
+            withdraw.token,
+        );
+
+        let resp = Query::vault_withdraw(&withdraw_id).await?;
+
+        assert_eq!(resp.sender, alice.address());
+        assert_eq!(resp.token, withdraw.token);
+        assert_eq!(resp.vault_id, withdraw.vault_id);
+        assert_eq!(resp.vault, vault_entity_id);
+        assert_eq!(resp.requested_amount, withdraw.target_amount);
+        assert_eq!(resp.requested_amount_display, requested_amount_display);
+        assert_eq!(resp.amount, withdraw.amount);
+        assert_eq!(resp.amount_display, amount_display);
+        assert_eq!(resp.token_vault, token_vault_entity);
+        assert_eq!(resp.transaction, withdraw_tx_hash);
+        assert_eq!(resp.emitter, alice.address());
+        assert_eq!(resp.timestamp, block_data.timestamp);
+    }
+
+    Ok(())
+}
+
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();

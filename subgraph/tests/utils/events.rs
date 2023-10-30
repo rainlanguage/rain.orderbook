@@ -211,7 +211,7 @@ pub async fn _get_new_expression_event(
     }
 }
 
-pub async fn _get_withdraw_events(
+pub async fn get_withdraw_events(
     contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx_hash: &TxHash,
 ) -> Result<Vec<WithdrawFilter>> {
