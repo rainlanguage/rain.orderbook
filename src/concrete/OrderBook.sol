@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {Multicall} from "lib/openzeppelin-contracts/contracts/utils/Multicall.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
-import "lib/rain.math.fixedpoint/src/lib/LibFixedPointDecimalScale.sol";
-import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
+import "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
+import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import "rain.interpreter/src/lib/caller/LibContext.sol";
 import {
     DeployerDiscoverableMetaV2,
     DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
-} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 import "../interface/unstable/IOrderBookV3.sol";
 import "../interface/unstable/IOrderBookV3OrderTaker.sol";
