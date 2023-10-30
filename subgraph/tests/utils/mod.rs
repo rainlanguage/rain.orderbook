@@ -24,9 +24,9 @@ use std::{
     thread,
 };
 
-pub async fn get_block_number() -> U64 {
-    let provider = get_provider().await.expect("cannot get provider");
-    return provider.get_block_number().await.unwrap();
+pub async fn get_block_number() -> anyhow::Result<U64> {
+    let provider = get_provider().await?;
+    Ok(provider.get_block_number().await?)
 }
 
 /// Get the wallet test at the given index

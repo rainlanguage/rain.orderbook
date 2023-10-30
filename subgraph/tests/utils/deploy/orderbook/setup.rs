@@ -36,18 +36,19 @@ pub async fn init_orderbook(
         .await
         .expect("cannot deploy OB at setup initialization");
 
-    let sg_config = Config {
-        contract_address: &format!("{:?}", orderbook.address()),
-        block_number: get_block_number().await.as_u64(),
-    };
+    // let sg_config = Config {
+    //     contract_address: &format!("{:?}", orderbook.address()),
+    //     block_number: get_block_number().await?.as_u64(),
+    // };
 
-    let is_sg_deployed = deploy(sg_config).expect("cannot deploy OB SG at setup initialization");
+    // let is_sg_deployed = deploy(sg_config).expect("cannot deploy OB SG at setup initialization");
 
-    if is_sg_deployed {
-        Ok(orderbook)
-    } else {
-        Err(OrderBookSetupError::SgDeployError())
-    }
+    // if is_sg_deployed {
+    //     Ok(orderbook)
+    // } else {
+    //     Err(OrderBookSetupError::SgDeployError())
+    // }
+    Ok(orderbook)
 }
 
 async fn try_ob_deploy(
@@ -58,12 +59,16 @@ async fn try_ob_deploy(
     }
 }
 
-pub async fn get_orderbook() -> Result<
-    &'static OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
-    OrderBookSetupError,
-> {
-    ORDERBOOK
+/// Obtain the OB deployed for the test
+pub async fn get_orderbook(
+) -> Result<&'static OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
+    let orderbook_lazy = ORDERBOOK
         .get_or_try_init(|| async { try_ob_deploy().await })
         .await
-        .map_err(|err| OrderBookSetupError::InitDeployOBError(Box::new(err)))
+        .map_err(|err| OrderBookSetupError::InitDeployOBError(Box::new(err)));
+
+    match orderbook_lazy {
+        Ok(contract) => Ok(contract),
+        Err(e) => return Err(anyhow::Error::msg(e.to_string())),
+    }
 }

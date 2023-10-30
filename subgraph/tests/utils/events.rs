@@ -75,10 +75,7 @@ async fn _get_matched_logs(receipt: TransactionReceipt, filter: Filter) -> Optio
 }
 
 async fn get_pending_tx(tx_hash: &TxHash) -> Result<TransactionReceipt> {
-    let provider = match get_provider().await {
-        Ok(data) => data,
-        Err(e) => return Err(Error::msg(e.to_string())),
-    };
+    let provider = get_provider().await?;
 
     let pending_tx = PendingTransaction::new(*tx_hash, provider);
 
@@ -190,7 +187,7 @@ pub async fn _get_transfer_event(
     }
 }
 
-pub async fn get_new_expression_event(
+pub async fn _get_new_expression_event(
     contract: RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx_hash: &TxHash,
 ) -> Result<NewExpressionFilter> {

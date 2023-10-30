@@ -1,4 +1,5 @@
 use crate::utils::deploy::{deploy1820, get_meta_address};
+use anyhow::Result;
 use ethers::providers::{Http, Provider};
 use once_cell::sync::Lazy;
 use thiserror::Error;
@@ -36,9 +37,14 @@ async fn provider_node() -> Result<Provider<Http>, SetupError> {
     }
 }
 
-pub async fn get_provider() -> Result<&'static Provider<Http>, SetupError> {
-    PROVIDER
+pub async fn get_provider() -> Result<&'static Provider<Http>> {
+    let provider_lazy = PROVIDER
         .get_or_try_init(|| async { provider_node().await })
         .await
-        .map_err(|err| SetupError::ProviderInstanceError(Box::new(err)))
+        .map_err(|err| SetupError::ProviderInstanceError(Box::new(err)));
+
+    match provider_lazy {
+        Ok(provider) => Ok(provider),
+        Err(e) => return Err(anyhow::Error::msg(e.to_string())),
+    }
 }

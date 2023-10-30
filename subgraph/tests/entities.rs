@@ -13,7 +13,7 @@ use utils::{
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
     events::{
-        get_add_order_event, get_after_clear_event, get_clear_event, get_new_expression_event,
+        _get_new_expression_event, get_add_order_event, get_after_clear_event, get_clear_event,
     },
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
@@ -27,15 +27,13 @@ use utils::{
 #[tokio::main]
 // #[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     // Query the OrderBook entity
-    let response = Query::orderbook(&orderbook.address())
-        .await
-        .expect("cannot get the ob query response");
+    let response = Query::orderbook(&orderbook.address()).await?;
 
     // This wallet is used to deploy the OrderBook at initialization, so it is the deployer
     let wallet_0 = get_wallet(0);
@@ -55,10 +53,10 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 // #[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
-    let _ = get_orderbook().await.expect("cannot get OB");
+    let _ = get_orderbook().await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta = read_orderbook_meta();
@@ -67,9 +65,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     let ob_meta_decoded = decode_rain_meta(ob_meta.clone().into())?;
 
     // Query the RainMetaV1 entity
-    let response = Query::rain_meta_v1(&ob_meta_hashed.clone())
-        .await
-        .expect("cannot get the rain meta query response");
+    let response = Query::rain_meta_v1(&ob_meta_hashed.clone()).await?;
 
     assert_eq!(response.id, ob_meta_hashed);
     assert_eq!(response.meta_bytes, ob_meta_bytes);
@@ -91,10 +87,10 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 // #[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
-    let _ = get_orderbook().await.expect("cannot get OB");
+    let _ = get_orderbook().await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta = read_orderbook_meta();
@@ -103,9 +99,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 
     for content in ob_meta_decoded {
         // Query the ContentMetaV1 entity
-        let response = Query::content_meta_v1(&content.hash().as_fixed_bytes().into())
-            .await
-            .expect("cannot get the query response");
+        let response = Query::content_meta_v1(&content.hash().as_fixed_bytes().into()).await?;
 
         // Make the asserts
         assert_eq!(response.id, content.hash().as_bytes().to_vec());
@@ -131,26 +125,20 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 #[tokio::main]
 // #[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Connect the orderbook to another wallet
     let wallet_1 = get_wallet(1);
     let orderbook = orderbook.connect(&wallet_1).await;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None)
-        .await
-        .expect("cannot deploy expression_deployer");
+    let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_a = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_b = deploy_erc20_mock(None).await?;
 
     // Build OrderConfig
     let order_config =
@@ -159,21 +147,19 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
 
-    let tx_add_order = add_order_func.send().await.expect("order not sent");
+    let tx_add_order = add_order_func.send().await?;
 
     // Decode events from the transaction
     let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
     let new_expression_data =
-        get_new_expression_event(expression_deployer.clone(), &tx_add_order).await?;
+        _get_new_expression_event(expression_deployer.clone(), &tx_add_order).await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     let order_hash = Bytes::from(add_order_data.order_hash);
 
-    let response = Query::order(&order_hash)
-        .await
-        .expect("cannot get the query response");
+    let response = Query::order(&order_hash).await?;
 
     // Data from the event in tx
     let order_data = add_order_data.order;
@@ -250,26 +236,20 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 #[tokio::main]
 // #[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Connect the orderbook to another wallet
     let wallet_1 = get_wallet(1);
     let orderbook = orderbook.connect(&wallet_1).await;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None)
-        .await
-        .expect("cannot deploy expression_deployer");
+    let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_a = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_b = deploy_erc20_mock(None).await?;
 
     // Build OrderConfig
     let order_config =
@@ -277,7 +257,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
-    let tx_add_order = add_order_func.send().await.expect("order not sent");
+    let tx_add_order = add_order_func.send().await?;
 
     // Decode events from the transaction
     let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
@@ -289,7 +269,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 
     // Remove the order
     let remove_order_fnc = orderbook.remove_order(order_data);
-    let _ = remove_order_fnc.send().await.expect("order not removed");
+    let _ = remove_order_fnc.send().await?;
 
     // Current order status
     let is_order_exist: bool = orderbook
@@ -298,11 +278,9 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
         .await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
-    let response = Query::order(&order_hash)
-        .await
-        .expect("cannot get the query response");
+    let response = Query::order(&order_hash).await?;
 
     assert_eq!(response.order_active, is_order_exist, "wrong order status");
 
@@ -312,22 +290,16 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 #[tokio::main]
 // #[test]
 async fn io_entity_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None)
-        .await
-        .expect("cannot deploy expression_deployer");
+    let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_a = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_b = deploy_erc20_mock(None).await?;
 
     // Build OrderConfig
     let order_config =
@@ -335,7 +307,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
-    let tx_add_order = add_order_func.send().await.expect("order not sent");
+    let tx_add_order = add_order_func.send().await?;
 
     // Decode events from the transaction
     let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
@@ -345,7 +317,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
     let order_owner: Address = add_order_data.order.owner;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     // Inputs
     for (index, input) in order_config.valid_inputs.iter().enumerate() {
@@ -356,9 +328,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
         let vault_entity_id = format!("{}-{:?}", vault_id, order_owner);
         let token_vault_entity_id = format!("{}-{:?}-{:?}", vault_id, order_owner, token);
 
-        let response = Query::i_o(&input_id)
-            .await
-            .expect("cannot get the query response");
+        let response = Query::i_o(&input_id).await?;
 
         assert_eq!(response.id, input_id);
         assert_eq!(response.token, token);
@@ -379,9 +349,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
         let vault_entity_id = format!("{}-{:?}", vault_id, order_owner);
         let token_vault_entity_id = format!("{}-{:?}-{:?}", vault_id, order_owner, token);
 
-        let response = Query::i_o(&output_id)
-            .await
-            .expect("cannot get the query response");
+        let response = Query::i_o(&output_id).await?;
 
         assert_eq!(response.id, output_id);
         assert_eq!(response.token, token);
@@ -399,32 +367,22 @@ async fn io_entity_test() -> anyhow::Result<()> {
 #[tokio::main]
 // #[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None)
-        .await
-        .expect("cannot deploy expression_deployer");
+    let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_a = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_b = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (C)
-    let token_c = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_c = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (D)
-    let token_d = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_d = deploy_erc20_mock(None).await?;
 
     // Generate TWO order configs with identical vault ID.
     // All the TokenVaults with same VaultId should be present in the Vault
@@ -456,17 +414,15 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 
     // Add the orders with multicall
     let multicall_func = orderbook.multicall(multi_orders);
-    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-    let _ = tx_multicall.await.expect("failed to wait receipt");
+    let tx_multicall = multicall_func.send().await?;
+    let _ = tx_multicall.await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     let vault_entity_id = format!("{}-{:?}", vault_id, wallet_owner.address());
 
-    let response = Query::vault(&vault_entity_id)
-        .await
-        .expect("cannot get the query response");
+    let response = Query::vault(&vault_entity_id).await?;
 
     // Generate the expetect Token Vault IDs
     let token_vault_a = format!(
@@ -521,32 +477,24 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 #[tokio::main]
 // #[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Connect the orderbook to another wallet (arbitrary) to send the orders
     let alice = get_wallet(2);
     let orderbook = orderbook.connect(&alice).await;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_a = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_b = deploy_erc20_mock(None).await?;
 
     let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
 
     // Fill to Alice with tokens (A and B)
-    mint_tokens(&amount, &alice.address(), &token_a)
-        .await
-        .expect("cannot mint tokens");
+    mint_tokens(&amount, &alice.address(), &token_a).await?;
 
-    mint_tokens(&amount, &alice.address(), &token_b)
-        .await
-        .expect("cannot mint tokens");
+    mint_tokens(&amount, &alice.address(), &token_b).await?;
 
     // Connect token to Alice and approve Orderbook to move tokens
     approve_tokens(
@@ -554,16 +502,14 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
         &orderbook.address(),
         &token_a.connect(&alice).await,
     )
-    .await
-    .expect("cannot approve tokens");
+    .await?;
 
     approve_tokens(
         &amount,
         &orderbook.address(),
         &token_b.connect(&alice).await,
     )
-    .await
-    .expect("cannot approve tokens");
+    .await?;
 
     // Get a random vaultId
     let vault_id = generate_random_u256();
@@ -588,8 +534,8 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 
     // Send the deposits with multicall
     let multicall_func = orderbook.multicall(multi_deposit);
-    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-    let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
+    let tx_multicall = multicall_func.send().await?;
+    let tx_receipt = tx_multicall.await?.unwrap();
 
     let deposit_tx_hash = &tx_receipt.transaction_hash;
 
@@ -600,11 +546,9 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let token_vault_b = format!("{}-{:?}-{:?}", vault_id, alice.address(), token_b.address());
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
-    let resp = Query::vault(&vault_entity_id)
-        .await
-        .expect("cannot get the query response");
+    let resp = Query::vault(&vault_entity_id).await?;
 
     // The whole entity should be created normally
     assert_eq!(resp.id, vault_entity_id);
@@ -632,7 +576,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 #[tokio::main]
 // #[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Connect the orderbook to another wallet (arbitrary) to send the orders
     let alice = get_wallet(2);
@@ -645,19 +589,13 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None)
-        .await
-        .expect("cannot deploy expression_deployer");
+    let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A)
-    let token_a = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_a = deploy_erc20_mock(None).await?;
 
     // Deploy ERC20 token contract (B)
-    let token_b = deploy_erc20_mock(None)
-        .await
-        .expect("failed on deploy erc20 token");
+    let token_b = deploy_erc20_mock(None).await?;
 
     // Build OrderConfig with the vaultId
     let order_config = generate_order_config(
@@ -671,20 +609,13 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 
     // Add the order
     let add_order_func = orderbook.add_order(order_config.clone());
-    let _ = add_order_func
-        .send()
-        .await
-        .expect("order not sent")
-        .await
-        .expect("cannot wait receipt");
+    let _ = add_order_func.send().await?.await?;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     // First query when adding order
-    let resp = Query::vault(&vault_entity_id)
-        .await
-        .expect("cannot get the query response");
+    let resp = Query::vault(&vault_entity_id).await?;
 
     // The whole entity should be created normally when adding the order
     assert_eq!(resp.id, vault_entity_id);
@@ -693,13 +624,9 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
 
     // Fill to Alice with tokens (A and B)
-    mint_tokens(&amount, &alice.address(), &token_a)
-        .await
-        .expect("cannot mint tokens");
+    mint_tokens(&amount, &alice.address(), &token_a).await?;
 
-    mint_tokens(&amount, &alice.address(), &token_b)
-        .await
-        .expect("cannot mint tokens");
+    mint_tokens(&amount, &alice.address(), &token_b).await?;
 
     // Connect token to Alice and approve Orderbook to move tokens
     approve_tokens(
@@ -707,16 +634,14 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
         &orderbook.address(),
         &token_a.connect(&alice).await,
     )
-    .await
-    .expect("cannot approve tokens");
+    .await?;
 
     approve_tokens(
         &amount,
         &orderbook.address(),
         &token_b.connect(&alice).await,
     )
-    .await
-    .expect("cannot approve tokens");
+    .await?;
 
     // Fill struct with same vaultId in the deposit configurations
     let deposits_config = vec![
@@ -738,18 +663,16 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 
     // Send the deposits with multicall
     let multicall_func = orderbook.multicall(multi_deposit);
-    let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-    let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
+    let tx_multicall = multicall_func.send().await?;
+    let tx_receipt = tx_multicall.await?.unwrap();
 
     let deposit_tx_hash = &tx_receipt.transaction_hash;
 
     // Wait for Subgraph sync
-    wait().await.expect("cannot get SG sync status");
+    wait().await?;
 
     // Second query, using same vault entity ID.
-    let resp = Query::vault(&vault_entity_id)
-        .await
-        .expect("cannot get the query response");
+    let resp = Query::vault(&vault_entity_id).await?;
 
     // Should include the deposits made in same vault entity
     for index in 0..deposits_config.len() {
@@ -768,7 +691,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
 
-    let orderbook = get_orderbook().await.expect("cannot get OB");
+    let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
     let expression_deployer = touch_deployer(None).await?;
@@ -807,21 +730,12 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
     // Add order alice with Alice connected to the OB
     let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
-    let tx = add_order_alice
-        .send()
-        .await?
-        .log_msg("Pending transfer hash");
-
-    // let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
+    let tx = add_order_alice.send().await?;
     let add_order_alice_data = get_add_order_event(orderbook, &tx).await?;
 
     // Add order bob with Bob connected to the OB
     let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
-    let tx = add_order_bob
-        .send()
-        .await
-        .expect("cannot send add order bob");
-    // let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
+    let tx = add_order_bob.send().await?;
     let add_order_bob_data = get_add_order_event(orderbook, &tx).await?;
 
     // Make deposit of corresponded output token
@@ -918,17 +832,17 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     // let _ = add_order_func
     //     .send()
     //     .await
-    //     .expect("order not sent")
+    //     ?
     //     .await
-    //     .expect("cannot wait receipt");
+    //     ?;
 
     // // Wait for Subgraph sync
-    // wait().await.expect("cannot get SG sync status");
+    // wait().await?;
 
     // // First query when adding order
     // let resp = Query::vault(&vault_entity_id)
     //     .await
-    //     .expect("cannot get the query response");
+    //     ?;
 
     // // The whole entity should be created normally when adding the order
     // assert_eq!(resp.id, vault_entity_id);
@@ -939,11 +853,11 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     // // Fill to Alice with tokens (A and B)
     // mint_tokens(&amount, &alice.address(), &token_a)
     //     .await
-    //     .expect("cannot mint tokens");
+    //     ?;
 
     // mint_tokens(&amount, &alice.address(), &token_b)
     //     .await
-    //     .expect("cannot mint tokens");
+    //     ?;
 
     // // Connect token to Alice and approve Orderbook to move tokens
     // approve_tokens(
@@ -952,7 +866,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     //     &token_a.connect(&alice).await,
     // )
     // .await
-    // .expect("cannot approve tokens");
+    // ?;
 
     // approve_tokens(
     //     &amount,
@@ -960,7 +874,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     //     &token_b.connect(&alice).await,
     // )
     // .await
-    // .expect("cannot approve tokens");
+    // ?;
 
     // // Fill struct with same vaultId in the deposit configurations
     // let deposits_config = vec![
@@ -982,18 +896,18 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
     // // Send the deposits with multicall
     // let multicall_func = orderbook.multicall(multi_deposit);
-    // let tx_multicall = multicall_func.send().await.expect("multicall not sent");
-    // let tx_receipt = tx_multicall.await.expect("failed to wait receipt").unwrap();
+    // let tx_multicall = multicall_func.send().await?;
+    // let tx_receipt = tx_multicall.await?.unwrap();
 
     // let deposit_tx_hash = &tx_receipt.transaction_hash;
 
     // // Wait for Subgraph sync
-    // wait().await.expect("cannot get SG sync status");
+    // wait().await?;
 
     // // Second query, using same vault entity ID.
     // let resp = Query::vault(&vault_entity_id)
     //     .await
-    //     .expect("cannot get the query response");
+    //     ?;
 
     // // Should include the deposits made in same vault entity
     // for index in 0..deposits_config.len() {

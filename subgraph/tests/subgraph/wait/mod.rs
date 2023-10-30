@@ -23,7 +23,7 @@ use ethers::types::U256;
 pub struct SyncStatus;
 
 pub async fn wait() -> anyhow::Result<bool> {
-    let block_number = get_block_number().await;
+    let block_number = get_block_number().await?;
 
     // let _ = get_orderbook().await.expect("cannot get OB in waiting");
 
