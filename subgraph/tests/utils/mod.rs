@@ -7,8 +7,6 @@ pub mod numbers;
 pub mod setup;
 pub mod transactions;
 
-pub use setup::get_provider;
-
 use ethers::{
     core::{k256::ecdsa::SigningKey, rand::random},
     providers::Middleware,
@@ -17,12 +15,15 @@ use ethers::{
 };
 use hex::FromHex;
 use rust_bigint::BigInt;
+pub use setup::get_provider;
 use std::{
     env,
     io::{BufRead, BufReader},
     process::{Command, Stdio},
     thread,
 };
+use tiny_keccak::Hasher;
+use tiny_keccak::Keccak;
 
 pub async fn get_block_number() -> anyhow::Result<U64> {
     let provider = get_provider().await?;
@@ -155,7 +156,7 @@ pub fn bytes_to_h256(value: &Bytes) -> H256 {
 }
 
 /// Take a H256 value and parse it to a Bytes
-pub fn _h256_to_bytes(value: &H256) -> Bytes {
+pub fn h256_to_bytes(value: &H256) -> Bytes {
     Bytes::from(value.as_bytes().to_vec())
 }
 
@@ -168,6 +169,16 @@ pub fn mock_rain_doc() -> Bytes {
 pub fn generate_random_u256() -> U256 {
     // This trully is a random u64, but it's work for testing
     return U256::from(random::<u64>());
+}
+
+pub fn hash_keccak(data: &Vec<u8>) -> H256 {
+    let mut keccak = Keccak::v256();
+    keccak.update(&data);
+
+    let mut output = [0u8; 32];
+    keccak.finalize(&mut output);
+
+    return H256::from(output);
 }
 
 /// Rain Magic Numbers

@@ -19,7 +19,7 @@ use utils::{
         _get_new_expression_event, get_add_order_event, get_after_clear_events, get_clear_events,
         get_deposit_events, get_withdraw_events,
     },
-    generate_random_u256, get_wallet,
+    generate_random_u256, get_wallet, h256_to_bytes, hash_keccak,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::{display_number, get_amount_tokens},
     transactions::{
@@ -30,7 +30,7 @@ use utils::{
 };
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -55,7 +55,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -89,7 +89,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -128,7 +128,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -239,7 +239,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -293,7 +293,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -441,7 +441,7 @@ async fn order_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -518,7 +518,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -628,7 +628,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -727,7 +727,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -819,7 +819,7 @@ async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -930,7 +930,7 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -1088,7 +1088,7 @@ async fn vault_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1190,7 +1190,7 @@ async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1292,7 +1292,7 @@ async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1361,7 +1361,7 @@ async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn erc20_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1432,10 +1432,6 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
     let bob_output_vault = generate_random_u256();
     let bounty_bot_vault_a = generate_random_u256();
     let bounty_bot_vault_b = generate_random_u256();
-
-    // The vaultIds entities for bounty account
-    let vault_a_entity_id = format!("{}-{:?}", bounty_bot_vault_a, bounty_bot.address());
-    let vault_b_entity_id = format!("{}-{:?}", bounty_bot_vault_b, bounty_bot.address());
 
     // Order Alice Configuration
     let order_alice = generate_order_config(
@@ -1556,26 +1552,62 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
     let clear_events = get_clear_events(&orderbook, &clears_tx_hash).await?;
     let after_clear_events = get_after_clear_events(&orderbook, &clears_tx_hash).await?;
 
+    let block_data = get_block_data(&clears_tx_hash).await?;
+
     // It should emit the same amount of events both parts
     assert_eq!(clear_events.len(), after_clear_events.len());
-
-    // let token_vault_bounty_a = format!(
-    //     "{}-{:?}-{:?}",
-    //     bounty_bot_vault_a,
-    //     bounty_bot.address(),
-    //     token_b.address(), // Using the output of alice order
-    // );
 
     // Wait for Subgraph sync
     wait().await?;
 
-    // Querying for both vaults
-    let resp_a = Query::order_clear(&vault_a_entity_id).await?;
+    for (index, clear) in clear_events.iter().enumerate() {
+        let order_clear_id = format!("{:?}-{}", clears_tx_hash, index);
+        let bounty_id = order_clear_id.clone();
+        let state_change_id = order_clear_id.clone();
 
+        let alice_hash = h256_to_bytes(&hash_keccak(&ethers::abi::AbiEncode::encode(
+            clear.alice.clone(),
+        )));
+        let bob_hash = h256_to_bytes(&hash_keccak(&ethers::abi::AbiEncode::encode(
+            clear.bob.clone(),
+        )));
+
+        let resp = Query::order_clear(&order_clear_id).await?;
+
+        assert_eq!(resp.sender, bounty_bot.address());
+        assert_eq!(resp.clearer, bounty_bot.address());
+        assert_eq!(resp.emitter, bounty_bot.address());
+
+        assert_eq!(resp.order_a, alice_hash);
+        assert_eq!(resp.order_b, bob_hash);
+        assert_eq!(resp.bounty, bounty_id);
+        assert_eq!(resp.state_change, state_change_id);
+
+        assert_eq!(resp.transaction, clears_tx_hash);
+        assert_eq!(resp.timestamp, block_data.timestamp);
+
+        assert!(resp.owners.contains(&clear.alice.owner));
+        assert!(resp.owners.contains(&clear.bob.owner));
+
+        assert_eq!(
+            resp.a_input_io_index,
+            clear.clear_config.alice_input_io_index
+        );
+        assert_eq!(
+            resp.a_output_io_index,
+            clear.clear_config.alice_output_io_index
+        );
+
+        assert_eq!(resp.b_input_io_index, clear.clear_config.bob_input_io_index);
+        assert_eq!(
+            resp.b_output_io_index,
+            clear.clear_config.bob_output_io_index
+        );
+    }
     Ok(())
 }
 
-// #[test]
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();

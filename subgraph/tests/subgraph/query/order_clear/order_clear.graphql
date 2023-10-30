@@ -1,0 +1,37 @@
+query OrderClear($id: String) {
+  orderClear(id: $id) {
+    id
+    sender {
+      id
+    }
+    clearer {
+      id
+    }
+    orderA {
+      id
+    }
+    orderB {
+      id
+    }
+    owners {
+      id
+    }
+    aInputIOIndex
+    aOutputIOIndex
+    bInputIOIndex
+    bOutputIOIndex
+    bounty {
+      id
+    }
+    stateChange {
+      id
+    }
+    transaction {
+      id
+    }
+    emitter {
+      id
+    }
+    timestamp
+  }
+}
