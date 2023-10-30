@@ -805,7 +805,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     )
     .await;
 
-    println!("Pre call add_order_alice");
     // Add order alice with Alice connected to the OB
     let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
     let tx = add_order_alice
@@ -815,12 +814,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
     // let add_order_alice_data = get_add_order_event(orderbook, &tx).await;
     let add_order_alice_data = get_add_order_event(orderbook, &tx).await?;
-    println!(
-        "alice sender: {:?} --- owner: {:?}",
-        add_order_alice_data.sender, add_order_alice_data.order.owner
-    );
 
-    println!("Pre call add_order_bob");
     // Add order bob with Bob connected to the OB
     let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
     let tx = add_order_bob
@@ -829,10 +823,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         .expect("cannot send add order bob");
     // let add_order_bob_data = get_add_order_event(orderbook, &tx).await;
     let add_order_bob_data = get_add_order_event(orderbook, &tx).await?;
-    println!(
-        "bob sender: {:?} --- owner: {:?}",
-        add_order_bob_data.sender, add_order_bob_data.order.owner
-    );
 
     // Make deposit of corresponded output token
     let decimal_a = token_a.decimals().call().await?;
@@ -853,7 +843,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     )
     .await?;
 
-    println!("Pre call deposit_func alice");
     // Deposit using Alice
     let deposit_func = orderbook.connect(&alice).await.deposit(
         token_b.address(),
@@ -873,7 +862,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     )
     .await?;
 
-    println!("Pre call deposit_func bob");
     // Deposit using Bob
     let deposit_func =
         orderbook
@@ -888,8 +876,6 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let order_bob = &add_order_bob_data.order;
     let clear_config = generate_clear_config(&bounty_bot_vault_a, &bounty_bot_vault_b);
 
-    println!("Pre call clear");
-
     let a_signed_context: Vec<generated::SignedContextV1> = Vec::new();
     let b_signed_context: Vec<generated::SignedContextV1> = Vec::new();
 
@@ -901,16 +887,12 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         b_signed_context,
     );
 
-    println!("Pre send clear");
-
     let tx = clear_func.send().await?;
-    println!("Post send clear");
-    println!("hash: {:?}", &tx.tx_hash());
 
-    let clear_data = get_clear_event(orderbook, &tx).await;
+    let clear_data = get_clear_event(orderbook, &tx).await?;
     println!("clear_data: {:?}\n", clear_data);
 
-    let after_clear_data = get_after_clear_event(orderbook, &tx).await;
+    let after_clear_data = get_after_clear_event(orderbook, &tx).await?;
     println!("after_clear_data: {:?}\n", after_clear_data);
 
     // // Get a random vaultId
