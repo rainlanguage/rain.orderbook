@@ -1,7 +1,7 @@
 use crate::{
     generated::{
         AddOrderCall, ClearConfig, DepositCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
-        RainterpreterExpressionDeployer,
+        RainterpreterExpressionDeployer, WithdrawCall,
     },
     utils::{generate_random_u256, mock_rain_doc},
 };
@@ -18,6 +18,13 @@ pub struct TestDepositConfig {
     pub token: Address,
     pub vault_id: U256,
     pub amount: U256,
+}
+
+/// A Withdraw configuration struct to encode withdraw to be used with multicall
+pub struct TestWithdrawConfig {
+    pub token: Address,
+    pub vault_id: U256,
+    pub target_amount: U256,
 }
 
 pub async fn mint_tokens(
@@ -63,7 +70,6 @@ pub async fn generate_order_config(
     }
 }
 
-
 async fn generate_io(
     token: &ERC20Mock<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     vault_id: Option<U256>,
@@ -82,7 +88,8 @@ async fn generate_eval_config(
     >,
 ) -> EvaluableConfigV2 {
     // let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
-    let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
+    let data_parse =
+        Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
     let (bytecode, constants) = expression_deployer
         .parse(data_parse.clone())
         .await
@@ -123,6 +130,26 @@ pub fn generate_multi_deposit(deposit_configs: &Vec<TestDepositConfig>) -> Vec<B
             token: config.token,
             vault_id: config.vault_id,
             amount: config.amount,
+        };
+
+        let encoded_call = Bytes::from(AbiEncode::encode(call_config));
+
+        // Push the bytes
+        data.push(encoded_call);
+    }
+
+    return data;
+}
+
+/// From given arguments, encode them to a collection of Bytes to be used with multicall
+pub fn generate_multi_withdraw(configs: &Vec<TestWithdrawConfig>) -> Vec<Bytes> {
+    let mut data: Vec<Bytes> = Vec::new();
+
+    for config in configs {
+        let call_config = WithdrawCall {
+            token: config.token,
+            vault_id: config.vault_id,
+            target_amount: config.target_amount,
         };
 
         let encoded_call = Bytes::from(AbiEncode::encode(call_config));

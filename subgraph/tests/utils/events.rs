@@ -1,4 +1,4 @@
-use crate::generated::{AddOrderFilter, AfterClearFilter, ClearFilter, OrderBook};
+use crate::generated::{AddOrderFilter, AfterClearFilter, ClearFilter, OrderBook, WithdrawFilter};
 use crate::generated::{ERC20Mock, TransferFilter};
 use crate::generated::{NewExpressionFilter, RainterpreterExpressionDeployer};
 use anyhow::{Error, Result};
@@ -131,7 +131,7 @@ pub async fn _get_add_order_events(
     }
 }
 
-pub async fn get_clear_event(
+pub async fn _get_clear_event(
     contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx_hash: &TxHash,
 ) -> Result<ClearFilter> {
@@ -149,7 +149,7 @@ pub async fn get_clear_event(
     }
 }
 
-pub async fn get_after_clear_event(
+pub async fn _get_after_clear_event(
     contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx_hash: &TxHash,
 ) -> Result<AfterClearFilter> {
@@ -206,5 +206,31 @@ pub async fn _get_new_expression_event(
             return Ok(event);
         }
         None => return Err(Error::msg("event not found")),
+    }
+}
+
+pub async fn _get_withdraw_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<Vec<WithdrawFilter>> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.clone().withdraw_filter().filter;
+
+    let option_logs = _get_matched_logs(receipt, filter).await;
+
+    match option_logs {
+        Some(logs) => {
+            let mut events: Vec<WithdrawFilter> = Vec::new();
+
+            for log in logs {
+                let event: WithdrawFilter =
+                    contract.decode_event::<WithdrawFilter>("Withdraw", log.topics, log.data)?;
+
+                events.push(event);
+            }
+
+            return Ok(events);
+        }
+        None => return Err(Error::msg("events not found")),
     }
 }

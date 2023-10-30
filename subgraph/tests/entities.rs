@@ -2,6 +2,8 @@ mod generated;
 mod subgraph;
 mod utils;
 
+use std::ops::Div;
+
 use ethers::{
     signers::Signer,
     types::{Address, Bytes, U256},
@@ -12,20 +14,19 @@ use utils::{
     bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
     deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
-    events::{
-        _get_new_expression_event, get_add_order_event, get_after_clear_event, get_clear_event,
-    },
+    events::{_get_new_expression_event, get_add_order_event},
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::get_amount_tokens,
     transactions::{
         approve_tokens, generate_clear_config, generate_multi_add_order, generate_multi_deposit,
-        generate_order_config, mint_tokens, TestDepositConfig,
+        generate_multi_withdraw, generate_order_config, mint_tokens, TestDepositConfig,
+        TestWithdrawConfig,
     },
 };
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -50,7 +51,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -84,7 +85,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -123,7 +124,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -234,7 +235,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -288,7 +289,151 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
+async fn order_entity_clear() -> anyhow::Result<()> {
+    let alice = get_wallet(0);
+    let bob = get_wallet(1);
+    let bounty_bot = get_wallet(2);
+
+    let orderbook = get_orderbook().await?;
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = touch_deployer(None).await?;
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None).await?;
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None).await?;
+    // Generate vault ids for each account (Input and Output)
+    let alice_input_vault = generate_random_u256();
+    let alice_output_vault = generate_random_u256();
+    let bob_input_vault = generate_random_u256();
+    let bob_output_vault = generate_random_u256();
+    let bounty_bot_vault_a = generate_random_u256();
+    let bounty_bot_vault_b = generate_random_u256();
+
+    // Order Alice Configuration
+    let order_alice = generate_order_config(
+        &expression_deployer,
+        &token_a,
+        Some(alice_input_vault),
+        &token_b,
+        Some(alice_output_vault),
+    )
+    .await;
+
+    // Order Bob Configuration
+    let order_bob = generate_order_config(
+        &expression_deployer,
+        &token_b,
+        Some(bob_input_vault),
+        &token_a,
+        Some(bob_output_vault),
+    )
+    .await;
+
+    // Add order alice with Alice connected to the OB
+    let add_order_alice = orderbook.connect(&alice).await.add_order(order_alice);
+    let tx = add_order_alice.send().await?;
+    let add_order_alice_data = get_add_order_event(orderbook, &tx).await?;
+
+    // Add order bob with Bob connected to the OB
+    let add_order_bob = orderbook.connect(&bob).await.add_order(order_bob);
+    let tx = add_order_bob.send().await?;
+    let add_order_bob_data = get_add_order_event(orderbook, &tx).await?;
+
+    // Make deposit of corresponded output token
+    let decimal_a = token_a.decimals().call().await?;
+    let amount_alice = get_amount_tokens(8, decimal_a);
+
+    let decimal_b = token_b.decimals().call().await?;
+    let amount_bob = get_amount_tokens(6, decimal_b);
+
+    // Alice has token_b as output
+    mint_tokens(&amount_alice, &alice.address(), &token_b).await?;
+
+    // Approve Alice token_b using to OB
+    approve_tokens(
+        // &amount_alice,
+        &amount_alice,
+        &orderbook.address(),
+        &token_b.connect(&alice).await,
+    )
+    .await?;
+
+    // Deposit using Alice
+    let deposit_func = orderbook.connect(&alice).await.deposit(
+        token_b.address(),
+        alice_output_vault,
+        amount_alice,
+    );
+    let _ = deposit_func.send().await?.await?;
+
+    // Bob has token_a as output
+    mint_tokens(&amount_bob, &bob.address(), &token_a).await?;
+
+    // Approve Bob token_a using to OB
+    approve_tokens(
+        &amount_bob,
+        &orderbook.address(),
+        &token_a.connect(&bob).await,
+    )
+    .await?;
+
+    // Deposit using Bob
+    let deposit_func =
+        orderbook
+            .connect(&bob)
+            .await
+            .deposit(token_a.address(), bob_output_vault, amount_bob);
+    let _ = deposit_func.send().await?.await?;
+
+    // BOUNTY BOT CLEARS THE ORDER
+    // Clear configuration
+    let order_alice = &add_order_alice_data.order;
+    let order_bob = &add_order_bob_data.order;
+    let clear_config = generate_clear_config(&bounty_bot_vault_a, &bounty_bot_vault_b);
+
+    let a_signed_context: Vec<generated::SignedContextV1> = Vec::new();
+    let b_signed_context: Vec<generated::SignedContextV1> = Vec::new();
+
+    let clear_func = orderbook.connect(&bounty_bot).await.clear(
+        order_alice.to_owned(),
+        order_bob.to_owned(),
+        clear_config,
+        a_signed_context,
+        b_signed_context,
+    );
+
+    // Wait for the transaction
+    let tx_clear = clear_func.send().await?;
+    let clear_tx_hash = tx_clear.tx_hash();
+
+    // Order hashes
+    let alice_order_hash: Bytes = add_order_alice_data.order_hash.into();
+    let bob_order_hash: Bytes = add_order_bob_data.order_hash.into();
+
+    // Clear ID (using 0 since was only one clear)
+    let clear_entity_id = format!("{:?}-{}", clear_tx_hash, 0);
+
+    // Querying for both orders that should include the clearr
+    let response_a = Query::order(&alice_order_hash).await?;
+    let response_b = Query::order(&bob_order_hash).await?;
+
+    assert!(
+        response_a.orders_clears.contains(&clear_entity_id),
+        "missing clear entity"
+    );
+    assert!(
+        response_b.orders_clears.contains(&clear_entity_id),
+        "missing clear entity"
+    );
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -365,7 +510,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -475,7 +620,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -574,7 +719,99 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
+async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await?;
+
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let alice = get_wallet(2);
+    let orderbook = orderbook.connect(&alice).await;
+
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
+
+    // Vault Entity ID
+    let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None).await?;
+
+    // Amount to deposit
+    let amount_to_deposit = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+
+    // Fill to Alice with tokens
+    mint_tokens(&amount_to_deposit, &alice.address(), &token_a).await?;
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    approve_tokens(
+        &amount_to_deposit,
+        &orderbook.address(),
+        &token_a.connect(&alice).await,
+    )
+    .await?;
+
+    // Send the deposits with multicall
+    let deposit_func = orderbook.deposit(token_a.address(), vault_id, amount_to_deposit);
+    let _ = deposit_func.send().await?.await?;
+
+    // Make two withdraw with the half of what was deposited
+    let amount_to_withdaw = amount_to_deposit.div(2);
+
+    // Fill struct with same vaultId and tokens in the Withdaws configurations
+    let withdraws_config = vec![
+        // Config A
+        TestWithdrawConfig {
+            token: token_a.address(),
+            vault_id: vault_id,
+            target_amount: amount_to_withdaw,
+        },
+        // Config B
+        TestWithdrawConfig {
+            token: token_a.address(),
+            vault_id: vault_id,
+            target_amount: amount_to_withdaw,
+        },
+    ];
+
+    // Encode the withdaws
+    let multi_withdaws = generate_multi_withdraw(&withdraws_config);
+
+    // Send the deposits with multicall
+    let multicall_func = orderbook.multicall(multi_withdaws);
+    let tx_multicall_withdraws = multicall_func.send().await?;
+    let withdraw_tx_hash = tx_multicall_withdraws.tx_hash();
+
+    // Generate the expetect Token Vault IDs
+    let token_vault_a = format!("{}-{:?}-{:?}", vault_id, alice.address(), token_a.address());
+
+    // Wait for Subgraph sync
+    wait().await?;
+
+    let resp = Query::vault(&vault_entity_id).await?;
+
+    // The whole entity should be updated normally
+    assert_eq!(resp.vault_id, vault_id);
+    assert_eq!(resp.owner, alice.address());
+    assert!(
+        resp.token_vaults.contains(&token_vault_a),
+        "Missing tokenVault id"
+    );
+
+    // Should include the withdraws made
+    for index in 0..withdraws_config.len() {
+        let withdraws_id = format!("{:?}-{}", withdraw_tx_hash, index);
+
+        assert!(
+            resp.withdraws.contains(&withdraws_id),
+            "missing withdraw id"
+        );
+    }
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -708,6 +945,10 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
     let bounty_bot_vault_a = generate_random_u256();
     let bounty_bot_vault_b = generate_random_u256();
 
+    // The vaultIds entities for bounty account
+    let vault_a_entity_id = format!("{}-{:?}", bounty_bot_vault_a, bounty_bot.address());
+    let vault_b_entity_id = format!("{}-{:?}", bounty_bot_vault_b, bounty_bot.address());
+
     // Order Alice Configuration
     let order_alice = generate_order_config(
         &expression_deployer,
@@ -801,125 +1042,109 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         b_signed_context,
     );
 
-    let tx = clear_func.send().await?;
+    // Wait for the transaction
+    let _ = clear_func.send().await?.await?;
 
-    let clear_data = get_clear_event(orderbook, &tx).await?;
-    println!("clear_data: {:?}\n", clear_data);
+    let token_vault_bounty_a = format!(
+        "{}-{:?}-{:?}",
+        bounty_bot_vault_a,
+        bounty_bot.address(),
+        token_b.address(), // Using the output of alice order
+    );
 
-    let after_clear_data = get_after_clear_event(orderbook, &tx).await?;
-    println!("after_clear_data: {:?}\n", after_clear_data);
+    let token_vault_bounty_b = format!(
+        "{}-{:?}-{:?}",
+        bounty_bot_vault_b,
+        bounty_bot.address(),
+        token_a.address(), // Using the output of bob order
+    );
 
-    // // Get a random vaultId
-    // let vault_id = generate_random_u256();
+    // Querying for both vaults
+    let resp_a = Query::vault(&vault_a_entity_id).await?;
+    let resp_b = Query::vault(&vault_b_entity_id).await?;
 
-    // // The expected vault entity SG ID
-    // let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
+    // BountyAlice Vault
+    assert_eq!(resp_a.owner, bounty_bot.address());
+    assert_eq!(resp_a.vault_id, bounty_bot_vault_a);
+    assert!(resp_a.token_vaults.contains(&token_vault_bounty_a));
 
-    // ////////
-
-    // // Build OrderConfig with the vaultId
-    // let order_config = generate_order_config(
-    //     &expression_deployer,
-    //     &token_a,
-    //     Some(vault_id),
-    //     &token_b,
-    //     Some(vault_id),
-    // )
-    // .await;
-
-    // // Add the order
-    // let add_order_func = orderbook.add_order(order_config.clone());
-    // let _ = add_order_func
-    //     .send()
-    //     .await
-    //     ?
-    //     .await
-    //     ?;
-
-    // // Wait for Subgraph sync
-    // wait().await?;
-
-    // // First query when adding order
-    // let resp = Query::vault(&vault_entity_id)
-    //     .await
-    //     ?;
-
-    // // The whole entity should be created normally when adding the order
-    // assert_eq!(resp.id, vault_entity_id);
-
-    // // Now, make the deposits with a given amount
-    // let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
-
-    // // Fill to Alice with tokens (A and B)
-    // mint_tokens(&amount, &alice.address(), &token_a)
-    //     .await
-    //     ?;
-
-    // mint_tokens(&amount, &alice.address(), &token_b)
-    //     .await
-    //     ?;
-
-    // // Connect token to Alice and approve Orderbook to move tokens
-    // approve_tokens(
-    //     &amount,
-    //     &orderbook.address(),
-    //     &token_a.connect(&alice).await,
-    // )
-    // .await
-    // ?;
-
-    // approve_tokens(
-    //     &amount,
-    //     &orderbook.address(),
-    //     &token_b.connect(&alice).await,
-    // )
-    // .await
-    // ?;
-
-    // // Fill struct with same vaultId in the deposit configurations
-    // let deposits_config = vec![
-    //     // Config A
-    //     TestDepositConfig {
-    //         token: token_a.address(),
-    //         vault_id: vault_id,
-    //         amount,
-    //     },
-    //     // Config B
-    //     TestDepositConfig {
-    //         token: token_b.address(),
-    //         vault_id: vault_id,
-    //         amount,
-    //     },
-    // ];
-    // // The multi deposit data bytes
-    // let multi_deposit = generate_multi_deposit(&deposits_config);
-
-    // // Send the deposits with multicall
-    // let multicall_func = orderbook.multicall(multi_deposit);
-    // let tx_multicall = multicall_func.send().await?;
-    // let tx_receipt = tx_multicall.await?.unwrap();
-
-    // let deposit_tx_hash = &tx_receipt.transaction_hash;
-
-    // // Wait for Subgraph sync
-    // wait().await?;
-
-    // // Second query, using same vault entity ID.
-    // let resp = Query::vault(&vault_entity_id)
-    //     .await
-    //     ?;
-
-    // // Should include the deposits made in same vault entity
-    // for index in 0..deposits_config.len() {
-    //     let deposit_id = format!("{:?}-{}", deposit_tx_hash, index);
-
-    //     assert!(resp.deposits.contains(&deposit_id), "missing deposit id");
-    // }
+    // BountyBob Vault
+    assert_eq!(resp_b.owner, bounty_bot.address());
+    assert_eq!(resp_b.vault_id, bounty_bot_vault_b);
+    assert!(resp_b.token_vaults.contains(&token_vault_bounty_b));
 
     Ok(())
 }
 
-// #[test]
+#[tokio::main]
+#[test]
+async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await?;
+
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let alice = get_wallet(2);
+    let orderbook = orderbook.connect(&alice).await;
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None).await?;
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None).await?;
+
+    let amount = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+
+    // Fill to Alice with tokens (A and B)
+    mint_tokens(&amount, &alice.address(), &token_a).await?;
+
+    mint_tokens(&amount, &alice.address(), &token_b).await?;
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_a.connect(&alice).await,
+    )
+    .await?;
+
+    approve_tokens(
+        &amount,
+        &orderbook.address(),
+        &token_b.connect(&alice).await,
+    )
+    .await?;
+
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
+
+    // Fill struct with same vaultId in the deposit configurations
+    let deposits_config = vec![
+        // Config A
+        TestDepositConfig {
+            token: token_a.address(),
+            vault_id: vault_id,
+            amount,
+        },
+        // Config B
+        TestDepositConfig {
+            token: token_b.address(),
+            vault_id: vault_id,
+            amount,
+        },
+    ];
+
+    let multi_deposit = generate_multi_deposit(&deposits_config);
+
+    // Send the deposits with multicall
+    let multicall_func = orderbook.multicall(multi_deposit);
+    let tx_multicall = multicall_func.send().await?;
+    let tx_receipt = tx_multicall.await?.unwrap();
+
+    let deposit_tx_hash = &tx_receipt.transaction_hash;
+    //
+    Ok(())
+}
+
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
