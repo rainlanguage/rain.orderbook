@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[graphql(
     schema_path = "tests/subgraph/query/schema.json",
     query_path = "tests/subgraph/query/content_meta_v1/content_meta_v1.graphql",
-    reseponse_derives = "Debug, Serialize, Deserialize"
+    response_derives = "Debug, Serialize, Deserialize"
 )]
 pub struct ContentMetaV1;
 

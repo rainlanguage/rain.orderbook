@@ -17,7 +17,7 @@ use ethers::types::U256;
 #[graphql(
     schema_path = "tests/subgraph/wait/schema.json",
     query_path = "tests/subgraph/wait/query.graphql",
-    reseponse_derives = "Debug, Serialize, Deserialize"
+    response_derives = "Debug, Serialize, Deserialize"
 )]
 
 pub struct SyncStatus;

@@ -1,4 +1,6 @@
-use crate::generated::{AddOrderFilter, AfterClearFilter, ClearFilter, OrderBook, WithdrawFilter};
+use crate::generated::{
+    AddOrderFilter, AfterClearFilter, ClearFilter, DepositFilter, OrderBook, WithdrawFilter,
+};
 use crate::generated::{ERC20Mock, TransferFilter};
 use crate::generated::{NewExpressionFilter, RainterpreterExpressionDeployer};
 use anyhow::{Error, Result};
@@ -78,7 +80,6 @@ async fn get_pending_tx(tx_hash: &TxHash) -> Result<TransactionReceipt> {
     let provider = get_provider().await?;
 
     let pending_tx = PendingTransaction::new(*tx_hash, provider);
-
 
     match pending_tx.await? {
         Some(receipt) => return Ok(receipt),
@@ -226,6 +227,32 @@ pub async fn _get_withdraw_events(
             for log in logs {
                 let event: WithdrawFilter =
                     contract.decode_event::<WithdrawFilter>("Withdraw", log.topics, log.data)?;
+
+                events.push(event);
+            }
+
+            return Ok(events);
+        }
+        None => return Err(Error::msg("events not found")),
+    }
+}
+
+pub async fn get_deposit_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<Vec<DepositFilter>> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.clone().deposit_filter().filter;
+
+    let option_logs = _get_matched_logs(receipt, filter).await;
+
+    match option_logs {
+        Some(logs) => {
+            let mut events: Vec<DepositFilter> = Vec::new();
+
+            for log in logs {
+                let event: DepositFilter =
+                    contract.decode_event::<DepositFilter>("Deposit", log.topics, log.data)?;
 
                 events.push(event);
             }

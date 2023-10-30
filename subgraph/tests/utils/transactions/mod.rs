@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     generated::{
         AddOrderCall, ClearConfig, DepositCall, ERC20Mock, EvaluableConfigV2, Io, OrderConfigV2,
@@ -9,11 +11,11 @@ use ethers::{
     core::{abi::AbiEncode, k256::ecdsa::SigningKey},
     prelude::SignerMiddleware,
     providers::{Http, Middleware, PendingTransaction, Provider},
-    signers::Wallet,
+    signers::{Signer, Wallet},
     types::{Address, Block, Bytes, TxHash, H256, U256},
 };
 
-use super::get_provider;
+use super::{get_provider, get_wallet};
 
 /// A Deposit configuration struct to encode deposit to be used with multicall
 pub struct TestDepositConfig {
@@ -68,6 +70,21 @@ pub async fn approve_tokens(
     token.approve(*spender, *amount).send().await?.await?;
 
     Ok(())
+}
+
+pub async fn get_decimals(address: Address) -> anyhow::Result<u8> {
+    let wallet = get_wallet(0);
+    let provider = get_provider().await?;
+    let chain_id = provider.get_chainid().await?;
+
+    let client = Arc::new(SignerMiddleware::new(
+        provider.clone(),
+        wallet.clone().with_chain_id(chain_id.as_u64()),
+    ));
+
+    let contract = ERC20Mock::new(address, client);
+
+    Ok(contract.decimals().call().await?)
 }
 
 pub async fn generate_order_config(

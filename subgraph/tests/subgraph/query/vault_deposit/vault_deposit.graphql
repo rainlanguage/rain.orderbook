@@ -1,18 +1,27 @@
 query VaultDeposit($id: String) {
   vaultDeposit(id: $id) {
     id
+    sender {
+      id
+    }
+    token {
+      id
+    }
     vaultId
-    owner {
+    vault {
       id
     }
-    tokenVaults {
+    amount
+    amountDisplay
+    tokenVault {
       id
     }
-    deposits {
+    transaction {
       id
     }
-    withdraws {
+    emitter {
       id
     }
+    timestamp
   }
 }

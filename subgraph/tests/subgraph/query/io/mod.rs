@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[graphql(
     schema_path = "tests/subgraph/query/schema.json",
     query_path = "tests/subgraph/query/io/io.graphql",
-    reseponse_derives = "Debug, Serialize, Deserialize"
+    response_derives = "Debug, Serialize, Deserialize"
 )]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IO;
