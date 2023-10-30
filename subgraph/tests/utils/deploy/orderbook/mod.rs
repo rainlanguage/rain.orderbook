@@ -22,6 +22,7 @@ pub async fn deploy_orderbook(
     let provider = get_provider().await.expect("cannot get provider");
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");
 
+
     let client = Arc::new(SignerMiddleware::new(
         provider.clone(),
         wallet.clone().with_chain_id(chain_id.as_u64()),

@@ -20,8 +20,8 @@ use utils::{
     numbers::get_amount_tokens,
     transactions::{
         approve_tokens, generate_clear_config, generate_multi_add_order, generate_multi_deposit,
-        generate_multi_withdraw, generate_order_config, mint_tokens, TestDepositConfig,
-        TestWithdrawConfig,
+        generate_multi_withdraw, generate_order_config, get_block_data, mint_tokens,
+        TestDepositConfig, TestWithdrawConfig,
     },
 };
 
@@ -1140,6 +1140,14 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
     let tx_receipt = tx_multicall.await?.unwrap();
 
     let deposit_tx_hash = &tx_receipt.transaction_hash;
+    println!("deposit_tx_hash: {:?}", deposit_tx_hash);
+
+    let block_data = get_block_data(&deposit_tx_hash).await?;
+    let deposit_block_number = block_data.number.unwrap();
+    let deposit_block_time = block_data.timestamp;
+    println!("deposit_block_number: {:?}", deposit_block_number);
+    println!("deposit_block_time: {:?}", deposit_block_time);
+
     //
     Ok(())
 }

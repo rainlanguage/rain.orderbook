@@ -8,10 +8,12 @@ use crate::{
 use ethers::{
     core::{abi::AbiEncode, k256::ecdsa::SigningKey},
     prelude::SignerMiddleware,
-    providers::{Http, Provider},
+    providers::{Http, Middleware, PendingTransaction, Provider},
     signers::Wallet,
-    types::{Address, Bytes, U256},
+    types::{Address, Block, Bytes, TxHash, H256, U256},
 };
+
+use super::get_provider;
 
 /// A Deposit configuration struct to encode deposit to be used with multicall
 pub struct TestDepositConfig {
@@ -25,6 +27,27 @@ pub struct TestWithdrawConfig {
     pub token: Address,
     pub vault_id: U256,
     pub target_amount: U256,
+}
+
+pub async fn get_block_data(tx_hash: &TxHash) -> anyhow::Result<(Block<H256>)> {
+    let provider = get_provider().await?;
+
+    let pending_tx = PendingTransaction::new(*tx_hash, provider);
+
+    let receipt = match pending_tx.await? {
+        Some(receipt) => receipt,
+        None => return Err(anyhow::Error::msg("receipt not found")),
+    };
+
+    let block_number = match receipt.block_number {
+        Some(block_number) => block_number,
+        None => return Err(anyhow::Error::msg("block number not found")),
+    };
+
+    match provider.get_block(block_number).await? {
+        Some(block_data) => Ok(block_data),
+        None => return Err(anyhow::Error::msg("block data not found")),
+    }
 }
 
 pub async fn mint_tokens(

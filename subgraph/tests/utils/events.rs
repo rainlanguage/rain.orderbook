@@ -79,6 +79,7 @@ async fn get_pending_tx(tx_hash: &TxHash) -> Result<TransactionReceipt> {
 
     let pending_tx = PendingTransaction::new(*tx_hash, provider);
 
+
     match pending_tx.await? {
         Some(receipt) => return Ok(receipt),
         None => return Err(Error::msg("receipt not found")),
