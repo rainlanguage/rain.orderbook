@@ -19,7 +19,7 @@ use utils::{
     },
     generate_random_u256, get_wallet,
     json_structs::{NewExpressionJson, OrderJson},
-    numbers::{format_number_with_decimals, get_amount_tokens},
+    numbers::{display_number, get_amount_tokens},
     transactions::{
         approve_tokens, generate_clear_config, generate_multi_add_order, generate_multi_deposit,
         generate_multi_withdraw, generate_order_config, get_block_data, get_decimals, mint_tokens,
@@ -292,7 +292,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 
 #[tokio::main]
 #[test]
-async fn order_entity_clear() -> anyhow::Result<()> {
+async fn order_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
@@ -417,6 +417,10 @@ async fn order_entity_clear() -> anyhow::Result<()> {
 
     // Clear ID (using 0 since was only one clear)
     let clear_entity_id = format!("{:?}-{}", clear_tx_hash, 0);
+    println!("clear_entity_id: {}", clear_entity_id);
+
+    // Wait for Subgraph sync
+    wait().await?;
 
     // Querying for both orders that should include the clearr
     let response_a = Query::order(&alice_order_hash).await?;
@@ -925,7 +929,7 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 
 #[tokio::main]
 #[test]
-async fn vault_entity_clear() -> anyhow::Result<()> {
+async fn vault_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
     let bounty_bot = get_wallet(2);
@@ -1061,6 +1065,9 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
         token_a.address(), // Using the output of bob order
     );
 
+    // Wait for Subgraph sync
+    wait().await?;
+
     // Querying for both vaults
     let resp_a = Query::vault(&vault_a_entity_id).await?;
     let resp_b = Query::vault(&vault_b_entity_id).await?;
@@ -1080,7 +1087,7 @@ async fn vault_entity_clear() -> anyhow::Result<()> {
 
 #[tokio::main]
 #[test]
-async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
+async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Connect the orderbook to another wallet (arbitrary) to send the orders
@@ -1142,7 +1149,6 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
     let tx_receipt = tx_multicall.await?.unwrap();
 
     let deposits_tx_hash = &tx_receipt.transaction_hash;
-    println!("deposits_tx_hash: {:?}", deposits_tx_hash);
 
     let block_data = get_block_data(&deposits_tx_hash).await?;
 
@@ -1155,8 +1161,7 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
         let deposit_id = format!("{:?}-{}", deposits_tx_hash, index);
 
         let vault_entity_id = format!("{}-{:?}", deposit.vault_id, alice.address());
-        let amount_display =
-            format_number_with_decimals(deposit.amount, get_decimals(deposit.token).await?);
+        let amount_display = display_number(deposit.amount, get_decimals(deposit.token).await?);
 
         let token_vault_entity = format!(
             "{}-{:?}-{:?}",
@@ -1184,7 +1189,7 @@ async fn vault_deposit_multiple_deposits() -> anyhow::Result<()> {
 
 #[tokio::main]
 #[test]
-async fn vault_withdraw_multiple_withdraws() -> anyhow::Result<()> {
+async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Connect the orderbook to another wallet (arbitrary) to send the orders
@@ -1254,10 +1259,9 @@ async fn vault_withdraw_multiple_withdraws() -> anyhow::Result<()> {
 
         let vault_entity_id = format!("{}-{:?}", withdraw.vault_id, alice.address());
         let decimals = get_decimals(withdraw.token).await?;
-        let amount_display = format_number_with_decimals(withdraw.amount, decimals);
+        let amount_display = display_number(withdraw.amount, decimals);
 
-        let requested_amount_display =
-            format_number_with_decimals(withdraw.target_amount, decimals);
+        let requested_amount_display = display_number(withdraw.target_amount, decimals);
 
         let token_vault_entity = format!(
             "{}-{:?}-{:?}",
@@ -1281,6 +1285,124 @@ async fn vault_withdraw_multiple_withdraws() -> anyhow::Result<()> {
         assert_eq!(resp.emitter, alice.address());
         assert_eq!(resp.timestamp, block_data.timestamp);
     }
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await?;
+
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let alice = get_wallet(2);
+    let orderbook = orderbook.connect(&alice).await;
+
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = touch_deployer(None).await?;
+
+    // Deploy ERC20 token contract (A)
+    let token_a = deploy_erc20_mock(None).await?;
+
+    // Deploy ERC20 token contract (B)
+    let token_b = deploy_erc20_mock(None).await?;
+
+    // Build OrderConfig with the vaultId
+    let order_config = generate_order_config(
+        &expression_deployer,
+        &token_a,
+        Some(vault_id),
+        &token_b,
+        Some(vault_id),
+    )
+    .await;
+
+    // Add the order
+    let add_order_func = orderbook.add_order(order_config.clone());
+    let _ = add_order_func.send().await?.await?;
+
+    // Wait for Subgraph sync
+    wait().await?;
+
+    // Both ERC20 entities should be created
+    let resp_a = Query::erc20(&token_a.address()).await?;
+    let resp_b = Query::erc20(&token_b.address()).await?;
+
+    let total_supply_display_a = display_number(
+        token_a.total_supply().call().await?,
+        token_a.decimals().call().await?,
+    );
+
+    let total_supply_display_b = display_number(
+        token_b.total_supply().call().await?,
+        token_b.decimals().call().await?,
+    );
+
+    // Checking the token A
+    assert_eq!(resp_a.name, token_a.name().call().await?);
+    assert_eq!(resp_a.symbol, token_a.symbol().call().await?);
+    assert_eq!(resp_a.total_supply, token_a.total_supply().call().await?);
+    assert_eq!(resp_a.decimals, token_a.decimals().call().await?);
+    assert_eq!(resp_a.total_supply_display, total_supply_display_a);
+
+    // Checking the token B
+    assert_eq!(resp_b.name, token_b.name().call().await?);
+    assert_eq!(resp_b.symbol, token_b.symbol().call().await?);
+    assert_eq!(resp_b.total_supply, token_b.total_supply().call().await?);
+    assert_eq!(resp_b.decimals, token_b.decimals().call().await?);
+    assert_eq!(resp_b.total_supply_display, total_supply_display_b);
+
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn erc20_entity_deposit_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await?;
+
+    // Connect the orderbook to another wallet (arbitrary) to send the orders
+    let alice = get_wallet(2);
+    let orderbook = orderbook.connect(&alice).await;
+
+    // Get a random vaultId
+    let vault_id = generate_random_u256();
+
+    // Deploy ERC20 token contract
+    let token = deploy_erc20_mock(None).await?;
+
+    // Now, make the deposits with a given amount
+    let amount = get_amount_tokens(1000, token.decimals().call().await?);
+
+    // Fill to Alice with tokens
+    mint_tokens(&amount, &alice.address(), &token).await?;
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    approve_tokens(&amount, &orderbook.address(), &token.connect(&alice).await).await?;
+
+    // Send the deposits
+    let deposit_func = orderbook.deposit(token.address(), vault_id, amount);
+    let _ = deposit_func.send().await?.await?;
+
+    // Wait for Subgraph sync
+    wait().await?;
+
+    // Second query, using same vault entity ID.
+    let resp = Query::erc20(&token.address()).await?;
+
+    let total_supply_display = display_number(
+        token.total_supply().call().await?,
+        token.decimals().call().await?,
+    );
+
+    // Checking the token
+    assert_eq!(resp.name, token.name().call().await?);
+    assert_eq!(resp.symbol, token.symbol().call().await?);
+    assert_eq!(resp.total_supply, token.total_supply().call().await?);
+    assert_eq!(resp.decimals, token.decimals().call().await?);
+    assert_eq!(resp.total_supply_display, total_supply_display);
 
     Ok(())
 }

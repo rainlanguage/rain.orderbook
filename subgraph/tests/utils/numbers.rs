@@ -7,7 +7,7 @@ pub fn get_amount_tokens(amount: u64, decimals: u8) -> U256 {
     return result;
 }
 
-pub fn format_number_with_decimals(number: U256, decimals: u8) -> String {
+pub fn display_number(number: U256, decimals: u8) -> String {
     if decimals == 0 {
         return number.to_string();
     }

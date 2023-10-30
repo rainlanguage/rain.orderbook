@@ -1,7 +1,7 @@
 import { Address } from "@graphprotocol/graph-ts";
 import { ReserveToken, Transfer } from "../generated/OrderBook/ReserveToken";
 import { ERC20 } from "../generated/schema";
-import { toDisplay } from "./utils";
+import { toDisplayWithDecimals } from "./utils";
 
 export function handleTransfer(event: Transfer): void {
   let token = ERC20.load(event.address.toHex());
@@ -18,7 +18,7 @@ export function handleTransfer(event: Transfer): void {
       let value = totalSupply.value;
 
       token.totalSupply = value;
-      token.totalSupplyDisplay = toDisplay(value, event.address.toHex());
+      token.totalSupplyDisplay = toDisplayWithDecimals(value, token.decimals);
 
       token.save();
     }

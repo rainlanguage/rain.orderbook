@@ -1,0 +1,10 @@
+query ERC20($id: String) {
+  erc20(id: $id) {
+    id
+    name
+    symbol
+    totalSupply
+    totalSupplyDisplay
+    decimals
+  }
+}

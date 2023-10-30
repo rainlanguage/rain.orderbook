@@ -85,28 +85,35 @@ export function createToken(address: Bytes): ERC20 {
     let decimals = reserveToken.try_decimals();
     let name = reserveToken.try_name();
     let symbol = reserveToken.try_symbol();
+    let totalSupply = reserveToken.try_totalSupply();
+
     token.decimals = !decimals.reverted ? decimals.value : 0;
     token.name = !name.reverted ? name.value : "NONE";
     token.symbol = !symbol.reverted ? symbol.value : "NONE";
-    token.totalSupply = BigInt.zero();
-    token.totalSupplyDisplay = BigDecimal.zero();
+    token.totalSupply = !totalSupply.reverted
+      ? totalSupply.value
+      : BigInt.zero();
+
+    if (!totalSupply.reverted && !decimals.reverted) {
+      token.totalSupplyDisplay = toDisplayWithDecimals(
+        totalSupply.value,
+        decimals.value
+      );
+    } else {
+      token.totalSupplyDisplay = BigDecimal.zero();
+    }
+
     token.save();
   }
+  // else {
+  // let totalSupply = reserveToken.try_totalSupply();
+  // if (!totalSupply.reverted) {
+  //   let value = totalSupply.value;
+  //   token.totalSupply = value;
+  //   token.totalSupplyDisplay = toDisplayWithDecimals(value, token.decimals);
+  // }
+  // }
 
-  let totalSupply = reserveToken.try_totalSupply();
-  if (!totalSupply.reverted) {
-    let value = totalSupply.value;
-
-    token.totalSupply = value;
-    token.totalSupplyDisplay = toDisplay(value, address.toHex());
-
-    token.save();
-  }
-
-  // token.totalSupply = !totalSupply.reverted
-  //   ? totalSupply.value
-  //   : token.totalSupply;
-  // token.save();
   return token;
 }
 
@@ -313,6 +320,14 @@ export function toDisplay(amount: BigInt, token: string): BigDecimal {
     return amount.toBigDecimal().div(denominator.toBigDecimal());
   }
   return amount.toBigDecimal().div(BigDecimal.fromString(getZeros(0)));
+}
+
+export function toDisplayWithDecimals(
+  amount: BigInt,
+  decimals: i32
+): BigDecimal {
+  let denominator = BigInt.fromString(getZeros(decimals));
+  return amount.toBigDecimal().div(denominator.toBigDecimal());
 }
 
 function getZeros(num: number): string {
