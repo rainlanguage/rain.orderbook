@@ -8,6 +8,7 @@ pub(crate) mod rain_meta_v1;
 pub(crate) mod vault;
 pub(crate) mod vault_deposit;
 pub(crate) mod vault_withdraw;
+pub(crate) mod token_vault;
 
 use anyhow::Result;
 use ethers::types::{Address, Bytes};
@@ -24,6 +25,7 @@ use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
 use vault::{get_vault, VaultResponse};
 use vault_deposit::{get_vault_deposit, VaultDepositResponse};
 use vault_withdraw::{get_vault_withdraw, VaultWithdrawResponse};
+use token_vault::{get_token_vault, TokenVaultResponse};
 
 pub static SG_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://localhost:8000/subgraphs/name/test/test").unwrap());
@@ -69,5 +71,9 @@ impl Query {
 
     pub async fn order_clear(id: &String) -> Result<OrderClearResponse> {
         get_order_clear(id).await
+    }
+
+    pub async fn token_vault(id: &String) -> Result<TokenVaultResponse> {
+        get_token_vault(id).await
     }
 }

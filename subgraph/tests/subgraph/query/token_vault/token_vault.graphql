@@ -1,0 +1,26 @@
+query TokenVault($id: String) {
+  tokenVault(id: $id) {
+    id
+    owner {
+      id
+    }
+    vault {
+      id
+    }
+    vaultId
+    token {
+      id
+    }
+    balance
+    balanceDisplay
+    orders {
+      id
+    }
+    orderClears {
+      id
+    }
+    takeOrders {
+      id
+    }
+  }
+}
