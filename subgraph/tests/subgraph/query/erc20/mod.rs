@@ -48,7 +48,7 @@ impl ERC20Response {
 
 pub async fn get_erc20(id: &Address) -> Result<ERC20Response> {
     let variables = erc20::Variables {
-        id: id.to_string().into(),
+        id: Some(format!("{:?}", id)),
     };
 
     let request_body = ERC20::build_query(variables);
