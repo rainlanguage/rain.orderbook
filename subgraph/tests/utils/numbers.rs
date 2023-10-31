@@ -8,7 +8,7 @@ pub fn get_amount_tokens(amount: u64, decimals: u8) -> U256 {
 }
 
 pub fn display_number(number: U256, decimals: u8) -> String {
-    if decimals == 0 {
+    if number.is_zero() || decimals == 0 {
         return number.to_string();
     }
 
