@@ -1956,7 +1956,7 @@ async fn token_vault_entity_clear_test() -> anyhow::Result<()> {
     let carl_token_vault_a = format!("{}-{:?}-{:?}", vault_id, carl.address(), token_a.address());
     let carl_token_vault_b = format!("{}-{:?}-{:?}", vault_id, carl.address(), token_b.address());
 
-    // All entities present on the Clear should be created
+    // All token vault entities present on the Clear should be created
     // - ALICE
     let vault_balance_a: U256 = orderbook
         .vault_balance(alice.address(), token_a.address(), vault_id)
