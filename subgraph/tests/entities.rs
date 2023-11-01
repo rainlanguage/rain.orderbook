@@ -13,10 +13,7 @@ use subgraph::{wait, Query};
 use utils::{
     bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
-    deploy::{
-        deploy_erc20_mock, get_expression_deployer, get_orderbook, read_orderbook_meta,
-        touch_deployer,
-    },
+    deploy::{deploy_erc20_mock, get_expression_deployer, get_orderbook, read_orderbook_meta},
     events::{
         _get_new_expression_event, get_add_order_event, get_after_clear_events, get_clear_events,
         get_deposit_events, get_take_order_events, get_withdraw_events,
@@ -141,7 +138,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = orderbook.connect(&wallet_1).await;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -252,7 +249,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = orderbook.connect(&wallet_1).await;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -306,7 +303,7 @@ async fn order_entity_clear_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -449,7 +446,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -526,7 +523,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -837,7 +834,7 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let vault_entity_id = format!("{}-{:?}", vault_id, alice.address());
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -942,7 +939,7 @@ async fn vault_entity_clear_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -1307,7 +1304,7 @@ async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
     let vault_id = generate_random_u256();
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -1422,7 +1419,7 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -1634,7 +1631,7 @@ async fn token_vault_entity_add_order_test() -> anyhow::Result<()> {
     let vault_id = generate_random_u256();
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -1849,7 +1846,7 @@ async fn token_vault_entity_clear_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A)
     let token_a = deploy_erc20_mock(None).await?;
@@ -2084,7 +2081,7 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
 
     // Deploy ExpressionDeployerNP for the config
     let expression_deployer = get_expression_deployer().await?;
-    // let expression_deployer = touch_deployer(None).await?;
+    // let expression_deployer = get_expression_deployer().await?;
 
     // Deploy ERC20 token contract (A) connected to Alice
     let token_a = deploy_erc20_mock(None).await?;
