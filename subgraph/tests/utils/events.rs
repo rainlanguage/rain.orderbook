@@ -1,6 +1,6 @@
 use crate::generated::{
-    AddOrderFilter, AfterClearFilter, ClearFilter, DepositFilter, OrderBook, TakeOrderFilter,
-    WithdrawFilter,
+    AddOrderFilter, AfterClearFilter, ClearFilter, ContextFilter, DepositFilter, OrderBook,
+    TakeOrderFilter, WithdrawFilter,
 };
 use crate::generated::{ERC20Mock, TransferFilter};
 use crate::generated::{NewExpressionFilter, RainterpreterExpressionDeployer};
@@ -363,3 +363,49 @@ pub async fn get_take_order_events(
         None => return Err(Error::msg("events not found")),
     }
 }
+
+pub async fn get_context_event(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<ContextFilter> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.context_filter().filter;
+
+    let option_log = get_matched_log(receipt, filter).await;
+
+    match option_log {
+        Some(log) => {
+            let event = contract.decode_event::<ContextFilter>("Context", log.topics, log.data)?;
+            return Ok(event);
+        }
+        None => return Err(Error::msg("event not found")),
+    }
+}
+
+
+pub async fn get_context_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<Vec<ContextFilter>> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.clone().context_filter().filter;
+
+    let option_logs = get_matched_logs(receipt, filter).await;
+
+    match option_logs {
+        Some(logs) => {
+            let mut events: Vec<ContextFilter> = Vec::new();
+
+            for log in logs {
+                let event: ContextFilter =
+                    contract.decode_event::<ContextFilter>("Context", log.topics, log.data)?;
+
+                events.push(event);
+            }
+
+            return Ok(events);
+        }
+        None => return Err(Error::msg("events not found")),
+    }
+}
+
