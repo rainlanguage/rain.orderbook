@@ -12,6 +12,7 @@ pub(crate) mod token_vault_take_order;
 pub(crate) mod vault;
 pub(crate) mod vault_deposit;
 pub(crate) mod vault_withdraw;
+pub(crate) mod take_order_entity;
 
 use anyhow::Result;
 use ethers::types::{Address, Bytes};
@@ -32,6 +33,7 @@ use token_vault_take_order::{get_token_vault_take_order, TokenVaultTakeOrderResp
 use vault::{get_vault, VaultResponse};
 use vault_deposit::{get_vault_deposit, VaultDepositResponse};
 use vault_withdraw::{get_vault_withdraw, VaultWithdrawResponse};
+use take_order_entity::{get_take_order_entity, TakeOrderEntityResponse};
 
 pub static SG_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://localhost:8000/subgraphs/name/test/test").unwrap());
@@ -93,5 +95,9 @@ impl Query {
 
     pub async fn token_vault_take_order(id: &String) -> Result<TokenVaultTakeOrderResponse> {
         get_token_vault_take_order(id).await
+    }
+
+    pub async fn take_order_entity(id: &String) -> Result<TakeOrderEntityResponse> {
+        get_take_order_entity(id).await
     }
 }

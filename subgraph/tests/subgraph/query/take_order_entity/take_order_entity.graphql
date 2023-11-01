@@ -1,0 +1,34 @@
+query TakeOrderEntity($id: String) {
+  takeOrderEntity(id: $id) {
+    id
+    sender {
+      id
+    }
+    order {
+      id
+    }
+    input
+    inputDisplay
+    output
+    outputDisplay
+    IORatio
+    inputIOIndex
+    outputIOIndex
+    inputToken {
+      id
+    }
+    outputToken {
+      id
+    }
+    transaction {
+      id
+    }
+    emitter {
+      id
+    }
+    timestamp
+    context {
+      id
+    }
+  }
+}

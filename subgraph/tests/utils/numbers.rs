@@ -1,5 +1,10 @@
+use bigdecimal::Zero;
 use ethers::types::U256;
-use std::ops::Mul;
+use std::{ops::Mul, str::FromStr};
+extern crate bigdecimal;
+use bigdecimal::BigDecimal;
+use bigdecimal::FromPrimitive;
+use bigdecimal::ToPrimitive;
 
 pub fn get_amount_tokens(amount: u64, decimals: u8) -> U256 {
     let result: U256 = U256::from(amount).mul(U256::from(10).pow(U256::from(decimals)));
@@ -33,4 +38,23 @@ pub fn display_number(number: U256, decimals: u8) -> String {
     }
 
     result
+}
+
+pub fn divide_decimal_strings(value_1: &str, value_2: &str) -> Option<String> {
+    // Parse the input strings into BigDecimal values
+    let decimal_1 = BigDecimal::from_str(value_1).expect("Invalid decimal value for value_1");
+    let decimal_2 = BigDecimal::from_str(value_2).expect("Invalid decimal value for value_2");
+
+    // Check for division by zero
+    if decimal_2.is_zero() {
+        return None;
+    }
+
+    // Perform the division
+    let result = decimal_1 / decimal_2;
+
+    // Format the result as a string with a specific precision
+    let formatted_result = format!("{:.1}", result); // Adjust the precision as needed
+
+    Some(formatted_result)
 }
