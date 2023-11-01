@@ -8,7 +8,7 @@ pub mod setup;
 pub mod transactions;
 
 use ethers::{
-    core::{k256::ecdsa::SigningKey, rand::random},
+    core::{abi::AbiEncode, k256::ecdsa::SigningKey, rand::random, utils::hex},
     providers::Middleware,
     signers::{coins_bip39::English, MnemonicBuilder, Wallet},
     types::{Bytes, H256, U256, U64},
@@ -162,9 +162,21 @@ pub fn h256_to_bytes(value: &H256) -> Bytes {
 
 /// Take a U256 value and parse it to a Bytes
 pub fn u256_to_bytes(value: &U256) -> anyhow::Result<Bytes> {
-    let hex_string = format!("{:#x}", value);
+    todo!("U256 convert to BYtes missing")
+    // let hex_string = format!("{:#x}", value);
 
-    Ok(hex_string_to_bytes(&hex_string)?)
+    // let a = U256::from_dec_str(&value.to_str_radix(16));
+
+    // println!("{value:#032X}");
+    // println!("{value:#032x}");
+
+    // println!("{value:#020X}");
+    // println!("{value:#020x}");
+
+    // let ave = AbiEncode::encode(value.to_owned());
+    // println!("ave: {:?}", Bytes::from(ave));
+
+    // Ok(hex_string_to_bytes(&hex_string)?)
 }
 
 /// Get a mock encoded rain document with hardcoded data.
