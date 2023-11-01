@@ -13,7 +13,10 @@ use subgraph::{wait, Query};
 use utils::{
     bytes_to_h256,
     cbor::{decode_rain_meta, encode_rain_docs, RainMapDoc},
-    deploy::{deploy_erc20_mock, get_orderbook, read_orderbook_meta, touch_deployer},
+    deploy::{
+        deploy_erc20_mock, get_expression_deployer, get_orderbook, read_orderbook_meta,
+        touch_deployer,
+    },
     events::{
         _get_new_expression_event, get_add_order_event, get_after_clear_events, get_clear_events,
         get_deposit_events, get_take_order_events, get_withdraw_events,
@@ -2080,7 +2083,8 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
     let vault_id = generate_random_u256();
 
     // Deploy ExpressionDeployerNP for the config
-    let expression_deployer = touch_deployer(None).await?;
+    let expression_deployer = get_expression_deployer().await?;
+    // let expression_deployer = touch_deployer(None).await?;
 
     // Deploy ERC20 token contract (A) connected to Alice
     let token_a = deploy_erc20_mock(None).await?;
@@ -2090,7 +2094,7 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
 
     // Build OrderConfig
     let order_config = generate_order_config(
-        &expression_deployer,
+        expression_deployer,
         &token_a,
         Some(vault_id),
         &token_b,
@@ -2178,10 +2182,12 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
     // Just one take order happned in this transaction
     assert!(take_order_events.len() == 1);
 
-    let take_order_entity_id = format!("{:?}-{}", take_order_tx_hash, 0);
-
     let token_vault_a = format!("{}-{:?}-{:?}", vault_id, alice.address(), token_a.address());
     let token_vault_b = format!("{}-{:?}-{:?}", vault_id, alice.address(), token_b.address());
+
+    // Index 0 since only one take order was made in this tx
+    let take_order_entity_a_id = format!("{:?}-{}-{}", take_order_tx_hash, 0, token_vault_a);
+    let take_order_entity_b_id = format!("{:?}-{}-{}", take_order_tx_hash, 0, token_vault_b);
 
     // Vault Balances for both
     let vault_balance_a: U256 = orderbook
@@ -2209,7 +2215,7 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
     assert_eq!(resp_a.balance, vault_balance_a);
     assert_eq!(resp_a.balance_display, vaul_balance_display_a);
     assert!(
-        resp_a.take_orders.contains(&take_order_entity_id),
+        resp_a.take_orders.contains(&take_order_entity_a_id),
         "missing take order ID"
     );
 
@@ -2220,7 +2226,7 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
     assert_eq!(resp_b.balance, vault_balance_b);
     assert_eq!(resp_b.balance_display, vaul_balance_display_b);
     assert!(
-        resp_b.take_orders.contains(&take_order_entity_id),
+        resp_b.take_orders.contains(&take_order_entity_b_id),
         "missing take order ID"
     );
 
