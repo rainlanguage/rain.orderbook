@@ -1,0 +1,12 @@
+query OrderClearStateChange($id: String) {
+  orderClearStateChange(id: $id) {
+    id
+    orderClear {
+      id
+    }
+    aOutput
+    bOutput
+    aInput
+    bInput
+  }
+}

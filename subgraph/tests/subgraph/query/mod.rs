@@ -4,6 +4,7 @@ pub(crate) mod erc20;
 pub(crate) mod io;
 pub(crate) mod order;
 pub(crate) mod order_clear;
+pub(crate) mod order_clear_state_change;
 pub(crate) mod orderbook;
 pub(crate) mod rain_meta_v1;
 pub(crate) mod token_vault;
@@ -22,6 +23,7 @@ use erc20::{get_erc20, ERC20Response};
 use io::{get_i_o, IOResponse};
 use order::{get_order, OrderResponse};
 use order_clear::{get_order_clear, OrderClearResponse};
+use order_clear_state_change::{get_order_clear_state_change, OrderClearStateChangeResponse};
 use orderbook::{get_orderbook_query, OrderBookResponse};
 use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
 use token_vault::{get_token_vault, TokenVaultResponse};
@@ -81,5 +83,9 @@ impl Query {
 
     pub async fn bounty(id: &String) -> Result<BountyResponse> {
         get_bounty(id).await
+    }
+
+    pub async fn order_clear_state_change(id: &String) -> Result<OrderClearStateChangeResponse> {
+        get_order_clear_state_change(id).await
     }
 }
