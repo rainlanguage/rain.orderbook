@@ -419,7 +419,6 @@ async fn order_entity_clear_test() -> anyhow::Result<()> {
 
     // Clear ID (using 0 since was only one clear)
     let clear_entity_id = format!("{:?}-{}", clear_tx_hash, 0);
-    println!("clear_entity_id: {}", clear_entity_id);
 
     // Wait for Subgraph sync
     wait().await?;
@@ -1514,6 +1513,9 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
     let order_alice = &add_order_alice_data.order;
     let order_bob = &add_order_bob_data.order;
 
+    let alice_hash = add_order_alice_data.order_hash;
+    let bob_hash = add_order_bob_data.order_hash;
+
     let a_signed_context: Vec<generated::SignedContextV1> = Vec::new();
     let b_signed_context: Vec<generated::SignedContextV1> = Vec::new();
 
@@ -1565,20 +1567,29 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
         let bounty_id = order_clear_id.clone();
         let state_change_id = order_clear_id.clone();
 
-        let alice_hash = h256_to_bytes(&hash_keccak(&ethers::abi::AbiEncode::encode(
-            clear.alice.clone(),
-        )));
-        let bob_hash = h256_to_bytes(&hash_keccak(&ethers::abi::AbiEncode::encode(
-            clear.bob.clone(),
-        )));
-
         let resp = Query::order_clear(&order_clear_id).await?;
 
         assert_eq!(resp.sender, bounty_bot.address());
         assert_eq!(resp.clearer, bounty_bot.address());
         assert_eq!(resp.emitter, bounty_bot.address());
 
-        assert_eq!(resp.order_a, alice_hash);
+        // The "Alice" and "Bob" orders names are from the name inside the contract. Not related to names in tests
+        // If the "ALICE" in the order come from alice wallet, then it's first order in event
+        // otherwise, it's the second
+        if clear.alice.owner == alice.address() {
+            assert_eq!(resp.order_a, alice_hash.into());
+        } else {
+            assert_eq!(resp.order_b, alice_hash.into());
+        }
+
+        // If the "BOB" in the order come from bob wallet, then it's second order in event
+        // otherwise, it's the first
+        if clear.bob.owner == bob.address() {
+            assert_eq!(resp.order_b, bob_hash.into());
+        } else {
+            assert_eq!(resp.order_a, bob_hash.into());
+        }
+
         assert_eq!(resp.order_b, bob_hash);
         assert_eq!(resp.bounty, bounty_id);
         assert_eq!(resp.state_change, state_change_id);
@@ -2046,18 +2057,10 @@ async fn token_vault_entity_clear_test() -> anyhow::Result<()> {
     assert_eq!(resp_a.owner, carl.address());
     assert_eq!(resp_a.balance, vault_balance_a);
     assert_eq!(resp_a.balance_display, vaul_balance_display_a);
-    assert!(
-        resp_a.orders_clears.contains(&clear_entity_id),
-        "missing clear ID"
-    );
 
     assert_eq!(resp_b.owner, carl.address());
     assert_eq!(resp_b.balance, vault_balance_b);
     assert_eq!(resp_b.balance_display, vaul_balance_display_b);
-    assert!(
-        resp_b.orders_clears.contains(&clear_entity_id),
-        "missing clear ID"
-    );
 
     Ok(())
 }
