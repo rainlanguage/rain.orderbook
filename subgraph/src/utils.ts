@@ -376,9 +376,7 @@ export function createSignedContext(
   }
   return new SignedContext("");
 }
-export function createContextEntity(
-  txHash: string
-): ContextEntity {
+export function createContextEntity(txHash: string): ContextEntity {
   for (let i = 0; ; i++) {
     let contextEntity = ContextEntity.load(`${txHash}-${i}`);
     if (!contextEntity) {

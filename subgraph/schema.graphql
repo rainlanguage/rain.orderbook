@@ -363,7 +363,7 @@ type Transaction @entity(immutable: true) {
   events: [Event!] @derivedFrom(field: "transaction")
 }
 
-type ContextEntity implements Event @entity {
+type ContextEntity @entity {
   id: ID!
   "Base caller"
   caller: Account!

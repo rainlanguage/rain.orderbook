@@ -2847,12 +2847,6 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
     )
     .await?;
 
-    let vault_balance_alice: U256 = orderbook
-        .vault_balance(alice.address(), token_output.address(), vault_id)
-        .call()
-        .await?;
-    println!("vault_balance_alice_0: {}", vault_balance_alice);
-
     // Take the order
     let take_order_func = orderbook
         .connect(&bob)
@@ -2867,15 +2861,8 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
 
     let block_data = get_block_data(&take_order_tx_hash).await?;
 
-    let vault_balance_alice: U256 = orderbook
-        .vault_balance(alice.address(), token_output.address(), vault_id)
-        .call()
-        .await?;
-    println!("vault_balance_alice_1: {}", vault_balance_alice);
-
     // Using index 0 since only one take order was made in this tx
     let take_order_entity = format!("{:?}-{}", take_order_tx_hash, 0);
-    println!("take_order_entity: {}", take_order_entity);
 
     let input_token = take_order_event
         .config
