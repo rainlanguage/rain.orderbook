@@ -19,7 +19,7 @@ use utils::{
         _get_new_expression_event, get_add_order_event, get_after_clear_events, get_clear_events,
         get_deposit_events, get_withdraw_events,
     },
-    generate_random_u256, get_wallet, h256_to_bytes, hash_keccak,
+    generate_random_u256, get_wallet, h256_to_bytes,
     json_structs::{NewExpressionJson, OrderJson},
     numbers::{display_number, get_amount_tokens},
     transactions::{
@@ -1577,20 +1577,19 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
         // If the "ALICE" in the order come from alice wallet, then it's first order in event
         // otherwise, it's the second
         if clear.alice.owner == alice.address() {
-            assert_eq!(resp.order_a, alice_hash.into());
+            assert_eq!(resp.order_a, h256_to_bytes(&alice_hash.into()));
         } else {
-            assert_eq!(resp.order_b, alice_hash.into());
+            assert_eq!(resp.order_b, h256_to_bytes(&alice_hash.into()));
         }
 
         // If the "BOB" in the order come from bob wallet, then it's second order in event
         // otherwise, it's the first
         if clear.bob.owner == bob.address() {
-            assert_eq!(resp.order_b, bob_hash.into());
+            assert_eq!(resp.order_b, h256_to_bytes(&bob_hash.into()));
         } else {
-            assert_eq!(resp.order_a, bob_hash.into());
+            assert_eq!(resp.order_a, h256_to_bytes(&bob_hash.into()));
         }
 
-        assert_eq!(resp.order_b, bob_hash);
         assert_eq!(resp.bounty, bounty_id);
         assert_eq!(resp.state_change, state_change_id);
 
