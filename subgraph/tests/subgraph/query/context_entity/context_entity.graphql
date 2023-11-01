@@ -1,0 +1,25 @@
+query ContextEntity($id: String) {
+  contextEntity(id: $id) {
+    id
+    caller {
+      id
+    }
+    contract {
+      id
+    }
+    callingContext
+    calculationsContext
+    vaultInputsContext
+    vaultOutputsContext
+    signedContext {
+      id
+    }
+    transaction {
+      id
+    }
+    emitter {
+      id
+    }
+    timestamp
+  }
+}

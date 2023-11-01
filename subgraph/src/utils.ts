@@ -364,14 +364,11 @@ export function BDtoBIMultiplier(n1: BigDecimal, n2: BigDecimal): BigInt {
   return BigInt.fromString(getZeros(len));
 }
 
-export function createSignedContext(
-  txHash: string,
-  logIndex: string
-): SignedContext {
+export function createSignedContext(txHash: string): SignedContext {
   for (let i = 0; ; i++) {
-    let signedContext = SignedContext.load(`${txHash}-${logIndex}-${i}`);
+    let signedContext = SignedContext.load(`${txHash}-${i}`);
     if (!signedContext) {
-      return new SignedContext(`${txHash}-${logIndex}-${i}`);
+      return new SignedContext(`${txHash}-${i}`);
     }
   }
   return new SignedContext("");

@@ -1,5 +1,6 @@
 pub(crate) mod bounty;
 pub(crate) mod content_meta_v1;
+pub(crate) mod context_entity;
 pub(crate) mod erc20;
 pub(crate) mod io;
 pub(crate) mod order;
@@ -7,12 +8,12 @@ pub(crate) mod order_clear;
 pub(crate) mod order_clear_state_change;
 pub(crate) mod orderbook;
 pub(crate) mod rain_meta_v1;
+pub(crate) mod take_order_entity;
 pub(crate) mod token_vault;
 pub(crate) mod token_vault_take_order;
 pub(crate) mod vault;
 pub(crate) mod vault_deposit;
 pub(crate) mod vault_withdraw;
-pub(crate) mod take_order_entity;
 
 use anyhow::Result;
 use ethers::types::{Address, Bytes};
@@ -21,6 +22,7 @@ use reqwest::Url;
 
 use bounty::{get_bounty, BountyResponse};
 use content_meta_v1::{get_content_meta_v1, ContentMetaV1Response};
+use context_entity::{get_context_entity, ContextEntityResponse};
 use erc20::{get_erc20, ERC20Response};
 use io::{get_i_o, IOResponse};
 use order::{get_order, OrderResponse};
@@ -28,12 +30,12 @@ use order_clear::{get_order_clear, OrderClearResponse};
 use order_clear_state_change::{get_order_clear_state_change, OrderClearStateChangeResponse};
 use orderbook::{get_orderbook_query, OrderBookResponse};
 use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
+use take_order_entity::{get_take_order_entity, TakeOrderEntityResponse};
 use token_vault::{get_token_vault, TokenVaultResponse};
 use token_vault_take_order::{get_token_vault_take_order, TokenVaultTakeOrderResponse};
 use vault::{get_vault, VaultResponse};
 use vault_deposit::{get_vault_deposit, VaultDepositResponse};
 use vault_withdraw::{get_vault_withdraw, VaultWithdrawResponse};
-use take_order_entity::{get_take_order_entity, TakeOrderEntityResponse};
 
 pub static SG_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://localhost:8000/subgraphs/name/test/test").unwrap());
@@ -99,5 +101,9 @@ impl Query {
 
     pub async fn take_order_entity(id: &String) -> Result<TakeOrderEntityResponse> {
         get_take_order_entity(id).await
+    }
+
+    pub async fn context_entity(id: &String) -> Result<ContextEntityResponse> {
+        get_context_entity(id).await
     }
 }

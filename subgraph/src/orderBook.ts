@@ -130,8 +130,7 @@ export function handleContext(event: Context): void {
         if (signers.length == signedContextArr.length) {
           for (let i = 0; i < signedContextArr.length; i++) {
             const signedContextEntity = createSignedContext(
-              event.transaction.hash.toHex(),
-              event.logIndex.toHex()
+              event.transaction.hash.toHex()
             );
 
             signedContextEntity.context = signedContextArr[i];
