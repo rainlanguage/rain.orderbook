@@ -1,3 +1,4 @@
+pub(crate) mod bounty;
 pub(crate) mod content_meta_v1;
 pub(crate) mod erc20;
 pub(crate) mod io;
@@ -5,16 +6,17 @@ pub(crate) mod order;
 pub(crate) mod order_clear;
 pub(crate) mod orderbook;
 pub(crate) mod rain_meta_v1;
+pub(crate) mod token_vault;
 pub(crate) mod vault;
 pub(crate) mod vault_deposit;
 pub(crate) mod vault_withdraw;
-pub(crate) mod token_vault;
 
 use anyhow::Result;
 use ethers::types::{Address, Bytes};
 use once_cell::sync::Lazy;
 use reqwest::Url;
 
+use bounty::{get_bounty, BountyResponse};
 use content_meta_v1::{get_content_meta_v1, ContentMetaV1Response};
 use erc20::{get_erc20, ERC20Response};
 use io::{get_i_o, IOResponse};
@@ -22,10 +24,10 @@ use order::{get_order, OrderResponse};
 use order_clear::{get_order_clear, OrderClearResponse};
 use orderbook::{get_orderbook_query, OrderBookResponse};
 use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
+use token_vault::{get_token_vault, TokenVaultResponse};
 use vault::{get_vault, VaultResponse};
 use vault_deposit::{get_vault_deposit, VaultDepositResponse};
 use vault_withdraw::{get_vault_withdraw, VaultWithdrawResponse};
-use token_vault::{get_token_vault, TokenVaultResponse};
 
 pub static SG_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://localhost:8000/subgraphs/name/test/test").unwrap());
@@ -75,5 +77,9 @@ impl Query {
 
     pub async fn token_vault(id: &String) -> Result<TokenVaultResponse> {
         get_token_vault(id).await
+    }
+
+    pub async fn bounty(id: &String) -> Result<BountyResponse> {
+        get_bounty(id).await
     }
 }

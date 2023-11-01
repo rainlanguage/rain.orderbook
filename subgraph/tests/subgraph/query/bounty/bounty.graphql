@@ -1,0 +1,34 @@
+query Bounty($id: String) {
+  bounty(id: $id) {
+    id
+    clearer {
+      id
+    }
+    orderClear {
+      id
+    }
+    bountyVaultA {
+      id
+    }
+    bountyVaultB {
+      id
+    }
+    bountyTokenA {
+      id
+    }
+    bountyTokenB {
+      id
+    }
+    bountyAmountA
+    bountyAmountADisplay
+    bountyAmountB
+    bountyAmountBDisplay
+    transaction {
+      id
+    }
+    emitter {
+      id
+    }
+    timestamp
+  }
+}
