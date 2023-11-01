@@ -1,13 +1,10 @@
-use super::{ascii_string_to_bytes, MagicNumber};
+use super::{ascii_string_to_bytes, hash_keccak, MagicNumber};
 use anyhow::{anyhow, Result};
 use ethers::types::{Bytes, H256, U256};
 use minicbor::data::Type;
 use minicbor::decode::{Decode, Decoder, Error as DecodeError};
 use minicbor::encode::{Encode, Encoder, Error as EncodeError, Write};
 use serde::Deserialize;
-
-use tiny_keccak::Hasher;
-use tiny_keccak::Keccak;
 
 #[derive(Debug, Deserialize)]
 pub struct RainMapDoc {
@@ -86,13 +83,7 @@ impl RainMapDoc {
     pub fn hash(&self) -> H256 {
         let doc_encoded = self.encode();
 
-        let mut keccak = Keccak::v256();
-        keccak.update(&doc_encoded);
-
-        let mut output = [0u8; 32];
-        keccak.finalize(&mut output);
-
-        H256::from(output)
+        hash_keccak(&doc_encoded)
     }
 
     /// CBOR encode the Rain Document using CBOR.
