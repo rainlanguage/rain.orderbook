@@ -718,10 +718,7 @@ export function handleTakeOrder(event: TakeOrder): void {
   // Adding the context
   const contextTakeOrder = ContextEntity.load("ContextTakeOrderTemp");
   if (contextTakeOrder) {
-    const contextEntity = createContextEntity(
-      event.transaction.hash.toHex(),
-      event.logIndex.toHex()
-    );
+    const contextEntity = createContextEntity(event.transaction.hash.toHex());
 
     contextEntity.caller = contextTakeOrder.caller;
     contextEntity.contract = contextTakeOrder.contract;

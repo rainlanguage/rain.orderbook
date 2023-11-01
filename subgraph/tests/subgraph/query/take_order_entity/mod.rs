@@ -77,7 +77,7 @@ impl TakeOrderEntityResponse {
     }
 }
 
-pub async fn get_vault_deposit(id: &String) -> Result<TakeOrderEntityResponse> {
+pub async fn get_take_order_entity(id: &String) -> Result<TakeOrderEntityResponse> {
     let variables = take_order_entity::Variables {
         id: id.to_string().into(),
     };

@@ -377,13 +377,12 @@ export function createSignedContext(
   return new SignedContext("");
 }
 export function createContextEntity(
-  txHash: string,
-  logIndex: string
+  txHash: string
 ): ContextEntity {
   for (let i = 0; ; i++) {
-    let contextEntity = ContextEntity.load(`${txHash}-${logIndex}-${i}`);
+    let contextEntity = ContextEntity.load(`${txHash}-${i}`);
     if (!contextEntity) {
-      return new ContextEntity(`${txHash}-${logIndex}-${i}`);
+      return new ContextEntity(`${txHash}-${i}`);
     }
   }
   return new ContextEntity("");
