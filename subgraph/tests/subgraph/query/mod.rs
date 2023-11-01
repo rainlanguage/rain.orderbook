@@ -8,6 +8,7 @@ pub(crate) mod order_clear_state_change;
 pub(crate) mod orderbook;
 pub(crate) mod rain_meta_v1;
 pub(crate) mod token_vault;
+pub(crate) mod token_vault_take_order;
 pub(crate) mod vault;
 pub(crate) mod vault_deposit;
 pub(crate) mod vault_withdraw;
@@ -27,6 +28,7 @@ use order_clear_state_change::{get_order_clear_state_change, OrderClearStateChan
 use orderbook::{get_orderbook_query, OrderBookResponse};
 use rain_meta_v1::{get_rain_meta_v1, RainMetaV1Response};
 use token_vault::{get_token_vault, TokenVaultResponse};
+use token_vault_take_order::{get_token_vault_take_order, TokenVaultTakeOrderResponse};
 use vault::{get_vault, VaultResponse};
 use vault_deposit::{get_vault_deposit, VaultDepositResponse};
 use vault_withdraw::{get_vault_withdraw, VaultWithdrawResponse};
@@ -87,5 +89,9 @@ impl Query {
 
     pub async fn order_clear_state_change(id: &String) -> Result<OrderClearStateChangeResponse> {
         get_order_clear_state_change(id).await
+    }
+
+    pub async fn token_vault_take_order(id: &String) -> Result<TokenVaultTakeOrderResponse> {
+        get_token_vault_take_order(id).await
     }
 }

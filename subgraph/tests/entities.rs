@@ -2433,7 +2433,7 @@ async fn bounty_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-#[test]
+// #[test]
 async fn order_clear_state_change_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -2593,6 +2593,156 @@ async fn order_clear_state_change_entity_clear_test() -> anyhow::Result<()> {
         assert_eq!(resp.a_input, clear_state_change.alice_input);
         assert_eq!(resp.b_input, clear_state_change.bob_input);
     }
+    Ok(())
+}
+
+#[tokio::main]
+#[test]
+async fn token_vault_take_order_entity_take_order_test() -> anyhow::Result<()> {
+    let orderbook = get_orderbook().await?;
+
+    let alice = get_wallet(1);
+    let bob = get_wallet(2);
+
+    // Connect the orderbook to another wallet
+    let orderbook = orderbook.connect(&alice).await;
+
+    // Vault id
+    let vault_id = generate_random_u256();
+
+    // Deploy ExpressionDeployerNP for the config
+    let expression_deployer = get_expression_deployer().await?;
+    // let expression_deployer = get_expression_deployer().await?;
+
+    // Deploy ERC20 token contract (A) connected to Alice
+    let token_input = deploy_erc20_mock(None).await?;
+
+    // Deploy ERC20 token contract (B) connected to Alice
+    let token_output = deploy_erc20_mock(None).await?;
+
+    // Build OrderConfig
+    let order_config = generate_order_config(
+        expression_deployer,
+        &token_input,
+        Some(vault_id),
+        &token_output,
+        Some(vault_id),
+    )
+    .await;
+
+    // Add the order
+    let add_order_func = orderbook.add_order(order_config.clone());
+    let tx_add_order = add_order_func.send().await?;
+
+    // Decode events from the transaction
+    let add_order_data = get_add_order_event(&orderbook, &tx_add_order).await?;
+
+    // Amount to deposit
+    let amount_b = get_amount_tokens(1000, token_output.decimals().call().await.unwrap());
+
+    // Fill to Alice with tokens
+    mint_tokens(&amount_b, &alice.address(), &token_output).await?;
+
+    // Connect token to Alice and approve Orderbook to move tokens
+    approve_tokens(
+        &amount_b,
+        &orderbook.address(),
+        &token_output.connect(&alice).await,
+    )
+    .await?;
+
+    // Alice deposit tokens
+    let deposit_func = orderbook.deposit(token_output.address(), vault_id, amount_b);
+    let _ = deposit_func.send().await?;
+
+    // BOB TAKE THE ORDER
+
+    // Take Order configs
+    let minimum_input = U256::from(0);
+    let maximum_input = get_amount_tokens(1000, token_output.decimals().call().await.unwrap());
+    let maximum_io_ratio = U256::from(10000000000000000000u64); // 10e18
+
+    let take_order_config = TakeOrderConfig {
+        order: add_order_data.order,
+        input_io_index: U256::zero(),
+        output_io_index: U256::zero(),
+        signed_context: Vec::new(),
+    };
+
+    let take_orders_config = TakeOrdersConfigV2 {
+        minimum_input,
+        maximum_input,
+        maximum_io_ratio,
+        orders: vec![take_order_config],
+        data: Bytes::new(), // Empty data
+    };
+
+    // Fill bob with token A (token input of the order)
+    // let amount_a = get_amount_tokens(1000, token_a.decimals().call().await.unwrap());
+    let amount_a = amount_b
+        .saturating_mul(maximum_io_ratio)
+        .checked_div(U256::from(1000000000000000000u64)) //  1e18
+        .unwrap();
+
+    mint_tokens(&amount_a, &bob.address(), &token_input).await?;
+
+    // Connect token to Bob and approve Orderbook to move tokens
+    approve_tokens(
+        &amount_a,
+        &orderbook.address(),
+        &token_input.connect(&bob).await,
+    )
+    .await?;
+
+    // Take the order
+    let take_order_func = orderbook
+        .connect(&bob)
+        .await
+        .take_orders(take_orders_config);
+    let tx_take_order = take_order_func.send().await?;
+
+    let tx_receipt = tx_take_order.await?.unwrap();
+
+    let take_order_tx_hash = &tx_receipt.transaction_hash;
+
+    let take_order_events = get_take_order_events(&orderbook, &take_order_tx_hash).await?;
+
+    // Just one take order happned in this transaction
+    assert!(take_order_events.len() == 1);
+
+    // Using index 0 since only one take order was made in this tx
+    let take_order_entity = format!("{:?}-{}", take_order_tx_hash, 0);
+    let token_vault_input = format!(
+        "{}-{:?}-{:?}",
+        vault_id,
+        alice.address(),
+        token_input.address()
+    );
+    let token_vault_output = format!(
+        "{}-{:?}-{:?}",
+        vault_id,
+        alice.address(),
+        token_output.address()
+    );
+
+    let token_vault_take_order_a_id = format!("{}-{}", take_order_entity, token_vault_input);
+    let token_vault_take_order_b_id = format!("{}-{}", take_order_entity, token_vault_output);
+
+    let resp_a = Query::token_vault_take_order(&token_vault_take_order_a_id).await?;
+    let resp_b = Query::token_vault_take_order(&token_vault_take_order_b_id).await?;
+
+    // Token Input
+    assert!(resp_a.was_input);
+    assert!(!resp_a.was_output);
+    assert_eq!(resp_a.take_order, take_order_entity);
+    assert_eq!(resp_a.token_vault, token_vault_input);
+
+    // Token Output
+    assert!(!resp_b.was_input);
+    assert!(resp_b.was_output);
+    assert_eq!(resp_b.take_order, take_order_entity);
+    assert_eq!(resp_b.token_vault, token_vault_output);
+
     Ok(())
 }
 

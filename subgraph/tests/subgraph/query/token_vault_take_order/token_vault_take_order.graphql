@@ -1,0 +1,13 @@
+query TokenVaultTakeOrder($id: String) {
+  tokenVaultTakeOrder(id: $id) {
+    id
+    wasOutput
+    wasInput
+    takeOrder {
+      id
+    }
+    tokenVault {
+      id
+    }
+  }
+}
