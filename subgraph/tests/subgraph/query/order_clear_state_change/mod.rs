@@ -1,14 +1,11 @@
 use self::order_clear_state_change::ResponseData;
 use super::SG_URL;
-use crate::utils::{bytes_to_h256, hex_string_to_bytes, mn_mpz_to_u256};
+use crate::utils::mn_mpz_to_u256;
 use anyhow::{anyhow, Result};
-use ethers::types::{Address, Bytes, TxHash, U256};
+use ethers::types::U256;
 use graphql_client::{GraphQLQuery, Response};
 use rust_bigint::BigInt;
 use serde::{Deserialize, Serialize};
-
-// use bigdecimal::BigDecimal;
-type BigDecimal = String;
 
 #[derive(GraphQLQuery)]
 #[graphql(
