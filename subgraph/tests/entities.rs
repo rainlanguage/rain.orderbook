@@ -2864,10 +2864,11 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
     // Using index 0 since only one take order was made in this tx
     let take_order_entity = format!("{:?}-{}", take_order_tx_hash, 0);
 
+    // Values with the perspective of the taker (bob)
     let input_token = take_order_event
         .config
         .order
-        .valid_inputs
+        .valid_outputs
         .first()
         .unwrap()
         .token;
@@ -2875,7 +2876,7 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
     let output_token = take_order_event
         .config
         .order
-        .valid_outputs
+        .valid_inputs
         .first()
         .unwrap()
         .token;
