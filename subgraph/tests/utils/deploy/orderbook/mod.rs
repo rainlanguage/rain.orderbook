@@ -1,4 +1,5 @@
-use super::touch_deployer::touch_deployer;
+use super::get_expression_deployer;
+// use super::touch_deployer::touch_deployer;
 use crate::generated::{OrderBook, ORDERBOOK_ABI, ORDERBOOK_BYTECODE};
 use crate::utils::{get_provider, get_wallet};
 use anyhow::Result;
@@ -22,16 +23,16 @@ pub async fn deploy_orderbook(
     let provider = get_provider().await.expect("cannot get provider");
     let chain_id = provider.get_chainid().await.expect("cannot get chain id");
 
-
     let client = Arc::new(SignerMiddleware::new(
         provider.clone(),
         wallet.clone().with_chain_id(chain_id.as_u64()),
     ));
 
     // Deploying deployer
-    let expression_deployer = touch_deployer(Some(wallet.clone()))
-        .await
-        .expect("cannot touch deployer (ob)");
+    let expression_deployer = get_expression_deployer().await?;
+    // let expression_deployer = touch_deployer(Some(wallet.clone()))
+    //     .await
+    //     .expect("cannot touch deployer (ob)");
 
     // Obtaining OB Meta bytes
     let meta = read_orderbook_meta();

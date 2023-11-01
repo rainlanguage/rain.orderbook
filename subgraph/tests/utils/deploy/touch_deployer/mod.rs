@@ -18,6 +18,9 @@ use ethers::{
 };
 use std::sync::Arc;
 
+mod setup;
+pub use setup::get_expression_deployer;
+
 pub async fn touch_deployer(
     wallet: Option<Wallet<SigningKey>>,
 ) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
