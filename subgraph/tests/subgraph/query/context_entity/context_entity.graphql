@@ -4,15 +4,14 @@ query ContextEntity($id: String) {
     caller {
       id
     }
-    contract {
-      id
-    }
     callingContext
     calculationsContext
     vaultInputsContext
     vaultOutputsContext
     signedContext {
       id
+      signer
+      context
     }
     transaction {
       id

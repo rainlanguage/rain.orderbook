@@ -160,6 +160,13 @@ pub fn h256_to_bytes(value: &H256) -> Bytes {
     Bytes::from(value.as_bytes().to_vec())
 }
 
+/// Take a U256 value and parse it to a Bytes
+pub fn u256_to_bytes(value: &U256) -> anyhow::Result<Bytes> {
+    let hex_string = format!("{:#x}", value);
+
+    Ok(hex_string_to_bytes(&hex_string)?)
+}
+
 /// Get a mock encoded rain document with hardcoded data.
 /// Does not contain any well info. Only rain doc well formed.
 pub fn mock_rain_doc() -> Bytes {

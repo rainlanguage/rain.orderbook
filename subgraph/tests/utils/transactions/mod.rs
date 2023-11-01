@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     generated::{
         AddOrderCall, ClearCall, ClearConfig, DepositCall, ERC20Mock, EvaluableConfigV2, Io,
-        OrderConfigV2, RainterpreterExpressionDeployer, WithdrawCall,
+        OrderConfigV2, RainterpreterExpressionDeployer, SignedContextV1, WithdrawCall,
     },
     utils::{generate_random_u256, mock_rain_doc},
 };
@@ -14,8 +14,9 @@ use ethers::{
     signers::{Signer, Wallet},
     types::{Address, Block, Bytes, TxHash, H256, U256},
 };
+use hex::FromHex;
 
-use super::{get_provider, get_wallet};
+use super::{get_provider, get_wallet, hash_keccak};
 
 /// A Deposit configuration struct to encode deposit to be used with multicall
 pub struct TestDepositConfig {
@@ -35,33 +36,36 @@ pub struct TestWithdrawConfig {
 ///
 /// If the length of the Context array is above this enum, they are signed context.
 pub enum ContextIndex {
+    BaseContext = 0,
     CallingContextColumn = 1,
     CalculationsColumn = 2,
     VaultInputsColumn = 3,
     VaultOutputsColumn = 4,
-    /// From this length of the Context. All the values equal or above this, are signed context.
-    ContextArrayMinLength = 5,
 }
 
 impl ContextIndex {
-    pub fn from_usize(value: usize) -> Self {
+    pub fn from_usize(value: usize) -> Option<Self> {
+        if Self::BaseContext as usize == value {
+            return Some(Self::BaseContext);
+        }
+
         if Self::CallingContextColumn as usize == value {
-            return Self::CallingContextColumn;
+            return Some(Self::CallingContextColumn);
         }
 
         if Self::CalculationsColumn as usize == value {
-            return Self::CalculationsColumn;
+            return Some(Self::CalculationsColumn);
         }
 
         if Self::VaultInputsColumn as usize == value {
-            return Self::VaultInputsColumn;
+            return Some(Self::VaultInputsColumn);
         }
 
         if Self::VaultOutputsColumn as usize == value {
-            return Self::VaultOutputsColumn;
+            return Some(Self::VaultOutputsColumn);
         }
 
-        return Self::ContextArrayMinLength;
+        None
     }
 }
 
@@ -263,4 +267,34 @@ pub fn generate_multi_clear(configs: &Vec<ClearCall>) -> Vec<Bytes> {
     }
 
     return data;
+}
+
+pub async fn generate_signed_context_v1(
+    wallet: &Wallet<SigningKey>,
+) -> anyhow::Result<SignedContextV1> {
+    let context = vec![
+        generate_random_u256(),
+        generate_random_u256(),
+        generate_random_u256(),
+    ];
+
+    // Removing the first 64bits (2bytes) that include the tuple mark and the array length
+    let encoded: Vec<u8> = AbiEncode::encode(context.clone())
+        .into_iter()
+        .skip(64)
+        .collect();
+
+    let hash = hash_keccak(&Bytes::from(encoded).to_vec())
+        .as_bytes()
+        .to_vec();
+
+    let signed_message = wallet.sign_message(hash.clone()).await?;
+
+    let signature = Bytes::from(signed_message.to_vec());
+
+    Ok(SignedContextV1 {
+        signer: wallet.address(),
+        context,
+        signature,
+    })
 }

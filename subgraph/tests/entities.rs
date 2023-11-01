@@ -24,15 +24,17 @@ use utils::{
     numbers::{display_number, divide_decimal_strings, get_amount_tokens},
     transactions::{
         approve_tokens, generate_clear_config, generate_multi_add_order, generate_multi_clear,
-        generate_multi_deposit, generate_multi_withdraw, generate_order_config, get_block_data,
-        get_decimals, mint_tokens, ContextIndex, TestDepositConfig, TestWithdrawConfig,
+        generate_multi_deposit, generate_multi_withdraw, generate_order_config,
+        generate_signed_context_v1, get_block_data, get_decimals, mint_tokens, ContextIndex,
+        TestDepositConfig, TestWithdrawConfig,
     },
+    u256_to_bytes,
 };
 
 use generated::{ClearCall, SignedContextV1, TakeOrderConfig, TakeOrdersConfigV2};
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -57,7 +59,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -91,7 +93,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -130,7 +132,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -241,7 +243,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -295,7 +297,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -442,7 +444,7 @@ async fn order_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -519,7 +521,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -629,7 +631,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -728,7 +730,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -820,7 +822,7 @@ async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -931,7 +933,7 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -1089,7 +1091,7 @@ async fn vault_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1191,7 +1193,7 @@ async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1293,7 +1295,7 @@ async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1362,7 +1364,7 @@ async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn erc20_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1411,7 +1413,7 @@ async fn erc20_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -1620,7 +1622,7 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1708,7 +1710,7 @@ async fn token_vault_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1765,7 +1767,7 @@ async fn token_vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_withdraw_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1838,7 +1840,7 @@ async fn token_vault_entity_withdraw_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -2067,7 +2069,7 @@ async fn token_vault_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -2232,7 +2234,7 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn bounty_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -2434,7 +2436,7 @@ async fn bounty_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_clear_state_change_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -2598,7 +2600,7 @@ async fn order_clear_state_change_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_take_order_entity_take_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -2751,7 +2753,7 @@ async fn token_vault_take_order_entity_take_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -2988,11 +2990,14 @@ async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
     let maximum_input = get_amount_tokens(1000, token_output.decimals().call().await.unwrap());
     let maximum_io_ratio = U256::from(10000000000000000000u64); // 10e18
 
+    let alice_context = generate_signed_context_v1(&alice).await?;
+    let bob_context = generate_signed_context_v1(&bob).await?;
+
     let take_order_config = TakeOrderConfig {
         order: add_order_data.order,
         input_io_index: U256::zero(),
         output_io_index: U256::zero(),
-        signed_context: Vec::new(),
+        signed_context: vec![alice_context, bob_context],
     };
 
     let take_orders_config = TakeOrdersConfigV2 {
@@ -3036,7 +3041,7 @@ async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
     let context: Vec<Vec<U256>> = context_event.context;
 
     assert!(
-        context.len() >= ContextIndex::ContextArrayMinLength as usize,
+        context.len() >= ContextIndex::VaultOutputsColumn as usize,
         "wrong context emitted by OB"
     );
 
@@ -3052,15 +3057,17 @@ async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
     let resp = Query::context_entity(&context_entity_id).await?;
 
     assert_eq!(resp.caller, bob.address());
-    assert_eq!(resp.contract, orderbook.address());
     assert_eq!(resp.transaction, *take_order_tx_hash);
     assert_eq!(resp.emitter, bob.address());
     assert_eq!(resp.timestamp, block_data.timestamp);
 
     // Skiping the first colummn, since that column hold the `base` context, which is the caller and the contract
-    for (index, current_context) in context.iter().enumerate().skip(1) {
+    // for (index, current_context) in context.iter().enumerate().skip(1) {
+    for index in 1..=4 {
+        let current_context = context.get(index).unwrap();
 
-        let context_matched = match ContextIndex::from_usize(index) {
+        let context_matched = match ContextIndex::from_usize(index).unwrap() {
+            ContextIndex::BaseContext => true, // this never happen here
             ContextIndex::CallingContextColumn => {
                 resp.calling_context == Some(current_context.to_owned())
             }
@@ -3073,26 +3080,50 @@ async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
             ContextIndex::VaultOutputsColumn => {
                 resp.vault_outputs_context == Some(current_context.to_owned())
             }
-            _ => {
-                // Here is for Signed context
-                let signed_context_id = format!("{:?}-{}", take_order_tx_hash, index - 4);
-
-                match resp.signed_context {
-                    // If the context have this length (this index), but the response is missing
-                    // this signed context, then it's an issue on response and we flagged it here.
-                    None => false,
-                    Some(ref signed_context) => signed_context.contains(&signed_context_id),
-                }
-            }
         };
 
         assert!(context_matched, "wrong context at: {index}");
     }
 
+    // IF it's bigger than the last column, the have signed context
+    if context.len() > ContextIndex::VaultOutputsColumn as usize {
+        if let Some(ref resp_signed_contexts) = resp.signed_context {
+            let signed_context_vec = context[4..].to_vec();
+
+            let signers: &Vec<U256> = signed_context_vec.first().unwrap();
+
+            for index in 1..signed_context_vec.len() {
+                let signed_context_id = format!("{:?}-{}", take_order_tx_hash, index - 1);
+                let current_signer = Address::from_slice(&u256_to_bytes(&signers[index])?);
+                let current_context = Some(signed_context_vec.get(index).unwrap().to_owned());
+
+                let resp_context = resp_signed_contexts.get(index - 1).unwrap();
+
+                assert_eq!(
+                    resp_context.id, signed_context_id,
+                    "missing signed_context. \n- Expected: {}\n- Found: {}",
+                    signed_context_id, resp_context.id
+                );
+                assert_eq!(
+                    resp_context.signer, current_signer,
+                    "wrong signer. \n- Expected: {}\n- Found: {}",
+                    resp_context.signer, current_signer
+                );
+                assert_eq!(
+                    resp_context.context, current_context,
+                    "wrong context. \n- Expected: {:?}\n- Found: {:?}",
+                    resp_context.context, current_context
+                );
+            }
+        } else {
+            assert!(false, "missing signed contexts");
+        }
+    }
+
     Ok(())
 }
 
-// #[test]
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
@@ -3105,21 +3136,3 @@ fn util_cbor_meta_test() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-// #[tokio::main]
-// #[test]
-// fn sign_message() -> anyhow::Result<()> {
-//     let alice = get_wallet(1);
-//     let context: Vec<U256> = Vec::new();
-//     let signature = Bytes::new();
-
-//     let signed_context = SignedContextV1 {
-//         signer: alice.address(),
-//         context,
-//         signature,
-//     };
-
-//     // alice.sign_message(message)
-//     //
-//     Ok(())
-// }

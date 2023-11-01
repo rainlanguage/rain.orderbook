@@ -367,8 +367,6 @@ type ContextEntity @entity {
   id: ID!
   "Base caller"
   caller: Account!
-  "Base contract"
-  contract: OrderBook!
 
   "Contextual data available to both calculate order and handle IO"
   callingContext: [BigInt!]

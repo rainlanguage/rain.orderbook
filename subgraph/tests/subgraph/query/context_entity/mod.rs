@@ -21,15 +21,21 @@ pub struct ContextEntity;
 pub struct ContextEntityResponse {
     pub id: String,
     pub caller: Address,
-    pub contract: Address,
     pub calling_context: Option<Vec<U256>>,
     pub calculations_context: Option<Vec<U256>>,
     pub vault_inputs_context: Option<Vec<U256>>,
     pub vault_outputs_context: Option<Vec<U256>>,
-    pub signed_context: Option<Vec<String>>,
+    pub signed_context: Option<Vec<SignedContext>>,
     pub emitter: Address,
     pub transaction: TxHash,
     pub timestamp: U256,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SignedContext {
+    pub id: String,
+    pub signer: Address,
+    pub context: Option<Vec<U256>>,
 }
 
 impl ContextEntityResponse {
@@ -37,7 +43,6 @@ impl ContextEntityResponse {
         let data = response.context_entity.unwrap();
 
         let caller = Address::from_slice(&data.caller.id);
-        let contract = Address::from_slice(&data.contract.id);
 
         let calling_context = match data.calling_context {
             Some(values) => {
@@ -81,8 +86,22 @@ impl ContextEntityResponse {
 
         let signed_context = match data.signed_context {
             Some(values) => {
-                let values_collected: Vec<String> =
-                    values.iter().map(|value| value.id.clone()).collect();
+                let values_collected: Vec<SignedContext> = values
+                    .iter()
+                    .map(|value| SignedContext {
+                        id: value.id.clone(),
+                        signer: Address::from_slice(&value.signer),
+                        context: match value.context.clone() {
+                            Some(values) => {
+                                let values_collected: Vec<U256> =
+                                    values.iter().map(|value| mn_mpz_to_u256(&value)).collect();
+
+                                Some(values_collected)
+                            }
+                            None => None,
+                        },
+                    })
+                    .collect();
 
                 Some(values_collected)
             }
@@ -95,7 +114,6 @@ impl ContextEntityResponse {
         ContextEntityResponse {
             id: data.id,
             caller,
-            contract,
             calling_context,
             calculations_context,
             vault_inputs_context,
