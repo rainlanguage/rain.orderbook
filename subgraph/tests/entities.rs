@@ -31,7 +31,7 @@ use utils::{
 use generated::{ClearCall, SignedContextV1, TakeOrderConfig, TakeOrdersConfigV2};
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn orderbook_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -56,7 +56,7 @@ async fn orderbook_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -90,7 +90,7 @@ async fn rain_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
     // Always checking if OB is deployed, so we attemp to obtaing it
     let _ = get_orderbook().await?;
@@ -129,7 +129,7 @@ async fn content_meta_v1_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -240,7 +240,7 @@ async fn order_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_remove_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -294,7 +294,7 @@ async fn order_entity_remove_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -441,7 +441,7 @@ async fn order_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn io_entity_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -518,7 +518,7 @@ async fn io_entity_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -628,7 +628,7 @@ async fn vault_entity_add_orders_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -727,7 +727,7 @@ async fn vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -819,7 +819,7 @@ async fn vault_entity_withdraw_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -930,7 +930,7 @@ async fn vault_entity_add_order_and_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -1088,7 +1088,7 @@ async fn vault_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1190,7 +1190,7 @@ async fn vault_deposit_multiple_deposits_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1292,7 +1292,7 @@ async fn vault_withdraw_multiple_withdraws_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1361,7 +1361,7 @@ async fn erc20_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn erc20_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1410,7 +1410,7 @@ async fn erc20_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -1619,7 +1619,7 @@ async fn order_clear_entity_clear_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_add_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1707,7 +1707,7 @@ async fn token_vault_entity_add_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_deposit_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1764,7 +1764,7 @@ async fn token_vault_entity_deposit_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_withdraw_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -1837,7 +1837,7 @@ async fn token_vault_entity_withdraw_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn token_vault_entity_clear_test() -> anyhow::Result<()> {
     let alice = get_wallet(0);
     let bob = get_wallet(1);
@@ -2230,7 +2230,7 @@ async fn token_vault_entity_take_order_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-// #[test]
+#[test]
 fn util_cbor_meta_test() -> anyhow::Result<()> {
     // Read meta from root repository (output from nix command) and convert to Bytes
     let ob_meta: Vec<u8> = read_orderbook_meta();
