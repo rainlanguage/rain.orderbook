@@ -31,6 +31,40 @@ pub struct TestWithdrawConfig {
     pub target_amount: U256,
 }
 
+/// Hold all the index from Context inside Orderbook and emitted by Context event.
+///
+/// If the length of the Context array is above this enum, they are signed context.
+pub enum ContextIndex {
+    CallingContextColumn = 1,
+    CalculationsColumn = 2,
+    VaultInputsColumn = 3,
+    VaultOutputsColumn = 4,
+    /// From this length of the Context. All the values equal or above this, are signed context.
+    ContextArrayMinLength = 5,
+}
+
+impl ContextIndex {
+    pub fn from_usize(value: usize) -> Self {
+        if Self::CallingContextColumn as usize == value {
+            return Self::CallingContextColumn;
+        }
+
+        if Self::CalculationsColumn as usize == value {
+            return Self::CalculationsColumn;
+        }
+
+        if Self::VaultInputsColumn as usize == value {
+            return Self::VaultInputsColumn;
+        }
+
+        if Self::VaultOutputsColumn as usize == value {
+            return Self::VaultOutputsColumn;
+        }
+
+        return Self::ContextArrayMinLength;
+    }
+}
+
 pub async fn get_block_data(tx_hash: &TxHash) -> anyhow::Result<Block<H256>> {
     let provider = get_provider().await?;
 
@@ -130,7 +164,7 @@ async fn generate_eval_config(
     // let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
     let data_parse =
         Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
-        // Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
+    // Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
     let (bytecode, constants) = expression_deployer
         .parse(data_parse.clone())
         .await

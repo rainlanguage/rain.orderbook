@@ -16,7 +16,8 @@ use utils::{
     deploy::{deploy_erc20_mock, get_expression_deployer, get_orderbook, read_orderbook_meta},
     events::{
         _get_new_expression_event, get_add_order_event, get_after_clear_events, get_clear_events,
-        get_deposit_events, get_take_order_event, get_take_order_events, get_withdraw_events,
+        get_context_event, get_context_events, get_deposit_events, get_take_order_event,
+        get_take_order_events, get_withdraw_events,
     },
     generate_random_u256, get_wallet, h256_to_bytes,
     json_structs::{NewExpressionJson, OrderJson},
@@ -24,7 +25,7 @@ use utils::{
     transactions::{
         approve_tokens, generate_clear_config, generate_multi_add_order, generate_multi_clear,
         generate_multi_deposit, generate_multi_withdraw, generate_order_config, get_block_data,
-        get_decimals, mint_tokens, TestDepositConfig, TestWithdrawConfig,
+        get_decimals, mint_tokens, ContextIndex, TestDepositConfig, TestWithdrawConfig,
     },
 };
 
@@ -2922,7 +2923,7 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
 }
 
 #[tokio::main]
-// #[test]
+#[test]
 async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
     let orderbook = get_orderbook().await?;
 
@@ -3029,40 +3030,64 @@ async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
     let tx_receipt = tx_take_order.await?.unwrap();
 
     let take_order_tx_hash = &tx_receipt.transaction_hash;
-    let take_order_event = get_take_order_event(&orderbook, &take_order_tx_hash).await?;
+
+    let context_event = get_context_event(&orderbook, &take_order_tx_hash).await?;
+
+    let context: Vec<Vec<U256>> = context_event.context;
+
+    assert!(
+        context.len() >= ContextIndex::ContextArrayMinLength as usize,
+        "wrong context emitted by OB"
+    );
 
     let block_data = get_block_data(&take_order_tx_hash).await?;
 
     // Using index 0 since only one take order was made in this tx
     let take_order_entity = format!("{:?}-{}", take_order_tx_hash, 0);
-
-    // Values with the perspective of the taker (bob)
-    let input_token = take_order_event
-        .config
-        .order
-        .valid_outputs
-        .first()
-        .unwrap()
-        .token;
-
-    let output_token = take_order_event
-        .config
-        .order
-        .valid_inputs
-        .first()
-        .unwrap()
-        .token;
-
-    let input_display = display_number(take_order_event.input, get_decimals(input_token).await?);
-    let output_display = display_number(take_order_event.output, get_decimals(output_token).await?);
-
-    let io_ratio =
-        divide_decimal_strings(&input_display, &output_display).unwrap_or("0".to_string());
+    let context_entity_id = take_order_entity.clone();
 
     // Wait for Subgraph sync
     wait().await?;
 
-    let resp = Query::take_order_entity(&take_order_entity).await?;
+    let resp = Query::context_entity(&context_entity_id).await?;
+
+    assert_eq!(resp.caller, bob.address());
+    assert_eq!(resp.contract, orderbook.address());
+    assert_eq!(resp.transaction, *take_order_tx_hash);
+    assert_eq!(resp.emitter, bob.address());
+    assert_eq!(resp.timestamp, block_data.timestamp);
+
+    // Skiping the first colummn, since that column hold the `base` context, which is the caller and the contract
+    for (index, current_context) in context.iter().enumerate().skip(1) {
+
+        let context_matched = match ContextIndex::from_usize(index) {
+            ContextIndex::CallingContextColumn => {
+                resp.calling_context == Some(current_context.to_owned())
+            }
+            ContextIndex::CalculationsColumn => {
+                resp.calculations_context == Some(current_context.to_owned())
+            }
+            ContextIndex::VaultInputsColumn => {
+                resp.vault_inputs_context == Some(current_context.to_owned())
+            }
+            ContextIndex::VaultOutputsColumn => {
+                resp.vault_outputs_context == Some(current_context.to_owned())
+            }
+            _ => {
+                // Here is for Signed context
+                let signed_context_id = format!("{:?}-{}", take_order_tx_hash, index - 4);
+
+                match resp.signed_context {
+                    // If the context have this length (this index), but the response is missing
+                    // this signed context, then it's an issue on response and we flagged it here.
+                    None => false,
+                    Some(ref signed_context) => signed_context.contains(&signed_context_id),
+                }
+            }
+        };
+
+        assert!(context_matched, "wrong context at: {index}");
+    }
 
     Ok(())
 }
@@ -3080,3 +3105,21 @@ fn util_cbor_meta_test() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+// #[tokio::main]
+// #[test]
+// fn sign_message() -> anyhow::Result<()> {
+//     let alice = get_wallet(1);
+//     let context: Vec<U256> = Vec::new();
+//     let signature = Bytes::new();
+
+//     let signed_context = SignedContextV1 {
+//         signer: alice.address(),
+//         context,
+//         signature,
+//     };
+
+//     // alice.sign_message(message)
+//     //
+//     Ok(())
+// }
