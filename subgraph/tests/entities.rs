@@ -2728,6 +2728,9 @@ async fn token_vault_take_order_entity_take_order_test() -> anyhow::Result<()> {
     let token_vault_take_order_a_id = format!("{}-{}", take_order_entity, token_vault_input);
     let token_vault_take_order_b_id = format!("{}-{}", take_order_entity, token_vault_output);
 
+    // Wait for Subgraph sync
+    wait().await?;
+
     let resp_a = Query::token_vault_take_order(&token_vault_take_order_a_id).await?;
     let resp_b = Query::token_vault_take_order(&token_vault_take_order_b_id).await?;
 
@@ -2844,6 +2847,12 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
     )
     .await?;
 
+    let vault_balance_alice: U256 = orderbook
+        .vault_balance(alice.address(), token_output.address(), vault_id)
+        .call()
+        .await?;
+    println!("vault_balance_alice_0: {}", vault_balance_alice);
+
     // Take the order
     let take_order_func = orderbook
         .connect(&bob)
@@ -2858,23 +2867,15 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
 
     let block_data = get_block_data(&take_order_tx_hash).await?;
 
+    let vault_balance_alice: U256 = orderbook
+        .vault_balance(alice.address(), token_output.address(), vault_id)
+        .call()
+        .await?;
+    println!("vault_balance_alice_1: {}", vault_balance_alice);
+
     // Using index 0 since only one take order was made in this tx
     let take_order_entity = format!("{:?}-{}", take_order_tx_hash, 0);
-    let token_vault_input = format!(
-        "{}-{:?}-{:?}",
-        vault_id,
-        alice.address(),
-        token_input.address()
-    );
-    let token_vault_output = format!(
-        "{}-{:?}-{:?}",
-        vault_id,
-        alice.address(),
-        token_output.address()
-    );
-
-    let token_vault_take_order_a_id = format!("{}-{}", take_order_entity, token_vault_input);
-    let token_vault_take_order_b_id = format!("{}-{}", take_order_entity, token_vault_output);
+    println!("take_order_entity: {}", take_order_entity);
 
     let input_token = take_order_event
         .config
@@ -2898,7 +2899,10 @@ async fn take_order_entity_take_order_test() -> anyhow::Result<()> {
     let io_ratio =
         divide_decimal_strings(&input_display, &output_display).unwrap_or("0".to_string());
 
-    let resp = Query::take_order_entity(&token_vault_input).await?;
+    // Wait for Subgraph sync
+    wait().await?;
+
+    let resp = Query::take_order_entity(&take_order_entity).await?;
 
     assert_eq!(resp.sender, take_order_event.sender);
     assert_eq!(resp.order, h256_to_bytes(&add_order_data.order_hash.into()));

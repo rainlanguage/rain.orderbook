@@ -65,7 +65,7 @@ pub async fn wait() -> anyhow::Result<bool> {
                     return Err(anyhow!("wait function timeout"));
                 }
             } else if deadline < current_time {
-                return Err(anyhow!("wait function timeout"));
+                return Err(anyhow!("wait function timeout in sync"));
             }
         } else {
             println!("Errors : {:?}", response_body.errors.unwrap());
