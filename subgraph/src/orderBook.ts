@@ -149,7 +149,6 @@ export function handleContext(event: Context): void {
       const contextTakeOrder = new ContextEntity("ContextTakeOrderTemp");
 
       contextTakeOrder.caller = sender;
-      contextTakeOrder.contract = callerContract;
       contextTakeOrder.callingContext = callingContext;
       contextTakeOrder.calculationsContext = calculationsContext;
       contextTakeOrder.vaultInputsContext = vaultInputsContext;
@@ -720,7 +719,6 @@ export function handleTakeOrder(event: TakeOrder): void {
     const contextEntity = createContextEntity(event.transaction.hash.toHex());
 
     contextEntity.caller = contextTakeOrder.caller;
-    contextEntity.contract = contextTakeOrder.contract;
     contextEntity.callingContext = contextTakeOrder.callingContext;
     contextEntity.calculationsContext = contextTakeOrder.calculationsContext;
     contextEntity.vaultInputsContext = contextTakeOrder.vaultInputsContext;
