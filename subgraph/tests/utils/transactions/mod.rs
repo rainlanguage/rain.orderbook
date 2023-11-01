@@ -130,6 +130,7 @@ async fn generate_eval_config(
     // let data_parse = Bytes::from_static(b"_ _ _:block-timestamp() chain-id() block-number();:;");
     let data_parse =
         Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
+        // Bytes::from_static(b"_ _ _:block-timestamp() 6000000000000000000 1000000000000000000;:;");
     let (bytecode, constants) = expression_deployer
         .parse(data_parse.clone())
         .await

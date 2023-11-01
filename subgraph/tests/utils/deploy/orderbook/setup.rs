@@ -51,6 +51,7 @@ pub async fn init_orderbook(
     } else {
         Err(OrderBookSetupError::SgDeployError())
     }
+    // Ok(orderbook)
 }
 
 async fn try_ob_deploy(

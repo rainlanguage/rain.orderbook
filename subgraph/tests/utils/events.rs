@@ -1,5 +1,6 @@
 use crate::generated::{
-    AddOrderFilter, AfterClearFilter, ClearFilter, DepositFilter, OrderBook, WithdrawFilter,
+    AddOrderFilter, AfterClearFilter, ClearFilter, DepositFilter, OrderBook, TakeOrderFilter,
+    WithdrawFilter,
 };
 use crate::generated::{ERC20Mock, TransferFilter};
 use crate::generated::{NewExpressionFilter, RainterpreterExpressionDeployer};
@@ -54,7 +55,7 @@ async fn get_matched_log(receipt: TransactionReceipt, filter: Filter) -> Option<
 }
 
 /// Get all the logs in a transaction for a given matched filter.
-async fn _get_matched_logs(receipt: TransactionReceipt, filter: Filter) -> Option<Vec<Log>> {
+async fn get_matched_logs(receipt: TransactionReceipt, filter: Filter) -> Option<Vec<Log>> {
     let topic_hash = extract_topic_hash(filter);
 
     if let Some(hash) = topic_hash {
@@ -114,7 +115,7 @@ pub async fn _get_add_order_events(
     let receipt = get_pending_tx(tx_hash).await?;
     let filter: Filter = contract.clone().add_order_filter().filter;
 
-    let option_logs = _get_matched_logs(receipt, filter).await;
+    let option_logs = get_matched_logs(receipt, filter).await;
 
     match option_logs {
         Some(logs) => {
@@ -218,7 +219,7 @@ pub async fn get_withdraw_events(
     let receipt = get_pending_tx(tx_hash).await?;
     let filter: Filter = contract.clone().withdraw_filter().filter;
 
-    let option_logs = _get_matched_logs(receipt, filter).await;
+    let option_logs = get_matched_logs(receipt, filter).await;
 
     match option_logs {
         Some(logs) => {
@@ -244,7 +245,7 @@ pub async fn get_deposit_events(
     let receipt = get_pending_tx(tx_hash).await?;
     let filter: Filter = contract.clone().deposit_filter().filter;
 
-    let option_logs = _get_matched_logs(receipt, filter).await;
+    let option_logs = get_matched_logs(receipt, filter).await;
 
     match option_logs {
         Some(logs) => {
@@ -270,7 +271,7 @@ pub async fn get_clear_events(
     let receipt = get_pending_tx(tx_hash).await?;
     let filter: Filter = contract.clone().clear_filter().filter;
 
-    let option_logs = _get_matched_logs(receipt, filter).await;
+    let option_logs = get_matched_logs(receipt, filter).await;
 
     match option_logs {
         Some(logs) => {
@@ -296,7 +297,7 @@ pub async fn get_after_clear_events(
     let receipt = get_pending_tx(tx_hash).await?;
     let filter: Filter = contract.clone().after_clear_filter().filter;
 
-    let option_logs = _get_matched_logs(receipt, filter).await;
+    let option_logs = get_matched_logs(receipt, filter).await;
 
     match option_logs {
         Some(logs) => {
@@ -308,6 +309,51 @@ pub async fn get_after_clear_events(
                     log.topics,
                     log.data,
                 )?;
+
+                events.push(event);
+            }
+
+            return Ok(events);
+        }
+        None => return Err(Error::msg("events not found")),
+    }
+}
+
+pub async fn get_take_order_event(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<TakeOrderFilter> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.take_order_filter().filter;
+
+    let option_log = get_matched_log(receipt, filter).await;
+
+    match option_log {
+        Some(log) => {
+            let event =
+                contract.decode_event::<TakeOrderFilter>("TakeOrder", log.topics, log.data)?;
+            return Ok(event);
+        }
+        None => return Err(Error::msg("event not found")),
+    }
+}
+
+pub async fn get_take_order_events(
+    contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    tx_hash: &TxHash,
+) -> Result<Vec<TakeOrderFilter>> {
+    let receipt = get_pending_tx(tx_hash).await?;
+    let filter: Filter = contract.clone().take_order_filter().filter;
+
+    let option_logs = get_matched_logs(receipt, filter).await;
+
+    match option_logs {
+        Some(logs) => {
+            let mut events: Vec<TakeOrderFilter> = Vec::new();
+
+            for log in logs {
+                let event: TakeOrderFilter =
+                    contract.decode_event::<TakeOrderFilter>("TakeOrder", log.topics, log.data)?;
 
                 events.push(event);
             }
