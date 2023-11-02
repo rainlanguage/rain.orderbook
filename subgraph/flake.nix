@@ -12,6 +12,7 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         jq = "${pkgs.jq}/bin/jq";
+        graphql_client = "${pkgs.graphql-client}/bin/graphql-client";
 
       in rec {
         packages = rec {
@@ -68,6 +69,10 @@
 
           run-anvil = pkgs.writeShellScriptBin "run-anvil" (''
             anvil -m "$(cat ./test-mnemonic)"
+          '');
+
+          check = pkgs.writeShellScriptBin "check" (''
+            ${graphql_client}
           '');
 
           strong-anvil = pkgs.writeShellScriptBin "strong-anvil" (''
