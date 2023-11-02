@@ -8,10 +8,10 @@ pub mod setup;
 pub mod transactions;
 
 use ethers::{
-    core::{abi::AbiEncode, k256::ecdsa::SigningKey, rand::random, utils::hex},
+    core::{k256::ecdsa::SigningKey, rand::random, utils::hex},
     providers::Middleware,
     signers::{coins_bip39::English, MnemonicBuilder, Wallet},
-    types::{Bytes, H256, U256, U64},
+    types::{Address, Bytes, H256, U256, U64},
 };
 use hex::FromHex;
 use rust_bigint::BigInt;
@@ -161,22 +161,18 @@ pub fn h256_to_bytes(value: &H256) -> Bytes {
 }
 
 /// Take a U256 value and parse it to a Bytes
-pub fn u256_to_bytes(value: &U256) -> anyhow::Result<Bytes> {
-    todo!("U256 convert to BYtes missing")
-    // let hex_string = format!("{:#x}", value);
+pub fn u256_to_bytes(value: &U256) -> Bytes {
+    let mut bb: [u8; 32] = [0; 32];
+    value.to_big_endian(&mut bb);
 
-    // let a = U256::from_dec_str(&value.to_str_radix(16));
+    ethers::types::Bytes::from(bb)
+}
 
-    // println!("{value:#032X}");
-    // println!("{value:#032x}");
+/// Take a U256 value and parse it to an Address
+pub fn u256_to_address(value: &U256) -> Address {
+    let bytes = u256_to_bytes(value);
 
-    // println!("{value:#020X}");
-    // println!("{value:#020x}");
-
-    // let ave = AbiEncode::encode(value.to_owned());
-    // println!("ave: {:?}", Bytes::from(ave));
-
-    // Ok(hex_string_to_bytes(&hex_string)?)
+    Address::from_slice(&bytes[12..])
 }
 
 /// Get a mock encoded rain document with hardcoded data.

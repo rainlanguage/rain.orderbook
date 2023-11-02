@@ -16,8 +16,8 @@ use utils::{
     deploy::{deploy_erc20_mock, get_expression_deployer, get_orderbook, read_orderbook_meta},
     events::{
         _get_new_expression_event, get_add_order_event, get_after_clear_events, get_clear_events,
-        get_context_event, get_context_events, get_deposit_events, get_take_order_event,
-        get_take_order_events, get_withdraw_events,
+        get_context_event, get_deposit_events, get_take_order_event, get_take_order_events,
+        get_withdraw_events,
     },
     generate_random_u256, get_wallet, h256_to_bytes,
     json_structs::{NewExpressionJson, OrderJson},
@@ -28,7 +28,7 @@ use utils::{
         generate_signed_context_v1, get_block_data, get_decimals, mint_tokens, ContextIndex,
         TestDepositConfig, TestWithdrawConfig,
     },
-    u256_to_bytes,
+    u256_to_address,
 };
 
 use generated::{ClearCall, SignedContextV1, TakeOrderConfig, TakeOrdersConfigV2};
@@ -3088,31 +3088,33 @@ async fn context_entity_entity_take_order_test() -> anyhow::Result<()> {
     // IF it's bigger than the last column, the have signed context
     if context.len() > ContextIndex::VaultOutputsColumn as usize {
         if let Some(ref resp_signed_contexts) = resp.signed_context {
-            let signed_context_vec = context[4..].to_vec();
+            let signed_context_vec = context[5..].to_vec();
 
             let signers: &Vec<U256> = signed_context_vec.first().unwrap();
 
-            for index in 1..signed_context_vec.len() {
-                let signed_context_id = format!("{:?}-{}", take_order_tx_hash, index - 1);
-                // let current_signer = Address::from_slice(&u256_to_bytes(&signers[index])?);
-                let current_context = Some(signed_context_vec.get(index).unwrap().to_owned());
+            assert!(signers.len() == signed_context_vec.len() - 1);
 
-                let resp_context = resp_signed_contexts.get(index - 1).unwrap();
+            for index in 0..signers.len() {
+                let signed_context_id = format!("{:?}-{}", take_order_tx_hash, index);
+                let current_signer = u256_to_address(&signers[index]);
+                let current_context = Some(signed_context_vec.get(index + 1).unwrap().to_owned());
+
+                let resp_context = resp_signed_contexts.get(index).unwrap();
 
                 assert_eq!(
                     resp_context.id, signed_context_id,
                     "missing signed_context. \n- Expected: {}\n- Found: {}",
                     signed_context_id, resp_context.id
                 );
-                // assert_eq!(
-                //     resp_context.signer, current_signer,
-                //     "wrong signer. \n- Expected: {}\n- Found: {}",
-                //     resp_context.signer, current_signer
-                // );
+                assert_eq!(
+                    resp_context.signer, current_signer,
+                    "wrong signer. \n- Expected: {:?}\n- Found: {:?}",
+                    resp_context.signer, current_signer
+                );
                 assert_eq!(
                     resp_context.context, current_context,
-                    "wrong context. \n- Expected: {:?}\n- Found: {:?}",
-                    resp_context.context, current_context
+                    "wrong signed context at {}. \n- Expected: {:?}\n- Found: {:?}",
+                    index, resp_context.context, current_context
                 );
             }
         } else {
