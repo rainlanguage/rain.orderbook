@@ -78,13 +78,13 @@
             kill -9 $(lsof -t -i :8545)
           '');
 
-
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
+            # This build is for generate the schema.json
+            cargo run build
             cargo test -- --test-threads=1 --nocapture;
           '');
 
           default = install;
-
         };
       }
     );
