@@ -14,7 +14,6 @@ use ethers::{
     signers::{Signer, Wallet},
     types::{Address, Block, Bytes, TxHash, H256, U256},
 };
-use hex::FromHex;
 
 use super::{get_provider, get_wallet, hash_keccak};
 
