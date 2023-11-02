@@ -7,7 +7,7 @@ import "lib/rain.interpreter/src/lib/op/LibAllStandardOpsNP.sol";
 /// @title AuthoringMetaGetter
 /// A contract to obtain the current AuthoringMeta of the interpreter
 contract AuthoringMetaGetter {
-    function getAuthoringMeta() pure external returns (bytes memory)  {
+    function getAuthoringMeta() external pure returns (bytes memory) {
         return LibAllStandardOpsNP.authoringMeta();
     }
 }
