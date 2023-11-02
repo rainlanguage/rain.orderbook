@@ -39,7 +39,7 @@ jobs:
 
       - name: Run test
         working-directory: ./subgraph
-        run: RUST_TEST_THREADS=1 cargo test
+        run: nix run .#ci-test
 
       - name: Stop docker container
         run: docker-compose -f subgraph/docker/docker-compose.yaml down
