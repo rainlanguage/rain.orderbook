@@ -80,7 +80,8 @@
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
             # This build is for generate the schema.json
-            cargo run build
+            cargo run build;
+            ls
             cargo test -- --test-threads=1 --nocapture;
           '');
 

@@ -56,21 +56,16 @@ fn main() {
             let _ = deploy(config);
 
             // Get the schema from the endpoint
-            let write_schema = run_cmd(
+            // "tests/subgraph/query/schema.json",
+            run_cmd(
                 "graphql-client",
                 &[
                     "introspect-schema",
                     "--output",
-                    "tests/subgraph/query/schema.json",
+                    "schema.json",
                     "http://localhost:8000/subgraphs/name/test/test",
                 ],
             );
-
-            if write_schema {
-                println!("HERE_1: schema was wrote");
-            } else {
-                println!("HERE_2: failed to write schemag");
-            }
 
             ()
         }
