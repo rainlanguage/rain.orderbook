@@ -82,7 +82,7 @@
             kill -9 $(lsof -t -i :8545)
           '');
 
-          gen-subgraph-schema  = pkgs.writeShellScriptBin "gen-subgraph-schema" (gen-sg-schema)
+          gen-subgraph-schema  = pkgs.writeShellScriptBin "gen-subgraph-schema" (gen-sg-schema);
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
             # # This build is for generate the schema.json.
