@@ -4,8 +4,6 @@
 /subgraph.yaml
 /abis/*.json
 
-// Subgraph Schema.json generated
-tests/subgraph/query/schema.json
 
 # Rust generated files
 /tests/generated/abigen
