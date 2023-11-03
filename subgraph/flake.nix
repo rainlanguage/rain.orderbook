@@ -37,8 +37,7 @@
             echo Removed duplicated at: $contract_path
           '';
 
-          # The graphql file can generate the schema.json file needed for testing
-          # Of course, this need a graph node at localhost to work
+
           gen-sg-schema = ''
             # Use a arbitrary address to put the endpoint up
             cargo run deploy \
@@ -82,11 +81,24 @@
             kill -9 $(lsof -t -i :8545)
           '');
 
+          # The graphql file can generate the schema.json file needed for testing
+          # Of course, this need a graph node at localhost to work
+          gen-subgraph-schema  = pkgs.writeShellScriptBin "gen-subgraph-schema" (''
+            # Use a arbitrary address to put the endpoint up
+            cargo run deploy \
+              --name test/test \
+              --url http://localhost:8020 \
+              --network localhost \
+              --block 0 \
+              --address 0x0000000000000000000000000000000000000000
+
+           ${graphql_client} introspect-schema \
+            --output tests/subgraph/query/schema.json \
+            http://localhost:8000/subgraphs/name/test/test
+          '');
+
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
-            # This build is for generate the schema.json.
-            # This in case the subgraph schema.graphql have changes when running tests
-            ${gen-sg-schema}
-            
+
             # Run tests in single thread
             cargo test -- --test-threads=1 --nocapture;
           '');
