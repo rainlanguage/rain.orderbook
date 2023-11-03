@@ -37,6 +37,10 @@ jobs:
         working-directory: ./subgraph
         run: npm install
 
+      - name: Obtain schema.json from subgraph
+        working-directory: ./subgraph
+        run: nix run .#gen-subgraph-schema
+
       - name: Run test
         working-directory: ./subgraph
         run: nix run .#ci-test
