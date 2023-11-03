@@ -82,13 +82,11 @@
             kill -9 $(lsof -t -i :8545)
           '');
 
-          gen-subgraph-schema  = pkgs.writeShellScriptBin "gen-subgraph-schema" (gen-sg-schema)
-
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
-            # # This build is for generate the schema.json.
-            # # This in case the subgraph schema.graphql have changes when running tests
-            # ${gen-sg-schema}
-
+            # This build is for generate the schema.json.
+            # This in case the subgraph schema.graphql have changes when running tests
+            ${gen-sg-schema}
+            
             # Run tests in single thread
             cargo test -- --test-threads=1 --nocapture;
           '');
