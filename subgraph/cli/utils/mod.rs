@@ -8,7 +8,6 @@ use std::thread;
 pub fn run_cmd(main_cmd: &str, args: &[&str]) -> bool {
     // Get the current working directory
     let current_dir = env::current_dir().expect("Failed to get current directory");
-    println!("current_dir: {:?}", current_dir.to_str());
 
     // Create a new Command to run
     let mut cmd = Command::new(main_cmd);

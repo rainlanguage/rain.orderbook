@@ -36,6 +36,10 @@ pub struct DeployArgs {
 }
 
 pub fn deploy_subgraph(config: DeployArgs) -> anyhow::Result<()> {
+    if config.url.scheme() != "http" && config.url.scheme() != "https" {
+        return Err(anyhow!("Invalid URL provided"));
+    }
+
     let subgraph_template = "subgraph.template.yaml";
     let output_path = "subgraph.yaml";
 

@@ -3,7 +3,7 @@ mod deploy;
 mod utils;
 use clap::{Parser, Subcommand};
 
-// use colored::*;
+use colored::*;
 use deploy::{deploy_subgraph, DeployArgs};
 use utils::run_cmd;
 
@@ -31,34 +31,52 @@ fn main() -> Result<(), anyhow::Error> {
 
     match args.subgraph {
         Subgraph::Install => {
-            run_cmd("npm", &["install"]);
+            let resp = run_cmd("npm", &["install"]);
+
+            if !resp {
+                eprintln!("{}", "Error: Failed at npm install".red());
+                std::process::exit(1);
+            }
 
             Ok(())
         }
 
         Subgraph::Build => {
-            run_cmd("npm", &["run", "codegen"]);
-            run_cmd("npm", &["run", "build"]);
+            let resp = run_cmd("npm", &["run", "codegen"]);
+            if !resp {
+                eprintln!("{}", "Error: Failed at npm run codegen".red());
+                std::process::exit(1);
+            }
+
+            let resp = run_cmd("npm", &["run", "build"]);
+            if !resp {
+                eprintln!("{}", "Error: Failed at npm run build".red());
+                std::process::exit(1);
+            }
 
             Ok(())
         }
 
         Subgraph::Test => {
-            run_cmd("nix", &["run", ".#ci-test"]);
+            let resp = run_cmd("nix", &["run", ".#ci-test"]);
+            if !resp {
+                std::process::exit(1);
+            }
 
             Ok(())
         }
+
         Subgraph::Deploy(args) => {
-            println!("\n🚀 Hello deploy");
-            let _ = deploy_subgraph(args);
-
-            // if args.url.scheme() != "http" && args.url.scheme() != "https" {
-            //     eprintln!("Error: Invalid URL provided");
-            //     std::process::exit(1);
-            // }
-
-            Ok(())
-
+            match deploy_subgraph(args) {
+                Ok(_) => {
+                    return Ok(());
+                }
+                Err(err) => {
+                    // Error occurred, print the error message and exit
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            }
         }
     }
 }

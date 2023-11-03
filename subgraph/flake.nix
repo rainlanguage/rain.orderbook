@@ -87,6 +87,11 @@
             # This in case the subgraph schema.graphql have changes when running tests
             ${gen-sg-schema}
 
+            echo "Print root"
+            ls .
+            echo "Print query folder"
+            ls tests/subgraph/query
+
             # Run tests in single thread
             cargo test -- --test-threads=1 --nocapture;
           '');
