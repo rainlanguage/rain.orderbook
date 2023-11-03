@@ -5,23 +5,46 @@ use std::fs;
 
 use crate::utils::run_cmd;
 
-pub struct Config<'a> {
-    // contracts address
-    pub contract_address: &'a String,
-    // block-number
-    pub block_number: u64,
+use clap::Args;
+use url::Url;
+
+#[derive(Args, Debug)]
+pub struct DeployArgs {
+    /// Subgraph name (eg: User/SubgraphName)
+    #[arg(long = "name")]
+    pub subgraph_name: String,
+
+    /// Endpoint URL where the subgraph will be deployed
+    #[arg(long)]
+    pub url: Url,
+
+    /// Network that the subgraph will index
+    #[arg(long)]
+    pub network: String,
+
+    /// Block number where the subgraph will start indexing
+    #[arg(long = "block")]
+    pub block_number: u32,
+
+    /// Contract address that the subgraph will be indexing (Assuming one address)
+    #[arg(long)]
+    pub address: String,
+
+    /// (Optional) Subgraph token to deploy the subgraph
+    #[arg(long)]
+    pub key: Option<String>,
 }
 
-pub fn deploy(config: Config) -> anyhow::Result<bool> {
+pub fn deploy_subgraph(config: DeployArgs) -> anyhow::Result<()> {
     let subgraph_template = "subgraph.template.yaml";
     let output_path = "subgraph.yaml";
-    // let root_dir = "./";
-    let end_point = "http://localhost:8020/";
-    let subgraph_name = "test/test";
+
+    let end_point = config.url.as_str();
+    let subgraph_name = config.subgraph_name;
 
     let data = MapBuilder::new()
-        .insert_str("network", "localhost")
-        .insert_str("orderbook", config.contract_address)
+        .insert_str("network", config.network)
+        .insert_str("orderbook", config.address)
         .insert_str("blockNumber", config.block_number.to_string())
         .build();
 
@@ -30,7 +53,8 @@ pub fn deploy(config: Config) -> anyhow::Result<bool> {
     let _ = fs::write(output_path, renderd)?;
 
     // Generate the subgraph code
-    let is_built = run_cmd("bash", &["-c", "npx graph codegen && npx graph build"]);
+    // let is_built = run_cmd("bash", &["-c", "npx graph codegen && npx graph build"]);
+    let is_built = run_cmd("bash", &["-c", "npx graph codegen"]);
     if !is_built {
         return Err(anyhow!("Failed to build subgraph"));
     }
@@ -62,5 +86,5 @@ pub fn deploy(config: Config) -> anyhow::Result<bool> {
         return Err(anyhow!("Failed to deploy subgraph"));
     }
 
-    Ok(true)
+    Ok(())
 }

@@ -31,4 +31,5 @@ once_cell = "1.18.0"
 minicbor = "0.20.0"
 tiny-keccak = "2.0.2"
 bigdecimal = "0.4.2"
+url = "2.4.1"
 

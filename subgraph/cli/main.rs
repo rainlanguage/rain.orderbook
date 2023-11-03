@@ -1,8 +1,10 @@
+// extern crate url;
 mod deploy;
 mod utils;
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
-use deploy::{deploy, Config};
+// use colored::*;
+use deploy::{deploy_subgraph, DeployArgs};
 use utils::run_cmd;
 
 #[derive(Parser)]
@@ -21,62 +23,42 @@ pub enum Subgraph {
     #[command(about = "Test the rain subgraph")]
     Test,
     #[command(about = "Deploy the rain subgraph")]
-    Deploy(DeployCommand),
+    Deploy(DeployArgs),
 }
 
-#[derive(Args, Debug)]
-pub struct DeployCommand {
-    /// Endpoint URL where the subgraph will be deployed
-    url: String,
-    /// Subgraph token to deploy the subgraph
-    key: String,
-    /// Network that the subgraph will index
-    network: String,
-    /// Block number where the subgraph will start indexing
-    block_number: String,
-    /// Contract address that the subgraph will be indexing (Assuming one address)
-    address: String,
-}
-
-fn main() {
+fn main() -> Result<(), anyhow::Error> {
     let args = Cli::parse();
 
     match args.subgraph {
         Subgraph::Install => {
             run_cmd("npm", &["install"]);
+
+            Ok(())
         }
 
         Subgraph::Build => {
-            // Use a arbitrary address to put the endpoint up
-            let config = Config {
-                contract_address: &"0x0000000000000000000000000000000000000000".to_string(),
-                block_number: 0,
-            };
+            run_cmd("npm", &["run", "codegen"]);
+            run_cmd("npm", &["run", "build"]);
 
-            let _ = deploy(config);
-
-            // Get the schema from the endpoint
-            // "tests/subgraph/query/schema.json",
-            run_cmd(
-                "graphql-client",
-                &[
-                    "introspect-schema",
-                    "--output",
-                    "schema.json",
-                    "http://localhost:8000/subgraphs/name/test/test",
-                ],
-            );
-
-            ()
+            Ok(())
         }
 
         Subgraph::Test => {
-            println!("Hello tests 🧪");
-            todo!("Test CI does not implemented");
+            run_cmd("nix", &["run", ".#ci-test"]);
+
+            Ok(())
         }
         Subgraph::Deploy(args) => {
-            println!("🚀 Hello, deploy with: {:?}", args);
-            todo!("Deploy CI does not implemented");
+            println!("\n🚀 Hello deploy");
+            let _ = deploy_subgraph(args);
+
+            // if args.url.scheme() != "http" && args.url.scheme() != "https" {
+            //     eprintln!("Error: Invalid URL provided");
+            //     std::process::exit(1);
+            // }
+
+            Ok(())
+
         }
     }
 }
