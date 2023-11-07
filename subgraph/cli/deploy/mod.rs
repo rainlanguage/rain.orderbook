@@ -75,19 +75,36 @@ pub fn deploy_subgraph(config: DeployArgs) -> anyhow::Result<()> {
         return Err(anyhow!("Failed to create subgraph endpoint node"));
     }
 
-    // Deploy Subgraph to the endpoint
-    let is_deploy = run_cmd(
-        "bash",
-        &[
-            "-c",
-            &format!(
-                "npx graph deploy --node {} --ipfs http://localhost:5001 {}  --version-label 1",
-                end_point, subgraph_name
-            ),
-        ],
-    );
-    if !is_deploy {
-        return Err(anyhow!("Failed to deploy subgraph"));
+    if config.url.host_str() == Some("localhost") {
+        // Deploy Subgraph to the endpoint local
+        let is_deploy = run_cmd(
+            "bash",
+            &[
+                "-c",
+                &format!(
+                    "npx graph deploy --node {} --ipfs http://localhost:5001 {}  --version-label 1",
+                    end_point, subgraph_name
+                ),
+            ],
+        );
+        if !is_deploy {
+            return Err(anyhow!("Failed to deploy subgraph"));
+        }
+    } else {
+        // Deploy Subgraph to the endpoint
+        let is_deploy = run_cmd(
+            "bash",
+            &[
+                "-c",
+                &format!(
+                    "npx graph deploy --node {} {}  --version-label 1",
+                    end_point, subgraph_name
+                ),
+            ],
+        );
+        if !is_deploy {
+            return Err(anyhow!("Failed to deploy subgraph"));
+        }
     }
 
     Ok(())
