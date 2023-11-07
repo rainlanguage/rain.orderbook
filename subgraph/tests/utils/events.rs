@@ -382,8 +382,7 @@ pub async fn get_context_event(
     }
 }
 
-
-pub async fn get_context_events(
+pub async fn _get_context_events(
     contract: &OrderBook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     tx_hash: &TxHash,
 ) -> Result<Vec<ContextFilter>> {
@@ -408,4 +407,3 @@ pub async fn get_context_events(
         None => return Err(Error::msg("events not found")),
     }
 }
-

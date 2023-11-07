@@ -21,6 +21,9 @@ jobs:
       - name: Forge shallow install
         run: forge install --shallow
 
+      - name: Start docker container
+        run: docker-compose -f subgraph/docker/docker-compose.yaml up -d
+
       - name: Initialize setup
         working-directory: ./subgraph
         run: nix run .#init-setup
@@ -30,16 +33,13 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Start docker container
-        run: docker-compose -f subgraph/docker/docker-compose.yaml up -d
-
       - name: install npm dependencies
         working-directory: ./subgraph
         run: npm install
 
       - name: Run test
         working-directory: ./subgraph
-        run: RUST_TEST_THREADS=1 cargo test
+        run: nix run .#ci-test
 
       - name: Stop docker container
         run: docker-compose -f subgraph/docker/docker-compose.yaml down

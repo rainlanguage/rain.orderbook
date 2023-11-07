@@ -12,13 +12,10 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         jq = "${pkgs.jq}/bin/jq";
+        graphql_client = "${pkgs.graphql-client}/bin/graphql-client";
 
       in rec {
         packages = rec {
-          install = pkgs.writeShellScriptBin "install" ("npm install");
-
-          build = pkgs.writeShellScriptBin "build" ("npm run codegen && npm run build");
-
           # ERC20Mock is not present here. It's hardcoded because It's just a ERC20 contract with a mint method.
           concrete-contracts = ["AuthoringMetaGetter" "OrderBook" "RainterpreterExpressionDeployerNP" "RainterpreterNP" "RainterpreterStore"];
 
@@ -40,6 +37,21 @@
             echo Removed duplicated at: $contract_path
           '';
 
+
+          gen-sg-schema = ''
+            # Use a arbitrary address to put the endpoint up
+            cargo run deploy \
+              --name test/test \
+              --url http://localhost:8020 \
+              --network localhost \
+              --block 0 \
+              --address 0x0000000000000000000000000000000000000000
+
+           ${graphql_client} introspect-schema \
+            --output tests/subgraph/query/schema.json \
+            http://localhost:8000/subgraphs/name/test/test
+          '';
+
           init-setup =  pkgs.writeShellScriptBin "init-setup" (''
             # NOTE: This should be called after `npm install`
 
@@ -49,8 +61,13 @@
             # Copying the new abis into the SG abi folder
             cp ../out/OrderBook.sol/OrderBook.json ./abis/
             cp ../out/ERC20.sol/ERC20.json ./abis/ERC20.json
-            '' + pkgs.lib.concatStrings (map copy-abis concrete-contracts) + (remove-duplicate)
+            '' + pkgs.lib.concatStrings (map copy-abis concrete-contracts)
+            + (remove-duplicate)
           );
+
+          run-anvil = pkgs.writeShellScriptBin "run-anvil" (''
+            anvil -m "$(cat ./test-mnemonic)"
+          '');
 
           docker-up = pkgs.writeShellScriptBin "docker-up" ''
             docker-compose -f docker/docker-compose.yaml up --build -d
@@ -60,31 +77,33 @@
             docker-compose -f docker/docker-compose.yaml down
           '';
 
-          check-args = pkgs.writeShellScriptBin "check-args" (''
-            echo "All parameters: $@"
-            echo "First parameter: $1"
-            echo "Second parameter: $2"
-          '');
-
-          run-anvil = pkgs.writeShellScriptBin "run-anvil" (''
-            anvil -m "$(cat ./test-mnemonic)"
-          '');
-
-          strong-anvil = pkgs.writeShellScriptBin "strong-anvil" (''
-            anvil -m "$(cat ./test-mnemonic)" --code-size-limit 36864
-          '');
-
           end-anvil = pkgs.writeShellScriptBin "end-anvil" (''
             kill -9 $(lsof -t -i :8545)
           '');
 
+          # The graphql file can generate the schema.json file needed for testing
+          # Of course, this need a graph node at localhost to work
+          gen-subgraph-schema  = pkgs.writeShellScriptBin "gen-subgraph-schema" (''
+            # Use a arbitrary address to put the endpoint up
+            cargo run deploy \
+              --name test/test \
+              --url http://localhost:8020 \
+              --network localhost \
+              --block 0 \
+              --address 0x0000000000000000000000000000000000000000
+
+           ${graphql_client} introspect-schema \
+            --output tests/subgraph/query/schema.json \
+            http://localhost:8000/subgraphs/name/test/test
+          '');
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''
+
+            # Run tests in single thread
             cargo test -- --test-threads=1 --nocapture;
           '');
 
-          default = install;
-
+          default = init-setup;
         };
       }
     );

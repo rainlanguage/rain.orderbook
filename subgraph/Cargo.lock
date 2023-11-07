@@ -3308,6 +3308,7 @@ dependencies = [
  "thiserror",
  "tiny-keccak",
  "tokio",
+ "url",
  "web3",
 ]
 
