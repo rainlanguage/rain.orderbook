@@ -207,32 +207,17 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         DeployerDiscoverableMetaV2(CALLER_META_HASH, config)
     {}
 
-    /// Guard against read-only reentrancy.
-    /// https://chainsecurity.com/heartbreaks-curve-lp-oracles/
-    modifier nonReentrantView() {
-        if (_reentrancyGuardEntered()) {
-            revert ReentrancyGuardReentrantCall();
-        }
-        _;
-    }
-
     /// @inheritdoc IOrderBookV3
     // This has a reentrancy guard on it but Slither doesn't know that because
     // it is a read-only reentrancy due to potential cross function reentrancy.
     // https://github.com/crytic/slither/issues/735#issuecomment-1620704314
     //slither-disable-next-line reentrancy-no-eth
-    function vaultBalance(address owner, address token, uint256 vaultId)
-        external
-        view
-        override
-        nonReentrantView
-        returns (uint256)
-    {
+    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
 
     /// @inheritdoc IOrderBookV3
-    function orderExists(bytes32 orderHash) external view override nonReentrantView returns (bool) {
+    function orderExists(bytes32 orderHash) external view override returns (bool) {
         return sOrders[orderHash] == ORDER_LIVE;
     }
 
@@ -264,7 +249,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             // withdrawals to exceed vault balances.
             sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
-            _decreaseFlashDebtThenSendToken(token, msg.sender, withdrawAmount);
+            IERC20(token).safeTransfer(msg.sender, withdrawAmount);
         }
     }
 
@@ -495,34 +480,31 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             revert MinimumInput(config.minimumInput, totalTakerInput);
         }
 
-        // Prioritise paying down any active flash loans before sending any
-        // tokens to `msg.sender`. We send the tokens to `msg.sender` first
-        // adopting a similar pattern to Uniswap flash swaps. We call the caller
-        // before attempting to pull tokens from them in order to facilitate
-        // better integrations with external liquidity sources. This could be
-        // done by the caller using flash loans but this callback:
+        // We send the tokens to `msg.sender` first adopting a similar pattern to
+        // Uniswap flash swaps. We call the caller before attempting to pull
+        // tokens from them in order to facilitate better integrations with
+        // external liquidity sources. This could be done by the caller using
+        // flash loans but this callback:
         // - may be simpler for the caller to implement
         // - allows the caller to call `takeOrders` _before_ placing external
         //   trades, which is important if the order logic itself is dependent on
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
-        uint256 takerInputAmountSent = _decreaseFlashDebtThenSendToken(
-            config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token, msg.sender, totalTakerInput
+
+        IERC20(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token).safeTransfer(
+            msg.sender, totalTakerInput
         );
         if (config.data.length > 0) {
             IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
                 config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
                 config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
-                takerInputAmountSent,
+                totalTakerInput,
                 totalTakerOutput,
                 config.data
             );
         }
 
         if (totalTakerOutput > 0) {
-            // We already updated vault balances before we took tokens from
-            // `msg.sender` which is usually NOT the correct order of operations for
-            // depositing to a vault. We rely on reentrancy guards to make this safe.
             IERC20(config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token).safeTransferFrom(
                 msg.sender, address(this), totalTakerOutput
             );
