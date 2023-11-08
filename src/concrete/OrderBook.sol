@@ -453,7 +453,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                     remainingTakerInput -= takerInput;
                     totalTakerOutput += takerOutput;
 
-                    recordVaultIO(order, takerOutput, takerInput, orderIOCalculation);
+                    recordVaultIO(takerOutput, takerInput, orderIOCalculation);
                     emit TakeOrder(msg.sender, takeOrderConfig, takerInput, takerOutput);
                 }
             }
@@ -504,82 +504,82 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
 
     /// @inheritdoc IOrderBookV3
     function clear(
-        Order memory alice,
-        Order memory bob,
+        Order memory aliceOrder,
+        Order memory bobOrder,
         ClearConfig calldata clearConfig,
         SignedContextV1[] memory aliceSignedContext,
         SignedContextV1[] memory bobSignedContext
     ) external nonReentrant {
         {
-            if (alice.owner == bob.owner) {
-                revert SameOwner(alice.owner);
+            if (aliceOrder.owner == bobOrder.owner) {
+                revert SameOwner(aliceOrder.owner);
             }
             if (
-                alice.validOutputs[clearConfig.aliceOutputIOIndex].token
-                    != bob.validInputs[clearConfig.bobInputIOIndex].token
+                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
+                    != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
             ) {
                 revert TokenMismatch(
-                    alice.validOutputs[clearConfig.aliceOutputIOIndex].token,
-                    bob.validInputs[clearConfig.bobInputIOIndex].token
+                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token,
+                    bobOrder.validInputs[clearConfig.bobInputIOIndex].token
                 );
             }
 
             if (
-                alice.validOutputs[clearConfig.aliceOutputIOIndex].decimals
-                    != bob.validInputs[clearConfig.bobInputIOIndex].decimals
+                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals
+                    != bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
             ) {
                 revert TokenDecimalsMismatch(
-                    alice.validOutputs[clearConfig.aliceOutputIOIndex].decimals,
-                    bob.validInputs[clearConfig.bobInputIOIndex].decimals
+                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals,
+                    bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
                 );
             }
 
             if (
-                bob.validOutputs[clearConfig.bobOutputIOIndex].token
-                    != alice.validInputs[clearConfig.aliceInputIOIndex].token
+                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
+                    != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
             ) {
                 revert TokenMismatch(
-                    alice.validInputs[clearConfig.aliceInputIOIndex].token,
-                    bob.validOutputs[clearConfig.bobOutputIOIndex].token
+                    aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token,
+                    bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
                 );
             }
 
             if (
-                bob.validOutputs[clearConfig.bobOutputIOIndex].decimals
-                    != alice.validInputs[clearConfig.aliceInputIOIndex].decimals
+                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
+                    != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals
             ) {
                 revert TokenDecimalsMismatch(
-                    alice.validInputs[clearConfig.aliceInputIOIndex].decimals,
-                    bob.validOutputs[clearConfig.bobOutputIOIndex].decimals
+                    aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals,
+                    bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
                 );
             }
 
             // If either order is dead the clear is a no-op other than emitting
             // `OrderNotFound`. Returning rather than erroring makes it easier to
             // bulk clear using `Multicall`.
-            if (sOrders[alice.hash()] == ORDER_DEAD) {
-                emit OrderNotFound(msg.sender, alice.owner, alice.hash());
+            if (sOrders[aliceOrder.hash()] == ORDER_DEAD) {
+                emit OrderNotFound(msg.sender, aliceOrder.owner, aliceOrder.hash());
                 return;
             }
-            if (sOrders[bob.hash()] == ORDER_DEAD) {
-                emit OrderNotFound(msg.sender, bob.owner, bob.hash());
+            if (sOrders[bobOrder.hash()] == ORDER_DEAD) {
+                emit OrderNotFound(msg.sender, bobOrder.owner, bobOrder.hash());
                 return;
             }
 
             // Emit the Clear event before `eval`.
-            emit Clear(msg.sender, alice, bob, clearConfig);
+            emit Clear(msg.sender, aliceOrder, bobOrder, clearConfig);
         }
         OrderIOCalculation memory aliceOrderIOCalculation = calculateOrderIO(
-            alice, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bob.owner, bobSignedContext
+            aliceOrder, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bobOrder.owner, bobSignedContext
         );
         OrderIOCalculation memory bobOrderIOCalculation = calculateOrderIO(
-            bob, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, alice.owner, aliceSignedContext
+            bobOrder, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, aliceOrder.owner, aliceSignedContext
         );
         ClearStateChange memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
-        recordVaultIO(alice, clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation);
-        recordVaultIO(bob, clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
+        recordVaultIO(clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation);
+        recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
 
         {
             // At least one of these will overflow due to negative bounties if
@@ -587,16 +587,19 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             uint256 aliceBounty = clearStateChange.aliceOutput - clearStateChange.bobInput;
             uint256 bobBounty = clearStateChange.bobOutput - clearStateChange.aliceInput;
             if (aliceBounty > 0) {
-                sVaultBalances[msg.sender][alice.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
+                sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
                     .aliceBountyVaultId] += aliceBounty;
             }
             if (bobBounty > 0) {
-                sVaultBalances[msg.sender][bob.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
+                sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
                     .bobBountyVaultId] += bobBounty;
             }
         }
 
         emit AfterClear(msg.sender, clearStateChange);
+
+        handleIO(aliceOrderIOCalculation);
+        handleIO(bobOrderIOCalculation);
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both
@@ -705,7 +708,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     /// Given an order, final input and output amounts and the IO calculation
     /// verbatim from `_calculateOrderIO`, dispatch the handle IO entrypoint if
     /// it exists and update the order owner's vault balances.
-    /// @param order The order that is being cleared.
     /// @param input The exact token input amount to move into the owner's
     /// vault.
     /// @param output The exact token output amount to move out of the owner's
@@ -713,7 +715,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
     function recordVaultIO(
-        Order memory order,
         uint256 input,
         uint256 output,
         OrderIOCalculation memory orderIOCalculation
@@ -723,13 +724,13 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
 
         if (input > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
-            sVaultBalances[order.owner][address(
+            sVaultBalances[orderIOCalculation.order.owner][address(
                 uint160(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
             )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input;
         }
         if (output > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID UNDERFLOW.
-            sVaultBalances[order.owner][address(
+            sVaultBalances[orderIOCalculation.order.owner][address(
                 uint160(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
             )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output;
         }
@@ -737,7 +738,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         // Emit the context only once in its fully populated form rather than two
         // nearly identical emissions of a partial and full context.
         emit Context(msg.sender, orderIOCalculation.context);
+    }
 
+    function handleIO(OrderIOCalculation memory orderIOCalculation) internal {
         // Apply state changes to the interpreter store after the vault balances
         // are updated, but before we call handle IO. We want handle IO to see
         // a consistent view on sets from calculate IO.
@@ -747,12 +750,12 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             // failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
-            order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
+            orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
         }
 
         // Only dispatch handle IO entrypoint if it is defined, otherwise it is
         // a waste of gas to hit the interpreter a second time.
-        if (order.handleIO) {
+        if (orderIOCalculation.order.handleIO) {
             // The handle IO eval is run under the same namespace as the
             // calculate order entrypoint.
             // Slither false positive. External calls within loops are fine if
@@ -760,10 +763,10 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             // failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
-            (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = order.evaluable.interpreter.eval(
-                order.evaluable.store,
+            (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = orderIOCalculation.order.evaluable.interpreter.eval(
+                orderIOCalculation.order.evaluable.store,
                 orderIOCalculation.namespace,
-                _handleIODispatch(order.evaluable.expression),
+                _handleIODispatch(orderIOCalculation.order.evaluable.expression),
                 orderIOCalculation.context
             );
             // There's nothing to be done with the stack.
@@ -776,7 +779,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 // drop failing calls and resubmit a new transaction.
                 // https://github.com/crytic/slither/issues/880
                 //slither-disable-next-line calls-loop
-                order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
+                orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
             }
         }
     }
