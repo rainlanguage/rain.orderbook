@@ -10,13 +10,31 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [dependencies]
 anyhow = "1.0.70"
-clap = { version = "4.2.5", features = ["cargo", "derive"] }
+clap = { version = "4.2.5", features = ["cargo", "derive","env"] }
 graphql_client = "0.12.0"
 once_cell = "1.17.1"
 reqwest = { version = "0.11.17", features = ["json"] }
 rust-bigint = "1.2.0"
 serde = "1.0.160"
 serde_bytes = "0.11.9"
+rain_cli_meta = "0.9.0"
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
+ethers = "2.0.7"
+serde_json = "1.0.96"
+spinners = "4.1.0"
+hex = "0.4.3"
+ethers-signers = { version = "2.0.8", features = ["ledger"] }
+crossterm = "0.25"
+cbor = "0.4.1"
+cursive_table_view = {version = "0.14" }
+bigdecimal = { version = "0.4.1", features = ["serde"] } 
+
+[dependencies.cursive]
+version = "0.20"
+default-features = false
+features = ["crossterm-backend"]
+
+[build-dependencies]
+static-files = "0.2"
