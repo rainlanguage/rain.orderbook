@@ -320,6 +320,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     }
 
     /// @inheritdoc IOrderBookV3
+    // Most of the cyclomatic complexity here is due to the error handling within
+    // the loop. The actual logic is fairly linear.
+    //slither-disable-next-line cyclomatic-complexity
     function takeOrders(TakeOrdersConfigV2 calldata config)
         external
         nonReentrant
