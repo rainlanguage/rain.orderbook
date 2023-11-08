@@ -39,14 +39,16 @@ abstract contract OrderBookV3FlashLender is IERC3156FlashLender {
 
         // This behaviour is copied almost verbatim from the ERC3156 spec.
         // Slither is complaining because this kind of logic can normally be used
-        // to grief the token holder. Consider if they were to approve order book
-        // for the sake of depositing and then someone could cause them to send
+        // to grief the token holder. Consider if alice were to approve order book
+        // for the sake of depositing and then bob could cause alice to send
         // tokens to order book without their consent. However, in this case the
         // flash loan spec provides two reasons that this is not a problem:
-        // - We just sent this exact amount to the receiver as part of the loan,
-        // so transferring them back with a 0 fee is net neutral.
+        // - We just sent this exact amount to the receiver as the loan, so
+        // transferring them back with a 0 fee is net neutral.
         // - The receiver is a contract that has explicitly opted in to this
-        // behaviour by implementing `IERC3156FlashBorrower`.
+        // behaviour by implementing `IERC3156FlashBorrower`. The success check
+        // for `onFlashLoan` guarantees the receiver has opted into this
+        // behaviour independently of any approvals, etc.
         // https://github.com/crytic/slither/issues/1658
         //slither-disable-next-line arbitrary-send-erc20
         IERC20(token).safeTransferFrom(address(receiver), address(this), amount + FLASH_FEE);
