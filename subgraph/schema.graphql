@@ -1,0 +1,403 @@
+type OrderBook @entity {
+  id: Bytes!
+  deployer: Bytes
+  address: Bytes!
+  "The RainMetaV1 decode information"
+  meta: RainMetaV1 # Use the CBOR AS library to decode the meta emitted by the OB
+}
+
+type RainMetaV1 @entity {
+  "Hash of the meta directly emitted by the contract"
+  id: Bytes! # Include the RainMeta MagicNumber.
+  "Original meta bytes directly emitted from the contract"
+  metaBytes: Bytes! # Original meta bytes emitted from the contract
+  "The meta content V1 decoded from the meta bytes emitted"
+  content: [ContentMetaV1!]!
+}
+
+type ContentMetaV1 @entity {
+  "The hash of this meta, this basically is the hash of 'rawBytes' field"
+  id: Bytes!
+  "The cbor map item bytes."
+  rawBytes: Bytes!
+  "The magic number associated with this meta"
+  magicNumber: BigInt!
+  "The payload of this content"
+  payload: Bytes!
+  "The RainMeta records that have this cbor map as part of their sequence"
+  parents: [RainMetaV1!]!
+  "The header name info for Content-Type"
+  contentType: String
+  "The header name info for Content-Encoding. It's optional"
+  contentEncoding: String
+  "The header name info for Content-Language. It's optional"
+  contentLanguage: String
+}
+
+# Created with the first AddOrder event, then updated on the corresponding AddOrder/RemoveOrder events
+type Order implements Event @entity {
+  "The hash of the order"
+  id: ID! # This value is emitted as Uint256, but you should use the hex string representation (it's a hash)
+  "The hash of the order"
+  orderHash: Bytes!
+
+  "The address that added the order"
+  owner: Account!
+
+  "The IInterpreter address that is used to add the order"
+  interpreter: Bytes!
+
+  "The IInterpreterStore address that is used to add the order"
+  interpreterStore: Bytes!
+
+  "The IExpressionDeployer contract address that is used to add the order"
+  expressionDeployer: Bytes!
+
+  "The address to the rain expression for the Order"
+  expression: Bytes!
+
+  "Whether the order is active or inactive"
+  orderActive: Boolean!
+
+  "Flag that check if there is a handle_IO entrypoint to run. If false the order book MAY skip calling the interpreter to save gas"
+  handleIO: Boolean!
+
+  # "The RainMetaV1 decode information Rain `MetaV1` when the order is placed so can be used by offChain processes."
+  meta: RainMetaV1
+
+  "validInputs"
+  validInputs: [IO!]
+
+  "validOutputs"
+  validOutputs: [IO!]
+
+  orderJSONString: String!
+  expressionJSONString: String
+
+  "Timestamp when the order was added"
+  transaction: Transaction!
+  emitter: Account!
+  timestamp: BigInt!
+
+  "Take Order entities that use this order"
+  takeOrders: [TakeOrderEntity!] @derivedFrom(field: "order")
+  "Order Clear entities that use this order"
+  ordersClears: [OrderClear!]
+}
+
+# Created with AddOrder
+type IO @entity {
+  id: ID! # ID = `order.hash() - IO.token - IO.vaultId`
+  token: ERC20!
+  decimals: Int!
+  vault: Vault!
+  vaultId: BigInt!
+  order: Order!
+  tokenVault: TokenVault!
+  index: Int!
+}
+
+# Created and updated whenever an AddOrder event occurs
+# Created and updated whenever an Deposit event occurs
+# Updated whenever an Withdraw event occurs
+type Vault @entity {
+  id: ID! #{vaultId}-{owner}
+  vaultId: BigInt!
+
+  "The owner of this Vault"
+  owner: Account!
+
+  "Tokens in this Vault"
+  tokenVaults: [TokenVault!] @derivedFrom(field: "vault")
+
+  "Deposits into this Vault"
+  deposits: [VaultDeposit!] @derivedFrom(field: "vault") # add whenever a Deposit event occurs for this {vaultId}-{owner}
+  "Withdrawals from this Vault"
+  withdraws: [VaultWithdraw!] @derivedFrom(field: "vault") # add whenever a Withdraw event occurs for this {vaultId}-{owner}
+}
+
+# Created and updated whenever an AddOrder event occurs
+# Created and updated whenever an Deposit event occurs
+# Updated whenever an Withdraw event occurs
+# ALSO created and updated when a pair of Clear/AfterClear events occur
+type TokenVault @entity {
+  #{vaultId}-{owner}-{token}
+  id: ID!
+
+  # From Deposit.sender / Withdraw.sender
+  "The owner of this Vault"
+  owner: Account!
+  "The id of this vault"
+  vault: Vault!
+
+  vaultId: BigInt!
+
+  "The token that has a balance for this vault and owner."
+  token: ERC20!
+
+  # Add to this value:
+  # Deposit.amount when there is a matching Deposit event for {vaultId}-{owner}-{token}
+  # OR AfterClear.stateChange.aInput when there is a Clear event that matches {Clear.a_.inputVault}-{Clear.a_.owner}-{Clear.a_.inputToken}
+  # OR AfterClear.stateChange.bInput when there is a Clear event that matches {Clear.b_.inputVault}-{Clear.b_.owner}-{Clear.b_.inputToken}
+  # Subtract from this value:
+  # Withdraw.amount when there is a matching Withdraw event for {vaultId}-{owner}-{token}
+  # updated on every Deposit/Withdraw event that occurs for this {vaultId}-{owner}-{token}
+  "The balance of this token, for this vault, for this owner"
+  balance: BigInt!
+  balanceDisplay: BigDecimal!
+
+  # Add to array:
+  # when {Order.inputVault}-{Order.owner}-{Order.inputToken} match this TokenVault
+  # OR when {Order.outputVault}-{Order.owner}-{Order.outputToken} match this TokenVault
+  "Orders that reference this vault, owner and token"
+  orders: [Order!]
+
+  # Add to array:
+  # when {Clear.a_.inputVault}-{Clear.a_.owner}-{Clear.a_.inputToken} match this TokenVault
+  # OR when {Clear.b_.outputVault}-{Clear.b_.owner}-{Clear.b_.outputToken} match this TokenVault
+  # "OrderClears that reference this vault, owner and token"
+  orderClears: [OrderClear!]
+  takeOrders: [TokenVaultTakeOrder!] @derivedFrom(field: "tokenVault")
+}
+
+type TokenVaultTakeOrder @entity {
+  id: ID!
+  wasOutput: Boolean!
+  wasInput: Boolean!
+  takeOrder: TakeOrderEntity!
+  tokenVault: TokenVault!
+}
+
+# Created for every Deposit event
+type VaultDeposit implements Event @entity {
+  id: ID! # use txhash of the event + N Deposit on the tx
+  "The transaction sender of this deposit"
+  sender: Account! # Deposit.sender
+  "The token that was deposited"
+  token: ERC20! # Deposit.config.token
+  "The vaultId that was deposited into"
+  vaultId: BigInt! # Deposit.config.vaultId
+  "The Vault that was deposited into"
+  vault: Vault! # map by {Deposit.config.vaultId}-{sender}
+  "The amount that was deposited"
+  amount: BigInt! # Deposit.config.amount
+  amountDisplay: BigDecimal!
+  "The current balance of this token for this Vault"
+  tokenVault: TokenVault! # map by {Deposit.config.vaultId}-{Deposit.sender}-{Deposit.config.token}
+  transaction: Transaction!
+  emitter: Account!
+  timestamp: BigInt!
+}
+
+# Created for every Withdraw event
+type VaultWithdraw implements Event @entity {
+  id: ID! # use txhash of the event + N Withdraw on the tx
+  "The transaction sender of this withdrawal"
+  sender: Account! # Withdrawal.sender
+  "The token that was withdrawn"
+  token: ERC20! # Withdraw.config.token
+  "The vaultId that was withdrawn from"
+  vaultId: BigInt! # Withdraw.config.vaultId
+  "The Vault that was withdrawn from"
+  vault: Vault! # map by {Withdraw.config.vaultId}-{sender}
+  "The amount that was requested be withdrawn"
+  requestedAmount: BigInt! # Withdraw.config.amount
+  requestedAmountDisplay: BigDecimal! # Withdraw.config.amount
+  "The amount that was withdrawn"
+  amount: BigInt! # Withdraw.amount
+  amountDisplay: BigDecimal!
+  "The current balance of this token for this Vault"
+  tokenVault: TokenVault! # map by {Withdraw.config.vaultId}-{Withdraw.sender}-{Withdraw.config.token}
+  transaction: Transaction!
+  emitter: Account!
+  timestamp: BigInt!
+}
+
+type ERC20 @entity {
+  id: ID! # address of token
+  name: String!
+  symbol: String!
+  totalSupply: BigInt!
+  totalSupplyDisplay: BigDecimal!
+  decimals: Int!
+}
+
+# Created for every pair of AfterClear/Clear events
+type OrderClear implements Event @entity {
+  id: ID! # timestamp
+  "The sender address who cleared the Orders"
+  sender: Account! # Clear.sender
+  "The clearer address who cleared this order"
+  clearer: Account! # from Clear.sender
+  "Order A being cleared"
+  orderA: Order! # map by hash(Clear.a_)
+  "Order B being cleared"
+  orderB: Order! # map by hash(Clear.b_)
+  "The owners of the Orders that were cleared [Order A, Order B]"
+  owners: [Account!] # [Clear.a_.owner, Clear.b_.owner]
+  "The token input index cleared into Order A"
+  aInputIOIndex: BigInt!
+
+  "The token output index cleared into Order A"
+  aOutputIOIndex: BigInt!
+
+  "The token input index cleared into Order B"
+  bInputIOIndex: BigInt!
+
+  "The token output index cleared into Order B"
+  bOutputIOIndex: BigInt!
+
+  "The bounty paid when this order was cleared"
+  bounty: Bounty! @derivedFrom(field: "orderClear") # map by unique id created - see Bounty entity
+  "The state change that occurred because of this Clear"
+  stateChange: OrderClearStateChange! @derivedFrom(field: "orderClear") # map by unique id created - see OrderClearStateChange entity
+  transaction: Transaction!
+  emitter: Account!
+  timestamp: BigInt!
+}
+
+# Created when each OrderClear entity is created
+type Bounty @entity {
+  id: ID! # create a unique ID when OrderClear entity is created
+  "The clearer who received this bounty"
+  clearer: Account! # from Clear.sender
+  "The Clear event that paid this bounty"
+  orderClear: OrderClear!
+
+  "The Vault that bounty token A was deposited into"
+  bountyVaultA: Vault! # map by {Clear.clearConfig.aliceBountyVaultId}-{Clear.sender}
+  "The Vault that bounty token B was deposited into"
+  bountyVaultB: Vault! # map by {Clear.clearConfig.bobBountyVaultId}-{Clear.sender}
+  # Not Including Tokens , bounty referenced by VaultA And VaultB
+
+  "The A token for the bounty"
+  bountyTokenA: ERC20! # Clear.alice.validOutputs[clearConfig.aliceOutputIOIndex].token
+  "The B token for the bounty"
+  bountyTokenB: ERC20! # Clear.bob.validOutputs[clearConfig.bobOutputIOIndex].token
+  "The amount paid for bounty token A"
+  bountyAmountA: BigInt # AfterClear.clearStateChange.aliceOutput - AfterClear.clearStateChange.bobInput
+  bountyAmountADisplay: BigDecimal
+
+  "The amount paid for bounty token B"
+  bountyAmountB: BigInt # AfterClear.clearStateChange.bobOutput - AfterClear.clearStateChange.aliceInput
+  bountyAmountBDisplay: BigDecimal
+
+  transaction: Transaction!
+  emitter: Account!
+  timestamp: BigInt!
+}
+
+# Created for every pair of TakeOrder events
+type TakeOrderEntity implements Event @entity {
+  id: ID! # Hash of ((TakeOrder.config))
+  sender: Account!
+  order: Order!
+
+  "The input amount from the perspective of sender"
+  input: BigInt!
+  inputDisplay: BigDecimal!
+
+  "The output amount from the perspective of sender"
+  output: BigInt!
+  outputDisplay: BigDecimal!
+
+  "IO Ratio"
+  IORatio: BigDecimal!
+
+  "The index of the input token in order to match with the take order output"
+  inputIOIndex: BigInt!
+  "The index of the output token in order to match with the take order input."
+  outputIOIndex: BigInt!
+
+  "Input token from the perspective of the order taker"
+  inputToken: ERC20!
+  "Output token from the perspective of the order taker"
+  outputToken: ERC20!
+
+  # Event fields
+  transaction: Transaction!
+  emitter: Account!
+  timestamp: BigInt!
+
+  context: ContextEntity
+}
+
+# Create when an OrderClear entity is created
+type OrderClearStateChange @entity {
+  id: ID! # create a unique ID when OrderClear entity is created
+  orderClear: OrderClear!
+  aOutput: BigInt! # AfterClear.clearStateChange.aliceOutput
+  bOutput: BigInt! # AfterClear.clearStateChange.bobOutput
+  aInput: BigInt! # AfterClear.clearStateChange.aliceInput
+  bInput: BigInt! # AfterClear.clearStateChange.bobInput
+}
+
+type ClearOrderConfig @entity {
+  id: ID!
+  orderClearId: OrderClear!
+  tokenVaultBountyAlice: TokenVault!
+  tokenVaultBountyBob: TokenVault!
+  aliceTokenVaultInput: String!
+  aliceTokenVaultOutput: String!
+  bobTokenVaultInput: String!
+  bobTokenVaultOutput: String!
+}
+
+type Account @entity {
+  id: Bytes!
+  orders: [Order!] @derivedFrom(field: "owner")
+  withdraws: [VaultWithdraw!] @derivedFrom(field: "sender")
+  deposits: [VaultDeposit!] @derivedFrom(field: "sender")
+  ordersCleared: [OrderClear!] @derivedFrom(field: "clearer")
+  bounties: [Bounty!] @derivedFrom(field: "clearer")
+  takeOrderEntities: [TakeOrderEntity!] @derivedFrom(field: "sender")
+  vaults: [Vault!] @derivedFrom(field: "owner")
+  tokenVaults: [TokenVault!] @derivedFrom(field: "owner")
+  events: [Event!] @derivedFrom(field: "emitter")
+}
+
+type Transaction @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  events: [Event!] @derivedFrom(field: "transaction")
+}
+
+type ContextEntity @entity {
+  id: ID!
+  "Base caller"
+  caller: Account!
+
+  "Contextual data available to both calculate order and handle IO"
+  callingContext: [BigInt!]
+  "Contains the DECIMAL RESCALED calculations"
+  calculationsContext: [BigInt!]
+  "The inputs context data"
+  vaultInputsContext: [BigInt!]
+  "The outputs context data"
+  vaultOutputsContext: [BigInt!]
+
+  "Optional signed context relevant to the transaction"
+  signedContext: [SignedContext!]
+
+  "Transaction where this event was emitted."
+  transaction: Transaction!
+  "Account that sent the transaction this event was emitted in."
+  emitter: Account!
+  timestamp: BigInt!
+}
+
+type SignedContext @entity {
+  id: ID!
+  signer: Bytes!
+  context: [BigInt!]
+}
+
+interface Event {
+  id: ID!
+  "Transaction this event was emitted in."
+  transaction: Transaction!
+  "Account that sent the transaction this event was emitted in."
+  emitter: Account!
+  timestamp: BigInt!
+}
