@@ -1,0 +1,30 @@
+name: OrderBook Subgraph CI
+on: [push]
+
+jobs:
+  subgraph-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Forge shallow install
+        run: forge install --shallow
+
+      - name: Initialize setup
+        working-directory: ./subgraph
+        run: nix run .#init-setup
+
+      - name: install npm dependencies
+        working-directory: ./subgraph
+        run: npm install
