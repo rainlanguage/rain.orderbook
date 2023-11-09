@@ -49,9 +49,4 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         vm.expectRevert();
         iOrderbook.flashLoan(IERC3156FlashBorrower(receiver), address(iToken0), amount, data);
     }
-
-    /// Tests that if the receiver is some contract that returns
-    /// `ON_FLASH_LOAN_CALLBACK_SUCCESS`, and the token movements do not error,
-    /// then the flash loan will succeed.
-
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, OrderConfigV2, IO, EvaluableConfigV2, IParserV1, Vm, Order, TakeOrderConfig, SignedContextV1, TakeOrdersConfigV2} from "test/util/abstract/OrderBookExternalRealTest.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
