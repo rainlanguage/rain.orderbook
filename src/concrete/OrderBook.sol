@@ -7,21 +7,38 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
-import "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
-import "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import "rain.interpreter/src/lib/caller/LibContext.sol";
+import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointDecimalConstants.sol";
+import {LibFixedPointDecimalArithmeticOpenZeppelin} from
+    "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
+import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
 import {
     DeployerDiscoverableMetaV2,
     DeployerDiscoverableMetaV2ConstructionConfig,
     LibMeta
 } from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
-
-import "../interface/unstable/IOrderBookV3.sol";
-import "../interface/unstable/IOrderBookV3OrderTaker.sol";
-import "../lib/LibOrder.sol";
-import "../abstract/OrderBookV3FlashLender.sol";
+import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+import {SourceIndex, StateNamespace, IInterpreterV1} from "rain.interpreter/src/interface/IInterpreterV1.sol";
+import {
+    IOrderBookV3,
+    NoOrders,
+    Order,
+    OrderConfigV2,
+    TakeOrderConfig,
+    TakeOrdersConfigV2,
+    ClearConfig,
+    ClearStateChange,
+    ZeroMaximumInput
+} from "../interface/unstable/IOrderBookV3.sol";
+import {IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3OrderTaker.sol";
+import {LibOrder} from "../lib/LibOrder.sol";
+import {OrderBookV3FlashLender} from "../abstract/OrderBookV3FlashLender.sol";
+import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {Evaluable} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
+import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -494,9 +511,12 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        IERC20(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token).safeTransfer(
-            msg.sender, totalTakerInput
-        );
+        if (totalTakerInput > 0) {
+            IERC20(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token).safeTransfer(
+                msg.sender, totalTakerInput
+            );
+        }
+
         if (config.data.length > 0) {
             IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
                 config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
