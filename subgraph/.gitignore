@@ -1,0 +1,12 @@
+# subgraph
+/build
+/generated
+/subgraph.yaml
+/abis
+
+/node_modules
+
+/docker/data
+
+
+
