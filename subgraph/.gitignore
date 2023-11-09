@@ -5,7 +5,7 @@
 /abis
 
 /node_modules
-
+/package-lock.json 
 /docker/data
 
 
