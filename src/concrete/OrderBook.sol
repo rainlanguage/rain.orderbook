@@ -306,6 +306,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         if (sOrders[orderHash] == ORDER_DEAD) {
             stateChanged = true;
 
+            // This has to come after the external call to deploy the expression
+            // because the order hash is derived from the expression and DISPair
+            // addresses.
             //slither-disable-next-line reentrancy-benign
             sOrders[orderHash] = ORDER_LIVE;
             emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
