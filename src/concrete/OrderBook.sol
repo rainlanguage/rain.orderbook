@@ -225,10 +225,6 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     {}
 
     /// @inheritdoc IOrderBookV3
-    // This has a reentrancy guard on it but Slither doesn't know that because
-    // it is a read-only reentrancy due to potential cross function reentrancy.
-    // https://github.com/crytic/slither/issues/735#issuecomment-1620704314
-    //slither-disable-next-line reentrancy-no-eth
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
