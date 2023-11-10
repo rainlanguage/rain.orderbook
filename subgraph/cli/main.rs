@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
     match args.subgraph {
         Subgraph::Build => {
             let config = subgraph::BuildArgs {
-                address: "0x0000000000000000000000000000000000000000".to_string(),
+                address: "0xff000000000000000000000000000000000000ff".to_string(),
                 network: "localhost".to_string(),
                 block_number: 0,
             };
