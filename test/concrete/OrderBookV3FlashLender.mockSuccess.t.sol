@@ -25,6 +25,6 @@ contract OrderBookV3FlashLenderMockSuccessTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC3156FlashBorrower.onFlashLoan.selector),
             abi.encode(ON_FLASH_LOAN_CALLBACK_SUCCESS)
         );
-        iOrderbook.flashLoan(IERC3156FlashBorrower(receiver), address(iToken0), amount, data);
+        assertTrue(iOrderbook.flashLoan(IERC3156FlashBorrower(receiver), address(iToken0), amount, data));
     }
 }

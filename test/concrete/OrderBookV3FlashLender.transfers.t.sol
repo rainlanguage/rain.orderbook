@@ -88,7 +88,10 @@ contract OrderBookV3FlashLenderTransferTest is OrderBookExternalMockTest {
         if (!success) {
             vm.expectRevert(abi.encodeWithSelector(FlashLenderCallbackFailed.selector, bytes32(0)));
         }
-        iOrderbook.flashLoan(IERC3156FlashBorrower(address(alice)), address(tkn), amount, "");
+        bool result = iOrderbook.flashLoan(IERC3156FlashBorrower(address(alice)), address(tkn), amount, "");
+        if (success) {
+            assertTrue(result);
+        }
     }
 
     /// Alice can send tokens to Carol, who will return all but one of them and
