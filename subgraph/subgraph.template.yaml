@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: OrderBook
-    network: {{ network }}
+    network: localhost
     source:
-      address: "{{ orderbook }}"
+      address: "0x0000000000000000000000000000000000000000"
       abi: OrderBook
-      startBlock: {{ blockNumber }}
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -46,11 +46,11 @@ dataSources:
           handler: handleTakeOrder
         - event: Withdraw(address,address,uint256,uint256,uint256)
           handler: handleWithdraw
-      file: ./src/orderBook.ts  
-templates: 
+      file: ./src/orderBook.ts
+templates:
   - kind: ethereum/contract
     name: ERC20Template
-    network: {{ network }}
+    network: localhost
     source:
       abi: ReserveToken
     mapping:
