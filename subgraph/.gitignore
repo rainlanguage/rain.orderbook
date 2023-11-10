@@ -3,7 +3,7 @@
 /generated
 /subgraph.yaml
 /abis
-/test/generated
+/tests/generated
 
 /node_modules
 /package-lock.json 
