@@ -9,8 +9,8 @@
     "build": "graph build"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.46.1",
-    "@graphprotocol/graph-ts": "0.28.1",
-    "@rainprotocol/assemblyscript-cbor": "0.0.6"
+    "@graphprotocol/graph-cli": "=0.46.1",
+    "@graphprotocol/graph-ts": "=0.28.1",
+    "@rainprotocol/assemblyscript-cbor": "=0.0.6"
   }
 }
