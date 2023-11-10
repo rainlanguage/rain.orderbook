@@ -60,7 +60,6 @@ struct EventHandler {
 struct Source {
     #[serde(skip_serializing_if = "Option::is_none")]
     address: Option<String>,
-    // address: Option<String>,
     abi: String,
     #[serde(rename = "startBlock", skip_serializing_if = "Option::is_none")]
     start_block: Option<u64>,
@@ -97,7 +96,7 @@ pub fn build(args: BuildArgs) -> anyhow::Result<()> {
     // Update values in dataSources using the given arguments
     for data_source in &mut yaml_data.data_sources {
         data_source.network = args.network.clone();
-        data_source.source.address = Some(format!("\"{}\"", args.address.clone()));
+        data_source.source.address = Some(format!("\"{}\"", args.address));
         data_source.source.start_block = Some(args.block_number);
     }
 
