@@ -477,7 +477,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                         emit TakeOrder(msg.sender, takeOrderConfig, takerInput, takerOutput);
 
                         // Add the pointer to the order IO calculation to the array
-                        // of order IO calculations to handle.
+                        // of order IO calculations to handle. This is
+                        // unconditional because conditional behaviour is checked
+                        // in `handleIO` and we don't want to duplicate that.
                         assembly ("memory-safe") {
                             // Inc the length by 1.
                             let newLength := add(mload(orderIOCalculationsToHandle), 1)
