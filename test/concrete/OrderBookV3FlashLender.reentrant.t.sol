@@ -1,13 +1,22 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
+import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
-import {IOrderBookV3, OrderConfigV2, Order} from "src/interface/unstable/IOrderBookV3.sol";
+import {
+    IOrderBookV3,
+    OrderConfigV2,
+    Order,
+    TakeOrderConfig,
+    TakeOrdersConfigV2,
+    ClearConfig
+} from "src/interface/unstable/IOrderBookV3.sol";
 import {IParserV1} from "rain.interpreter/src/interface/unstable/IParserV1.sol";
 import {IERC3156FlashBorrower} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookV3FlashLenderReentrant
 /// Test that flash borrowers can reenter the orderbook, which is necessary for
@@ -107,5 +116,84 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         Reenteroor borrower = new Reenteroor();
         order.owner = address(borrower);
         checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV3.removeOrder.selector, order), loanAmount);
+    }
+
+    /// Can reenter and take orders.
+    function testReenterTakeOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
+        LibTestAddOrder.conformConfig(config, iDeployer);
+        (bytes memory bytecode, uint256[] memory constants) =
+            IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+        config.evaluableConfig.bytecode = bytecode;
+        config.evaluableConfig.constants = constants;
+
+        vm.recordLogs();
+        iOrderbook.addOrder(config);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+
+        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
+        orders[0] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
+        TakeOrdersConfigV2 memory takeOrdersConfig =
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+
+        // Create a flash borrower.
+        Reenteroor borrower = new Reenteroor();
+        checkFlashLoanNotRevert(
+            borrower, abi.encodeWithSelector(IOrderBookV3.takeOrders.selector, takeOrdersConfig), loanAmount
+        );
+    }
+
+    /// Can reenter and clear orders.
+    function testReenterClear(
+        uint256 loanAmount,
+        address alice,
+        address bob,
+        OrderConfigV2 memory aliceConfig,
+        OrderConfigV2 memory bobConfig
+    ) external {
+        vm.assume(alice != bob);
+
+        LibTestAddOrder.conformConfig(aliceConfig, iDeployer);
+        (bytes memory bytecode, uint256[] memory constants) =
+            IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+        aliceConfig.evaluableConfig.bytecode = bytecode;
+        aliceConfig.evaluableConfig.constants = constants;
+
+        LibTestAddOrder.conformConfig(bobConfig, iDeployer);
+        (bytecode, constants) = IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+        bobConfig.evaluableConfig.bytecode = bytecode;
+        bobConfig.evaluableConfig.constants = constants;
+
+        bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
+        aliceConfig.validInputs[0] = bobConfig.validOutputs[0];
+
+        vm.recordLogs();
+        vm.prank(alice);
+        iOrderbook.addOrder(aliceConfig);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, Order memory aliceOrder,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+
+        vm.recordLogs();
+        vm.prank(bob);
+        iOrderbook.addOrder(bobConfig);
+        entries = vm.getRecordedLogs();
+        (,, Order memory bobOrder,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+
+        ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 0, 0);
+
+        // Create a flash borrower.
+        Reenteroor borrower = new Reenteroor();
+        checkFlashLoanNotRevert(
+            borrower,
+            abi.encodeWithSelector(
+                IOrderBookV3.clear.selector,
+                aliceOrder,
+                bobOrder,
+                clearConfig,
+                new SignedContextV1[](0),
+                new SignedContextV1[](0)
+            ),
+            loanAmount
+        );
     }
 }
