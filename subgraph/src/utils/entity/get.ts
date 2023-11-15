@@ -1,6 +1,6 @@
 import { Address, Bytes } from "@graphprotocol/graph-ts";
 import { OrderBook, RainMetaV1 } from "../../../generated/schema";
-import { getKeccak256FromBytes } from "../../utils";
+import { getKeccak256FromBytes } from "@rainprotocol/subgraph-utils";
 
 export function getOB(obAddress_: Address): OrderBook {
   let orderBook = OrderBook.load(obAddress_);

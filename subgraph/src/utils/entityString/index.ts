@@ -1,33 +1,6 @@
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts";
-import { getEvenHexString } from "@rainprotocol/subgraph-utils";
+import { getEvenHexString, JsonString } from "@rainprotocol/subgraph-utils";
 import { AddOrderOrderStruct } from "../../../generated/OrderBook/OrderBook";
-
-class JsonString {
-  _obj: Map<string, string>;
-
-  constructor(map_: Map<string, string>) {
-    this._obj = map_;
-  }
-
-  stringify(): string {
-    const keys = this._obj.keys();
-    const objs: string[] = new Array<string>(keys.length);
-
-    for (let i: i32 = 0; i < keys.length; i++) {
-      const key = keys[i];
-      const value = this._obj.get(key);
-      // "Array"
-      if (value.startsWith("[") && value.endsWith("]")) {
-        //
-        objs[i] = `"${key}":${value}`;
-      } else {
-        objs[i] = `"${key}":"${value}"`;
-      }
-    }
-
-    return `{${objs.join(",")}}`;
-  }
-}
 
 /**
  * Generate a JSON string for a given order to be ready to use with tools

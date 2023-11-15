@@ -1,7 +1,7 @@
 import { Address } from "@graphprotocol/graph-ts";
 import { ReserveToken, Transfer } from "../generated/OrderBook/ReserveToken";
 import { ERC20 } from "../generated/schema";
-import { toDisplayWithDecimals } from "./utils";
+import { toDisplayWithDecimals } from "@rainprotocol/subgraph-utils";
 
 export function handleTransfer(event: Transfer): void {
   let token = ERC20.load(event.address.toHex());

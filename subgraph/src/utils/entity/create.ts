@@ -22,8 +22,10 @@ import {
 } from "../../../generated/schema";
 import { ReserveToken } from "../../../generated/OrderBook/ReserveToken";
 import { ClearAliceStruct } from "../../../generated/OrderBook/OrderBook";
-import { toDisplayWithDecimals } from "../../utils";
-import { getEvenHexString } from "@rainprotocol/subgraph-utils";
+import {
+  getEvenHexString,
+  toDisplayWithDecimals,
+} from "@rainprotocol/subgraph-utils";
 
 export function createAccount(address: Bytes): Account {
   let account = Account.load(address);

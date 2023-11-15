@@ -1,6 +1,3 @@
-import { Bytes } from "@graphprotocol/graph-ts";
-import { tuplePrefixString } from "@rainprotocol/subgraph-utils";
-
 // Orderbook: TakeOrder(address sender, TakeOrderConfig config, uint256 input, uint256 output)
 export let TAKE_ORDER_EVENT_TOPIC =
   "0x219a030b7ae56e7bea2baab709a4a45dc174a1f85e57730e5cb395bc32962542";
@@ -16,5 +13,3 @@ export let AFTER_CLEAR_EVENT_TOPIC =
 // ExpressionDeployer: NewExpression(address,bytes,uint256[],uint256[])
 export let NEW_EXPRESSION_EVENT_TOPIC =
   "0x4a48f556905d90b4a58742999556994182322843167010b59bf8149724db51cf";
-
-export const tuplePrefixBytes = Bytes.fromHexString(tuplePrefixString);

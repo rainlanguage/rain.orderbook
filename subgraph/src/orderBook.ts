@@ -41,13 +41,14 @@ import {
   getEvenHexString,
   isHexString,
   MagicNumbers,
+  tuplePrefixBytes,
+  getKeccak256FromBytes,
 } from "@rainprotocol/subgraph-utils";
 import {
   AFTER_CLEAR_EVENT_TOPIC,
   CLEAR_EVENT_TOPIC,
   NEW_EXPRESSION_EVENT_TOPIC,
   TAKE_ORDER_EVENT_TOPIC,
-  tuplePrefixBytes,
   createAccount,
   createContextEntity,
   createOrder,
@@ -62,7 +63,6 @@ import {
   createVaultWithdraw,
   getRainMetaV1,
   toDisplay,
-  getKeccak256FromBytes,
   ExpressionJSONString,
   OrderString,
 } from "./utils";
