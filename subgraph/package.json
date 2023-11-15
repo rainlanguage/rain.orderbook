@@ -11,7 +11,7 @@
   "dependencies": {
     "@graphprotocol/graph-ts": "=0.28.1",
     "@rainprotocol/assemblyscript-cbor": "=0.0.6",
-    "@rainprotocol/subgraph-utils": "=1.2.0"
+    "@rainprotocol/subgraph-utils": "=1.2.1"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "=0.46.1"
