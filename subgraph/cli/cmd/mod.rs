@@ -48,11 +48,11 @@ pub fn run(main_cmd: &str, args: &[&str]) -> anyhow::Result<()> {
     stdout_handle.join().expect("should wait for stdout thread");
 
     if status.success() {
-        println!("{} ✅\n", full_cmd);
+        println!("{}", full_cmd);
         Ok(())
     } else {
         eprintln!(
-            "❌ {}",
+            "{}",
             format!("failed with exit code: {}\n", status.code().unwrap_or(-1)),
         );
 
