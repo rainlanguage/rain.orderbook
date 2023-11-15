@@ -229,7 +229,7 @@ export function handleAddOrder(event: AddOrder): void {
     input.save();
 
     // Add the input to the order entity
-    const auxInput = order.validInputs;
+    const auxInput: string[] | null = order.validInputs;
     if (auxInput) if (!auxInput.includes(input.id)) auxInput.push(input.id);
     order.validInputs = auxInput;
   }
@@ -270,7 +270,7 @@ export function handleAddOrder(event: AddOrder): void {
     order.orderJSONString = orderString.stringify();
 
     // Add the input to the order entity
-    const auxOutput = order.validOutputs;
+    const auxOutput: string[] | null = order.validOutputs;
     if (auxOutput)
       if (!auxOutput.includes(output.id)) auxOutput.push(output.id);
 
