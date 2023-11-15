@@ -23,7 +23,6 @@ import {
   RemoveOrder,
   TakeOrder,
   Withdraw,
-  // Initialized,
   ClearAliceStruct,
 } from "../generated/OrderBook/OrderBook";
 import {
@@ -33,19 +32,22 @@ import {
   JSONValue,
   JSONValueKind,
   TypedMap,
-  // ValueKind,
   ethereum,
   json,
-  // log,
-  // store,
 } from "@graphprotocol/graph-ts";
-
+import { CBORDecoder, CBOREncoder } from "@rainprotocol/assemblyscript-cbor";
+import {
+  hexStringToArrayBuffer,
+  getEvenHexString,
+  isHexString,
+  MagicNumbers,
+} from "@rainprotocol/subgraph-utils";
 import {
   AFTER_CLEAR_EVENT_TOPIC,
   CLEAR_EVENT_TOPIC,
   NEW_EXPRESSION_EVENT_TOPIC,
-  RAIN_META_DOCUMENT_HEX,
   TAKE_ORDER_EVENT_TOPIC,
+  tuplePrefixBytes,
   createAccount,
   createContextEntity,
   createOrder,
@@ -58,17 +60,12 @@ import {
   createVault,
   createVaultDeposit,
   createVaultWithdraw,
-  getEvenHex,
-  getKeccak256FromBytes,
-  // getOB,
   getRainMetaV1,
-  isHexadecimalString,
-  stringToArrayBuffer,
   toDisplay,
-  tuplePrefix,
+  getKeccak256FromBytes,
+  ExpressionJSONString,
+  OrderString,
 } from "./utils";
-import { CBORDecoder, CBOREncoder } from "@rainprotocol/assemblyscript-cbor";
-import { ExpressionJSONString, OrderString } from "./orderJsonString";
 
 export function handleContext(event: Context): void {
   const receipt = event.receipt;
@@ -101,9 +98,8 @@ export function handleContext(event: Context): void {
       const context = event.params.context;
 
       // Column 0 is the Context Base
-      const sender = Bytes.fromHexString(getEvenHex(context[0][0].toHex()));
-      const callerContract = Bytes.fromHexString(
-        getEvenHex(context[0][1].toHex())
+      const sender = Bytes.fromHexString(
+        getEvenHexString(context[0][0].toHex())
       );
 
       // Column 1 is the Context Calling
@@ -135,7 +131,7 @@ export function handleContext(event: Context): void {
 
             signedContextEntity.context = signedContextArr[i];
             signedContextEntity.signer = Bytes.fromHexString(
-              getEvenHex(signers[i].toHex())
+              getEvenHexString(signers[i].toHex())
             );
 
             signedContextEntity.save();
@@ -171,7 +167,7 @@ export function handleAddOrder(event: AddOrder): void {
   // Order parameter from event
   const orderParam = event.params.order;
 
-  const orderHashHex = getEvenHex(event.params.orderHash.toHex());
+  const orderHashHex = getEvenHexString(event.params.orderHash.toHex());
 
   let order = new Order(orderHashHex);
 
@@ -182,7 +178,7 @@ export function handleAddOrder(event: AddOrder): void {
   ).id;
 
   order.orderHash = Bytes.fromHexString(
-    getEvenHex(event.params.orderHash.toHex())
+    getEvenHexString(event.params.orderHash.toHex())
   );
   order.timestamp = event.block.timestamp;
   order.owner = createAccount(orderParam.owner).id;
@@ -288,7 +284,7 @@ export function handleAddOrder(event: AddOrder): void {
     if (log_newExpression != -1) {
       const log_callerMeta = logs[log_newExpression];
 
-      const dataTuple = tuplePrefix.concat(log_callerMeta.data);
+      const dataTuple = tuplePrefixBytes.concat(log_callerMeta.data);
 
       const decodedData = ethereum.decode(
         "(address,bytes,uint256[],uint256[])",
@@ -652,7 +648,7 @@ export function handleOrderZeroAmount(event: OrderZeroAmount): void {
 }
 
 export function handleRemoveOrder(event: RemoveOrder): void {
-  const orderHashHex = getEvenHex(event.params.orderHash.toHex());
+  const orderHashHex = getEvenHexString(event.params.orderHash.toHex());
 
   let order = Order.load(orderHashHex);
   if (order) {
@@ -867,7 +863,7 @@ export function handleWithdraw(event: Withdraw): void {
 export function handleMetaV1(event: MetaV1): void {
   const metaV1 = getRainMetaV1(event.params.meta);
 
-  const subjectHex = getEvenHex(event.params.subject.toHex());
+  const subjectHex = getEvenHexString(event.params.subject.toHex());
 
   // If the subject is equal to the emiter address, then the meta is for the OB.
   // In this scenario, it is considered that is from DeployerDiscoverableMeta.
@@ -883,7 +879,7 @@ export function handleMetaV1(event: MetaV1): void {
     }
   } else {
     // If not, the subject is an OrderHash then it's an Order meta
-    const orderHash = getEvenHex(event.params.subject.toHex());
+    const orderHash = getEvenHexString(event.params.subject.toHex());
     const order = Order.load(orderHash);
     if (order) {
       order.meta = metaV1.id;
@@ -895,9 +891,9 @@ export function handleMetaV1(event: MetaV1): void {
   let meta = event.params.meta.toHex();
 
   // Decode the meta only if incluse the RainMeta magic number.
-  if (meta.includes(RAIN_META_DOCUMENT_HEX)) {
-    meta = meta.replace(RAIN_META_DOCUMENT_HEX, "");
-    const data = new CBORDecoder(stringToArrayBuffer(meta));
+  if (meta.includes(MagicNumbers.RAIN_META_DOCUMENT)) {
+    meta = meta.replace(MagicNumbers.RAIN_META_DOCUMENT, "");
+    const data = new CBORDecoder(hexStringToArrayBuffer(meta));
     const res = data.parse();
 
     // MetaV1.content
@@ -1050,7 +1046,7 @@ export class ContentMeta {
         }
 
         // If the payload is not a valid bytes value
-        if (!isHexadecimalString(auxPayload)) {
+        if (!isHexString(auxPayload)) {
           return false;
         }
 

@@ -11,9 +11,7 @@ import {
   ContextEntity,
   ERC20,
   Order,
-  OrderBook,
   OrderClear,
-  RainMetaV1,
   SignedContext,
   TakeOrderEntity,
   TokenVault,
@@ -21,51 +19,11 @@ import {
   Vault,
   VaultDeposit,
   VaultWithdraw,
-} from "../generated/schema";
-import { ReserveToken } from "../generated/OrderBook/ReserveToken";
-import { ClearAliceStruct } from "../generated/OrderBook/OrderBook";
-
-export const RAIN_META_DOCUMENT_HEX = "0xff0a89c674ee7874";
-
-// Orderbook: TakeOrder(address sender, TakeOrderConfig config, uint256 input, uint256 output)
-export let TAKE_ORDER_EVENT_TOPIC =
-  "0x219a030b7ae56e7bea2baab709a4a45dc174a1f85e57730e5cb395bc32962542";
-
-// Orderbook: Clear(address sender, Order alice, Order bob, ClearConfig clearConfig)
-export let CLEAR_EVENT_TOPIC =
-  "0xd153812deb929a6e4378f6f8cf61d010470840bf2e736f43fb2275803958bfa2";
-
-// Orderbook: AfterClear(address sender, ClearStateChange clearStateChange);
-export let AFTER_CLEAR_EVENT_TOPIC =
-  "0x3f20e55919cca701abb2a40ab72542b25ea7eed63a50f979dd2cd3231e5f488d";
-
-// ExpressionDeployer: NewExpression(address,bytes,uint256[],uint256[])
-export let NEW_EXPRESSION_EVENT_TOPIC =
-  "0x4a48f556905d90b4a58742999556994182322843167010b59bf8149724db51cf";
-
-export const tuplePrefix = Bytes.fromHexString(
-  "0000000000000000000000000000000000000000000000000000000000000020"
-);
-
-/**
- * From a given hexadecimal string, check if it's have an even length
- */
-export function getEvenHex(value_: string): string {
-  if (value_.length % 2) {
-    value_ = value_.slice(0, 2) + "0" + value_.slice(2);
-  }
-
-  return value_;
-}
-
-export function stringToArrayBuffer(val: string): ArrayBuffer {
-  const buff = new ArrayBuffer(val.length / 2);
-  const view = new DataView(buff);
-  for (let i = 0, j = 0; i < val.length; i = i + 2, j++) {
-    view.setUint8(j, u8(Number.parseInt(`${val.at(i)}${val.at(i + 1)}`, 16)));
-  }
-  return buff;
-}
+} from "../../../generated/schema";
+import { ReserveToken } from "../../../generated/OrderBook/ReserveToken";
+import { ClearAliceStruct } from "../../../generated/OrderBook/OrderBook";
+import { toDisplayWithDecimals } from "../../utils";
+import { getEvenHexString } from "@rainprotocol/subgraph-utils";
 
 export function createAccount(address: Bytes): Account {
   let account = Account.load(address);
@@ -122,6 +80,7 @@ export function createVault(vaultId: string, owner: Bytes): Vault {
   if (!vault) {
     vault = new Vault(`${vaultId}-${owner.toHex()}`);
     vault.owner = createAccount(owner).id;
+
     vault.vaultId = BigInt.fromString(vaultId);
     vault.save();
   }
@@ -193,17 +152,11 @@ export function createOrder(order: ClearAliceStruct): Order {
   let tuple = changetype<ethereum.Tuple>(tupleArray);
   let encodedOrder = ethereum.encode(ethereum.Value.fromTuple(tuple))!;
   let keccak256 = crypto.keccak256(encodedOrder);
-  let orderHashHex = getEvenHex(keccak256.toHex());
+  let orderHashHex = getEvenHexString(keccak256.toHex());
 
   let order_ = Order.load(orderHashHex);
   if (order_) return order_;
   else return new Order(orderHashHex);
-}
-
-function hexToBI(hexString: string): BigInt {
-  return BigInt.fromUnsignedBytes(
-    changetype<Bytes>(Bytes.fromHexString(hexString).reverse())
-  );
 }
 
 export function createTakeOrderConfig(txHash: string): TakeOrderEntity {
@@ -246,59 +199,6 @@ export function createVaultWithdraw(txHash: string): VaultWithdraw {
   return new VaultWithdraw("");
 }
 
-export function getOB(obAddress_: Address): OrderBook {
-  let orderBook = OrderBook.load(obAddress_);
-  if (!orderBook) {
-    orderBook = new OrderBook(obAddress_);
-    orderBook.address = obAddress_;
-    orderBook.save();
-  }
-  return orderBook;
-}
-
-export function getRainMetaV1(meta_: Bytes): RainMetaV1 {
-  const metaV1_ID = getKeccak256FromBytes(meta_);
-
-  let metaV1 = RainMetaV1.load(metaV1_ID);
-
-  if (!metaV1) {
-    metaV1 = new RainMetaV1(metaV1_ID);
-    metaV1.metaBytes = meta_;
-    metaV1.content = [];
-    metaV1.save();
-  }
-
-  return metaV1;
-}
-
-export function getKeccak256FromBytes(data_: Bytes): Bytes {
-  return Bytes.fromByteArray(crypto.keccak256(Bytes.fromByteArray(data_)));
-}
-
-export function isHexadecimalString(str: string): boolean {
-  // Check if string is empty
-  if (str.length == 0) {
-    return false;
-  }
-
-  // Check if each character is a valid hexadecimal character
-  for (let i = 0; i < str.length; i++) {
-    let charCode = str.charCodeAt(i);
-    if (
-      !(
-        (charCode >= 48 && charCode <= 57) || // 0-9
-        (charCode >= 65 && charCode <= 70) || // A-F
-        (charCode >= 97 && charCode <= 102)
-      )
-    ) {
-      // a-f
-      return false;
-    }
-  }
-
-  return true;
-}
-
 export function createTransaction(
   hash: string,
   block: ethereum.Block
@@ -311,57 +211,6 @@ export function createTransaction(
     transaction.save();
   }
   return transaction;
-}
-
-export function toDisplay(amount: BigInt, token: string): BigDecimal {
-  let erc20 = createToken(Address.fromString(token));
-  if (erc20) {
-    let denominator = BigInt.fromString(getZeros(erc20.decimals));
-    return amount.toBigDecimal().div(denominator.toBigDecimal());
-  }
-  return amount.toBigDecimal().div(BigDecimal.fromString(getZeros(0)));
-}
-
-export function toDisplayWithDecimals(
-  amount: BigInt,
-  decimals: i32
-): BigDecimal {
-  let denominator = BigInt.fromString(getZeros(decimals));
-  return amount.toBigDecimal().div(denominator.toBigDecimal());
-}
-
-function getZeros(num: number): string {
-  let s = "1";
-  for (let i = 0; i < num; i++) {
-    s = s + "0";
-  }
-  return s;
-}
-
-export function gcd(a: BigInt, b: BigInt): BigInt {
-  if (b.equals(BigInt.zero())) {
-    return a;
-  } else {
-    return gcd(b, a.mod(b));
-  }
-}
-
-export function BDtoBIMultiplier(n1: BigDecimal, n2: BigDecimal): BigInt {
-  let n1_split = n1.toString().split(".");
-  let n1_decimals = n1_split.length == 1 ? 0 : n1_split[1].length;
-
-  let n2_split = n2.toString().split(".");
-  let n2_decimals = n2_split.length == 1 ? 0 : n2_split[1].length;
-
-  let number: BigDecimal;
-  if (n1_decimals > n2_decimals) {
-    number = n1;
-  } else {
-    number = n2;
-  }
-  let location = number.toString().indexOf(".");
-  let len = number.toString().slice(location + 1).length;
-  return BigInt.fromString(getZeros(len));
 }
 
 export function createSignedContext(txHash: string): SignedContext {

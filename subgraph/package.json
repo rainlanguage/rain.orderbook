@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@graphprotocol/graph-ts": "=0.28.1",
-    "@rainprotocol/assemblyscript-cbor": "=0.0.6"
+    "@rainprotocol/assemblyscript-cbor": "=0.0.6",
+    "@rainprotocol/subgraph-utils": "=1.1.2"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "=0.46.1"

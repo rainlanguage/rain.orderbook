@@ -1,6 +1,6 @@
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts";
-import { AddOrderOrderStruct } from "../generated/OrderBook/OrderBook";
-import { getEvenHex } from "./utils";
+import { getEvenHexString } from "@rainprotocol/subgraph-utils";
+import { AddOrderOrderStruct } from "../../../generated/OrderBook/OrderBook";
 
 class JsonString {
   _obj: Map<string, string>;
@@ -67,7 +67,7 @@ export class OrderString extends JsonString {
       validOutputsArr.push(io_.stringify());
     }
 
-    _map.set("owner", getEvenHex(order_.owner.toHex()));
+    _map.set("owner", getEvenHexString(order_.owner.toHex()));
     _map.set("handleIo", (order_.handleIO as bool).toString());
     _map.set("evaluable", evaluable_.stringify());
     _map.set("validInputs", `[${validInputsArr.join(",")}]`);
@@ -98,7 +98,7 @@ class IO_String extends JsonString {
   constructor(token_: Address, decimals_: number, vaultId_: BigInt) {
     const _map: Map<string, string> = new Map();
 
-    _map.set("token", getEvenHex(token_.toHex()));
+    _map.set("token", getEvenHexString(token_.toHex()));
     _map.set("decimals", decimals_.toString().split(".")[0]);
     _map.set("vaultId", vaultId_.toHex());
 
@@ -110,9 +110,9 @@ class Evaluable_String extends JsonString {
   constructor(interpreter_: Address, store_: Address, expression_: Address) {
     const _map: Map<string, string> = new Map();
 
-    _map.set("interpreter", getEvenHex(interpreter_.toHex()));
-    _map.set("store", getEvenHex(store_.toHex()));
-    _map.set("expression", getEvenHex(expression_.toHex()));
+    _map.set("interpreter", getEvenHexString(interpreter_.toHex()));
+    _map.set("store", getEvenHexString(store_.toHex()));
+    _map.set("expression", getEvenHexString(expression_.toHex()));
 
     super(_map);
   }
