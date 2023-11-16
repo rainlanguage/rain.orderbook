@@ -1,8 +1,10 @@
+use anyhow::anyhow;
 use std::{
     io::{BufRead, BufReader},
     process::{Command, Stdio},
     thread,
 };
+use tracing::{debug, error, info};
 
 /// Execute the command with the given arguments.
 pub fn run(main_cmd: &str, args: &[&str]) -> anyhow::Result<()> {
@@ -14,7 +16,7 @@ pub fn run(main_cmd: &str, args: &[&str]) -> anyhow::Result<()> {
     cmd.stderr(Stdio::piped());
 
     let full_cmd = format!("{} {}", main_cmd, args.join(" "));
-    println!("Running: {}\n", full_cmd);
+    info!("Running: {}", full_cmd);
 
     // Execute the command
     let mut child = cmd.spawn()?;
@@ -27,7 +29,7 @@ pub fn run(main_cmd: &str, args: &[&str]) -> anyhow::Result<()> {
         move || {
             for line in stdout_reader.lines() {
                 if let Ok(line) = line {
-                    println!("{}", line);
+                    debug!("{}", line);
                 }
             }
         }
@@ -36,26 +38,33 @@ pub fn run(main_cmd: &str, args: &[&str]) -> anyhow::Result<()> {
     // Read and print stderr in the main thread
     let stderr_reader = BufReader::new(child.stderr.take().expect("Should take stderr from child"));
     for line in stderr_reader.lines() {
-        if let Ok(line) = line {
-            eprintln!("{}", line);
+        match line {
+            Ok(data) => {
+                debug!("{}", data);
+            }
+            Err(err) => {
+                error!("{}", err.to_string());
+            }
         }
     }
 
     // Wait for the command to finish and get the exit status
-    let status = child.wait().expect("should wait for the child to exit");
+    let status = child.wait()?;
 
     // Wait for the stdout thread to finish
-    stdout_handle.join().expect("should wait for stdout thread");
+    match stdout_handle.join() {
+        Ok(_) => (),
+        Err(_) => {
+            return Err(anyhow!("failed to wait for stdout thread"));
+        }
+    }
 
     if status.success() {
-        println!("{}", full_cmd);
         Ok(())
     } else {
-        eprintln!(
-            "{}",
-            format!("failed with exit code: {}\n", status.code().unwrap_or(-1)),
-        );
-
-        return Err(anyhow::anyhow!("command execution failed"));
+        return Err(anyhow::anyhow!(
+            "command execution failed with exit code: {}\n",
+            status.code().unwrap_or(-1)
+        ));
     }
 }
