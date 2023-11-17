@@ -351,9 +351,12 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         TakeOrderConfig memory takeOrderConfig;
         Order memory order;
 
-        // Allocate a region of pointers but don't initialize it. Not even with
-        // the length. We'll do that later when we know how many orders we're
-        // actually going to handle.
+        // Allocate a region of memory to hold pointers. We don't know how many
+        // will run at this point, but we conservatively set aside a slot for
+        // every order in case we need it, rather than attempt to dynamically
+        // resize the array later. There's no guarantee that a dynamic solution
+        // would even be cheaper gas-wise, and it would almost certainly be more
+        // complex.
         OrderIOCalculation[] memory orderIOCalculationsToHandle;
         {
             uint256 length = config.orders.length;

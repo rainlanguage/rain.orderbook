@@ -131,6 +131,17 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     }
 
     function testTakeOrderHandleIO7(uint256 toClear) external {
+        toClear = bound(toClear, 3e18 + 1, type(uint256).max);
+        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
+        bytes[] memory configs = new bytes[](4);
+        configs[0] = "_ _:1e18 1e18;:set(0 1);";
+        configs[1] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[2] = "_ _:1e18 1e18;:set(0 0);";
+        configs[3] = "_ _:1e18 1e18;:ensure<2>(get(0));";
+        checkTakeOrderHandleIO(configs, err, toClear);
+    }
+
+    function testTakeOrderHandleIO8(uint256 toClear) external {
         toClear = bound(toClear, 4e18 + 1, type(uint256).max);
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](5);
@@ -144,7 +155,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
-    function testTakeOrderHandleIO8(uint256 toClear) external {
+    function testTakeOrderHandleIO9(uint256 toClear) external {
         toClear = bound(toClear, 1, 4e18);
         bytes memory err = "";
         bytes[] memory configs = new bytes[](5);
@@ -153,6 +164,19 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[2] = "_ _:1e18 1e18;:ensure<1>(get(0));";
         configs[3] = "_ _:1e18 1e18;:set(0 0);";
         configs[4] = "_ _:1e18 1e18;:ensure<2>(get(0));";
+        checkTakeOrderHandleIO(configs, err, toClear);
+    }
+
+    // This one WONT error because the take orders stops executing the handle IO
+    // before it clears 4e18 + 1, so it never hits the second ensure condition.
+    function testTakeOrderHandleIO10(uint256 toClear) external {
+        toClear = bound(toClear, 1, 3e18);
+        bytes memory err = "";
+        bytes[] memory configs = new bytes[](4);
+        configs[0] = "_ _:1e18 1e18;:set(0 1);";
+        configs[1] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[2] = "_ _:1e18 1e18;:set(0 0);";
+        configs[3] = "_ _:1e18 1e18;:ensure<2>(get(0));";
         checkTakeOrderHandleIO(configs, err, toClear);
     }
 }
