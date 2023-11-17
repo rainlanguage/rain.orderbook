@@ -37,3 +37,13 @@ jobs:
       - name: Build the subgraph
         working-directory: ./subgraph
         run: cargo run build -d
+
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run tests
+        working-directory: ./subgraph
+        run: cargo test
