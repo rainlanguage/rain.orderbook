@@ -728,14 +728,11 @@ export function handleTakeOrder(event: TakeOrder): void {
     takeOrderEntity.context = contextEntity.id;
 
     contextEntity.save();
-
-    // store.remove("ContextEntity", "ContextTakeOrderTemp");
   }
 
   takeOrderEntity.save();
 
   // Updating Balance
-
   let order = event.params.config.order;
 
   // IO Index values used to takeOrder
@@ -896,7 +893,7 @@ export function handleMetaV1(event: MetaV1): void {
     const data = new CBORDecoder(hexStringToArrayBuffer(meta));
     const res = data.parse();
 
-    // MetaV1.content
+    // Auxiliar for MetaV1.content
     const auxContent = metaV1.content;
 
     const contentArr: ContentMeta[] = [];
@@ -935,7 +932,7 @@ export function handleMetaV1(event: MetaV1): void {
     }
 
     for (let i = 0; i < contentArr.length; i++) {
-      const metaContent = contentArr[i].generate(event.address.toHex());
+      const metaContent = contentArr[i].generate();
 
       // This include each meta content on the RainMeta related
       if (!auxContent.includes(metaContent.id)) {
@@ -1125,7 +1122,7 @@ export class ContentMeta {
    *
    * - If the ContentMetaV1 does exist, add the relation to the rainMetaId.
    */
-  generate(addressID: string): ContentMetaV1 {
+  generate(): ContentMetaV1 {
     const contentId = this.getContentId();
 
     let metaContent = ContentMetaV1.load(contentId);
@@ -1153,7 +1150,6 @@ export class ContentMeta {
 
     this.metaContent = metaContent;
     this.metaStored = true;
-    // metaContent.save();
 
     return this.metaContent;
   }

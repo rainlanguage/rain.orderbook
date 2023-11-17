@@ -65,14 +65,6 @@ export function createToken(address: Bytes): ERC20 {
 
     token.save();
   }
-  // else {
-  // let totalSupply = reserveToken.try_totalSupply();
-  // if (!totalSupply.reverted) {
-  //   let value = totalSupply.value;
-  //   token.totalSupply = value;
-  //   token.totalSupplyDisplay = toDisplayWithDecimals(value, token.decimals);
-  // }
-  // }
 
   return token;
 }
@@ -224,6 +216,7 @@ export function createSignedContext(txHash: string): SignedContext {
   }
   return new SignedContext("");
 }
+
 export function createContextEntity(txHash: string): ContextEntity {
   for (let i = 0; ; i++) {
     let contextEntity = ContextEntity.load(`${txHash}-${i}`);

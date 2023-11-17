@@ -31,11 +31,7 @@ export class OrderString extends JsonString {
 
     for (let i = 0; i < validOutputsOrder.length; i++) {
       const output = validOutputsOrder[i];
-      const io = new IOString(
-        output.token,
-        output.decimals,
-        output.vaultId
-      );
+      const io = new IOString(output.token, output.decimals, output.vaultId);
 
       validOutputsArr.push(io.stringify());
     }
@@ -91,6 +87,9 @@ class EvaluableString extends JsonString {
   }
 }
 
+/**
+ * Generate a JSON string for a given Expression to be ready to use with tools
+ */
 export class ExpressionJSONString extends JsonString {
   constructor(bytecode: Bytes, constants: BigInt[], minOutputs: BigInt[]) {
     const map: Map<string, string> = new Map();
