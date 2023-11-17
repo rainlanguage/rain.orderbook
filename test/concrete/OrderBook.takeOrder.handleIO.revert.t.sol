@@ -19,7 +19,7 @@ import {EnsureFailed} from "rain.interpreter/src/lib/op/logic/LibOpEnsureNP.sol"
 /// @notice A test harness for testing the OrderBook takeOrder function will run
 /// handle IO and revert if it fails.
 contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
-    function checkTakeOrderHandleIORevert(bytes[] memory configs, bytes memory err) public {
+    function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, uint256 maxInput) public {
         uint256 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
@@ -59,69 +59,100 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             orders[i] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV2 memory takeOrdersConfig =
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+            TakeOrdersConfigV2(0, maxInput, type(uint256).max, orders, "");
 
-        vm.expectRevert(err);
+        if (err.length > 0) {
+            vm.expectRevert(err);
+        }
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);
+        // We don't really care about the outputs as the tests are basically just
+        // trying to show that the IO handler is running or not running by simple
+        // reverts.
         (totalTakerInput, totalTakerOutput);
     }
 
-    function testTakeOrderHandleIORevert0() external {
+    function testTakeOrderHandleIO0() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](1);
         configs[0] = "_ _:max-int-value() 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
     }
 
-    function testTakeOrderHandleIORevert1() external {
+    function testTakeOrderHandleIO1() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](2);
         configs[0] = "_ _:1e18 1e18;:ensure<1>(0);";
         configs[1] = "_ _:1e18 1e18;:;";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
     }
 
-    function testTakeOrderHandleIORevert2() external {
+    function testTakeOrderHandleIO2() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](2);
         configs[0] = "_ _:1e18 1e18;:;";
         configs[1] = "_ _:1e18 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
     }
 
-    function testTakeOrderHandleIORevert3() external {
+    function testTakeOrderHandleIO3() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:;";
         configs[1] = "_ _:1e18 1e18;:ensure<1>(0);";
         configs[2] = "_ _:1e18 1e18;:;";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
     }
 
-    function testTakeOrderHandleIORevert4() external {
+    function testTakeOrderHandleIO4() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:;";
         configs[1] = "_ _:1e18 1e18;:ensure<1>(0);";
         configs[2] = "_ _:1e18 1e18;:ensure<2>(0);";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
     }
 
-    function testTakeOrderHandleIORevert5() external {
+    function testTakeOrderHandleIO5() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:;";
         configs[1] = "_ _:1e18 1e18;:ensure<2>(0);";
         configs[2] = "_ _:1e18 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
     }
 
-    function testTakeOrderHandleIORevert6() external {
+    function testTakeOrderHandleIO6() external {
         bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:ensure<2>(0);";
         configs[1] = "_ _:1e18 1e18;:;";
         configs[2] = "_ _:1e18 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIORevert(configs, err);
+        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+    }
+
+    function testTakeOrderHandleIO7(uint256 toClear) external {
+        toClear = bound(toClear, 4e18 + 1, type(uint256).max);
+        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
+        bytes[] memory configs = new bytes[](5);
+        configs[0] = "_ _:1e18 1e18;:;";
+        configs[1] = "_ _:1e18 1e18;:set(0 1);";
+        configs[2] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[3] = "_ _:1e18 1e18;:set(0 0);";
+        configs[4] = "_ _:1e18 1e18;:ensure<2>(get(0));";
+        checkTakeOrderHandleIO(configs, err, toClear);
+    }
+
+    // This one WONT error because the take orders stops executing the handle IO
+    // before it clears 4e18 + 1, so it never hits the second ensure condition.
+    function testTakeOrderHandleIO8(uint256 toClear) external {
+        toClear = bound(toClear, 1, 4e18);
+        bytes memory err = "";
+        bytes[] memory configs = new bytes[](5);
+        configs[0] = "_ _:1e18 1e18;:;";
+        configs[1] = "_ _:1e18 1e18;:set(0 1);";
+        configs[2] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[3] = "_ _:1e18 1e18;:set(0 0);";
+        configs[4] = "_ _:1e18 1e18;:ensure<2>(get(0));";
+        checkTakeOrderHandleIO(configs, err, toClear);
     }
 }
