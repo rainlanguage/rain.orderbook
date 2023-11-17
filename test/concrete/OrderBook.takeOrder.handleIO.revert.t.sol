@@ -19,7 +19,7 @@ import {EnsureFailed} from "rain.interpreter/src/lib/op/logic/LibOpEnsureNP.sol"
 /// @notice A test harness for testing the OrderBook takeOrder function will run
 /// handle IO and revert if it fails.
 contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
-    function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, uint256 maxInput) public {
+    function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, uint256 maxInput) internal {
         uint256 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
@@ -58,8 +58,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
             orders[i] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV2 memory takeOrdersConfig =
-            TakeOrdersConfigV2(0, maxInput, type(uint256).max, orders, "");
+        TakeOrdersConfigV2 memory takeOrdersConfig = TakeOrdersConfigV2(0, maxInput, type(uint256).max, orders, "");
 
         if (err.length > 0) {
             vm.expectRevert(err);
