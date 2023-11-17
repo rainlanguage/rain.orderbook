@@ -156,8 +156,8 @@ export function createOrder(order: ClearAliceStruct): Order {
   let keccak256 = crypto.keccak256(encodedOrder);
   let orderHashHex = getEvenHexString(keccak256.toHex());
 
-  let order_ = Order.load(orderHashHex);
-  if (order_) return order_;
+  let order_loaded = Order.load(orderHashHex);
+  if (order_loaded) return order_loaded;
   else return new Order(orderHashHex);
 }
 

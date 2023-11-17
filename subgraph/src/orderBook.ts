@@ -76,13 +76,13 @@ export function handleContext(event: Context): void {
     const logs = receipt.logs;
 
     const log_takeOrder = logs.findIndex(
-      (log_) => log_.topics[0].toHex() == TAKE_ORDER_EVENT_TOPIC
+      (log) => log.topics[0].toHex() == TAKE_ORDER_EVENT_TOPIC
     );
     const log_clear = logs.findIndex(
-      (log_) => log_.topics[0].toHex() == CLEAR_EVENT_TOPIC
+      (log) => log.topics[0].toHex() == CLEAR_EVENT_TOPIC
     );
     const log_afterClear = logs.findIndex(
-      (log_) => log_.topics[0].toHex() == AFTER_CLEAR_EVENT_TOPIC
+      (log) => log.topics[0].toHex() == AFTER_CLEAR_EVENT_TOPIC
     );
 
     if (log_clear != -1 && log_afterClear != -1) {
@@ -278,7 +278,7 @@ export function handleAddOrder(event: AddOrder): void {
     const logs = receipt.logs;
 
     const log_newExpression = logs.findIndex(
-      (log_) => log_.topics[0].toHex() == NEW_EXPRESSION_EVENT_TOPIC
+      (log) => log.topics[0].toHex() == NEW_EXPRESSION_EVENT_TOPIC
     );
 
     if (log_newExpression != -1) {
@@ -294,14 +294,14 @@ export function handleAddOrder(event: AddOrder): void {
       if (decodedData && decodedData.kind === ethereum.ValueKind.TUPLE) {
         const newExpressionTuple = decodedData.toTuple();
 
-        const bytecode_ = newExpressionTuple[1].toBytes();
-        const constants_ = newExpressionTuple[2].toBigIntArray();
-        const minOutputs_ = newExpressionTuple[3].toBigIntArray();
+        const bytecode = newExpressionTuple[1].toBytes();
+        const constants = newExpressionTuple[2].toBigIntArray();
+        const minOutputs = newExpressionTuple[3].toBigIntArray();
 
         const expressionJsonString = new ExpressionJSONString(
-          bytecode_,
-          constants_,
-          minOutputs_
+          bytecode,
+          constants,
+          minOutputs
         );
         order.expressionJSONString = expressionJsonString.stringify();
       }
@@ -935,11 +935,11 @@ export function handleMetaV1(event: MetaV1): void {
     }
 
     for (let i = 0; i < contentArr.length; i++) {
-      const metaContent_ = contentArr[i].generate(event.address.toHex());
+      const metaContent = contentArr[i].generate(event.address.toHex());
 
       // This include each meta content on the RainMeta related
-      if (!auxContent.includes(metaContent_.id)) {
-        auxContent.push(metaContent_.id);
+      if (!auxContent.includes(metaContent.id)) {
+        auxContent.push(metaContent.id);
       }
     }
 
@@ -974,17 +974,17 @@ export class ContentMeta {
   private metaStored: boolean = false;
 
   constructor(
-    metaContentV1Object_: TypedMap<string, JSONValue>,
-    rainMetaID_: Bytes
+    metaContentV1Object: TypedMap<string, JSONValue>,
+    rainMetaID: Bytes
   ) {
-    const payload = metaContentV1Object_.get("0");
-    const magicNumber = metaContentV1Object_.get("1");
-    const contentType = metaContentV1Object_.get("2");
-    const contentEncoding = metaContentV1Object_.get("3");
-    const contentLanguage = metaContentV1Object_.get("4");
+    const payload = metaContentV1Object.get("0");
+    const magicNumber = metaContentV1Object.get("1");
+    const contentType = metaContentV1Object.get("2");
+    const contentEncoding = metaContentV1Object.get("3");
+    const contentLanguage = metaContentV1Object.get("4");
 
     // RainMetaV1 ID
-    this.rainMetaId = rainMetaID_;
+    this.rainMetaId = rainMetaID;
 
     // Mandatories keys
     if (payload) {
