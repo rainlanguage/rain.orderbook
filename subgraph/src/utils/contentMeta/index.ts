@@ -1,13 +1,21 @@
-import { BigInt, Bytes, JSONValue, JSONValueKind, TypedMap } from "@graphprotocol/graph-ts";
+import {
+  BigInt,
+  Bytes,
+  JSONValue,
+  JSONValueKind,
+  TypedMap,
+} from "@graphprotocol/graph-ts";
 import { ContentMetaV1 } from "../../../generated/schema";
-import { getKeccak256FromBytes, isHexString } from "@rainprotocol/subgraph-utils";
+import {
+  getKeccak256FromBytes,
+  isHexString,
+} from "@rainprotocol/subgraph-utils";
 import { CBOREncoder } from "@rainprotocol/assemblyscript-cbor";
 
 export class ContentMeta {
   rainMetaId: Bytes;
   encodedData: Bytes = Bytes.empty();
   payload: Bytes = Bytes.empty();
-  // eslint-disable-next-line @typescript-eslint/ban-types
   magicNumber: BigInt = BigInt.zero();
   contentType: string = "";
   contentEncoding: string = "";

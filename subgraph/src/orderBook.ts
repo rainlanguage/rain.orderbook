@@ -628,21 +628,6 @@ export function handleDeposit(event: Deposit): void {
   vaultDeposit.save();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function handleOrderExceedsMaxRatio(event: OrderExceedsMaxRatio): void {
-  //
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function handleOrderNotFound(event: OrderNotFound): void {
-  //
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function handleOrderZeroAmount(event: OrderZeroAmount): void {
-  //
-}
-
 export function handleRemoveOrder(event: RemoveOrder): void {
   const orderHashHex = getEvenHexString(event.params.orderHash.toHex());
 
