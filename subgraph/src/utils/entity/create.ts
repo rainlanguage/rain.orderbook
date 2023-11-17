@@ -3,7 +3,6 @@ import {
   BigInt,
   Address,
   ethereum,
-  crypto,
   BigDecimal,
 } from "@graphprotocol/graph-ts";
 import {
@@ -24,6 +23,7 @@ import { ReserveToken } from "../../../generated/OrderBook/ReserveToken";
 import { ClearAliceStruct } from "../../../generated/OrderBook/OrderBook";
 import {
   getEvenHexString,
+  getKeccak256FromBytes,
   toDisplayWithDecimals,
 } from "@rainprotocol/subgraph-utils";
 
@@ -145,7 +145,7 @@ export function createOrder(order: ClearAliceStruct): Order {
 
   let tuple = changetype<ethereum.Tuple>(tupleArray);
   let encodedOrder = ethereum.encode(ethereum.Value.fromTuple(tuple))!;
-  let keccak256 = crypto.keccak256(encodedOrder);
+  let keccak256 = getKeccak256FromBytes(encodedOrder);
   let orderHashHex = getEvenHexString(keccak256.toHex());
 
   let order_loaded = Order.load(orderHashHex);
