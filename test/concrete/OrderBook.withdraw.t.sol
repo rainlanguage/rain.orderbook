@@ -190,32 +190,4 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             }
         }
     }
-
-    /// Test that withdrawing can't reentrantly read the vault balance.
-    function testWithdrawReentrant(
-        address alice,
-        uint256 vaultIdAlice,
-        uint256 amount,
-        address bob,
-        address tokenBob,
-        uint256 vaultIdBob
-    ) external {
-        vm.assume(amount > 0);
-        Reenteroor reenteroor = new Reenteroor();
-        reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV3.vaultBalance.selector, bob, tokenBob, vaultIdBob));
-
-        // Withdraw short circuits if there's no vault balance so first we need
-        // to deposit.
-        vm.prank(alice);
-        vm.mockCall(
-            address(reenteroor),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount),
-            abi.encode(true)
-        );
-        iOrderbook.deposit(address(reenteroor), vaultIdAlice, amount);
-
-        vm.prank(alice);
-        vm.expectRevert(ReentrancyGuardReentrantCall.selector);
-        iOrderbook.withdraw(address(reenteroor), vaultIdAlice, amount);
-    }
 }

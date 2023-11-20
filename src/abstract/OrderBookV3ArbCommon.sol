@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.19;
 
 /// Thrown when the minimum output for the sender is not met after the arb.
 /// @param minimum The minimum output expected by the sender.
