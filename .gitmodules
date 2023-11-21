@@ -22,9 +22,9 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "lib/rain.interpreter"]
-	path = lib/rain.interpreter
-	url = https://github.com/rainprotocol/rain.interpreter
 [submodule "lib/rain.factory"]
 	path = lib/rain.factory
 	url = https://github.com/rainprotocol/rain.factory
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainprotocol/rain.interpreter
