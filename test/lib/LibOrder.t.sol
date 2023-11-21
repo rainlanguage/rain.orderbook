@@ -9,12 +9,12 @@ import "src/lib/LibOrder.sol";
 /// Exercises the LibOrder library.
 contract LibOrderTest is Test {
     /// Hashing should always produce the same result for the same input.
-    function testHashEqual(Order memory a) public {
+    function testHashEqual(OrderV2 memory a) public {
         assertTrue(LibOrder.hash(a) == LibOrder.hash(a));
     }
 
     /// Hashing should always produce different results for different inputs.
-    function testHashNotEqual(Order memory a, Order memory b) public {
+    function testHashNotEqual(OrderV2 memory a, OrderV2 memory b) public {
         assertTrue(LibOrder.hash(a) != LibOrder.hash(b));
     }
 }

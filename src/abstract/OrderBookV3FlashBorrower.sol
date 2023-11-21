@@ -16,16 +16,15 @@ import {LibEncodedDispatch, EncodedDispatch} from "lib/rain.interpreter/src/lib/
 import {LibContext} from "lib/rain.interpreter/src/lib/caller/LibContext.sol";
 import {LibBytecode} from "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "../interface/ierc3156/IERC3156FlashBorrower.sol";
-import {EvaluableConfigV2} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "lib/rain.factory/src/interface/ICloneableV2.sol";
 import {
-    IInterpreterV2, SourceIndex, DEFAULT_STATE_NAMESPACE
+    IInterpreterV2, SourceIndexV2, DEFAULT_STATE_NAMESPACE
 } from "lib/rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 import {IERC3156FlashBorrower} from "../interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV1} from "lib/rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
-import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -37,6 +36,9 @@ error FlashLoanFailed();
 /// Thrown when the swap fails.
 error SwapFailed();
 
+/// Thrown when "Before arb" expects inputs.
+error NonZeroBeforeArbInputs();
+
 /// Config for `OrderBookV3FlashBorrower` to initialize.
 /// @param orderBook The `IOrderBookV3` contract to arb against.
 /// @param evaluableConfig The config to eval for access control to arb.
@@ -44,17 +46,19 @@ error SwapFailed();
 /// the `beforeInitialize` hook.
 struct OrderBookV3FlashBorrowerConfigV2 {
     address orderBook;
-    EvaluableConfigV2 evaluableConfig;
+    EvaluableConfigV3 evaluableConfig;
     bytes implementationData;
 }
 
 /// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
 /// allows for some kind of access control to the arb.
-SourceIndex constant BEFORE_ARB_SOURCE_INDEX = SourceIndex.wrap(0);
+SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
+/// @dev "Before arb" has no inputs.
+uint256 constant BEFORE_ARB_MIN_INPUTS = 0;
 /// @dev "Before arb" has no outputs.
 uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no outputs.
-uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
+uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
 /// @title OrderBookV3FlashBorrower
 /// @notice Abstract contract that liq-source specifialized contracts can inherit
@@ -108,7 +112,7 @@ abstract contract OrderBookV3FlashBorrower is
     /// The encoded dispatch that will run for access control to `arb`.
     EncodedDispatch public sI9rDispatch;
     /// The interpreter that will eval access control to `arb`.
-    IInterpreterV1 public sI9r;
+    IInterpreterV2 public sI9r;
     /// The associated store for the interpreter.
     IInterpreterStoreV1 public sI9rStore;
 
@@ -156,18 +160,24 @@ abstract contract OrderBookV3FlashBorrower is
         if (LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 0) {
             address expression;
 
-            uint256[] memory entrypoints = new uint256[](1);
-            entrypoints[SourceIndex.unwrap(BEFORE_ARB_SOURCE_INDEX)] = BEFORE_ARB_MIN_OUTPUTS;
-
+            bytes memory io;
             // We have to trust the deployer because it produces the expression
             // address for the dispatch anyway.
             // All external functions on this contract have `onlyNotInitializing`
             // modifier on them so can't be reentered here anyway.
             //slither-disable-next-line reentrancy-benign
-            (sI9r, sI9rStore, expression) = config.evaluableConfig.deployer.deployExpression(
-                config.evaluableConfig.bytecode, config.evaluableConfig.constants, entrypoints
+            (sI9r, sI9rStore, expression, io) = config.evaluableConfig.deployer.deployExpression2(
+                config.evaluableConfig.bytecode, config.evaluableConfig.constants
             );
-            sI9rDispatch = LibEncodedDispatch.encode(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
+            // There can't be any inputs because we don't pass any in.
+            uint256 inputs;
+            assembly ("memory-safe") {
+                inputs := and(mload(add(io, 1)), 0xFF)
+            }
+            if (inputs > 0) {
+                revert NonZeroBeforeArbInputs();
+            }
+            sI9rDispatch = LibEncodedDispatch.encode2(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
         }
 
         return ICLONEABLE_V2_SUCCESS;
@@ -278,11 +288,12 @@ abstract contract OrderBookV3FlashBorrower is
         // Run the access control dispatch if it is set.
         EncodedDispatch dispatch = sI9rDispatch;
         if (EncodedDispatch.unwrap(dispatch) > 0) {
-            (uint256[] memory stack, uint256[] memory kvs) = sI9r.eval(
+            (uint256[] memory stack, uint256[] memory kvs) = sI9r.eval2(
                 sI9rStore,
                 DEFAULT_STATE_NAMESPACE,
                 dispatch,
-                LibContext.build(new uint256[][](0), new SignedContextV1[](0))
+                LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+                new uint256[](0)
             );
             // This can only happen if the interpreter is broken.
             if (stack.length > 0) {

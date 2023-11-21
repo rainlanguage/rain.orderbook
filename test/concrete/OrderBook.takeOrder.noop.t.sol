@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "src/lib/LibOrder.sol";
+import {Vm} from "forge-std/Test.sol";
+import {LibOrder} from "src/lib/LibOrder.sol";
 
-import "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {NoOrders} from "src/concrete/OrderBook.sol";
+import {OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
 /// on the no-op case.
 contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
-    using LibOrder for Order;
+    using LibOrder for OrderV2;
 
     /// Take orders makes no sense without any orders in the input array and the
     /// caller has full control over this so we error.
     function testTakeOrderNoopZeroOrders() external {
         TakeOrdersConfigV2 memory config =
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, new TakeOrderConfig[](0), "");
+            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV2[](0), "");
         vm.expectRevert(NoOrders.selector);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
         (totalTakerInput, totalTakerOutput);
@@ -28,7 +31,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// transaction in this case as there may be other orders in the input array
     /// in the general case.
     function testTakeOrderNoopNonLiveOrderOne(
-        Order memory order,
+        OrderV2 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         SignedContextV1 memory signedContext
@@ -41,8 +44,8 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         // malformed orders to be passed in, and still show that nothing happens.
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
-        TakeOrderConfig memory orderConfig = TakeOrderConfig(order, inputIOIndex, outputIOIndex, signedContexts);
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
+        TakeOrderConfigV2 memory orderConfig = TakeOrderConfigV2(order, inputIOIndex, outputIOIndex, signedContexts);
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
         orders[0] = orderConfig;
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectEmit(address(iOrderbook));
@@ -57,8 +60,8 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
     /// Same as above but with two orders.
     function testTakeOrderNoopNonLiveOrderTwo(
-        Order memory order1,
-        Order memory order2,
+        OrderV2 memory order1,
+        OrderV2 memory order2,
         uint256 inputIOIndex1,
         uint256 outputIOIndex1,
         uint256 inputIOIndex2,
@@ -84,19 +87,19 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
         TakeOrdersConfigV2 memory config;
         {
-            TakeOrderConfig[] memory orders;
+            TakeOrderConfigV2[] memory orders;
             {
                 // We don't bound the input or output indexes as we want to allow
                 // malformed orders to be passed in, and still show that nothing happens.
                 SignedContextV1[] memory signedContexts1 = new SignedContextV1[](1);
                 signedContexts1[0] = signedContext1;
-                TakeOrderConfig memory orderConfig1 =
-                    TakeOrderConfig(order1, inputIOIndex1, outputIOIndex1, signedContexts1);
+                TakeOrderConfigV2 memory orderConfig1 =
+                    TakeOrderConfigV2(order1, inputIOIndex1, outputIOIndex1, signedContexts1);
                 SignedContextV1[] memory signedContexts2 = new SignedContextV1[](1);
                 signedContexts2[0] = signedContext2;
-                TakeOrderConfig memory orderConfig2 =
-                    TakeOrderConfig(order2, inputIOIndex2, outputIOIndex2, signedContexts2);
-                orders = new TakeOrderConfig[](2);
+                TakeOrderConfigV2 memory orderConfig2 =
+                    TakeOrderConfigV2(order2, inputIOIndex2, outputIOIndex2, signedContexts2);
+                orders = new TakeOrderConfigV2[](2);
                 orders[0] = orderConfig1;
                 orders[1] = orderConfig2;
             }

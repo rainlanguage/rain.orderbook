@@ -12,16 +12,22 @@ import {
     DeployerDiscoverableMetaV3ConstructionConfig,
     LibMeta
 } from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
-import "lib/rain.factory/src/interface/ICloneableV2.sol";
-import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
-import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {SourceIndexV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "lib/rain.factory/src/interface/ICloneableV2.sol";
+import {EncodedDispatch, LibEncodedDispatch} from "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 
-import "../interface/unstable/IOrderBookV3.sol";
-import "../interface/unstable/IOrderBookV3OrderTaker.sol";
-import "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
+import {IOrderBookV3, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
+import {IOrderBookV3ArbOrderTaker, IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
+import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
+import {TakeOrdersConfigV2} from "../interface/unstable/IOrderBookV3.sol";
+import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
+import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
+import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
-import "./OrderBookV3ArbCommon.sol";
+/// Thrown when "before arb" wants inputs that we don't have.
+error NonZeroBeforeArbInputs(uint256 inputs);
 
 /// Config for `OrderBookV3ArbOrderTakerConfigV1` to initialize.
 /// @param orderBook The `IOrderBookV3` to use for `takeOrders`.
@@ -30,13 +36,13 @@ import "./OrderBookV3ArbCommon.sol";
 /// the `beforeInitialize` hook.
 struct OrderBookV3ArbOrderTakerConfigV1 {
     address orderBook;
-    EvaluableConfigV2 evaluableConfig;
+    EvaluableConfigV3 evaluableConfig;
     bytes implementationData;
 }
 
 /// @dev "Before arb" is evaluabled before the arb is executed. Ostensibly this
 /// is to allow for access control to the arb, the return values are ignored.
-SourceIndex constant BEFORE_ARB_SOURCE_INDEX = SourceIndex.wrap(0);
+SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 /// @dev "Before arb" has no return values.
 uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no return values.
@@ -56,7 +62,7 @@ abstract contract OrderBookV3ArbOrderTaker is
 
     IOrderBookV3 public sOrderBook;
     EncodedDispatch public sI9rDispatch;
-    IInterpreterV1 public sI9r;
+    IInterpreterV2 public sI9r;
     IInterpreterStoreV1 public sI9rStore;
 
     constructor(bytes32 metaHash, DeployerDiscoverableMetaV3ConstructionConfig memory config)
@@ -103,18 +109,25 @@ abstract contract OrderBookV3ArbOrderTaker is
         if (LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 0) {
             address expression;
 
-            uint256[] memory entrypoints = new uint256[](1);
-            entrypoints[SourceIndex.unwrap(BEFORE_ARB_SOURCE_INDEX)] = BEFORE_ARB_MIN_OUTPUTS;
-
+            bytes memory io;
             // We have to trust the deployer because it produces the expression
             // address for dispatch anyway.
             // All external functions on this contract have `onlyNotInitializing`
             // modifier on them so can't be reentered here anyway.
             //slither-disable-next-line reentrancy-benign
-            (sI9r, sI9rStore, expression) = config.evaluableConfig.deployer.deployExpression(
-                config.evaluableConfig.bytecode, config.evaluableConfig.constants, entrypoints
+            (sI9r, sI9rStore, expression, io) = config.evaluableConfig.deployer.deployExpression2(
+                config.evaluableConfig.bytecode, config.evaluableConfig.constants
             );
-            sI9rDispatch = LibEncodedDispatch.encode(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
+            {
+                uint256 inputs;
+                assembly ("memory-safe") {
+                    inputs := and(mload(add(io, 1)), 0xFF)
+                }
+                if (inputs != 0) {
+                    revert NonZeroBeforeArbInputs(inputs);
+                }
+            }
+            sI9rDispatch = LibEncodedDispatch.encode2(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
         }
 
         return ICLONEABLE_V2_SUCCESS;
@@ -138,11 +151,12 @@ abstract contract OrderBookV3ArbOrderTaker is
         // Run the access control dispatch if it is set.
         EncodedDispatch dispatch = sI9rDispatch;
         if (EncodedDispatch.unwrap(dispatch) > 0) {
-            (uint256[] memory stack, uint256[] memory kvs) = sI9r.eval(
+            (uint256[] memory stack, uint256[] memory kvs) = sI9r.eval2(
                 sI9rStore,
                 DEFAULT_STATE_NAMESPACE,
                 dispatch,
-                LibContext.build(new uint256[][](0), new SignedContextV1[](0))
+                LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+                new uint256[](0)
             );
             // This can only happen if interpreter is broken.
             if (stack.length > 0) {

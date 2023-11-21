@@ -7,8 +7,8 @@ import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {
     IOrderBookV3,
     OrderConfigV2,
-    Order,
-    TakeOrderConfig,
+    OrderV2,
+    TakeOrderConfigV2,
     TakeOrdersConfigV2,
     ClearConfig
 } from "src/interface/unstable/IOrderBookV3.sol";
@@ -111,7 +111,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and remove an order from within a flash loan.
-    function testReenterRemoveOrder(uint256 loanAmount, Order memory order) external {
+    function testReenterRemoveOrder(uint256 loanAmount, OrderV2 memory order) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         order.owner = address(borrower);
@@ -129,10 +129,10 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         vm.recordLogs();
         iOrderbook.addOrder(config);
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
-        orders[0] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
+        orders[0] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory takeOrdersConfig =
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
 
@@ -171,13 +171,13 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         vm.prank(alice);
         iOrderbook.addOrder(aliceConfig);
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, Order memory aliceOrder,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+        (,, OrderV2 memory aliceOrder,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
         vm.recordLogs();
         vm.prank(bob);
         iOrderbook.addOrder(bobConfig);
         entries = vm.getRecordedLogs();
-        (,, Order memory bobOrder,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+        (,, OrderV2 memory bobOrder,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
         ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 0, 0);
 

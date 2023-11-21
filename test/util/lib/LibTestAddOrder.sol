@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import "lib/rain.metadata/src/LibMeta.sol";
-import "src/interface/unstable/IOrderBookV3.sol";
-import "src/lib/LibOrder.sol";
-import "src/concrete/OrderBook.sol";
+import {META_MAGIC_NUMBER_V1} from "lib/rain.metadata/src/LibMeta.sol";
+import {LibOrder} from "src/lib/LibOrder.sol";
+import {OrderConfigV2, OrderV2, IO} from "src/interface/unstable/IOrderBookV3.sol";
+import {IInterpreterV2, SourceIndexV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
+import {EvaluableV2} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {HANDLE_IO_ENTRYPOINT} from "src/concrete/OrderBook.sol";
+import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 library LibTestAddOrder {
     /// A little boilerplate to make it easier to build the order that we expect
@@ -12,15 +17,15 @@ library LibTestAddOrder {
     function expectedOrder(
         address owner,
         OrderConfigV2 memory config,
-        IInterpreterV1 interpreter,
+        IInterpreterV2 interpreter,
         IInterpreterStoreV1 store,
         address expression
-    ) internal pure returns (Order memory, bytes32) {
-        Evaluable memory expectedEvaluable = Evaluable(interpreter, store, expression);
-        Order memory order = Order(
+    ) internal pure returns (OrderV2 memory, bytes32) {
+        EvaluableV2 memory expectedEvaluable = EvaluableV2(interpreter, store, expression);
+        OrderV2 memory order = OrderV2(
             owner,
             LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 1
-                && LibBytecode.sourceOpsLength(config.evaluableConfig.bytecode, SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT))
+                && LibBytecode.sourceOpsCount(config.evaluableConfig.bytecode, SourceIndexV2.unwrap(HANDLE_IO_ENTRYPOINT))
                     > 0,
             expectedEvaluable,
             config.validInputs,

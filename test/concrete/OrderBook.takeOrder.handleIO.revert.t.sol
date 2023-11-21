@@ -3,17 +3,12 @@ pragma solidity =0.8.19;
 
 import {Vm} from "forge-std/Vm.sol";
 import {
-    OrderBookExternalRealTest,
-    OrderConfigV2,
-    IO,
-    IParserV1,
-    EvaluableConfigV2,
-    Order,
-    TakeOrderConfig,
-    SignedContextV1,
-    TakeOrdersConfigV2
+    OrderBookExternalRealTest
 } from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {ClearConfig, OrderV2, TakeOrderConfigV2, IO, OrderConfigV2, TakeOrdersConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {EnsureFailed} from "rain.interpreter/src/lib/op/logic/LibOpEnsureNP.sol";
+import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
+import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
@@ -43,20 +38,20 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](configs.length);
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](configs.length);
 
         for (uint256 i = 0; i < configs.length; i++) {
             (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(configs[i]);
-            EvaluableConfigV2 memory evaluableConfig = EvaluableConfigV2(iDeployer, bytecode, constants);
+            EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
             config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
 
             vm.recordLogs();
             iOrderbook.addOrder(config);
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 3);
-            (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+            (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
-            orders[i] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
+            orders[i] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV2 memory takeOrdersConfig = TakeOrdersConfigV2(0, maxInput, type(uint256).max, orders, "");
 

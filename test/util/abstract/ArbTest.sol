@@ -53,8 +53,8 @@ abstract contract ArbTest is Test {
         vm.etch(deployer, REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             deployer,
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression.selector),
-            abi.encode(address(0), address(0), address(0))
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(address(0), address(0), address(0), "")
         );
         bytes memory meta = vm.readFileBinary(metaPath);
         console2.log("RouteProcessorOrderBookV3ArbOrderTakerTest meta hash:");
@@ -62,10 +62,10 @@ abstract contract ArbTest is Test {
         config = DeployerDiscoverableMetaV3ConstructionConfig(deployer, meta);
     }
 
-    function buildTakeOrderConfig(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function buildTakeOrderConfig(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
-        returns (TakeOrderConfig[] memory)
+        returns (TakeOrderConfigV2[] memory)
     {
         if (order.validInputs.length == 0) {
             order.validInputs = new IO[](1);
@@ -79,8 +79,8 @@ abstract contract ArbTest is Test {
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
-        orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
+        orders[0] = TakeOrderConfigV2(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
         return orders;
     }
 

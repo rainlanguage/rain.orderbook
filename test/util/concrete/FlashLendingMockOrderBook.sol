@@ -25,8 +25,8 @@ contract FlashLendingMockOrderBook is IOrderBookV3 {
     }
 
     function clear(
-        Order memory alice,
-        Order memory bob,
+        OrderV2 memory alice,
+        OrderV2 memory bob,
         ClearConfig calldata clearConfig,
         SignedContextV1[] memory aliceSignedContextV1,
         SignedContextV1[] memory bobSignedContextV1
@@ -34,7 +34,7 @@ contract FlashLendingMockOrderBook is IOrderBookV3 {
     function deposit(address token, uint256 vaultId, uint256 amount) external {}
     function flashFee(address token, uint256 amount) external view returns (uint256) {}
     function maxFlashLoan(address token) external view returns (uint256) {}
-    function removeOrder(Order calldata order) external returns (bool stateChanged) {}
+    function removeOrder(OrderV2 calldata order) external returns (bool stateChanged) {}
 
     function vaultBalance(address owner, address token, uint256 id) external view returns (uint256 balance) {}
     function withdraw(address token, uint256 vaultId, uint256 targetAmount) external {}

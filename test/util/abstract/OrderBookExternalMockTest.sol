@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/forge-std/src/Test.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
+import {console2} from "forge-std/console2.sol";
 
-import "lib/rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
-import "lib/rain.metadata/src/LibMeta.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
+import {IMetaV1} from "rain.metadata/LibMeta.sol";
 
-import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibOrderBookConstants.sol";
-import "test/util/abstract/IOrderBookV3Stub.sol";
-import "test/util/lib/LibTestAddOrder.sol";
-
-import "src/concrete/OrderBook.sol";
+import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
+import {ORDER_BOOK_META_PATH} from "test/util/lib/LibOrderBookConstants.sol";
+import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
+import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
+import {IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
+import {IOrderBookV3, OrderConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {LibOrder} from "src/lib/LibOrder.sol";
+import {OrderBook} from "src/concrete/OrderBook.sol";
+import {DeployerDiscoverableMetaV3ConstructionConfig} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 
 /// @title OrderBookExternalTest
 /// Abstract contract that performs common setup needed for testing an orderbook
@@ -25,7 +31,7 @@ import "src/concrete/OrderBook.sol";
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV3 so that it has access to all the relevant events.
 abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
-    IInterpreterV1 immutable iInterpreter;
+    IInterpreterV2 immutable iInterpreter;
     IInterpreterStoreV1 immutable iStore;
     IExpressionDeployerV3 immutable iDeployer;
     IOrderBookV3 immutable iOrderbook;
@@ -34,7 +40,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
 
     constructor() {
         vm.pauseGasMetering();
-        iInterpreter = IInterpreterV1(address(uint160(uint256(keccak256("interpreter.rain.test")))));
+        iInterpreter = IInterpreterV2(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV1(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
@@ -43,8 +49,8 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         vm.etch(address(iDeployer), REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression.selector),
-            abi.encode(iInterpreter, iStore, address(0))
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(iInterpreter, iStore, address(0), "")
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.log("OrderBookExternalMockTest meta hash:");
@@ -63,16 +69,16 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
     /// storage accesses.
     function addOrderWithChecks(address owner, OrderConfigV2 memory config, address expression)
         internal
-        returns (Order memory, bytes32)
+        returns (OrderV2 memory, bytes32)
     {
         config.evaluableConfig.deployer = iDeployer;
-        (Order memory order, bytes32 orderHash) =
+        (OrderV2 memory order, bytes32 orderHash) =
             LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
         assertTrue(!iOrderbook.orderExists(orderHash));
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression.selector),
-            abi.encode(iInterpreter, iStore, expression)
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(iInterpreter, iStore, expression, "")
         );
         vm.expectEmit(false, false, false, true);
         emit AddOrder(owner, iDeployer, order, orderHash);
@@ -100,8 +106,8 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         // mock.
         vm.mockCall(
             address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression.selector),
-            abi.encode(iInterpreter, iStore, expression)
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(iInterpreter, iStore, expression, "")
         );
         vm.record();
         vm.recordLogs();
@@ -120,7 +126,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
 
     /// Boilerplate to remove an order with a mocked deployer and checks events
     /// and storage accesses.
-    function removeOrderWithChecks(address owner, Order memory order) internal {
+    function removeOrderWithChecks(address owner, OrderV2 memory order) internal {
         bytes32 orderHash = LibOrder.hash(order);
         // This check assumes the order exists before we try to remove it.
         assertTrue(iOrderbook.orderExists(orderHash));

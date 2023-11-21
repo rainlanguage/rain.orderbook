@@ -23,15 +23,15 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
                     address(iOrderBook),
-                    EvaluableConfigV2(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
+                    EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
                     abi.encode(iRefundoor)
                 )
             )
         );
     }
 
-    function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
-        TakeOrderConfig[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+    function testTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
+        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0
@@ -39,7 +39,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
     }
 
     function testMinimumOutput(
-        Order memory order,
+        OrderV2 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256 minimumOutput,
@@ -49,7 +49,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
         minimumOutput = bound(minimumOutput, mintAmount + 1, type(uint256).max);
         iTakerOutput.mint(iArb, mintAmount);
 
-        TakeOrderConfig[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(

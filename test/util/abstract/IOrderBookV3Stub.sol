@@ -15,12 +15,12 @@ abstract contract IOrderBookV3Stub is IOrderBookV3 {
     }
 
     /// @inheritdoc IOrderBookV3
-    function removeOrder(Order calldata) external pure returns (bool) {
+    function removeOrder(OrderV2 calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
     /// @inheritdoc IOrderBookV3
-    function clear(Order memory, Order memory, ClearConfig calldata, SignedContextV1[] memory, SignedContextV1[] memory)
+    function clear(OrderV2 memory, OrderV2 memory, ClearConfig calldata, SignedContextV1[] memory, SignedContextV1[] memory)
         external
         pure
     {
