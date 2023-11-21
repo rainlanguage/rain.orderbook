@@ -12,7 +12,7 @@ import {
     TakeOrdersConfigV2,
     ClearConfig
 } from "src/interface/unstable/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter/src/interface/unstable/IParserV1.sol";
+import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
 import {IERC3156FlashBorrower} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";

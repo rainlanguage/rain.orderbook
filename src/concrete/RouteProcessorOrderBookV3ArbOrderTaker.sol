@@ -16,7 +16,7 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
 
     IRouteProcessor public sRouteProcessor;
 
-    constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
+    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
         OrderBookV3ArbOrderTaker(CALLER_META_HASH, config)
     {}
 

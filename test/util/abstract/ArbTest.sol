@@ -5,9 +5,9 @@ import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 import "test/util/lib/LibTestConstants.sol";
-import {DeployerDiscoverableMetaV2ConstructionConfig} from
-    "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
+import {DeployerDiscoverableMetaV3ConstructionConfig} from
+    "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "test/util/concrete/Refundoor.sol";
 import "test/util/concrete/FlashLendingMockOrderBook.sol";
@@ -46,20 +46,20 @@ abstract contract ArbTest is Test {
 
     function buildConstructorConfig(string memory metaPath)
         internal
-        returns (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config)
+        returns (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config)
     {
         deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
         // All non-mocked calls will revert.
         vm.etch(deployer, REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             deployer,
-            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression.selector),
             abi.encode(address(0), address(0), address(0))
         );
         bytes memory meta = vm.readFileBinary(metaPath);
         console2.log("RouteProcessorOrderBookV3ArbOrderTakerTest meta hash:");
         console2.logBytes32(keccak256(meta));
-        config = DeployerDiscoverableMetaV2ConstructionConfig(deployer, meta);
+        config = DeployerDiscoverableMetaV3ConstructionConfig(deployer, meta);
     }
 
     function buildTakeOrderConfig(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex)

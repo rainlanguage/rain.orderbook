@@ -13,7 +13,7 @@ import {
     EvaluableConfigV2,
     OrderConfigV2
 } from "src/interface/unstable/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter/src/interface/unstable/IParserV1.sol";
+import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// If there is some live order(s) but the maxTakerInput is zero we error as

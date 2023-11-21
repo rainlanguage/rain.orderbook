@@ -8,10 +8,10 @@ import {Initializable} from "lib/openzeppelin-contracts/contracts/proxy/utils/In
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import {
-    DeployerDiscoverableMetaV2,
-    DeployerDiscoverableMetaV2ConstructionConfig,
+    DeployerDiscoverableMetaV3,
+    DeployerDiscoverableMetaV3ConstructionConfig,
     LibMeta
-} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import "lib/rain.factory/src/interface/ICloneableV2.sol";
 import "lib/rain.interpreter/src/lib/caller/LibContext.sol";
 import "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
@@ -47,7 +47,7 @@ abstract contract OrderBookV3ArbOrderTaker is
     ReentrancyGuard,
     Initializable,
     ICloneableV2,
-    DeployerDiscoverableMetaV2,
+    DeployerDiscoverableMetaV3,
     ERC165
 {
     using SafeERC20 for IERC20;
@@ -59,8 +59,8 @@ abstract contract OrderBookV3ArbOrderTaker is
     IInterpreterV1 public sI9r;
     IInterpreterStoreV1 public sI9rStore;
 
-    constructor(bytes32 metaHash, DeployerDiscoverableMetaV2ConstructionConfig memory config)
-        DeployerDiscoverableMetaV2(metaHash, config)
+    constructor(bytes32 metaHash, DeployerDiscoverableMetaV3ConstructionConfig memory config)
+        DeployerDiscoverableMetaV3(metaHash, config)
     {
         _disableInitializers();
     }

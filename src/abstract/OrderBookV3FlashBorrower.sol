@@ -8,10 +8,10 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import {
-    DeployerDiscoverableMetaV2,
-    DeployerDiscoverableMetaV2ConstructionConfig,
+    DeployerDiscoverableMetaV3,
+    DeployerDiscoverableMetaV3ConstructionConfig,
     LibMeta
-} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "lib/rain.interpreter/src/lib/caller/LibContext.sol";
 import {LibBytecode} from "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
@@ -20,8 +20,8 @@ import {EvaluableConfigV2} from "rain.interpreter/src/lib/caller/LibEvaluable.so
 import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "lib/rain.factory/src/interface/ICloneableV2.sol";
 import {
-    IInterpreterV1, SourceIndex, DEFAULT_STATE_NAMESPACE
-} from "lib/rain.interpreter/src/interface/IInterpreterV1.sol";
+    IInterpreterV2, SourceIndex, DEFAULT_STATE_NAMESPACE
+} from "lib/rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 import {IERC3156FlashBorrower} from "../interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV1} from "lib/rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
@@ -91,7 +91,7 @@ abstract contract OrderBookV3FlashBorrower is
     ICloneableV2,
     ReentrancyGuard,
     Initializable,
-    DeployerDiscoverableMetaV2,
+    DeployerDiscoverableMetaV3,
     ERC165
 {
     using Address for address;
@@ -112,8 +112,8 @@ abstract contract OrderBookV3FlashBorrower is
     /// The associated store for the interpreter.
     IInterpreterStoreV1 public sI9rStore;
 
-    constructor(bytes32 metaHash, DeployerDiscoverableMetaV2ConstructionConfig memory config)
-        DeployerDiscoverableMetaV2(metaHash, config)
+    constructor(bytes32 metaHash, DeployerDiscoverableMetaV3ConstructionConfig memory config)
+        DeployerDiscoverableMetaV3(metaHash, config)
     {
         // Arb contracts are expected to be cloned proxies so allowing
         // initialization of the implementation is a security risk.

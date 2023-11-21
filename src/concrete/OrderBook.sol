@@ -14,12 +14,12 @@ import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointD
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
 import {
-    DeployerDiscoverableMetaV2,
-    DeployerDiscoverableMetaV2ConstructionConfig,
+    DeployerDiscoverableMetaV3,
+    DeployerDiscoverableMetaV3ConstructionConfig,
     LibMeta
-} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
-import {SourceIndex, StateNamespace, IInterpreterV1} from "rain.interpreter/src/interface/IInterpreterV1.sol";
+import {SourceIndex, StateNamespace, IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 import {
     IOrderBookV3,
     NoOrders,
@@ -38,7 +38,7 @@ import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
 import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 import {Evaluable} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
-import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -188,7 +188,7 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3FlashLender, DeployerDiscoverableMetaV2 {
+contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3FlashLender, DeployerDiscoverableMetaV3 {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for Order;
@@ -220,8 +220,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
     /// factory deployments as each order is a unique expression deployment
     /// rather than needing to wrap up expressions with proxies.
-    constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
-        DeployerDiscoverableMetaV2(CALLER_META_HASH, config)
+    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
+        DeployerDiscoverableMetaV3(CALLER_META_HASH, config)
     {}
 
     /// @inheritdoc IOrderBookV3
@@ -608,7 +608,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 return;
             }
 
-            // Emit the Clear event before `eval`.
+            // Emit the Clear event before `eval2`.
             emit Clear(msg.sender, aliceOrder, bobOrder, clearConfig);
         }
         OrderIOCalculation memory aliceOrderIOCalculation = calculateOrderIO(
@@ -707,7 +707,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
                 .evaluable
                 .interpreter
-                .eval(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context);
+                .eval2(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context);
 
             Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[calculateOrderStack.length - 2]);
             uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
@@ -805,7 +805,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 .order
                 .evaluable
                 .interpreter
-                .eval(
+                .eval2(
                 orderIOCalculation.order.evaluable.store,
                 orderIOCalculation.namespace,
                 _handleIODispatch(orderIOCalculation.order.evaluable.expression),

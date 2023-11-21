@@ -13,7 +13,7 @@ import "rain.factory/src/interface/ICloneableV2.sol";
 
 contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
+        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) =
             buildConstructorConfig(ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
         return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(config)));
     }
@@ -23,7 +23,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
                     address(iOrderBook),
-                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
+                    EvaluableConfigV2(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
                     abi.encode(iRefundoor)
                 )
             )

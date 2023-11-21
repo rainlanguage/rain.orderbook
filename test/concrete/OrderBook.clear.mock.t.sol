@@ -8,7 +8,7 @@ import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMoc
 import {OrderConfigV2, Order, IO, ClearConfig} from "src/interface/unstable/IOrderBookV3.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
-import {IInterpreterV1} from "rain.interpreter/src/interface/IInterpreterV1.sol";
+import {IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.

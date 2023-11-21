@@ -2,20 +2,20 @@
 pragma solidity =0.8.19;
 
 import "lib/forge-std/src/Test.sol";
-import {RainterpreterNP} from "lib/rain.interpreter/src/concrete/RainterpreterNP.sol";
-import "lib/rain.interpreter/src/concrete/RainterpreterStore.sol";
-import "lib/rain.interpreter/src/concrete/RainterpreterExpressionDeployerNP.sol";
+import {RainterpreterNPE2} from "lib/rain.interpreter/src/concrete/RainterpreterNPE2.sol";
+import {RainterpreterStoreNPE2} from "lib/rain.interpreter/src/concrete/RainterpreterStoreNPE2.sol";
+import {RainterpreterExpressionDeployerNPE2} from "lib/rain.interpreter/src/concrete/RainterpreterExpressionDeployerNPE2.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import "test/util/lib/LibOrderBookConstants.sol";
 import "test/util/abstract/IOrderBookV3Stub.sol";
 
-import {OrderBook, IERC20, DeployerDiscoverableMetaV2ConstructionConfig} from "src/concrete/OrderBook.sol";
+import {OrderBook, IERC20, DeployerDiscoverableMetaV3ConstructionConfig} from "src/concrete/OrderBook.sol";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
     IInterpreterV1 internal immutable iInterpreter;
     IInterpreterStoreV1 internal immutable iStore;
-    IExpressionDeployerV2 internal immutable iDeployer;
+    IExpressionDeployerV3 internal immutable iDeployer;
     IOrderBookV3 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
@@ -37,7 +37,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         bytes memory deployerMeta = LibAllStandardOpsNP.authoringMeta();
         console2.log("current deployer meta hash:");
         console2.logBytes32(keccak256(deployerMeta));
-        iDeployer = IExpressionDeployerV2(
+        iDeployer = IExpressionDeployerV3(
             address(
                 new RainterpreterExpressionDeployerNP(RainterpreterExpressionDeployerConstructionConfig(
                 address(iInterpreter),
@@ -50,7 +50,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         console2.log("orderbook meta hash:");
         console2.logBytes(abi.encodePacked(keccak256(orderbookMeta)));
         iOrderbook = IOrderBookV3(
-            address(new OrderBook(DeployerDiscoverableMetaV2ConstructionConfig(address(iDeployer), orderbookMeta)))
+            address(new OrderBook(DeployerDiscoverableMetaV3ConstructionConfig(address(iDeployer), orderbookMeta)))
         );
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));

@@ -12,7 +12,7 @@ import "src/interface/unstable/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
+        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) =
             buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH);
         return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3FlashBorrower(config)));
     }
@@ -21,7 +21,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         ICloneableV2(iArb).initialize(
             abi.encode(
                 OrderBookV3FlashBorrowerConfigV2(
-                    address(iOrderBook), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
+                    address(iOrderBook), EvaluableConfigV2(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
                 )
             )
         );

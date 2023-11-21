@@ -12,7 +12,7 @@ import "src/interface/unstable/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
+        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) =
             buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
         return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker(config)));
     }
@@ -21,7 +21,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         ICloneableV2(iArb).initialize(
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
-                    address(iOrderBook), EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)), ""
+                    address(iOrderBook), EvaluableConfigV2(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
                 )
             )
         );

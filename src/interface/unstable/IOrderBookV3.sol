@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 
 import "../ierc3156/IERC3156FlashLender.sol";
 import {
-    EvaluableConfigV2, IExpressionDeployerV2, Evaluable
+    EvaluableConfigV2, IExpressionDeployerV3, Evaluable
 } from "lib/rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import "lib/rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
@@ -262,7 +262,7 @@ interface IOrderBookV3 is IERC3156FlashLender, IInterpreterCallerV2 {
     /// @param orderHash The hash of the order as it is recorded onchain. Only
     /// the hash is stored in Orderbook storage to avoid paying gas to store the
     /// entire order.
-    event AddOrder(address sender, IExpressionDeployerV2 expressionDeployer, Order order, bytes32 orderHash);
+    event AddOrder(address sender, IExpressionDeployerV3 expressionDeployer, Order order, bytes32 orderHash);
 
     /// An order has been removed from the orderbook. This effectively
     /// deactivates it. Orders can be added again after removal.

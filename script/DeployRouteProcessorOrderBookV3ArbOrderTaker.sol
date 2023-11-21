@@ -22,7 +22,7 @@ contract DeployRouteProcessorOrderBookV3ArbOrderTaker is Script {
 
         vm.startBroadcast(deployerPrivateKey);
         RouteProcessorOrderBookV3ArbOrderTaker deployed =
-        new RouteProcessorOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV2ConstructionConfig (
+        new RouteProcessorOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV3ConstructionConfig (
             i9rDeployer,
             meta
         ));
