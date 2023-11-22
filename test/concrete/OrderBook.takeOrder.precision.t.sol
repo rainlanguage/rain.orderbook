@@ -30,7 +30,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
-            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(rainString);
+            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
             EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
             config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
             // Etch with invalid.

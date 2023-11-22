@@ -21,7 +21,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// No handle IO reverts.
     function testAddOrderRealNoHandleIOReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;");
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(":;");
         config.evaluableConfig.bytecode = bytecode;
         config.evaluableConfig.constants = constants;
         vm.expectRevert(abi.encodeWithSelector(OrderNoHandleIO.selector, owner));
@@ -32,7 +32,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     // /// A stack of 0 for calculate order reverts.
     // function testAddOrderRealZeroStackCalculateReverts(address owner, OrderConfigV2 memory config) public {
     //     LibTestAddOrder.conformConfig(config, iDeployer);
-    //     (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(":;:;");
+    //     (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(":;:;");
     //     config.evaluableConfig.constants = constants;
     //     config.evaluableConfig.bytecode = bytecode;
     //     vm.expectRevert(abi.encodeWithSelector(EntrypointMinOutputs.selector, 0, 0, 2));
@@ -44,7 +44,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     // function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfigV2 memory config) public {
     //     LibTestAddOrder.conformConfig(config, iDeployer);
     //     (bytes memory bytecode, uint256[] memory constants) =
-    //         IParserV1(address(iDeployer)).parse("_:block-timestamp();:;");
+    //         IParserV1(address(iParser)).parse("_:block-timestamp();:;");
     //     config.evaluableConfig.constants = constants;
     //     config.evaluableConfig.bytecode = bytecode;
     //     vm.expectRevert(abi.encodeWithSelector(EntrypointMinOutputs.selector, 0, 1, 2));
@@ -56,7 +56,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     function testAddOrderRealTwoStackCalculateReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iDeployer)).parse("_ _:block-timestamp() chain-id();:;");
+            IParserV1(address(iParser)).parse("_ _:block-timestamp() chain-id();:;");
         config.evaluableConfig.constants = constants;
         config.evaluableConfig.bytecode = bytecode;
         vm.prank(owner);
@@ -67,7 +67,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     function testAddOrderRealThreeStackCalculate(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iDeployer)).parse("_ _ _:block-timestamp() chain-id() block-number();:;");
+            IParserV1(address(iParser)).parse("_ _ _:block-timestamp() chain-id() block-number();:;");
         config.evaluableConfig.constants = constants;
         config.evaluableConfig.bytecode = bytecode;
         vm.prank(owner);

@@ -744,8 +744,8 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 .interpreter
                 .eval2(order.evaluable.store, LibNamespace.qualifyNamespace(namespace, address(this)), _calculateOrderDispatch(order.evaluable.expression), context, new uint256[](0));
 
-            Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[calculateOrderStack.length - 2]);
-            uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
+            Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
+            uint256 orderIORatio = calculateOrderStack[0];
 
             {
                 // The order owner can't send more than the smaller of their vault

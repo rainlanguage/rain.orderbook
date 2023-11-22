@@ -41,7 +41,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](configs.length);
 
         for (uint256 i = 0; i < configs.length; i++) {
-            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(configs[i]);
+            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(configs[i]);
             EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
             config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
 

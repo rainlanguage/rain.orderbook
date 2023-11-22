@@ -61,7 +61,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 OrderConfigV2 memory orderConfig;
                 {
                     (bytes memory bytecode, uint256[] memory constants) =
-                        IParserV1(address(iDeployer)).parse(testOrders[i].orderString);
+                        IParserV1(address(iParser)).parse(testOrders[i].orderString);
                     IO[] memory inputs = new IO[](1);
                     inputs[0] = IO(address(iToken0), 18, vaultId);
                     IO[] memory outputs = new IO[](1);

@@ -102,7 +102,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     function testReenterAddOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         config.evaluableConfig.bytecode = bytecode;
         config.evaluableConfig.constants = constants;
         // Create a flash borrower.
@@ -122,7 +122,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     function testReenterTakeOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         config.evaluableConfig.bytecode = bytecode;
         config.evaluableConfig.constants = constants;
 
@@ -155,12 +155,12 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
 
         LibTestAddOrder.conformConfig(aliceConfig, iDeployer);
         (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         aliceConfig.evaluableConfig.bytecode = bytecode;
         aliceConfig.evaluableConfig.constants = constants;
 
         LibTestAddOrder.conformConfig(bobConfig, iDeployer);
-        (bytecode, constants) = IParserV1(address(iDeployer)).parse("_ _:max-int-value() 1e18;:;");
+        (bytecode, constants) = IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         bobConfig.evaluableConfig.bytecode = bytecode;
         bobConfig.evaluableConfig.constants = constants;
 

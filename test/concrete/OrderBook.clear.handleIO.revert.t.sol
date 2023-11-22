@@ -41,7 +41,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
         assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
 
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(rainString);
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
         EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
         config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
 
