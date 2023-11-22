@@ -1,30 +1,31 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {ERC165, IERC165} from "lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import {Initializable} from "lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import {
     DeployerDiscoverableMetaV3,
     DeployerDiscoverableMetaV3ConstructionConfig,
     LibMeta
-} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import {LibContext} from "lib/rain.interpreter/src/lib/caller/LibContext.sol";
-import {LibBytecode} from "lib/rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
+import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "../interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
-import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "lib/rain.factory/src/interface/ICloneableV2.sol";
+import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
 import {
     IInterpreterV2, SourceIndexV2, DEFAULT_STATE_NAMESPACE
-} from "lib/rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 import {IERC3156FlashBorrower} from "../interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IInterpreterStoreV1} from "lib/rain.interpreter/src/interface/IInterpreterStoreV1.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
 import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -290,7 +291,7 @@ abstract contract OrderBookV3FlashBorrower is
         if (EncodedDispatch.unwrap(dispatch) > 0) {
             (uint256[] memory stack, uint256[] memory kvs) = sI9r.eval2(
                 sI9rStore,
-                DEFAULT_STATE_NAMESPACE,
+                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),
                 dispatch,
                 LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
                 new uint256[](0)

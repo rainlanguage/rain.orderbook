@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {ERC165, IERC165} from "lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
-import {ReentrancyGuard} from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {Initializable} from "lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
+import {console2} from "forge-std/console2.sol";
+
+import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {
     DeployerDiscoverableMetaV3,
     DeployerDiscoverableMetaV3ConstructionConfig,
     LibMeta
-} from "lib/rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 import {SourceIndexV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
-import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "lib/rain.factory/src/interface/ICloneableV2.sol";
-import {EncodedDispatch, LibEncodedDispatch} from "lib/rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-
+import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
+import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
+import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
 import {IOrderBookV3, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
 import {IOrderBookV3ArbOrderTaker, IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
 import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
@@ -68,6 +70,7 @@ abstract contract OrderBookV3ArbOrderTaker is
     constructor(bytes32 metaHash, DeployerDiscoverableMetaV3ConstructionConfig memory config)
         DeployerDiscoverableMetaV3(metaHash, config)
     {
+        console2.log("obv3aot constructor");
         _disableInitializers();
     }
 
@@ -153,7 +156,7 @@ abstract contract OrderBookV3ArbOrderTaker is
         if (EncodedDispatch.unwrap(dispatch) > 0) {
             (uint256[] memory stack, uint256[] memory kvs) = sI9r.eval2(
                 sI9rStore,
-                DEFAULT_STATE_NAMESPACE,
+                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),
                 dispatch,
                 LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
                 new uint256[](0)

@@ -13,7 +13,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     function testAddOrderRealNoSourcesReverts(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
         config.evaluableConfig.bytecode = hex"";
-        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
+        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
         vm.prank(owner);
         iOrderbook.addOrder(config);
     }

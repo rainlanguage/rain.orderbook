@@ -19,6 +19,8 @@ import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/src/concrete/RainterpreterParserNPE2.sol";
 
+string constant DEPLOYER_META_PATH = "lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta";
+
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
     IExpressionDeployerV3 internal immutable iDeployer;
     IInterpreterV2 internal immutable iInterpreter;
@@ -43,7 +45,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         vm.mockCall(
             address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
         );
-        bytes memory deployerMeta = LibAllStandardOpsNP.authoringMeta();
+        bytes memory deployerMeta = vm.readFileBinary(DEPLOYER_META_PATH);
         console2.log("current deployer meta hash:");
         console2.logBytes32(keccak256(deployerMeta));
         iDeployer = IExpressionDeployerV3(

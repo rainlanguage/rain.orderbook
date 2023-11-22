@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/forge-std/src/Script.sol";
-import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+import {Script, console2} from "forge-std/Script.sol";
+import {GenericPoolOrderBookV3FlashBorrower, DeployerDiscoverableMetaV3ConstructionConfig} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 
 /// @title DeployGenericPoolOrderBookV3FlashBorrower
 /// @notice A script that deploys a `GenericPoolOrderBookV3FlashBorrower`. This

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/forge-std/src/Script.sol";
-import "src/concrete/OrderBook.sol";
+import {Script, console2} from "forge-std/Script.sol";
+import {OrderBook, DeployerDiscoverableMetaV3ConstructionConfig} from "src/concrete/OrderBook.sol";
 
 contract DeployOrderBook is Script {
     function run(bytes memory meta) external {

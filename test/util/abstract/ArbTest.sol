@@ -35,6 +35,7 @@ abstract contract ArbTest is Test {
     address iArb;
 
     constructor(ArbTestConstructorConfig memory config) {
+        console2.log("constructor");
         iDeployer = config.deployer;
         iImplementation = config.implementation;
         iArb = Clones.clone(iImplementation);
@@ -48,6 +49,7 @@ abstract contract ArbTest is Test {
         internal
         returns (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config)
     {
+        console2.log("bcc");
         deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
         // All non-mocked calls will revert.
         vm.etch(deployer, REVERTING_MOCK_BYTECODE);

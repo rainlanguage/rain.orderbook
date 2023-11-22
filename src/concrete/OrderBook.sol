@@ -39,6 +39,7 @@ import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCaller
 import {EvaluableV2} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
+import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -152,7 +153,7 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0xd6912c2a900b10b78c9c43592b8690b48c804fb78bbdcb3ceee1f56db830d137);
+bytes32 constant CALLER_META_HASH = bytes32(0x2b317d8d308f0a16f5782cbec6cbc8de1cec7b337a90bd9ca8f1a38112f675c5);
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
@@ -741,7 +742,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
                 .evaluable
                 .interpreter
-                .eval2(order.evaluable.store, namespace, _calculateOrderDispatch(order.evaluable.expression), context, new uint256[](0));
+                .eval2(order.evaluable.store, LibNamespace.qualifyNamespace(namespace, address(this)), _calculateOrderDispatch(order.evaluable.expression), context, new uint256[](0));
 
             Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[calculateOrderStack.length - 2]);
             uint256 orderIORatio = calculateOrderStack[calculateOrderStack.length - 1];
@@ -841,7 +842,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
                 .interpreter
                 .eval2(
                 orderIOCalculation.order.evaluable.store,
-                orderIOCalculation.namespace,
+                LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
                 _handleIODispatch(orderIOCalculation.order.evaluable.expression),
                 orderIOCalculation.context,
                 new uint256[](0)
