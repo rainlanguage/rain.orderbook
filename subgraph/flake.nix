@@ -41,6 +41,7 @@
             cp ../out/ERC20.sol/ERC20.json ./abis/ERC20.json
             '' + pkgs.lib.concatStrings (map copy-abis concrete-contracts)
             + (remove-duplicate-component)
+            + ''${rain-cli} subgraph build''
           );
 
           rain_cli = pkgs.writeShellScriptBin "rain_cli" (''
