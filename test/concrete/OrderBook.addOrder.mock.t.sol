@@ -15,7 +15,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderWithoutCalculationsReverts(address owner, OrderConfigV2 memory config) public {
         vm.prank(owner);
         config.evaluableConfig.bytecode = "";
-        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector, owner));
+        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
         iOrderbook.addOrder(config);
         (OrderV2 memory order, bytes32 orderHash) =
             LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
@@ -28,7 +28,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.prank(owner);
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IO[](0);
-        vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector, owner));
+        vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
         iOrderbook.addOrder(config);
         (OrderV2 memory order, bytes32 orderHash) =
             LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
@@ -42,7 +42,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         config.validOutputs = new IO[](0);
-        vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector, owner));
+        vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
         iOrderbook.addOrder(config);
         (OrderV2 memory order, bytes32 orderHash) =
             LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
@@ -83,7 +83,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.mockCall(
             address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, expression, "")
+            abi.encode(iInterpreter, iStore, expression, hex"00020000")
         );
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
         iOrderbook.addOrder(config);

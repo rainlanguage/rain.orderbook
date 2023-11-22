@@ -52,6 +52,7 @@ library LibTestAddOrder {
             config.validOutputs = new IO[](1);
             config.validOutputs[0] = IO(address(0), 0, 0);
         }
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        // Taken from parser for "_ _:1e18 1e18;:;".
+        config.evaluableConfig.bytecode = hex"020000000c02020002010000000100000000000000";
     }
 }

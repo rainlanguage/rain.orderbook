@@ -21,7 +21,7 @@ abstract contract OrderBookSelfTest is Test, OrderBook {
         vm.mockCall(
             address(deployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(address(0), address(0), address(0), "")
+            abi.encode(address(0), address(0), address(0), "00020000")
         );
         vm.resumeGasMetering();
     }

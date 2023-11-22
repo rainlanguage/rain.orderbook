@@ -24,7 +24,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(":;");
         config.evaluableConfig.bytecode = bytecode;
         config.evaluableConfig.constants = constants;
-        vm.expectRevert(abi.encodeWithSelector(OrderNoHandleIO.selector, owner));
+        vm.expectRevert(abi.encodeWithSelector(OrderNoHandleIO.selector));
         vm.prank(owner);
         iOrderbook.addOrder(config);
     }

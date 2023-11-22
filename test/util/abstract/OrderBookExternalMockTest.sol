@@ -50,7 +50,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         vm.mockCall(
             address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, address(0), "")
+            abi.encode(iInterpreter, iStore, address(0), "00020000")
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
         console2.log("OrderBookExternalMockTest meta hash:");
@@ -78,7 +78,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         vm.mockCall(
             address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, expression, "")
+            abi.encode(iInterpreter, iStore, expression, hex"00020000")
         );
         vm.expectEmit(false, false, false, true);
         emit AddOrder(owner, iDeployer, order, orderHash);
@@ -107,7 +107,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         vm.mockCall(
             address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, expression, "")
+            abi.encode(iInterpreter, iStore, expression, hex"00020000")
         );
         vm.record();
         vm.recordLogs();
