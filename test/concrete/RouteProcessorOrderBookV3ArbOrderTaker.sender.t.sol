@@ -30,7 +30,9 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
         );
     }
 
-    function testRouteProcessorTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
+    function testRouteProcessorTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+        public
+    {
         TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(

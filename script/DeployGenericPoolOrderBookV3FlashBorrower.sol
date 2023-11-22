@@ -2,7 +2,10 @@
 pragma solidity =0.8.19;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {GenericPoolOrderBookV3FlashBorrower, DeployerDiscoverableMetaV3ConstructionConfig} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+import {
+    GenericPoolOrderBookV3FlashBorrower,
+    DeployerDiscoverableMetaV3ConstructionConfig
+} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 
 /// @title DeployGenericPoolOrderBookV3FlashBorrower
 /// @notice A script that deploys a `GenericPoolOrderBookV3FlashBorrower`. This

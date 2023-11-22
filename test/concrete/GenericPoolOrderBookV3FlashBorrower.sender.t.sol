@@ -27,7 +27,11 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         );
     }
 
-    function testTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
+    function testGenericPoolOrderBookV3FlashBorrowerTakeOrdersSender(
+        OrderV2 memory order,
+        uint256 inputIOIndex,
+        uint256 outputIOIndex
+    ) public {
         TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         GenericPoolOrderBookV3FlashBorrower(iArb).arb(
@@ -37,7 +41,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         );
     }
 
-    function testMinimumOutput(
+    function testGenericPoolOrderBookV3FlashBorrowerMinimumOutput(
         OrderV2 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,

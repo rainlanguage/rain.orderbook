@@ -4,7 +4,10 @@ pragma solidity =0.8.19;
 import {Test, Vm, console2} from "forge-std/Test.sol";
 import {RainterpreterNPE2} from "rain.interpreter/src/concrete/RainterpreterNPE2.sol";
 import {RainterpreterStoreNPE2} from "rain.interpreter/src/concrete/RainterpreterStoreNPE2.sol";
-import {RainterpreterExpressionDeployerNPE2, RainterpreterExpressionDeployerNPE2ConstructionConfig} from "rain.interpreter/src/concrete/RainterpreterExpressionDeployerNPE2.sol";
+import {
+    RainterpreterExpressionDeployerNPE2,
+    RainterpreterExpressionDeployerNPE2ConstructionConfig
+} from "rain.interpreter/src/concrete/RainterpreterExpressionDeployerNPE2.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/src/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {ORDER_BOOK_META_PATH} from "test/util/lib/LibOrderBookConstants.sol";

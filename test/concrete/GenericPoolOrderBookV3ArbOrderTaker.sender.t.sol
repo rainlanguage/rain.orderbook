@@ -27,7 +27,9 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
         );
     }
 
-    function testGenericPoolTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
+    function testGenericPoolTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+        public
+    {
         TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(

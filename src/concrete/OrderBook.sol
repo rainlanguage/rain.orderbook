@@ -19,7 +19,9 @@ import {
     LibMeta
 } from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
-import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {
+    SourceIndexV2, StateNamespace, IInterpreterV2
+} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 import {
     IOrderBookV3,
     NoOrders,
@@ -297,10 +299,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
         (IInterpreterV2 interpreter, IInterpreterStoreV1 store, address expression, bytes memory io) = config
             .evaluableConfig
             .deployer
-            .deployExpression2(
-            config.evaluableConfig.bytecode,
-            config.evaluableConfig.constants
-        );
+            .deployExpression2(config.evaluableConfig.bytecode, config.evaluableConfig.constants);
         {
             uint256 calculateInputs;
             uint256 calculateOutputs;
@@ -742,7 +741,13 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
             (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
                 .evaluable
                 .interpreter
-                .eval2(order.evaluable.store, LibNamespace.qualifyNamespace(namespace, address(this)), _calculateOrderDispatch(order.evaluable.expression), context, new uint256[](0));
+                .eval2(
+                order.evaluable.store,
+                LibNamespace.qualifyNamespace(namespace, address(this)),
+                _calculateOrderDispatch(order.evaluable.expression),
+                context,
+                new uint256[](0)
+            );
 
             Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
             uint256 orderIORatio = calculateOrderStack[0];
