@@ -10,14 +10,17 @@ import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
 import {NonZeroBeforeArbInputs} from "src/abstract/OrderBookV3ArbOrderTaker.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerInitTest is GenericPoolOrderBookV3ArbOrderTakerTest {
-    function testGenericPoolOrderBookV3ArbOrderTakerInitInvalidInputs() public {
+    function testGenericPoolOrderBookV3ArbOrderTakerInitInvalidInputs(bytes memory io) public {
+        vm.assume(io.length >= 2);
+        vm.assume(io.length % 2 == 0);
+        vm.assume(io[0] != 0);
         address testArb = Clones.clone(iImplementation);
         vm.mockCall(
             iDeployer,
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(address(0), address(0), address(0), "0100")
+            abi.encode(address(0), address(0), address(0), io)
         );
-        vm.expectRevert(abi.encodeWithSelector(NonZeroBeforeArbInputs.selector, 48));
+        vm.expectRevert(abi.encodeWithSelector(NonZeroBeforeArbInputs.selector, uint256(uint8(io[0]))));
         ICloneableV2(testArb).initialize(
             abi.encode(
                 OrderBookV3ArbOrderTakerConfigV1(
