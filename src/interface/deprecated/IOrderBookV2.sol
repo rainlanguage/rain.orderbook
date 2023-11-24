@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.18;
 
-import "./ierc3156/IERC3156FlashLender.sol";
-import "lib/rain.interpreter/src/lib/caller/LibEvaluable.sol";
-import "lib/rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {IERC3156FlashLender} from "../ierc3156/IERC3156FlashLender.sol";
+import {EvaluableConfig, Evaluable} from "lib/rain.interpreter/src/interface/deprecated/IInterpreterCallerV1.sol";
+import {SignedContextV1, IInterpreterCallerV2} from "lib/rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {IExpressionDeployerV2} from "lib/rain.interpreter/src/interface/deprecated/IExpressionDeployerV2.sol";
 
 /// Configuration for a deposit. All deposits are processed by and for
 /// `msg.sender` so the vaults are unambiguous here.

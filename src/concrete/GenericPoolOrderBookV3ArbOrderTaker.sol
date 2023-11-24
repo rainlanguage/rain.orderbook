@@ -6,13 +6,13 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
-bytes32 constant CALLER_META_HASH = bytes32(0x9059bb5e174f68880ee6c97e424fb152304bfff2949242eca6ca1783e843fa32);
+bytes32 constant CALLER_META_HASH = bytes32(0xa519e069ba4e0d8fdcd8feb0a65292ee147333ffe032fa8341e427db6d78ed1c);
 
 contract GenericPoolOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
+    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
         OrderBookV3ArbOrderTaker(CALLER_META_HASH, config)
     {}
 

@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
+import {Vm} from "forge-std/Test.sol";
+import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderBookExternalRealTest,
-    OrderConfigV2,
-    IO,
-    EvaluableConfigV2,
-    IParserV1,
-    Vm,
-    Order,
-    TakeOrderConfig,
-    SignedContextV1,
-    TakeOrdersConfigV2
-} from "test/util/abstract/OrderBookExternalRealTest.sol";
+    OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2, IO, OrderConfigV2
+} from "src/interface/unstable/IOrderBookV3.sol";
+import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
+import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -35,8 +30,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
-            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(rainString);
-            EvaluableConfigV2 memory evaluableConfig = EvaluableConfigV2(iDeployer, bytecode, constants);
+            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
+            EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
             config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
@@ -54,10 +49,10 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         iOrderbook.addOrder(config);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 3);
-        (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
-        orders[0] = TakeOrderConfig(order, 0, 0, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
+        orders[0] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory takeOrdersConfig =
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);

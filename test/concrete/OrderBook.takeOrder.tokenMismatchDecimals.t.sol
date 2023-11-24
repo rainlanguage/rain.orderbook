@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {TokenDecimalsMismatch} from "src/concrete/OrderBook.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {TakeOrderConfigV2, TakeOrdersConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchDecimalsTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -14,10 +16,10 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
     /// pass in.
     /// Test a mismatch in the input tokens decimals.
     function testTokenMismatchInputs(
-        Order memory a,
+        OrderV2 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        Order memory b,
+        OrderV2 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex
     ) external {
@@ -39,9 +41,9 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
         // Line up output decimals so we don't trigger that code path.
         b.validOutputs[bOutputIOIndex].decimals = a.validOutputs[aOutputIOIndex].decimals;
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](2);
-        orders[0] = TakeOrderConfig(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfig(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](2);
+        orders[0] = TakeOrderConfigV2(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV2(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -56,10 +58,10 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
 
     /// Test a mismatch in the output tokens decimals.
     function testTokenMismatchOutputs(
-        Order memory a,
+        OrderV2 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        Order memory b,
+        OrderV2 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex
     ) external {
@@ -81,9 +83,9 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
         // Line up input decimals so we don't trigger that code path.
         b.validInputs[bInputIOIndex].decimals = a.validInputs[aInputIOIndex].decimals;
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](2);
-        orders[0] = TakeOrderConfig(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfig(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](2);
+        orders[0] = TakeOrderConfigV2(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV2(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(

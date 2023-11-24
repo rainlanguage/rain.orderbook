@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import "lib/rain.metadata/src/LibMeta.sol";
-import "src/interface/unstable/IOrderBookV3.sol";
-import "src/lib/LibOrder.sol";
-import "src/concrete/OrderBook.sol";
+import {META_MAGIC_NUMBER_V1} from "lib/rain.metadata/src/LibMeta.sol";
+import {LibOrder} from "src/lib/LibOrder.sol";
+import {OrderConfigV2, OrderV2, IO} from "src/interface/unstable/IOrderBookV3.sol";
+import {IInterpreterV2, SourceIndexV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
+import {EvaluableV2} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {HANDLE_IO_ENTRYPOINT} from "src/concrete/OrderBook.sol";
+import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 
 library LibTestAddOrder {
     /// A little boilerplate to make it easier to build the order that we expect
@@ -12,15 +17,15 @@ library LibTestAddOrder {
     function expectedOrder(
         address owner,
         OrderConfigV2 memory config,
-        IInterpreterV1 interpreter,
+        IInterpreterV2 interpreter,
         IInterpreterStoreV1 store,
         address expression
-    ) internal pure returns (Order memory, bytes32) {
-        Evaluable memory expectedEvaluable = Evaluable(interpreter, store, expression);
-        Order memory order = Order(
+    ) internal pure returns (OrderV2 memory, bytes32) {
+        EvaluableV2 memory expectedEvaluable = EvaluableV2(interpreter, store, expression);
+        OrderV2 memory order = OrderV2(
             owner,
             LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 1
-                && LibBytecode.sourceOpsLength(config.evaluableConfig.bytecode, SourceIndex.unwrap(HANDLE_IO_ENTRYPOINT))
+                && LibBytecode.sourceOpsCount(config.evaluableConfig.bytecode, SourceIndexV2.unwrap(HANDLE_IO_ENTRYPOINT))
                     > 0,
             expectedEvaluable,
             config.validInputs,
@@ -32,7 +37,7 @@ library LibTestAddOrder {
     /// Valid config has a few requirements. Mutates the config in place.
     /// Anything that doesn't meet the requirements will just be set to 0 values
     /// as this is faster than forcing the fuzzer to rebuild with assume.
-    function conformConfig(OrderConfigV2 memory config, IExpressionDeployerV2 deployer) internal pure {
+    function conformConfig(OrderConfigV2 memory config, IExpressionDeployerV3 deployer) internal pure {
         if (config.meta.length > 0) {
             // This is a bit of a hack, but it's the easiest way to get a valid
             // meta document.
@@ -47,6 +52,7 @@ library LibTestAddOrder {
             config.validOutputs = new IO[](1);
             config.validOutputs[0] = IO(address(0), 0, 0);
         }
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        // Taken from parser for "_ _:1e18 1e18;:;".
+        config.evaluableConfig.bytecode = hex"020000000c02020002010000000100000000000000";
     }
 }

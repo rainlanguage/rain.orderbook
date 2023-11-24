@@ -2,17 +2,10 @@
 pragma solidity =0.8.19;
 
 import {Vm} from "forge-std/Vm.sol";
-import {
-    OrderBookExternalRealTest,
-    OrderConfigV2,
-    IO,
-    TakeOrderConfig,
-    Order,
-    IParserV1,
-    EvaluableConfigV2,
-    ClearConfig,
-    SignedContextV1
-} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {ClearConfig, OrderV2, TakeOrderConfigV2, IO, OrderConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
 import {EnsureFailed} from "rain.interpreter/src/lib/op/logic/LibOpEnsureNP.sol";
 
 /// @title OrderBookClearHandleIORevertTest
@@ -21,7 +14,7 @@ import {EnsureFailed} from "rain.interpreter/src/lib/op/logic/LibOpEnsureNP.sol"
 contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     function userDeposit(bytes memory rainString, address owner, address inputToken, address outputToken)
         internal
-        returns (Order memory)
+        returns (OrderV2 memory)
     {
         uint256 vaultId = 0;
 
@@ -46,8 +39,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
         assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
 
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iDeployer)).parse(rainString);
-        EvaluableConfigV2 memory evaluableConfig = EvaluableConfigV2(iDeployer, bytecode, constants);
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
+        EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
         config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
 
         vm.prank(owner);
@@ -55,7 +48,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.addOrder(config);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 3);
-        (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
         return order;
     }
@@ -71,8 +64,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         address alice = address(0x102);
         address bob = address(0x103);
 
-        Order memory aliceOrder = userDeposit(aliceString, alice, aliceInputToken, aliceOutputToken);
-        Order memory bobOrder = userDeposit(bobString, bob, aliceOutputToken, aliceInputToken);
+        OrderV2 memory aliceOrder = userDeposit(aliceString, alice, aliceInputToken, aliceOutputToken);
+        OrderV2 memory bobOrder = userDeposit(bobString, bob, aliceOutputToken, aliceInputToken);
         ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 0, 0);
         if (aliceErr.length > 0) {
             vm.expectRevert(aliceErr);
