@@ -22,10 +22,7 @@ contract DeployGenericPoolOrderBookV3ArbOrderTaker is Script {
 
         vm.startBroadcast(deployerPrivateKey);
         GenericPoolOrderBookV3ArbOrderTaker deployed =
-        new GenericPoolOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV3ConstructionConfig (
-            i9rDeployer,
-            meta
-        ));
+            new GenericPoolOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV3ConstructionConfig(i9rDeployer, meta));
         (deployed);
         vm.stopBroadcast();
     }

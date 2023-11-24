@@ -701,9 +701,7 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
 
             uint256[][] memory context;
             {
-                uint256[][] memory callingContext = new uint256[][](
-                    CALLING_CONTEXT_COLUMNS
-                );
+                uint256[][] memory callingContext = new uint256[][](CALLING_CONTEXT_COLUMNS);
                 callingContext[CONTEXT_CALLING_CONTEXT_COLUMN - 1] = LibUint256Array.arrayFrom(
                     uint256(orderHash), uint256(uint160(order.owner)), uint256(uint160(counterparty))
                 );

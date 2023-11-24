@@ -53,12 +53,11 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         console2.logBytes32(keccak256(deployerMeta));
         iDeployer = IExpressionDeployerV3(
             address(
-                new RainterpreterExpressionDeployerNPE2(RainterpreterExpressionDeployerNPE2ConstructionConfig(
-                address(iInterpreter),
-                address(iStore),
-                address(iParser),
-                deployerMeta
-                ))
+                new RainterpreterExpressionDeployerNPE2(
+                    RainterpreterExpressionDeployerNPE2ConstructionConfig(
+                        address(iInterpreter), address(iStore), address(iParser), deployerMeta
+                    )
+                )
             )
         );
         bytes memory orderbookMeta = vm.readFileBinary(ORDER_BOOK_META_PATH);
