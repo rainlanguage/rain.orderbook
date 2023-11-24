@@ -2,7 +2,7 @@
 pragma solidity =0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/proxy/Clones.sol";
+import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 import "test/util/lib/LibTestConstants.sol";
 import {DeployerDiscoverableMetaV3ConstructionConfig} from
@@ -54,10 +54,11 @@ abstract contract ArbTest is Test {
         vm.mockCall(
             deployer,
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(address(0), address(0), address(0), "00020000")
+            // Don't need any io for the "before arb" expression.
+            abi.encode(address(0), address(0), address(0), "0000")
         );
         bytes memory meta = vm.readFileBinary(metaPath);
-        console2.log("RouteProcessorOrderBookV3ArbOrderTakerTest meta hash:");
+        console2.log("ArbTest meta hash:");
         console2.logBytes32(keccak256(meta));
         config = DeployerDiscoverableMetaV3ConstructionConfig(deployer, meta);
     }

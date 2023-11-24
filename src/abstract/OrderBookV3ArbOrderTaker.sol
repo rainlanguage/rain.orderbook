@@ -70,7 +70,6 @@ abstract contract OrderBookV3ArbOrderTaker is
     constructor(bytes32 metaHash, DeployerDiscoverableMetaV3ConstructionConfig memory config)
         DeployerDiscoverableMetaV3(metaHash, config)
     {
-        console2.log("obv3aot constructor");
         _disableInitializers();
     }
 
