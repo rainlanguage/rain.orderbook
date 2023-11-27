@@ -33,7 +33,7 @@ pub struct AddOrder {
     #[arg(short, long)]
     pub vault_id: String,
 
-    /// address of the token to deposit
+    /// rainlang order string
     #[arg(short, long)]
     pub order_string: String,
 
@@ -45,7 +45,7 @@ pub struct AddOrder {
     #[arg(long, default_value = "0")]
     pub address_index: Option<usize>,
 
-    /// mumbai rpc url, default read from env varibales
+    /// rpc url, default read from env varibales
     #[arg(long, env)]
     pub rpc_url: Option<String>,
 
