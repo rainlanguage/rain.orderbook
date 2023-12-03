@@ -21,14 +21,14 @@ async fn meta_getter() -> anyhow::Result<H160> {
     }
 }
 
-pub async fn get_meta_address() -> anyhow::Result<&'static H160> {
+async fn get_meta_address() -> anyhow::Result<&'static H160> {
     META_GETTER
         .get_or_try_init(|| async { meta_getter().await })
         .await
         .map_err(|e| e)
 }
 
-pub async fn authoring_meta_getter_deploy() -> anyhow::Result<H160> {
+async fn authoring_meta_getter_deploy() -> anyhow::Result<H160> {
     let provider = get_provider().await?;
     let wallet = get_wallet(0)?;
 

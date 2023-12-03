@@ -2,23 +2,14 @@ use crate::utils::deploy::deploy1820;
 use anyhow::Result;
 use ethers::providers::{Http, Provider};
 use once_cell::sync::Lazy;
-use thiserror::Error;
 use tokio::sync::OnceCell;
 
 static PROVIDER: Lazy<OnceCell<Provider<Http>>> = Lazy::new(|| OnceCell::new());
 
-#[derive(Error, Debug)]
-pub enum SetupError {
-    #[error("An error occurred when creating provider instance: {0}")]
-    ProviderInstanceError(#[from] Box<dyn std::error::Error>),
-}
-
-// PROVIDER CODE INIT
-pub async fn init_provider() -> Result<Provider<Http>, SetupError> {
+async fn provider_node() -> Result<Provider<Http>> {
     let provider_url = "http://localhost:8545";
 
-    let provider: Provider<Http> =
-        Provider::<Http>::try_from(provider_url).expect("could not instantiate Provider");
+    let provider: Provider<Http> = Provider::<Http>::try_from(provider_url)?;
 
     // Always checking if the Registry1820 is deployed. Deploy it otherwise
     let _ = deploy1820(&provider).await;
@@ -26,18 +17,11 @@ pub async fn init_provider() -> Result<Provider<Http>, SetupError> {
     Ok(provider)
 }
 
-async fn provider_node() -> Result<Provider<Http>, SetupError> {
-    match init_provider().await {
-        Ok(data) => Ok(data),
-        Err(err) => Err(SetupError::ProviderInstanceError(Box::new(err))),
-    }
-}
-
 pub async fn get_provider() -> Result<&'static Provider<Http>> {
     let provider_lazy = PROVIDER
         .get_or_try_init(|| async { provider_node().await })
         .await
-        .map_err(|err| SetupError::ProviderInstanceError(Box::new(err)));
+        .map_err(|err| err);
 
     match provider_lazy {
         Ok(provider) => Ok(provider),
