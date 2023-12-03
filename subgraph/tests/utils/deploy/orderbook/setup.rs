@@ -16,6 +16,8 @@ static ORDERBOOK: Lazy<OnceCell<Orderbook<SignerMiddleware<Provider<Http>, Walle
 
 async fn init_orderbook() -> Result<Orderbook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>>
 {
+    tracing::subscriber::set_global_default(tracing_subscriber::fmt::Subscriber::new())?;
+
     let block = rpc_node::get_block_number().await?;
 
     let orderbook = deploy_orderbook().await?;
