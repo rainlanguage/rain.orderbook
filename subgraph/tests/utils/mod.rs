@@ -1,4 +1,5 @@
 pub mod deploy;
+pub mod rpc_node;
 pub mod setup;
 
 use ethers::{
