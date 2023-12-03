@@ -12,7 +12,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        jq = "${pkgs.jq}/bin/jq";
         rain-cli = "${rain.defaultPackage.${system}}/bin/rain";
         graphql-client = "${pkgs.graphql-client}/bin/graphql-client";
 
@@ -47,15 +46,8 @@
                   destiny = test-abi-path;
                   contract = contract; 
                 })
-              ["OrderBook" "RainterpreterNP" "RainterpreterStore" "RainterpreterExpressionDeployerNP" "AuthoringMetaGetter" "ERC20Test"]
+              ["OrderBook" "RainterpreterNPE2" "RainterpreterStoreNPE2" "RainterpreterParserNPE2" "RainterpreterExpressionDeployerNPE2" "ERC20Test"]
             )}
-          '';
-
-          remove-duplicate = ''
-            # Remove a component duplicated on RainterpreterExpressionDeployerNP abi that conflict with abigen
-            contract_path="tests/generated/RainterpreterExpressionDeployerNP.json"
-            ${jq} '.abi |= map(select(.name != "StackUnderflow"))' $contract_path > updated_contract.json
-            mv updated_contract.json $contract_path
           '';
 
           init-setup =  pkgs.writeShellScriptBin "init-setup" (''
@@ -66,7 +58,6 @@
 
             ${copy-subgraph-abis}
             ${copy-test-abis}
-            ${remove-duplicate}
           '');
 
           ci-test = pkgs.writeShellScriptBin "ci-test" (''

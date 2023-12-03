@@ -1,4 +1,3 @@
-use crate::utils::deploy::get_authoring_meta;
 use crate::{
     generated::{
         Rainterpreter, RainterpreterExpressionDeployer, RainterpreterStore,
@@ -75,7 +74,10 @@ pub async fn rainterpreter_expression_deployer_deploy(
         wallet.with_chain_id(chain_id.as_u64()),
     ));
 
-    let meta_bytes = get_authoring_meta().await?.to_vec();
+    // Reading the meta directly from the submodule
+    let meta_bytes = std::fs::read(
+        "../lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta",
+    )?;
 
     let args = vec![Token::Tuple(vec![
         Token::Address(rainiterpreter_address),

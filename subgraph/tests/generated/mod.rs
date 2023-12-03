@@ -2,20 +2,20 @@ use ethers::prelude::*;
 
 abigen!(
   RainterpreterExpressionDeployer,
-  "tests/generated/RainterpreterExpressionDeployerNP.json",
+  "tests/generated/RainterpreterExpressionDeployerNPE2.json",
   derives(serde::Deserialize, serde::Serialize);
 
   Rainterpreter,
-  "tests/generated/RainterpreterNP.json";
+  "tests/generated/RainterpreterNPE2.json";
 
   RainterpreterStore,
-  "tests/generated/RainterpreterStore.json";
+  "tests/generated/RainterpreterStoreNPE2.json";
+
+  RainterpreterParser,
+  "tests/generated/RainterpreterParserNPE2.json";
 
   Orderbook,
   "tests/generated/OrderBook.json";
-
-  AuthoringMetaGetter,
-  "tests/generated/AuthoringMetaGetter.json";
 
   ERC20Test,
   "tests/generated/ERC20Test.json";
