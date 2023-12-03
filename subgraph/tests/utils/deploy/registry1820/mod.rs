@@ -22,10 +22,7 @@ pub async fn deploy1820(provider: &Provider<Http>) -> Result<()> {
 
     if code == Bytes::default() {
         // let deployer = anvil.addresses()[0];
-        let deployer = provider
-            .get_accounts()
-            .await
-            .expect("Not deployer [1820Registry]")[0];
+        let deployer = provider.get_accounts().await?[0];
 
         let nonce = provider
             .get_transaction_count(deployer, block.into())
