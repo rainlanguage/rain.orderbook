@@ -14,6 +14,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         jq = "${pkgs.jq}/bin/jq";
         rain-cli = "${rain.defaultPackage.${system}}/bin/rain";
+        graphql-client = "${pkgs.graphql-client}/bin/graphql-client";
 
       in rec {
         packages = rec {
@@ -87,6 +88,14 @@
           docker-down = pkgs.writeShellScriptBin "docker-down" ''
             docker-compose -f docker/docker-compose.yaml down
           '';
+
+          generate-sg-schema =  pkgs.writeShellScriptBin "generate-sg-schema" (''
+            ${rain-cli} subgraph deploy --endpoint http://localhost:8020 --subgraph-name "test/test"
+
+            ${graphql-client} introspect-schema --output tests/utils/subgraph/query/schema.json http://localhost:8000/subgraphs/name/test/test
+
+            ${graphql-client} introspect-schema --output tests/utils/subgraph/wait/schema.json http://localhost:8030/graphql
+          '');
 
           default = rain_cli;
         };

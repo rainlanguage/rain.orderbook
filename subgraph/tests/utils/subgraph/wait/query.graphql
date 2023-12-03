@@ -1,0 +1,16 @@
+query SyncStatus {
+  indexingStatusForCurrentVersion(subgraphName: "test/test") {
+    synced
+    health
+    fatalError {
+      message
+      handler
+    }
+    chains {
+      __typename
+      latestBlock {
+        number
+      }
+    }
+  }
+}

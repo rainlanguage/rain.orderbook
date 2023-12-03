@@ -1,6 +1,7 @@
 pub mod deploy;
 pub mod rpc_node;
 pub mod setup;
+pub mod subgraph;
 
 use ethers::{
     core::k256::ecdsa::SigningKey,

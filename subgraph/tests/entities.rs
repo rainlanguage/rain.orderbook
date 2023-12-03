@@ -10,5 +10,9 @@ async fn test_orderbook_entity() -> anyhow::Result<()> {
 
     println!("orderbook: {:?}", orderbook.address());
 
+    println!("waiting sync subgraph...");
+    utils::subgraph::wait().await?;
+    println!("subgraph sync");
+
     Ok(())
 }
