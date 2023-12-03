@@ -31,15 +31,15 @@ impl ERC20Test<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
     pub async fn connect(
         &self,
         wallet: &Wallet<SigningKey>,
-    ) -> ERC20Test<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
-        let provider = get_provider().await.expect("cannot get provider");
-        let chain_id = provider.get_chainid().await.expect("cannot get chain id");
+    ) -> anyhow::Result<ERC20Test<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
+        let provider = get_provider().await?;
+        let chain_id = provider.get_chainid().await?;
 
         let client = Arc::new(SignerMiddleware::new(
             provider.clone(),
             wallet.clone().with_chain_id(chain_id.as_u64()),
         ));
 
-        ERC20Test::new(self.address(), client)
+        Ok(ERC20Test::new(self.address(), client))
     }
 }
