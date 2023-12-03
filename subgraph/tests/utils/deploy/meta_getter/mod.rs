@@ -21,7 +21,6 @@ async fn meta_getter() -> anyhow::Result<H160> {
     }
 }
 
-///
 pub async fn get_meta_address() -> anyhow::Result<&'static H160> {
     META_GETTER
         .get_or_try_init(|| async { meta_getter().await })
