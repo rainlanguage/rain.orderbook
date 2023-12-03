@@ -3,12 +3,11 @@
 /generated
 /subgraph.yaml
 /abis
-/tests/generated
+/tests/generated/*.json
 
 /node_modules
 /package-lock.json 
 /docker/data
 /target
-
 
 
