@@ -1,6 +1,6 @@
 use crate::{
     generated::{
-        Rainterpreter, RainterpreterExpressionDeployer, RainterpreterStore,
+        Rainterpreter, RainterpreterExpressionDeployer, RainterpreterParser, RainterpreterStore,
         RAINTERPRETEREXPRESSIONDEPLOYER_ABI, RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE,
     },
     utils::{get_provider, get_wallet},
@@ -22,9 +22,14 @@ pub async fn touch_deployer(
     let rainterpreter = rainterpreter_deploy().await?;
 
     let store = rainterpreter_store_deploy().await?;
+    let parser = rainterpreter_parser_deploy().await?;
 
-    let expression_deployer =
-        rainterpreter_expression_deployer_deploy(rainterpreter.address(), store.address()).await?;
+    let expression_deployer = rainterpreter_expression_deployer_deploy(
+        rainterpreter.address(),
+        store.address(),
+        parser.address(),
+    )
+    .await?;
 
     Ok(expression_deployer)
 }
@@ -61,9 +66,26 @@ pub async fn rainterpreter_store_deploy(
     Ok(store)
 }
 
+pub async fn rainterpreter_parser_deploy(
+) -> Result<RainterpreterParser<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
+    let wallet = get_wallet(0)?;
+    let provider = get_provider().await?;
+    let chain_id = provider.get_chainid().await?;
+
+    let deployer = Arc::new(SignerMiddleware::new(
+        provider.clone(),
+        wallet.with_chain_id(chain_id.as_u64()),
+    ));
+
+    let store = RainterpreterParser::deploy(deployer, ())?.send().await?;
+
+    Ok(store)
+}
+
 pub async fn rainterpreter_expression_deployer_deploy(
     rainiterpreter_address: H160,
     store_address: H160,
+    parser_address: H160,
 ) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let wallet = get_wallet(0)?;
     let provider = get_provider().await?;
@@ -82,6 +104,7 @@ pub async fn rainterpreter_expression_deployer_deploy(
     let args = vec![Token::Tuple(vec![
         Token::Address(rainiterpreter_address),
         Token::Address(store_address),
+        Token::Address(parser_address),
         Token::Bytes(meta_bytes),
     ])];
 
