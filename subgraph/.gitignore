@@ -4,7 +4,6 @@
 /subgraph.yaml
 /abis
 /tests/generated/*.json
-
 /node_modules
 /package-lock.json 
 /docker/data

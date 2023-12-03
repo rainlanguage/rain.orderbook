@@ -68,6 +68,10 @@
             ${remove-duplicate}
           '');
 
+          ci-test = pkgs.writeShellScriptBin "ci-test" (''
+            cargo test -- --test-threads=1 --nocapture;
+          '');
+
           build = pkgs.writeShellScriptBin  "build" (''
             ${rain-cli} subgraph build
           '');
@@ -75,6 +79,14 @@
           rain_cli = pkgs.writeShellScriptBin "rain_cli" (''
             ${rain-cli} $@
           '');
+
+          docker-up = pkgs.writeShellScriptBin "docker-up" ''
+            docker-compose -f docker/docker-compose.yaml up --build -d
+          '';
+
+          docker-down = pkgs.writeShellScriptBin "docker-down" ''
+            docker-compose -f docker/docker-compose.yaml down
+          '';
 
           default = rain_cli;
         };
