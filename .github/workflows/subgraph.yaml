@@ -25,6 +25,49 @@ jobs:
         working-directory: ./subgraph
         run: npm install
 
-      - name: Initialize and build setup
+      - name: Initialize setup
         working-directory: ./subgraph
         run: nix run .#init-setup
+
+      - name: Build subgraph
+        working-directory: ./subgraph
+        run: nix run .#build
+
+  subgraph-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Start docker container
+        working-directory: ./subgraph
+        run: nix run .#docker-up
+
+      - name: Forge shallow install
+        run: forge install --shallow
+
+      - name: install npm dependencies
+        working-directory: ./subgraph
+        run: npm install
+
+      - name: Initialize setup
+        working-directory: ./subgraph
+        run: nix run .#init-setup
+
+      - name: Run tests
+        working-directory: ./subgraph
+        run: nix run .#ci-test
+
+      - name: Stop docker container
+        working-directory: ./subgraph
+        run: nix run .#docker-down
