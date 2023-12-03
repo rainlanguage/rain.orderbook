@@ -4,28 +4,28 @@ pragma solidity =0.8.19;
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    Order,
-    SignedContextV1,
-    TakeOrderConfig,
+    OrderV2,
+    TakeOrderConfigV2,
     TakeOrdersConfigV2,
     ZeroMaximumInput,
     IO,
-    EvaluableConfigV2,
+    EvaluableConfigV3,
     OrderConfigV2
 } from "src/interface/unstable/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter/src/interface/unstable/IParserV1.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// If there is some live order(s) but the maxTakerInput is zero we error as
     /// the caller has full control over this, and it would cause none of the
     /// orders to be taken.
-    function testTakeOrderNoopZeroMaxTakerInput(Order memory order, SignedContextV1 memory signedContext) external {
+    function testTakeOrderNoopZeroMaxTakerInput(OrderV2 memory order, SignedContextV1 memory signedContext) external {
         vm.assume(order.validInputs.length > 0);
         vm.assume(order.validOutputs.length > 0);
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
-        orders[0] = TakeOrderConfig(order, 0, 0, signedContexts);
+        orders[0] = TakeOrderConfigV2(order, 0, 0, signedContexts);
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, 0, type(uint256).max, orders, "");
         vm.expectRevert(ZeroMaximumInput.selector);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
@@ -54,19 +54,19 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
         uint256 vaultId = 0;
 
-        Order[] memory orders = new Order[](testOrders.length);
+        OrderV2[] memory orders = new OrderV2[](testOrders.length);
 
         for (uint256 i = 0; i < testOrders.length; i++) {
             {
                 OrderConfigV2 memory orderConfig;
                 {
                     (bytes memory bytecode, uint256[] memory constants) =
-                        IParserV1(address(iDeployer)).parse(testOrders[i].orderString);
+                        IParserV1(address(iParser)).parse(testOrders[i].orderString);
                     IO[] memory inputs = new IO[](1);
                     inputs[0] = IO(address(iToken0), 18, vaultId);
                     IO[] memory outputs = new IO[](1);
                     outputs[0] = IO(address(iToken1), 18, vaultId);
-                    EvaluableConfigV2 memory evaluableConfig = EvaluableConfigV2(iDeployer, bytecode, constants);
+                    EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
                     orderConfig = OrderConfigV2(inputs, outputs, evaluableConfig, "");
                 }
 
@@ -75,7 +75,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 iOrderbook.addOrder(orderConfig);
                 Vm.Log[] memory entries = vm.getRecordedLogs();
                 assertEq(entries.length, 3);
-                (,, Order memory order,) = abi.decode(entries[2].data, (address, address, Order, bytes32));
+                (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
                 orders[i] = order;
             }
         }
@@ -108,9 +108,9 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             }
         }
 
-        TakeOrderConfig[] memory takeOrders = new TakeOrderConfig[](orders.length);
+        TakeOrderConfigV2[] memory takeOrders = new TakeOrderConfigV2[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            takeOrders[i] = TakeOrderConfig(orders[i], 0, 0, new SignedContextV1[](0));
+            takeOrders[i] = TakeOrderConfigV2(orders[i], 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maximumTakerInput, type(uint256).max, takeOrders, "");
 

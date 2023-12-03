@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Script.sol";
-import "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+import {Script, console2} from "forge-std/Script.sol";
+import {
+    RouteProcessorOrderBookV3ArbOrderTaker,
+    DeployerDiscoverableMetaV3ConstructionConfig
+} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+import {I9R_DEPLOYER} from "./DeployConstants.sol";
 
 /// @title DeployRouteProcessorOrderBookV3ArbOrderTaker
 /// @notice A script that deploys a `RouteProcessorOrderBookV3ArbOrderTaker`. This
@@ -13,19 +17,13 @@ contract DeployRouteProcessorOrderBookV3ArbOrderTaker is Script {
     /// provide the built metadata. On CI this is achieved by using the rain cli.
     function run(bytes memory meta) external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        // @todo pull this from subgraph.
-        // hardcoded from CI https://github.com/rainprotocol/rain.interpreter/actions/runs/6101787278/job/16558857505
-        address i9rDeployer = 0xAb0A13cC2654CbaDABabC9952a090928F4ff569A;
 
         console2.log("RouteProcessorOrderBookV3ArbOrderTaker meta hash:");
         console2.logBytes32(keccak256(meta));
 
         vm.startBroadcast(deployerPrivateKey);
         RouteProcessorOrderBookV3ArbOrderTaker deployed =
-        new RouteProcessorOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV2ConstructionConfig (
-            i9rDeployer,
-            meta
-        ));
+            new RouteProcessorOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV3ConstructionConfig(I9R_DEPLOYER, meta));
         (deployed);
         vm.stopBroadcast();
     }

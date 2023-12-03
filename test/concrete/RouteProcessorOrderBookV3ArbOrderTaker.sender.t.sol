@@ -1,45 +1,35 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibRouteProcessorOrderBookV3ArbOrderTakerConstants.sol";
+import {RouteProcessorOrderBookV3ArbOrderTakerTest} from
+    "test/util/abstract/RouteProcessorOrderBookV3ArbOrderTakerTest.sol";
+import {
+    OrderV2,
+    EvaluableConfigV3,
+    IExpressionDeployerV3,
+    TakeOrderConfigV2,
+    TakeOrdersConfigV2
+} from "src/interface/unstable/IOrderBookV3.sol";
+import {
+    RouteProcessorOrderBookV3ArbOrderTaker,
+    DeployerDiscoverableMetaV3ConstructionConfig,
+    OrderBookV3ArbOrderTakerConfigV1,
+    MinimumOutput
+} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 
-import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
-
-import "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
-import "src/interface/unstable/IOrderBookV3.sol";
-
-import "rain.factory/src/interface/ICloneableV2.sol";
-
-contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
-    function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config) =
-            buildConstructorConfig(ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
-        return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(config)));
-    }
-
-    constructor() ArbTest(buildArbTestConstructorConfig()) {
-        ICloneableV2(iArb).initialize(
-            abi.encode(
-                OrderBookV3ArbOrderTakerConfigV1(
-                    address(iOrderBook),
-                    EvaluableConfigV2(IExpressionDeployerV2(address(0)), "", new uint256[](0)),
-                    abi.encode(iRefundoor)
-                )
-            )
-        );
-    }
-
-    function testTakeOrdersSender(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex) public {
-        TakeOrderConfig[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+contract RouteProcessorOrderBookV3ArbOrderTakerSenderTest is RouteProcessorOrderBookV3ArbOrderTakerTest {
+    function testRouteProcessorTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+        public
+    {
+        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0
         );
     }
 
-    function testMinimumOutput(
-        Order memory order,
+    function testRouteProcessorMinimumOutput(
+        OrderV2 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256 minimumOutput,
@@ -49,7 +39,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
         minimumOutput = bound(minimumOutput, mintAmount + 1, type(uint256).max);
         iTakerOutput.mint(iArb, mintAmount);
 
-        TakeOrderConfig[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
