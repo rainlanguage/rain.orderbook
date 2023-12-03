@@ -64,6 +64,10 @@ jobs:
         working-directory: ./subgraph
         run: nix run .#init-setup
 
+      - name: Generate subgraph JSON schema
+        working-directory: ./subgraph
+        run: nix run .#generate-sg-schema
+
       - name: Run tests
         working-directory: ./subgraph
         run: nix run .#ci-test
