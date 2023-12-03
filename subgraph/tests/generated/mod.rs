@@ -17,6 +17,6 @@ abigen!(
   AuthoringMetaGetter,
   "tests/generated/AuthoringMetaGetter.json";
 
-  ERC20Mock,
+  ERC20Test,
   "tests/generated/ERC20Test.json";
 );
