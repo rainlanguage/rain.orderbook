@@ -8,5 +8,4 @@
 /package-lock.json 
 /docker/data
 /target
-
-
+/tests/utils/subgraph/**/*.json
