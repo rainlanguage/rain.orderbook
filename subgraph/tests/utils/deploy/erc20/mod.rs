@@ -1,6 +1,6 @@
 use crate::{
     generated::ERC20Test,
-    utils::{get_provider, get_wallet},
+    utils::{get_client, get_provider, get_wallet},
 };
 use ethers::{
     core::k256::ecdsa::SigningKey,
@@ -13,17 +13,8 @@ use std::sync::Arc;
 pub async fn deploy_erc20(
     wallet: Option<Wallet<SigningKey>>,
 ) -> anyhow::Result<ERC20Test<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let wallet = wallet.unwrap_or(get_wallet(0)?);
-    let provider = get_provider().await?;
-    let chain_id = provider.get_chainid().await?;
-
-    let client = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
+    let client = get_client(wallet).await?;
     let contract = ERC20Test::deploy(client, ())?.send().await?;
-
     Ok(contract)
 }
 
@@ -32,14 +23,7 @@ impl ERC20Test<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
         &self,
         wallet: &Wallet<SigningKey>,
     ) -> anyhow::Result<ERC20Test<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-        let provider = get_provider().await?;
-        let chain_id = provider.get_chainid().await?;
-
-        let client = Arc::new(SignerMiddleware::new(
-            provider.clone(),
-            wallet.clone().with_chain_id(chain_id.as_u64()),
-        ));
-
+        let client = get_client(Some(wallet.to_owned())).await?;
         Ok(ERC20Test::new(self.address(), client))
     }
 }
