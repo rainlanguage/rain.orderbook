@@ -17,7 +17,7 @@ pub async fn deploy_orderbook(
     let expression_deployer = touch_deployer().await?;
 
     // Obtaining OB Meta bytes
-    let meta = std::fs::read("../meta/OrderBook.rain.meta")?;
+    let meta = get_orderbook_meta()?;
     let args = vec![Token::Tuple(vec![
         Token::Address(expression_deployer.address()),
         Token::Bytes(meta),
@@ -44,4 +44,8 @@ impl Orderbook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
         let client = get_client(Some(wallet.to_owned())).await?;
         Ok(Orderbook::new(self.address(), client))
     }
+}
+
+pub fn get_orderbook_meta() -> anyhow::Result<Vec<u8>> {
+    Ok(std::fs::read("../meta/OrderBook.rain.meta")?)
 }
