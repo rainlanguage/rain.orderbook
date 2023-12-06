@@ -83,29 +83,13 @@
 
           generate-sg-schema =  pkgs.writeShellScriptBin "generate-sg-schema" (''
             ${rain-cli} subgraph build
-
             ${rain-cli} subgraph deploy --endpoint http://localhost:8020 --subgraph-name "test/test"
 
-            # Point A
-            start_time=$(date +"%s")
-
+            # Wait for 1 second to the subgraph be totally deployed
             sleep 1
-
-            # Point B
-            end_time=$(date +"%s")
-
-            # Calculate time difference
-            time_diff=$((end_time - start_time))
-            echo "Time difference: $time_diff seconds"
-
 
             ${graphql-client} introspect-schema --output tests/utils/subgraph/wait/schema.json http://localhost:8030/graphql
             ${graphql-client} introspect-schema --output tests/utils/subgraph/query/schema.json http://localhost:8000/subgraphs/name/test/test
-
-            # debug the content
-            echo $(ls .)
-            cat tests/utils/subgraph/query/schema.json | ${jq} .
-            cat tests/utils/subgraph/wait/schema.json| ${jq} .
           '');
 
           default = rain_cli;
