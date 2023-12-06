@@ -1,14 +1,10 @@
-use crate::{
-    generated::ERC20Test,
-    utils::{get_client, get_provider, get_wallet},
-};
+use crate::{generated::ERC20Test, utils::get_client};
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::SignerMiddleware,
-    providers::{Http, Middleware, Provider},
-    signers::{Signer, Wallet},
+    providers::{Http, Provider},
+    signers::Wallet,
 };
-use std::sync::Arc;
 
 pub async fn deploy_erc20(
     wallet: Option<Wallet<SigningKey>>,
