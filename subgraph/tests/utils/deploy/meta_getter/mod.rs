@@ -1,15 +1,6 @@
-use crate::{
-    generated::AuthoringMetaGetter,
-    utils::{get_provider, get_wallet},
-};
-use ethers::{
-    prelude::SignerMiddleware,
-    providers::Middleware,
-    signers::Signer,
-    types::{Bytes, H160},
-};
+use crate::{generated::AuthoringMetaGetter, utils::get_client};
+use ethers::types::{Bytes, H160};
 use once_cell::sync::Lazy;
-use std::sync::Arc;
 use tokio::sync::OnceCell;
 
 static META_GETTER: Lazy<OnceCell<H160>> = Lazy::new(|| OnceCell::new());
@@ -29,38 +20,17 @@ async fn get_meta_address() -> anyhow::Result<&'static H160> {
 }
 
 async fn authoring_meta_getter_deploy() -> anyhow::Result<H160> {
-    let provider = get_provider().await?;
-    let wallet = get_wallet(0)?;
-
-    let chain_id = provider.get_chainid().await?;
-
-    let deployer = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
+    let deployer = get_client(None).await?;
     let contract = AuthoringMetaGetter::deploy(deployer, ())?.send().await?;
-
     Ok(contract.address())
 }
 
 /// Get the AuthoringMeta bytes to deploy ExpressionDeployers.
 pub async fn get_authoring_meta() -> anyhow::Result<Bytes> {
-    let provider = get_provider().await?;
-    let wallet = get_wallet(0)?;
-
     let meta_address = get_meta_address().await?;
+    let deployer = get_client(None).await?;
 
-    let chain_id = provider.get_chainid().await?;
-
-    let deployer = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
-    let meta_bytes = AuthoringMetaGetter::new(*meta_address, deployer)
+    Ok(AuthoringMetaGetter::new(*meta_address, deployer)
         .get_authoring_meta()
-        .await?;
-
-    Ok(meta_bytes)
+        .await?)
 }
