@@ -107,17 +107,17 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1701568468,
-        "narHash": "sha256-w0UO2GKO6T046xkrJgB4wUFguYZbRppg1biTEUJ5DOI=",
+        "lastModified": 1701827789,
+        "narHash": "sha256-I9Zl/Jsiyw6o2nKfDaq6/lgOGtobtv9VKplY/5Azh8w=",
         "owner": "rainlanguage",
         "repo": "rain.cli",
-        "rev": "b702505ddd2a9bb714837a62b09d2ba08001c335",
+        "rev": "192d5e1921ee37ba933b5ed42c9edf6f45ae6a93",
         "type": "github"
       },
       "original": {
         "owner": "rainlanguage",
         "repo": "rain.cli",
-        "rev": "b702505ddd2a9bb714837a62b09d2ba08001c335",
+        "rev": "192d5e1921ee37ba933b5ed42c9edf6f45ae6a93",
         "type": "github"
       }
     },

@@ -2475,7 +2475,7 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain_cli_subgraph"
 version = "0.0.1"
-source = "git+https://github.com/rainlanguage/rain.subgraph-cli.git?rev=d3aabe1811c642dc8d9890f127f0100f71d0ebbe#d3aabe1811c642dc8d9890f127f0100f71d0ebbe"
+source = "git+https://github.com/rainlanguage/rain.subgraph-cli.git?rev=6a2ea40ec692eea35a4b618b6e664139587662f1#6a2ea40ec692eea35a4b618b6e664139587662f1"
 dependencies = [
  "anyhow",
  "clap",
