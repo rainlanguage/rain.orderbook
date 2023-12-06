@@ -89,7 +89,7 @@
             # Point A
             start_time=$(date +"%s")
 
-            sleep 5
+            sleep 1
 
             # Point B
             end_time=$(date +"%s")
