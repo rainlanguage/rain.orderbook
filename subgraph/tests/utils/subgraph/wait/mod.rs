@@ -3,7 +3,6 @@ use crate::utils::rpc_node::get_block_number;
 use anyhow::{anyhow, format_err, Result};
 use ethers::types::U64;
 use graphql_client::{GraphQLQuery, Response};
-use reqwest::Url;
 use rust_bigint::BigInt;
 use std::thread;
 use std::{
@@ -22,8 +21,7 @@ pub struct SyncStatus;
 
 pub async fn wait() -> Result<()> {
     let block_number = get_block_number().await?;
-
-    let url = Url::from_str(&"http://localhost:8030/graphql")?;
+    let url = "http://localhost:8030/graphql";
 
     let request_body = SyncStatus::build_query(sync_status::Variables {});
 
@@ -32,7 +30,7 @@ pub async fn wait() -> Result<()> {
 
     loop {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?;
-        let response = client.post(url.clone()).json(&request_body).send().await?;
+        let response = client.post(url).json(&request_body).send().await?;
 
         let response_body: Response<sync_status::ResponseData> = response.json().await?;
 
