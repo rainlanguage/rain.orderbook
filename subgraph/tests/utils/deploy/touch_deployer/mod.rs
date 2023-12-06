@@ -3,7 +3,7 @@ use crate::{
         Rainterpreter, RainterpreterExpressionDeployer, RainterpreterParser, RainterpreterStore,
         RAINTERPRETEREXPRESSIONDEPLOYER_ABI, RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE,
     },
-    utils::{get_provider, get_wallet},
+    utils::get_client,
 };
 use anyhow::Result;
 use ethers::{
@@ -11,19 +11,16 @@ use ethers::{
     contract::ContractFactory,
     core::k256::ecdsa::SigningKey,
     prelude::SignerMiddleware,
-    providers::{Http, Middleware, Provider},
-    signers::{Signer, Wallet},
+    providers::{Http, Provider},
+    signers::Wallet,
     types::H160,
 };
-use std::sync::Arc;
 
 pub async fn touch_deployer(
 ) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
     let rainterpreter = rainterpreter_deploy().await?;
-
     let store = rainterpreter_store_deploy().await?;
     let parser = rainterpreter_parser_deploy().await?;
-
     let expression_deployer = rainterpreter_expression_deployer_deploy(
         rainterpreter.address(),
         store.address(),
@@ -36,49 +33,22 @@ pub async fn touch_deployer(
 
 pub async fn rainterpreter_deploy(
 ) -> Result<Rainterpreter<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let wallet = get_wallet(0)?;
-    let provider = get_provider().await?;
-    let chain_id = provider.get_chainid().await?;
-
-    let deployer = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
+    let deployer = get_client(None).await?;
     let interpreter = Rainterpreter::deploy(deployer, ())?.send().await?;
-
     Ok(interpreter)
 }
 
 pub async fn rainterpreter_store_deploy(
 ) -> Result<RainterpreterStore<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let wallet = get_wallet(0)?;
-    let provider = get_provider().await?;
-    let chain_id = provider.get_chainid().await?;
-
-    let deployer = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
+    let deployer = get_client(None).await?;
     let store = RainterpreterStore::deploy(deployer, ())?.send().await?;
-
     Ok(store)
 }
 
 pub async fn rainterpreter_parser_deploy(
 ) -> Result<RainterpreterParser<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let wallet = get_wallet(0)?;
-    let provider = get_provider().await?;
-    let chain_id = provider.get_chainid().await?;
-
-    let deployer = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
+    let deployer = get_client(None).await?;
     let store = RainterpreterParser::deploy(deployer, ())?.send().await?;
-
     Ok(store)
 }
 
@@ -87,15 +57,6 @@ pub async fn rainterpreter_expression_deployer_deploy(
     store_address: H160,
     parser_address: H160,
 ) -> Result<RainterpreterExpressionDeployer<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let wallet = get_wallet(0)?;
-    let provider = get_provider().await?;
-    let chain_id = provider.get_chainid().await?;
-
-    let client = Arc::new(SignerMiddleware::new(
-        provider.clone(),
-        wallet.with_chain_id(chain_id.as_u64()),
-    ));
-
     // Reading the meta directly from the submodule
     let meta_bytes = std::fs::read(
         "../lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta",
@@ -108,15 +69,14 @@ pub async fn rainterpreter_expression_deployer_deploy(
         Token::Bytes(meta_bytes),
     ])];
 
+    let deployer = get_client(None).await?;
     let deploy_transaction = ContractFactory::new(
         RAINTERPRETEREXPRESSIONDEPLOYER_ABI.clone(),
         RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE.clone(),
-        client.clone(),
+        deployer.clone(),
     );
-
     let contract = deploy_transaction.deploy_tokens(args)?.send().await?;
+    let deployer = RainterpreterExpressionDeployer::new(contract.address(), deployer);
 
-    let deployer = RainterpreterExpressionDeployer::new(contract.address(), client);
-
-    return Ok(deployer);
+    Ok(deployer)
 }
