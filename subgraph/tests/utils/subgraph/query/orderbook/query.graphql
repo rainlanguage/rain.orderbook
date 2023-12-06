@@ -1,0 +1,10 @@
+query OrderBook($orderbook: String) {
+  orderBook(id: $orderbook) {
+    id
+    deployer
+    address
+    meta {
+      id
+    }
+  }
+}
