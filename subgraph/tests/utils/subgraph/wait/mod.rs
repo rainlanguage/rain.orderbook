@@ -19,6 +19,7 @@ use std::{
 
 pub struct SyncStatus;
 
+/// Wait for subgraph synchronization
 pub async fn wait() -> Result<()> {
     let block_number = get_block_number().await?;
     let url = "http://localhost:8030/graphql";
