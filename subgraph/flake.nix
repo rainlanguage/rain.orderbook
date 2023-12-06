@@ -14,6 +14,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         rain-cli = "${rain.defaultPackage.${system}}/bin/rain";
         graphql-client = "${pkgs.graphql-client}/bin/graphql-client";
+        jq = "${pkgs.jq}/bin/jq";
 
       in rec {
         packages = rec {
@@ -86,6 +87,9 @@
 
             ${graphql-client} introspect-schema --output tests/utils/subgraph/wait/schema.json http://localhost:8030/graphql
             ${graphql-client} introspect-schema --output tests/utils/subgraph/query/schema.json http://localhost:8000/subgraphs/name/test/test
+
+            # debug the content
+            cat tests/utils/subgraph/query/schema.json | ${jq} .
           '');
 
           default = rain_cli;
