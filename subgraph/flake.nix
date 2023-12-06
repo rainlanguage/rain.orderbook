@@ -86,6 +86,19 @@
 
             ${rain-cli} subgraph deploy --endpoint http://localhost:8020 --subgraph-name "test/test"
 
+            # Point A
+            start_time=$(date +"%s")
+
+            sleep 5
+
+            # Point B
+            end_time=$(date +"%s")
+
+            # Calculate time difference
+            time_diff=$((end_time - start_time))
+            echo "Time difference: $time_diff seconds"
+
+
             ${graphql-client} introspect-schema --output tests/utils/subgraph/wait/schema.json http://localhost:8030/graphql
             ${graphql-client} introspect-schema --output tests/utils/subgraph/query/schema.json http://localhost:8000/subgraphs/name/test/test
 
