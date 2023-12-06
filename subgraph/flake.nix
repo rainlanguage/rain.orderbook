@@ -82,14 +82,11 @@
           '';
 
           generate-sg-schema =  pkgs.writeShellScriptBin "generate-sg-schema" (''
+            ${rain-cli} subgraph build
             ${rain-cli} subgraph deploy --endpoint http://localhost:8020 --subgraph-name "test/test"
-            sleep 5
 
             ${graphql-client} introspect-schema --output tests/utils/subgraph/wait/schema.json http://localhost:8030/graphql
             ${graphql-client} introspect-schema --output tests/utils/subgraph/query/schema.json http://localhost:8000/subgraphs/name/test/test
-
-            # debug the content
-            cat tests/utils/subgraph/query/schema.json | ${jq} .
           '');
 
           default = rain_cli;
