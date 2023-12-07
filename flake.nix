@@ -2,8 +2,8 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    rain.url = "github:rainprotocol/rain.cli";
+    nixpkgs.url = "github:nixos/nixpkgs/ec750fd01963ab6b20ee1f0cb488754e8036d89d";
+    rain.url = "github:rainprotocol/rain.cli/6a912680be6d967fd6114aafab793ebe8503d27b";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -26,6 +26,7 @@
           '';
           build-meta = pkgs.writeShellScriptBin "build-meta" (''
           set -x;
+          mkdir -p meta;
           forge build --force;
           '' + pkgs.lib.concatStrings (map build-single-meta concrete-contracts));
 

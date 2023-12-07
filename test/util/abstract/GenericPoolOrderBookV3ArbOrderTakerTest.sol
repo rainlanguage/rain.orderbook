@@ -5,7 +5,8 @@ import {ArbTest, ArbTestConstructorConfig} from "./ArbTest.sol";
 import {
     GenericPoolOrderBookV3ArbOrderTaker,
     DeployerDiscoverableMetaV3ConstructionConfig,
-    OrderBookV3ArbOrderTakerConfigV1
+    OrderBookV3ArbOrderTakerConfigV1,
+    CALLER_META_HASH as GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_CALLER_META_HASH
 } from "src/concrete/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import {
     OrderV2,
@@ -20,8 +21,10 @@ import {GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH} from
 
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) =
-            buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
+        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) = buildConstructorConfig(
+            GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH,
+            GENERIC_POOL_ORDER_BOOK_V3_ARB_ORDER_TAKER_CALLER_META_HASH
+        );
         return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker(config)));
     }
 
