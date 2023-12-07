@@ -35,9 +35,12 @@ jobs:
         run: forge fmt --check
         id: fmt
 
-      - name: Run Forge build
-        run: forge build --sizes
-        id: build
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Prepare repo
+        run: nix run
 
       - name: Run Forge tests
         run: forge test -vvv --gas-report
