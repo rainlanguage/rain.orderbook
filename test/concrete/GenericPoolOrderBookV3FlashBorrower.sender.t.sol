@@ -2,18 +2,32 @@
 pragma solidity =0.8.19;
 
 import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
-import "lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
 
-import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
+import {GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH} from
+    "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
 
-import "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
-import "src/interface/unstable/IOrderBookV3.sol";
+import {
+    GenericPoolOrderBookV3FlashBorrower,
+    DeployerDiscoverableMetaV3ConstructionConfig,
+    CALLER_META_HASH as GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_CALLER_META_HASH,
+    MinimumOutput,
+    ICloneableV2,
+    OrderBookV3FlashBorrowerConfigV2
+} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+import {
+    OrderV2,
+    TakeOrderConfigV2,
+    EvaluableConfigV3,
+    TakeOrdersConfigV2,
+    IExpressionDeployerV3
+} from "src/interface/unstable/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) =
-            buildConstructorConfig(GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH);
+        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) = buildConstructorConfig(
+            GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH,
+            GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_CALLER_META_HASH
+        );
         return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3FlashBorrower(config)));
     }
 

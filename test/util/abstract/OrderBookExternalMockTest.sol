@@ -16,7 +16,7 @@ import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterSt
 import {IOrderBookV3, OrderConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderBook} from "src/concrete/OrderBook.sol";
+import {OrderBook, CALLER_META_HASH as ORDERBOOK_CALLER_META_HASH} from "src/concrete/OrderBook.sol";
 import {DeployerDiscoverableMetaV3ConstructionConfig} from
     "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 
@@ -54,8 +54,13 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
             abi.encode(iInterpreter, iStore, address(0), "00020000")
         );
         bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        console2.log("OrderBookExternalMockTest meta hash:");
-        console2.logBytes(abi.encodePacked(keccak256(meta)));
+        bytes32 metaHash = keccak256(meta);
+        if (metaHash != ORDERBOOK_CALLER_META_HASH) {
+            console2.log("OrderBookExternalMockTest orderbook meta hash:");
+            console2.logBytes(abi.encodePacked(metaHash));
+            console2.log("expected OrderBookExternalMockTest orderbook meta hash:");
+            console2.logBytes(abi.encodePacked(ORDERBOOK_CALLER_META_HASH));
+        }
         iOrderbook =
             IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV3ConstructionConfig(address(iDeployer), meta))));
 

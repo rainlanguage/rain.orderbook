@@ -5,7 +5,8 @@ import {ArbTest, ArbTestConstructorConfig} from "./ArbTest.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
     DeployerDiscoverableMetaV3ConstructionConfig,
-    OrderBookV3ArbOrderTakerConfigV1
+    OrderBookV3ArbOrderTakerConfigV1,
+    CALLER_META_HASH as ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_CALLER_META_HASH
 } from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import {
     OrderV2,
@@ -20,8 +21,10 @@ import {ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH} from
 
 contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) =
-            buildConstructorConfig(ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH);
+        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) = buildConstructorConfig(
+            ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH,
+            ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_CALLER_META_HASH
+        );
         return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(config)));
     }
 

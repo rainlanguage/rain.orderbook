@@ -1,0 +1,30 @@
+name: Upload function selectors
+
+on: [push]
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Upload function selectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install deps
+        run: forge install --shallow
+
+      - name: Upload function selectors
+        run: forge selectors up --all
+        id: selectors

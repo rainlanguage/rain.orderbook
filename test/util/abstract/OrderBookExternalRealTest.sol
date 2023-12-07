@@ -6,7 +6,8 @@ import {RainterpreterNPE2} from "rain.interpreter/src/concrete/RainterpreterNPE2
 import {RainterpreterStoreNPE2} from "rain.interpreter/src/concrete/RainterpreterStoreNPE2.sol";
 import {
     RainterpreterExpressionDeployerNPE2,
-    RainterpreterExpressionDeployerNPE2ConstructionConfig
+    RainterpreterExpressionDeployerNPE2ConstructionConfig,
+    CONSTRUCTION_META_HASH as DEPLOYER_CALLER_META_HASH
 } from "rain.interpreter/src/concrete/RainterpreterExpressionDeployerNPE2.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/src/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
@@ -16,7 +17,12 @@ import {IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpret
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import {IOrderBookV3} from "src/interface/unstable/IOrderBookV3.sol";
-import {OrderBook, IERC20, DeployerDiscoverableMetaV3ConstructionConfig} from "src/concrete/OrderBook.sol";
+import {
+    OrderBook,
+    IERC20,
+    DeployerDiscoverableMetaV3ConstructionConfig,
+    CALLER_META_HASH as ORDERBOOK_CALLER_META_HASH
+} from "src/concrete/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
@@ -49,8 +55,13 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
             address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
         );
         bytes memory deployerMeta = vm.readFileBinary(DEPLOYER_META_PATH);
-        console2.log("current deployer meta hash:");
-        console2.logBytes32(keccak256(deployerMeta));
+        bytes32 deployerMetaHash = keccak256(deployerMeta);
+        if (deployerMetaHash != DEPLOYER_CALLER_META_HASH) {
+            console2.log("deployer meta hash:");
+            console2.logBytes32(deployerMetaHash);
+            console2.log("expected deployer meta hash:");
+            console2.logBytes32(DEPLOYER_CALLER_META_HASH);
+        }
         iDeployer = IExpressionDeployerV3(
             address(
                 new RainterpreterExpressionDeployerNPE2(
@@ -61,8 +72,13 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
             )
         );
         bytes memory orderbookMeta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        console2.log("orderbook meta hash:");
-        console2.logBytes(abi.encodePacked(keccak256(orderbookMeta)));
+        bytes32 orderbookMetaHash = keccak256(orderbookMeta);
+        if (orderbookMetaHash != ORDERBOOK_CALLER_META_HASH) {
+            console2.log("orderbook meta hash:");
+            console2.logBytes(abi.encodePacked(orderbookMetaHash));
+            console2.log("expected orderbook meta hash:");
+            console2.logBytes(abi.encodePacked(ORDERBOOK_CALLER_META_HASH));
+        }
         iOrderbook = IOrderBookV3(
             address(new OrderBook(DeployerDiscoverableMetaV3ConstructionConfig(address(iDeployer), orderbookMeta)))
         );

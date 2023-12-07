@@ -44,7 +44,7 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
     }
 
-    function buildConstructorConfig(string memory metaPath)
+    function buildConstructorConfig(string memory metaPath, bytes32 expectedHash)
         internal
         returns (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config)
     {
@@ -58,8 +58,14 @@ abstract contract ArbTest is Test {
             abi.encode(address(0), address(0), address(0), "0000")
         );
         bytes memory meta = vm.readFileBinary(metaPath);
-        console2.log("ArbTest meta hash:");
-        console2.logBytes32(keccak256(meta));
+        bytes32 metaHash = keccak256(meta);
+        if (metaHash != expectedHash) {
+            console2.log("ArbTest meta hash:", metaPath);
+            console2.logBytes32(metaHash);
+            console2.log("expected ArbTest meta hash:");
+            console2.logBytes32(expectedHash);
+            revert("ArbTest: invalid meta hash");
+        }
         config = DeployerDiscoverableMetaV3ConstructionConfig(deployer, meta);
     }
 
