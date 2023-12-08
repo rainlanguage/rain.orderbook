@@ -1,30 +1,39 @@
 use crate::utils::deploy::deploy1820;
 use anyhow::Result;
-use ethers::providers::{Http, Provider};
 use once_cell::sync::Lazy;
+use subgraph_rust_setup_utils::{WalletHandler, RPC};
 use tokio::sync::OnceCell;
 
-static PROVIDER: Lazy<OnceCell<Provider<Http>>> = Lazy::new(|| OnceCell::new());
+// Initialize just once
+static RPC_PROVIDER: Lazy<OnceCell<RPC>> = Lazy::new(|| OnceCell::new());
+static WALLETS_HANDLER: Lazy<WalletHandler> = Lazy::new(|| WalletHandler::default());
 
-async fn provider_node() -> Result<Provider<Http>> {
-    let provider_url = "http://localhost:8545";
-
-    let provider: Provider<Http> = Provider::<Http>::try_from(provider_url)?;
+async fn provider_node() -> Result<RPC> {
+    let rpc_provider = RPC::default();
 
     // Always checking if the Registry1820 is deployed. Deploy it otherwise
-    let _ = deploy1820(&provider).await;
+    deploy1820(rpc_provider.get_provider()).await?;
 
-    Ok(provider)
+    Ok(rpc_provider)
 }
 
-pub async fn get_provider() -> Result<&'static Provider<Http>> {
-    let provider_lazy = PROVIDER
+async fn init_wallets() -> Result<WalletHandler> {
+    Ok(WalletHandler::default())
+}
+
+pub async fn get_rpc_provider() -> Result<&'static RPC> {
+    let provider_lazy = RPC_PROVIDER
         .get_or_try_init(|| async { provider_node().await })
         .await
         .map_err(|err| err);
 
     match provider_lazy {
         Ok(provider) => Ok(provider),
-        Err(e) => return Err(anyhow::Error::msg(e.to_string())),
+        Err(err) => return Err(err),
     }
+}
+
+pub async fn get_wallets_handler() -> Result<&'static WalletHandler> {
+    println!("check111");
+    Ok(&*WALLETS_HANDLER)
 }
