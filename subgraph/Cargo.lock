@@ -3226,9 +3226,22 @@ dependencies = [
  "rust-bigint",
  "serde",
  "serde_json",
+ "subgraph_rust_setup_utils",
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "subgraph_rust_setup_utils"
+version = "0.1.0"
+source = "git+https://github.com/rainlanguage/subgraph-rust-setup-utils.git?rev=34b71c3545b4885f67822cb0c1861e77d1e9e617#34b71c3545b4885f67822cb0c1861e77d1e9e617"
+dependencies = [
+ "anyhow",
+ "ethers",
+ "reqwest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

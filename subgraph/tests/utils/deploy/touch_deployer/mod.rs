@@ -1,11 +1,9 @@
-use crate::utils::deploy::get_authoring_meta;
-use crate::{
-    generated::{
-        Rainterpreter, RainterpreterExpressionDeployer, RainterpreterStore,
-        RAINTERPRETEREXPRESSIONDEPLOYER_ABI, RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE,
-    },
-    utils::get_client,
+use crate::generated::{
+    Rainterpreter, RainterpreterExpressionDeployer, RainterpreterStore,
+    RAINTERPRETEREXPRESSIONDEPLOYER_ABI, RAINTERPRETEREXPRESSIONDEPLOYER_BYTECODE,
 };
+use crate::utils::deploy::get_authoring_meta;
+use crate::utils::setup::get_wallets_handler;
 use anyhow::Result;
 use ethers::{
     abi::Token,
@@ -29,13 +27,13 @@ pub async fn touch_deployer(
 
 pub async fn rainterpreter_deploy(
 ) -> Result<Rainterpreter<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let deployer = get_client(None).await?;
+    let deployer = get_wallets_handler().get_client(0).await?;
     Ok(Rainterpreter::deploy(deployer, ())?.send().await?)
 }
 
 pub async fn rainterpreter_store_deploy(
 ) -> Result<RainterpreterStore<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-    let deployer = get_client(None).await?;
+    let deployer = get_wallets_handler().get_client(0).await?;
     Ok(RainterpreterStore::deploy(deployer, ())?.send().await?)
 }
 
@@ -50,7 +48,7 @@ pub async fn rainterpreter_expression_deployer_deploy(
         Token::Bytes(meta_bytes),
     ])];
 
-    let deployer = get_client(None).await?;
+    let deployer = get_wallets_handler().get_client(0).await?;
 
     let deploy_transaction = ContractFactory::new(
         RAINTERPRETEREXPRESSIONDEPLOYER_ABI.clone(),

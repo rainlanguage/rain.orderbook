@@ -1,6 +1,6 @@
 use crate::{
     generated::{Orderbook, ORDERBOOK_ABI, ORDERBOOK_BYTECODE},
-    utils::{deploy::touch_deployer, get_client},
+    utils::{deploy::touch_deployer, setup::get_wallets_handler},
 };
 use ethers::{
     abi::Token,
@@ -23,7 +23,7 @@ pub async fn deploy_orderbook(
         Token::Bytes(meta),
     ])];
 
-    let client = get_client(None).await?;
+    let client = get_wallets_handler().get_client(0).await?;
 
     // Obtaining OB deploy transaction
     let deploy_transaction = ContractFactory::new(
@@ -41,7 +41,7 @@ impl Orderbook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>> {
         &self,
         wallet: &Wallet<SigningKey>,
     ) -> anyhow::Result<Orderbook<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>> {
-        let client = get_client(Some(wallet.to_owned())).await?;
+        let client = get_wallets_handler().get_client(wallet).await?;
         Ok(Orderbook::new(self.address(), client))
     }
 }

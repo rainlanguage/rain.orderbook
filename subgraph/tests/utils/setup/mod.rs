@@ -17,10 +17,6 @@ async fn provider_node() -> Result<RPC> {
     Ok(rpc_provider)
 }
 
-async fn init_wallets() -> Result<WalletHandler> {
-    Ok(WalletHandler::default())
-}
-
 pub async fn get_rpc_provider() -> Result<&'static RPC> {
     let provider_lazy = RPC_PROVIDER
         .get_or_try_init(|| async { provider_node().await })
@@ -33,7 +29,6 @@ pub async fn get_rpc_provider() -> Result<&'static RPC> {
     }
 }
 
-pub async fn get_wallets_handler() -> Result<&'static WalletHandler> {
-    println!("check111");
-    Ok(&*WALLETS_HANDLER)
+pub fn get_wallets_handler() -> &'static WalletHandler {
+    &*WALLETS_HANDLER
 }

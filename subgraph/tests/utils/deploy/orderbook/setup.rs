@@ -1,5 +1,5 @@
 use super::deploy::deploy_orderbook;
-use crate::{generated::Orderbook, utils::rpc_node};
+use crate::{generated::Orderbook, utils::setup::get_rpc_provider};
 use anyhow::Result;
 use ethers::{
     core::k256::ecdsa::SigningKey,
@@ -18,7 +18,8 @@ async fn init_orderbook() -> Result<Orderbook<SignerMiddleware<Provider<Http>, W
 {
     tracing::subscriber::set_global_default(tracing_subscriber::fmt::Subscriber::new())?;
 
-    let block = rpc_node::get_block_number().await?;
+    let provider = get_rpc_provider().await?;
+    let block = provider.get_block_number().await?;
 
     let orderbook = deploy_orderbook().await?;
 

@@ -1,5 +1,5 @@
+use crate::utils::setup::get_rpc_provider;
 use self::sync_status::Health;
-use crate::utils::rpc_node::get_block_number;
 use anyhow::{anyhow, format_err, Result};
 use ethers::types::U64;
 use graphql_client::{GraphQLQuery, Response};
@@ -21,7 +21,9 @@ pub struct SyncStatus;
 
 /// Wait for subgraph synchronization
 pub async fn wait() -> Result<()> {
-    let block_number = get_block_number().await?;
+    let provider = get_rpc_provider().await?;
+
+    let block_number = provider.get_block_number().await?;
     let url = "http://localhost:8030/graphql";
 
     let request_body = SyncStatus::build_query(sync_status::Variables {});
