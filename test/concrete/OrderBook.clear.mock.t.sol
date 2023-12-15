@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/forge-std/src/Test.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
 
-import "test/util/abstract/OrderBookExternalMockTest.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {OrderConfigV2, OrderV2, IO, ClearConfig} from "src/interface/unstable/IOrderBookV3.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {NotOrderOwner} from "src/concrete/OrderBook.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
@@ -28,12 +33,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         // -- Add two orders with similar IO tokens (swapped)
         // Add alice order with a input token (iToken0) and output token (iToken1)
-        (Order memory aliceOrder, bytes32 aliceOrderHash) =
+        (OrderV2 memory aliceOrder, bytes32 aliceOrderHash) =
             _addOrderMockInternal(alice, aliceConfig, expression, iToken0, iToken1);
         assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
         // Add bob order with a input token (iToken1) and output token (iToken0)
-        (Order memory bobOrder, bytes32 bobOrderHash) =
+        (OrderV2 memory bobOrder, bytes32 bobOrderHash) =
             _addOrderMockInternal(bob, bobConfig, expression, iToken1, iToken0);
         assertTrue(iOrderbook.orderExists(bobOrderHash));
 
@@ -57,7 +62,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStack[1] = 1e18; // orderIORatio
         vm.mockCall(
             address(iInterpreter),
-            abi.encodeWithSelector(IInterpreterV1.eval.selector),
+            abi.encodeWithSelector(IInterpreterV2.eval2.selector),
             abi.encode(orderStack, new uint256[](0))
         );
 
@@ -74,7 +79,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         address expression,
         IERC20 inputToken,
         IERC20 outputToken
-    ) internal returns (Order memory, bytes32) {
+    ) internal returns (OrderV2 memory, bytes32) {
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         config.evaluableConfig.bytecode = hex"02000000040000000000000000";

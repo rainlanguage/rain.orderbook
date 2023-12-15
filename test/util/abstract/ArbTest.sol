@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "forge-std/Test.sol";
-import "openzeppelin-contracts/contracts/proxy/Clones.sol";
+import {Test, console2} from "forge-std/Test.sol";
+import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 import "test/util/lib/LibTestConstants.sol";
-import {DeployerDiscoverableMetaV2ConstructionConfig} from
-    "rain.interpreter/src/abstract/DeployerDiscoverableMetaV2.sol";
-import {IExpressionDeployerV2} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV2.sol";
+import {DeployerDiscoverableMetaV3ConstructionConfig} from
+    "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "test/util/concrete/Refundoor.sol";
 import "test/util/concrete/FlashLendingMockOrderBook.sol";
@@ -44,28 +44,35 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
     }
 
-    function buildConstructorConfig(string memory metaPath)
+    function buildConstructorConfig(string memory metaPath, bytes32 expectedHash)
         internal
-        returns (address deployer, DeployerDiscoverableMetaV2ConstructionConfig memory config)
+        returns (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config)
     {
         deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
         // All non-mocked calls will revert.
         vm.etch(deployer, REVERTING_MOCK_BYTECODE);
         vm.mockCall(
             deployer,
-            abi.encodeWithSelector(IExpressionDeployerV2.deployExpression.selector),
-            abi.encode(address(0), address(0), address(0))
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            // Don't need any io for the "before arb" expression.
+            abi.encode(address(0), address(0), address(0), "0000")
         );
         bytes memory meta = vm.readFileBinary(metaPath);
-        console2.log("RouteProcessorOrderBookV3ArbOrderTakerTest meta hash:");
-        console2.logBytes32(keccak256(meta));
-        config = DeployerDiscoverableMetaV2ConstructionConfig(deployer, meta);
+        bytes32 metaHash = keccak256(meta);
+        if (metaHash != expectedHash) {
+            console2.log("ArbTest meta hash:", metaPath);
+            console2.logBytes32(metaHash);
+            console2.log("expected ArbTest meta hash:");
+            console2.logBytes32(expectedHash);
+            revert("ArbTest: invalid meta hash");
+        }
+        config = DeployerDiscoverableMetaV3ConstructionConfig(deployer, meta);
     }
 
-    function buildTakeOrderConfig(Order memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function buildTakeOrderConfig(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
-        returns (TakeOrderConfig[] memory)
+        returns (TakeOrderConfigV2[] memory)
     {
         if (order.validInputs.length == 0) {
             order.validInputs = new IO[](1);
@@ -79,8 +86,8 @@ abstract contract ArbTest is Test {
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](1);
-        orders[0] = TakeOrderConfig(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
+        orders[0] = TakeOrderConfigV2(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
         return orders;
     }
 

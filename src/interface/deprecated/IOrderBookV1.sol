@@ -321,7 +321,7 @@ interface IOrderBookV1 is IERC3156FlashLender, IInterpreterCallerV1 {
     /// @param orderHash The hash of the order as it is recorded onchain. Only
     /// the hash is stored in Orderbook storage to avoid paying gas to store the
     /// entire order.
-    event AddOrder(address sender, IExpressionDeployerV2 expressionDeployer, Order order, uint256 orderHash);
+    event AddOrder(address sender, IExpressionDeployerV3 expressionDeployer, Order order, uint256 orderHash);
 
     /// An order has been removed from the orderbook. This effectively
     /// deactivates it. Orders can be added again after removal.

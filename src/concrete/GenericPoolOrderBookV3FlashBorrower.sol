@@ -9,7 +9,7 @@ import "src/abstract/OrderBookV3FlashBorrower.sol";
 /// @dev Metadata hash for `DeployerDiscoverableMetaV1`.
 /// - ABI for GenericPoolOrderBookV3FlashBorrower
 /// - Interpreter caller metadata V1 for GenericPoolOrderBookV3FlashBorrower
-bytes32 constant CALLER_META_HASH = bytes32(0xc527f81e4dac946943b3ffe7a99d82535b44a79eb92692159566eea43659365e);
+bytes32 constant CALLER_META_HASH = bytes32(0x52cdec296c4ecb0b2452c9e314df50e1b5d52fef03927934b7426ff6f150f0fe);
 
 /// @title GenericPoolOrderBookV3FlashBorrower
 /// Implements the OrderBookV3FlashBorrower interface for a external liquidity
@@ -25,7 +25,7 @@ contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(DeployerDiscoverableMetaV2ConstructionConfig memory config)
+    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
         OrderBookV3FlashBorrower(CALLER_META_HASH, config)
     {}
 

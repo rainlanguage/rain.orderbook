@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/openzeppelin-contracts/contracts/utils/Address.sol";
+import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
+import {IERC3156FlashBorrower, ON_FLASH_LOAN_CALLBACK_SUCCESS} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /// @title Reenteroor
 /// A contract that reenters the caller with a configurable call.
-contract Reenteroor {
+/// This is compatible with flash loans and can be used as a borrower that will
+/// handle `onFlashLoan` and return success to the lender correctly, as well as
+/// reentering.
+contract Reenteroor is IERC3156FlashBorrower {
     using Address for address;
 
     /// The call to reenter with. Set by `reenterWith`.
@@ -15,6 +20,18 @@ contract Reenteroor {
     /// to call back into the caller.
     function reenterWith(bytes memory encodedCall) external {
         _sEncodedCall = encodedCall;
+    }
+
+    /// @inheritdoc IERC3156FlashBorrower
+    function onFlashLoan(address, address token, uint256 amount, uint256, bytes calldata)
+        external
+        override
+        returns (bytes32)
+    {
+        address(msg.sender).functionCall(_sEncodedCall);
+        // Approve the lender to pull the tokens back and repay the loan.
+        IERC20(token).approve(msg.sender, amount);
+        return ON_FLASH_LOAN_CALLBACK_SUCCESS;
     }
 
     /// Reenter the caller with the call set by `reenterWith`. This will bubble

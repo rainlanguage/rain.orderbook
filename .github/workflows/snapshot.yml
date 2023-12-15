@@ -18,6 +18,14 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Prepare repo
+        run: nix run
+
       - name: Check gas snapshots
         run: forge snapshot --check
         id: snapshot

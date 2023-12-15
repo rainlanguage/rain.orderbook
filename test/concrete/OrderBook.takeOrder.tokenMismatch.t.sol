@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderV2, IO, TakeOrderConfigV2, TakeOrdersConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {TokenMismatch} from "src/concrete/OrderBook.sol";
+import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -14,10 +16,10 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
     /// pass in.
     /// Test a mismatch in the input tokens.
     function testTokenMismatchInputs(
-        Order memory a,
+        OrderV2 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        Order memory b,
+        OrderV2 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex,
         uint256 maxTakerInput,
@@ -38,9 +40,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up outputs so we don't trigger that code path.
         b.validOutputs[bOutputIOIndex].token = a.validOutputs[aOutputIOIndex].token;
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](2);
-        orders[0] = TakeOrderConfig(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfig(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](2);
+        orders[0] = TakeOrderConfigV2(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV2(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -53,10 +55,10 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
 
     /// Test a mismatch in the output tokens.
     function testTokenMismatchOutputs(
-        Order memory a,
+        OrderV2 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        Order memory b,
+        OrderV2 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex,
         uint256 maxTakerInput,
@@ -77,9 +79,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up inputs so we don't trigger that code path.
         b.validInputs[bInputIOIndex].token = a.validInputs[aInputIOIndex].token;
 
-        TakeOrderConfig[] memory orders = new TakeOrderConfig[](2);
-        orders[0] = TakeOrderConfig(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfig(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](2);
+        orders[0] = TakeOrderConfigV2(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV2(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
