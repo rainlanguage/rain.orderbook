@@ -22,19 +22,25 @@ git submodule update --init --recursive --depth 1 rain.subgraph.docker/
 nix run .#docker-up
 ```
 
-4 - Init the setup:
+4 - Obtain the meta files
+
+```bash
+(cd .. && nix run .#build-meta)
+```
+
+5 - Init the setup:
 
 ```bash
 nix run .#init-setup 
 ```
 
-5  - Get the json schemas
+6  - Get the json schemas
 
 ```bash
 nix run .#generate-sg-schema
 ```
 
-6 - Run the tests
+7 - Run the tests
 
 ```bash
 nix run .#ci-test
