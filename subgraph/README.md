@@ -13,14 +13,13 @@ forge install --root ../ --shallow
 2 - Install the subgraph submodules:
 
 ```bash
-git submodule update --init --recursive --depth 1 rain.extrospection/
 git submodule update --init --recursive --depth 1 rain.subgraph.docker/
 ```
 
 3 - Start the docker container
 
 ```bash
-nix run .#generate-sg-schema
+nix run .#docker-up
 ```
 
 4 - Init the setup:
