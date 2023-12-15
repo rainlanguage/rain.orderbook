@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/ec750fd01963ab6b20ee1f0cb488754e8036d89d";
     flake-utils.url = "github:numtide/flake-utils";
-    rain.url = "github:rainlanguage/rain.cli/192d5e1921ee37ba933b5ed42c9edf6f45ae6a93";
+    rain.url = "github:rainlanguage/rain.cli/5d083a449ca876c1b1736507b8e89957f0b8f6f8";
   };
 
 
@@ -82,15 +82,15 @@
           '');
 
           docker-up = pkgs.writeShellScriptBin "docker-up" ''
-            docker-compose -f docker/docker-compose.yaml up --build -d
+            docker compose -f rain.subgraph.docker/docker-compose.yml up --build -d
           '';
 
           docker-down = pkgs.writeShellScriptBin "docker-down" ''
-            docker-compose -f docker/docker-compose.yaml down
+            docker compose -f rain.subgraph.docker/docker-compose.yml down
           '';
 
           generate-sg-schema =  pkgs.writeShellScriptBin "generate-sg-schema" (''
-            ${rain-cli} subgraph build
+            ${rain-cli} subgraph build --network mainnet
             ${rain-cli} subgraph deploy --endpoint http://localhost:8020 --subgraph-name "test/test"
 
             # Wait for 1 second to the subgraph be totally deployed
