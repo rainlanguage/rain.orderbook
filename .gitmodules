@@ -28,3 +28,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "subgraph/rain.subgraph.docker"]
+	path = subgraph/rain.subgraph.docker
+	url = https://github.com/rainlanguage/rain.subgraph.docker.git
