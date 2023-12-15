@@ -1,4 +1,4 @@
-name: OrderBook Subgraph CI
+name: Subgraph CI
 on: [push]
 
 jobs:
@@ -7,6 +7,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
@@ -38,6 +40,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
@@ -55,6 +59,9 @@ jobs:
 
       - name: Forge shallow install
         run: forge install --shallow
+
+      - name: Build metas
+        run: nix run .#build-meta
 
       - name: install npm dependencies
         working-directory: ./subgraph
