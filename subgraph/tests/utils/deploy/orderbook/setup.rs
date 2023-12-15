@@ -26,7 +26,7 @@ async fn init_orderbook() -> Result<Orderbook<SignerMiddleware<Provider<Http>, W
     let build_args = subgraph::build::BuildArgs {
         address: Some(format!("{:?}", orderbook.address())),
         block_number: Some(block.as_u64()),
-        network: Some("localhost".to_string()),
+        network: Some("mainnet".to_string()),
         template_path: None,
         output_path: None,
     };
