@@ -4,14 +4,14 @@ use anyhow::anyhow;
 use ethers::prelude::SignerMiddleware;
 use ethers::{
     providers::{Http, Middleware, Provider},
-    types::{ Eip1559TransactionRequest, H160, U64},
+    types::{Eip1559TransactionRequest, H160, U64},
     utils::parse_units,
 };
 use ethers_signers::Ledger;
 use std::str::FromStr;
 use tracing::{error, info};
 
-use crate::gasoracle::{is_block_native_supported, gas_price_oracle};
+use crate::gasoracle::{gas_price_oracle, is_block_native_supported};
 
 pub async fn execute_transaction(
     tx_data: Vec<u8>,
@@ -19,9 +19,8 @@ pub async fn execute_transaction(
     tx_value: U256,
     rpc_url: String,
     wallet: Ledger,
-    blocknative_api_key: Option<String>
+    blocknative_api_key: Option<String>,
 ) -> anyhow::Result<()> {
-
     let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
         Ok(provider) => provider,
         Err(err) => {
@@ -30,12 +29,12 @@ pub async fn execute_transaction(
         }
     };
 
-    let chain_id = provider.clone().get_chainid().await.unwrap().as_u64(); 
+    let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
     let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;
 
     let to_address = H160::from_str(&tx_to.to_string()).unwrap();
 
-    let mut tx = Eip1559TransactionRequest::new(); 
+    let mut tx = Eip1559TransactionRequest::new();
 
     tx.to = Some(to_address.into());
     tx.value = Some(ethers::types::U256::from_dec_str(tx_value.to_string().as_str()).unwrap());
@@ -46,7 +45,8 @@ pub async fn execute_transaction(
         let (max_priority, max_fee) = gas_price_oracle(blocknative_api_key, chain_id)
             .await
             .unwrap();
-        let max_priority: ethers::types::U256 = parse_units(max_priority.to_string(), 9).unwrap().into();
+        let max_priority: ethers::types::U256 =
+            parse_units(max_priority.to_string(), 9).unwrap().into();
         let max_fee: ethers::types::U256 = parse_units(max_fee.to_string(), 9).unwrap().into();
 
         tx.max_priority_fee_per_gas = Some(max_priority);
@@ -80,7 +80,7 @@ pub async fn execute_transaction(
         Err(err) => {
             error!("TRANSACTION REJECTED : {}", err);
         }
-    } 
+    }
 
     Ok(())
 }
