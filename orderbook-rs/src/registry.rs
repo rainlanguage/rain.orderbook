@@ -1,9 +1,9 @@
 use alloy_sol_types::sol;
 use ethers::contract::abigen;
 
-sol!(IOrderBookV3, "src/abi/IOrderBookV3.json");
+sol!(IOrderBookV3, "../out/IOrderBookV3.sol/IOrderBookV3.json");
 
-abigen!(IParserV1, "src/abi/IParserV1.json");
+abigen!(IParserV1, "../out/IParserV1.sol/IParserV1.json");
 abigen!(
     IExpressionDeployerV3,
     r#"[
