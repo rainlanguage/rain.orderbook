@@ -1,7 +1,7 @@
 use alloy_sol_types::sol;
 use ethers::contract::abigen;
 
-sol!(IOrderBookV3, "src/orderbook/abi/OrderBook.json");
+sol!(IOrderBookV3, "src/orderbook/abi/IOrderBookV3.json");
 
 abigen!(IParserV1, "src/interpreter/abi/IParserV1.json");
 abigen!(IExpressionDeployerV3, 
