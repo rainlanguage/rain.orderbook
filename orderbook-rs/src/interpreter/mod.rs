@@ -9,6 +9,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 
+/// Get RainInterpreterNPE2, RainterpreterStoreNPE2 and RainterpreterParserNPE2 addresses corresponding to a RainterpreterExpressionDeployerNPE2 contract.
+/// 
+/// # Arguments
+/// * `deployer_npe2` - Address of RainterpreterExpressionDeployerNPE2.
+/// * `rpc_url` - Network RPC URL.
+/// 
 pub async fn get_disp(
     deployer_npe2: Address,
     rpc_url: String,
@@ -54,6 +60,12 @@ pub async fn get_disp(
     Ok((store, intepreter, parser))
 }
 
+/// Parses rainlang expression string with RainterpreterParserNPE2 and returns the expression bytecode and constants
+/// 
+/// # Arguments
+/// * `parser_address` - RainterpreterParserNPE2 address.
+/// * `rainstring` - Rainlang Expression string.
+/// * `rpc_url` - Network RPC URL.
 pub async fn parse_rainstring(
     parser_address: Address,
     rainstring: String,

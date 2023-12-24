@@ -7,6 +7,17 @@ use crate::{
 };
 use tracing::error;
 
+/// Returns [IOrderBookV3::addOrderCall] transaction data encoded with 
+/// the function selector, encoding [IOrderBookV3::OrderConfigV2] built from
+/// the function parameters : Input Vaults, Output Vaults, and Order expression rainlang string.
+/// 
+/// # Arguments
+/// * `deployer_address` - Address of RainterpreterExpressionDeployerNPE2.
+/// * `input_vaults` - [IOrderBookV3::IO] Order Input Vaults
+/// * `output_vaults` - [IOrderBookV3::IO] Order Output Vaults
+/// * `rainlang_order_string` - Order Expression String
+/// * `rpc_url` - Network RPC URL
+/// 
 pub async fn add_ob_order(
     deployer_address: Address,
     input_vaults: Vec<IO>,

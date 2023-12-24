@@ -2,6 +2,13 @@ use ethers::middleware::gas_oracle::GasCategory;
 use ethers::prelude::gas_oracle::blocknative::Response as BlockNativeResponse;
 use reqwest::{header::AUTHORIZATION, Client};
 
+/// Blocknative Gas Oracle.
+/// Returns max priority fee and max fee from blocknative api.
+/// 
+/// # Arguments
+/// * `api_key` - Optional blocknative api key.
+/// * `chain_id` - Network Chain Id.
+/// 
 pub async fn gas_price_oracle(
     api_key: Option<String>,
     chain_id: u64,

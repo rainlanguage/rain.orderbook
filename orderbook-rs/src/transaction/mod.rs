@@ -13,6 +13,16 @@ use tracing::{error, info, warn};
 
 use crate::gasoracle::gas_price_oracle;
 
+/// Sign and submit transaction on chain via [Ledger] wallet.
+/// 
+/// # Arguments 
+/// * `tx_data` - Abi encoded transaction data, encoded with the function selector.
+/// * `tx_to` - [Eip1559TransactionRequest::to]
+/// * `tx_value` - [Eip1559TransactionRequest::value]
+/// * `rpc_url` - Network RPC
+/// * `wallet` - [Ledger] wallet instance
+/// * `blocknative_api_key` - Optional Blocknative API Key.
+/// 
 pub async fn execute_transaction(
     tx_data: Vec<u8>,
     tx_to: Address,
