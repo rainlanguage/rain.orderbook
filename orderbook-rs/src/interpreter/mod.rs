@@ -10,11 +10,11 @@ use std::sync::Arc;
 use tracing::error;
 
 /// Get RainInterpreterNPE2, RainterpreterStoreNPE2 and RainterpreterParserNPE2 addresses corresponding to a RainterpreterExpressionDeployerNPE2 contract.
-/// 
+///
 /// # Arguments
 /// * `deployer_npe2` - Address of RainterpreterExpressionDeployerNPE2.
 /// * `rpc_url` - Network RPC URL.
-/// 
+///
 pub async fn get_disp(
     deployer_npe2: Address,
     rpc_url: String,
@@ -31,21 +31,21 @@ pub async fn get_disp(
     let deployer_npe2 =
         IExpressionDeployerV3::new(deployer_npe2_address, Arc::new(provider.clone()));
 
-    let interpreter = match deployer_npe2.i_interpreter().call().await{
+    let interpreter = match deployer_npe2.i_interpreter().call().await {
         Ok(i_interpreter) => i_interpreter,
         Err(err) => {
             error!("iInterpreter");
             return Err(anyhow!(err));
         }
     };
-    let store = match deployer_npe2.i_store().call().await{
+    let store = match deployer_npe2.i_store().call().await {
         Ok(i_store) => i_store,
         Err(err) => {
             error!("iStore");
             return Err(anyhow!(err));
         }
     };
-    let parser = match deployer_npe2.i_parser().call().await{
+    let parser = match deployer_npe2.i_parser().call().await {
         Ok(i_parser) => i_parser,
         Err(err) => {
             error!("iParser");
@@ -61,7 +61,7 @@ pub async fn get_disp(
 }
 
 /// Parses rainlang expression string with RainterpreterParserNPE2 and returns the expression bytecode and constants
-/// 
+///
 /// # Arguments
 /// * `parser_address` - RainterpreterParserNPE2 address.
 /// * `rainstring` - Rainlang Expression string.
@@ -79,7 +79,7 @@ pub async fn parse_rainstring(
         }
     };
 
-    let parser_address = match H160::from_str(&parser_address.to_string()){
+    let parser_address = match H160::from_str(&parser_address.to_string()) {
         Ok(parser) => parser,
         Err(err) => {
             error!("INVALID PARSER");
@@ -91,14 +91,14 @@ pub async fn parse_rainstring(
     let (sources, constants) = match rain_parser
         .parse(ethers::types::Bytes::from(rainstring.as_bytes().to_vec()))
         .call()
-        .await{
-            Ok(parse_result) => parse_result,
-            Err(err) => {
-                error!("FAILED TO PARSE");
-                return Err(anyhow!(err));
-            }
-        };
-        
+        .await
+    {
+        Ok(parse_result) => parse_result,
+        Err(err) => {
+            error!("FAILED TO PARSE");
+            return Err(anyhow!(err));
+        }
+    };
 
     let bytecode_npe2 = Bytes::from(sources.to_vec());
 

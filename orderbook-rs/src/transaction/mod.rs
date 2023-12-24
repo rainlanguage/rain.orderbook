@@ -14,15 +14,15 @@ use tracing::{error, info, warn};
 use crate::gasoracle::gas_price_oracle;
 
 /// Sign and submit transaction on chain via [Ledger] wallet.
-/// 
-/// # Arguments 
+///
+/// # Arguments
 /// * `tx_data` - Abi encoded transaction data, encoded with the function selector.
 /// * `tx_to` - [Eip1559TransactionRequest::to]
 /// * `tx_value` - [Eip1559TransactionRequest::value]
 /// * `rpc_url` - Network RPC
 /// * `wallet` - [Ledger] wallet instance
 /// * `blocknative_api_key` - Optional Blocknative API Key.
-/// 
+///
 pub async fn execute_transaction(
     tx_data: Vec<u8>,
     tx_to: Address,
@@ -51,22 +51,19 @@ pub async fn execute_transaction(
     tx.data = Some(ethers::types::Bytes::from(tx_data));
     tx.chain_id = Some(U64::from_dec_str(&chain_id.to_string()).unwrap());
 
+    match gas_price_oracle(blocknative_api_key, chain_id).await {
+        Ok((max_priority, max_fee)) => {
+            let max_priority: ethers::types::U256 =
+                parse_units(max_priority.to_string(), 9).unwrap().into();
+            let max_fee: ethers::types::U256 = parse_units(max_fee.to_string(), 9).unwrap().into();
 
-    match gas_price_oracle(blocknative_api_key, chain_id)
-            .await{
-                Ok((max_priority, max_fee)) => {
-                    let max_priority: ethers::types::U256 =
-                        parse_units(max_priority.to_string(), 9).unwrap().into();
-                    let max_fee: ethers::types::U256 = parse_units(max_fee.to_string(), 9).unwrap().into();
-
-                    tx.max_priority_fee_per_gas = Some(max_priority);
-                    tx.max_fee_per_gas = Some(max_fee);
-                },
-                Err(_) => {
-                    warn!("BLOCKNATIVE UNSUPPORTED NETWORK");
-                }
+            tx.max_priority_fee_per_gas = Some(max_priority);
+            tx.max_fee_per_gas = Some(max_fee);
+        }
+        Err(_) => {
+            warn!("BLOCKNATIVE UNSUPPORTED NETWORK");
+        }
     };
-            
 
     let tx_result = client.send_transaction(tx, None).await;
 

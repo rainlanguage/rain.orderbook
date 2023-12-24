@@ -1,23 +1,23 @@
-use alloy_primitives::Address;
-use alloy_sol_types::SolCall;
-use anyhow::anyhow;
 use crate::{
     interpreter::{get_disp, parse_rainstring},
     registry::IOrderBookV3::{self, EvaluableConfigV3, OrderConfigV2, IO},
 };
+use alloy_primitives::Address;
+use alloy_sol_types::SolCall;
+use anyhow::anyhow;
 use tracing::error;
 
-/// Returns [IOrderBookV3::addOrderCall] transaction data encoded with 
+/// Returns [IOrderBookV3::addOrderCall] transaction data encoded with
 /// the function selector, encoding [IOrderBookV3::OrderConfigV2] built from
 /// the function parameters : Input Vaults, Output Vaults, and Order expression rainlang string.
-/// 
+///
 /// # Arguments
 /// * `deployer_address` - Address of RainterpreterExpressionDeployerNPE2.
 /// * `input_vaults` - [IOrderBookV3::IO] Order Input Vaults
 /// * `output_vaults` - [IOrderBookV3::IO] Order Output Vaults
 /// * `rainlang_order_string` - Order Expression String
 /// * `rpc_url` - Network RPC URL
-/// 
+///
 pub async fn add_ob_order(
     deployer_address: Address,
     input_vaults: Vec<IO>,
@@ -25,25 +25,21 @@ pub async fn add_ob_order(
     rainlang_order_string: String,
     rpc_url: String,
 ) -> anyhow::Result<Vec<u8>> {
-    let (_, _, rain_parser) = match get_disp(deployer_address.clone(), rpc_url.clone())
-        .await
-        {
+    let (_, _, rain_parser) = match get_disp(deployer_address.clone(), rpc_url.clone()).await {
+        Ok(parse_result) => parse_result,
+        Err(err) => {
+            error!("DISP");
+            return Err(anyhow!(err));
+        }
+    };
+    let (bytecode, constants) =
+        match parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone()).await {
             Ok(parse_result) => parse_result,
             Err(err) => {
-                error!("DISP");
+                error!("FAILED TO PARSE");
                 return Err(anyhow!(err));
             }
         };
-    let (bytecode, constants) =
-        match parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone())
-            .await
-            {
-                Ok(parse_result) => parse_result,
-                Err(err) => {
-                    error!("FAILED TO PARSE");
-                    return Err(anyhow!(err));
-                }
-            };
 
     let evaluable_config = EvaluableConfigV3 {
         deployer: deployer_address,
