@@ -1,10 +1,11 @@
 use alloy_primitives::Address;
 use alloy_sol_types::SolCall;
-
+use anyhow::anyhow;
 use crate::{
     interpreter::{get_disp, parse_rainstring},
     registry::IOrderBookV3::{self, EvaluableConfigV3, OrderConfigV2, IO},
 };
+use tracing::error;
 
 pub async fn add_ob_order(
     deployer_address: Address,
@@ -13,13 +14,25 @@ pub async fn add_ob_order(
     rainlang_order_string: String,
     rpc_url: String,
 ) -> anyhow::Result<Vec<u8>> {
-    let (_, _, rain_parser) = get_disp(deployer_address.clone(), rpc_url.clone())
+    let (_, _, rain_parser) = match get_disp(deployer_address.clone(), rpc_url.clone())
         .await
-        .unwrap();
+        {
+            Ok(parse_result) => parse_result,
+            Err(err) => {
+                error!("DISP");
+                return Err(anyhow!(err));
+            }
+        };
     let (bytecode, constants) =
-        parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone())
+        match parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone())
             .await
-            .unwrap();
+            {
+                Ok(parse_result) => parse_result,
+                Err(err) => {
+                    error!("FAILED TO PARSE");
+                    return Err(anyhow!(err));
+                }
+            };
 
     let evaluable_config = EvaluableConfigV3 {
         deployer: deployer_address,

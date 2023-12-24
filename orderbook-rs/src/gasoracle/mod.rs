@@ -2,10 +2,6 @@ use ethers::middleware::gas_oracle::GasCategory;
 use ethers::prelude::gas_oracle::blocknative::Response as BlockNativeResponse;
 use reqwest::{header::AUTHORIZATION, Client};
 
-pub fn is_block_native_supported(chain_id: u64) -> bool {
-    chain_id == 1 || chain_id == 137
-}
-
 pub async fn gas_price_oracle(
     api_key: Option<String>,
     chain_id: u64,

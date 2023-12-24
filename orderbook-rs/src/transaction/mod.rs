@@ -9,9 +9,9 @@ use ethers::{
 };
 use ethers_signers::Ledger;
 use std::str::FromStr;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
-use crate::gasoracle::{gas_price_oracle, is_block_native_supported};
+use crate::gasoracle::gas_price_oracle;
 
 pub async fn execute_transaction(
     tx_data: Vec<u8>,
@@ -41,17 +41,22 @@ pub async fn execute_transaction(
     tx.data = Some(ethers::types::Bytes::from(tx_data));
     tx.chain_id = Some(U64::from_dec_str(&chain_id.to_string()).unwrap());
 
-    if is_block_native_supported(chain_id) {
-        let (max_priority, max_fee) = gas_price_oracle(blocknative_api_key, chain_id)
-            .await
-            .unwrap();
-        let max_priority: ethers::types::U256 =
-            parse_units(max_priority.to_string(), 9).unwrap().into();
-        let max_fee: ethers::types::U256 = parse_units(max_fee.to_string(), 9).unwrap().into();
 
-        tx.max_priority_fee_per_gas = Some(max_priority);
-        tx.max_fee_per_gas = Some(max_fee);
-    }
+    match gas_price_oracle(blocknative_api_key, chain_id)
+            .await{
+                Ok((max_priority, max_fee)) => {
+                    let max_priority: ethers::types::U256 =
+                        parse_units(max_priority.to_string(), 9).unwrap().into();
+                    let max_fee: ethers::types::U256 = parse_units(max_fee.to_string(), 9).unwrap().into();
+
+                    tx.max_priority_fee_per_gas = Some(max_priority);
+                    tx.max_fee_per_gas = Some(max_fee);
+                },
+                Err(_) => {
+                    warn!("BLOCKNATIVE UNSUPPORTED NETWORK");
+                }
+    };
+            
 
     let tx_result = client.send_transaction(tx, None).await;
 

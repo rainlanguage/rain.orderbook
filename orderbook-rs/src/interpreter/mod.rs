@@ -7,6 +7,7 @@ use ethers::{
 };
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::error;
 
 pub async fn get_disp(
     deployer_npe2: Address,
@@ -15,6 +16,7 @@ pub async fn get_disp(
     let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
         Ok(provider) => provider,
         Err(err) => {
+            error!("INVALID RPC URL");
             return Err(anyhow!(err));
         }
     };
@@ -23,9 +25,27 @@ pub async fn get_disp(
     let deployer_npe2 =
         IExpressionDeployerV3::new(deployer_npe2_address, Arc::new(provider.clone()));
 
-    let interpreter: H160 = deployer_npe2.i_interpreter().call().await.unwrap();
-    let store: H160 = deployer_npe2.i_store().call().await.unwrap();
-    let parser: H160 = deployer_npe2.i_parser().call().await.unwrap();
+    let interpreter = match deployer_npe2.i_interpreter().call().await{
+        Ok(i_interpreter) => i_interpreter,
+        Err(err) => {
+            error!("iInterpreter");
+            return Err(anyhow!(err));
+        }
+    };
+    let store = match deployer_npe2.i_store().call().await{
+        Ok(i_store) => i_store,
+        Err(err) => {
+            error!("iStore");
+            return Err(anyhow!(err));
+        }
+    };
+    let parser = match deployer_npe2.i_parser().call().await{
+        Ok(i_parser) => i_parser,
+        Err(err) => {
+            error!("iParser");
+            return Err(anyhow!(err));
+        }
+    };
 
     let store = Address::new(store.to_fixed_bytes());
     let intepreter = Address::new(interpreter.to_fixed_bytes());
@@ -42,18 +62,31 @@ pub async fn parse_rainstring(
     let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
         Ok(provider) => provider,
         Err(err) => {
+            error!("INVALID RPC URL");
             return Err(anyhow!(err));
         }
     };
 
-    let parser_address = H160::from_str(&parser_address.to_string()).unwrap();
+    let parser_address = match H160::from_str(&parser_address.to_string()){
+        Ok(parser) => parser,
+        Err(err) => {
+            error!("INVALID PARSER");
+            return Err(anyhow!(err));
+        }
+    };
     let rain_parser = IParserV1::new(parser_address, Arc::new(provider.clone()));
 
-    let (sources, constants) = rain_parser
+    let (sources, constants) = match rain_parser
         .parse(ethers::types::Bytes::from(rainstring.as_bytes().to_vec()))
         .call()
-        .await
-        .unwrap();
+        .await{
+            Ok(parse_result) => parse_result,
+            Err(err) => {
+                error!("FAILED TO PARSE");
+                return Err(anyhow!(err));
+            }
+        };
+        
 
     let bytecode_npe2 = Bytes::from(sources.to_vec());
 
