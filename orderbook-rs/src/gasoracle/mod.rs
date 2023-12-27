@@ -26,8 +26,8 @@ pub async fn gas_price_oracle(
         request = request.header(AUTHORIZATION, api_key);
     }
     let response: BlockNativeResponse = request.send().await?.error_for_status()?.json().await?;
-    let fatest = response
+    let fastest = response
         .estimate_from_category(&GasCategory::Fastest)
         .unwrap();
-    Ok((fatest.max_priority_fee_per_gas, fatest.max_fee_per_gas))
+    Ok((fastest.max_priority_fee_per_gas, fastest.max_fee_per_gas))
 }
