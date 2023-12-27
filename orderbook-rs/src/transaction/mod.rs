@@ -1,7 +1,8 @@
 use alloy_primitives::{Address, U256};
 
-use anyhow::anyhow;
+// use anyhow::anyhow;
 use ethers::prelude::SignerMiddleware;
+use ethers::types::TransactionReceipt;
 use ethers::{
     providers::{Http, Middleware, Provider},
     types::{Eip1559TransactionRequest, H160, U64},
@@ -9,8 +10,9 @@ use ethers::{
 };
 use ethers_signers::Ledger;
 use std::str::FromStr;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
+use crate::errors::RainOrderbookError;
 use crate::gasoracle::gas_price_oracle;
 
 /// Sign and submit transaction on chain via [Ledger] wallet.
@@ -30,12 +32,11 @@ pub async fn execute_transaction(
     rpc_url: String,
     wallet: Ledger,
     blocknative_api_key: Option<String>,
-) -> anyhow::Result<()> {
+) -> Result<TransactionReceipt,RainOrderbookError> {
     let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
         Ok(provider) => provider,
         Err(err) => {
-            error!("INVALID RPC URL: {}", err);
-            return Err(anyhow!(err));
+            return Err(RainOrderbookError::InvalidRPC { source: err })
         }
     };
 
@@ -67,20 +68,18 @@ pub async fn execute_transaction(
 
     let tx_result = client.send_transaction(tx, None).await;
 
-    match tx_result {
+    let receipt = match tx_result {
         Ok(tx_result) => {
             info!("Transaction submitted. Awaiting block confirmations...");
             let approve_receipt = match tx_result.confirmations(1).await {
                 Ok(receipt) => match receipt {
                     Some(receipt) => receipt,
                     None => {
-                        error!("FAILED TO FETCH RECEIPT");
-                        return Err(anyhow!("Failed to fetch receipt."));
+                        return Err(RainOrderbookError::TransactionReceiptError)
                     }
                 },
                 Err(err) => {
-                    error!("FAILED TO CONFIRM TRANSACTION : {}", err);
-                    return Err(anyhow!(err));
+                    return Err(RainOrderbookError::TransactionConfirmationError { source: err })
                 }
             };
             info!("Transaction Confirmed!!");
@@ -88,11 +87,12 @@ pub async fn execute_transaction(
                 "✅ Hash : 0x{}",
                 hex::encode(approve_receipt.transaction_hash.as_bytes().to_vec())
             );
+            approve_receipt
         }
         Err(err) => {
-            error!("TRANSACTION REJECTED : {}", err);
+            return Err(RainOrderbookError::TransactionError { source: err })
         }
-    }
+    };
 
-    Ok(())
+    Ok(receipt)
 }
