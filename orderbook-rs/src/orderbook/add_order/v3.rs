@@ -1,10 +1,10 @@
 use crate::{
+    errors::RainOrderbookError,
     interpreter::{get_disp, parse_rainstring},
-    registry::IOrderBookV3::{self, EvaluableConfigV3, OrderConfigV2, IO}, errors::RainOrderbookError,
+    registry::IOrderBookV3::{self, EvaluableConfigV3, OrderConfigV2, IO},
 };
 use alloy_primitives::Address;
 use alloy_sol_types::SolCall;
-
 
 /// Returns [IOrderBookV3::addOrderCall] transaction data encoded with
 /// the function selector, encoding [IOrderBookV3::OrderConfigV2] built from
@@ -23,19 +23,15 @@ pub async fn add_ob_order(
     output_vaults: Vec<IO>,
     rainlang_order_string: String,
     rpc_url: String,
-) -> Result<Vec<u8>,RainOrderbookError> {
+) -> Result<Vec<u8>, RainOrderbookError> {
     let (_, _, rain_parser) = match get_disp(deployer_address.clone(), rpc_url.clone()).await {
         Ok(parse_result) => parse_result,
-        Err(err) => {
-            return Err(err)
-        }
+        Err(err) => return Err(err),
     };
     let (bytecode, constants) =
         match parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone()).await {
             Ok(parse_result) => parse_result,
-            Err(err) => {
-                return Err(err)
-            }
+            Err(err) => return Err(err),
         };
 
     let evaluable_config = EvaluableConfigV3 {

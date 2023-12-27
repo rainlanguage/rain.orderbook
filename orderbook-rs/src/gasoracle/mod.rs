@@ -4,7 +4,8 @@ use reqwest::{header::AUTHORIZATION, Client};
 use url::Url;
 
 /// Bloacknative Base Url for fetching blockprices
-static BLOCKNATIVE_BLOCKPRICES_URL: &'static str = "https://api.blocknative.com/gasprices/blockprices";
+static BLOCKNATIVE_BLOCKPRICES_URL: &'static str =
+    "https://api.blocknative.com/gasprices/blockprices";
 
 /// Blocknative Gas Oracle.
 /// Returns max priority fee and max fee from blocknative api.
@@ -17,9 +18,9 @@ pub async fn gas_price_oracle(
     api_key: Option<String>,
     chain_id: u64,
 ) -> anyhow::Result<(f64, f64)> {
-    let client = Client::new(); 
-    let mut url = Url::parse(BLOCKNATIVE_BLOCKPRICES_URL.into())? ; 
-    url.set_query(Some(format!("chainid={}",chain_id).as_str()));
+    let client = Client::new();
+    let mut url = Url::parse(BLOCKNATIVE_BLOCKPRICES_URL.into())?;
+    url.set_query(Some(format!("chainid={}", chain_id).as_str()));
     let mut request = client.get(url);
     if let Some(api_key) = api_key.as_ref() {
         request = request.header(AUTHORIZATION, api_key);

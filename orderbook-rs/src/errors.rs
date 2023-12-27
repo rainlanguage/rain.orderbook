@@ -1,43 +1,41 @@
-use thiserror::Error;
-use url::ParseError;
 use ethers::contract::ContractError;
+use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::providers::ProviderError;
 use ethers::providers::{Http, Provider};
-use rustc_hex::FromHexError;
-use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::signers::Ledger;
-
+use rustc_hex::FromHexError;
+use thiserror::Error;
+use url::ParseError;
 
 /// RainOrderbookError
 /// Enum representing errors thrown by the crate
-#[derive(Error, Debug)] 
-pub enum RainOrderbookError{
+#[derive(Error, Debug)]
+pub enum RainOrderbookError {
     #[error("Invalid RPC URL")]
-    InvalidRPC{
+    InvalidRPC {
         #[from]
-        source: ParseError
+        source: ParseError,
     },
     #[error("Invalid Contract Function Call")]
-    InvalidContractFunctionCall{
+    InvalidContractFunctionCall {
         #[from]
-        source: ContractError<Provider<Http>>
+        source: ContractError<Provider<Http>>,
     },
     #[error("Invalid Address")]
-    InvalidAddress{ 
+    InvalidAddress {
         #[from]
-        source: FromHexError
+        source: FromHexError,
     },
     #[error("Failed to confirm transaction")]
-    TransactionConfirmationError{ 
+    TransactionConfirmationError {
         #[from]
-        source: ProviderError
+        source: ProviderError,
     },
     #[error("Error in Transaction")]
-    TransactionError{
+    TransactionError {
         #[from]
-        source:  SignerMiddlewareError<Provider<Http>, Ledger>
+        source: SignerMiddlewareError<Provider<Http>, Ledger>,
     },
     #[error("Failed to fetch Transaction Receipt")]
     TransactionReceiptError,
-
 }

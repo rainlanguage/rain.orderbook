@@ -32,12 +32,10 @@ pub async fn execute_transaction(
     rpc_url: String,
     wallet: Ledger,
     blocknative_api_key: Option<String>,
-) -> Result<TransactionReceipt,RainOrderbookError> {
+) -> Result<TransactionReceipt, RainOrderbookError> {
     let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
         Ok(provider) => provider,
-        Err(err) => {
-            return Err(RainOrderbookError::InvalidRPC { source: err })
-        }
+        Err(err) => return Err(RainOrderbookError::InvalidRPC { source: err }),
     };
 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
@@ -74,9 +72,7 @@ pub async fn execute_transaction(
             let approve_receipt = match tx_result.confirmations(1).await {
                 Ok(receipt) => match receipt {
                     Some(receipt) => receipt,
-                    None => {
-                        return Err(RainOrderbookError::TransactionReceiptError)
-                    }
+                    None => return Err(RainOrderbookError::TransactionReceiptError),
                 },
                 Err(err) => {
                     return Err(RainOrderbookError::TransactionConfirmationError { source: err })
@@ -89,9 +85,7 @@ pub async fn execute_transaction(
             );
             approve_receipt
         }
-        Err(err) => {
-            return Err(RainOrderbookError::TransactionError { source: err })
-        }
+        Err(err) => return Err(RainOrderbookError::TransactionError { source: err }),
     };
 
     Ok(receipt)
