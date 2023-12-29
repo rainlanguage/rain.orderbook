@@ -20,30 +20,16 @@ pub async fn get_disp(
     deployer_npe2: Address,
     rpc_url: String,
 ) -> Result<(Address, Address, Address), RainOrderbookError> {
-    let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
-        Ok(provider) => provider,
-        Err(err) => return Err(RainOrderbookError::InvalidRPC { source: err }),
-    };
 
-    let deployer_npe2_address = match H160::from_str(&deployer_npe2.to_string()) {
-        Ok(deployer) => deployer,
-        Err(err) => return Err(RainOrderbookError::InvalidAddress { source: err }),
-    };
+    let provider = Provider::<Http>::try_from(rpc_url.clone())?;
+
+    let deployer_npe2_address =  H160::from_str(&deployer_npe2.to_string())?;
     let deployer_npe2 =
         IExpressionDeployerV3::new(deployer_npe2_address, Arc::new(provider.clone()));
 
-    let interpreter = match deployer_npe2.i_interpreter().call().await {
-        Ok(i_interpreter) => i_interpreter,
-        Err(err) => return Err(RainOrderbookError::InvalidContractFunctionCall { source: err }),
-    };
-    let store = match deployer_npe2.i_store().call().await {
-        Ok(i_store) => i_store,
-        Err(err) => return Err(RainOrderbookError::InvalidContractFunctionCall { source: err }),
-    };
-    let parser = match deployer_npe2.i_parser().call().await {
-        Ok(i_parser) => i_parser,
-        Err(err) => return Err(RainOrderbookError::InvalidContractFunctionCall { source: err }),
-    };
+    let interpreter = deployer_npe2.i_interpreter().call().await?;
+    let store = deployer_npe2.i_store().call().await?;
+    let parser = deployer_npe2.i_parser().call().await?;
 
     let store = Address::new(store.to_fixed_bytes());
     let intepreter = Address::new(interpreter.to_fixed_bytes());
@@ -63,25 +49,15 @@ pub async fn parse_rainstring(
     rainstring: String,
     rpc_url: String,
 ) -> Result<(Bytes, Vec<U256>), RainOrderbookError> {
-    let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
-        Ok(provider) => provider,
-        Err(err) => return Err(RainOrderbookError::InvalidRPC { source: err }),
-    };
+    let provider = Provider::<Http>::try_from(rpc_url.clone())?;
 
-    let parser_address = match H160::from_str(&parser_address.to_string()) {
-        Ok(parser) => parser,
-        Err(err) => return Err(RainOrderbookError::InvalidAddress { source: err }),
-    };
+    let parser_address = H160::from_str(&parser_address.to_string())?;
     let rain_parser = IParserV1::new(parser_address, Arc::new(provider.clone()));
 
-    let (sources, constants) = match rain_parser
+    let (sources, constants) = rain_parser
         .parse(ethers::types::Bytes::from(rainstring.as_bytes().to_vec()))
         .call()
-        .await
-    {
-        Ok(parse_result) => parse_result,
-        Err(err) => return Err(RainOrderbookError::InvalidContractFunctionCall { source: err }),
-    };
+        .await?;
 
     let bytecode_npe2 = Bytes::from(sources.to_vec());
 

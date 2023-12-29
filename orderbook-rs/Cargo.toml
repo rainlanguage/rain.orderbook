@@ -28,3 +28,6 @@ hex = "0.4.3"
 rustc-hex = "2.1.0"
 url = "2.5.0"
 thiserror = "1.0.52"
+
+[lints.clippy]
+all= "warn"

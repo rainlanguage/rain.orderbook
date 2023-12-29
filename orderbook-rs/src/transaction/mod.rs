@@ -33,10 +33,7 @@ pub async fn execute_transaction(
     wallet: Ledger,
     blocknative_api_key: Option<String>,
 ) -> Result<TransactionReceipt, RainOrderbookError> {
-    let provider = match Provider::<Http>::try_from(rpc_url.clone()) {
-        Ok(provider) => provider,
-        Err(err) => return Err(RainOrderbookError::InvalidRPC { source: err }),
-    };
+    let provider = Provider::<Http>::try_from(rpc_url.clone())?;
 
     let chain_id = provider.clone().get_chainid().await.unwrap().as_u64();
     let client = SignerMiddleware::new_with_provider_chain(provider, wallet).await?;
@@ -64,29 +61,21 @@ pub async fn execute_transaction(
         }
     };
 
-    let tx_result = client.send_transaction(tx, None).await;
+    let pending_tx = client.send_transaction(tx, None).await?;
 
-    let receipt = match tx_result {
-        Ok(tx_result) => {
-            info!("Transaction submitted. Awaiting block confirmations...");
-            let approve_receipt = match tx_result.confirmations(1).await {
-                Ok(receipt) => match receipt {
-                    Some(receipt) => receipt,
-                    None => return Err(RainOrderbookError::TransactionReceiptError),
-                },
-                Err(err) => {
-                    return Err(RainOrderbookError::TransactionConfirmationError { source: err })
-                }
-            };
-            info!("Transaction Confirmed!!");
-            info!(
-                "✅ Hash : 0x{}",
-                hex::encode(approve_receipt.transaction_hash.as_bytes().to_vec())
-            );
-            approve_receipt
-        }
-        Err(err) => return Err(RainOrderbookError::TransactionError { source: err }),
+    info!("Transaction submitted. Awaiting block confirmations...");
+    let tx_confimration = pending_tx.confirmations(1).await?; 
+    
+    let tx_receipt = match tx_confimration {
+        Some(receipt) => receipt,
+        None => return Err(RainOrderbookError::TransactionReceiptError),
     };
+    info!("Transaction Confirmed!!");
+    info!(
+        "✅ Hash : 0x{}",
+        hex::encode(tx_receipt.transaction_hash.as_bytes())
+    );
+    Ok(tx_receipt)
 
-    Ok(receipt)
+    
 }

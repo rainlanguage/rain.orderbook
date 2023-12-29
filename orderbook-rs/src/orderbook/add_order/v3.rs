@@ -24,20 +24,14 @@ pub async fn add_ob_order(
     rainlang_order_string: String,
     rpc_url: String,
 ) -> Result<Vec<u8>, RainOrderbookError> {
-    let (_, _, rain_parser) = match get_disp(deployer_address.clone(), rpc_url.clone()).await {
-        Ok(parse_result) => parse_result,
-        Err(err) => return Err(err),
-    };
+    let (_, _, rain_parser) = get_disp(deployer_address, rpc_url.clone()).await?;
     let (bytecode, constants) =
-        match parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone()).await {
-            Ok(parse_result) => parse_result,
-            Err(err) => return Err(err),
-        };
+         parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone()).await?;
 
     let evaluable_config = EvaluableConfigV3 {
         deployer: deployer_address,
         bytecode: bytecode.to_vec(),
-        constants: constants,
+        constants,
     };
 
     let order_config = OrderConfigV2 {
