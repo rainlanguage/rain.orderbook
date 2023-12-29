@@ -12,20 +12,20 @@ use url::ParseError;
 #[derive(Error, Debug)]
 pub enum RainOrderbookError {
     #[error("Invalid RPC URL")]
-    InvalidRPC(#[from] ParseError), 
+    InvalidRPC(#[from] ParseError),
 
     #[error("Invalid Contract Function Call")]
-    InvalidContractFunctionCall(#[from] ContractError<Provider<Http>>), 
+    InvalidContractFunctionCall(#[from] ContractError<Provider<Http>>),
 
     #[error("Invalid Address")]
-    InvalidAddress(#[from] FromHexError), 
+    InvalidAddress(#[from] FromHexError),
 
     #[error("Failed to confirm transaction")]
-    TransactionConfirmationError(#[from] ProviderError), 
+    TransactionConfirmationError(#[from] ProviderError),
 
     #[error("Error in Transaction")]
-    TransactionError(#[from] SignerMiddlewareError<Provider<Http>, Ledger>), 
+    TransactionError(#[from] SignerMiddlewareError<Provider<Http>, Ledger>),
 
     #[error("Failed to fetch Transaction Receipt")]
-    TransactionReceiptError
+    TransactionReceiptError,
 }

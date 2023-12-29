@@ -26,7 +26,7 @@ pub async fn add_ob_order(
 ) -> Result<Vec<u8>, RainOrderbookError> {
     let (_, _, rain_parser) = get_disp(deployer_address, rpc_url.clone()).await?;
     let (bytecode, constants) =
-         parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone()).await?;
+        parse_rainstring(rain_parser, rainlang_order_string, rpc_url.clone()).await?;
 
     let evaluable_config = EvaluableConfigV3 {
         deployer: deployer_address,

@@ -20,10 +20,9 @@ pub async fn get_disp(
     deployer_npe2: Address,
     rpc_url: String,
 ) -> Result<(Address, Address, Address), RainOrderbookError> {
-
     let provider = Provider::<Http>::try_from(rpc_url.clone())?;
 
-    let deployer_npe2_address =  H160::from_str(&deployer_npe2.to_string())?;
+    let deployer_npe2_address = H160::from_str(&deployer_npe2.to_string())?;
     let deployer_npe2 =
         IExpressionDeployerV3::new(deployer_npe2_address, Arc::new(provider.clone()));
 

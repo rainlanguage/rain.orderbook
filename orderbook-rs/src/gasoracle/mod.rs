@@ -4,8 +4,7 @@ use reqwest::{header::AUTHORIZATION, Client};
 use url::Url;
 
 /// Bloacknative Base Url for fetching blockprices
-static BLOCKNATIVE_BLOCKPRICES_URL: &str =
-    "https://api.blocknative.com/gasprices/blockprices";
+static BLOCKNATIVE_BLOCKPRICES_URL: &str = "https://api.blocknative.com/gasprices/blockprices";
 
 /// Blocknative Gas Oracle.
 /// Returns max priority fee and max fee from blocknative api.
