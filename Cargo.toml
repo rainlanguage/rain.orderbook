@@ -1,0 +1,12 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "CAL-1.0"
+homepage = "https://github.com/rainprotocol/rain.orderbook"
+
+[workspace.dependencies]
+alloy-sol-types = { version = "0.5.4", features = ["json"] }
+alloy-primitives = "0.5.4"
