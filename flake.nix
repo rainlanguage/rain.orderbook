@@ -39,7 +39,7 @@
             set -euo pipefail;
             forge build --force;
             echo 'deploy pubkey:'
-            cast wallet address "${DEPLOYMENT_KEY}";
+            cast wallet address "''${DEPLOYMENT_KEY}";
           '' + pkgs.lib.concatStrings (map deploy-single-contract concrete-contracts)); };
 
           default = build-meta;
