@@ -35,10 +35,10 @@
               "$( ${(build-meta-cmd contract)} -E hex )" \
               ;
           '';
-          deploy-contracts = pkgs.writeShellScriptBin "deploy-contracts" (''
+          deploy-contracts = rainix.mkTask.${system} { name = "deploy-contracts"; body = (''
             set -euo pipefail;
             forge build --force;
-          '' + pkgs.lib.concatStrings (map deploy-single-contract concrete-contracts));
+          '' + pkgs.lib.concatStrings (map deploy-single-contract concrete-contracts)); };
 
           default = build-meta;
           ci-prep = build-meta;
