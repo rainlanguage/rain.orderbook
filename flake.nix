@@ -28,6 +28,12 @@
             echo 'deploy pubkey:'
             cast wallet address "''${DEPLOYMENT_KEY}";
           '' + pkgs.lib.concatStrings (map deploy-single-contract concrete-contracts)); };
+
+          ci-prep = rainix.mkTask.${system} { name = "ci-prep"; body = ''
+            set -euo pipefail;
+            forge build --force;
+          ''; };
+
         } // rainix.packages.${system};
 
         devShells = rainix.devShells.${system};
