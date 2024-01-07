@@ -5,7 +5,6 @@ import {GenericPoolOrderBookV3ArbOrderTakerTest} from "test/util/abstract/Generi
 
 import {
     GenericPoolOrderBookV3ArbOrderTaker,
-    DeployerDiscoverableMetaV3ConstructionConfig,
     OrderBookV3ArbOrderTakerConfigV1,
     MinimumOutput
 } from "src/concrete/GenericPoolOrderBookV3ArbOrderTaker.sol";

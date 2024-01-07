@@ -2,10 +2,7 @@
 pragma solidity =0.8.19;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {
-    RouteProcessorOrderBookV3ArbOrderTaker,
-    DeployerDiscoverableMetaV3ConstructionConfig
-} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import {I9R_DEPLOYER} from "./DeployConstants.sol";
 
 /// @title DeployRouteProcessorOrderBookV3ArbOrderTaker
@@ -16,11 +13,8 @@ contract DeployRouteProcessorOrderBookV3ArbOrderTaker is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
 
-        bytes memory meta = hex"";
-
         vm.startBroadcast(deployerPrivateKey);
-        RouteProcessorOrderBookV3ArbOrderTaker deployed =
-            new RouteProcessorOrderBookV3ArbOrderTaker(DeployerDiscoverableMetaV3ConstructionConfig(I9R_DEPLOYER, meta));
+        RouteProcessorOrderBookV3ArbOrderTaker deployed = new RouteProcessorOrderBookV3ArbOrderTaker(I9R_DEPLOYER);
         (deployed);
         vm.stopBroadcast();
     }

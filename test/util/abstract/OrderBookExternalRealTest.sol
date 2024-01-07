@@ -11,18 +11,12 @@ import {
 } from "rain.interpreter/src/concrete/RainterpreterExpressionDeployerNPE2.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/src/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {ORDER_BOOK_META_PATH} from "test/util/lib/LibOrderBookConstants.sol";
 import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
 import {IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import {IOrderBookV3} from "src/interface/unstable/IOrderBookV3.sol";
-import {
-    OrderBook,
-    IERC20,
-    DeployerDiscoverableMetaV3ConstructionConfig,
-    CALLER_META_HASH as ORDERBOOK_CALLER_META_HASH
-} from "src/concrete/OrderBook.sol";
+import {OrderBook, IERC20} from "src/concrete/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
@@ -71,17 +65,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
                 )
             )
         );
-        bytes memory orderbookMeta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        bytes32 orderbookMetaHash = keccak256(orderbookMeta);
-        if (orderbookMetaHash != ORDERBOOK_CALLER_META_HASH) {
-            console2.log("orderbook meta hash:");
-            console2.logBytes(abi.encodePacked(orderbookMetaHash));
-            console2.log("expected orderbook meta hash:");
-            console2.logBytes(abi.encodePacked(ORDERBOOK_CALLER_META_HASH));
-        }
-        iOrderbook = IOrderBookV3(
-            address(new OrderBook(DeployerDiscoverableMetaV3ConstructionConfig(address(iDeployer), orderbookMeta)))
-        );
+        iOrderbook = IOrderBookV3(address(new OrderBook(address(iDeployer))));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);

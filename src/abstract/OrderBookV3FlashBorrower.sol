@@ -7,11 +7,7 @@ import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
-import {
-    DeployerDiscoverableMetaV3,
-    DeployerDiscoverableMetaV3ConstructionConfig,
-    LibMeta
-} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {LibDeployerDiscoverable} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
@@ -98,7 +94,6 @@ abstract contract OrderBookV3FlashBorrower is
     ICloneableV2,
     ReentrancyGuard,
     Initializable,
-    DeployerDiscoverableMetaV3,
     ERC165
 {
     using Address for address;
@@ -119,9 +114,9 @@ abstract contract OrderBookV3FlashBorrower is
     /// The associated store for the interpreter.
     IInterpreterStoreV1 public sI9rStore;
 
-    constructor(bytes32 metaHash, DeployerDiscoverableMetaV3ConstructionConfig memory config)
-        DeployerDiscoverableMetaV3(metaHash, config)
-    {
+    constructor(address deployer) {
+        LibDeployerDiscoverable.touchDeployerV3(deployer);
+
         // Arb contracts are expected to be cloned proxies so allowing
         // initialization of the implementation is a security risk.
         _disableInitializers();

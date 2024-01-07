@@ -3,13 +3,8 @@ pragma solidity =0.8.19;
 
 import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
 
-import {GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH} from
-    "test/util/lib/LibGenericPoolOrderBookV3FlashBorrowerConstants.sol";
-
 import {
     GenericPoolOrderBookV3FlashBorrower,
-    DeployerDiscoverableMetaV3ConstructionConfig,
-    CALLER_META_HASH as GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_CALLER_META_HASH,
     MinimumOutput,
     ICloneableV2,
     OrderBookV3FlashBorrowerConfigV2
@@ -24,11 +19,10 @@ import {
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) = buildConstructorConfig(
-            GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_META_PATH,
-            GENERIC_POOL_ORDER_BOOK_V3_FLASH_BORROWER_CALLER_META_HASH
-        );
-        return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3FlashBorrower(config)));
+        address deployer = buildConstructorConfig();
+        address iArb = address(new GenericPoolOrderBookV3FlashBorrower(deployer));
+        vm.label(iArb, "iArb");
+        return ArbTestConstructorConfig(deployer, iArb);
     }
 
     constructor() ArbTest(buildArbTestConstructorConfig()) {

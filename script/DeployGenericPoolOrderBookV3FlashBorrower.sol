@@ -2,10 +2,7 @@
 pragma solidity =0.8.19;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {
-    GenericPoolOrderBookV3FlashBorrower,
-    DeployerDiscoverableMetaV3ConstructionConfig
-} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 import {I9R_DEPLOYER} from "./DeployConstants.sol";
 
 /// @title DeployGenericPoolOrderBookV3FlashBorrower
@@ -16,11 +13,8 @@ contract DeployGenericPoolOrderBookV3FlashBorrower is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
 
-        bytes memory meta = hex"";
-
         vm.startBroadcast(deployerPrivateKey);
-        GenericPoolOrderBookV3FlashBorrower deployed =
-            new GenericPoolOrderBookV3FlashBorrower(DeployerDiscoverableMetaV3ConstructionConfig(I9R_DEPLOYER, meta));
+        GenericPoolOrderBookV3FlashBorrower deployed = new GenericPoolOrderBookV3FlashBorrower(I9R_DEPLOYER);
         (deployed);
         vm.stopBroadcast();
     }

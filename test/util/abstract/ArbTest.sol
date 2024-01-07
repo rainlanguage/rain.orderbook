@@ -4,13 +4,17 @@ pragma solidity =0.8.19;
 import {Test, console2} from "forge-std/Test.sol";
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
-import "test/util/lib/LibTestConstants.sol";
-import {DeployerDiscoverableMetaV3ConstructionConfig} from
-    "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "test/util/concrete/Refundoor.sol";
-import "test/util/concrete/FlashLendingMockOrderBook.sol";
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {Refundoor} from "test/util/concrete/Refundoor.sol";
+import {
+    FlashLendingMockOrderBook,
+    OrderV2,
+    TakeOrderConfigV2,
+    IO,
+    SignedContextV1
+} from "test/util/concrete/FlashLendingMockOrderBook.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -36,19 +40,24 @@ abstract contract ArbTest is Test {
 
     constructor(ArbTestConstructorConfig memory config) {
         iDeployer = config.deployer;
+        vm.label(iDeployer, "iDeployer");
         iImplementation = config.implementation;
+        vm.label(iImplementation, "iImplementation");
         iArb = Clones.clone(iImplementation);
+        vm.label(iArb, "iArb");
         iTakerInput = new Token();
+        vm.label(address(iTakerInput), "iTakerInput");
         iTakerOutput = new Token();
+        vm.label(address(iTakerOutput), "iTakerOutput");
         iRefundoor = address(new Refundoor());
+        vm.label(iRefundoor, "iRefundoor");
         iOrderBook = new FlashLendingMockOrderBook();
+        vm.label(address(iOrderBook), "iOrderBook");
     }
 
-    function buildConstructorConfig(string memory metaPath, bytes32 expectedHash)
-        internal
-        returns (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config)
-    {
+    function buildConstructorConfig() internal returns (address deployer) {
         deployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
+        vm.label(deployer, "deployer");
         // All non-mocked calls will revert.
         vm.etch(deployer, REVERTING_MOCK_BYTECODE);
         vm.mockCall(
@@ -57,16 +66,6 @@ abstract contract ArbTest is Test {
             // Don't need any io for the "before arb" expression.
             abi.encode(address(0), address(0), address(0), "0000")
         );
-        bytes memory meta = vm.readFileBinary(metaPath);
-        bytes32 metaHash = keccak256(meta);
-        if (metaHash != expectedHash) {
-            console2.log("ArbTest meta hash:", metaPath);
-            console2.logBytes32(metaHash);
-            console2.log("expected ArbTest meta hash:");
-            console2.logBytes32(expectedHash);
-            revert("ArbTest: invalid meta hash");
-        }
-        config = DeployerDiscoverableMetaV3ConstructionConfig(deployer, meta);
     }
 
     function buildTakeOrderConfig(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
