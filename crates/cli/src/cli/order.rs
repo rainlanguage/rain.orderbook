@@ -1,13 +1,14 @@
-use clap::{Subcommand};
+use clap::Subcommand;
 
 #[derive(Subcommand)]
 #[command(about = "Interact with an order(s) onchain and offchain.")]
 pub enum Order {
     #[command(about = "List all orders from the subgraph.")]
-    Ls
+    Ls,
 }
 
 pub async fn ls() -> anyhow::Result<()> {
-    crate::subgraph::orders::query().await?;
+    let orders = rain_orderbook_subgraph_queries::orders::query().await?;
+    dbg!(orders);
     Ok(())
 }

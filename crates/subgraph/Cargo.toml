@@ -1,16 +1,15 @@
 [package]
-name = "rain_cli_ob"
+name = "rain_orderbook_subgraph_queries"
 version = "0.0.4"
 edition = "2021"
 license = "CAL-1.0"
-description = "Rain orderbook CLI."
+description = "Subgraph queries for the Rain Orderbook"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.70"
-clap = { version = "4.2.5", features = ["cargo", "derive"] }
 graphql_client = "0.12.0"
 once_cell = "1.17.1"
 reqwest = { version = "0.11.17", features = ["json"] }
