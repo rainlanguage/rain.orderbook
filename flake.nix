@@ -14,10 +14,13 @@
       in rec {
         packages = rec {
           deploy-single-contract = contract: ''
-            forge script script/Deploy${contract}.sol:Deploy${contract} --legacy --verify --broadcast --rpc-url "''${CI_DEPLOY_RPC_URL}" --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
-              --sig='run(bytes)' \
-              "$( ${(build-meta-cmd contract)} -E hex )" \
-              ;
+            forge script script/Deploy${contract}.sol:Deploy${contract} \
+            --legacy \
+            --verify \
+            --broadcast \
+            --rpc-url "''${CI_DEPLOY_RPC_URL}" \
+            --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
+            ;
           '';
 
           deploy-contracts = rainix.mkTask.${system} { name = "deploy-contracts"; body = (''
