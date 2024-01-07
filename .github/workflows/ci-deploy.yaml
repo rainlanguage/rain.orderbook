@@ -13,9 +13,6 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - name: Report public key to make it easy to send funds for deployments
-        run: nix develop --command cast wallet address "${DEPLOYMENT_KEY}"
-
       - name: Forge deploy contracts to mumbai
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
