@@ -31,6 +31,7 @@
 
           ci-prep = rainix.mkTask.${system} { name = "ci-prep"; body = ''
             set -euo pipefail;
+            forge install --shallow;
             forge build --force;
           ''; };
 
