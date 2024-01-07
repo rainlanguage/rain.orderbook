@@ -1,0 +1,30 @@
+name: Rainix CI
+on: [push]
+
+jobs:
+  standard-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        task: [ci-rs-test, ci-rs-artifacts]
+        include:
+          # Solidity doesn't need to be tested on multiple platforms
+          - os: ubuntu-latest
+            task: ci-sol-test
+          - os: ubuntu-latest
+            task: ci-sol-static
+          - os: ubuntu-latest
+            task: ci-sol-artifacts
+          # We don't need to do rust static analysis on multiple platforms
+          - os: ubuntu-latest
+            task: ci-rs-static
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - run: nix run .#ci-prep
+      - run: nix run github:rainlanguage/rainix#${{ matrix.task }}
