@@ -1,7 +1,7 @@
+use crate::cli::order::Order;
 use anyhow::Result;
 use clap::command;
 use clap::{Parser, Subcommand};
-use crate::cli::order::Order;
 
 mod order;
 
@@ -15,16 +15,14 @@ struct Cli {
 #[derive(Subcommand)]
 pub enum Orderbook {
     #[command(subcommand)]
-    Order(Order)
+    Order(Order),
 }
 
 pub async fn dispatch(orderbook: Orderbook) -> Result<()> {
     match orderbook {
-        Orderbook::Order(order) => {
-            match order {
-                Order::Ls => Ok(order::ls().await?),
-            }
-        }
+        Orderbook::Order(order) => match order {
+            Order::Ls => Ok(order::ls().await?),
+        },
     }
 }
 

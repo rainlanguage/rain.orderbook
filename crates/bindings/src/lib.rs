@@ -8,8 +8,8 @@ sol!(
 #[cfg(test)]
 pub mod test {
     use crate::IOrderBookV3::*;
-    use alloy_sol_types::{SolCall, SolError, SolEvent, abi::token::WordToken};
-    use alloy_primitives::{hex, Address, U256, keccak256};
+    use alloy_primitives::{hex, keccak256, Address, U256};
+    use alloy_sol_types::{abi::token::WordToken, SolCall, SolError, SolEvent};
 
     #[test]
     fn test_deposit_function() {
@@ -29,10 +29,7 @@ pub mod test {
             "0000000000000000000000000000000000000000000000000000000000000001" // vaultId
         );
 
-        assert_eq!(
-            call_data,
-            expected_call_data
-        );
+        assert_eq!(call_data, expected_call_data);
     }
 
     #[test]
@@ -45,13 +42,11 @@ pub mod test {
         );
         assert_eq!(
             ZeroDepositAmount::abi_decode_raw(&call_data, true),
-            Ok(
-                ZeroDepositAmount {
-                    sender: Address::repeat_byte(0x11),
-                    token: Address::repeat_byte(0x22),
-                    vaultId: U256::from(1),
-                }
-            )
+            Ok(ZeroDepositAmount {
+                sender: Address::repeat_byte(0x11),
+                token: Address::repeat_byte(0x22),
+                vaultId: U256::from(1),
+            })
         );
     }
 
@@ -67,9 +62,7 @@ pub mod test {
         };
         assert_eq!(
             deposit_event.encode_topics_array::<1>(),
-            [
-                WordToken(Deposit::SIGNATURE_HASH)
-            ]
+            [WordToken(Deposit::SIGNATURE_HASH)]
         );
         assert_eq!(
             deposit_event.encode_data(),
@@ -86,7 +79,7 @@ pub mod test {
         assert_eq!(T::SIGNATURE, expected);
         assert_eq!(T::SELECTOR, keccak256(expected)[..4]);
     }
-    
+
     fn assert_error_signature<T: SolError>(expected: &str) {
         assert_eq!(T::SIGNATURE, expected);
         assert_eq!(T::SELECTOR, keccak256(expected)[..4]);
@@ -95,5 +88,5 @@ pub mod test {
     fn assert_event_signature<T: SolEvent>(expected: &str) {
         assert_eq!(T::SIGNATURE, expected);
         assert_eq!(T::SIGNATURE_HASH, keccak256(expected));
-     }
+    }
 }
