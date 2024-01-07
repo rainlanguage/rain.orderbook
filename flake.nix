@@ -10,19 +10,18 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = rainix.pkgs.${system};
-
-      in rec {
-        packages = rec {
-          deploy-single-contract = contract: ''
-            forge script script/Deploy${contract}.sol:Deploy${contract} \
-            --legacy \
-            --verify \
-            --broadcast \
-            --rpc-url "''${CI_DEPLOY_RPC_URL}" \
-            --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
-            ;
-          '';
-
+        concrete-contracts = ["OrderBook" "GenericPoolOrderBookV3FlashBorrower" "GenericPoolOrderBookV3ArbOrderTaker" "RouteProcessorOrderBookV3ArbOrderTaker"];
+        deploy-single-contract = contract: ''
+          forge script script/Deploy${contract}.sol:Deploy${contract} \
+          --legacy \
+          --verify \
+          --broadcast \
+          --rpc-url "''${CI_DEPLOY_RPC_URL}" \
+          --etherscan-api-key "''${EXPLORER_VERIFICATION_KEY}" \
+          ;
+        '';
+      in {
+        packages = {
           deploy-contracts = rainix.mkTask.${system} { name = "deploy-contracts"; body = (''
             set -euo pipefail;
             forge build --force;
