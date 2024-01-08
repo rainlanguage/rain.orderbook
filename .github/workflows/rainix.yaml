@@ -19,6 +19,8 @@ jobs:
           - os: ubuntu-latest
             task: ci-rs-static
     runs-on: ${{ matrix.os }}
+    env:
+      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
       - uses: actions/checkout@v3
 
@@ -26,5 +28,8 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix run .#ci-prep
-      - run: nix run .#${{ matrix.task }}
+      - name: Run ${{ matrix.task }}
+        env:
+          CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
+          EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
+        run: nix run .#${{ matrix.task }}
