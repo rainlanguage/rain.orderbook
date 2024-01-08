@@ -1,5 +1,5 @@
-use clap::Parser;
 use anyhow::Result;
+use clap::Parser;
 use rain_orderbook_cli::Orderbook;
 
 #[derive(Parser)]

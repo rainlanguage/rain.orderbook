@@ -1,4 +1,4 @@
-use alloy_primitives::{Address, U256, hex};
+use alloy_primitives::{hex, Address, U256};
 use ethers::prelude::SignerMiddleware;
 use ethers::types::TransactionReceipt;
 use ethers::{

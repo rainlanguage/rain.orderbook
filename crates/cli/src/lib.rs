@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Subcommand;
 
-use crate::commands::{Order, Deposit};
+use crate::commands::{Deposit, Order};
 
 mod commands;
 mod transaction;

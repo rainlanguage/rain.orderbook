@@ -1,4 +1,4 @@
-mod order;
 mod deposit;
+mod order;
 
-pub use self::{order::*, deposit::*};
+pub use self::{deposit::*, order::*};

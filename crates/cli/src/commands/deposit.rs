@@ -1,19 +1,19 @@
-use clap::Parser;
+use crate::transaction::TransactionArgs;
+use alloy_primitives::{Address, U256};
+use alloy_sol_types::SolCall;
 use anyhow::Result;
 use clap::Args;
-use alloy_primitives::{U256, Address};
+use clap::Parser;
+use ethers_signers::{HDPath, Ledger};
 use rain_orderbook_bindings::IOrderBookV3::depositCall;
-use alloy_sol_types::SolCall;
 use rain_orderbook_transactions::execute::execute_transaction;
-use crate::transaction::TransactionArgs;
-use ethers_signers::{Ledger, HDPath};
 
 #[derive(Parser)]
 pub struct Deposit {
     #[clap(flatten)]
     deposit_args: DepositArgs,
     #[clap(flatten)]
-    transaction_args: TransactionArgs
+    transaction_args: TransactionArgs,
 }
 
 impl Deposit {
@@ -25,9 +25,14 @@ impl Deposit {
             self.transaction_args.orderbook_address.parse::<Address>()?,
             U256::from(0),
             self.transaction_args.rpc_url,
-            Ledger::new(HDPath::LedgerLive(self.transaction_args.derivation_path.unwrap_or(0)), self.transaction_args.chain_id).await?,
+            Ledger::new(
+                HDPath::LedgerLive(self.transaction_args.derivation_path.unwrap_or(0)),
+                self.transaction_args.chain_id,
+            )
+            .await?,
             self.transaction_args.blocknative_api_key,
-        ).await?;
+        )
+        .await?;
         Ok(())
     }
 }
