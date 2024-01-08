@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
+import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
 
-import "../abstract/OrderBookV3ArbOrderTaker.sol";
+import {
+    OrderBookV3ArbOrderTaker,
+    OrderBookV3ArbOrderTakerConfigV1,
+    MinimumOutput
+} from "../abstract/OrderBookV3ArbOrderTaker.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
-
-bytes32 constant CALLER_META_HASH = bytes32(0xb5923e408032e4f76298ae26c496091f2d8f16a7c968bbd5ee83bf90b5aca00e);
 
 contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;
@@ -16,9 +18,7 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
 
     IRouteProcessor public sRouteProcessor;
 
-    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
-        OrderBookV3ArbOrderTaker(CALLER_META_HASH, config)
-    {}
+    constructor(address deployer) OrderBookV3ArbOrderTaker(deployer) {}
 
     /// @inheritdoc OrderBookV3ArbOrderTaker
     function _beforeInitialize(bytes memory data) internal virtual override {

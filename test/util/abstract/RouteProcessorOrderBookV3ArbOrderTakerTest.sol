@@ -4,9 +4,7 @@ pragma solidity =0.8.19;
 import {ArbTest, ArbTestConstructorConfig} from "./ArbTest.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
-    DeployerDiscoverableMetaV3ConstructionConfig,
-    OrderBookV3ArbOrderTakerConfigV1,
-    CALLER_META_HASH as ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_CALLER_META_HASH
+    OrderBookV3ArbOrderTakerConfigV1
 } from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import {
     OrderV2,
@@ -16,16 +14,11 @@ import {
     TakeOrdersConfigV2
 } from "src/interface/unstable/IOrderBookV3.sol";
 import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
-import {ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH} from
-    "test/util/lib/LibRouteProcessorOrderBookV3ArbOrderTakerConstants.sol";
 
 contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        (address deployer, DeployerDiscoverableMetaV3ConstructionConfig memory config) = buildConstructorConfig(
-            ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_META_PATH,
-            ROUTE_PROCESSOR_ORDER_BOOK_V3_ARB_ORDER_TAKER_CALLER_META_HASH
-        );
-        return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(config)));
+        address deployer = buildConstructorConfig();
+        return ArbTestConstructorConfig(deployer, address(new RouteProcessorOrderBookV3ArbOrderTaker(deployer)));
     }
 
     constructor() ArbTest(buildArbTestConstructorConfig()) {

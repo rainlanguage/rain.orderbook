@@ -8,7 +8,6 @@ import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IEx
 import {IMetaV1} from "rain.metadata/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {ORDER_BOOK_META_PATH} from "test/util/lib/LibOrderBookConstants.sol";
 import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IInterpreterV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
@@ -16,9 +15,7 @@ import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterSt
 import {IOrderBookV3, OrderConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderBook, CALLER_META_HASH as ORDERBOOK_CALLER_META_HASH} from "src/concrete/OrderBook.sol";
-import {DeployerDiscoverableMetaV3ConstructionConfig} from
-    "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {OrderBook} from "src/concrete/OrderBook.sol";
 
 /// @title OrderBookExternalTest
 /// Abstract contract that performs common setup needed for testing an orderbook
@@ -53,16 +50,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
             abi.encode(iInterpreter, iStore, address(0), "00020000")
         );
-        bytes memory meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        bytes32 metaHash = keccak256(meta);
-        if (metaHash != ORDERBOOK_CALLER_META_HASH) {
-            console2.log("OrderBookExternalMockTest orderbook meta hash:");
-            console2.logBytes(abi.encodePacked(metaHash));
-            console2.log("expected OrderBookExternalMockTest orderbook meta hash:");
-            console2.logBytes(abi.encodePacked(ORDERBOOK_CALLER_META_HASH));
-        }
-        iOrderbook =
-            IOrderBookV3(address(new OrderBook(DeployerDiscoverableMetaV3ConstructionConfig(address(iDeployer), meta))));
+        iOrderbook = IOrderBookV3(address(new OrderBook(address(iDeployer))));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
