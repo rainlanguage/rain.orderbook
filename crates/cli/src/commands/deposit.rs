@@ -62,3 +62,30 @@ impl DepositArgs {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_deposit_call_valid() {
+        let args = DepositArgs {
+            token: "0xdcdee0E7a58Bba7e305dB3Abc42F4887CE8EF729".to_string(),
+            amount: 100,
+            vault_id: 1,
+        };
+        let result = args.to_deposit_call();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_to_deposit_call_invalid_token() {
+        let args = DepositArgs {
+            token: "invalid".to_string(),
+            amount: 100,
+            vault_id: 1,
+        };
+        assert!(args.to_deposit_call().is_err());
+    }
+}
+
