@@ -4,17 +4,30 @@ use clap::Args;
 use alloy_primitives::{U256, Address};
 use rain_orderbook_bindings::IOrderBookV3::depositCall;
 use alloy_sol_types::SolCall;
+use rain_orderbook_transactions::execute::execute_transaction;
+use crate::transaction::TransactionArgs;
+use ethers_signers::{Ledger, HDPath};
 
 #[derive(Parser)]
 pub struct Deposit {
     #[clap(flatten)]
-    deposit_args: DepositArgs
+    deposit_args: DepositArgs,
+    #[clap(flatten)]
+    transaction_args: TransactionArgs
 }
 
 impl Deposit {
     pub async fn execute(self) -> Result<()> {
         let deposit_call = self.deposit_args.to_deposit_call()?;
         let call_data = deposit_call.abi_encode();
+        execute_transaction(
+            call_data,
+            self.transaction_args.orderbook_address.parse::<Address>()?,
+            U256::from(0),
+            self.transaction_args.rpc_url,
+            Ledger::new(HDPath::LedgerLive(self.transaction_args.derivation_path.unwrap_or(0)), self.transaction_args.chain_id).await?,
+            self.transaction_args.blocknative_api_key,
+        ).await?;
         Ok(())
     }
 }

@@ -1,0 +1,18 @@
+[package]
+name = "rain_orderbook_transactions"
+version = "0.0.4"
+edition = "2021"
+license = "CAL-1.0"
+description = "Rain Orderbook CLI."
+homepage = "https://github.com/rainprotocol/rain.orderbook"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ethers = "2.0.7"
+ethers-signers = { version = "2.0.8", features = ["ledger"] }
+url = "2.5.0"
+reqwest = { version = "0.11.17", features = ["json"] }
+anyhow = "1.0.70"
+alloy-primitives = "0.5.4"
+tracing = "0.1.37"

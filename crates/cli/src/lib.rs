@@ -4,6 +4,7 @@ use clap::Subcommand;
 use crate::commands::{Order, Deposit};
 
 mod commands;
+mod transaction;
 
 #[derive(Subcommand)]
 pub enum Orderbook {

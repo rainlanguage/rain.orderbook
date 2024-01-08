@@ -11,6 +11,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 [dependencies]
 rain_orderbook_subgraph_queries = { path = "../subgraph" }
 rain_orderbook_bindings = { path = "../bindings" }
+rain_orderbook_transactions = { path = "../transaction" }
 anyhow = "1.0.70"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
 graphql_client = "0.12.0"
@@ -24,4 +25,5 @@ tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 alloy-primitives = "0.5.4"
 alloy-sol-types = { version = "0.5.4" }
+ethers-signers = { version = "2.0.8", features = ["ledger"] }
 
