@@ -88,4 +88,3 @@ mod tests {
         assert!(args.to_deposit_call().is_err());
     }
 }
-
