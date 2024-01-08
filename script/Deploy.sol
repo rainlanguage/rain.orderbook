@@ -22,7 +22,6 @@ contract Deploy is Script {
         // OB.
         new OrderBook(I9R_DEPLOYER);
 
-
         // Order takers.
         new GenericPoolOrderBookV3ArbOrderTaker(I9R_DEPLOYER);
         new RouteProcessorOrderBookV3ArbOrderTaker(I9R_DEPLOYER);
