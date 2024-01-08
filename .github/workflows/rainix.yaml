@@ -6,18 +6,18 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        task: [ci-rs-test, ci-rs-artifacts]
+        task: [rainix-rs-test, rainix-rs-artifacts]
         include:
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest
-            task: ci-sol-test
+            task: rainix-sol-test
           - os: ubuntu-latest
-            task: ci-sol-static
+            task: rainix-sol-static
           - os: ubuntu-latest
-            task: ci-sol-artifacts
+            task: rainix-sol-artifacts
           # We don't need to do rust static analysis on multiple platforms
           - os: ubuntu-latest
-            task: ci-rs-static
+            task: rainix-rs-static
     runs-on: ${{ matrix.os }}
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
@@ -28,6 +28,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
+      - run: nix run .#rainix-prelude
       - name: Run ${{ matrix.task }}
         env:
           CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
