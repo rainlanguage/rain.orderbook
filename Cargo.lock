@@ -1420,10 +1420,13 @@ dependencies = [
 name = "rain_orderbook_cli"
 version = "0.0.4"
 dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
  "anyhow",
  "clap",
  "graphql_client",
  "once_cell",
+ "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
  "reqwest",
  "rust-bigint",
