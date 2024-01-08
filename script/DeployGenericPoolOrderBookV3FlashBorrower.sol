@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {Script, console2} from "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
 import {I9R_DEPLOYER} from "./DeployConstants.sol";
 
