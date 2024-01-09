@@ -12,7 +12,6 @@ import {
 } from "src/interface/unstable/IOrderBookV3.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
-    DeployerDiscoverableMetaV3ConstructionConfig,
     OrderBookV3ArbOrderTakerConfigV1,
     MinimumOutput
 } from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";

@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "lib/forge-std/src/Test.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
 
-import "test/util/lib/LibTestConstants.sol";
-import "test/util/lib/LibOrderBookConstants.sol";
+import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 
-import "src/concrete/OrderBook.sol";
+import {OrderBook, IExpressionDeployerV3} from "src/concrete/OrderBook.sol";
 
 /// @title OrderBookSelfTest
 /// Abstract contract that is an `OrderBook` and can be used to test itself.
@@ -26,11 +25,5 @@ abstract contract OrderBookSelfTest is Test, OrderBook {
         vm.resumeGasMetering();
     }
 
-    function constructMeta() internal returns (bytes memory meta) {
-        vm.pauseGasMetering();
-        meta = vm.readFileBinary(ORDER_BOOK_META_PATH);
-        vm.resumeGasMetering();
-    }
-
-    constructor() OrderBook(DeployerDiscoverableMetaV3ConstructionConfig(constructDeployer(), constructMeta())) {}
+    constructor() OrderBook(constructDeployer()) {}
 }

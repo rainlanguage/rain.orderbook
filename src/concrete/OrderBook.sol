@@ -13,11 +13,7 @@ import {LibFixedPointDecimalArithmeticOpenZeppelin} from
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
-import {
-    DeployerDiscoverableMetaV3,
-    DeployerDiscoverableMetaV3ConstructionConfig,
-    LibMeta
-} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
+import {LibDeployerDiscoverable} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
 import {
     SourceIndexV2, StateNamespace, IInterpreterV2
@@ -42,6 +38,8 @@ import {EvaluableV2} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
+import {LibMeta} from "rain.metadata/LibMeta.sol";
+import {IMetaV1} from "rain.metadata/IMetaV1.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -154,9 +152,6 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 /// @dev Length of a vault IO column.
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
-/// @dev Hash of the caller contract metadata for construction.
-bytes32 constant CALLER_META_HASH = bytes32(0x4383dd3c5a557f161038940161f880963e1d4a31e8f2da771427b891956ad831);
-
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
 /// @param outputMax The UNSCALED maximum output calculated by the order
@@ -203,7 +198,7 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3FlashLender, DeployerDiscoverableMetaV3 {
+contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBookV3FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV2;
@@ -235,9 +230,9 @@ contract OrderBook is IOrderBookV3, ReentrancyGuard, Multicall, OrderBookV3Flash
     /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
     /// factory deployments as each order is a unique expression deployment
     /// rather than needing to wrap up expressions with proxies.
-    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
-        DeployerDiscoverableMetaV3(CALLER_META_HASH, config)
-    {}
+    constructor(address deployer) {
+        LibDeployerDiscoverable.touchDeployerV3(deployer);
+    }
 
     /// @inheritdoc IOrderBookV3
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {

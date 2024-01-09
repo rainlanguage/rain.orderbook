@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "src/interface/ierc3156/IERC3156FlashLender.sol";
-import "src/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "src/interface/ierc3156/IERC3156FlashLender.sol";
+import {IERC3156FlashBorrower} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-import "src/abstract/OrderBookV3FlashBorrower.sol";
-
-/// @dev Metadata hash for `DeployerDiscoverableMetaV1`.
-/// - ABI for GenericPoolOrderBookV3FlashBorrower
-/// - Interpreter caller metadata V1 for GenericPoolOrderBookV3FlashBorrower
-bytes32 constant CALLER_META_HASH = bytes32(0x52cdec296c4ecb0b2452c9e314df50e1b5d52fef03927934b7426ff6f150f0fe);
+import {
+    OrderBookV3FlashBorrower,
+    OrderBookV3FlashBorrowerConfigV2,
+    ICloneableV2,
+    MinimumOutput,
+    SafeERC20,
+    IERC20,
+    Address,
+    TakeOrdersConfigV2
+} from "src/abstract/OrderBookV3FlashBorrower.sol";
 
 /// @title GenericPoolOrderBookV3FlashBorrower
 /// Implements the OrderBookV3FlashBorrower interface for a external liquidity
@@ -25,9 +29,7 @@ contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(DeployerDiscoverableMetaV3ConstructionConfig memory config)
-        OrderBookV3FlashBorrower(CALLER_META_HASH, config)
-    {}
+    constructor(address deployer) OrderBookV3FlashBorrower(deployer) {}
 
     /// @inheritdoc OrderBookV3FlashBorrower
     function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual override {
