@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "tauri-app",
+    "productName": "rain-orderbook-tauri-app",
     "version": "0.0.0"
   },
   "tauri": {
@@ -20,7 +20,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.rainlanguage.orderbook.tauriapp",
+      "identifier": "com.rainlanguage.orderbook.tauri-app",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
