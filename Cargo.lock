@@ -48,6 +48,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloy-ethers-typecast"
+version = "0.2.0"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d35a8e08ef240c4a66177f6de4e1de6fcb165b5f#d35a8e08ef240c4a66177f6de4e1de6fcb165b5f"
+dependencies = [
+ "alloy-primitives",
+ "anyhow",
+ "ethers",
+ "ethers-signers",
+ "log",
+]
+
+[[package]]
 name = "alloy-json-abi"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -69,6 +81,7 @@ dependencies = [
  "cfg-if",
  "const-hex",
  "derive_more",
+ "getrandom",
  "hex-literal",
  "itoa",
  "keccak-asm",
@@ -2840,16 +2853,15 @@ dependencies = [
 name = "rain_orderbook_cli"
 version = "0.0.4"
 dependencies = [
+ "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
  "anyhow",
  "clap",
- "ethers-signers",
  "graphql_client",
  "once_cell",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
- "rain_orderbook_transactions",
  "reqwest",
  "rust-bigint",
  "serde",
@@ -2873,19 +2885,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "rain_orderbook_transactions"
-version = "0.0.4"
-dependencies = [
- "alloy-primitives",
- "anyhow",
- "ethers",
- "ethers-signers",
- "reqwest",
- "tracing",
- "url",
 ]
 
 [[package]]

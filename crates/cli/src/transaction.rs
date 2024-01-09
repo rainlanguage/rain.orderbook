@@ -1,7 +1,7 @@
 use clap::Args;
 
 #[derive(Args)]
-pub struct TransactionArgs {
+pub struct CliTransactionArgs {
     #[arg(short, long, help = "Orderbook contract address")]
     pub orderbook_address: String,
 
@@ -13,7 +13,4 @@ pub struct TransactionArgs {
 
     #[arg(short, long, help = "RPC URL")]
     pub rpc_url: String,
-
-    #[arg(short, long, help = "Blocknative API Key")]
-    pub blocknative_api_key: Option<String>,
 }

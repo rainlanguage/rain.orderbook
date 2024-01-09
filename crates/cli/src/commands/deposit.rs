@@ -1,38 +1,46 @@
-use crate::transaction::TransactionArgs;
-use alloy_primitives::{Address, U256};
+use crate::transaction::CliTransactionArgs;
+use alloy_ethers_typecast::client::LedgerClient;
+use alloy_ethers_typecast::request_shim::AlloyTransactionRequest;
+use alloy_ethers_typecast::transaction::ExecutableTransaction;
+use alloy_primitives::{Address, U256, U64};
 use alloy_sol_types::SolCall;
 use anyhow::Result;
 use clap::Args;
 use clap::Parser;
-use ethers_signers::{HDPath, Ledger};
 use rain_orderbook_bindings::IOrderBookV3::depositCall;
-use rain_orderbook_transactions::execute::execute_transaction;
 
 #[derive(Parser)]
 pub struct Deposit {
     #[clap(flatten)]
     deposit_args: DepositArgs,
     #[clap(flatten)]
-    transaction_args: TransactionArgs,
+    transaction_args: CliTransactionArgs,
 }
 
 impl Deposit {
     pub async fn execute(self) -> Result<()> {
-        let deposit_call = self.deposit_args.to_deposit_call()?;
-        let call_data = deposit_call.abi_encode();
-        execute_transaction(
-            call_data,
-            self.transaction_args.orderbook_address.parse::<Address>()?,
-            U256::from(0),
-            self.transaction_args.rpc_url,
-            Ledger::new(
-                HDPath::LedgerLive(self.transaction_args.derivation_path.unwrap_or(0)),
-                self.transaction_args.chain_id,
-            )
-            .await?,
-            self.transaction_args.blocknative_api_key,
+        let call_data = self.deposit_args.to_deposit_call()?.abi_encode();
+
+        let tx = AlloyTransactionRequest::default()
+            .with_to(self.transaction_args.orderbook_address.parse::<Address>()?)
+            .with_data(call_data.clone())
+            .with_chain_id(U64::from(self.transaction_args.chain_id));
+
+        let ledger_client = LedgerClient::new(
+            self.transaction_args.derivation_path,
+            self.transaction_args.chain_id,
+            self.transaction_args.rpc_url.clone(),
         )
         .await?;
+
+        let transaction =
+            ExecutableTransaction::from_alloy_transaction_request(tx, ledger_client.client).await?;
+
+        transaction
+            .execute()
+            .await
+            .map_err(|e| anyhow::anyhow!(e))?;
+
         Ok(())
     }
 }
