@@ -1,6 +1,5 @@
 use crate::transaction::CliTransactionArgs;
 use alloy_ethers_typecast::transaction::ExecutableTransaction;
-use alloy_sol_types::SolCall;
 use anyhow::Result;
 use clap::Args;
 use clap::Parser;
@@ -17,9 +16,9 @@ pub struct Deposit {
 impl Deposit {
     pub async fn execute(self) -> Result<()> {
         let deposit_args: DepositArgs = self.deposit_args.into();
-        let call_data = deposit_args.to_deposit_call()?.abi_encode();
+        let call = deposit_args.to_deposit_call()?;
         let tx_args: TransactionArgs = self.transaction_args.into();
-        let request = tx_args.to_transaction_request(call_data).await?;
+        let request = tx_args.to_transaction_request_with_call(call).await?;
         let ledger_client = tx_args.to_ledger_client().await?;
 
         let tx =
