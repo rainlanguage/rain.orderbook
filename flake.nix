@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainprotocol/rainix/66c28f51480ff9b0c37aed6152546417b45c5b38";
+    rainix.url = "github:rainprotocol/rainix/74f3449027d76c6131aab305f03121c308e590ed";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
