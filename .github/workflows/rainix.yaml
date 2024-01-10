@@ -19,8 +19,8 @@ jobs:
           - os: ubuntu-latest
             task: rainix-rs-static
           # We have a tauri build for OrderBook :)
-          - os: ubuntu-latest
-            task: rainix-tauri-artifacts
+          # - os: ubuntu-latest
+          #   task: rainix-tauri-artifacts
     runs-on: ${{ matrix.os }}
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
