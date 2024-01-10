@@ -1,0 +1,13 @@
+name: Tauri builds
+on: [push]
+
+jobs:
+  build-tauri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      - run: nix develop .#tauri-shell --command cargo tauri build
+        working-directory: ./tauri-app
