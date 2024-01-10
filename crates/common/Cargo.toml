@@ -1,0 +1,16 @@
+[package]
+name = "rain_orderbook_common"
+version = "0.0.1"
+edition = "2021"
+license = "CAL-1.0"
+description = "Rain Orderbook CLI."
+homepage = "https://github.com/rainprotocol/rain.orderbook"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rain_orderbook_bindings = { path = "../bindings" }
+alloy-primitives = "0.5.4"
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "d35a8e08ef240c4a66177f6de4e1de6fcb165b5f" }
+anyhow = "1.0.70"
+alloy-sol-types = { version = "0.5.4" }
