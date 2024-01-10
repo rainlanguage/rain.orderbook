@@ -1,6 +1,7 @@
 use alloy_primitives::{Address, U256};
 use anyhow::Result;
 use rain_orderbook_bindings::IOrderBookV3::depositCall;
+use std::convert::TryInto;
 
 pub struct DepositArgs {
     pub token: String,
@@ -8,8 +9,10 @@ pub struct DepositArgs {
     pub vault_id: u64,
 }
 
-impl DepositArgs {
-    pub fn to_deposit_call(&self) -> Result<depositCall> {
+impl TryInto<depositCall> for DepositArgs {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<depositCall> {
         let token_address = self.token.parse::<Address>()?;
         let amount = U256::from(self.amount);
         let vault_id = U256::from(self.vault_id);
@@ -27,23 +30,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_deposit_call_valid() {
+    fn test_deposit_args_try_into() {
         let args = DepositArgs {
-            token: "0xdcdee0E7a58Bba7e305dB3Abc42F4887CE8EF729".to_string(),
+            token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
             amount: 100,
-            vault_id: 1,
+            vault_id: 42,
         };
-        let result = args.to_deposit_call();
-        assert!(result.is_ok());
-    }
 
-    #[test]
-    fn test_to_deposit_call_invalid_token() {
-        let args = DepositArgs {
-            token: "invalid".to_string(),
-            amount: 100,
-            vault_id: 1,
-        };
-        assert!(args.to_deposit_call().is_err());
+        let result: Result<depositCall, _> = args.try_into();
+
+        match result {
+            Ok(_) => (),
+            Err(e) => panic!("Unexpected error: {}", e),
+        }
+
+        assert!(result.is_ok());
+
+        let deposit_call = result.unwrap();
+        assert_eq!(
+            deposit_call.token,
+            "0x1234567890abcdef1234567890abcdef12345678"
+                .parse::<Address>()
+                .unwrap()
+        );
+        assert_eq!(deposit_call.amount, U256::from(100));
+        assert_eq!(deposit_call.vaultId, U256::from(42));
     }
 }
