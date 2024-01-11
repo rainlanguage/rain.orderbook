@@ -1,8 +1,9 @@
+use crate::call::CliExecutableCommand;
+use crate::commands::{Deposit, Order, Withdraw};
 use anyhow::Result;
 use clap::Subcommand;
 
-use crate::commands::{Deposit, Order, Withdraw};
-
+mod call;
 mod commands;
 mod transaction;
 

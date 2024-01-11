@@ -1,3 +1,4 @@
+use crate::call::CliExecutableCommand;
 use anyhow::Result;
 use clap::Parser;
 
@@ -7,8 +8,8 @@ pub enum Order {
     Ls,
 }
 
-impl Order {
-    pub async fn execute(self) -> Result<()> {
+impl CliExecutableCommand for Order {
+    async fn execute(self) -> Result<()> {
         match self {
             Order::Ls => ls().await,
         }
