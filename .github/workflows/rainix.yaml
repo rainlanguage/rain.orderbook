@@ -29,6 +29,8 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix run .#rainix-prelude
+      - run: nix run .#build-dispair-meta
+        working-directory: lib/rain.interpreter
       - name: Run ${{ matrix.task }}
         env:
           ETH_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
