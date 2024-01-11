@@ -1,4 +1,4 @@
-use alloy_primitives::{Address, U256};
+use alloy_primitives::U256;
 use anyhow::Result;
 use rain_orderbook_bindings::IOrderBookV3::depositCall;
 use std::convert::TryInto;
@@ -13,14 +13,10 @@ impl TryInto<depositCall> for DepositArgs {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<depositCall> {
-        let token_address = self.token.parse::<Address>()?;
-        let amount = U256::from(self.amount);
-        let vault_id = U256::from(self.vault_id);
-
         Ok(depositCall {
-            token: token_address,
-            amount,
-            vaultId: vault_id,
+            token: self.token.parse()?,
+            amount: U256::from(self.amount),
+            vaultId: U256::from(self.vault_id),
         })
     }
 }
@@ -28,6 +24,7 @@ impl TryInto<depositCall> for DepositArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy_primitives::Address;
 
     #[test]
     fn test_deposit_args_try_into() {
