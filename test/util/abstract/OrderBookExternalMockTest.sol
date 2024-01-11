@@ -5,7 +5,7 @@ import {Test} from "lib/forge-std/src/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
-import {IMetaV1} from "rain.metadata/LibMeta.sol";
+import {IMetaV1} from "rain.metadata/lib/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";

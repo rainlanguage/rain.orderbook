@@ -38,8 +38,8 @@ import {EvaluableV2} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
-import {LibMeta} from "rain.metadata/LibMeta.sol";
-import {IMetaV1} from "rain.metadata/IMetaV1.sol";
+import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
+import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
