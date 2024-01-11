@@ -48,7 +48,6 @@ pub mod test {
     #[test]
     fn test_withdraw_event() {
         assert_event_signature::<Withdraw>("Withdraw(address,address,uint256,uint256,uint256)");
-        assert!(!Withdraw::ANONYMOUS);
         let withdraw_event = Withdraw {
             sender: Address::repeat_byte(0x11),
             token: Address::repeat_byte(0x22),

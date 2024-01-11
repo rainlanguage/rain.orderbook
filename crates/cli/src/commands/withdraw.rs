@@ -27,12 +27,12 @@ pub struct CliWithdrawArgs {
     target_amount: u64,
 }
 
-impl Into<WithdrawArgs> for CliWithdrawArgs {
-    fn into(self) -> WithdrawArgs {
+impl From<CliWithdrawArgs> for WithdrawArgs {
+    fn from(val: CliWithdrawArgs) -> Self {
         WithdrawArgs {
-            token: self.token,
-            vault_id: self.vault_id,
-            target_amount: self.target_amount,
+            token: val.token,
+            vault_id: val.vault_id,
+            target_amount: val.target_amount,
         }
     }
 }

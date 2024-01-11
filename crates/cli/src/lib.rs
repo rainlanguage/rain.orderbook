@@ -1,5 +1,5 @@
-use crate::execute::Execute;
 use crate::commands::{Deposit, Order, Withdraw};
+use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
 

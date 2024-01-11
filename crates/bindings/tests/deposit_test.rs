@@ -1,8 +1,8 @@
 #[cfg(test)]
 pub mod test {
-    use rain_orderbook_bindings::IOrderBookV3::*;
     use alloy_primitives::{hex, keccak256, Address, U256};
     use alloy_sol_types::{abi::token::WordToken, SolCall, SolError, SolEvent};
+    use rain_orderbook_bindings::IOrderBookV3::*;
 
     #[test]
     fn test_deposit_function() {
@@ -46,7 +46,6 @@ pub mod test {
     #[test]
     fn test_deposit_event() {
         assert_event_signature::<Deposit>("Deposit(address,address,uint256,uint256)");
-        assert!(!Deposit::ANONYMOUS);
         let deposit_event = Deposit {
             sender: Address::repeat_byte(0x11),
             token: Address::repeat_byte(0x22),
