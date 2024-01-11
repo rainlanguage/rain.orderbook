@@ -31,6 +31,6 @@ jobs:
       - run: nix run .#rainix-prelude
       - name: Run ${{ matrix.task }}
         env:
-          CI_DEPLOY_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
-          EXPLORER_VERIFICATION_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
+          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
+          ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
         run: nix run .#${{ matrix.task }}
