@@ -38,19 +38,19 @@ pub struct CliDepositArgs {
     #[arg(short, long, help = "The token address in hex format")]
     token: String,
 
-    #[arg(short, long, help = "The amount to deposit")]
-    amount: u64,
-
     #[arg(short, long, help = "The ID of the vault")]
     vault_id: u64,
+
+    #[arg(short, long, help = "The amount to deposit")]
+    amount: u64,
 }
 
 impl From<CliDepositArgs> for DepositArgs {
     fn from(val: CliDepositArgs) -> Self {
         DepositArgs {
             token: val.token,
-            amount: val.amount,
             vault_id: val.vault_id,
+            amount: val.amount,
         }
     }
 }
