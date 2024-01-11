@@ -13,14 +13,10 @@ impl TryInto<withdrawCall> for WithdrawArgs {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<withdrawCall> {
-        let token = self.token.parse::<Address>()?;
-        let vault_id = U256::from(self.vault_id);
-        let target_amount = U256::from(self.target_amount);
-
         Ok(withdrawCall {
-            token: token,
-            vaultId: vault_id,
-            targetAmount: target_amount,
+            token: self.token.parse::<Address>()?,
+            vaultId: U256::from(self.vault_id),
+            targetAmount: U256::from(self.target_amount),
         })
     }
 }
