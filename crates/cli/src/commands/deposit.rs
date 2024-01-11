@@ -45,12 +45,12 @@ pub struct CliDepositArgs {
     vault_id: u64,
 }
 
-impl Into<DepositArgs> for CliDepositArgs {
-    fn into(self) -> DepositArgs {
+impl From<CliDepositArgs> for DepositArgs {
+    fn from(val: CliDepositArgs) -> Self {
         DepositArgs {
-            token: self.token,
-            amount: self.amount,
-            vault_id: self.vault_id,
+            token: val.token,
+            amount: val.amount,
+            vault_id: val.vault_id,
         }
     }
 }

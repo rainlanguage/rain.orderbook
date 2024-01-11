@@ -16,13 +16,13 @@ pub struct CliTransactionArgs {
     pub rpc_url: String,
 }
 
-impl Into<TransactionArgs> for CliTransactionArgs {
-    fn into(self) -> TransactionArgs {
+impl From<CliTransactionArgs> for TransactionArgs {
+    fn from(val: CliTransactionArgs) -> Self {
         TransactionArgs {
-            orderbook_address: self.orderbook_address,
-            derivation_path: self.derivation_path,
-            chain_id: self.chain_id,
-            rpc_url: self.rpc_url,
+            orderbook_address: val.orderbook_address,
+            derivation_path: val.derivation_path,
+            chain_id: val.chain_id,
+            rpc_url: val.rpc_url,
         }
     }
 }
