@@ -31,6 +31,6 @@ impl<T: FromArgMatches + Args> ExecutableTransactionCall<T> {
     }
 }
 
-pub trait CliExecutableCommand {
+pub trait Execute {
     async fn execute(self) -> Result<()>;
 }

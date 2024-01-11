@@ -1,4 +1,4 @@
-use crate::call::{CliExecutableCommand, ExecutableTransactionCall};
+use crate::call::{ExecutableTransactionCall, Execute};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
@@ -6,7 +6,7 @@ use rain_orderbook_common::withdraw::WithdrawArgs;
 
 pub type Withdraw = ExecutableTransactionCall<CliWithdrawArgs>;
 
-impl CliExecutableCommand for Withdraw {
+impl Execute for Withdraw {
     async fn execute(self) -> Result<()> {
         let withdraw_args: WithdrawArgs = self.call_args.clone().into();
         let withdraw_call: withdrawCall = withdraw_args.try_into()?;
