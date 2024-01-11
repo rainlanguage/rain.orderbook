@@ -1,0 +1,38 @@
+use crate::execute::{ExecutableTransactionCall, Execute};
+use anyhow::Result;
+use clap::Args;
+use rain_orderbook_bindings::IOrderBookV3::depositCall;
+use rain_orderbook_common::deposit::DepositArgs;
+
+pub type AddOrder = ExecutableTransactionCall<CliAddOrderArgs>;
+
+impl Execute for Deposit {
+    async fn execute(self) -> Result<()> {
+        let deposit_args: DepositArgs = self.call_args.clone().into();
+        let deposit_call: depositCall = deposit_args.try_into()?;
+
+        self.execute_transaction_call(deposit_call).await
+    }
+}
+
+#[derive(Args, Clone)]
+pub struct CliAddOrderArgs {
+    #[arg(short, long, help = "The token address in hex format")]
+    token: String,
+
+    #[arg(short, long, help = "The ID of the vault")]
+    vault_id: u64,
+
+    #[arg(short, long, help = "The amount to deposit")]
+    amount: u64,
+}
+
+impl From<CliAddOrderArgs> for AddOrderArgs {
+    fn from(val: CliAddOrderArgs) -> Self {
+        DepositArgs {
+            token: val.token,
+            vault_id: val.vault_id,
+            amount: val.amount,
+        }
+    }
+}
