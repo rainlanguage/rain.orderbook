@@ -7,14 +7,11 @@
 		SidebarBrand,
 		DarkMode
 	} from 'flowbite-svelte';
-	import {
-		HomeSolid,
-		WalletSolid,
-		ReceiptSolid,
-		QuestionCircleSolid,
-		LifeBuoySolid,
-		OpenBookSolid
-	} from 'flowbite-svelte-icons';
+	import HomeSolid from 'flowbite-svelte-icons/HomeSolid.svelte';
+	import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
+	import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
+	import LifeBuoySolid from 'flowbite-svelte-icons/LifeBuoySolid.svelte';
+	import IconExternalLink from './IconExternalLink.svelte';
 	import { page } from '$app/stores';
 	$: activeUrl = $page.url.pathname;
 	let activeClass =
@@ -58,9 +55,9 @@
 					<LifeBuoySolid class="h-5 w-5" />
 				</svelte:fragment>
 			</SidebarItem>
-			<SidebarItem label="Documentation" href="https://docs.rainlang.xyz/intro">
+			<SidebarItem label="Documentation" target="_blank" href="https://docs.rainlang.xyz/intro">
 				<svelte:fragment slot="icon">
-					<OpenBookSolid class="h-5 w-5" />
+					<IconExternalLink />
 				</svelte:fragment>
 			</SidebarItem>
 		</SidebarGroup>
