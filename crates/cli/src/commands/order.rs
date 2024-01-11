@@ -1,10 +1,18 @@
-use clap::Subcommand;
+use anyhow::Result;
+use clap::Parser;
 
-#[derive(Subcommand)]
-#[command(about = "Interact with an order(s) onchain and offchain.")]
+#[derive(Parser)]
 pub enum Order {
     #[command(about = "List all orders from the subgraph.")]
     Ls,
+}
+
+impl Order {
+    pub async fn execute(self) -> Result<()> {
+        match self {
+            Order::Ls => ls().await,
+        }
+    }
 }
 
 pub async fn ls() -> anyhow::Result<()> {
