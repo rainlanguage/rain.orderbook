@@ -345,7 +345,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
             if (config.meta.length > 0) {
-                LibMeta.checkMetaUnhashed(config.meta);
+                LibMeta.checkMetaUnhashedV1(config.meta);
                 emit MetaV1(msg.sender, uint256(orderHash), config.meta);
             }
         }
