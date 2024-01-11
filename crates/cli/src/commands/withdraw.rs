@@ -41,7 +41,7 @@ pub struct CliWithdrawArgs {
     #[arg(short, long, help = "The ID of the vault")]
     vault_id: u64,
 
-    #[arg(short, long, help = "The target amount to withdraw")]
+    #[arg(short = 'a', long, help = "The target amount to withdraw")]
     target_amount: u64,
 }
 
