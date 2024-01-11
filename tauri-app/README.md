@@ -7,7 +7,7 @@ Tauri desktop app for managing orderbooks.
 To start in dev mode, run the following command from the repository root:
 
 ```bash
-WEBKIT_DISABLE_COMPOSITING_MODE=1 nix develop .#tauri-shell --command cargo tauri dev
+nix develop .#tauri-shell --command cargo tauri dev
 ```
 
 ## Building
