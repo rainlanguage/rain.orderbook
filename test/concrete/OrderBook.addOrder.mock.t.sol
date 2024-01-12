@@ -4,8 +4,8 @@ pragma solidity =0.8.19;
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {OrderConfigV2, OrderV2, IO} from "src/interface/unstable/IOrderBookV3.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotRainMetaV1, META_MAGIC_NUMBER_V1} from "rain.metadata/IMetaV1.sol";
-import {LibMeta} from "rain.metadata/LibMeta.sol";
+import {NotRainMetaV1, META_MAGIC_NUMBER_V1} from "rain.metadata/interface/IMetaV1.sol";
+import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 
 /// @title OrderBookAddOrderMockTest

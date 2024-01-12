@@ -38,8 +38,8 @@ import {EvaluableV2} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
-import {LibMeta} from "rain.metadata/LibMeta.sol";
-import {IMetaV1} from "rain.metadata/IMetaV1.sol";
+import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
+import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -345,7 +345,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
             if (config.meta.length > 0) {
-                LibMeta.checkMetaUnhashed(config.meta);
+                LibMeta.checkMetaUnhashedV1(config.meta);
                 emit MetaV1(msg.sender, uint256(orderHash), config.meta);
             }
         }
