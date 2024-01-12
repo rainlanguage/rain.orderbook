@@ -12,8 +12,8 @@ import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
 import {LibExternOpContextSenderNPE2} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSenderNPE2.sol";
 
 bytes constant SUB_PARSER_PARSE_META = hex"0100000000000002000000000000000000000000000000000000000000000000000000d3b4e8";
-bytes constant SUB_PARSER_WORD_PARSERS = hex"0409";
-bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"04b9";
+bytes constant SUB_PARSER_WORD_PARSERS = hex"044b";
+bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"04fb";
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 1;
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
@@ -39,7 +39,7 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
             function(uint256[] memory) internal pure returns (Operand)[SUB_PARSER_WORD_PARSERS_LENGTH + 1] memory
                 handlersFixed = [
                     lengthPointer,
-                    // inc
+                    // order clearer
                     LibParseOperand.handleOperandDisallowed
                 ];
             uint256[] memory handlersDynamic;
