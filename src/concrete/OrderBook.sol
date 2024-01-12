@@ -15,9 +15,7 @@ import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/L
 import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
 import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
-import {
-    SourceIndexV2, StateNamespace, IInterpreterV2
-} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
 import {
     IOrderBookV3,
     NoOrders,

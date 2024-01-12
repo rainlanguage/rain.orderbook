@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {AuthoringMetaV2} from "rain.interpreter/interface/unstable/ISubParserV2.sol";
+import {AuthoringMetaV2, Operand} from "rain.interpreter/interface/unstable/ISubParserV2.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 1;
 
 /// @title LibOrderBookSubParser
-library LibRainterpreterReferenceExternNPE2 {
+library LibOrderBookSubParser {
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
         AuthoringMetaV2 memory lengthPlaceholder;
