@@ -7,6 +7,9 @@ const config = {
 
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["DM Sans", "sans-serif"]
+      },
       colors: {
         // flowbite-svelte
         primary: {

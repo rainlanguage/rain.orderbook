@@ -1,5 +1,8 @@
 <script>
 	import '../app.pcss';
+	import '@fontsource/dm-sans/400.css';
+	import '@fontsource/dm-sans/600.css';
+	import '@fontsource/dm-sans/800.css';
 	import Sidebar from '../lib/Sidebar.svelte';
 </script>
 
