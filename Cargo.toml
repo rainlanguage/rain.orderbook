@@ -10,7 +10,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "d35a8e08ef240c4a66177f6de4e1de6fcb165b5f" }
-alloy-sol-types = { version = "0.5.4", features = ["json"] }
+alloy-sol-types = { version = "0.5.4" }
 alloy-primitives = "0.5.4"
 anyhow = "1.0.70"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
