@@ -26,6 +26,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix run .#rainix-prelude
+        working-directory: .
 
       - name: Docker compose up
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
