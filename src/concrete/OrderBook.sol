@@ -11,13 +11,11 @@ import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointD
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/src/lib/caller/LibEncodedDispatch.sol";
-import {LibContext} from "rain.interpreter/src/lib/caller/LibContext.sol";
-import {LibDeployerDiscoverable} from "rain.interpreter/src/abstract/DeployerDiscoverableMetaV3.sol";
-import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
-import {
-    SourceIndexV2, StateNamespace, IInterpreterV2
-} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
+import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
+import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
+import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
+import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
 import {
     IOrderBookV3,
     NoOrders,
@@ -33,13 +31,13 @@ import {IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3OrderTak
 import {LibOrder} from "../lib/LibOrder.sol";
 import {OrderBookV3FlashLender} from "../abstract/OrderBookV3FlashLender.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
-import {SignedContextV1} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
-import {EvaluableV2} from "rain.interpreter/src/lib/caller/LibEvaluable.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
-import {LibNamespace} from "rain.interpreter/src/lib/ns/LibNamespace.sol";
-import {LibMeta} from "rain.metadata/LibMeta.sol";
-import {IMetaV1} from "rain.metadata/IMetaV1.sol";
+import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import {EvaluableV2} from "rain.interpreter/lib/caller/LibEvaluable.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
+import {LibNamespace} from "rain.interpreter/lib/ns/LibNamespace.sol";
+import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
+import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -345,7 +343,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
             if (config.meta.length > 0) {
-                LibMeta.checkMetaUnhashed(config.meta);
+                LibMeta.checkMetaUnhashedV1(config.meta);
                 emit MetaV1(msg.sender, uint256(orderHash), config.meta);
             }
         }

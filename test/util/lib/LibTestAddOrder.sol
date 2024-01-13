@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {META_MAGIC_NUMBER_V1} from "lib/rain.metadata/src/LibMeta.sol";
+import {META_MAGIC_NUMBER_V1} from "rain.metadata/lib/LibMeta.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderConfigV2, OrderV2, IO} from "src/interface/unstable/IOrderBookV3.sol";
-import {IInterpreterV2, SourceIndexV2} from "rain.interpreter/src/interface/unstable/IInterpreterV2.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/src/interface/IInterpreterStoreV1.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
-import {EvaluableV2} from "rain.interpreter/src/interface/IInterpreterCallerV2.sol";
+import {IInterpreterV2, SourceIndexV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
+import {EvaluableV2} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 import {HANDLE_IO_ENTRYPOINT} from "src/concrete/OrderBook.sol";
-import {LibBytecode} from "rain.interpreter/src/lib/bytecode/LibBytecode.sol";
+import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 
 library LibTestAddOrder {
     /// A little boilerplate to make it easier to build the order that we expect
