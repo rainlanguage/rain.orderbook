@@ -1,9 +1,10 @@
+use crate::commands::{Deposit, Order, Withdraw};
+use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
 
-use crate::commands::{Deposit, Order};
-
 mod commands;
+mod execute;
 mod transaction;
 
 #[derive(Subcommand)]
@@ -11,6 +12,7 @@ pub enum Orderbook {
     #[command(subcommand)]
     Order(Order),
     Deposit(Deposit),
+    Withdraw(Withdraw),
 }
 
 impl Orderbook {
@@ -18,6 +20,7 @@ impl Orderbook {
         match self {
             Orderbook::Order(order) => order.execute().await,
             Orderbook::Deposit(deposit) => deposit.execute().await,
+            Orderbook::Withdraw(withdraw) => withdraw.execute().await,
         }
     }
 }

@@ -1,56 +1,38 @@
-use crate::transaction::CliTransactionArgs;
-use alloy_ethers_typecast::transaction::ExecutableTransaction;
+use crate::execute::{ExecutableTransactionCall, Execute};
 use anyhow::Result;
 use clap::Args;
-use clap::Parser;
 use rain_orderbook_bindings::IOrderBookV3::depositCall;
-use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
+use rain_orderbook_common::deposit::DepositArgs;
 
-#[derive(Parser)]
-pub struct Deposit {
-    #[clap(flatten)]
-    deposit_args: CliDepositArgs,
-    #[clap(flatten)]
-    transaction_args: CliTransactionArgs,
-}
+pub type Deposit = ExecutableTransactionCall<CliDepositArgs>;
 
-impl Deposit {
-    pub async fn execute(self) -> Result<()> {
-        let deposit_args: DepositArgs = self.deposit_args.into();
+impl Execute for Deposit {
+    async fn execute(self) -> Result<()> {
+        let deposit_args: DepositArgs = self.call_args.clone().into();
         let deposit_call: depositCall = deposit_args.try_into()?;
-        let tx_args: TransactionArgs = self.transaction_args.into();
-        let request = tx_args
-            .to_transaction_request_with_call(deposit_call)
-            .await?;
-        let ledger_client = tx_args.to_ledger_client().await?;
 
-        let tx =
-            ExecutableTransaction::from_alloy_transaction_request(request, ledger_client.client)
-                .await?;
-
-        tx.execute().await.map_err(|e| anyhow::anyhow!(e))?;
-        Ok(())
+        self.execute_transaction_call(deposit_call).await
     }
 }
 
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct CliDepositArgs {
     #[arg(short, long, help = "The token address in hex format")]
     token: String,
 
-    #[arg(short, long, help = "The amount to deposit")]
-    amount: u64,
-
     #[arg(short, long, help = "The ID of the vault")]
     vault_id: u64,
+
+    #[arg(short, long, help = "The amount to deposit")]
+    amount: u64,
 }
 
 impl From<CliDepositArgs> for DepositArgs {
     fn from(val: CliDepositArgs) -> Self {
         DepositArgs {
             token: val.token,
-            amount: val.amount,
             vault_id: val.vault_id,
+            amount: val.amount,
         }
     }
 }
