@@ -4,7 +4,7 @@ pragma solidity =0.8.19;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {OrderConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter/src/interface/IParserV1.sol";
+import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
 import {
     UnsupportedCalculateOutputs,
     UnsupportedCalculateInputs,

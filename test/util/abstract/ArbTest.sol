@@ -5,7 +5,7 @@ import {Test, console2} from "forge-std/Test.sol";
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/src/interface/unstable/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {Refundoor} from "test/util/concrete/Refundoor.sol";
 import {

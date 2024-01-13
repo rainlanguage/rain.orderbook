@@ -24,5 +24,9 @@ cbor_metadata = false
 # than expose ffi to forge.
 fs_permissions = [{ access = "read", path = "./meta"}, {access = "read", path = "./lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta"}]
 
+remappings = [
+  "rain.interpreter/=lib/rain.interpreter/src/"
+]
+
 [fuzz]
 runs = 5096
