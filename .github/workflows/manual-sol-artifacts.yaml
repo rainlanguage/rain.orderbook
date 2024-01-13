@@ -23,3 +23,4 @@ jobs:
         env:
           ETH_RPC_URL: ${{ inputs.network == 'polygon' && secrets.CI_DEPLOY_POLYGON_RPC_URL || secrets.CI_DEPLOY_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
+          EXPRESSION_DEPLOYER: ${{ vars.EXPRESSION_DEPLOYER }}
