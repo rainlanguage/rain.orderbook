@@ -1,7 +1,7 @@
 {
 	"build": {
-		"beforeDevCommand": "npm i && npm run dev",
-		"beforeBuildCommand": "npm i && npm run build",
+		"beforeDevCommand": "npm i && npx vite dev",
+		"beforeBuildCommand": "npm i && npx vite build",
 		"devPath": "http://localhost:1420",
 		"distDir": "../build"
 	},
