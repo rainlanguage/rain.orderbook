@@ -45,8 +45,8 @@ jobs:
           docker compose run -w /repo/subgraph subgraph-cli graph create --node http://graph-node:8020 example/test
           docker compose run -w /repo/subgraph subgraph-cli graph deploy --node http://graph-node:8020 --ipfs http://ipfs:5001 -l "v0.0.0" example/test
 
-      - name: Build dispair meta
-        run: nix run .#build-dispair-meta
+      - name: Interpreter prelude
+        run: nix run .#i9r-prelude
         working-directory: lib/rain.interpreter
 
       - name: Deploy i9r to ethnode

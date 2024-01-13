@@ -30,7 +30,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix run .#rainix-prelude
-      - run: nix run .#build-dispair-meta
+      - run: nix run .#i9r-prelude
         working-directory: lib/rain.interpreter
       - name: Run ${{ matrix.task }}
         env:
