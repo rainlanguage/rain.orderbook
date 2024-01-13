@@ -15,9 +15,11 @@ jobs:
       run:
         working-directory: subgraph
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         # Need this or graph-node won't be populated.
         with:
+          # Nix flakes refuse to run in shallow clones.
+          fetch-depth: 0
           submodules: recursive
 
       - uses: DeterminateSystems/nix-installer-action@v4
