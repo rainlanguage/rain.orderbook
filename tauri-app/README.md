@@ -1,7 +1,19 @@
-# Tauri + Svelte + Typescript
+# Tauri App
 
-This template should help get you started developing with Tauri, Svelte and TypeScript in Vite.
+Tauri desktop app for managing orderbooks.
 
-## Recommended IDE Setup
+## Developing
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+To start in dev mode, run the following command from the repository root:
+
+```bash
+nix develop .#tauri-shell --command cargo tauri dev
+```
+
+## Building
+
+To create a production build, run the following command from the repository root:
+
+```bash
+nix develop .#tauri-shell --command cargo tauri build
+```
