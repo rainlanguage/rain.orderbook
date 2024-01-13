@@ -16,7 +16,10 @@ async fn main() -> Result<()> {
     // Config tracing subscriber output
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
-        .from_env()?;
+        .from_env()?
+        .add_directive("ethers_signer=off".parse()?)
+        .add_directive("coins_ledger=off".parse()?);
+
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_thread_names(false)
