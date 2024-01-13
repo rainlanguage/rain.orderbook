@@ -22,7 +22,13 @@ cbor_metadata = false
 
 # Build metadata used for testing rain meta aware contracts in this folder rather
 # than expose ffi to forge.
-fs_permissions = [{ access = "read", path = "./meta"}, {access = "read", path = "./lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta"}]
+fs_permissions = [
+  { access = "read", path = "./meta"}, {access = "read", path = "./lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta"},
+  { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterParserNPE2" },
+  { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterStoreNPE2" },
+  { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterNPE2" },
+  { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" }
+]
 
 remappings = [
   "rain.interpreter/=lib/rain.interpreter/src/"
