@@ -15,12 +15,12 @@ contract Deploy is Script {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
 
         address defaultExpressionDeployer = address(0);
-        string deploymentPath = "lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2";
-        if (vm.fileExists(deploymentPath)) {
-            string fileContents = vm.readFile(deploymentPath);
+        string memory deploymentPath = "lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2";
+        if (vm.isFile(deploymentPath)) {
+            string memory fileContents = vm.readFile(deploymentPath);
             defaultExpressionDeployer = vm.parseAddress(fileContents);
         }
-        uint256 expressionDeployer = vm.envOr("EXPRESSION_DEPLOYER", defaultExpressionDeployer);
+        address expressionDeployer = vm.envOr("EXPRESSION_DEPLOYER", defaultExpressionDeployer);
 
         vm.startBroadcast(deployerPrivateKey);
 
