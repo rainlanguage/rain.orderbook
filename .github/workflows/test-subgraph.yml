@@ -42,6 +42,15 @@ jobs:
           docker compose run -w /repo/subgraph subgraph-cli graph create --node http://graph-node:8020 example/test
           docker compose run -w /repo/subgraph subgraph-cli graph deploy --node http://graph-node:8020 --ipfs http://ipfs:5001 -l "v0.0.0" example/test
 
+      - name: Deploy i9r to ethnode
+        run: nix run .#rainix-sol-artifacts
+        env:
+          ETH_RPC_URL: http://localhost:8545
+          # Key for standard test mnemonic at index 0.
+          # "test test test test test test test test test test test junk"
+          DEPLOYMENT_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+        working-directory: lib/rain.interpreter
+
       - name: Deploy contracts to ethnode
         run: nix run .#rainix-sol-artifacts
         env:
