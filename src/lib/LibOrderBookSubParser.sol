@@ -222,7 +222,7 @@ library LibOrderBookSubParser {
         uint256 column = Operand.unwrap(operand) & 0xFF;
         uint256 row = (Operand.unwrap(operand) >> 8) & 0xFF;
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(column, row);
+        return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_START_COLUMN + column, row);
     }
 
     //slither-disable-next-line dead-code
