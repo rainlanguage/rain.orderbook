@@ -3,6 +3,7 @@ pragma solidity =0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";
+import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {GenericPoolOrderBookV3ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
@@ -26,6 +27,9 @@ contract Deploy is Script {
 
         // OB.
         new OrderBook(expressionDeployer);
+
+        // Subparsers.
+        new OrderBookSubParser();
 
         // Order takers.
         new GenericPoolOrderBookV3ArbOrderTaker(expressionDeployer);
