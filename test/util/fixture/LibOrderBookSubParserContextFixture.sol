@@ -35,12 +35,12 @@ import {
     WORD_INPUT_TOKEN_DECIMALS,
     WORD_INPUT_VAULT_ID,
     WORD_INPUT_VAULT_BALANCE_BEFORE,
-    WORD_INPUT_VAULT_BALANCE_DIFF,
+    WORD_INPUT_VAULT_BALANCE_INCREASE,
     WORD_OUTPUT_TOKEN,
     WORD_OUTPUT_TOKEN_DECIMALS,
     WORD_OUTPUT_VAULT_ID,
     WORD_OUTPUT_VAULT_BALANCE_BEFORE,
-    WORD_OUTPUT_VAULT_BALANCE_DIFF
+    WORD_OUTPUT_VAULT_BALANCE_DECREASE
 } from "src/lib/LibOrderBookSubParser.sol";
 
 library LibOrderBookSubParserContextFixture {
@@ -66,14 +66,14 @@ library LibOrderBookSubParserContextFixture {
         contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = uint256(keccak256(WORD_INPUT_TOKEN_DECIMALS));
         contextVaultInputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = uint256(keccak256(WORD_INPUT_VAULT_ID));
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_BEFORE));
-        contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_DIFF));
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_INCREASE));
 
         uint256[] memory contextVaultOutputsMeta = new uint256[](CONTEXT_VAULT_IO_ROWS);
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN] = uint256(keccak256(WORD_OUTPUT_TOKEN));
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = uint256(keccak256(WORD_OUTPUT_TOKEN_DECIMALS));
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = uint256(keccak256(WORD_OUTPUT_VAULT_ID));
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_BEFORE));
-        contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_DIFF));
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_DECREASE));
 
         context[CONTEXT_BASE_COLUMN] = contextBase;
         context[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContext;

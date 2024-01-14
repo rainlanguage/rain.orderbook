@@ -39,9 +39,9 @@ import {
 } from "../../lib/LibOrderBook.sol";
 
 bytes constant SUB_PARSER_PARSE_META =
-    hex"010000000000000200000000000000000000040000000000000000000000000000000109ac3000d3b4e8";
-bytes constant SUB_PARSER_WORD_PARSERS = hex"06030622";
-bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"07580758";
+    hex"01004800040040020200110000000000001004102008000020000000000100000090088de69a0b015d8302c9be1f0584c8d406bbcde60fb5f425102ce8cf0109ac300398cd200ab1aeaf0ea9bcef075e0bc300d3b4e80de78f2e0c9fc5d509a7e6560427db4a";
+bytes constant SUB_PARSER_WORD_PARSERS = hex"0e760e950ea60eb70ec70ed80ee90efa0f0b0f1c0f2d0f3d0f4e0f5f0f700f810f92";
+bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"10c710c710c710c710c710c710c710c710c710c710c710c710c710c710c7";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
@@ -68,7 +68,7 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextBaseHandlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibParseOperand.handleOperandDisallowed;
 
         function(uint256[] memory) internal pure returns (Operand)[] memory contextCallingContextHandlers =
-            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_BASE_ROWS);
+            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibParseOperand.handleOperandDisallowed;
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = LibParseOperand.handleOperandDisallowed;
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
@@ -160,7 +160,7 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserOutputBalanceDiff;
 
         parsers[CONTEXT_BASE_COLUMN] = contextBaseParsers;
-        parsers[CONTEXT_BASE_COLUMN] = contextCallingContextParsers;
+        parsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = contextCallingContextParsers;
         parsers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsParsers;
         parsers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsParsers;
         parsers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsParsers;

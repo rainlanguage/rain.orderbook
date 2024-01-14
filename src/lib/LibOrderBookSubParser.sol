@@ -42,12 +42,12 @@ bytes constant WORD_INPUT_TOKEN = "input-token";
 bytes constant WORD_INPUT_TOKEN_DECIMALS = "input-token-decimals";
 bytes constant WORD_INPUT_VAULT_ID = "input-vault-id";
 bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "input-vault-balance-before";
-bytes constant WORD_INPUT_VAULT_BALANCE_DIFF = "input-vault-balance-increase";
+bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "input-vault-balance-increase";
 bytes constant WORD_OUTPUT_TOKEN = "output-token";
 bytes constant WORD_OUTPUT_TOKEN_DECIMALS = "output-token-decimals";
 bytes constant WORD_OUTPUT_VAULT_ID = "output-vault-id";
 bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "output-vault-balance-before";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_DIFF = "output-vault-balance-decrease";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "output-vault-balance-decrease";
 
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
@@ -226,7 +226,7 @@ library LibOrderBookSubParser {
             bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE), "The balance of the input vault before the order is cleared."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
-            bytes32(WORD_INPUT_VAULT_BALANCE_DIFF),
+            bytes32(WORD_INPUT_VAULT_BALANCE_INCREASE),
             "The difference in the balance of the input vault after the order is cleared. This is always positive so it must be added to the input balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
@@ -243,7 +243,7 @@ library LibOrderBookSubParser {
             bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE), "The balance of the output vault before the order is cleared."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
-            bytes32(WORD_OUTPUT_VAULT_BALANCE_DIFF),
+            bytes32(WORD_OUTPUT_VAULT_BALANCE_DECREASE),
             "The difference in the balance of the output vault after the order is cleared. This is always positive so it must be subtracted from the output balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
