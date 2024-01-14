@@ -31,6 +31,24 @@ import {
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
 
+bytes constant WORD_ORDER_CLEARER = "order-clearer";
+bytes constant WORD_ORDERBOOK = "orderbook";
+bytes constant WORD_ORDER_HASH = "order-hash";
+bytes constant WORD_ORDER_OWNER = "order-owner";
+bytes constant WORD_ORDER_COUNTERPARTY = "order-counterparty";
+bytes constant WORD_CALCULATED_MAX_OUTPUT = "calculated-max-output";
+bytes constant WORD_CALCULATED_IO_RATIO = "calculated-io-ratio";
+bytes constant WORD_INPUT_TOKEN = "input-token";
+bytes constant WORD_INPUT_TOKEN_DECIMALS = "input-token-decimals";
+bytes constant WORD_INPUT_VAULT_ID = "input-vault-id";
+bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "input-vault-balance-before";
+bytes constant WORD_INPUT_VAULT_BALANCE_DIFF = "input-vault-balance-increase";
+bytes constant WORD_OUTPUT_TOKEN = "output-token";
+bytes constant WORD_OUTPUT_TOKEN_DECIMALS = "output-token-decimals";
+bytes constant WORD_OUTPUT_VAULT_ID = "output-vault-id";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "output-vault-balance-before";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_DIFF = "output-vault-balance-decrease";
+
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
@@ -170,57 +188,62 @@ library LibOrderBookSubParser {
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
-            "order-clearer",
+            bytes32(WORD_ORDER_CLEARER),
             "The order clearer is the address that submitted the transaction that is causing the order to execute. This MAY be the counterparty, e.g. when an order is being taken directly, but it MAY NOT be the counterparty if a third party is clearing two orders against each other."
         );
         contextBaseMeta[CONTEXT_BASE_ROW_CALLING_CONTRACT] =
-            AuthoringMetaV2("orderbook", "The address of the orderbook that the order is being run on.");
+            AuthoringMetaV2(bytes32(WORD_ORDERBOOK), "The address of the orderbook that the order is being run on.");
 
         AuthoringMetaV2[] memory contextCallingContextMeta = new AuthoringMetaV2[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] =
-            AuthoringMetaV2("order-hash", "The hash of the order that is being cleared.");
+            AuthoringMetaV2(bytes32(WORD_ORDER_HASH), "The hash of the order that is being cleared.");
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] =
-            AuthoringMetaV2("order-owner", "The address of the order owner.");
+            AuthoringMetaV2(bytes32(WORD_ORDER_OWNER), "The address of the order owner.");
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] = AuthoringMetaV2(
-            "order-counterparty",
+            bytes32(WORD_ORDER_COUNTERPARTY),
             "The address of the owner of the counterparty order. Will be the order taker if there is no counterparty order."
         );
 
         AuthoringMetaV2[] memory contextCalculationsMeta = new AuthoringMetaV2[](CONTEXT_CALCULATIONS_ROWS);
         contextCalculationsMeta[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = AuthoringMetaV2(
-            "calculated-max-output",
+            bytes32(WORD_CALCULATED_MAX_OUTPUT),
             "The maximum output of the order, i.e. the maximum amount of the output token that the order will send. This is normalized to 18 decimal fixed point regardless of the decimals of the underlying token. This is 0 before calculations have been run."
         );
         contextCalculationsMeta[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = AuthoringMetaV2(
-            "calculated-io-ratio",
+            bytes32(WORD_CALCULATED_IO_RATIO),
             "The ratio of the input to output token, i.e. the amount of the input token that the order will receive for each unit of the output token that it sends. This is normalized to 18 decimal fixed point regardless of the decimals of the underlying tokens. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextVaultInputsMeta = new AuthoringMetaV2[](CONTEXT_VAULT_IO_ROWS);
         contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN] =
-            AuthoringMetaV2("input-token", "The address of the input token for the vault input.");
+            AuthoringMetaV2(bytes32(WORD_INPUT_TOKEN), "The address of the input token for the vault input.");
         contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] =
-            AuthoringMetaV2("input-token-decimals", "The decimals of the input token for the vault input.");
-        contextVaultInputsMeta[CONTEXT_VAULT_IO_VAULT_ID] =
-            AuthoringMetaV2("input-vault-id", "The ID of the input vault that incoming tokens are received into.");
-        contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] =
-            AuthoringMetaV2("input-balance-before", "The balance of the input vault before the order is cleared.");
+            AuthoringMetaV2(bytes32(WORD_INPUT_TOKEN_DECIMALS), "The decimals of the input token for the vault input.");
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = AuthoringMetaV2(
+            bytes32(WORD_INPUT_VAULT_ID), "The ID of the input vault that incoming tokens are received into."
+        );
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
+            bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE), "The balance of the input vault before the order is cleared."
+        );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
-            "input-balance-diff",
+            bytes32(WORD_INPUT_VAULT_BALANCE_DIFF),
             "The difference in the balance of the input vault after the order is cleared. This is always positive so it must be added to the input balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextVaultOutputsMeta = new AuthoringMetaV2[](CONTEXT_VAULT_IO_ROWS);
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN] =
-            AuthoringMetaV2("output-token", "The address of the output token for the vault output.");
-        contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] =
-            AuthoringMetaV2("output-token-decimals", "The decimals of the output token for the vault output.");
-        contextVaultOutputsMeta[CONTEXT_VAULT_IO_VAULT_ID] =
-            AuthoringMetaV2("output-vault-id", "The ID of the output vault that outgoing tokens are sent from.");
-        contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] =
-            AuthoringMetaV2("output-balance-before", "The balance of the output vault before the order is cleared.");
+            AuthoringMetaV2(bytes32(WORD_OUTPUT_TOKEN), "The address of the output token for the vault output.");
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = AuthoringMetaV2(
+            bytes32(WORD_OUTPUT_TOKEN_DECIMALS), "The decimals of the output token for the vault output."
+        );
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = AuthoringMetaV2(
+            bytes32(WORD_OUTPUT_VAULT_ID), "The ID of the output vault that outgoing tokens are sent from."
+        );
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
+            bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE), "The balance of the output vault before the order is cleared."
+        );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
-            "output-balance-diff",
+            bytes32(WORD_OUTPUT_VAULT_BALANCE_DIFF),
             "The difference in the balance of the output vault after the order is cleared. This is always positive so it must be subtracted from the output balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 

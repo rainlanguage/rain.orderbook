@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: CAL
+pragma solidity =0.8.19;
+
+import {
+    WORD_ORDERBOOK,
+    WORD_ORDER_CLEARER,
+    WORD_ORDER_HASH,
+    WORD_ORDER_OWNER,
+    WORD_ORDER_COUNTERPARTY,
+    CONTEXT_COLUMNS,
+    CONTEXT_BASE_ROWS,
+    CONTEXT_BASE_ROW_SENDER,
+    CONTEXT_BASE_ROW_CALLING_CONTRACT,
+    CONTEXT_CALLING_CONTEXT_ROWS,
+    CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH,
+    CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER,
+    CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY,
+    CONTEXT_BASE_COLUMN,
+    CONTEXT_CALLING_CONTEXT_COLUMN,
+    CONTEXT_CALCULATIONS_COLUMN,
+    CONTEXT_CALCULATIONS_ROWS,
+    CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT,
+    CONTEXT_CALCULATIONS_ROW_IO_RATIO,
+    WORD_CALCULATED_MAX_OUTPUT,
+    WORD_CALCULATED_IO_RATIO,
+    CONTEXT_VAULT_IO_ROWS,
+    CONTEXT_VAULT_INPUTS_COLUMN,
+    CONTEXT_VAULT_OUTPUTS_COLUMN,
+    CONTEXT_VAULT_IO_TOKEN,
+    CONTEXT_VAULT_IO_TOKEN_DECIMALS,
+    CONTEXT_VAULT_IO_VAULT_ID,
+    CONTEXT_VAULT_IO_BALANCE_BEFORE,
+    CONTEXT_VAULT_IO_BALANCE_DIFF,
+    WORD_INPUT_TOKEN,
+    WORD_INPUT_TOKEN_DECIMALS,
+    WORD_INPUT_VAULT_ID,
+    WORD_INPUT_VAULT_BALANCE_BEFORE,
+    WORD_INPUT_VAULT_BALANCE_DIFF,
+    WORD_OUTPUT_TOKEN,
+    WORD_OUTPUT_TOKEN_DECIMALS,
+    WORD_OUTPUT_VAULT_ID,
+    WORD_OUTPUT_VAULT_BALANCE_BEFORE,
+    WORD_OUTPUT_VAULT_BALANCE_DIFF
+} from "src/lib/LibOrderBookSubParser.sol";
+
+library LibOrderBookSubParserContextFixture {
+    function hashedNamesContext() internal pure returns (uint256[][] memory) {
+        uint256[][] memory context = new uint256[][](CONTEXT_COLUMNS);
+
+        uint256[] memory contextBase = new uint256[](CONTEXT_BASE_ROWS);
+        contextBase[CONTEXT_BASE_ROW_SENDER] = uint256(keccak256(WORD_ORDER_CLEARER));
+        contextBase[CONTEXT_BASE_ROW_CALLING_CONTRACT] = uint256(keccak256(WORD_ORDERBOOK));
+
+        uint256[] memory contextCallingContext = new uint256[](CONTEXT_CALLING_CONTEXT_ROWS);
+        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = uint256(keccak256(WORD_ORDER_HASH));
+        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = uint256(keccak256(WORD_ORDER_OWNER));
+        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
+            uint256(keccak256(WORD_ORDER_COUNTERPARTY));
+
+        uint256[] memory contextCalculations = new uint256[](CONTEXT_CALCULATIONS_ROWS);
+        contextCalculations[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = uint256(keccak256(WORD_CALCULATED_MAX_OUTPUT));
+        contextCalculations[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = uint256(keccak256(WORD_CALCULATED_IO_RATIO));
+
+        uint256[] memory contextVaultInputsMeta = new uint256[](CONTEXT_VAULT_IO_ROWS);
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN] = uint256(keccak256(WORD_INPUT_TOKEN));
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = uint256(keccak256(WORD_INPUT_TOKEN_DECIMALS));
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = uint256(keccak256(WORD_INPUT_VAULT_ID));
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_BEFORE));
+        contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_DIFF));
+
+        uint256[] memory contextVaultOutputsMeta = new uint256[](CONTEXT_VAULT_IO_ROWS);
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN] = uint256(keccak256(WORD_OUTPUT_TOKEN));
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = uint256(keccak256(WORD_OUTPUT_TOKEN_DECIMALS));
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = uint256(keccak256(WORD_OUTPUT_VAULT_ID));
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_BEFORE));
+        contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_DIFF));
+
+        context[CONTEXT_BASE_COLUMN] = contextBase;
+        context[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContext;
+        context[CONTEXT_CALCULATIONS_COLUMN] = contextCalculations;
+        context[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsMeta;
+        context[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsMeta;
+
+        return context;
+    }
+}
