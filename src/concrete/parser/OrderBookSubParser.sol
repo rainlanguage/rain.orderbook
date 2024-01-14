@@ -35,13 +35,22 @@ import {
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH,
-    CONTEXT_CALLING_CONTEXT_ROWS
+    CONTEXT_CALLING_CONTEXT_ROWS,
+    CONTEXT_CALLING_CONTEXT_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_START_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_START_ROW,
+    CONTEXT_SIGNED_CONTEXT_START_ROWS,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
 } from "../../lib/LibOrderBook.sol";
 
 bytes constant SUB_PARSER_PARSE_META =
-    hex"01004800040040020200110000000000001004102008000020000000000100000090088de69a0b015d8302c9be1f0584c8d406bbcde60fb5f425102ce8cf0109ac300398cd200ab1aeaf0ea9bcef075e0bc300d3b4e80de78f2e0c9fc5d509a7e6560427db4a";
-bytes constant SUB_PARSER_WORD_PARSERS = hex"0df50e140e250e360e460e570e680e790e8a0e9b0eac0ebc0ecd0ede0eef0f000f11";
-bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"10461046104610461046104610461046104610461046104610461046104610461046";
+    hex"01004800040040020200110000000000001006102008000020040000000100000090088de69a0b015d8302c9be1f116682f50584c8d406bbcde60fb5f425102ce8cf1283156f0109ac300398cd200ab1aeaf0ea9bcef075e0bc300d3b4e80de78f2e0c9fc5d509a7e6560427db4a";
+bytes constant SUB_PARSER_WORD_PARSERS =
+    hex"0fc70fe60ff7100810181029103a104b105c106d107e108e109f10b010c110d210e310f31103";
+bytes constant SUB_PARSER_OPERAND_HANDLERS =
+    hex"125e125e125e125e125e125e125e125e125e125e125e125e125e125e125e125e125e12a31362";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
@@ -59,8 +68,9 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     }
 
     function buildSubParserOperandHandlers() external pure returns (bytes memory) {
+        // Add 2 columns for signers and signed context start.
         function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
-            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS);
+            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2);
 
         function(uint256[] memory) internal pure returns (Operand)[] memory contextBaseHandlers =
             new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_BASE_ROWS);
@@ -95,11 +105,22 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibParseOperand.handleOperandDisallowed;
 
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextSignersHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
+        contextSignersHandlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibParseOperand.handleOperandSingleFullNoDefault;
+
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextSignedContextHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
+        contextSignedContextHandlers[CONTEXT_SIGNED_CONTEXT_START_ROW] =
+            LibParseOperand.handleOperandDoublePerByteNoDefault;
+
         handlers[CONTEXT_BASE_COLUMN] = contextBaseHandlers;
-        handlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = contextCallingContextHandlers;
+        handlers[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextHandlers;
         handlers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsHandlers;
         handlers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsHandlers;
         handlers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsHandlers;
+        handlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersHandlers;
+        handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextHandlers;
 
         uint256[][] memory handlersUint256;
         assembly ("memory-safe") {
@@ -110,9 +131,10 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     }
 
     function buildSubParserWordParsers() external pure returns (bytes memory) {
+        // Add 2 columns for signers and signed context start.
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][] memory
             parsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][](
-                CONTEXT_COLUMNS
+                CONTEXT_COLUMNS + 2
             );
 
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
@@ -159,11 +181,25 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibOrderBookSubParser.subParserOutputBalanceBefore;
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserOutputBalanceDiff;
 
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            contextSignersParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
+            );
+        contextSignersParsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibOrderBookSubParser.subParserSigners;
+
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            contextSignedContextParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                CONTEXT_SIGNED_CONTEXT_START_ROWS
+            );
+        contextSignedContextParsers[CONTEXT_SIGNED_CONTEXT_START_ROW] = LibOrderBookSubParser.subParserSignedContext;
+
         parsers[CONTEXT_BASE_COLUMN] = contextBaseParsers;
-        parsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = contextCallingContextParsers;
+        parsers[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextParsers;
         parsers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsParsers;
         parsers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsParsers;
         parsers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsParsers;
+        parsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersParsers;
+        parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextParsers;
 
         uint256[][] memory parsersUint256;
         assembly ("memory-safe") {
