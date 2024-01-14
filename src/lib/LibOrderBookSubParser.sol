@@ -54,6 +54,7 @@ library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 
     function subParserSender(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_SENDER);
     }
 
@@ -62,6 +63,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_CALLING_CONTRACT);
     }
 
@@ -70,6 +72,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH);
     }
 
@@ -78,6 +81,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER);
     }
 
@@ -86,6 +90,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY);
     }
@@ -95,10 +100,12 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT);
     }
 
     function subParserIORatio(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_IO_RATIO);
     }
 
@@ -107,6 +114,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN);
     }
 
@@ -115,6 +123,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN_DECIMALS);
     }
 
@@ -123,6 +132,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_VAULT_ID);
     }
 
@@ -131,6 +141,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_BEFORE);
     }
 
@@ -139,6 +150,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
@@ -147,6 +159,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN);
     }
 
@@ -155,6 +168,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN_DECIMALS);
     }
 
@@ -163,6 +177,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_VAULT_ID);
     }
 
@@ -171,6 +186,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_BEFORE);
     }
 
@@ -179,6 +195,7 @@ library LibOrderBookSubParser {
         pure
         returns (bool, bytes memory, uint256[] memory)
     {
+        //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
