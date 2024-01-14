@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_cli::Orderbook;
-use tracing_subscriber;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
 #[derive(Parser)]
