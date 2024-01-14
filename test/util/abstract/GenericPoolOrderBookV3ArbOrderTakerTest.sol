@@ -5,7 +5,7 @@ import {ArbTest, ArbTestConstructorConfig} from "./ArbTest.sol";
 import {
     GenericPoolOrderBookV3ArbOrderTaker,
     OrderBookV3ArbOrderTakerConfigV1
-} from "src/concrete/GenericPoolOrderBookV3ArbOrderTaker.sol";
+} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import {
     OrderV2,
     EvaluableConfigV3,

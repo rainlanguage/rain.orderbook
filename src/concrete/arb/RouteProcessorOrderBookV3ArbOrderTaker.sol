@@ -2,15 +2,15 @@
 pragma solidity =0.8.19;
 
 import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {
     OrderBookV3ArbOrderTaker,
     OrderBookV3ArbOrderTakerConfigV1,
     MinimumOutput
-} from "../abstract/OrderBookV3ArbOrderTaker.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
+} from "../../abstract/OrderBookV3ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;

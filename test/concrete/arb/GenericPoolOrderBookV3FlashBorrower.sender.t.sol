@@ -8,7 +8,7 @@ import {
     MinimumOutput,
     ICloneableV2,
     OrderBookV3FlashBorrowerConfigV2
-} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+} from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
 import {
     OrderV2,
     TakeOrderConfigV2,

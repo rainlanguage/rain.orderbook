@@ -15,7 +15,7 @@ import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV
 import {IOrderBookV3, OrderConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderBook} from "src/concrete/OrderBook.sol";
+import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookExternalTest
 /// Abstract contract that performs common setup needed for testing an orderbook
