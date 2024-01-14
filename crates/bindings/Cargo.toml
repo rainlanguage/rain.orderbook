@@ -8,5 +8,5 @@ homepage.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alloy-sol-types = { version = "0.5.4", features = ["json"] }
-alloy-primitives = "0.5.4"
+alloy-sol-types = { workspace = true, features = ["json"] }
+alloy-primitives = { workspace = true }
