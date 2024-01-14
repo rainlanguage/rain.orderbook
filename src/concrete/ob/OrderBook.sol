@@ -16,6 +16,15 @@ import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
 import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
+import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
+import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import {EvaluableV2} from "rain.interpreter/lib/caller/LibEvaluable.sol";
+import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
+import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
+import {LibNamespace} from "rain.interpreter/lib/ns/LibNamespace.sol";
+import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
+import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
+
 import {
     IOrderBookV3,
     NoOrders,
@@ -26,18 +35,10 @@ import {
     ClearConfig,
     ClearStateChange,
     ZeroMaximumInput
-} from "../interface/unstable/IOrderBookV3.sol";
-import {IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3OrderTaker.sol";
-import {LibOrder} from "../lib/LibOrder.sol";
-import {OrderBookV3FlashLender} from "../abstract/OrderBookV3FlashLender.sol";
-import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
-import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
-import {EvaluableV2} from "rain.interpreter/lib/caller/LibEvaluable.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
-import {LibNamespace} from "rain.interpreter/lib/ns/LibNamespace.sol";
-import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
-import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
+} from "../../interface/unstable/IOrderBookV3.sol";
+import {IOrderBookV3OrderTaker} from "../../interface/unstable/IOrderBookV3OrderTaker.sol";
+import {LibOrder} from "../../lib/LibOrder.sol";
+import {OrderBookV3FlashLender} from "../../abstract/OrderBookV3FlashLender.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.

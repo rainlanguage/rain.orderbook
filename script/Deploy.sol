@@ -2,10 +2,10 @@
 pragma solidity =0.8.19;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook} from "src/concrete/OrderBook.sol";
-import {GenericPoolOrderBookV3ArbOrderTaker} from "src/concrete/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
-import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/GenericPoolOrderBookV3FlashBorrower.sol";
+import {OrderBook} from "src/concrete/ob/OrderBook.sol";
+import {GenericPoolOrderBookV3ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
 
 /// @title Deploy
 /// @notice A script that deploys all contracts. This is intended to be run on

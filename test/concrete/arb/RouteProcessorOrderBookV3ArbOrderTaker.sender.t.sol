@@ -14,7 +14,7 @@ import {
     RouteProcessorOrderBookV3ArbOrderTaker,
     OrderBookV3ArbOrderTakerConfigV1,
     MinimumOutput
-} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV3ArbOrderTakerSenderTest is RouteProcessorOrderBookV3ArbOrderTakerTest {
     function testRouteProcessorTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)

@@ -6,12 +6,13 @@ import {
     BaseRainterpreterSubParserNPE2,
     Operand
 } from "rain.interpreter/abstract/BaseRainterpreterSubParserNPE2.sol";
-import {LibOrderBookSubParser, SUB_PARSER_WORD_PARSERS_LENGTH} from "../lib/LibOrderBookSubParser.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
 import {LibExternOpContextSenderNPE2} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSenderNPE2.sol";
 import {LibExternOpContextCallingContractNPE2} from
     "rain.interpreter/lib/extern/reference/op/LibExternOpContextCallingContractNPE2.sol";
+
+import {LibOrderBookSubParser, SUB_PARSER_WORD_PARSERS_LENGTH} from "../../lib/LibOrderBookSubParser.sol";
 
 bytes constant SUB_PARSER_PARSE_META =
     hex"010000000000000200000000000000000000040000000000000000000000000000000109ac3000d3b4e8";

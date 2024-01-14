@@ -13,7 +13,7 @@ import {
     IERC20,
     Address,
     TakeOrdersConfigV2
-} from "src/abstract/OrderBookV3FlashBorrower.sol";
+} from "../../abstract/OrderBookV3FlashBorrower.sol";
 
 /// @title GenericPoolOrderBookV3FlashBorrower
 /// Implements the OrderBookV3FlashBorrower interface for a external liquidity

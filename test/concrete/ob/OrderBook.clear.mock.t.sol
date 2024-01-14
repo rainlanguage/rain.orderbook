@@ -9,7 +9,7 @@ import {OrderConfigV2, OrderV2, IO, ClearConfig} from "src/interface/unstable/IO
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 import {IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
-import {NotOrderOwner} from "src/concrete/OrderBook.sol";
+import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.

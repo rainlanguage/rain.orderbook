@@ -5,7 +5,7 @@ import {ArbTest, ArbTestConstructorConfig} from "./ArbTest.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
     OrderBookV3ArbOrderTakerConfigV1
-} from "src/concrete/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 import {
     OrderV2,
     EvaluableConfigV3,
