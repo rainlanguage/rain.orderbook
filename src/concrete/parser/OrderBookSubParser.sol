@@ -34,6 +34,24 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
 
     function buildSubParserOperandHandlers() external pure returns (bytes memory) {
         unchecked {
+            function(uint256[] memory) internal pure returns (Operand) handleOperandDisallowed = LibParseOperand
+                .handleOperandDisallowed;
+            uint256 handleOperandDisallowedPtr;
+            assembly ("memory-safe") {
+                handleOperandDisallowedPtr := handleOperandDisallowed
+            }
+
+            function(uint256[] memory) internal pure returns (Operand)[][] memory handlers;
+
+            function(uint256[] memory) internal pure returns (Operand)[] contextBaseHandlers;
+            assembly ("memory-safe") {
+                contextBaseHandlers := mload(0x40)
+                mstore(0x40, add(contextBaseHandlers, 0x60))
+                mstore(contextBaseHandlers, 2)
+            }
+
+
+
             function(uint256[] memory) internal pure returns (Operand) lengthPointer;
             uint256 length = SUB_PARSER_WORD_PARSERS_LENGTH;
             assembly ("memory-safe") {
