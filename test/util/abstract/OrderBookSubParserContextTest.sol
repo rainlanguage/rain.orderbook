@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
+import {StackAllocationMismatch} from "rain.interpreter/error/ErrIntegrity.sol";
 import {DEPLOYER_META_PATH} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {OpTest} from "rain.interpreter/../test/util/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
@@ -37,5 +38,15 @@ abstract contract OrderBookSubParserContextTest is OpTest {
             bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "<1>();"));
 
         checkDisallowedOperand(rainlang);
+    }
+
+    function testSubParserContextUnhappyDisallowedInputs() external {
+        string memory w = word();
+        OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
+
+        bytes memory rainlang =
+            bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "(1);"));
+
+        checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
     }
 }
