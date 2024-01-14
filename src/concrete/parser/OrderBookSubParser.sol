@@ -24,8 +24,8 @@ import {
 
 bytes constant SUB_PARSER_PARSE_META =
     hex"010000000000000200000000000000000000040000000000000000000000000000000109ac3000d3b4e8";
-bytes constant SUB_PARSER_WORD_PARSERS = hex"0540055f";
-bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"06010601";
+bytes constant SUB_PARSER_WORD_PARSERS = hex"06030622";
+bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"07580758";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
@@ -43,50 +43,44 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     }
 
     function buildSubParserOperandHandlers() external pure returns (bytes memory) {
-        unchecked {
-            function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
-                new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS);
+        function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
+            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS);
 
-            function(uint256[] memory) internal pure returns (Operand)[] memory contextBaseHandlers =
-                new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_BASE_ROWS);
-            contextBaseHandlers[CONTEXT_BASE_ROW_SENDER] = LibParseOperand.handleOperandDisallowed;
-            contextBaseHandlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibParseOperand.handleOperandDisallowed;
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextBaseHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_BASE_ROWS);
+        contextBaseHandlers[CONTEXT_BASE_ROW_SENDER] = LibParseOperand.handleOperandDisallowed;
+        contextBaseHandlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibParseOperand.handleOperandDisallowed;
 
-            handlers[CONTEXT_BASE_COLUMN] = contextBaseHandlers;
+        handlers[CONTEXT_BASE_COLUMN] = contextBaseHandlers;
 
-            uint256[][] memory handlersUint256;
-            assembly ("memory-safe") {
-                handlersUint256 := handlers
-            }
-
-            return LibConvert.unsafeTo16BitBytes(handlersUint256.flatten());
+        uint256[][] memory handlersUint256;
+        assembly ("memory-safe") {
+            handlersUint256 := handlers
         }
+
+        return LibConvert.unsafeTo16BitBytes(handlersUint256.flatten());
     }
 
     function buildSubParserWordParsers() external pure returns (bytes memory) {
-        unchecked {
-            function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)
-                lengthPointer;
-            uint256 length = SUB_PARSER_WORD_PARSERS_LENGTH;
-            assembly ("memory-safe") {
-                lengthPointer := length
-            }
-            function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[SUB_PARSER_WORD_PARSERS_LENGTH
-                + 1] memory pointersFixed = [
-                    lengthPointer,
-                    LibExternOpContextSenderNPE2.subParser,
-                    LibExternOpContextCallingContractNPE2.subParser
-                ];
-            uint256[] memory pointersDynamic;
-            assembly {
-                pointersDynamic := pointersFixed
-            }
-            // Sanity check that the dynamic length is correct. Should be an
-            // unreachable error.
-            if (pointersDynamic.length != length) {
-                revert BadDynamicLength(pointersDynamic.length, length);
-            }
-            return LibConvert.unsafeTo16BitBytes(pointersDynamic);
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][] memory
+            parsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][](
+                CONTEXT_COLUMNS
+            );
+
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            contextBaseParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                CONTEXT_BASE_ROWS
+            );
+        contextBaseParsers[CONTEXT_BASE_ROW_SENDER] = LibExternOpContextSenderNPE2.subParser;
+        contextBaseParsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibExternOpContextCallingContractNPE2.subParser;
+
+        parsers[CONTEXT_BASE_COLUMN] = contextBaseParsers;
+
+        uint256[][] memory parsersUint256;
+        assembly ("memory-safe") {
+            parsersUint256 := parsers
         }
+
+        return LibConvert.unsafeTo16BitBytes(parsersUint256.flatten());
     }
 }
