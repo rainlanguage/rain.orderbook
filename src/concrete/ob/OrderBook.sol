@@ -12,7 +12,13 @@ import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
-import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
+import {
+    LibContext,
+    CONTEXT_BASE_ROWS,
+    CONTEXT_BASE_ROW_SENDER,
+    CONTEXT_BASE_ROW_CALLING_CONTRACT,
+    CONTEXT_BASE_COLUMN
+} from "rain.interpreter/lib/caller/LibContext.sol";
 import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
@@ -114,8 +120,8 @@ uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
 /// The token address and decimals for vault inputs and outputs IS available to
 /// the calculate order entrypoint, but not the final vault balances/diff.
 uint256 constant CALLING_CONTEXT_COLUMNS = 4;
-/// @dev Base context from LibContext.
-uint256 constant CONTEXT_BASE_COLUMN = 0;
+
+uint256 constant CONTEXT_COLUMNS = CALLING_CONTEXT_COLUMNS + 1;
 
 /// @dev Contextual data available to both calculate order and handle IO. The
 /// order hash, order owner and order counterparty. IMPORTANT NOTE that the
