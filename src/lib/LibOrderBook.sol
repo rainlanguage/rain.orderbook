@@ -24,9 +24,20 @@ uint256 constant CONTEXT_COLUMNS = CALLING_CONTEXT_COLUMNS + 1;
 /// typical base context of an order with the caller will often be an unrelated
 /// clearer of the order rather than the owner or counterparty.
 uint256 constant CONTEXT_CALLING_CONTEXT_COLUMN = 1;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROWS = 3;
+
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH = 0;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER = 1;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY = 2;
+
 /// @dev Calculations column contains the DECIMAL RESCALED calculations but
 /// otherwise provided as-is according to calculate order entrypoint
 uint256 constant CONTEXT_CALCULATIONS_COLUMN = 2;
+uint256 constant CONTEXT_CALCULATIONS_ROWS = 2;
+
+uint256 constant CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT = 0;
+uint256 constant CONTEXT_CALCULATIONS_ROW_IO_RATIO = 1;
+
 /// @dev Vault inputs are the literal token amounts and vault balances before and
 /// after for the input token from the perspective of the order. MAY be
 /// significantly different to the calculated amount due to insufficient vault

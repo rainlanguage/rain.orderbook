@@ -5,6 +5,6 @@ import {OrderBookSubParserContextTest} from "test/util/abstract/OrderBookSubPars
 
 contract OrderBookSubParserContextOrderBookTest is OrderBookSubParserContextTest {
     function word() internal pure override returns (string memory) {
-        return "orderbook";
+        return "output-vault-id";
     }
 }
