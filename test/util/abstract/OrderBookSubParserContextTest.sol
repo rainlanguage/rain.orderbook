@@ -5,8 +5,7 @@ import {DEPLOYER_META_PATH} from "test/util/abstract/OrderBookExternalRealTest.s
 import {OpTest} from "rain.interpreter/../test/util/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
-import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
-import {LibOrderBookSubParserContextFixture} from "../fixture/LibOrderBookSubParserContextFixture.sol";
+import {LibOrderBookSubParserContextFixture} from "test/util/fixture/LibOrderBookSubParserContextFixture.sol";
 
 abstract contract OrderBookSubParserContextTest is OpTest {
     using Strings for address;

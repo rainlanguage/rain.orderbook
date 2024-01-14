@@ -47,7 +47,8 @@ import {
 
 library LibOrderBookSubParserContextFixture {
     function hashedNamesContext() internal pure returns (uint256[][] memory) {
-        uint256[][] memory context = new uint256[][](CONTEXT_COLUMNS);
+        // Add 3 to account for the signers and 2x signed context columns.
+        uint256[][] memory context = new uint256[][](CONTEXT_COLUMNS + 3);
 
         uint256[] memory contextBase = new uint256[](CONTEXT_BASE_ROWS);
         contextBase[CONTEXT_BASE_ROW_SENDER] = uint256(keccak256(WORD_ORDER_CLEARER));
@@ -78,8 +79,8 @@ library LibOrderBookSubParserContextFixture {
         contextVaultOutputs[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_DECREASE));
 
         uint256[] memory contextSigners = new uint256[](2);
-        contextVaultInputs[0] = uint256(keccak256("signer-0"));
-        contextVaultInputs[1] = uint256(keccak256("signer-1"));
+        contextSigners[0] = uint256(keccak256("signer-0"));
+        contextSigners[1] = uint256(keccak256("signer-1"));
 
         uint256[] memory contextSignedContext0 = new uint256[](2);
         contextSignedContext0[0] = uint256(keccak256("signed-context-0-0"));

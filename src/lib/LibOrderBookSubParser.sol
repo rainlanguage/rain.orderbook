@@ -227,7 +227,8 @@ library LibOrderBookSubParser {
 
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
-        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS);
+        // Add 2 for the signed context signers and signed context start columns.
+        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2);
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
@@ -292,7 +293,7 @@ library LibOrderBookSubParser {
 
         AuthoringMetaV2[] memory contextSignersMeta = new AuthoringMetaV2[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
         contextSignersMeta[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = AuthoringMetaV2(
-            bytes32("signers"),
+            bytes32("signer"),
             "The addresses of the signers of the signed context. The indexes of the signers matches the column they signed in the signed context grid."
         );
 
