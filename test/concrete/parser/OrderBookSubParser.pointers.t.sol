@@ -33,4 +33,13 @@ contract OrderBookSubParserPointersTest is Test {
         bytes memory actual = SUB_PARSER_OPERAND_HANDLERS;
         assertEq(actual, expected);
     }
+
+    function testWordOperandLengthEquivalence() external {
+        assertEq(SUB_PARSER_WORD_PARSERS.length, SUB_PARSER_OPERAND_HANDLERS.length);
+        assertEq(
+            SUB_PARSER_PARSE_META.length,
+            // 4 bytes per word + 32 byte expansion + 1 byte seed + 1 byte depth
+            (SUB_PARSER_WORD_PARSERS.length * 2) + 32 + 1 + 1
+        );
+    }
 }

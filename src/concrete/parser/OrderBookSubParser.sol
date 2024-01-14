@@ -40,8 +40,8 @@ import {
 
 bytes constant SUB_PARSER_PARSE_META =
     hex"01004800040040020200110000000000001004102008000020000000000100000090088de69a0b015d8302c9be1f0584c8d406bbcde60fb5f425102ce8cf0109ac300398cd200ab1aeaf0ea9bcef075e0bc300d3b4e80de78f2e0c9fc5d509a7e6560427db4a";
-bytes constant SUB_PARSER_WORD_PARSERS = hex"0e760e950ea60eb70ec70ed80ee90efa0f0b0f1c0f2d0f3d0f4e0f5f0f700f810f92";
-bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"10c710c710c710c710c710c710c710c710c710c710c710c710c710c710c7";
+bytes constant SUB_PARSER_WORD_PARSERS = hex"0df50e140e250e360e460e570e680e790e8a0e9b0eac0ebc0ecd0ede0eef0f000f11";
+bytes constant SUB_PARSER_OPERAND_HANDLERS = hex"10461046104610461046104610461046104610461046104610461046104610461046";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
@@ -96,7 +96,7 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibParseOperand.handleOperandDisallowed;
 
         handlers[CONTEXT_BASE_COLUMN] = contextBaseHandlers;
-        handlers[CONTEXT_BASE_COLUMN] = contextCallingContextHandlers;
+        handlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = contextCallingContextHandlers;
         handlers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsHandlers;
         handlers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsHandlers;
         handlers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsHandlers;
