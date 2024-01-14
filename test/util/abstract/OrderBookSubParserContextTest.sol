@@ -11,19 +11,32 @@ import {LibOrderBookSubParserContextFixture} from "../fixture/LibOrderBookSubPar
 abstract contract OrderBookSubParserContextTest is OpTest {
     using Strings for address;
 
+    function word() internal pure virtual returns (string memory);
+
     function constructionMetaPath() internal view virtual override returns (string memory) {
         return DEPLOYER_META_PATH;
     }
 
-    function checkSubParserContextHappy(string memory word) internal {
+    function testSubParserContextHappy() external {
+        string memory w = word();
         OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
         uint256[] memory expectedStack = new uint256[](1);
-        expectedStack[0] = uint256(keccak256(bytes(word)));
+        expectedStack[0] = uint256(keccak256(bytes(w)));
 
         bytes memory rainlang =
-            bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", word, "();"));
+            bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "();"));
 
-        checkHappy(rainlang, LibOrderBookSubParserContextFixture.hashedNamesContext(), expectedStack, word);
+        checkHappy(rainlang, LibOrderBookSubParserContextFixture.hashedNamesContext(), expectedStack, w);
+    }
+
+    function testSubParserContextUnhappyDisallowedOperand() external {
+        string memory w = word();
+        OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
+
+        bytes memory rainlang =
+            bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "<1>();"));
+
+        checkDisallowedOperand(rainlang);
     }
 }
