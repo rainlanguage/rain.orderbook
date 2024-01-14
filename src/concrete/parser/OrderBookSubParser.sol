@@ -39,7 +39,10 @@ import {
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_SIGNED_CONTEXT_START_COLUMN,
     CONTEXT_SIGNED_CONTEXT_START_ROW,
-    CONTEXT_SIGNED_CONTEXT_START_ROWS
+    CONTEXT_SIGNED_CONTEXT_START_ROWS,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
 } from "../../lib/LibOrderBook.sol";
 
 bytes constant SUB_PARSER_PARSE_META =
@@ -98,6 +101,10 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibParseOperand.handleOperandDisallowed;
+
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextSignersHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
+        contextSignersHandlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibParseOperand.handleOperandSingleFull;
 
         function(uint256[] memory) internal pure returns (Operand)[] memory contextSignedContextHandlers =
             new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
@@ -170,6 +177,12 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserOutputBalanceDiff;
 
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            contextSignersParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
+            );
+        contextSignersParsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibOrderBookSubParser.subParserSigners;
+
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
             contextSignedContextParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
                 CONTEXT_SIGNED_CONTEXT_START_ROWS
             );
@@ -180,6 +193,7 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         parsers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsParsers;
         parsers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsParsers;
         parsers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsParsers;
+        parsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersParsers;
         parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextParsers;
 
         uint256[][] memory parsersUint256;

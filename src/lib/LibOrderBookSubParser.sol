@@ -205,6 +205,15 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
+    function subParserSigners(uint256, uint256, Operand operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, Operand.unwrap(operand));
+    }
+
     function subParserSignedContext(uint256, uint256, Operand operand)
         internal
         pure
