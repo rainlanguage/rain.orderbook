@@ -8,7 +8,7 @@ import {
     SUB_PARSER_WORD_PARSERS,
     SUB_PARSER_OPERAND_HANDLERS,
     OrderBookSubParser
-} from "src/concrete/OrderBookSubParser.sol";
+} from "src/concrete/parser/OrderBookSubParser.sol";
 import {LibParseMeta} from "rain.interpreter/lib/parse/LibParseMeta.sol";
 
 contract OrderBookSubParserPointersTest is Test {

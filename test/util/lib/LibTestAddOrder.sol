@@ -8,7 +8,7 @@ import {IInterpreterV2, SourceIndexV2} from "rain.interpreter/interface/unstable
 import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
 import {EvaluableV2} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
-import {HANDLE_IO_ENTRYPOINT} from "src/concrete/OrderBook.sol";
+import {HANDLE_IO_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 
 library LibTestAddOrder {
