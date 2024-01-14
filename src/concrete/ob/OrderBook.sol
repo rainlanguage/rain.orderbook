@@ -12,13 +12,7 @@ import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
-import {
-    LibContext,
-    CONTEXT_BASE_ROWS,
-    CONTEXT_BASE_ROW_SENDER,
-    CONTEXT_BASE_ROW_CALLING_CONTRACT,
-    CONTEXT_BASE_COLUMN
-} from "rain.interpreter/lib/caller/LibContext.sol";
+import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
 import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
@@ -44,6 +38,16 @@ import {
 } from "../../interface/unstable/IOrderBookV3.sol";
 import {IOrderBookV3OrderTaker} from "../../interface/unstable/IOrderBookV3OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
+import {
+    CALLING_CONTEXT_COLUMNS,
+    CONTEXT_CALLING_CONTEXT_COLUMN,
+    CONTEXT_CALCULATIONS_COLUMN,
+    CONTEXT_VAULT_IO_BALANCE_DIFF,
+    CONTEXT_VAULT_INPUTS_COLUMN,
+    CONTEXT_VAULT_IO_TOKEN,
+    CONTEXT_VAULT_OUTPUTS_COLUMN,
+    CONTEXT_VAULT_IO_VAULT_ID
+} from "../../lib/LibOrderBook.sol";
 import {OrderBookV3FlashLender} from "../../abstract/OrderBookV3FlashLender.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
@@ -111,51 +115,6 @@ uint16 constant CALCULATE_ORDER_MAX_OUTPUTS = 2;
 uint256 constant HANDLE_IO_MIN_OUTPUTS = 0;
 /// @dev Handle IO has no outputs as it only response to vault movements.
 uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
-
-/// @dev Orderbook context is actually fairly complex. The calling context column
-/// is populated before calculate order, but the remaining columns are only
-/// available to handle IO as they depend on the full evaluation of calculuate
-/// order, and cross referencing against the same from the counterparty, as well
-/// as accounting limits such as current vault balances, etc.
-/// The token address and decimals for vault inputs and outputs IS available to
-/// the calculate order entrypoint, but not the final vault balances/diff.
-uint256 constant CALLING_CONTEXT_COLUMNS = 4;
-
-uint256 constant CONTEXT_COLUMNS = CALLING_CONTEXT_COLUMNS + 1;
-
-/// @dev Contextual data available to both calculate order and handle IO. The
-/// order hash, order owner and order counterparty. IMPORTANT NOTE that the
-/// typical base context of an order with the caller will often be an unrelated
-/// clearer of the order rather than the owner or counterparty.
-uint256 constant CONTEXT_CALLING_CONTEXT_COLUMN = 1;
-/// @dev Calculations column contains the DECIMAL RESCALED calculations but
-/// otherwise provided as-is according to calculate order entrypoint
-uint256 constant CONTEXT_CALCULATIONS_COLUMN = 2;
-/// @dev Vault inputs are the literal token amounts and vault balances before and
-/// after for the input token from the perspective of the order. MAY be
-/// significantly different to the calculated amount due to insufficient vault
-/// balances from either the owner or counterparty, etc.
-uint256 constant CONTEXT_VAULT_INPUTS_COLUMN = 3;
-/// @dev Vault outputs are the same as vault inputs but for the output token from
-/// the perspective of the order.
-uint256 constant CONTEXT_VAULT_OUTPUTS_COLUMN = 4;
-
-/// @dev Row of the token address for vault inputs and outputs columns.
-uint256 constant CONTEXT_VAULT_IO_TOKEN = 0;
-/// @dev Row of the token decimals for vault inputs and outputs columns.
-uint256 constant CONTEXT_VAULT_IO_TOKEN_DECIMALS = 1;
-/// @dev Row of the vault ID for vault inputs and outputs columns.
-uint256 constant CONTEXT_VAULT_IO_VAULT_ID = 2;
-/// @dev Row of the vault balance before the order was cleared for vault inputs
-/// and outputs columns.
-uint256 constant CONTEXT_VAULT_IO_BALANCE_BEFORE = 3;
-/// @dev Row of the vault balance difference after the order was cleared for
-/// vault inputs and outputs columns. The diff is ALWAYS POSITIVE as it is a
-/// `uint256` so it must be added to input balances and subtraced from output
-/// balances.
-uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
-/// @dev Length of a vault IO column.
-uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
