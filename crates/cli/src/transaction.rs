@@ -16,10 +16,10 @@ pub struct CliTransactionArgs {
     #[arg(short, long, help = "RPC URL")]
     pub rpc_url: String,
 
-    #[arg(short, long, help = "Max priority fee per gas")]
+    #[arg(short, long, help = "Max priority fee per gas (in wei)")]
     pub max_priority_fee_per_gas: Option<u128>,
 
-    #[arg(short, long, help = "Max fee per gas")]
+    #[arg(short, long, help = "Max fee per gas (in wei)")]
     pub max_fee_per_gas: Option<u128>,
 }
 
