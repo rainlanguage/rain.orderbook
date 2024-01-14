@@ -116,6 +116,7 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         handlers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsHandlers;
         handlers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsHandlers;
         handlers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsHandlers;
+        handlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersHandlers;
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextHandlers;
 
         uint256[][] memory handlersUint256;
