@@ -35,7 +35,11 @@ import {
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH,
-    CONTEXT_CALLING_CONTEXT_ROWS
+    CONTEXT_CALLING_CONTEXT_ROWS,
+    CONTEXT_CALLING_CONTEXT_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_START_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_START_ROW,
+    CONTEXT_SIGNED_CONTEXT_START_ROWS
 } from "../../lib/LibOrderBook.sol";
 
 bytes constant SUB_PARSER_PARSE_META =
@@ -95,11 +99,17 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibParseOperand.handleOperandDisallowed;
 
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextSignedContextHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
+        contextSignedContextHandlers[CONTEXT_SIGNED_CONTEXT_START_ROW] =
+            LibParseOperand.handleOperandDoublePerByteNoDefault;
+
         handlers[CONTEXT_BASE_COLUMN] = contextBaseHandlers;
-        handlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = contextCallingContextHandlers;
+        handlers[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextHandlers;
         handlers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsHandlers;
         handlers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsHandlers;
         handlers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsHandlers;
+        handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextHandlers;
 
         uint256[][] memory handlersUint256;
         assembly ("memory-safe") {
@@ -159,11 +169,18 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibOrderBookSubParser.subParserOutputBalanceBefore;
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserOutputBalanceDiff;
 
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            contextSignedContextParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                CONTEXT_SIGNED_CONTEXT_START_ROWS
+            );
+        contextSignedContextParsers[CONTEXT_SIGNED_CONTEXT_START_ROW] = LibOrderBookSubParser.subParserSignedContext;
+
         parsers[CONTEXT_BASE_COLUMN] = contextBaseParsers;
-        parsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = contextCallingContextParsers;
+        parsers[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextParsers;
         parsers[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsParsers;
         parsers[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsParsers;
         parsers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsParsers;
+        parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextParsers;
 
         uint256[][] memory parsersUint256;
         assembly ("memory-safe") {

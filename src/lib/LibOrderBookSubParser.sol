@@ -26,7 +26,13 @@ import {
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH,
-    CONTEXT_CALLING_CONTEXT_ROWS
+    CONTEXT_CALLING_CONTEXT_ROWS,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW,
+    CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS,
+    CONTEXT_SIGNED_CONTEXT_START_COLUMN,
+    CONTEXT_SIGNED_CONTEXT_START_ROW,
+    CONTEXT_SIGNED_CONTEXT_START_ROWS
 } from "./LibOrderBook.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
@@ -199,6 +205,17 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
+    function subParserSignedContext(uint256, uint256, Operand operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        uint256 column = Operand.unwrap(operand) & 0xFF;
+        uint256 row = (Operand.unwrap(operand) >> 8) & 0xFF;
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(column, row);
+    }
+
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
         AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS);
@@ -264,11 +281,25 @@ library LibOrderBookSubParser {
             "The difference in the balance of the output vault after the order is cleared. This is always positive so it must be subtracted from the output balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
+        AuthoringMetaV2[] memory contextSignersMeta = new AuthoringMetaV2[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
+        contextSignersMeta[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = AuthoringMetaV2(
+            bytes32("signers"),
+            "The addresses of the signers of the signed context. The indexes of the signers matches the column they signed in the signed context grid."
+        );
+
+        AuthoringMetaV2[] memory contextSignedMeta = new AuthoringMetaV2[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
+        contextSignedMeta[CONTEXT_SIGNED_CONTEXT_START_ROW] = AuthoringMetaV2(
+            bytes32("signed-context"),
+            "Signed context is provided by the order clearer/taker and can be signed by anyone. Orderbook will check the signature, but the expression author much authorize the signer's public key."
+        );
+
         meta[CONTEXT_BASE_COLUMN] = contextBaseMeta;
         meta[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextMeta;
         meta[CONTEXT_CALCULATIONS_COLUMN] = contextCalculationsMeta;
         meta[CONTEXT_VAULT_INPUTS_COLUMN] = contextVaultInputsMeta;
         meta[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsMeta;
+        meta[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersMeta;
+        meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedMeta;
 
         uint256[][] memory metaUint256;
         assembly {
