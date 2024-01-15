@@ -1,12 +1,14 @@
 use alloy_ethers_typecast::{client::LedgerClient, request_shim::AlloyTransactionRequest};
 use alloy_primitives::{Address, U64};
 use alloy_sol_types::SolCall;
+use ethers::middleware::gas_oracle::GasCategory;
 
 pub struct TransactionArgs {
     pub orderbook_address: String,
     pub derivation_path: Option<usize>,
     pub chain_id: u64,
     pub rpc_url: String,
+    pub gas_priority: GasCategory,
 }
 
 impl TransactionArgs {
