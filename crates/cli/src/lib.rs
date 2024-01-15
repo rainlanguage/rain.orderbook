@@ -1,4 +1,4 @@
-use crate::commands::{Deposit, Order, Withdraw};
+use crate::commands::{Deposit, Order, Withdraw, AddOrder};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
@@ -13,6 +13,7 @@ pub enum Orderbook {
     Order(Order),
     Deposit(Deposit),
     Withdraw(Withdraw),
+    AddOrder(AddOrder),
 }
 
 impl Orderbook {
@@ -21,6 +22,7 @@ impl Orderbook {
             Orderbook::Order(order) => order.execute().await,
             Orderbook::Deposit(deposit) => deposit.execute().await,
             Orderbook::Withdraw(withdraw) => withdraw.execute().await,
+            Orderbook::AddOrder(add_order) => add_order.execute().await,
         }
     }
 }

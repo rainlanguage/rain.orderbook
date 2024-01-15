@@ -1,38 +1,39 @@
 use crate::execute::{ExecutableTransactionCall, Execute};
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_bindings::IOrderBookV3::depositCall;
-use rain_orderbook_common::deposit::DepositArgs;
+use rain_orderbook_bindings::IOrderBookV3::addOrderCall;
+use rain_orderbook_common::add_order::AddOrderArgs;
+use std::path::PathBuf;
 
 pub type AddOrder = ExecutableTransactionCall<CliAddOrderArgs>;
 
-impl Execute for Deposit {
+impl Execute for AddOrder {
     async fn execute(self) -> Result<()> {
-        let deposit_args: DepositArgs = self.call_args.clone().into();
-        let deposit_call: depositCall = deposit_args.try_into()?;
+        let add_order_args: AddOrderArgs = self.call_args.clone().into();
+        let add_order_call: addOrderCall = add_order_args.try_into()?;
 
-        self.execute_transaction_call(deposit_call).await
+        self.execute_transaction_call(add_order_call).await
     }
 }
 
 #[derive(Args, Clone)]
 pub struct CliAddOrderArgs {
-    #[arg(short, long, help = "The token address in hex format")]
-    token: String,
+    #[arg(
+        short = 'p',
+        long,
+        help = "Path to the .rain file specifying the order"
+    )]
+    dotrain_path: PathBuf,
 
-    #[arg(short, long, help = "The ID of the vault")]
-    vault_id: u64,
-
-    #[arg(short, long, help = "The amount to deposit")]
-    amount: u64,
+    #[arg(short = 'a', long, help = "Deployer address")]
+    deployer: String,
 }
 
 impl From<CliAddOrderArgs> for AddOrderArgs {
     fn from(val: CliAddOrderArgs) -> Self {
-        DepositArgs {
-            token: val.token,
-            vault_id: val.vault_id,
-            amount: val.amount,
+        Self {
+            dotrain_path: val.dotrain_path,
+            deployer: val.deployer,
         }
     }
 }

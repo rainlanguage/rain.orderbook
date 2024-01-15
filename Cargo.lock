@@ -2889,6 +2889,7 @@ dependencies = [
  "alloy-sol-types",
  "anyhow",
  "rain_orderbook_bindings",
+ "tempfile",
 ]
 
 [[package]]

@@ -29,7 +29,7 @@ pub struct CliDepositArgs {
 
 impl From<CliDepositArgs> for DepositArgs {
     fn from(val: CliDepositArgs) -> Self {
-        DepositArgs {
+        Self {
             token: val.token,
             vault_id: val.vault_id,
             amount: val.amount,

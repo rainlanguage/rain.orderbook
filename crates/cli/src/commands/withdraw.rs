@@ -29,7 +29,7 @@ pub struct CliWithdrawArgs {
 
 impl From<CliWithdrawArgs> for WithdrawArgs {
     fn from(val: CliWithdrawArgs) -> Self {
-        WithdrawArgs {
+        Self {
             token: val.token,
             vault_id: val.vault_id,
             target_amount: val.target_amount,
