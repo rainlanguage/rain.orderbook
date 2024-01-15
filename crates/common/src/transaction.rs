@@ -4,7 +4,7 @@ use alloy_sol_types::SolCall;
 
 pub struct TransactionArgs {
     pub orderbook_address: String,
-    pub derivation_path: Option<usize>,
+    pub derivation_index: Option<usize>,
     pub chain_id: u64,
     pub rpc_url: String,
 }
@@ -23,6 +23,6 @@ impl TransactionArgs {
     }
 
     pub async fn to_ledger_client(self) -> anyhow::Result<LedgerClient> {
-        LedgerClient::new(self.derivation_path, self.chain_id, self.rpc_url.clone()).await
+        LedgerClient::new(self.derivation_index, self.chain_id, self.rpc_url.clone()).await
     }
 }
