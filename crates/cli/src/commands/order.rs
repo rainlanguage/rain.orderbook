@@ -9,7 +9,7 @@ pub enum Order {
 }
 
 impl Execute for Order {
-    async fn execute(self) -> Result<()> {
+    async fn execute(&self) -> Result<()> {
         match self {
             Order::Ls => ls().await,
         }
