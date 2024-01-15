@@ -1,0 +1,10 @@
+{
+    "name": "rain-orderbook-subgraph",
+    "description": "Subgraph setup",
+    "version": "1.0.0",
+    "author": "rainlanguage",
+    "license": "CAL",
+    "dependencies": {
+      "@graphprotocol/graph-ts": "=0.32.0"
+    }
+  }

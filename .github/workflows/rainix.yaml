@@ -23,15 +23,21 @@ jobs:
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix run .#rainix-prelude
+      - run: nix run .#i9r-prelude
+        working-directory: lib/rain.interpreter
       - name: Run ${{ matrix.task }}
         env:
           ETH_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
+          EXPRESSION_DEPLOYER: ${{ vars.EXPRESSION_DEPLOYER }}
         run: nix run .#${{ matrix.task }}
