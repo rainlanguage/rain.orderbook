@@ -16,12 +16,12 @@ impl TransactionArgs {
         &self,
         call: T,
     ) -> anyhow::Result<AlloyTransactionRequest> {
-        let mut tx = AlloyTransactionRequest::default()
-            .with_to(self.orderbook_address.parse::<Address>()?)
-            .with_data(call.abi_encode().clone())
-            .with_chain_id(U64::from(self.chain_id));
-        tx.max_priority_fee_per_gas = self.max_priority_fee_per_gas;
-        tx.max_fee_per_gas = self.max_fee_per_gas;
+        let tx = AlloyTransactionRequest::default()
+            .with_to(Some(self.orderbook_address.parse::<Address>()?))
+            .with_data(Some(call.abi_encode().clone()))
+            .with_chain_id(Some(U64::from(self.chain_id)))
+            .with_max_priority_fee_per_gas(self.max_priority_fee_per_gas)
+            .with_max_fee_per_gas(self.max_fee_per_gas);
 
         Ok(tx)
     }
