@@ -16,7 +16,7 @@ static BASE_URL: Lazy<Url> = Lazy::new(|| {
 #[graphql(
     schema_path = "src/orders/orders.schema.json",
     query_path = "src/orders/orders.graphql",
-    response_derives = "Debug, Serialize, Deserialize"
+    response_derives = "Debug, Serialize, Deserialize, Clone"
 )]
 pub struct OrdersQuery;
 
