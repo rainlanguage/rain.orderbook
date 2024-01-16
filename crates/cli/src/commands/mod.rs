@@ -1,5 +1,4 @@
-mod deposit;
 mod order;
-mod withdraw;
+mod vault;
 
-pub use self::{deposit::Deposit, order::Order, withdraw::Withdraw};
+pub use self::{order::Order, vault::Vault};
