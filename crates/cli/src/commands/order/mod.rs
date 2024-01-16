@@ -7,14 +7,14 @@ use list::List;
 
 #[derive(Parser)]
 pub enum Order {
-    #[command(about = "List all orders from the subgraph.")]
-    Ls(List),
+    #[command(about = "List all orders from the subgraph.", alias = "ls")]
+    List(List),
 }
 
 impl Execute for Order {
     async fn execute(&self) -> Result<()> {
         match self {
-            Order::Ls(list) => list.execute().await,
+            Order::List(list) => list.execute().await,
         }
     }
 }
