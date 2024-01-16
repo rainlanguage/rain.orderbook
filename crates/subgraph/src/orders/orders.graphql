@@ -1,6 +1,6 @@
-query OrdersQuery {
+query OrdersQuery ($whereFilter: Order_filter) {
   orders(
-    where: {orderActive: true}
+    where: $whereFilter
   ) {
     id
     handleIO

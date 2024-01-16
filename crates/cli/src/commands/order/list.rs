@@ -7,13 +7,16 @@ use std::str::from_utf8;
 use tracing::{debug, info};
 
 #[derive(Args, Clone)]
-pub struct CliOrderListArgs {}
+pub struct CliOrderListArgs {
+    #[arg(short, long, help = "Filter by `active`")]
+    active: Option<bool>,
+}
 
 pub type List = CliOrderListArgs;
 
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
-        let orders = rain_orderbook_subgraph_queries::orders::query().await?;
+        let orders = rain_orderbook_subgraph_queries::orders::query(self.active).await?;
 
         let table = build_orders_table(orders)?;
         println!("{}", table);
