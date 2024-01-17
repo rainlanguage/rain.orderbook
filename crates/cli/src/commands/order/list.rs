@@ -2,7 +2,10 @@ use crate::execute::Execute;
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_subgraph_queries::orders::orders_query::OrdersQueryOrders;
+use rain_orderbook_subgraph_queries::{
+    types::orders::{Order, OrdersQuery},
+    OrderbookSubgraphClient,
+};
 use std::str::from_utf8;
 use tracing::{debug, info};
 
@@ -16,8 +19,8 @@ pub type List = CliOrderListArgs;
 
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
-        let orders = rain_orderbook_subgraph_queries::orders::query(self.active).await?;
-
+        let orders = OrderbookSubgraphClient::orders(self.active).await?;
+        info!("{:#?}", orders);
         let table = build_orders_table(orders)?;
         println!("{}", table);
 
@@ -25,7 +28,7 @@ impl Execute for List {
     }
 }
 
-fn build_orders_table(orders: Vec<OrdersQueryOrders>) -> Result<Table> {
+fn build_orders_table(orders: Vec<Order>) -> Result<Table> {
     let mut table = comfy_table::Table::new();
     table
         .load_preset(comfy_table::presets::UTF8_FULL)
@@ -40,9 +43,9 @@ fn build_orders_table(orders: Vec<OrdersQueryOrders>) -> Result<Table> {
 
     for order in orders.iter() {
         table.add_row(vec![
-            order.id.clone(),
+            order.id.inner().into(),
             format!("{}", order.order_active),
-            format!("0x{}", from_utf8(order.owner.id.as_slice())?),
+            format!("{}", order.owner.id.0),
             order
                 .valid_inputs
                 .clone()
