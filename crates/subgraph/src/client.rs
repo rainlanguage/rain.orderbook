@@ -1,4 +1,7 @@
-use crate::types::orders::{Order, OrdersQuery};
+use crate::types::{
+    orders::{Order, OrdersQuery},
+    vaults::{TokenVault, VaultsQuery},
+};
 use anyhow::Result;
 use cynic::{GraphQlResponse, QueryBuilder};
 use once_cell::sync::Lazy;
@@ -30,5 +33,26 @@ impl OrderbookSubgraphClient {
         };
 
         Ok(orders)
+    }
+
+    pub async fn vaults() -> Result<Vec<TokenVault>> {
+        let request_body = VaultsQuery::build(());
+
+        let response = reqwest::Client::new()
+            .post((*BASE_URL).clone())
+            .json(&request_body)
+            .send()
+            .await?;
+
+        let vaults_response: GraphQlResponse<VaultsQuery> =
+            response.json::<GraphQlResponse<VaultsQuery>>().await?;
+
+        let vaults = if let Some(data) = vaults_response.data {
+            data.token_vaults
+        } else {
+            vec![]
+        };
+
+        Ok(vaults)
     }
 }
