@@ -1,7 +1,7 @@
 use crate::cynic_client::CynicClient;
 use crate::types::{
     orders::{Order, OrdersQuery},
-    vaults::{TokenVault, VaultsQuery},
+    vaults::{Vault, VaultsQuery},
 };
 use anyhow::Result;
 use reqwest::Url;
@@ -23,9 +23,9 @@ impl OrderbookSubgraphClient {
         Ok(data.orders)
     }
 
-    pub async fn vaults(&self) -> Result<Vec<TokenVault>> {
+    pub async fn vaults(&self) -> Result<Vec<Vault>> {
         let data = self.query::<VaultsQuery, ()>(self.url.clone(), ()).await?;
 
-        Ok(data.token_vaults)
+        Ok(data.vaults)
     }
 }
