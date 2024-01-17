@@ -1,9 +1,10 @@
 use crate::types::{
     orders::{Order, OrdersQuery},
+    vault::{Vault, VaultQuery, VaultQueryVariables},
     vaults::{TokenVault, VaultsQuery},
 };
-use anyhow::Result;
-use cynic::{GraphQlResponse, QueryBuilder};
+use anyhow::{anyhow, Result};
+use cynic::{GraphQlResponse, Id, QueryBuilder};
 use reqwest::Url;
 
 pub struct OrderbookSubgraphClient {
@@ -55,5 +56,26 @@ impl OrderbookSubgraphClient {
         };
 
         Ok(vaults)
+    }
+
+    pub async fn vault(&self, id: Id) -> Result<Vault> {
+        let request_body = VaultQuery::build(VaultQueryVariables { id: &id });
+
+        let response = reqwest::Client::new()
+            .post(self.url.clone())
+            .json(&request_body)
+            .send()
+            .await?;
+
+        let vault_response: GraphQlResponse<VaultQuery> =
+            response.json::<GraphQlResponse<VaultQuery>>().await?;
+
+        let vault = vault_response
+            .data
+            .ok_or(anyhow!("Graphql Errors: {:?}", vault_response.errors))?
+            .vault
+            .ok_or(anyhow!("Vault not found"))?;
+
+        Ok(vault)
     }
 }
