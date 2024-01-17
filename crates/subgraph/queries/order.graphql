@@ -1,0 +1,34 @@
+query OrderQuery($id: ID!) {
+  order(id: $id) {
+    id
+    owner {
+      id
+    }
+    interpreter
+    interpreterStore
+    expressionDeployer
+    expression
+    timestamp
+    takeOrders {
+      id
+      sender {
+        id
+      }
+      input
+      inputDisplay
+      inputToken {
+        symbol
+      }
+      output
+      outputDisplay
+      outputToken {
+        symbol
+      }
+      IORatio
+      timestamp
+      transaction {
+        blockNumber
+      }
+    }
+  }
+}
