@@ -1,6 +1,6 @@
 use crate::types::{
     orders::{Order, OrdersQuery},
-    vaults::{TokenVault, VaultsQuery},
+    vaults::{Vault, VaultsQuery},
 };
 use anyhow::Result;
 use cynic::{GraphQlResponse, QueryBuilder};
@@ -35,7 +35,7 @@ impl OrderbookSubgraphClient {
         Ok(orders)
     }
 
-    pub async fn vaults() -> Result<Vec<TokenVault>> {
+    pub async fn vaults() -> Result<Vec<Vault>> {
         let request_body = VaultsQuery::build(());
 
         let response = reqwest::Client::new()
@@ -48,7 +48,7 @@ impl OrderbookSubgraphClient {
             response.json::<GraphQlResponse<VaultsQuery>>().await?;
 
         let vaults = if let Some(data) = vaults_response.data {
-            data.token_vaults
+            data.vaults
         } else {
             vec![]
         };
