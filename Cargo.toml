@@ -26,7 +26,6 @@ url = "2.5.0"
 comfy-table = "7.1.0"
 cynic-codegen = { version = "3.4.0", features = ["rkyv"] }
 cynic = "3.4.0"
-serde_json = "1.0.111"
 chrono = "0.4.31"
 
 [workspace.dependencies.rain_orderbook_bindings]
