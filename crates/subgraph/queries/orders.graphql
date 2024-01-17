@@ -1,10 +1,10 @@
-query OrdersQuery($active: Boolean)  {
+query OrdersQuery {
   orders(
-    where: {
-      orderActive: $active
-    }
+    orderBy:timestamp,
+    orderDirection:desc 
   ) {
     id
+    timestamp
     handleIO
     orderJSONString
     owner {

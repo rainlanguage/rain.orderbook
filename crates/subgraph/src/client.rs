@@ -1,4 +1,4 @@
-use crate::types::orders::{Order, OrdersQuery, OrdersQueryVariables, OrdersQueryWhere};
+use crate::types::orders::{Order, OrdersQuery};
 use anyhow::Result;
 use cynic::{GraphQlResponse, QueryBuilder};
 use once_cell::sync::Lazy;
@@ -11,10 +11,8 @@ static BASE_URL: Lazy<Url> = Lazy::new(|| {
 pub struct OrderbookSubgraphClient {}
 
 impl OrderbookSubgraphClient {
-    pub async fn orders(active: Option<bool>) -> Result<Vec<Order>> {
-        let request_body = OrdersQuery::build(OrdersQueryVariables {
-            where_filter: Some(OrdersQueryWhere { active }),
-        });
+    pub async fn orders() -> Result<Vec<Order>> {
+        let request_body = OrdersQuery::build(());
 
         let response = reqwest::Client::new()
             .post((*BASE_URL).clone())
