@@ -14,15 +14,15 @@ fn vaults_query_gql_output() {
     }
     tokenVaults {
       id
+      balanceDisplay
+      balance
       token {
         name
         symbol
         decimals
         totalSupply
         totalSupplyDisplay
-      }  
-      balanceDisplay
-        balance
+      }
     }
   }
 }
