@@ -27,13 +27,18 @@ impl OrderbookSubgraphClient {
         let orders_response: GraphQlResponse<OrdersQuery> =
             response.json::<GraphQlResponse<OrdersQuery>>().await?;
 
-        let orders = if let Some(data) = orders_response.data {
-            data.orders
-        } else {
-            vec![]
-        };
-
-        Ok(orders)
+        match orders_response.errors {
+            Some(errors) => anyhow!(
+                "Graphql: {}",
+                errors.iter().map(|e| e.message).collect().join(", ")
+            ),
+            None => {
+                orders_response
+                    .data
+                    .ok_or(anyhow!("Subgraph query returned no data"))
+                    .orders
+            }
+        }
     }
 
     pub async fn vaults(&self) -> Result<Vec<TokenVault>> {
