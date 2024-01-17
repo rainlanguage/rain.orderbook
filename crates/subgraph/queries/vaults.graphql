@@ -6,15 +6,15 @@ query VaultsQuery {
     }
     tokenVaults {
       id
+      balanceDisplay
+      balance
       token {
         name
         symbol
         decimals
         totalSupply
         totalSupplyDisplay
-      }  
-    	balanceDisplay
-   	 	balance
+      }
     }
   }
 }

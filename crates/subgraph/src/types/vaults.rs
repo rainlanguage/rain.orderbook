@@ -18,9 +18,9 @@ pub struct Vault {
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct TokenVault {
     pub id: cynic::Id,
-    pub token: Erc20,
     pub balance_display: BigDecimal,
     pub balance: BigInt,
+    pub token: Erc20,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
