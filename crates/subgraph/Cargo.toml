@@ -16,7 +16,3 @@ once_cell = { workspace = true }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }
-
-[dev-dependencies]
-insta = { workspace = true }
-cargo-insta = { workspace = true }

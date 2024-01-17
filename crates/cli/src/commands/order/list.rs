@@ -4,7 +4,7 @@ use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_subgraph_queries::{types::orders::Order, OrderbookSubgraphClient};
-use std::str::from_utf8;
+
 use tracing::debug;
 #[derive(Args, Clone)]
 pub struct CliOrderListArgs {}
