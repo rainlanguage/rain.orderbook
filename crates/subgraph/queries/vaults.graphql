@@ -1,0 +1,17 @@
+query VaultsQuery {
+  tokenVaults(orderBy: owner__id, orderDirection: desc) {
+    id
+    owner {
+      id
+    }
+    token {
+      name
+      symbol
+      decimals
+      totalSupply
+      totalSupplyDisplay
+    }
+    balance
+    balanceDisplay
+  }
+}
