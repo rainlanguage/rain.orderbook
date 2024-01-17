@@ -36,7 +36,7 @@ impl OrderbookSubgraphClient {
         Ok(orders)
     }
 
-    pub async fn vaults() -> Result<Vec<Vault>> {
+    pub async fn vaults(&self) -> Result<Vec<Vault>> {
         let request_body = VaultsQuery::build(());
 
         let response = reqwest::Client::new()

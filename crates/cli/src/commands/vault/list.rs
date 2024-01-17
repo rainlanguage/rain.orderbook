@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_queries::{types::vaults::Vault, OrderbookSubgraphClient};
+use rain_orderbook_subgraph_queries::types::vaults::Vault;
 
 use tracing::debug;
 #[derive(Args, Clone)]
