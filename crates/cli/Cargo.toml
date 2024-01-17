@@ -15,8 +15,6 @@ rain_orderbook_bindings = { workspace = true }
 rain_orderbook_common = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
-graphql_client = { workspace = true }
-once_cell = { workspace = true }
 reqwest = { workspace = true }
 rust-bigint = { workspace = true }
 serde = { workspace = true }
