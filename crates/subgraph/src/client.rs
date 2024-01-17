@@ -2,8 +2,11 @@ use crate::types::{
     orders::{Order, OrdersQuery},
     vaults::{TokenVault, VaultsQuery},
 };
-use anyhow::Result;
-use cynic::{GraphQlResponse, QueryBuilder};
+use anyhow::{anyhow, Result};
+use cynic::{
+    serde::{Deserialize, Serialize},
+    GraphQlResponse, QueryBuilder, QueryFragment,
+};
 use reqwest::Url;
 
 pub struct OrderbookSubgraphClient {
@@ -15,8 +18,11 @@ impl OrderbookSubgraphClient {
         Self { url }
     }
 
-    pub async fn orders(&self) -> Result<Vec<Order>> {
-        let request_body = OrdersQuery::build(());
+    async fn _query<R: QueryFragment + QueryBuilder<V> + for<'a> Deserialize<'a>, V: Serialize>(
+        &self,
+        variables: V,
+    ) -> Result<R> {
+        let request_body = R::build(variables);
 
         let response = reqwest::Client::new()
             .post(self.url.clone())
@@ -24,41 +30,33 @@ impl OrderbookSubgraphClient {
             .send()
             .await?;
 
-        let orders_response: GraphQlResponse<OrdersQuery> =
-            response.json::<GraphQlResponse<OrdersQuery>>().await?;
+        let response_deserialized: GraphQlResponse<R> =
+            response.json::<GraphQlResponse<R>>().await?;
 
-        match orders_response.errors {
-            Some(errors) => anyhow!(
+        match response_deserialized.errors {
+            Some(errors) => Err(anyhow!(
                 "Graphql: {}",
-                errors.iter().map(|e| e.message).collect().join(", ")
-            ),
-            None => {
-                orders_response
-                    .data
-                    .ok_or(anyhow!("Subgraph query returned no data"))
-                    .orders
-            }
+                errors
+                    .iter()
+                    .map(|e| e.message.clone())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )),
+            None => response_deserialized
+                .data
+                .ok_or(anyhow!("Subgraph query returned no data")),
         }
     }
 
+    pub async fn orders(&self) -> Result<Vec<Order>> {
+        let data = self._query::<OrdersQuery, ()>(()).await?;
+
+        Ok(data.orders)
+    }
+
     pub async fn vaults(&self) -> Result<Vec<TokenVault>> {
-        let request_body = VaultsQuery::build(());
+        let data = self._query::<VaultsQuery, ()>(()).await?;
 
-        let response = reqwest::Client::new()
-            .post(self.url.clone())
-            .json(&request_body)
-            .send()
-            .await?;
-
-        let vaults_response: GraphQlResponse<VaultsQuery> =
-            response.json::<GraphQlResponse<VaultsQuery>>().await?;
-
-        let vaults = if let Some(data) = vaults_response.data {
-            data.token_vaults
-        } else {
-            vec![]
-        };
-
-        Ok(vaults)
+        Ok(data.token_vaults)
     }
 }
