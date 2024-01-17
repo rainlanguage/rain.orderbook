@@ -1,4 +1,7 @@
-use crate::execute::{CliTransactionCallArgs, Execute, ExecuteTransaction};
+use crate::{
+    execute::Execute,
+    transaction::{ExecuteTransaction, CliTransactionCommandArgs},
+};
 use alloy_ethers_typecast::ethers_address_to_alloy;
 use anyhow::Result;
 use clap::Args;
@@ -6,12 +9,12 @@ use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use rain_orderbook_common::deposit::DepositArgs;
 use tracing::info;
 
-pub type Deposit = CliTransactionCallArgs<CliDepositArgs>;
+pub type Deposit = CliTransactionCommandArgs<CliDepositArgs>;
 
 impl Execute for Deposit {
     async fn execute(&self) -> Result<()> {
         // Prepare deposit call
-        let deposit_args: DepositArgs = self.call_args.clone().into();
+        let deposit_args: DepositArgs = self.cmd_args.clone().into();
         let deposit_call: depositCall = deposit_args.clone().try_into()?;
 
         // Prepare approve call

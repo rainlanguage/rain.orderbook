@@ -4,21 +4,22 @@ use crate::types::{
 };
 use anyhow::Result;
 use cynic::{GraphQlResponse, QueryBuilder};
-use once_cell::sync::Lazy;
 use reqwest::Url;
 
-static BASE_URL: Lazy<Url> = Lazy::new(|| {
-    Url::parse("https://api.thegraph.com/subgraphs/name/siddharth2207/rainorderbook").unwrap()
-});
-
-pub struct OrderbookSubgraphClient {}
+pub struct OrderbookSubgraphClient {
+    url: Url,
+}
 
 impl OrderbookSubgraphClient {
-    pub async fn orders() -> Result<Vec<Order>> {
+    pub async fn new(url: Url) -> Self {
+        Self { url }
+    }
+
+    pub async fn orders(&self) -> Result<Vec<Order>> {
         let request_body = OrdersQuery::build(());
 
         let response = reqwest::Client::new()
-            .post((*BASE_URL).clone())
+            .post(self.url.clone())
             .json(&request_body)
             .send()
             .await?;
@@ -39,7 +40,7 @@ impl OrderbookSubgraphClient {
         let request_body = VaultsQuery::build(());
 
         let response = reqwest::Client::new()
-            .post((*BASE_URL).clone())
+            .post(self.url.clone())
             .json(&request_body)
             .send()
             .await?;

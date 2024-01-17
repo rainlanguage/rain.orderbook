@@ -1,18 +1,20 @@
-use crate::execute::Execute;
+use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
 use anyhow::{anyhow, Result};
 use clap::Args;
 use comfy_table::Table;
+use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_queries::{types::vaults::Vault, OrderbookSubgraphClient};
 
 use tracing::debug;
 #[derive(Args, Clone)]
 pub struct CliVaultListArgs {}
 
-pub type List = CliVaultListArgs;
+pub type List = CliSubgraphCommandArgs<CliVaultListArgs>;
 
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
-        let vaults = OrderbookSubgraphClient::vaults().await?;
+        let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
+        let vaults = subgraph_args.to_subgraph_client().await.vaults().await?;
         debug!("{:#?}", vaults);
 
         let table = build_table(vaults)?;
