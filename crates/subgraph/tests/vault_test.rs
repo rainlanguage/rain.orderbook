@@ -7,7 +7,6 @@ fn vaults_query_gql_output() {
 
     let id = Id::new("1234");
     let request_body = VaultQuery::build(VaultQueryVariables { id: &id });
-    println!("{:?}", request_body.variables);
 
     let expected_query = "query VaultQuery($id: ID!) {
   vault(id: $id) {

@@ -1,5 +1,4 @@
-#[cynic::schema("orderbook")]
-pub mod schema {}
+use crate::schema;
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct VaultQueryVariables<'a> {

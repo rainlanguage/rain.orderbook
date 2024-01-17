@@ -1,5 +1,4 @@
-#[cynic::schema("orderbook")]
-pub mod schema {}
+use crate::schema;
 
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
@@ -51,6 +50,8 @@ pub enum OrderDirection {
 pub enum VaultOrderBy {
     #[cynic(rename = "id")]
     Id,
+    #[cynic(rename = "vaultId")]
+    VaultId,
     #[cynic(rename = "owner")]
     Owner,
     #[cynic(rename = "owner__id")]
