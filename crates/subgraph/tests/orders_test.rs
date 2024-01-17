@@ -5,7 +5,6 @@ fn orders_query_gql_output() {
     use cynic::QueryBuilder;
 
     let request_body = OrdersQuery::build(());
-    println!("{:?}", request_body.variables);
 
     let expected_query = "query OrdersQuery {
   orders(orderBy: timestamp, orderDirection: desc) {
@@ -54,5 +53,4 @@ fn orders_query_gql_output() {
 
 ";
     assert_eq!(request_body.query, expected_query);
-    assert_eq!(request_body.variables, ());
 }
