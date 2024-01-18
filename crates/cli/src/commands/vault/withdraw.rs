@@ -1,15 +1,18 @@
-use crate::execute::{CliTransactionCallArgs, Execute, ExecuteTransaction};
+use crate::{
+    execute::Execute,
+    transaction::{CliTransactionCommandArgs, ExecuteTransaction},
+};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
 use rain_orderbook_common::withdraw::WithdrawArgs;
 
-pub type Withdraw = CliTransactionCallArgs<CliWithdrawArgs>;
+pub type Withdraw = CliTransactionCommandArgs<CliWithdrawArgs>;
 
 impl Execute for Withdraw {
     async fn execute(&self) -> Result<()> {
         let mut execute_tx: ExecuteTransaction = self.clone().into();
-        let withdraw_args: WithdrawArgs = self.call_args.clone().into();
+        let withdraw_args: WithdrawArgs = self.cmd_args.clone().into();
         let withdraw_call: withdrawCall = withdraw_args.try_into()?;
 
         let ledger_client = execute_tx.connect_ledger().await?;

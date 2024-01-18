@@ -7,7 +7,7 @@ use list::List;
 
 #[derive(Parser)]
 pub enum Order {
-    #[command(about = "List all orders from the subgraph.", alias = "ls")]
+    #[command(about = "List all Orders", alias = "ls")]
     List(List),
 }
 
