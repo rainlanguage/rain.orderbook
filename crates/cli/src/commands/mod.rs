@@ -1,6 +1,4 @@
-mod add_order;
-mod deposit;
 mod order;
-mod withdraw;
+mod vault;
 
-pub use self::{add_order::AddOrder, deposit::Deposit, order::Order, withdraw::Withdraw};
+pub use self::{order::Order, vault::Vault};

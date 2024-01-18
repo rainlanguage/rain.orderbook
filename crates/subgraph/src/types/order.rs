@@ -1,0 +1,66 @@
+use crate::schema;
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct OrderQueryVariables<'a> {
+    pub id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Query", variables = "OrderQueryVariables")]
+pub struct OrderQuery {
+    #[arguments(id: $id)]
+    pub order: Option<Order>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Order {
+    pub id: cynic::Id,
+    pub owner: Account,
+    pub interpreter: Bytes,
+    pub interpreter_store: Bytes,
+    pub expression_deployer: Bytes,
+    pub expression: Bytes,
+    pub timestamp: BigInt,
+    pub take_orders: Option<Vec<TakeOrderEntity>>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct TakeOrderEntity {
+    pub id: cynic::Id,
+    pub sender: Account,
+    pub input: BigInt,
+    pub input_display: BigDecimal,
+    pub input_token: Erc20,
+    pub output: BigInt,
+    pub output_display: BigDecimal,
+    pub output_token: Erc20,
+    #[cynic(rename = "IORatio")]
+    pub ioratio: BigDecimal,
+    pub timestamp: BigInt,
+    pub transaction: Transaction,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Transaction {
+    pub block_number: BigInt,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "ERC20")]
+pub struct Erc20 {
+    pub symbol: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Account {
+    pub id: Bytes,
+}
+
+#[derive(cynic::Scalar, Debug, Clone)]
+pub struct BigDecimal(pub String);
+
+#[derive(cynic::Scalar, Debug, Clone)]
+pub struct BigInt(pub String);
+
+#[derive(cynic::Scalar, Debug, Clone)]
+pub struct Bytes(pub String);

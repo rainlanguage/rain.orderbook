@@ -1,5 +1,9 @@
+<script lang="ts">
+  export let svgClass: string = '';
+</script>
+
 <svg
-  class="h-5 w-5 text-gray-800 dark:text-white"
+  class="h-5 w-5 text-gray-800 dark:text-white {svgClass}"
   aria-hidden="true"
   xmlns="http://www.w3.org/2000/svg"
   fill="none"

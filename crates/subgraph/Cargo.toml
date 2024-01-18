@@ -1,21 +1,17 @@
 [package]
 name = "rain_orderbook_subgraph_queries"
-version = "0.0.4"
+version = "0.0.1"
 edition = "2021"
 license = "CAL-1.0"
-description = "Subgraph queries for the Rain Orderbook"
+description = "Subgraph queries & schemas for the Rain Orderbook"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = { workspace = true }
-graphql_client = { workspace = true }
-once_cell = { workspace = true }
+cynic = { workspace = true }
 reqwest = { workspace = true }
-rust-bigint = { workspace = true }
-serde = { workspace = true }
-serde_bytes = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+
+[build-dependencies]
+cynic-codegen = { workspace = true }

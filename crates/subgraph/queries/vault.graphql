@@ -1,0 +1,26 @@
+query VaultQuery($id: ID!) {
+  vault(id: $id) {
+    id
+    owner {
+      id
+    }
+    deposits {
+      id
+      sender {
+        id
+      }
+      amount
+      amountDisplay
+    }
+    withdraws {
+      id
+      sender {
+        id
+      }
+      amount
+      amountDisplay
+      requestedAmount
+      requestedAmountDisplay
+    }
+  }
+}

@@ -1,4 +1,4 @@
-use alloy_primitives::{Address, U256};
+use alloy_primitives::Address;
 use anyhow::Result;
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use std::{convert::TryInto, fs::read_to_string, path::PathBuf};
@@ -15,7 +15,7 @@ impl TryInto<addOrderCall> for AddOrderArgs {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<addOrderCall> {
-        let dotrain_contents = read_to_string(self.dotrain_path)?;
+        let _dotrain_contents = read_to_string(self.dotrain_path)?;
 
         // @todo use dotrain parser to read frontmatter yaml and parsed dotrain from file string
 
