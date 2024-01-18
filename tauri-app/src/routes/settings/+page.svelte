@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Alert, Heading, Label, Input, Helper, Badge } from 'flowbite-svelte';
   import BadgeExternalLink from '../../lib/BadgeExternalLink.svelte';
-  import { rpcUrl, subgraphUrl, isSettingsDefined } from '../../stores/settings';
+  import { rpcUrl, subgraphUrl, isSettingsDefined } from '$lib/stores/settings';
 </script>
 
 <Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Settings</Heading>
