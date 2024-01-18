@@ -14,9 +14,9 @@
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import IconExternalLink from './IconExternalLink.svelte';
   import { page } from '$app/stores';
-  import { isSettingsDefined } from './stores/settings';
+  import { isSettingsDefinedAndValid } from './stores/settings';
 
-  $: nonActiveClass = $isSettingsDefined
+  $: nonActiveClass = $isSettingsDefinedAndValid
     ? 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700'
     : 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white/25';
 </script>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let svgClass: string;
+  export let svgClass: string = '';
 </script>
 
 <svg
