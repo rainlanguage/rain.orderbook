@@ -6,9 +6,12 @@
 
 <Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Settings</Heading>
 
-<div class="mb-4">
-  <Label class="mb-2 block">Blockchain RPC URL</Label>
-  <Input label="RPC URL" name="rpcUrl" required />
+{#if !$isSettingsDefined}
+  <Alert color="red" class="m-8 text-lg">
+    Please fill in all the settings to use the Orderbook.
+  </Alert>
+{/if}
+
 <div class="mb-8">
   <Label class="bold mb-2 block text-xl">RPC URL</Label>
   <Input label="RPC URL" name="rpcUrl" required bind:value={$rpcUrl} />
