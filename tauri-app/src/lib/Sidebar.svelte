@@ -11,6 +11,7 @@
   import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import LifeBuoySolid from 'flowbite-svelte-icons/LifeBuoySolid.svelte';
+  import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import IconExternalLink from './IconExternalLink.svelte';
   import { page } from '$app/stores';
   $: activeUrl = $page.url.pathname;
@@ -50,6 +51,11 @@
       </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border>
+      <SidebarItem label="Settings" href="/settings">
+        <svelte:fragment slot="icon">
+          <GearSolid class="h-5 w-5" />
+        </svelte:fragment>
+      </SidebarItem>
       <SidebarItem label="Help" href="/help">
         <svelte:fragment slot="icon">
           <LifeBuoySolid class="h-5 w-5" />
