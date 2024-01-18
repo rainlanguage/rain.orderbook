@@ -17,7 +17,8 @@ pub struct CliTransactionArgs {
     #[arg(
         short,
         long,
-        help = "Derivation index of the Ledger wallet address to use"
+        help = "Derivation index of the Ledger wallet address to use",
+        default_value = "0"
     )]
     pub derivation_index: Option<usize>,
 
