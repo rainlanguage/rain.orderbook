@@ -1,4 +1,4 @@
-use alloy_primitives::Address;
+use alloy_primitives::{Address};
 use anyhow::Result;
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use std::{convert::TryInto, fs::read_to_string, path::PathBuf};
