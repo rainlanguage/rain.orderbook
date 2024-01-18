@@ -1,4 +1,4 @@
-use alloy_primitives::{Address};
+use alloy_primitives::Address;
 use anyhow::Result;
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use std::{convert::TryInto, fs::read_to_string, path::PathBuf};
@@ -39,7 +39,7 @@ mod tests {
     use std::io::Write;
 
     use super::*;
-    use alloy_primitives::{hex, Address};
+    use alloy_primitives::{hex, Address, U256};
     use tempfile::NamedTempFile;
 
     #[test]
