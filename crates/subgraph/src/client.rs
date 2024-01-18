@@ -1,59 +1,47 @@
+use crate::cynic_client::CynicClient;
 use crate::types::{
     orders::{Order, OrdersQuery},
-    vaults::{Vault, VaultsQuery},
+    vault::{Vault, VaultQuery, VaultQueryVariables},
+    vaults::{Vault as VaultsListItem, VaultsQuery as VaultsListQuery},
 };
-use anyhow::Result;
-use cynic::{GraphQlResponse, QueryBuilder};
+use anyhow::{anyhow, Result};
+use cynic::Id;
 use reqwest::Url;
 
 pub struct OrderbookSubgraphClient {
     url: Url,
 }
 
+impl CynicClient for OrderbookSubgraphClient {}
+
 impl OrderbookSubgraphClient {
-    pub async fn new(url: Url) -> Self {
+    pub fn new(url: Url) -> Self {
         Self { url }
     }
 
     pub async fn orders(&self) -> Result<Vec<Order>> {
-        let request_body = OrdersQuery::build(());
+        let data = self.query::<OrdersQuery, ()>(self.url.clone(), ()).await?;
 
-        let response = reqwest::Client::new()
-            .post(self.url.clone())
-            .json(&request_body)
-            .send()
-            .await?;
-
-        let orders_response: GraphQlResponse<OrdersQuery> =
-            response.json::<GraphQlResponse<OrdersQuery>>().await?;
-
-        let orders = if let Some(data) = orders_response.data {
-            data.orders
-        } else {
-            vec![]
-        };
-
-        Ok(orders)
+        Ok(data.orders)
     }
 
-    pub async fn vaults(&self) -> Result<Vec<Vault>> {
-        let request_body = VaultsQuery::build(());
-
-        let response = reqwest::Client::new()
-            .post(self.url.clone())
-            .json(&request_body)
-            .send()
+    pub async fn vaults(&self) -> Result<Vec<VaultsListItem>> {
+        let data = self
+            .query::<VaultsListQuery, ()>(self.url.clone(), ())
             .await?;
 
-        let vaults_response: GraphQlResponse<VaultsQuery> =
-            response.json::<GraphQlResponse<VaultsQuery>>().await?;
+        Ok(data.vaults)
+    }
 
-        let vaults = if let Some(data) = vaults_response.data {
-            data.vaults
-        } else {
-            vec![]
-        };
+    pub async fn vault(&self, id: Id) -> Result<Vault> {
+        let data = self
+            .query::<VaultQuery, VaultQueryVariables>(
+                self.url.clone(),
+                VaultQueryVariables { id: &id },
+            )
+            .await?;
+        let vault = data.vault.ok_or(anyhow!("Vault not found"))?;
 
-        Ok(vaults)
+        Ok(vault)
     }
 }

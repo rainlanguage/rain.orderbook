@@ -8,6 +8,6 @@ pub struct SubgraphArgs {
 
 impl SubgraphArgs {
     pub async fn to_subgraph_client(&self) -> OrderbookSubgraphClient {
-        OrderbookSubgraphClient::new(self.url.clone()).await
+        OrderbookSubgraphClient::new(self.url.clone())
     }
 }
