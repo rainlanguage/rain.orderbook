@@ -1,5 +1,4 @@
-#[cynic::schema("orderbook")]
-pub mod schema {}
+use crate::schema;
 
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
@@ -52,7 +51,7 @@ pub struct TokenVault {
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
-    pub id: Bytes,
+    pub id: cynic::Id,
     pub symbol: String,
     pub decimals: i32,
 }
@@ -75,6 +74,8 @@ pub enum OrderDirection {
 pub enum OrderOrderBy {
     #[cynic(rename = "id")]
     Id,
+    #[cynic(rename = "orderHash")]
+    OrderHash,
     #[cynic(rename = "owner")]
     Owner,
     #[cynic(rename = "owner__id")]
@@ -103,6 +104,8 @@ pub enum OrderOrderBy {
     ValidOutputs,
     #[cynic(rename = "orderJSONString")]
     OrderJsonstring,
+    #[cynic(rename = "expressionJSONString")]
+    ExpressionJsonstring,
     #[cynic(rename = "transaction")]
     Transaction,
     #[cynic(rename = "transaction__id")]
@@ -117,6 +120,10 @@ pub enum OrderOrderBy {
     EmitterId,
     #[cynic(rename = "timestamp")]
     Timestamp,
+    #[cynic(rename = "takeOrders")]
+    TakeOrders,
+    #[cynic(rename = "ordersClears")]
+    OrdersClears,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
