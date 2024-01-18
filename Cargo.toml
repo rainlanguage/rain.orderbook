@@ -10,6 +10,10 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "c78f9daa7724c35fab7db2c3ffb3b38cf381dda2" }
+dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "b302dfa52eb1a5455d2ffb04b4fa6e7f51518021" }
+rain_interpreter_bindings = { git = "https://github.com/rainlanguage/rain.interpreter.git", rev = "4c6b9246020e1ff86888ce85aa892f5cfe123dcb", module = "crates/bindings" }
+dotrain_interpreter_dispair = { git = "https://github.com/rainlanguage/rain.interpreter.git", rev = "4c6b9246020e1ff86888ce85aa892f5cfe123dcb", module = "crates/dispair" }
+dotrain_interpreter_parser = { git = "https://github.com/rainlanguage/rain.interpreter.git", rev = "4c6b9246020e1ff86888ce85aa892f5cfe123dcb", module = "crates/parser" }
 alloy-sol-types = { version = "0.5.4" }
 alloy-primitives = "0.5.4"
 anyhow = "1.0.70"

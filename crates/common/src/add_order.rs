@@ -1,32 +1,49 @@
 use alloy_primitives::Address;
 use anyhow::Result;
+use dotrain::{parser::RainLangDocument, types::Namespace};
+use dotrain_interpreter_dispair::DISPair;
+use dotrain_interpreter_parser::ParserV1;
+use rain_interpreter_bindings::IParserV1::parseReturn;
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use std::{convert::TryInto, fs::read_to_string, path::PathBuf};
 
 pub struct AddOrderArgs {
     /// Path to a .rain file
     pub dotrain_path: PathBuf,
-
-    /// Address of Order deployer
-    pub deployer: String,
 }
 
-impl TryInto<addOrderCall> for AddOrderArgs {
-    type Error = anyhow::Error;
+impl AddOrderArgs {
+    async fn try_into_call(self) -> Result<addOrderCall> {
+        let rainlangdoc = RainLangDocument::create(dotrain_body, Namespace::Dispair, None);
 
-    fn try_into(self) -> Result<addOrderCall> {
-        let _dotrain_contents = read_to_string(self.dotrain_path)?;
+        // @todo use dotrain parser to extract frontmatter
+        //  - parse frontmatter as yaml
+        //  - read deployer from yaml
+        //  - read validInputs from yaml
+        //  - read validOutputs from yaml
 
-        // @todo use dotrain parser to read frontmatter yaml and parsed dotrain from file string
+        // Get DISPair addresses
+        let deployer_address = self.deployer.parse::<Address>()?;
+        let dispair = DISPair::from_deployer(deployer_address).await?;
+
+        // Parse rainlang into bytecode + constants
+        let parser: ParserV1 = dispair.into();
+        let rainlang_parsed = parser.parse_text(rainlangdoc.text).await?;
+
+        // @todo generate valid metadata including rainlangdoc.text
+        // meta: arbitrary metadata https://github.com/rainlanguage/rain.metadata
+        // use this library to convert rainlang source string to valid metadata
+        // https://github.com/rainlanguage/rain.metadata/blob/main/crates/cli/src/meta/magic.rs
+        // -- need to create a new magic code for rainlang source
 
         Ok(addOrderCall {
             config: OrderConfigV2 {
                 validInputs: vec![],
                 validOutputs: vec![],
                 evaluableConfig: EvaluableConfigV3 {
-                    deployer: self.deployer.parse::<Address>()?,
-                    bytecode: vec![],
-                    constants: vec![],
+                    deployer: deployer_address,
+                    bytecode: rainlang_parsed.bytecode,
+                    constants: rainlang_parsed.constants,
                 },
                 meta: vec![],
             },

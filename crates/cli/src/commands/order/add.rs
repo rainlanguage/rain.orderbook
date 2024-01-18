@@ -29,16 +29,12 @@ pub struct CliAddOrderArgs {
         help = "Path to the .rain file specifying the order"
     )]
     dotrain_path: PathBuf,
-
-    #[arg(short = 'a', long, help = "Deployer address")]
-    deployer: String,
 }
 
 impl From<CliAddOrderArgs> for AddOrderArgs {
     fn from(val: CliAddOrderArgs) -> Self {
         Self {
             dotrain_path: val.dotrain_path,
-            deployer: val.deployer,
         }
     }
 }
