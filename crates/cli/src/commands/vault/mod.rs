@@ -1,4 +1,5 @@
 mod deposit;
+mod detail;
 mod list;
 mod withdraw;
 
@@ -6,6 +7,7 @@ use crate::execute::Execute;
 use anyhow::Result;
 use clap::Parser;
 use deposit::Deposit;
+use detail::Detail;
 use list::List;
 use withdraw::Withdraw;
 
@@ -19,6 +21,9 @@ pub enum Vault {
 
     #[command(about = "List all Vaults", alias = "ls")]
     List(List),
+
+    #[command(about = "View a Vault", alias = "view")]
+    Detail(Detail),
 }
 
 impl Execute for Vault {
@@ -27,6 +32,7 @@ impl Execute for Vault {
             Vault::Deposit(deposit) => deposit.execute().await,
             Vault::Withdraw(withdraw) => withdraw.execute().await,
             Vault::List(list) => list.execute().await,
+            Vault::Detail(detail) => detail.execute().await,
         }
     }
 }
