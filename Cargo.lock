@@ -3125,6 +3125,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]
@@ -3136,6 +3137,8 @@ dependencies = [
  "alloy-sol-types",
  "anyhow",
  "rain_orderbook_bindings",
+ "rain_orderbook_subgraph_queries",
+ "url",
 ]
 
 [[package]]
@@ -3145,7 +3148,6 @@ dependencies = [
  "anyhow",
  "cynic",
  "cynic-codegen",
- "once_cell",
  "reqwest",
 ]
 

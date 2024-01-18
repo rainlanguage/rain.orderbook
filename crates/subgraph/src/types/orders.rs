@@ -1,4 +1,4 @@
-#[cynic::schema("orders")]
+#[cynic::schema("orderbook")]
 pub mod schema {}
 
 #[derive(cynic::QueryFragment, Debug)]
