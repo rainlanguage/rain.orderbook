@@ -1,1 +1,4 @@
-pub mod orders;
+mod client;
+pub mod types;
+
+pub use client::OrderbookSubgraphClient;

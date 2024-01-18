@@ -1,8 +1,10 @@
 query OrdersQuery {
   orders(
-    where: {orderActive: true}
+    orderBy:timestamp,
+    orderDirection:desc 
   ) {
     id
+    timestamp
     handleIO
     orderJSONString
     owner {
