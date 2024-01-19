@@ -1,11 +1,12 @@
+use anyhow::Result;
 use clap::Args;
 use clap::FromArgMatches;
 use clap::Parser;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_subgraph_queries::OrderbookSubgraphClient;
 use url::Url;
 
 #[derive(Args, Clone)]
-pub struct CliSubgraphArgs {
+pub struct SubgraphArgs {
     #[arg(
         short,
         long,
@@ -14,11 +15,9 @@ pub struct CliSubgraphArgs {
     pub subgraph_url: Url,
 }
 
-impl From<CliSubgraphArgs> for SubgraphArgs {
-    fn from(val: CliSubgraphArgs) -> Self {
-        SubgraphArgs {
-            url: val.subgraph_url,
-        }
+impl SubgraphArgs {
+    pub async fn try_into_subgraph_client(&self) -> Result<OrderbookSubgraphClient> {
+        Ok(OrderbookSubgraphClient::new(self.subgraph_url.clone()))
     }
 }
 
@@ -28,5 +27,5 @@ pub struct CliSubgraphCommandArgs<T: FromArgMatches + Args> {
     pub cmd_args: T,
 
     #[clap(flatten)]
-    pub subgraph_args: CliSubgraphArgs,
+    pub subgraph_args: SubgraphArgs,
 }

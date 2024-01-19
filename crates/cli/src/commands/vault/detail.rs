@@ -1,7 +1,6 @@
 use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_common::subgraph::SubgraphArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -14,10 +13,11 @@ pub type Detail = CliSubgraphCommandArgs<VaultDetailArgs>;
 
 impl Execute for Detail {
     async fn execute(&self) -> Result<()> {
-        let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let vault = subgraph_args
-            .to_subgraph_client()
-            .await
+        let vault = self
+            .subgraph_args
+            .clone()
+            .try_into_subgraph_client()
+            .await?
             .vault(self.cmd_args.vault_id.clone().into())
             .await?;
         info!("{:#?}", vault);

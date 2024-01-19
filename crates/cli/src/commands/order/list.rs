@@ -1,9 +1,11 @@
-use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
+use crate::{
+    execute::Execute,
+    subgraph::{CliSubgraphCommandArgs, SubgraphArgs},
+};
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_queries::types::orders::Order;
 
 use tracing::debug;
@@ -15,7 +17,11 @@ pub type List = CliSubgraphCommandArgs<CliOrderListArgs>;
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let orders = subgraph_args.to_subgraph_client().await.orders().await?;
+        let orders = subgraph_args
+            .try_into_subgraph_client()
+            .await?
+            .orders()
+            .await?;
         debug!("{:#?}", orders);
 
         let table = build_orders_table(orders)?;

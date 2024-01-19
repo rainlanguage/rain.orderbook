@@ -2,7 +2,6 @@ use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
 use anyhow::{anyhow, Result};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_queries::types::vaults::Vault;
 
 use tracing::debug;
@@ -13,8 +12,13 @@ pub type List = CliSubgraphCommandArgs<VaultListArgs>;
 
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
-        let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let vaults = subgraph_args.to_subgraph_client().await.vaults().await?;
+        let vaults = self
+            .subgraph_args
+            .clone()
+            .try_into_subgraph_client()
+            .await?
+            .vaults()
+            .await?;
         debug!("{:#?}", vaults);
 
         let table = build_table(vaults)?;
