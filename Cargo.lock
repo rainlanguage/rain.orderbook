@@ -3258,7 +3258,6 @@ dependencies = [
  "clap 4.4.14",
  "comfy-table",
  "rain_orderbook_bindings",
- "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
  "reqwest",
  "rust-bigint",
@@ -3267,19 +3266,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "url",
-]
-
-[[package]]
-name = "rain_orderbook_common"
-version = "0.0.1"
-dependencies = [
- "alloy-ethers-typecast",
- "alloy-primitives",
- "alloy-sol-types",
- "anyhow",
- "rain_orderbook_bindings",
- "rain_orderbook_subgraph_queries",
  "url",
 ]
 
