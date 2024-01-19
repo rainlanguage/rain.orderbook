@@ -1,16 +1,14 @@
 use alloy_ethers_typecast::client::LedgerClient;
+use alloy_ethers_typecast::request_shim::AlloyTransactionRequest;
 use alloy_ethers_typecast::transaction::ExecutableTransaction;
-use alloy_primitives::U256;
+use alloy_primitives::{Address, U256, U64};
 use alloy_sol_types::SolCall;
 use anyhow::Result;
-use clap::Args;
-use clap::FromArgMatches;
-use clap::Parser;
-use rain_orderbook_common::transaction::TransactionArgs;
+use clap::{Args, FromArgMatches, Parser};
 use tracing::{debug, info};
 
 #[derive(Args, Clone)]
-pub struct CliTransactionArgs {
+pub struct TransactionArgs {
     #[arg(short, long, help = "Orderbook contract address")]
     pub orderbook_address: String,
 
@@ -35,16 +33,23 @@ pub struct CliTransactionArgs {
     pub max_fee_per_gas: Option<u128>,
 }
 
-impl From<CliTransactionArgs> for TransactionArgs {
-    fn from(val: CliTransactionArgs) -> Self {
-        TransactionArgs {
-            orderbook_address: val.orderbook_address,
-            derivation_index: val.derivation_index,
-            chain_id: val.chain_id,
-            rpc_url: val.rpc_url,
-            max_priority_fee_per_gas: val.max_priority_fee_per_gas.map(U256::from),
-            max_fee_per_gas: val.max_fee_per_gas.map(U256::from),
-        }
+impl TransactionArgs {
+    pub async fn try_into_transaction_request_with_call<T: SolCall>(
+        &self,
+        call: T,
+    ) -> anyhow::Result<AlloyTransactionRequest> {
+        let tx = AlloyTransactionRequest::default()
+            .with_to(Some(self.orderbook_address.parse::<Address>()?))
+            .with_data(Some(call.abi_encode().clone()))
+            .with_chain_id(Some(U64::from(self.chain_id)))
+            .with_max_priority_fee_per_gas(self.max_priority_fee_per_gas.map(U256::from))
+            .with_max_fee_per_gas(self.max_fee_per_gas.map(U256::from));
+
+        Ok(tx)
+    }
+
+    pub async fn to_ledger_client(self) -> anyhow::Result<LedgerClient> {
+        LedgerClient::new(self.derivation_index, self.chain_id, self.rpc_url.clone()).await
     }
 }
 
@@ -54,7 +59,7 @@ pub struct CliTransactionCommandArgs<T: FromArgMatches + Args> {
     pub cmd_args: T,
 
     #[clap(flatten)]
-    pub transaction_args: CliTransactionArgs,
+    pub transaction_args: TransactionArgs,
 }
 
 pub struct ExecuteTransaction {
@@ -73,7 +78,7 @@ impl ExecuteTransaction {
     pub async fn send(&self, ledger_client: LedgerClient, call: impl SolCall) -> Result<()> {
         let request = self
             .transaction_args
-            .to_transaction_request_with_call(call)
+            .try_into_transaction_request_with_call(call)
             .await?;
 
         let tx =
