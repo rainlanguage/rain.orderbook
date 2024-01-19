@@ -5,7 +5,6 @@ use crate::{
 use alloy_ethers_typecast::ethers_address_to_alloy;
 use alloy_primitives::{Address, U256};
 use anyhow::Result;
-use anyhow::Result;
 use clap::Args;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use std::convert::TryInto;
@@ -49,15 +48,16 @@ pub type Deposit = CliTransactionCommandArgs<DepositArgs>;
 impl Execute for Deposit {
     async fn execute(&self) -> Result<()> {
         // Prepare deposit call
-        let deposit_args: DepositArgs = self.cmd_args.clone().into();
-        let deposit_call: depositCall = deposit_args.clone().try_into()?;
+        let deposit_call: depositCall = self.cmd_args.clone().try_into()?;
 
         // Prepare approve call
         let mut execute_tx: ExecuteTransaction = self.clone().into();
         let ledger_client = execute_tx.connect_ledger().await?;
         let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
-        let approve_call: approveCall =
-            deposit_args.clone().try_into_approve_call(ledger_address)?;
+        let approve_call: approveCall = self
+            .cmd_args
+            .clone()
+            .try_into_approve_call(ledger_address)?;
 
         info!("Step 1/2: Approve token transfer");
         execute_tx.send(ledger_client, approve_call).await?;
