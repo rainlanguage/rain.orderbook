@@ -5,12 +5,12 @@ use rain_orderbook_common::subgraph::SubgraphArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
-pub struct CliVaultDetailArgs {
+pub struct VaultDetailArgs {
     #[arg(short, long, help = "ID of the Vault")]
     vault_id: String,
 }
 
-pub type Detail = CliSubgraphCommandArgs<CliVaultDetailArgs>;
+pub type Detail = CliSubgraphCommandArgs<VaultDetailArgs>;
 
 impl Execute for Detail {
     async fn execute(&self) -> Result<()> {
