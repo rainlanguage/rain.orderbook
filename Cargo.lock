@@ -3291,6 +3291,7 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "reqwest",
+ "serde",
  "typeshare",
  "typeshare-cli",
 ]

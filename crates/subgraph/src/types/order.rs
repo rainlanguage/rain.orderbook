@@ -64,17 +64,11 @@ pub struct Account {
     pub id: Bytes,
 }
 
-#[typeshare]
-#[serde(rename = "BigDecimalString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigDecimal(pub String);
 
-#[typeshare]
-#[serde(rename = "BigIntString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigInt(pub String);
 
-#[typeshare]
-#[serde(rename = "BytesString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct Bytes(pub String);

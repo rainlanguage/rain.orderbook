@@ -13,6 +13,7 @@ cynic = { workspace = true }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 typeshare = { workspace = true }
+serde = { workspace = true }
 
 [dev-dependencies]
 typeshare-cli = { workspace = true }
