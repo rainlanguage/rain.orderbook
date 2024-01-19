@@ -1,5 +1,6 @@
 use crate::schema;
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
 pub struct VaultsQuery {
@@ -7,6 +8,7 @@ pub struct VaultsQuery {
     pub vaults: Vec<Vault>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Vault {
     pub id: cynic::Id,
@@ -14,6 +16,7 @@ pub struct Vault {
     pub token_vaults: Option<Vec<TokenVault>>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct TokenVault {
     pub id: cynic::Id,
@@ -22,6 +25,7 @@ pub struct TokenVault {
     pub token: Erc20,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
@@ -32,6 +36,7 @@ pub struct Erc20 {
     pub total_supply_display: BigDecimal,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Account {
     pub id: Bytes,
@@ -45,6 +50,7 @@ pub enum OrderDirection {
     Desc,
 }
 
+#[typeshare]
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Vault_orderBy")]
 pub enum VaultOrderBy {
@@ -64,11 +70,17 @@ pub enum VaultOrderBy {
     Withdraws,
 }
 
+#[typeshare]
+#[serde(rename = "BigDecimalString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigDecimal(pub String);
 
+#[typeshare]
+#[serde(rename = "BigIntString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigInt(pub String);
 
+#[typeshare]
+#[serde(rename = "BytesString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct Bytes(pub String);

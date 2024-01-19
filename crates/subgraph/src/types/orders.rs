@@ -1,5 +1,7 @@
 use crate::schema;
+use typeshare::typeshare;
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
 pub struct OrdersQuery {
@@ -7,6 +9,7 @@ pub struct OrdersQuery {
     pub orders: Vec<Order>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Order {
     pub id: cynic::Id,
@@ -25,11 +28,13 @@ pub struct Order {
     pub valid_outputs: Option<Vec<Io>>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Transaction {
     pub id: cynic::Id,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "IO")]
 pub struct Io {
@@ -38,16 +43,19 @@ pub struct Io {
     pub vault: Vault,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct Vault {
     pub id: cynic::Id,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct TokenVault {
     pub balance: BigInt,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
@@ -56,11 +64,13 @@ pub struct Erc20 {
     pub decimals: i32,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Account {
     pub id: Bytes,
 }
 
+#[typeshare]
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 pub enum OrderDirection {
     #[cynic(rename = "asc")]
@@ -69,6 +79,7 @@ pub enum OrderDirection {
     Desc,
 }
 
+#[typeshare]
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Order_orderBy")]
 pub enum OrderOrderBy {
@@ -126,8 +137,12 @@ pub enum OrderOrderBy {
     OrdersClears,
 }
 
+#[typeshare]
+#[serde(rename = "BigIntString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigInt(pub String);
 
+#[typeshare]
+#[serde(rename = "BytesString")]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct Bytes(pub String);

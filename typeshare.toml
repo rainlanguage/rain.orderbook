@@ -1,0 +1,5 @@
+[typescript.type_mappings]
+"Id" = "string"
+"BigInt" = "BigIntString"
+"BigDecimal" = "BigDecimalString"
+"Bytes" = "BytesString"

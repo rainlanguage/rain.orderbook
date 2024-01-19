@@ -27,6 +27,8 @@ comfy-table = "7.1.0"
 cynic-codegen = { version = "3.4.0", features = ["rkyv"] }
 cynic = "3.4.0"
 chrono = "0.4.31"
+typeshare = "1.0.1"
+typeshare-cli = "1.7.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
