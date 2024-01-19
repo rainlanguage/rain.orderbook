@@ -7,9 +7,9 @@ use rain_orderbook_subgraph_queries::types::vaults::Vault;
 
 use tracing::debug;
 #[derive(Args, Clone)]
-pub struct CliVaultListArgs {}
+pub struct VaultListArgs {}
 
-pub type List = CliSubgraphCommandArgs<CliVaultListArgs>;
+pub type List = CliSubgraphCommandArgs<VaultListArgs>;
 
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
