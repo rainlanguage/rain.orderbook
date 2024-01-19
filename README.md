@@ -44,21 +44,6 @@ use typeshare::typeshare;
 #[typeshare]
 ```
 
-5. Add the following macro to generated types `BigDecimal`
-```rust
-#[serde(rename = "BigDecimalString")]
-```
-
-6. Add the following macro to generated types `BigInt`
-```rust
-#[serde(rename = "BigIntString")]
-```
-
-7. Add the following macro to generated types `Bytes`
-```rust
-#[serde(rename = "BytesString")]
-```
-
 ## Generating Typescript Types from Rust Types
 
 Run the following to generate Typescript types from Rust types in `src/types`.
