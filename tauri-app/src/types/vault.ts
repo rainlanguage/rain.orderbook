@@ -23,9 +23,15 @@ export interface TokenVault {
 	token: Erc20;
 }
 
+export interface Transaction {
+	id: string;
+}
+
 export interface VaultDeposit {
 	id: string;
 	sender: Account;
+	transaction: Transaction;
+	timestamp: bigint;
 	amount: bigint;
 	amount_display: string;
 }
@@ -33,6 +39,8 @@ export interface VaultDeposit {
 export interface VaultWithdraw {
 	id: string;
 	sender: Account;
+	transaction: Transaction;
+	timestamp: bigint;
 	amount: bigint;
 	amount_display: string;
 	requested_amount: bigint;

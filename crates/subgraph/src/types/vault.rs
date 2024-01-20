@@ -31,6 +31,8 @@ pub struct Vault {
 pub struct VaultWithdraw {
     pub id: cynic::Id,
     pub sender: Account,
+    pub transaction: Transaction,
+    pub timestamp: BigInt,
     pub amount: BigInt,
     pub amount_display: BigDecimal,
     pub requested_amount: BigInt,
@@ -42,8 +44,16 @@ pub struct VaultWithdraw {
 pub struct VaultDeposit {
     pub id: cynic::Id,
     pub sender: Account,
+    pub transaction: Transaction,
+    pub timestamp: BigInt,
     pub amount: BigInt,
     pub amount_display: BigDecimal,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+pub struct Transaction {
+    pub id: cynic::Id,
 }
 
 #[typeshare]

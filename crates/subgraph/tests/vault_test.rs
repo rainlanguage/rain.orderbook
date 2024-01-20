@@ -14,7 +14,7 @@ fn vaults_query_gql_output() {
     owner {
       id
     }
-    tokenVaults  {
+    tokenVaults {
       id
       balance
       balanceDisplay
@@ -29,6 +29,10 @@ fn vaults_query_gql_output() {
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
     }
@@ -37,6 +41,10 @@ fn vaults_query_gql_output() {
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
       requestedAmount

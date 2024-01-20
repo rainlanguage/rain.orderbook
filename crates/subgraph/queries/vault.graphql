@@ -4,7 +4,7 @@ query VaultQuery($id: ID!) {
     owner {
       id
     }
-    tokenVaults  {
+    tokenVaults {
       id
       balance
       balanceDisplay
@@ -19,6 +19,10 @@ query VaultQuery($id: ID!) {
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
     }
@@ -27,6 +31,10 @@ query VaultQuery($id: ID!) {
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
       requestedAmount
