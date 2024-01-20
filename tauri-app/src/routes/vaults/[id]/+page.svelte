@@ -1,39 +1,151 @@
 <script lang="ts">
-  import { Heading, Button, Card } from 'flowbite-svelte';
+  import {
+    Heading,
+    Button,
+    Card,
+    Table,
+    TableHead,
+    TableHeadCell,
+    TableBody,
+    TableBodyRow,
+    TableBodyCell,
+  } from 'flowbite-svelte';
+  import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
+  import dayjs from 'dayjs';
+  import utc from 'dayjs/plugin/utc';
+  import bigIntSupport from 'dayjs/plugin/bigIntSupport';
+  dayjs.extend(utc);
+  dayjs.extend(bigIntSupport);
+
   export let data: { id: string };
 
   vaultDetail.refetch(data.id);
   $: vault = $vaultDetail[data.id];
 </script>
 
-<Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Vault Detail</Heading>
+<div class="flex w-full">
+  <div class="flex-1">
+    <Button outline size="xs" class="w-32" color="primary" href="/vaults">
+      <ArrowLeftSolid size="xs" /><span class="ml-2">All Vaults</span>
+    </Button>
+  </div>
+  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vault Detail</h1>
+  <div class="flex-1"></div>
+</div>
+{#if vault == undefined}
+  <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
+{:else}
+  <div class="flex w-full flex-wrap justify-evenly space-y-12 lg:space-y-0">
+    <Card class="space-y-8" size="lg">
+      <div>
+        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Vault ID
+        </h5>
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+          {data.id}
+        </p>
+      </div>
 
-<div class="mb-8 flex w-full justify-center">
-  <Card class="w-full space-y-8" size="lg">
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Vault ID
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {data.id}
-      </p>
-    </div>
+      <div>
+        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Owner Address
+        </h5>
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+          {vault.owner.id}
+        </p>
+      </div>
 
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Owner Address
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.owner.id}
-      </p>
-    </div>
+      <div>
+        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Token
+        </h5>
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+          {vault.token_vaults && vault.token_vaults[0].token.name}
+        </p>
+      </div>
 
-    <div>
-      <div class="flex justify-center space-x-20">
-        <Button color="green" size="xl">Deposit</Button>
-        <Button color="blue" size="xl">Withdraw</Button>
+      <div>
+        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Balance
+        </h5>
+        <p class="break-all break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+          {vault.token_vaults && vault.token_vaults[0].balance_display}
+          {vault.token_vaults && vault.token_vaults[0].token.symbol}
+        </p>
+      </div>
+
+      <div class="pt-4">
+        <div class="flex justify-center space-x-20">
+          <Button color="green" size="xl">Deposit</Button>
+          <Button color="blue" size="xl">Withdraw</Button>
+        </div>
+      </div>
+    </Card>
+
+    <div class="max-w-screen-xl space-y-12">
+      <div class="w-full">
+        <Heading tag="h4" class="mb-2">Withdrawals</Heading>
+
+        {#if !vault.withdraws || vault.withdraws.length === 0}
+          <div class="my-4 text-center text-gray-900 dark:text-white">No withdrawals found</div>
+        {:else}
+          <Table divClass="mx-8 cursor-pointer" hoverable={true}>
+            <TableHead>
+              <TableHeadCell>Sender</TableHeadCell>
+              <TableHeadCell>Requested Amount</TableHeadCell>
+              <TableHeadCell>Amount</TableHeadCell>
+            </TableHead>
+            <TableBody>
+              {#each vault.withdraws as withdraw}
+                <TableBodyRow>
+                  <TableBodyCell tdClass="break-all px-4 py-2">{withdraw.sender.id}</TableBodyCell>
+                  <TableBodyCell tdClass="break-word p-2"
+                    >{withdraw.requested_amount_display}</TableBodyCell
+                  >
+                  <TableBodyCell tdClass="break-word p-2">{withdraw.amount_display}</TableBodyCell>
+                </TableBodyRow>
+              {/each}
+            </TableBody>
+          </Table>
+        {/if}
+      </div>
+
+      <div class="w-full">
+        <Heading tag="h4" class="mb-2">Deposits</Heading>
+
+        {#if !vault.deposits || vault.deposits.length === 0}
+          <div class="my-4 text-center text-gray-900 dark:text-white">No deposits found</div>
+        {:else}
+          <Table divClass="cursor-pointer" hoverable={true}>
+            <TableHead>
+              <TableHeadCell>Date</TableHeadCell>
+              <TableHeadCell>Sender</TableHeadCell>
+
+              <TableHeadCell>Amount</TableHeadCell>
+            </TableHead>
+            <TableBody>
+              {#each vault.deposits as deposit}
+                <TableBodyRow>
+                  <TableBodyCell tdClass="px-4 py-2"
+                    >{dayjs(BigInt(deposit.timestamp) * BigInt('1000'))
+                      .utc(true)
+                      .local()
+                      .format('DD/MM/YYYY h:mm A')}</TableBodyCell
+                  >
+                  <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
+                    {deposit.sender.id}
+                  </TableBodyCell>
+                  <TableBodyCell tdClass="break-word p-2 text-right"
+                    >{deposit.amount_display}
+                    {vault.token_vaults && vault.token_vaults[0].token.symbol}</TableBodyCell
+                  >
+                </TableBodyRow>
+              {/each}
+            </TableBody>
+          </Table>
+        {/if}
       </div>
     </div>
-  </Card>
-</div>
+  </div>
+{/if}

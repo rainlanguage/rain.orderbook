@@ -26,7 +26,7 @@
 {#if $vaultsList.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
 {:else}
-  <Table divClass="mx-8 cursor-pointer" hoverable={true}>
+  <Table divClass="cursor-pointer" hoverable={true}>
     <TableHead>
       <TableHeadCell>Owner</TableHeadCell>
       <TableHeadCell>Token</TableHeadCell>
