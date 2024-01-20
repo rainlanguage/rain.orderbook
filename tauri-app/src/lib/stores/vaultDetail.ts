@@ -1,5 +1,5 @@
 import { get, writable } from 'svelte/store';
-import type { Vault as VaultDetail } from '../../types/vault';
+import type { Vault as VaultDetail } from '$lib/typeshare/vault';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from './settings';
 

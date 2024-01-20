@@ -18,7 +18,7 @@ deploy in the matrix.
 ## Generating Rust Types from Graphql
 
 **NOTICE** The crates and tauri app are currently expecting a subgraph compatible with the schema in `crates/subgraph/schema/orderbook.graphql`. 
-When this project is migrated to use the subgraph schema defined in `./subgraph/schema/graphql`, the command below will change.
+When this project is migrated to use the subgraph schema defined in `subgraph/schema/graphql`, the command below will change.
 
 1. Run the following commands to generate Rust types from GraphQL Queries
 ```bash
@@ -51,11 +51,8 @@ use typeshare::typeshare;
 
 ## Generating Typescript Types from Rust Types
 
-Run the following to generate Typescript types from Rust types in `src/types`.
+Run the following from the repo root, outside the nix shell, to generate Typescript types from Rust types in `crates/subgraph/src/types`.
 ```bash
-typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/types/vault.ts
-typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/types/vaults.ts
-typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/types/order.ts
-typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/types/orders.ts
+nix run .#ob-tauri-prelude
 ```
 

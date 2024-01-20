@@ -15,8 +15,5 @@ anyhow = { workspace = true }
 typeshare = { workspace = true }
 serde = { workspace = true }
 
-[dev-dependencies]
-typeshare-cli = { workspace = true }
-
 [build-dependencies]
 cynic-codegen = { workspace = true }
