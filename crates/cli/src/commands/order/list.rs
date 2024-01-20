@@ -15,7 +15,7 @@ pub type List = CliSubgraphCommandArgs<CliOrderListArgs>;
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let orders = subgraph_args.to_subgraph_client().await.orders().await?;
+        let orders = subgraph_args.to_subgraph_client().await?.orders().await?;
         debug!("{:#?}", orders);
 
         let table = build_orders_table(orders)?;

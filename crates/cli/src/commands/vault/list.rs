@@ -14,7 +14,7 @@ pub type List = CliSubgraphCommandArgs<CliVaultListArgs>;
 impl Execute for List {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let vaults = subgraph_args.to_subgraph_client().await.vaults().await?;
+        let vaults = subgraph_args.to_subgraph_client().await?.vaults().await?;
         debug!("{:#?}", vaults);
 
         let table = build_table(vaults)?;

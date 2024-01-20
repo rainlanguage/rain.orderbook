@@ -1,13 +1,14 @@
 use rain_orderbook_subgraph_queries::OrderbookSubgraphClient;
-use url::Url;
+use serde::{Deserialize, Serialize};
+use url::{ParseError, Url};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct SubgraphArgs {
-    pub url: Url,
+    pub url: String,
 }
 
 impl SubgraphArgs {
-    pub async fn to_subgraph_client(&self) -> OrderbookSubgraphClient {
-        OrderbookSubgraphClient::new(self.url.clone())
+    pub async fn to_subgraph_client(&self) -> Result<OrderbookSubgraphClient, ParseError> {
+        Ok(OrderbookSubgraphClient::new(Url::parse(self.url.as_str())?))
     }
 }

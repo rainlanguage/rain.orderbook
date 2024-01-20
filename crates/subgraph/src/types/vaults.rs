@@ -1,4 +1,5 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -10,7 +11,7 @@ pub struct VaultsQuery {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct Vault {
     pub id: cynic::Id,
     pub owner: Account,
@@ -18,7 +19,7 @@ pub struct Vault {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct TokenVault {
     pub id: cynic::Id,
     pub balance_display: BigDecimal,
@@ -27,7 +28,7 @@ pub struct TokenVault {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
     pub name: String,
@@ -38,7 +39,7 @@ pub struct Erc20 {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct Account {
     pub id: Bytes,
 }
