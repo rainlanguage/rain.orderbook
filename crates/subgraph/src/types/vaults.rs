@@ -29,8 +29,6 @@ pub struct Erc20 {
     pub name: String,
     pub symbol: String,
     pub decimals: i32,
-    pub total_supply: BigInt,
-    pub total_supply_display: BigDecimal,
 }
 
 #[typeshare]

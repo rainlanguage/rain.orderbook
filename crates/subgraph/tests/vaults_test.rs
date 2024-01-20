@@ -18,8 +18,6 @@ fn vaults_query_gql_output() {
       name
       symbol
       decimals
-      totalSupply
-      totalSupplyDisplay
     }
     balanceDisplay
     balance
