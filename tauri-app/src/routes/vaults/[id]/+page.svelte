@@ -30,7 +30,7 @@
       <ArrowLeftSolid size="xs" /><span class="ml-2">All Vaults</span>
     </Button>
   </div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vault Detail</h1>
+  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vault</h1>
   <div class="flex-1"></div>
 </div>
 {#if vault == undefined}
