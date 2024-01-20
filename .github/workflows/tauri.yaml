@@ -9,7 +9,7 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
-      - run: nix develop .#tauri-shell --comand cargo build --verbose
+      - run: nix develop .#tauri-shell --command cargo build --verbose
       - run: nix run .#ob-tauri-prelude
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
