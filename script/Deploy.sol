@@ -36,7 +36,7 @@ contract Deploy is Script {
         new RouteProcessorOrderBookV3ArbOrderTaker(expressionDeployer);
 
         // Flash borrowers.
-        new GenericPoolOrderBookV3FlashBorrower(expressionDeployer);
+        new GenericPoolOrderBookV3FlashBorrower();
 
         vm.stopBroadcast();
     }
