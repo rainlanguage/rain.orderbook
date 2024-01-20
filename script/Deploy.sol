@@ -15,14 +15,6 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
 
-        address defaultExpressionDeployer = address(0);
-        string memory deploymentPath = "lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2";
-        if (vm.isFile(deploymentPath)) {
-            string memory fileContents = vm.readFile(deploymentPath);
-            defaultExpressionDeployer = vm.parseAddress(fileContents);
-        }
-        address expressionDeployer = vm.envOr("EXPRESSION_DEPLOYER", defaultExpressionDeployer);
-
         vm.startBroadcast(deployerPrivateKey);
 
         // OB.
@@ -32,8 +24,8 @@ contract Deploy is Script {
         new OrderBookSubParser();
 
         // Order takers.
-        new GenericPoolOrderBookV3ArbOrderTaker(expressionDeployer);
-        new RouteProcessorOrderBookV3ArbOrderTaker(expressionDeployer);
+        new GenericPoolOrderBookV3ArbOrderTaker();
+        new RouteProcessorOrderBookV3ArbOrderTaker();
 
         // Flash borrowers.
         new GenericPoolOrderBookV3FlashBorrower();

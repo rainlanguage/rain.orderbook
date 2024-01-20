@@ -11,5 +11,4 @@ import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 /// Abstract contract that is an `OrderBook` and can be used to test itself.
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Mocks all externalities during construction.
-abstract contract OrderBookSelfTest is Test, OrderBook {
-}
+abstract contract OrderBookSelfTest is Test, OrderBook {}
