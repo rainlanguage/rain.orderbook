@@ -4,11 +4,25 @@ query VaultQuery($id: ID!) {
     owner {
       id
     }
+    tokenVaults {
+      id
+      balance
+      balanceDisplay
+      token {
+        name
+        symbol
+        decimals
+      }
+    }
     deposits {
       id
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
     }
@@ -17,6 +31,10 @@ query VaultQuery($id: ID!) {
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
       requestedAmount

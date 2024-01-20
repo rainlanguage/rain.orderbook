@@ -14,11 +14,25 @@ fn vaults_query_gql_output() {
     owner {
       id
     }
+    tokenVaults {
+      id
+      balance
+      balanceDisplay
+      token {
+        name
+        symbol
+        decimals
+      }
+    }
     deposits {
       id
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
     }
@@ -27,6 +41,10 @@ fn vaults_query_gql_output() {
       sender {
         id
       }
+      transaction {
+        id
+      }
+      timestamp
       amount
       amountDisplay
       requestedAmount
