@@ -1,10 +1,13 @@
 use crate::schema;
+use typeshare::typeshare;
 
+#[typeshare]
 #[derive(cynic::QueryVariables, Debug)]
 pub struct OrderQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "OrderQueryVariables")]
 pub struct OrderQuery {
@@ -12,6 +15,7 @@ pub struct OrderQuery {
     pub order: Option<Order>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Order {
     pub id: cynic::Id,
@@ -24,6 +28,7 @@ pub struct Order {
     pub take_orders: Option<Vec<TakeOrderEntity>>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct TakeOrderEntity {
     pub id: cynic::Id,
@@ -40,17 +45,20 @@ pub struct TakeOrderEntity {
     pub transaction: Transaction,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Transaction {
     pub block_number: BigInt,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
     pub symbol: String,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Account {
     pub id: Bytes,

@@ -1,5 +1,7 @@
 use crate::schema;
+use typeshare::typeshare;
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
 pub struct VaultsQuery {
@@ -7,6 +9,7 @@ pub struct VaultsQuery {
     pub vaults: Vec<Vault>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Vault {
     pub id: cynic::Id,
@@ -14,6 +17,7 @@ pub struct Vault {
     pub token_vaults: Option<Vec<TokenVault>>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct TokenVault {
     pub id: cynic::Id,
@@ -22,6 +26,7 @@ pub struct TokenVault {
     pub token: Erc20,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
@@ -32,6 +37,7 @@ pub struct Erc20 {
     pub total_supply_display: BigDecimal,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Account {
     pub id: Bytes,
@@ -45,6 +51,7 @@ pub enum OrderDirection {
     Desc,
 }
 
+#[typeshare]
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Vault_orderBy")]
 pub enum VaultOrderBy {
