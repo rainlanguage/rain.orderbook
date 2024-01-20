@@ -26,7 +26,7 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // OB.
-        new OrderBook(expressionDeployer);
+        new OrderBook();
 
         // Subparsers.
         new OrderBookSubParser();
