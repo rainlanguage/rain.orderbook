@@ -1,5 +1,5 @@
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_queries::types::vault::Vault as VaultDetail;
+use rain_orderbook_subgraph_queries::types::vault::TokenVault as VaultDetail;
 use rain_orderbook_subgraph_queries::types::vaults::TokenVault as VaultsListItem;
 
 #[tauri::command]

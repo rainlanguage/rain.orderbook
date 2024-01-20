@@ -72,7 +72,7 @@
           Token
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {vault.token_vaults && vault.token_vaults[0].token.name}
+          {vault.token.name}
         </p>
       </div>
 
@@ -81,8 +81,8 @@
           Balance
         </h5>
         <p class="break-all break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {vault.token_vaults && vault.token_vaults[0].balance_display}
-          {vault.token_vaults && vault.token_vaults[0].token.symbol}
+          {vault.balance_display}
+          {vault.token.symbol}
         </p>
       </div>
 
@@ -98,7 +98,7 @@
       <div class="w-full">
         <Heading tag="h4" class="mb-2">Withdrawals</Heading>
 
-        {#if !vault.withdraws || vault.withdraws.length === 0}
+        {#if !vault.vault.withdraws || vault.vault.withdraws.length === 0}
           <div class="my-4 text-center text-gray-900 dark:text-white">No withdrawals found</div>
         {:else}
           <Table divClass="mx-8 cursor-pointer" hoverable={true}>
@@ -108,7 +108,7 @@
               <TableHeadCell>Amount</TableHeadCell>
             </TableHead>
             <TableBody>
-              {#each vault.withdraws as withdraw}
+              {#each vault.vault.withdraws as withdraw}
                 <TableBodyRow>
                   <TableBodyCell tdClass="break-all px-4 py-2">{withdraw.sender.id}</TableBodyCell>
                   <TableBodyCell tdClass="break-word p-2"
@@ -125,7 +125,7 @@
       <div class="w-full">
         <Heading tag="h4" class="mb-2">Deposits</Heading>
 
-        {#if !vault.deposits || vault.deposits.length === 0}
+        {#if !vault.vault.deposits || vault.vault.deposits.length === 0}
           <div class="my-4 text-center text-gray-900 dark:text-white">No deposits found</div>
         {:else}
           <Table divClass="cursor-pointer" hoverable={true}>
@@ -136,7 +136,7 @@
               <TableHeadCell>Amount</TableHeadCell>
             </TableHead>
             <TableBody>
-              {#each vault.deposits as deposit}
+              {#each vault.vault.deposits as deposit}
                 <TableBodyRow>
                   <TableBodyCell tdClass="px-4 py-2"
                     >{dayjs(BigInt(deposit.timestamp) * BigInt('1000'))
@@ -149,7 +149,7 @@
                   </TableBodyCell>
                   <TableBodyCell tdClass="break-word p-2 text-right"
                     >{deposit.amount_display}
-                    {vault.token_vaults && vault.token_vaults[0].token.symbol}</TableBodyCell
+                    {vault.token.symbol}</TableBodyCell
                   >
                 </TableBodyRow>
               {/each}

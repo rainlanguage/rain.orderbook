@@ -10,7 +10,7 @@ query VaultsQuery {
       name
       symbol
       decimals
-    }  
+    }
     balanceDisplay
     balance
   }

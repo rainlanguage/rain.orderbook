@@ -1,20 +1,20 @@
 <script lang="ts">
   import { Button, Modal, Label, Input, InputAddon, ButtonGroup, Helper } from 'flowbite-svelte';
   import { parseUnits } from 'viem';
-  import type { Vault } from '../types/vault';
+  import type { TokenVault } from '$lib/typeshare/vault';
   import { isStringValidNumber } from './utils/number';
 
   export let open = false;
-  export let vault: Vault;
+  export let vault: TokenVault;
   let amount: string;
 
   $: amountIsValidNumber = amount && isStringValidNumber(amount);
   let amountRaw: bigint;
 
   $: {
-    if (amount && vault.token_vaults) {
+    if (amount) {
       try {
-        amountRaw = parseUnits(amount, vault.token_vaults[0].token.decimals);
+        amountRaw = parseUnits(amount, vault.token.decimals);
       } catch (e) {}
     }
   }
@@ -35,7 +35,16 @@
       Token
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.token_vaults && vault.token_vaults[0].token.name}
+      {vault.token.name}
+    </p>
+  </div>
+
+  <div>
+    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Balance
+    </h5>
+    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+      {vault.balance_display}
     </p>
   </div>
 
@@ -54,7 +63,7 @@
         placeholder="0"
       />
       <InputAddon>
-        {vault.token_vaults && vault.token_vaults[0].token.symbol}
+        {vault.token.symbol}
       </InputAddon>
     </ButtonGroup>
   </div>

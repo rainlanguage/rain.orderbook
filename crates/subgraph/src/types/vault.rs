@@ -13,16 +13,28 @@ pub struct VaultQueryVariables<'a> {
 #[cynic(graphql_type = "Query", variables = "VaultQueryVariables")]
 pub struct VaultQuery {
     #[arguments(id: $id)]
-    pub vault: Option<Vault>,
+    pub token_vault: Option<TokenVault>,
 }
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Serialize)]
-pub struct Vault {
+#[cynic(variables = "VaultQueryVariables")]
+pub struct TokenVault {
     pub id: cynic::Id,
     pub owner: Account,
-    pub token_vaults: Option<Vec<TokenVault>>,
+    pub balance: BigInt,
+    pub balance_display: BigDecimal,
+    pub token: Erc20,
+    pub vault: Vault,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(variables = "VaultQueryVariables")]
+pub struct Vault {
+    #[arguments(where: { tokenVault_: { id: $id } })]
     pub deposits: Option<Vec<VaultDeposit>>,
+    #[arguments(where: { tokenVault_: { id: $id } })]
     pub withdraws: Option<Vec<VaultWithdraw>>,
 }
 
@@ -37,15 +49,23 @@ pub struct VaultWithdraw {
     pub amount_display: BigDecimal,
     pub requested_amount: BigInt,
     pub requested_amount_display: BigDecimal,
+    pub token_vault: TokenVault2,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(graphql_type = "TokenVault")]
+pub struct TokenVault2 {
+    pub balance_display: BigDecimal,
 }
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct VaultDeposit {
     pub id: cynic::Id,
-    pub sender: Account,
     pub transaction: Transaction,
     pub timestamp: BigInt,
+    pub sender: Account,
     pub amount: BigInt,
     pub amount_display: BigDecimal,
 }
@@ -54,15 +74,6 @@ pub struct VaultDeposit {
 #[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct Transaction {
     pub id: cynic::Id,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Serialize)]
-pub struct TokenVault {
-    pub id: cynic::Id,
-    pub balance: BigInt,
-    pub balance_display: BigDecimal,
-    pub token: Erc20,
 }
 
 #[typeshare]
@@ -80,11 +91,14 @@ pub struct Account {
     pub id: Bytes,
 }
 
+#[typeshare]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigDecimal(pub String);
 
+#[typeshare]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigInt(pub String);
 
+#[typeshare]
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct Bytes(pub String);
