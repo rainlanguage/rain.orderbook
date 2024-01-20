@@ -11,19 +11,19 @@
     Button,
   } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
-  import { vaults } from '$lib/stores/vault';
+  import { vaultsList } from '$lib/stores/vaultsList';
 
   function gotoVault(id: string) {
     goto(`/vaults/${id}`);
   }
 
   redirectIfSettingsNotDefined();
-  vaults.refetch();
+  vaultsList.refetch();
 </script>
 
 <Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Vaults</Heading>
 
-{#if $vaults.length === 0}
+{#if $vaultsList.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
 {:else}
   <Table divClass="mx-8 cursor-pointer" hoverable={true}>
@@ -33,7 +33,7 @@
       <TableHeadCell>Balance</TableHeadCell>
     </TableHead>
     <TableBody>
-      {#each $vaults as vault}
+      {#each $vaultsList as vault}
         <TableBodyRow on:click={() => gotoVault(vault.id)}>
           <TableBodyCell tdClass="break-all px-4 py-2">{vault.owner.id}</TableBodyCell>
           <TableBodyCell tdClass="break-word p-2"

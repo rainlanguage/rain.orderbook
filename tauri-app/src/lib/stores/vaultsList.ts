@@ -4,15 +4,15 @@ import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from './settings';
 
 function useVaultsListStore() {
-  const VAULTS_LIST_KEY = "vaults.vaultsList";
+  const STORAGE_KEY = "vaults.vaultsList";
 
-  const { subscribe, set } = writable<Array<VaultsListItem>>(localStorage.getItem(VAULTS_LIST_KEY) ? JSON.parse(localStorage.getItem(VAULTS_LIST_KEY) as string) : []);
+  const { subscribe, set } = writable<Array<VaultsListItem>>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : []);
 
   subscribe(value => {
     if(value) {
-      localStorage.setItem(VAULTS_LIST_KEY, JSON.stringify(value));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
     } else {
-      localStorage.setItem(VAULTS_LIST_KEY, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     }
   });
   
@@ -27,4 +27,4 @@ function useVaultsListStore() {
   }
 }
 
-export const vaults = useVaultsListStore();
+export const vaultsList = useVaultsListStore();
