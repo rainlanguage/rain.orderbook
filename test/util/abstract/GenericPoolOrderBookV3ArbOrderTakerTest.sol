@@ -18,7 +18,7 @@ import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         address deployer = buildConstructorConfig();
-        return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker(deployer)));
+        return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker()));
     }
 
     constructor() ArbTest(buildArbTestConstructorConfig()) {

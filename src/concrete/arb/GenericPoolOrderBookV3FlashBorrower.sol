@@ -29,8 +29,6 @@ contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(address deployer) OrderBookV3FlashBorrower(deployer) {}
-
     /// @inheritdoc OrderBookV3FlashBorrower
     function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual override {
         (address spender, address pool, bytes memory encodedFunctionCall) =

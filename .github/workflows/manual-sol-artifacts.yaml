@@ -5,7 +5,10 @@ on:
       network:
         description: 'Network to deploy to'
         required: true
-        type: string
+        type: choice
+        options:
+          - polygon
+          - songbird
 
 jobs:
   deploy:
@@ -13,14 +16,19 @@ jobs:
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix run .#rainix-prelude
+      - run: nix run .#rainix-sol-prelude
+      - run: nix run .#rainix-rs-prelude
       - run: nix run .#rainix-sol-artifacts
         env:
-          ETH_RPC_URL: ${{ inputs.network == 'polygon' && secrets.CI_DEPLOY_POLYGON_RPC_URL || secrets.CI_DEPLOY_RPC_URL }}
+          ETH_RPC_URL: ${{ inputs.network == 'polygon' && secrets.CI_DEPLOY_POLYGON_RPC_URL || inputs.network == 'songbird' && secrets.CI_DEPLOY_SONGBIRD_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
+          BLOCKSCOUT_URL: ${{ inputs.network == 'songbird' && 'https://songbird-explorer.flare.network/api' || '' }}
           EXPRESSION_DEPLOYER: ${{ vars.EXPRESSION_DEPLOYER }}

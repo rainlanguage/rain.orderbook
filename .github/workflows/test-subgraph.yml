@@ -25,7 +25,9 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix run .#rainix-prelude
+      - run: nix run .#rainix-sol-prelude
+        working-directory: .
+      - run: nix run .#rainix-rs-prelude
         working-directory: .
 
       - name: Docker compose up
@@ -45,6 +47,10 @@ jobs:
           docker compose run -w /repo/subgraph subgraph-cli graph create --node http://graph-node:8020 example/test
           docker compose run -w /repo/subgraph subgraph-cli graph deploy --node http://graph-node:8020 --ipfs http://ipfs:5001 -l "v0.0.0" example/test
 
+      - run: nix run .#rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix run .#rainix-rs-prelude
+        working-directory: lib/rain.interpreter
       - name: Interpreter prelude
         run: nix run .#i9r-prelude
         working-directory: lib/rain.interpreter

@@ -11,8 +11,6 @@ contract GenericPoolOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(address deployer) OrderBookV3ArbOrderTaker(deployer) {}
-
     /// @inheritdoc OrderBookV3ArbOrderTaker
     function onTakeOrders(
         address inputToken,
