@@ -3,7 +3,7 @@ use crate::types::{
     order::{Order, OrderQuery, OrderQueryVariables},
     orders::{Order as OrdersListItem, OrdersQuery as OrdersListQuery},
     vault::{Vault, VaultQuery, VaultQueryVariables},
-    vaults::{Vault as VaultsListItem, VaultsQuery as VaultsListQuery},
+    vaults::{TokenVault as VaultsListItem, VaultsQuery as VaultsListQuery},
 };
 use anyhow::{anyhow, Result};
 use cynic::Id;
@@ -33,7 +33,7 @@ impl OrderbookSubgraphClient {
             .query::<VaultsListQuery, ()>(self.url.clone(), ())
             .await?;
 
-        Ok(data.vaults)
+        Ok(data.token_vaults)
     }
 
     pub async fn vault(&self, id: Id) -> Result<Vault> {

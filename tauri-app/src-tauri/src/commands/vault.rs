@@ -1,6 +1,6 @@
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_queries::types::vault::Vault as VaultDetail;
-use rain_orderbook_subgraph_queries::types::vaults::Vault as VaultsListItem;
+use rain_orderbook_subgraph_queries::types::vaults::TokenVault as VaultsListItem;
 
 #[tauri::command]
 pub async fn vaults_list(subgraph_args: SubgraphArgs) -> Result<Vec<VaultsListItem>, String> {
