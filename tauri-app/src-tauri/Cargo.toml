@@ -22,4 +22,3 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [dev-dependencies]
 tauri-cli = "1.5"
-typeshare-cli = "1.7.0"

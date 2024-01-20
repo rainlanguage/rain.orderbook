@@ -46,7 +46,7 @@ use typeshare::typeshare;
 
 ## Generating Typescript Types from Rust Types
 
-Run the following to generate Typescript types from Rust types in `crates/subgraph/src/types`.
+Run the following from the repo root, outside the nix shell, to generate Typescript types from Rust types in `crates/subgraph/src/types`.
 ```bash
 nix run .#ob-tauri-prelude
 ```
