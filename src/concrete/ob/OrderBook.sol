@@ -13,7 +13,6 @@ import {LibFixedPointDecimalArithmeticOpenZeppelin} from
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
-import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
@@ -189,14 +188,6 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     //solhint-disable-next-line private-vars-leading-underscore
     mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
         sVaultBalances;
-
-    /// Initializes the orderbook upon construction for compatibility with
-    /// Open Zeppelin upgradeable contracts. Orderbook itself does NOT support
-    /// factory deployments as each order is a unique expression deployment
-    /// rather than needing to wrap up expressions with proxies.
-    constructor(address deployer) {
-        LibDeployerDiscoverable.touchDeployerV3(deployer);
-    }
 
     /// @inheritdoc IOrderBookV3
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {

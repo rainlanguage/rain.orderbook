@@ -9,7 +9,6 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
-import {LibDeployerDiscoverable} from "rain.interpreter/abstract/DeployerDiscoverableMetaV3.sol";
 import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 import {SourceIndexV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
@@ -62,9 +61,7 @@ abstract contract OrderBookV3ArbOrderTaker is
     IInterpreterV2 public sI9r;
     IInterpreterStoreV1 public sI9rStore;
 
-    constructor(address deployer) {
-        LibDeployerDiscoverable.touchDeployerV3(deployer);
-
+    constructor() {
         _disableInitializers();
     }
 

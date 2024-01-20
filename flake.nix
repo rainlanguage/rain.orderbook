@@ -12,18 +12,21 @@
         pkgs = rainix.pkgs.${system};
       in {
         packages = rec {
-          ob-prelude = rainix.mkTask.${system} {
-            name = "ob-prelude";
+          ob-tauri-prelude = rainix.mkTask.${system} {
+            name = "ob-tauri-prelude";
             body = ''
               set -euxo pipefail
 
               # Generate Typescript types from rust types
-              mkdir tauri-app/src/types;
-              typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/types/vault.ts;
-              typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/types/vaults.ts;
-              typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/types/order.ts;
-              typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/types/orders.ts;
+              mkdir -p tauri-app/src/typeshare;
+              typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vault.ts;
+              typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaults.ts;
+              typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/order.ts;
+              typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orders.ts;
             '';
+            additionalBuildInputs = [
+              pkgs.typeshare
+            ];
           };
         } // rainix.packages.${system};
         devShells = rainix.devShells.${system};

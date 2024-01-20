@@ -50,7 +50,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
             abi.encode(iInterpreter, iStore, address(0), "00020000")
         );
-        iOrderbook = IOrderBookV3(address(new OrderBook(address(iDeployer))));
+        iOrderbook = IOrderBookV3(address(new OrderBook()));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);

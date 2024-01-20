@@ -65,7 +65,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
                 )
             )
         );
-        iOrderbook = IOrderBookV3(address(new OrderBook(address(iDeployer))));
+        iOrderbook = IOrderBookV3(address(new OrderBook()));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
