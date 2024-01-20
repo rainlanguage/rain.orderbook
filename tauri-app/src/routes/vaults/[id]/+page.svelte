@@ -12,16 +12,27 @@
   } from 'flowbite-svelte';
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
+  import ModalVaultDeposit from '$lib/ModalVaultDeposit.svelte';
   import dayjs from 'dayjs';
   import utc from 'dayjs/plugin/utc';
   import bigIntSupport from 'dayjs/plugin/bigIntSupport';
+  import ModalVaultWithdraw from '$lib/ModalVaultWithdraw.svelte';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
   export let data: { id: string };
+  let showDepositModal = false;
+  let showWithdrawModal = false;
 
   vaultDetail.refetch(data.id);
   $: vault = $vaultDetail[data.id];
+
+  function toggleDepositModal() {
+    showDepositModal = !showDepositModal;
+  }
+  function toggleWithdrawModal() {
+    showWithdrawModal = !showWithdrawModal;
+  }
 </script>
 
 <div class="flex w-full">
@@ -36,7 +47,7 @@
 {#if vault == undefined}
   <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
 {:else}
-  <div class="flex w-full flex-wrap justify-evenly space-y-12 lg:space-y-0">
+  <div class="flex w-full flex-wrap justify-evenly space-y-12 lg:space-x-8 lg:space-y-0">
     <Card class="space-y-8" size="lg">
       <div>
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -77,8 +88,8 @@
 
       <div class="pt-4">
         <div class="flex justify-center space-x-20">
-          <Button color="green" size="xl">Deposit</Button>
-          <Button color="blue" size="xl">Withdraw</Button>
+          <Button color="green" size="xl" on:click={toggleDepositModal}>Deposit</Button>
+          <Button color="blue" size="xl" on:click={toggleWithdrawModal}>Withdraw</Button>
         </div>
       </div>
     </Card>
@@ -149,3 +160,7 @@
     </div>
   </div>
 {/if}
+
+<ModalVaultDeposit bind:open={showDepositModal} {vault} />
+
+<ModalVaultWithdraw bind:open={showWithdrawModal} {vault} />

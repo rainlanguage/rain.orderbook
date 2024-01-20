@@ -42,6 +42,7 @@
   "dependencies": {
     "@fontsource/dm-sans": "^5.0.18",
     "@tauri-apps/api": "^1.5.3",
-    "dayjs": "^1.11.10"
+    "dayjs": "^1.11.10",
+    "viem": "^2.4.0"
   }
 }
