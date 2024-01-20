@@ -7,23 +7,22 @@ fn vaults_query_gql_output() {
     let request_body = VaultsQuery::build(());
 
     let expected_query = "query VaultsQuery {
-  vaults(orderBy: owner__id, orderDirection: desc) {
+  tokenVaults(orderBy: owner__id, orderDirection: desc) {
     id
     owner {
       id
     }
-    tokenVaults {
+    vaultId
+    token {
       id
-      balanceDisplay
-      balance
-      token {
-        name
-        symbol
-        decimals
-        totalSupply
-        totalSupplyDisplay
-      }
+      name
+      symbol
+      decimals
+      totalSupply
+      totalSupplyDisplay
     }
+    balanceDisplay
+    balance
   }
 }
 
