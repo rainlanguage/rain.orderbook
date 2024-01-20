@@ -20,7 +20,7 @@ import {
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
         address deployer = buildConstructorConfig();
-        address iArb = address(new GenericPoolOrderBookV3FlashBorrower(deployer));
+        address iArb = address(new GenericPoolOrderBookV3FlashBorrower());
         vm.label(iArb, "iArb");
         return ArbTestConstructorConfig(deployer, iArb);
     }
