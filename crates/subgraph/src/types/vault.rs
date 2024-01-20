@@ -21,6 +21,7 @@ pub struct VaultQuery {
 pub struct Vault {
     pub id: cynic::Id,
     pub owner: Account,
+    pub token_vaults: Option<Vec<TokenVault>>,
     pub deposits: Option<Vec<VaultDeposit>>,
     pub withdraws: Option<Vec<VaultWithdraw>>,
 }
@@ -43,6 +44,24 @@ pub struct VaultDeposit {
     pub sender: Account,
     pub amount: BigInt,
     pub amount_display: BigDecimal,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+pub struct TokenVault {
+    pub id: cynic::Id,
+    pub balance: BigInt,
+    pub balance_display: BigDecimal,
+    pub token: Erc20,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(graphql_type = "ERC20")]
+pub struct Erc20 {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: i32,
 }
 
 #[typeshare]

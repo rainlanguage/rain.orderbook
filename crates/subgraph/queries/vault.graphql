@@ -4,6 +4,16 @@ query VaultQuery($id: ID!) {
     owner {
       id
     }
+    tokenVaults  {
+      id
+      balance
+      balanceDisplay
+      token {
+        name
+        symbol
+        decimals
+      }
+    }
     deposits {
       id
       sender {

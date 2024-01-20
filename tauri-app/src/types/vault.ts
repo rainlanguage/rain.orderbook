@@ -10,6 +10,19 @@ export interface Account {
 	id: string;
 }
 
+export interface Erc20 {
+	name: string;
+	symbol: string;
+	decimals: number;
+}
+
+export interface TokenVault {
+	id: string;
+	balance: bigint;
+	balance_display: string;
+	token: Erc20;
+}
+
 export interface VaultDeposit {
 	id: string;
 	sender: Account;
@@ -29,6 +42,7 @@ export interface VaultWithdraw {
 export interface Vault {
 	id: string;
 	owner: Account;
+	token_vaults?: TokenVault[];
 	deposits?: VaultDeposit[];
 	withdraws?: VaultWithdraw[];
 }

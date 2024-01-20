@@ -14,6 +14,16 @@ fn vaults_query_gql_output() {
     owner {
       id
     }
+    tokenVaults  {
+      id
+      balance
+      balanceDisplay
+      token {
+        name
+        symbol
+        decimals
+      }
+    }
     deposits {
       id
       sender {
