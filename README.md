@@ -39,7 +39,12 @@ use typeshare::typeshare;
 #[derive(Clone)]
 ```
 
-4. Add the following macros to all generated Rust types
+4. Add the following derives for all generated Rust types that also derive `cynic::QueryFragment`:
+```rust
+#[derive(Serialize)]
+```
+
+5. Add the following macros to all generated Rust types
 ```rust
 #[typeshare]
 ```
