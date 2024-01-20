@@ -12,13 +12,13 @@
         pkgs = rainix.pkgs.${system};
       in {
         packages = rec {
-          generate-ts-types = rainix.mkTask.${system} {
-            name = "generate-ts-types";
+          ob-prelude = rainix.mkTask.${system} {
+            name = "ob-prelude";
             body = ''
               set -euxo pipefail
 
+              # Generate Typescript types from rust types
               mkdir tauri-app/src/types;
-
               typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/types/vault.ts;
               typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/types/vaults.ts;
               typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/types/order.ts;
