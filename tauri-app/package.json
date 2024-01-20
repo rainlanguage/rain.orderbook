@@ -40,6 +40,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@fontsource/dm-sans": "^5.0.18"
+    "@fontsource/dm-sans": "^5.0.18",
+    "@tauri-apps/api": "^1.5.3"
   }
 }
