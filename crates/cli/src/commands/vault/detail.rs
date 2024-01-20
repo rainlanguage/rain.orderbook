@@ -17,7 +17,7 @@ impl Execute for Detail {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
         let vault = subgraph_args
             .to_subgraph_client()
-            .await
+            .await?
             .vault(self.cmd_args.vault_id.clone().into())
             .await?;
         info!("{:#?}", vault);

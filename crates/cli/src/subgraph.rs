@@ -2,7 +2,6 @@ use clap::Args;
 use clap::FromArgMatches;
 use clap::Parser;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use url::Url;
 
 #[derive(Args, Clone)]
 pub struct CliSubgraphArgs {
@@ -11,7 +10,7 @@ pub struct CliSubgraphArgs {
         long,
         help = "Url of the hosted Subgraph for this Orderbook deployemnt"
     )]
-    pub subgraph_url: Url,
+    pub subgraph_url: String,
 }
 
 impl From<CliSubgraphArgs> for SubgraphArgs {

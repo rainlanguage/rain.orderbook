@@ -3267,7 +3267,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "url",
 ]
 
 [[package]]
@@ -3280,6 +3279,7 @@ dependencies = [
  "anyhow",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
+ "serde",
  "url",
 ]
 

@@ -16,3 +16,4 @@ alloy-ethers-typecast = { workspace = true }
 anyhow = { workspace = true }
 alloy-sol-types = { workspace = true }
 url = { workspace = true }
+serde = { workspace = true }
