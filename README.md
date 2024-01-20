@@ -46,8 +46,8 @@ use typeshare::typeshare;
 
 ## Generating Typescript Types from Rust Types
 
-Run the following to generate Typescript types from Rust types in `crates/ubgraph/src/types`.
+Run the following to generate Typescript types from Rust types in `crates/subgraph/src/types`.
 ```bash
-nix run .#ob-prelude
+nix run .#ob-tauri-prelude
 ```
 

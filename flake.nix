@@ -12,8 +12,8 @@
         pkgs = rainix.pkgs.${system};
       in {
         packages = rec {
-          ob-prelude = rainix.mkTask.${system} {
-            name = "ob-prelude";
+          ob-tauri-prelude = rainix.mkTask.${system} {
+            name = "ob-tauri-prelude";
             body = ''
               set -euxo pipefail
 
