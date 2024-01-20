@@ -19,10 +19,10 @@
 
               # Generate Typescript types from rust types
               mkdir tauri-app/src/types;
-              typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/types/vault.ts;
-              typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/types/vaults.ts;
-              typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/types/order.ts;
-              typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/types/orders.ts;
+              typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vault.ts;
+              typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaults.ts;
+              typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/order.ts;
+              typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orders.ts;
             '';
           };
         } // rainix.packages.${system};
