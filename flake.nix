@@ -11,7 +11,21 @@
       let
         pkgs = rainix.pkgs.${system};
       in {
-        packages = rainix.packages.${system};
+        packages = rec {
+          generate-ts-types = rainix.mkTask.${system} {
+            name = "generate-ts-types";
+            body = ''
+              set -euxo pipefail
+
+              mkdir tauri-app/src/types;
+
+              typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/types/vault.ts;
+              typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/types/vaults.ts;
+              typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/types/order.ts;
+              typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/types/orders.ts;
+            '';
+          };
+        } // rainix.packages.${system};
         devShells = rainix.devShells.${system};
       }
     );

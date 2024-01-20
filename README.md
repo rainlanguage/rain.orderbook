@@ -48,9 +48,6 @@ use typeshare::typeshare;
 
 Run the following to generate Typescript types from Rust types in `src/types`.
 ```bash
-typeshare crates/subgraph/src/types/vault.rs --lang=typescript --output-file=tauri-app/src/types/vault.ts
-typeshare crates/subgraph/src/types/vaults.rs --lang=typescript --output-file=tauri-app/src/types/vaults.ts
-typeshare crates/subgraph/src/types/order.rs --lang=typescript --output-file=tauri-app/src/types/order.ts
-typeshare crates/subgraph/src/types/orders.rs --lang=typescript --output-file=tauri-app/src/types/orders.ts
+nix run .#generate-ts-types
 ```
 
