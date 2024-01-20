@@ -1,4 +1,5 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -8,7 +9,7 @@ pub struct VaultQueryVariables<'a> {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 #[cynic(graphql_type = "Query", variables = "VaultQueryVariables")]
 pub struct VaultQuery {
     #[arguments(id: $id)]
@@ -16,7 +17,7 @@ pub struct VaultQuery {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct Vault {
     pub id: cynic::Id,
     pub owner: Account,
@@ -25,7 +26,7 @@ pub struct Vault {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct VaultWithdraw {
     pub id: cynic::Id,
     pub sender: Account,
@@ -36,7 +37,7 @@ pub struct VaultWithdraw {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct VaultDeposit {
     pub id: cynic::Id,
     pub sender: Account,
@@ -45,7 +46,7 @@ pub struct VaultDeposit {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct Account {
     pub id: Bytes,
 }
