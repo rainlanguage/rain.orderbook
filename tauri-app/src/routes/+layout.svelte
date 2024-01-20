@@ -8,7 +8,7 @@
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
   <Sidebar />
-  <main class="h-full w-full grow overflow-x-auto p-4">
+  <main class="ml-52 h-full w-full grow overflow-x-auto p-8">
     <slot />
   </main>
 </div>
