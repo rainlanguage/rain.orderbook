@@ -1,5 +1,8 @@
-use alloy_ethers_typecast::{client::LedgerClient, request_shim::AlloyTransactionRequest};
-use alloy_primitives::{Address, U256, U64};
+use alloy_ethers_typecast::{
+    client::LedgerClient,
+    transaction::{WriteContractParameters, WriteContractParametersBuilder},
+};
+use alloy_primitives::{Address, U256};
 use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 
@@ -14,18 +17,18 @@ pub struct TransactionArgs {
 }
 
 impl TransactionArgs {
-    pub async fn to_transaction_request_with_call<T: SolCall>(
+    pub async fn to_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
-    ) -> anyhow::Result<AlloyTransactionRequest> {
-        let tx = AlloyTransactionRequest::default()
-            .with_to(Some(self.orderbook_address.parse::<Address>()?))
-            .with_data(Some(call.abi_encode().clone()))
-            .with_chain_id(Some(U64::from(self.chain_id)))
-            .with_max_priority_fee_per_gas(self.max_priority_fee_per_gas)
-            .with_max_fee_per_gas(self.max_fee_per_gas);
+    ) -> anyhow::Result<WriteContractParameters<T>> {
+        let mut params = WriteContractParametersBuilder::default()
+            .address(self.orderbook_address.parse::<Address>()?)
+            .call(call)
+            .build()?;
+        params.max_priority_fee_per_gas = self.max_priority_fee_per_gas;
+        params.max_fee_per_gas = self.max_fee_per_gas;
 
-        Ok(tx)
+        Ok(params)
     }
 
     pub async fn to_ledger_client(self) -> anyhow::Result<LedgerClient> {

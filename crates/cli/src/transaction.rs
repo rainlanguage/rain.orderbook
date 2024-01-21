@@ -1,7 +1,8 @@
 use alloy_ethers_typecast::client::LedgerClient;
-use alloy_ethers_typecast::transaction::WriteContractParametersr;
+use alloy_ethers_typecast::transaction::WritableClient;
 use alloy_primitives::U256;
 use alloy_sol_types::SolCall;
+use anyhow::anyhow;
 use anyhow::Result;
 use clap::Args;
 use clap::FromArgMatches;
@@ -70,18 +71,23 @@ impl<T: FromArgMatches + Args> From<CliTransactionCommandArgs<T>> for ExecuteTra
 }
 
 impl ExecuteTransaction {
-    pub async fn send(&self, ledger_client: LedgerClient, call: impl SolCall) -> Result<()> {
-        let request = self
+    pub async fn send(
+        &self,
+        ledger_client: LedgerClient,
+        call: impl SolCall + Clone,
+    ) -> Result<()> {
+        let params = self
             .transaction_args
-            .to_transaction_request_with_call(call)
+            .to_write_contract_parameters(call)
             .await?;
 
-        let tx =
-            ExecutableTransaction::from_alloy_transaction_request(request, ledger_client.client)
-                .await?;
-
+        let writable_client = WritableClient::new(ledger_client.client);
+        writable_client
+            .write(params)
+            .await
+            .map_err(|e| anyhow!(e))?;
         info!("Awaiting signature from Ledger device");
-        tx.execute().await.map_err(|e| anyhow::anyhow!(e))?;
+
         Ok(())
     }
 
