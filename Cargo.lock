@@ -67,13 +67,20 @@ checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=c78f9daa7724c35fab7db2c3ffb3b38cf381dda2#c78f9daa7724c35fab7db2c3ffb3b38cf381dda2"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=07ccca460fe4a28c2282df32f1f33ac26a8ba1b6#07ccca460fe4a28c2282df32f1f33ac26a8ba1b6"
 dependencies = [
  "alloy-primitives",
+ "alloy-sol-types",
  "anyhow",
+ "async-trait",
+ "derive_builder",
  "ethers",
  "ethers-signers",
+ "serde",
+ "serde_json",
+ "thiserror",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -988,7 +995,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec48a52fd6b205b6519570a11816136883c4757964c770c4df32e36fd484e4e"
 dependencies = [
  "counter",
- "darling",
+ "darling 0.20.3",
  "graphql-parser",
  "once_cell",
  "ouroboros",
@@ -1007,9 +1014,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c77a54cd11efd03a7a85e17908e894c6440f320529a31186f233f945cbd677a"
 dependencies = [
  "cynic-codegen",
- "darling",
+ "darling 0.20.3",
  "quote",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "darling"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b750cb3417fd1b327431a470f388520309479ab0bf5e323505daf0290cd3850"
+dependencies = [
+ "darling_core 0.14.4",
+ "darling_macro 0.14.4",
 ]
 
 [[package]]
@@ -1018,8 +1035,22 @@ version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0209d94da627ab5605dcccf08bb18afa5009cfbef48d8a8b7d7bdbc79be25c5e"
 dependencies = [
- "darling_core",
- "darling_macro",
+ "darling_core 0.20.3",
+ "darling_macro 0.20.3",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "109c1ca6e6b7f82cc233a97004ea8ed7ca123a9af07a8230878fcfda9b158bf0"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1038,11 +1069,22 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4aab4dbc9f7611d8b55048a3a16d2d010c2c8334e46304b40ac1cc14bf3b48e"
+dependencies = [
+ "darling_core 0.14.4",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "darling_macro"
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "836a9bbc7ad63342d6d6e7b815ccab164bc77a2d95d84bc3117a8c0d5c98e2d5"
 dependencies = [
- "darling_core",
+ "darling_core 0.20.3",
  "quote",
  "syn 2.0.48",
 ]
@@ -1080,6 +1122,37 @@ checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
 dependencies = [
  "proc-macro2",
  "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "derive_builder"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d67778784b508018359cbc8696edb3db78160bab2c2a28ba7f56ef6932997f8"
+dependencies = [
+ "derive_builder_macro",
+]
+
+[[package]]
+name = "derive_builder_core"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c11bdc11a0c47bc7d37d582b5285da6849c96681023680b906673c5707af7b0f"
+dependencies = [
+ "darling 0.14.4",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "derive_builder_macro"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebcda35c7a396850a55ffeac740804b40ffec779b98fffbb1738f4033f0ee79e"
+dependencies = [
+ "derive_builder_core",
  "syn 1.0.109",
 ]
 
