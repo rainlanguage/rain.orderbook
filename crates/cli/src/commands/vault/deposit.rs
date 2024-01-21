@@ -8,6 +8,7 @@ use clap::Args;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use rain_orderbook_common::deposit::DepositArgs;
 use tracing::info;
+use alloy_primitives::U256;
 
 pub type Deposit = CliTransactionCommandArgs<CliDepositArgs>;
 
@@ -39,10 +40,10 @@ pub struct CliDepositArgs {
     token: String,
 
     #[arg(short, long, help = "The ID of the vault")]
-    vault_id: u64,
+    vault_id: U256,
 
     #[arg(short, long, help = "The amount to deposit")]
-    amount: u64,
+    amount: U256,
 }
 
 impl From<CliDepositArgs> for DepositArgs {

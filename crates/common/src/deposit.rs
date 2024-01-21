@@ -7,8 +7,8 @@ use std::convert::TryInto;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DepositArgs {
     pub token: String,
-    pub vault_id: u64,
-    pub amount: u64,
+    pub vault_id: U256,
+    pub amount: U256,
 }
 
 impl TryInto<depositCall> for DepositArgs {
@@ -17,8 +17,8 @@ impl TryInto<depositCall> for DepositArgs {
     fn try_into(self) -> Result<depositCall> {
         Ok(depositCall {
             token: self.token.parse()?,
-            vaultId: U256::from(self.vault_id),
-            amount: U256::from(self.amount),
+            vaultId: self.vault_id,
+            amount: self.amount,
         })
     }
 }
@@ -41,8 +41,8 @@ mod tests {
     fn test_deposit_args_try_into() {
         let args = DepositArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
-            vault_id: 42,
-            amount: 100,
+            vault_id: U256::from(42),
+            amount: U256::from(100),
         };
 
         let result: Result<depositCall, _> = args.try_into();
@@ -69,8 +69,8 @@ mod tests {
     fn test_deposit_args_try_into_approve_call() {
         let args = DepositArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
-            vault_id: 42,
-            amount: 100,
+            vault_id: U256::from(42),
+            amount: U256::from(100),
         };
         let spender_address = Address::repeat_byte(0x11);
         let result: Result<approveCall, _> = args.try_into_approve_call(spender_address);
