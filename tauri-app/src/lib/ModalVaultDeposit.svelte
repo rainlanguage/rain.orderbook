@@ -40,7 +40,7 @@
       Vault ID
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.id}
+      {vault.vault.vault_id}
     </p>
   </div>
 
@@ -50,6 +50,15 @@
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
       {vault.token.name}
+    </p>
+  </div>
+
+  <div>
+    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Owner
+    </h5>
+    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+      {vault.owner.id}
     </p>
   </div>
 
