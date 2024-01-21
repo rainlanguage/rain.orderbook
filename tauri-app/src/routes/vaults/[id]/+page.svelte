@@ -44,7 +44,7 @@
   <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vault</h1>
   <div class="flex-1"></div>
 </div>
-{#if vault == undefined}
+{#if vault === undefined}
   <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
 {:else}
   <div class="flex w-full flex-wrap justify-evenly space-y-12 lg:space-x-8 lg:space-y-0">
