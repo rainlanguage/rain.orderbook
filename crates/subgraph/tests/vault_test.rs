@@ -17,11 +17,14 @@ fn vaults_query_gql_output() {
     balance
     balanceDisplay
     token {
+      id
       name
       symbol
       decimals
     }
     vault {
+      id
+      vaultId
       deposits(where: {tokenVault_: {id: $id, }, }) {
         id
         transaction {

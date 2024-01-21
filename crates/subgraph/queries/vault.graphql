@@ -7,11 +7,14 @@ query VaultQuery($id: ID!) {
     balance
     balanceDisplay
     token {
+      id
       name
       symbol
       decimals
     }
     vault {
+      id
+      vaultId
       deposits(where: {tokenVault_: {id: $id, }, }) {
         id
         transaction {
