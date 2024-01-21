@@ -18,7 +18,7 @@ rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
 rain_orderbook_bindings = { path = "../../crates/bindings" }
 rain_orderbook_cli = { path = "../../crates/cli" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "c78f9daa7724c35fab7db2c3ffb3b38cf381dda2" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "125dd778d5ec5edafa512d69935db050e70bbdff" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

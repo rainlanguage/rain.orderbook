@@ -43,33 +43,46 @@ pub async fn vault_deposit(
 
     // Prepare approve call
     let mut execute_tx = ExecuteTransaction { transaction_args };
-    let ledger_client = execute_tx
-        .connect_ledger()
-        .await
-        .map_err(|_| String::from("Failed to connect to Ledger device"))?;
+    let ledger_client = execute_tx.connect_ledger().await.map_err(|e| -> String {
+        println!("connect_ledger error: {:?}", e);
+
+        e.to_string()
+    })?;
     let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
     let approve_call: approveCall = deposit_args
         .clone()
         .try_into_approve_call(ledger_address)
-        .map_err(|_| String::from("Failed to prepare approveCall from deposit args"))?;
+        .map_err(|e| -> String {
+            println!("try_into_approve_call error {:?}", e);
+
+            e.to_string()
+        })?;
 
     println!("Step 1/2: Approve token transfer");
     let receipt = execute_tx
         .send(ledger_client, approve_call)
         .await
-        .map_err(|_| String::from("Failed to send ERC20 approve transaction"))?;
+        .map_err(|e| -> String {
+            println!("send approve call error {:?}", e);
+
+            e.to_string()
+        })?;
     println!("recipt {:?}", receipt);
 
     println!("Step 2/2: Deposit tokens into vault");
-    let ledger_client = execute_tx
-        .connect_ledger()
-        .await
-        .map_err(|_| String::from("Failed to connect to ledger"))?;
+    let ledger_client = execute_tx.connect_ledger().await.map_err(|e| -> String {
+        println!("connect_ledger error {:?}", e);
+
+        e.to_string()
+    })?;
 
     let receipt = execute_tx
         .send(ledger_client, deposit_call)
         .await
-        .map_err(|_| String::from("Failed to send Orderbook deposit transaction"))?;
+        .map_err(|e| -> String {
+            println!("send deposit call error {:?}", e);
+            e.to_string()
+        })?;
 
     println!("recipt {:?}", receipt);
     Ok(())
