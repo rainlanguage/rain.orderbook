@@ -6,7 +6,7 @@ use clap::Subcommand;
 mod commands;
 mod execute;
 mod subgraph;
-mod transaction;
+pub mod transaction;
 
 #[derive(Subcommand)]
 pub enum Orderbook {

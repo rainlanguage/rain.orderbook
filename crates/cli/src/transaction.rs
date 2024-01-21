@@ -1,5 +1,5 @@
 use alloy_ethers_typecast::client::LedgerClient;
-use alloy_ethers_typecast::transaction::ExecutableTransaction;
+use alloy_ethers_typecast::transaction::WriteContractParametersr;
 use alloy_primitives::U256;
 use alloy_sol_types::SolCall;
 use anyhow::Result;

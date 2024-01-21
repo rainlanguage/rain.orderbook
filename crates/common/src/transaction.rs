@@ -1,8 +1,9 @@
 use alloy_ethers_typecast::{client::LedgerClient, request_shim::AlloyTransactionRequest};
 use alloy_primitives::{Address, U256, U64};
 use alloy_sol_types::SolCall;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TransactionArgs {
     pub orderbook_address: String,
     pub derivation_index: Option<usize>,

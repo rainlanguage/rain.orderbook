@@ -1,9 +1,10 @@
 use alloy_primitives::{Address, U256};
 use anyhow::Result;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DepositArgs {
     pub token: String,
     pub vault_id: u64,
