@@ -2,8 +2,7 @@
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
-  import { invoke } from '@tauri-apps/api';
-  import { rpcUrl } from '$lib/stores/settings';
+  import { vaultDeposit } from '$lib/stores/vaultDeposit';
 
   export let open = false;
   export let vault: TokenVault;
@@ -16,21 +15,7 @@
   }
 
   async function deposit() {
-    await invoke('vault_deposit', {
-      depositArgs: {
-        token: vault.token.id,
-        vault_id: vault.vault.vault_id.toString(),
-        amount: amountRaw.toString(),
-      },
-      transactionArgs: {
-        rpc_url: $rpcUrl,
-        orderbook_address: '0x7E44fcFC23aDa4Ca25c5A15c5C0C25C0dAD24227',
-        derivation_index: 0,
-        chain_id: 137,
-        max_priority_fee_per_gas: '40000000000',
-        max_fee_per_gas: '400000000000',
-      },
-    });
+    vaultDeposit.call(vault.vault.vault_id, vault.token.id, amountRaw);
   }
 </script>
 
@@ -91,9 +76,7 @@
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={() => (open = false)}>Cancel</Button>
-      <Button on:click={() => alert('Handle "success"')} disabled={!amountRaw || amountRaw === 0n}
-        >Submit Deposit</Button
-      >
+      <Button on:click={deposit} disabled={!amountRaw || amountRaw === 0n}>Submit Deposit</Button>
     </div>
   </svelte:fragment>
 </Modal>
