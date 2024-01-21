@@ -1,9 +1,11 @@
 use alloy_ethers_typecast::{
-    client::LedgerClient,
+    client::{LedgerClient, LedgerClientError},
     transaction::{WriteContractParameters, WriteContractParametersBuilder},
 };
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::SolCall;
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub struct TransactionArgs {
@@ -19,18 +21,17 @@ impl TransactionArgs {
     pub async fn to_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
-    ) -> anyhow::Result<WriteContractParameters<T>> {
-        let mut params = WriteContractParametersBuilder::default()
+    ) -> Result<WriteContractParameters<T>> {
+        WriteContractParametersBuilder::default()
             .address(self.orderbook_address.parse::<Address>()?)
             .call(call)
-            .build()?;
-        params.max_priority_fee_per_gas = self.max_priority_fee_per_gas;
-        params.max_fee_per_gas = self.max_fee_per_gas;
-
-        Ok(params)
+            .max_priority_fee_per_gas(self.max_priority_fee_per_gas)
+            .max_fee_per_gas(self.max_fee_per_gas)
+            .build()
+            .map_err(|e| anyhow!(e))
     }
 
-    pub async fn to_ledger_client(self) -> anyhow::Result<LedgerClient> {
+    pub async fn to_ledger_client(self) -> Result<LedgerClient, LedgerClientError> {
         LedgerClient::new(self.derivation_index, self.chain_id, self.rpc_url.clone()).await
     }
 }
