@@ -1,8 +1,11 @@
 import { isUrlValid } from '$lib/utils/url';
 import { writable, derived } from 'svelte/store';
+import every from 'lodash/every';
+import { isAddress } from 'viem';
 
 export const rpcUrl = writable(localStorage.getItem("settings.rpcUrl") || '');
 export const subgraphUrl = writable(localStorage.getItem("settings.subgraphUrl") || '');
+export const orderbookAddress = writable(localStorage.getItem("settings.orderbookAddress") || '');
 
 rpcUrl.subscribe(value => {
   localStorage.setItem("settings.rpcUrl", value || '');
@@ -10,10 +13,14 @@ rpcUrl.subscribe(value => {
 subgraphUrl.subscribe(value => {
   localStorage.setItem("settings.subgraphUrl", value || '');
 });
+orderbookAddress.subscribe(value => {
+  localStorage.setItem("settings.orderbookAddress", value || '');
+});
 
-export const isRpcUrlValid = derived(rpcUrl, ($rpcUrl) => isUrlValid($rpcUrl));
-export const isSubgraphUrlValid = derived(subgraphUrl, ($rpcUrl) => isUrlValid($rpcUrl));
+export const isRpcUrlValid = derived(rpcUrl, (val) => isUrlValid(val));
+export const isSubgraphUrlValid = derived(subgraphUrl, (val) => isUrlValid(val));
+export const isOrderbookAddressValid = derived(orderbookAddress, (val) => isAddress(val));
 
-export const isSettingsDefined = derived([rpcUrl, subgraphUrl], ([$rpcUrl, $subgraphUrl]) => $rpcUrl && $rpcUrl.trim().length > 0 && $subgraphUrl && $subgraphUrl.trim().length > 0);
-export const isSettingsValid = derived([isRpcUrlValid, isSubgraphUrlValid], ([$isRpcUrlValid, $isSubgraphUrlValid]) => $isRpcUrlValid && $isSubgraphUrlValid);
-export const isSettingsDefinedAndValid = derived([isSettingsDefined, isSettingsValid], ([$isSettingsDefined, $isSettingsValid]) => $isSettingsDefined && $isSettingsValid);
+export const isSettingsDefined = derived([rpcUrl, subgraphUrl, orderbookAddress], (vals) => every(vals.map((v) => v && v.trim().length > 0)));
+export const isSettingsValid = derived([isRpcUrlValid, isSubgraphUrlValid], (vals) => every(vals));
+export const isSettingsDefinedAndValid = derived([isSettingsDefined, isSettingsValid], (vals) => every(vals));

@@ -2,6 +2,8 @@
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
+  import { invoke } from '@tauri-apps/api';
+  import { rpcUrl } from '$lib/stores/settings';
 
   export let open = false;
   export let vault: TokenVault;
@@ -11,6 +13,24 @@
   function reset() {
     amount = '';
     amountRaw = 0n;
+  }
+
+  async function deposit() {
+    await invoke('vault_deposit', {
+      depositArgs: {
+        token: vault.token.id,
+        vault_id: vault.vault.vault_id.toString(),
+        amount: amountRaw.toString(),
+      },
+      transactionArgs: {
+        rpc_url: $rpcUrl,
+        orderbook_address: '0x7E44fcFC23aDa4Ca25c5A15c5C0C25C0dAD24227',
+        derivation_index: 0,
+        chain_id: 137,
+        max_priority_fee_per_gas: '40000000000',
+        max_fee_per_gas: '400000000000',
+      },
+    });
   }
 </script>
 

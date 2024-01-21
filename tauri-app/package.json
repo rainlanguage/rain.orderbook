@@ -17,6 +17,7 @@
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@types/eslint": "8.56.0",
+    "@types/lodash": "^4.14.202",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "autoprefixer": "^10.4.16",
@@ -44,6 +45,7 @@
     "@imask/svelte": "^7.3.0",
     "@tauri-apps/api": "^1.5.3",
     "dayjs": "^1.11.10",
+    "lodash": "^4.17.21",
     "viem": "^2.4.0"
   }
 }

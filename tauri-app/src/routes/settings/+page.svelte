@@ -4,9 +4,11 @@
   import {
     rpcUrl,
     subgraphUrl,
-    isSettingsDefinedAndValid,
+    orderbookAddress,
     isRpcUrlValid,
     isSubgraphUrlValid,
+    isOrderbookAddressValid,
+    isSettingsDefinedAndValid,
   } from '$lib/stores/settings';
 </script>
 
@@ -21,7 +23,7 @@
 <div class="mb-8">
   <Label class="bold mb-2 block text-xl">RPC URL</Label>
   <Input label="RPC URL" name="rpcUrl" required bind:value={$rpcUrl} />
-  {#if !$isRpcUrlValid}
+  {#if !$isRpcUrlValid && $rpcUrl.length > 0}
     <Helper class="mt-2 text-sm" color="red">Invalid URL</Helper>
   {/if}
   <Helper class="mt-2 text-sm">
@@ -36,11 +38,23 @@
 <div class="mb-8">
   <Label class="bold mb-2 block text-xl">Subgraph URL</Label>
   <Input label="Subgraph URL" name="subgraphUrl" required bind:value={$subgraphUrl} />
-  {#if !$isSubgraphUrlValid}
+  {#if !$isSubgraphUrlValid && $subgraphUrl.length > 0}
     <Helper class="mt-2 text-sm" color="red">Invalid URL</Helper>
   {/if}
   <Helper class="mt-2 text-sm">
     The URL of the Subgraph you will use to query Orderbook data. Contact us for help setting up a
     Subgraph for your Orderbook deployment.
+  </Helper>
+</div>
+
+<div class="mb-8">
+  <Label class="bold mb-2 block text-xl">Orderbook Address</Label>
+  <Input label="Subgraph URL" name="orderbookAddress" required bind:value={$orderbookAddress} />
+  {#if !$isOrderbookAddressValid && $orderbookAddress.length > 0}
+    <Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
+  {/if}
+  <Helper class="mt-2 text-sm">
+    The Address of the deployed OrderbookV3 contract. Contact us for help setting up an Orderbook
+    deployment.
   </Helper>
 </div>
