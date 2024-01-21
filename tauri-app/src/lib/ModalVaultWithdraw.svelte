@@ -1,28 +1,30 @@
 <script lang="ts">
-  import { Button, Modal, Label, Input, InputAddon, ButtonGroup, Helper } from 'flowbite-svelte';
-  import type { Vault } from '../types/vault';
-  import { parseUnits } from 'viem';
-  import { isStringValidNumber } from '$lib/utils/number';
+  import { Button, Modal, Label, Helper } from 'flowbite-svelte';
+  import type { Vault } from '$lib/typeshare/vault';
+  import InputTokenAmount from './InputTokenAmount.svelte';
 
   export let open = false;
   export let vault: Vault;
-  let amount: string;
-
-  $: amountIsValidNumber = amount && isStringValidNumber(amount);
-  let amountRaw: bigint;
-  let amountLTEBalance: boolean;
+  let amount: string = '';
+  let amountRaw: bigint = 0n;
+  let amountGTBalance: boolean;
 
   $: {
-    if (amount && vault.token_vaults) {
+    if (vault.token_vaults) {
+      console.log('amount raw is ', amountRaw);
       try {
-        amountRaw = parseUnits(amount, vault.token_vaults[0].token.decimals);
-        amountLTEBalance = amountRaw <= vault.token_vaults[0].balance;
+        amountGTBalance = amountRaw > vault.token_vaults[0].balance;
       } catch (e) {}
     }
   }
+
+  function reset() {
+    amount = '';
+    amountRaw = 0n;
+  }
 </script>
 
-<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={() => (amount = '')}>
+<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={reset}>
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
@@ -57,17 +59,18 @@
     >
       Amount
     </Label>
-    <ButtonGroup class="w-full">
-      <Input
-        name="amount"
-        bind:value={amount}
-        on:keyup={() => (amount = amount.replace(/[^\d.]/g, ''))}
-        placeholder="0"
-      />
-      <InputAddon>
-        {vault.token_vaults && vault.token_vaults[0].token.symbol}
-      </InputAddon>
-    </ButtonGroup>
+    <InputTokenAmount
+      bind:value={amount}
+      bind:valueRaw={amountRaw}
+      symbol={vault.token_vaults ? vault.token_vaults[0].token.symbol : ''}
+      decimals={vault.token_vaults ? vault.token_vaults[0].token.decimals : 16}
+    />
+
+    <Helper color="red" class="h-6 text-sm">
+      {#if amountGTBalance}
+        Amount cannot exceed available balance.
+      {/if}
+    </Helper>
   </div>
 
   <svelte:fragment slot="footer">
@@ -76,10 +79,8 @@
 
       <Button
         on:click={() => alert('Handle "success"')}
-        disabled={!amount || !amountIsValidNumber || !amountLTEBalance}
+        disabled={!amountRaw || amountRaw === 0n || amountGTBalance}>Make Withdrawal</Button
       >
-        Make Withdrawal
-      </Button>
     </div>
   </svelte:fragment>
 </Modal>

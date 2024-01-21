@@ -1,26 +1,20 @@
 <script lang="ts">
-  import { Button, Modal, Label, Input, InputAddon, ButtonGroup, Helper } from 'flowbite-svelte';
-  import { parseUnits } from 'viem';
-  import type { Vault } from '../types/vault';
-  import { isStringValidNumber } from './utils/number';
+  import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
+  import type { Vault } from '$lib/typeshare/vault';
+  import InputTokenAmount from '$lib/InputTokenAmount.svelte';
 
   export let open = false;
   export let vault: Vault;
-  let amount: string;
-
-  $: amountIsValidNumber = amount && isStringValidNumber(amount);
+  let amount: string = '';
   let amountRaw: bigint;
 
-  $: {
-    if (amount && vault.token_vaults) {
-      try {
-        amountRaw = parseUnits(amount, vault.token_vaults[0].token.decimals);
-      } catch (e) {}
-    }
+  function reset() {
+    amount = '';
+    amountRaw = 0n;
   }
 </script>
 
-<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={() => (amount = '')}>
+<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
@@ -47,22 +41,19 @@
       Amount
     </Label>
     <ButtonGroup class="w-full">
-      <Input
-        name="amount"
+      <InputTokenAmount
         bind:value={amount}
-        on:keyup={() => (amount = amount.replace(/[^\d.]/g, ''))}
-        placeholder="0"
+        bind:valueRaw={amountRaw}
+        symbol={vault.token_vaults ? vault.token_vaults[0].token.symbol : ''}
+        decimals={vault.token_vaults ? vault.token_vaults[0].token.decimals : 16}
       />
-      <InputAddon>
-        {vault.token_vaults && vault.token_vaults[0].token.symbol}
-      </InputAddon>
     </ButtonGroup>
   </div>
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={() => (open = false)}>Cancel</Button>
-      <Button on:click={() => alert('Handle "success"')} disabled={!amount || !amountIsValidNumber}
+      <Button on:click={() => alert('Handle "success"')} disabled={!amountRaw || amountRaw === 0n}
         >Submit Deposit</Button
       >
     </div>
