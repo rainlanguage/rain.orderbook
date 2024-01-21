@@ -64,6 +64,7 @@
       bind:valueRaw={amountRaw}
       symbol={vault.token_vaults ? vault.token_vaults[0].token.symbol : ''}
       decimals={vault.token_vaults ? vault.token_vaults[0].token.decimals : 16}
+      maxValueRaw={vault.token_vaults ? vault.token_vaults[0].balance : undefined}
     />
 
     <Helper color="red" class="h-6 text-sm">
