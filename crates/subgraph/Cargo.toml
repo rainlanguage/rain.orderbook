@@ -11,7 +11,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 [dependencies]
 cynic = { workspace = true }
 reqwest = { workspace = true }
-anyhow = { workspace = true }
+thiserror = { workspace = true }
 typeshare = { workspace = true }
 serde = { workspace = true }
 

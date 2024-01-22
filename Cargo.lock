@@ -3185,10 +3185,10 @@ dependencies = [
  "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
- "anyhow",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
  "serde",
+ "thiserror",
  "url",
 ]
 
@@ -3196,11 +3196,11 @@ dependencies = [
 name = "rain_orderbook_subgraph_queries"
 version = "0.0.1"
 dependencies = [
- "anyhow",
  "cynic",
  "cynic-codegen",
  "reqwest",
  "serde",
+ "thiserror",
  "typeshare",
 ]
 

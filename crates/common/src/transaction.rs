@@ -1,11 +1,21 @@
 use alloy_ethers_typecast::{
     client::{LedgerClient, LedgerClientError},
-    transaction::{WriteContractParameters, WriteContractParametersBuilder},
+    transaction::{
+        WriteContractParameters, WriteContractParametersBuilder,
+        WriteContractParametersBuilderError,
+    },
 };
-use alloy_primitives::{Address, U256};
+use alloy_primitives::{hex::FromHexError, Address, U256};
 use alloy_sol_types::SolCall;
-use anyhow::{anyhow, Result};
-use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum TransactionArgsError {
+    #[error("Parse orderbook address error: {0}")]
+    ParseOrderbookAddress(#[from] FromHexError),
+    #[error("Build parameters error: {0}")]
+    BuildParameters(#[from] WriteContractParametersBuilderError),
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TransactionArgs {
@@ -21,14 +31,19 @@ impl TransactionArgs {
     pub fn to_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
-    ) -> Result<WriteContractParameters<T>> {
+    ) -> Result<WriteContractParameters<T>, TransactionArgsError> {
+        let orderbook_address = self
+            .orderbook_address
+            .parse::<Address>()
+            .map_err(TransactionArgsError::ParseOrderbookAddress)?;
+
         WriteContractParametersBuilder::default()
-            .address(self.orderbook_address.parse::<Address>()?)
+            .address(orderbook_address)
             .call(call)
             .max_priority_fee_per_gas(self.max_priority_fee_per_gas)
             .max_fee_per_gas(self.max_fee_per_gas)
             .build()
-            .map_err(|e| anyhow!(e))
+            .map_err(TransactionArgsError::BuildParameters)
     }
 
     pub async fn to_ledger_client(self) -> Result<LedgerClient, LedgerClientError> {
