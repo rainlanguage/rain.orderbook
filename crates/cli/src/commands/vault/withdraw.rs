@@ -2,6 +2,7 @@ use crate::{
     execute::Execute,
     transaction::{CliTransactionCommandArgs, ExecuteTransaction},
 };
+use alloy_primitives::U256;
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
@@ -26,10 +27,10 @@ pub struct CliWithdrawArgs {
     token: String,
 
     #[arg(short, long, help = "The ID of the vault")]
-    vault_id: u64,
+    vault_id: U256,
 
     #[arg(short = 'a', long, help = "The target amount to withdraw")]
-    target_amount: u64,
+    target_amount: U256,
 }
 
 impl From<CliWithdrawArgs> for WithdrawArgs {
