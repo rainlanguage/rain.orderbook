@@ -7,6 +7,7 @@ use alloy_ethers_typecast::{
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
 use alloy_sol_types::SolCall;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]

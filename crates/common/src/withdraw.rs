@@ -4,8 +4,8 @@ use std::convert::TryInto;
 
 pub struct WithdrawArgs {
     pub token: String,
-    pub vault_id: u64,
-    pub target_amount: u64,
+    pub vault_id: U256,
+    pub target_amount: U256,
 }
 
 impl TryInto<withdrawCall> for WithdrawArgs {
@@ -14,8 +14,8 @@ impl TryInto<withdrawCall> for WithdrawArgs {
     fn try_into(self) -> Result<withdrawCall, FromHexError> {
         Ok(withdrawCall {
             token: self.token.parse::<Address>()?,
-            vaultId: U256::from(self.vault_id),
-            targetAmount: U256::from(self.target_amount),
+            vaultId: self.vault_id,
+            targetAmount: self.target_amount,
         })
     }
 }
@@ -28,8 +28,8 @@ mod tests {
     fn test_withdraw_args_try_into() {
         let args = WithdrawArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
-            vault_id: 42,
-            target_amount: 100,
+            vault_id: U256::from(42),
+            target_amount: U256::from(100),
         };
 
         let result: Result<withdrawCall, _> = args.try_into();
