@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Alert, Heading, Label, Input, Helper, Badge } from 'flowbite-svelte';
-  import BadgeExternalLink from '../../lib/BadgeExternalLink.svelte';
+  import BadgeExternalLink from '$lib/BadgeExternalLink.svelte';
   import {
     rpcUrl,
     subgraphUrl,

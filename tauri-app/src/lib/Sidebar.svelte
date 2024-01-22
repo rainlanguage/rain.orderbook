@@ -21,7 +21,7 @@
     : 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white/25';
 </script>
 
-<Sidebar activeUrl={$page.url.pathname} asideClass="w-52">
+<Sidebar activeUrl={$page.url.pathname} asideClass="w-52 fixed left-2 top-2">
   <SidebarWrapper divClass="overflow-y-auto py-4 px-3 rounded bg-gray-100 dark:bg-gray-800">
     <SidebarGroup>
       <SidebarBrand
