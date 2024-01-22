@@ -1,23 +1,25 @@
-use crate::{
-    execute::Execute,
-    transaction::{CliTransactionCommandArgs, ExecuteTransaction},
-};
+use crate::status::display_write_transaction_status;
+use crate::{execute::Execute, transaction::CliTransactionCommandArgs};
 use alloy_primitives::U256;
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
+use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
 
 pub type Withdraw = CliTransactionCommandArgs<CliWithdrawArgs>;
 
 impl Execute for Withdraw {
     async fn execute(&self) -> Result<()> {
-        let mut execute_tx: ExecuteTransaction = self.clone().into();
+        let tx_args: TransactionArgs = self.transaction_args.clone().into();
         let withdraw_args: WithdrawArgs = self.cmd_args.clone().into();
-        let withdraw_call: withdrawCall = withdraw_args.try_into()?;
 
-        let ledger_client = execute_tx.connect_ledger().await?;
-        execute_tx.send(ledger_client, withdraw_call).await
+        println!("----- Transaction (1/2): Withdraw tokens from Vault -----");
+        withdraw_args
+            .execute(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+        Ok(())
     }
 }
 
