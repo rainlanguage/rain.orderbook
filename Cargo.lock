@@ -3188,6 +3188,7 @@ dependencies = [
  "rain_orderbook_subgraph_queries",
  "serde",
  "thiserror",
+ "tracing",
  "url",
 ]
 

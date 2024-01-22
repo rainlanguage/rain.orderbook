@@ -5,6 +5,7 @@ use clap::Subcommand;
 
 mod commands;
 mod execute;
+mod status;
 mod subgraph;
 mod transaction;
 
