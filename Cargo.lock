@@ -3195,11 +3195,11 @@ dependencies = [
 name = "rain_orderbook_subgraph_queries"
 version = "0.0.1"
 dependencies = [
- "anyhow",
  "cynic",
  "cynic-codegen",
  "reqwest",
  "serde",
+ "thiserror",
  "typeshare",
 ]
 
