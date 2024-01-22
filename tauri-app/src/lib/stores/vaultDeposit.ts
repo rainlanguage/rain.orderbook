@@ -5,18 +5,18 @@ import { rpcUrl, orderbookAddress } from './settings';
 function useVaultDepositStore() {
   async function call(vaultId: bigint, token: string, amount: bigint) {
     await invoke("vault_deposit", { 
-      deposit_args: { 
-        vaultId,
+      depositArgs: { 
+        vault_id: vaultId.toString(),
         token,
-        amount,
+        amount: amount.toString(),
       }, 
-      transaction_args: { 
-        rpcUrl: get(rpcUrl),
-        orderbookAddress: get(orderbookAddress),
-        derivationIndex: 0,
-        chainId: 137,
-        maxPriorityFeePerGas: '40000000000',
-        maxFeePerGas: '40000000000',
+      transactionArgs: { 
+        rpc_url: get(rpcUrl),
+        orderbook_address: get(orderbookAddress),
+        derivation_index: 0,
+        chain_id: 137,
+        max_priority_fee_per_gas: '40000000000',
+        max_fee_per_gas: '40000000000',
       } 
     });
   }

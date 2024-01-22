@@ -126,29 +126,10 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=221f94aba62808cd438ff0edb99b6068894739eb#221f94aba62808cd438ff0edb99b6068894739eb"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=125dd778d5ec5edafa512d69935db050e70bbdff#125dd778d5ec5edafa512d69935db050e70bbdff"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
- "anyhow",
- "async-trait",
- "derive_builder",
- "ethers",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "alloy-ethers-typecast"
-version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5968e86637121fe639cc3b8c8a7f7b88b1b2a633#5968e86637121fe639cc3b8c8a7f7b88b1b2a633"
-dependencies = [
- "alloy-primitives",
- "alloy-sol-types",
- "anyhow",
  "async-trait",
  "derive_builder",
  "ethers",
@@ -4986,7 +4967,7 @@ dependencies = [
 name = "rain_orderbook_cli"
 version = "0.0.4"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5968e86637121fe639cc3b8c8a7f7b88b1b2a633)",
+ "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
  "anyhow",
@@ -5009,7 +4990,7 @@ dependencies = [
 name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5968e86637121fe639cc3b8c8a7f7b88b1b2a633)",
+ "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
  "anyhow",
@@ -6590,7 +6571,7 @@ dependencies = [
 name = "tauri-app"
 version = "0.0.0"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=221f94aba62808cd438ff0edb99b6068894739eb)",
+ "alloy-ethers-typecast",
  "rain_orderbook_bindings",
  "rain_orderbook_cli",
  "rain_orderbook_common",
