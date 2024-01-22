@@ -13,7 +13,7 @@ impl Execute for Withdraw {
         let tx_args: TransactionArgs = self.transaction_args.clone().into();
         let withdraw_args: WithdrawArgs = self.cmd_args.clone().into();
 
-        println!("----- Transaction (1/2): Withdraw tokens from Vault -----");
+        println!("----- Withdraw tokens from Vault -----");
         withdraw_args
             .execute(tx_args, |status| {
                 display_write_transaction_status(status);
