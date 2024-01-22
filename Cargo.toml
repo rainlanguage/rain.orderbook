@@ -9,7 +9,7 @@ license = "CAL-1.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "125dd778d5ec5edafa512d69935db050e70bbdff" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "7c6f4d44ee7a352a31b5e7be75927684887af9ff" }
 alloy-sol-types = { version = "0.5.4" }
 alloy-primitives = "0.5.4"
 anyhow = "1.0.70"
@@ -28,6 +28,7 @@ cynic-codegen = { version = "3.4.0", features = ["rkyv"] }
 cynic = "3.4.0"
 chrono = "0.4.31"
 typeshare = "1.0.1"
+ethers-core = { git = "https://github.com/gakonst/ethers-rs.git", rev = "88095ba47eb6a3507f0db1767353b387b27a6e98", crate = "ethers-core" }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

@@ -16,7 +16,9 @@ impl Execute for Withdraw {
         let withdraw_call: withdrawCall = withdraw_args.try_into()?;
 
         let ledger_client = execute_tx.connect_ledger().await?;
-        execute_tx.send(ledger_client, withdraw_call).await
+        let _ = execute_tx.send(ledger_client, withdraw_call).await?;
+
+        Ok(())
     }
 }
 

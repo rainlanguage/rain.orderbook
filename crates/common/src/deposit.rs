@@ -1,5 +1,4 @@
-use alloy_primitives::{Address, U256};
-use anyhow::Result;
+use alloy_primitives::{hex::FromHexError, Address, U256};
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
@@ -12,11 +11,11 @@ pub struct DepositArgs {
 }
 
 impl TryInto<depositCall> for DepositArgs {
-    type Error = anyhow::Error;
+    type Error = FromHexError;
 
-    fn try_into(self) -> Result<depositCall> {
+    fn try_into(self) -> Result<depositCall, FromHexError> {
         Ok(depositCall {
-            token: self.token.parse()?,
+            token: self.token.parse::<Address>()?,
             vaultId: self.vault_id,
             amount: self.amount,
         })
@@ -24,11 +23,11 @@ impl TryInto<depositCall> for DepositArgs {
 }
 
 impl DepositArgs {
-    pub fn try_into_approve_call(self, spender: Address) -> Result<approveCall> {
-        Ok(approveCall {
+    pub fn into_approve_call(self, spender: Address) -> approveCall {
+        approveCall {
             spender,
-            amount: U256::from(self.amount),
-        })
+            amount: self.amount,
+        }
     }
 }
 
@@ -66,23 +65,15 @@ mod tests {
     }
 
     #[test]
-    fn test_deposit_args_try_into_approve_call() {
+    fn test_deposit_args_into_approve_call() {
         let args = DepositArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
             vault_id: U256::from(42),
             amount: U256::from(100),
         };
         let spender_address = Address::repeat_byte(0x11);
-        let result: Result<approveCall, _> = args.try_into_approve_call(spender_address);
+        let approve_call: approveCall = args.into_approve_call(spender_address);
 
-        match result {
-            Ok(_) => (),
-            Err(e) => panic!("Unexpected error: {}", e),
-        }
-
-        assert!(result.is_ok());
-
-        let approve_call = result.unwrap();
         assert_eq!(approve_call.amount, U256::from(100));
         assert_eq!(
             approve_call.spender,

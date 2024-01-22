@@ -126,7 +126,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=125dd778d5ec5edafa512d69935db050e70bbdff#125dd778d5ec5edafa512d69935db050e70bbdff"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=7c6f4d44ee7a352a31b5e7be75927684887af9ff#7c6f4d44ee7a352a31b5e7be75927684887af9ff"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4974,6 +4974,7 @@ dependencies = [
  "chrono",
  "clap",
  "comfy-table",
+ "ethers-core",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
@@ -6572,6 +6573,7 @@ name = "tauri-app"
 version = "0.0.0"
 dependencies = [
  "alloy-ethers-typecast",
+ "alloy-sol-types",
  "rain_orderbook_bindings",
  "rain_orderbook_cli",
  "rain_orderbook_common",

@@ -18,7 +18,7 @@ pub struct TransactionArgs {
 }
 
 impl TransactionArgs {
-    pub async fn to_write_contract_parameters<T: SolCall + Clone>(
+    pub fn to_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
     ) -> Result<WriteContractParameters<T>> {

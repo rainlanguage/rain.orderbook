@@ -1,5 +1,7 @@
 use crate::toast::{ToastMessageType, ToastPayload};
 use alloy_ethers_typecast::ethers_address_to_alloy;
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use rain_orderbook_cli::transaction::ExecuteTransaction;
 use rain_orderbook_common::{
@@ -64,59 +66,27 @@ pub async fn vault_deposit(
     })?;
 
     // Call ERC20 approve
-    println!("Step 1/2: Approve token transfer");
     let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
     let approve_call: approveCall = deposit_args.clone().into_approve_call(ledger_address);
-    let send_future = execute_tx.send(ledger_client, approve_call);
-
-    app_handle
-        .emit_all(
-            "toast",
-            ToastPayload {
-                text: "Approve the token transfer call on your Ledger device".into(),
-                message_type: ToastMessageType::Info,
-            },
-        )
-        .unwrap();
-
-    let receipt = send_future.await.map_err(|e| -> String {
-        println!("error : {:?}", e);
-        let text = e.to_string();
-        app_handle
-            .emit_all(
-                "toast",
-                ToastPayload {
-                    text: text.clone(),
-                    message_type: ToastMessageType::Error,
-                },
-            )
-            .unwrap();
-        text
-    })?;
-
-    app_handle
-        .emit_all(
-            "toast",
-            ToastPayload {
-                text: format!("Transaction Success: {}", receipt.transaction_hash),
-                message_type: ToastMessageType::Success,
-            },
-        )
-        .unwrap();
-    println!("recipt {:?}", receipt);
+    let call_params = transaction_args
+        .to_write_contract_parameters(approve_call)
+        .map_err(|e| e.to_string())?;
+    WriteTransaction::new(ledger_client.client, call_params, 4, |status| {
+        handle_write_transaction_status_changed(app_handle.clone(), status)
+    })
+    .execute()
+    .await
+    .map_err(|e| toast_error(app_handle.clone(), format!("Error: {}", e.to_string())))?;
 
     // Call OrderbookV3 deposit
-    println!("Step 2/2: Deposit tokens into vault");
     let deposit_call: depositCall = deposit_args
         .clone()
         .try_into()
-        .map_err(|_| String::from("Deposit arguments invalid"))?;
+        .map_err(|_| toast_error(app_handle.clone(), "Failed to construct depositCall".into()))?;
     let ledger_client = execute_tx.connect_ledger().await.map_err(|e| -> String {
         println!("error : {:?}", e);
-        let text = format!(
-            "Unlock your Ledger device and open the app for chain {}",
-            transaction_args.clone().chain_id
-        );
+
+        let text = format!("Ledger error: {:?}", e);
         app_handle
             .emit_all(
                 "toast",
@@ -126,46 +96,95 @@ pub async fn vault_deposit(
                 },
             )
             .unwrap();
+
         text
     })?;
+    let call_params = transaction_args
+        .to_write_contract_parameters(deposit_call)
+        .map_err(|e| e.to_string())?;
+    WriteTransaction::new(ledger_client.client, call_params, 4, |status| {
+        handle_write_transaction_status_changed(app_handle.clone(), status)
+    })
+    .execute()
+    .await
+    .map_err(|e| toast_error(app_handle.clone(), format!("Error: {}", e.to_string())))?;
 
-    let send_future = execute_tx.send(ledger_client, deposit_call);
-
-    app_handle
-        .emit_all(
-            "toast",
-            ToastPayload {
-                text: "Approve the deposit call on your Ledger device".into(),
-                message_type: ToastMessageType::Info,
-            },
-        )
-        .unwrap();
-
-    let receipt = send_future.await.map_err(|e| -> String {
-        println!("error : {:?}", e);
-        let text = e.to_string();
-        app_handle
-            .emit_all(
-                "toast",
-                ToastPayload {
-                    text: text.clone(),
-                    message_type: ToastMessageType::Error,
-                },
-            )
-            .unwrap();
-        text
-    })?;
-
-    app_handle
-        .emit_all(
-            "toast",
-            ToastPayload {
-                text: format!("Transaction Hash: {}", receipt.transaction_hash),
-                message_type: ToastMessageType::Success,
-            },
-        )
-        .unwrap();
-
-    println!("recipt {:?}", receipt);
     Ok(())
+}
+
+fn toast_error(app_handle: AppHandle, text: String) -> String {
+    app_handle
+        .emit_all(
+            "toast",
+            ToastPayload {
+                text: text.clone(),
+                message_type: ToastMessageType::Error,
+            },
+        )
+        .unwrap();
+    text
+}
+
+fn handle_write_transaction_status_changed<C: SolCall + Clone>(
+    app_handle: AppHandle,
+    status: WriteTransactionStatus<C>,
+) {
+    match status {
+        WriteTransactionStatus::PendingPrepare(_) => {
+            app_handle
+                .emit_all(
+                    "toast",
+                    ToastPayload {
+                        text: "Preparing Transaction".into(),
+                        message_type: ToastMessageType::Info,
+                    },
+                )
+                .unwrap();
+        }
+        WriteTransactionStatus::PendingSign(_) => {
+            app_handle
+                .emit_all(
+                    "toast",
+                    ToastPayload {
+                        text: "Please review and sign the transaction on your Ledger device."
+                            .into(),
+                        message_type: ToastMessageType::Warning,
+                    },
+                )
+                .unwrap();
+        }
+        WriteTransactionStatus::PendingSend(_) => {
+            app_handle
+                .emit_all(
+                    "toast",
+                    ToastPayload {
+                        text: "Sending transaction".into(),
+                        message_type: ToastMessageType::Info,
+                    },
+                )
+                .unwrap();
+        }
+        WriteTransactionStatus::PendingConfirm => {
+            app_handle
+                .emit_all(
+                    "toast",
+                    ToastPayload {
+                        text: "Awaiting transaction confirmations".into(),
+                        message_type: ToastMessageType::Info,
+                    },
+                )
+                .unwrap();
+        }
+        WriteTransactionStatus::Confirmed(receipt) => {
+            app_handle
+                .emit_all(
+                    "toast",
+                    ToastPayload {
+                        text: format!("Transaction confirmed: {}", receipt.transaction_hash),
+                        message_type: ToastMessageType::Success,
+                    },
+                )
+                .unwrap();
+        }
+    }
 }

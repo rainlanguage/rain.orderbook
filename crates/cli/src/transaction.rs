@@ -8,9 +8,9 @@ use anyhow::Result;
 use clap::Args;
 use clap::FromArgMatches;
 use clap::Parser;
+use ethers_core::types::transaction::response::TransactionReceipt;
 use rain_orderbook_common::transaction::TransactionArgs;
 use tracing::{debug, info};
-
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {
     #[arg(short, long, help = "Orderbook contract address")]
@@ -76,20 +76,17 @@ impl ExecuteTransaction {
         &self,
         ledger_client: LedgerClient,
         call: impl SolCall + Clone,
-    ) -> Result<()> {
-        let params = self
-            .transaction_args
-            .to_write_contract_parameters(call)
-            .await?;
+    ) -> Result<TransactionReceipt> {
+        let params = self.transaction_args.to_write_contract_parameters(call)?;
 
         let writable_client = WritableClient::new(ledger_client.client);
-        writable_client
+        let receipt = writable_client
             .write(params)
             .await
             .map_err(|e| anyhow!(e))?;
         info!("Awaiting signature from Ledger device");
 
-        Ok(())
+        Ok(receipt)
     }
 
     pub async fn connect_ledger(&mut self) -> Result<LedgerClient, LedgerClientError> {

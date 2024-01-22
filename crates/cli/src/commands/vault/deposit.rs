@@ -3,12 +3,12 @@ use crate::{
     transaction::{CliTransactionCommandArgs, ExecuteTransaction},
 };
 use alloy_ethers_typecast::ethers_address_to_alloy;
+use alloy_primitives::U256;
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use rain_orderbook_common::deposit::DepositArgs;
 use tracing::info;
-use alloy_primitives::U256;
 
 pub type Deposit = CliTransactionCommandArgs<CliDepositArgs>;
 
@@ -22,15 +22,16 @@ impl Execute for Deposit {
         let mut execute_tx: ExecuteTransaction = self.clone().into();
         let ledger_client = execute_tx.connect_ledger().await?;
         let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
-        let approve_call: approveCall =
-            deposit_args.clone().try_into_approve_call(ledger_address)?;
+        let approve_call: approveCall = deposit_args.clone().into_approve_call(ledger_address);
 
         info!("Step 1/2: Approve token transfer");
-        execute_tx.send(ledger_client, approve_call).await?;
+        let _ = execute_tx.send(ledger_client, approve_call).await?;
 
         info!("Step 2/2: Deposit tokens into vault");
         let ledger_client = execute_tx.connect_ledger().await?;
-        execute_tx.send(ledger_client, deposit_call).await
+        let _ = execute_tx.send(ledger_client, deposit_call).await?;
+
+        Ok(())
     }
 }
 
