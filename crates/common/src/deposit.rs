@@ -19,7 +19,7 @@ impl TryInto<depositCall> for DepositArgs {
 
     fn try_into(self) -> Result<depositCall, FromHexError> {
         Ok(depositCall {
-            token: self.token.parse::<Address>()?,
+            token: self.token.parse()?,
             vaultId: self.vault_id,
             amount: self.amount,
         })

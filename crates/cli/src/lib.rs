@@ -7,7 +7,7 @@ mod commands;
 mod execute;
 mod status;
 mod subgraph;
-pub mod transaction;
+mod transaction;
 
 #[derive(Subcommand)]
 pub enum Orderbook {

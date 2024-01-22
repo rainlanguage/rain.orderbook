@@ -26,4 +26,3 @@ alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
 comfy-table = { workspace = true }
 chrono = { workspace = true }
-ethers-core = { workspace = true }

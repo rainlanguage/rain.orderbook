@@ -2,7 +2,6 @@ use alloy_primitives::U256;
 use clap::Args;
 use clap::FromArgMatches;
 use clap::Parser;
-use ethers_core::types::transaction::response::TransactionReceipt;
 use rain_orderbook_common::transaction::TransactionArgs;
 
 #[derive(Args, Clone)]
