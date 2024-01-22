@@ -67,7 +67,7 @@ checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=20c7d3a5e8c5f1f4a88c3ff4395d003ce71b708b#20c7d3a5e8c5f1f4a88c3ff4395d003ce71b708b"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=1f76426cfb228b3d3a65e1358b798c0cf413876b#1f76426cfb228b3d3a65e1358b798c0cf413876b"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
