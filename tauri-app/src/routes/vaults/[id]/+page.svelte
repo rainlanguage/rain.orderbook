@@ -54,7 +54,7 @@
           Vault ID
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {data.id}
+          {vault.vault.vault_id}
         </p>
       </div>
 
