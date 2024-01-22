@@ -79,7 +79,7 @@ impl ExecuteTransaction {
     ) -> Result<()> {
         let params = self
             .transaction_args
-            .to_write_contract_parameters(call)
+            .try_into_write_contract_parameters(call)
             .await?;
 
         let writable_client = WritableClient::new(ledger_client.client);
@@ -94,6 +94,6 @@ impl ExecuteTransaction {
 
     pub async fn connect_ledger(&mut self) -> Result<LedgerClient, LedgerClientError> {
         debug!("Connecting to Ledger device");
-        self.transaction_args.clone().to_ledger_client().await
+        self.transaction_args.clone().try_into_ledger_client().await
     }
 }
