@@ -27,16 +27,17 @@ pub trait CynicClient {
             .post(base_url.clone())
             .json(&request_body)
             .send()
-            .await.map_err(|e| CynicClientError::Request(e))?;
+            .await
+            .map_err(CynicClientError::Request)?;
 
-        let response_deserialized: GraphQlResponse<R> =
-            response.json::<GraphQlResponse<R>>().await.map_err(|e| CynicClientError::Request(e))?;
+        let response_deserialized: GraphQlResponse<R> = response
+            .json::<GraphQlResponse<R>>()
+            .await
+            .map_err(CynicClientError::Request)?;
 
         match response_deserialized.errors {
             Some(errors) => Err(CynicClientError::GraphqlError(errors)),
-            None => response_deserialized
-                .data
-                .ok_or(CynicClientError::Empty),
+            None => response_deserialized.data.ok_or(CynicClientError::Empty),
         }
     }
 }

@@ -35,7 +35,7 @@ impl TransactionArgs {
         let orderbook_address = self
             .orderbook_address
             .parse::<Address>()
-            .map_err(|e| TransactionArgsError::ParseOrderbookAddress(e))?;
+            .map_err(TransactionArgsError::ParseOrderbookAddress)?;
 
         WriteContractParametersBuilder::default()
             .address(orderbook_address)
@@ -43,7 +43,7 @@ impl TransactionArgs {
             .max_priority_fee_per_gas(self.max_priority_fee_per_gas)
             .max_fee_per_gas(self.max_fee_per_gas)
             .build()
-            .map_err(|e| TransactionArgsError::BuildParameters(e))
+            .map_err(TransactionArgsError::BuildParameters)
     }
 
     pub async fn to_ledger_client(self) -> Result<LedgerClient, LedgerClientError> {
