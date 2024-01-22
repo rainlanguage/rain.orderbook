@@ -3184,10 +3184,10 @@ dependencies = [
  "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
- "anyhow",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
  "serde",
+ "thiserror",
  "url",
 ]
 

@@ -13,7 +13,7 @@ rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_queries = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
-anyhow = { workspace = true }
 alloy-sol-types = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true }

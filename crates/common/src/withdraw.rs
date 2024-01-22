@@ -1,5 +1,4 @@
-use alloy_primitives::{Address, U256};
-use anyhow::Result;
+use alloy_primitives::{hex::FromHexError, Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
 use std::convert::TryInto;
 
@@ -10,9 +9,9 @@ pub struct WithdrawArgs {
 }
 
 impl TryInto<withdrawCall> for WithdrawArgs {
-    type Error = anyhow::Error;
+    type Error = FromHexError;
 
-    fn try_into(self) -> Result<withdrawCall> {
+    fn try_into(self) -> Result<withdrawCall, FromHexError> {
         Ok(withdrawCall {
             token: self.token.parse::<Address>()?,
             vaultId: U256::from(self.vault_id),

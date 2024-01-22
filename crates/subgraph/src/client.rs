@@ -7,7 +7,6 @@ use crate::types::{
 };
 use cynic::Id;
 use reqwest::Url;
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
