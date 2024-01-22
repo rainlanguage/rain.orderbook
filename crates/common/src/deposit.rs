@@ -63,19 +63,19 @@ impl DepositArgs {
             .clone()
             .try_into_ledger_client()
             .await
-            .map_err(|e| WritableTransactionExecuteError::LedgerClient(e))?;
+            .map_err(WritableTransactionExecuteError::LedgerClient)?;
 
         let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
         let approve_call = self.clone().into_approve_call(ledger_address);
         let params = transaction_args
             .try_into_write_contract_parameters(approve_call)
             .await
-            .map_err(|e| WritableTransactionExecuteError::TransactionArgs(e))?;
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
             .await
-            .map_err(|e| WritableTransactionExecuteError::WritableClient(e))?;
+            .map_err(WritableTransactionExecuteError::WritableClient)?;
 
         Ok(())
     }
@@ -90,7 +90,7 @@ impl DepositArgs {
             .clone()
             .try_into_ledger_client()
             .await
-            .map_err(|e| WritableTransactionExecuteError::LedgerClient(e))?;
+            .map_err(WritableTransactionExecuteError::LedgerClient)?;
 
         let deposit_call: depositCall = self.clone().try_into().map_err(|_| {
             WritableTransactionExecuteError::InvalidArgs(
@@ -100,12 +100,12 @@ impl DepositArgs {
         let params = transaction_args
             .try_into_write_contract_parameters(deposit_call)
             .await
-            .map_err(|e| WritableTransactionExecuteError::TransactionArgs(e))?;
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
             .await
-            .map_err(|e| WritableTransactionExecuteError::WritableClient(e))?;
+            .map_err(WritableTransactionExecuteError::WritableClient)?;
 
         Ok(())
     }
