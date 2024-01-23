@@ -34,26 +34,6 @@ impl DepositArgs {
         }
     }
 
-    pub async fn execute<
-        A: Fn(WriteTransactionStatus<approveCall>),
-        D: Fn(WriteTransactionStatus<depositCall>),
-        S: Fn(),
-    >(
-        &self,
-        transaction_args: TransactionArgs,
-        approve_transaction_status_changed: A,
-        deposit_transaction_status_changed: D,
-        approve_transaction_success: S,
-    ) -> Result<(), WritableTransactionExecuteError> {
-        self.execute_approve(transaction_args.clone(), approve_transaction_status_changed)
-            .await?;
-        (approve_transaction_success)();
-        self.execute_deposit(transaction_args, deposit_transaction_status_changed)
-            .await?;
-
-        Ok(())
-    }
-
     /// Execute ERC20 approve call
     pub async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
         &self,
