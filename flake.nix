@@ -11,6 +11,7 @@
       let
         pkgs = rainix.pkgs.${system};
       in {
+        rust-toolchain = rainix.rust-toolchain.${system};
         packages = rec {
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";

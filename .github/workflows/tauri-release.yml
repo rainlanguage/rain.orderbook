@@ -14,7 +14,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-20.04, windows-latest]
+        platform: [
+          macos-latest,
+          ubuntu-20.04
+          # Someone who cares can make windows work.
+          # windows-latest
+        ]
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -35,8 +40,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: install rust
+        run: nix profile install .#rust-toolchain.$(nix eval --impure --raw --expr 'builtins.currentSystem')
+
+      # - name: install Rust stable
+      #   uses: dtolnay/rust-toolchain@stable
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-20.04'
