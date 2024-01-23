@@ -7,10 +7,10 @@
     orderbookAddress,
     walletAddress,
     walletDerivationIndex,
+    chainId,
     isRpcUrlValid,
     isSubgraphUrlValid,
     isOrderbookAddressValid,
-    isWalletAddressValid,
     isSettingsDefinedAndValid,
   } from '$lib/stores/settings';
   import InputLedgerWallet from '$lib/InputLedgerWallet.svelte';
@@ -40,9 +40,17 @@
         />
         for a reliable hosted RPC service provider. Or visit
         <BadgeExternalLink href="https://chainlist.org/" text="Chainlist" /> for find other publically
-        available RPC providerss.
+        available RPC providers.
       </Helper>
     </div>
+
+    {#if $isRpcUrlValid && $chainId}
+      <div class="mb-8">
+        <Label class="bold mb-2 block text-xl">Chain ID</Label>
+        <Input label="RPC URL" name="chainId" required bind:value={$chainId} disabled />
+        <Helper class="mt-2 text-sm">Automatically determined by your RPC URL.</Helper>
+      </div>
+    {/if}
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">Subgraph URL</Label>
