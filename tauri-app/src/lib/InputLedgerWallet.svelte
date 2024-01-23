@@ -6,6 +6,7 @@
   import { get } from 'svelte/store';
   import { invoke } from '@tauri-apps/api';
   import { isAddress } from 'viem';
+  import { toasts } from '$lib/stores/toasts';
 
   const maskOptions = {
     mask: Number,
@@ -38,6 +39,10 @@
       walletAddress = res;
     } catch (error) {
       console.error(error);
+      toasts.add({
+        message_type: 'Error',
+        text: `Ledger error: ${error}`,
+      });
     }
     isFetchingFromLedger = false;
   }
