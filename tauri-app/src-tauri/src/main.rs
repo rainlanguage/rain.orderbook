@@ -4,6 +4,7 @@
 mod commands;
 use commands::vault::{vault_detail, vaults_list};
 use commands::wallet::get_address_from_ledger;
+use commands::fork::fork_call;
 
 fn main() {
     tauri::Builder::default()
