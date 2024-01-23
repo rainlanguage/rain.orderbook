@@ -13,6 +13,7 @@
     isWalletAddressValid,
     isSettingsDefinedAndValid,
   } from '$lib/stores/settings';
+  import InputLedgerWallet from '$lib/InputLedgerWallet.svelte';
 </script>
 
 <Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Settings</Heading>
@@ -63,25 +64,9 @@
 </div>
 
 <div class="mb-8">
-  <Label class="bold mb-2 block text-xl">Ledger Wallet Address</Label>
-  <Input label="Wallet Address" name="walletAddress" required bind:value={$walletAddress} />
-  {#if !$isWalletAddressValid && $walletAddress.length > 0}
-    <Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
-  {/if}
-  <Helper class="mt-2">
-    <span class="text-sm">The address of your Ledger wallet.</span>
-  </Helper>
-</div>
-
-<div class="mb-8">
-  <Label class="bold mb-2 block text-xl">Ledger Wallet Derivation Index</Label>
-  <Input
-    label="Wallet Derivation Index"
-    name="walletDerivationIndex"
-    required
-    bind:value={$walletDerivationIndex}
+  <Label class="bold mb-2 block text-xl">Ledger Wallet</Label>
+  <InputLedgerWallet
+    bind:derivationIndex={$walletDerivationIndex}
+    bind:walletAddress={$walletAddress}
   />
-  <Helper class="mt-2 text-sm">
-    The derivation index of your Ledger wallet address. Leave as the default if you're unsure.
-  </Helper>
 </div>

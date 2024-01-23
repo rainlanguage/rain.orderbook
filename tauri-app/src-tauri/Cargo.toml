@@ -16,6 +16,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "1f76426cfb228b3d3a65e1358b798c0cf413876b" }
+alloy-primitives = "0.5.4"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
