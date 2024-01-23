@@ -82,7 +82,7 @@
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={() => (open = false)}>Cancel</Button>
+      <Button color="alternative" on:click={reset}>Cancel</Button>
 
       <Button
         on:click={() => alert('Handle "success"')}
