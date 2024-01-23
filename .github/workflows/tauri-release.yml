@@ -19,6 +19,16 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - run: nix run .#rainix-sol-prelude
+      - run: nix run .#rainix-rs-prelude
 
       - name: setup node
         uses: actions/setup-node@v4
