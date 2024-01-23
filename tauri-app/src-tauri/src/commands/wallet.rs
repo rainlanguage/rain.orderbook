@@ -10,7 +10,7 @@ pub async fn get_address_from_ledger(
 ) -> Result<Address, String> {
     let ledger_client = LedgerClient::new(derivation_index, chain_id, rpc_url.clone())
         .await
-        .map_err(|e| format!("error is {}", e.to_string()))?;
+        .map_err(|e| format!("{}", e.to_string()))?;
     let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
 
     Ok(ledger_address)
