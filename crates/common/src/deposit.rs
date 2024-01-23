@@ -64,7 +64,7 @@ impl DepositArgs {
             .clone()
             .try_into_ledger_client()
             .await
-            .map_err(WritableTransactionExecuteError::LedgerClient)?;
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
         let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
         let approve_call = self.clone().into_approve_call(ledger_address);
@@ -91,7 +91,7 @@ impl DepositArgs {
             .clone()
             .try_into_ledger_client()
             .await
-            .map_err(WritableTransactionExecuteError::LedgerClient)?;
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
         let deposit_call: depositCall = self.clone().try_into().map_err(|_| {
             WritableTransactionExecuteError::InvalidArgs(

@@ -67,7 +67,7 @@ checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=7c6f4d44ee7a352a31b5e7be75927684887af9ff#7c6f4d44ee7a352a31b5e7be75927684887af9ff"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=eb0e02ee40699808fb984461a920286c19a6c754#eb0e02ee40699808fb984461a920286c19a6c754"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -3165,7 +3165,6 @@ dependencies = [
  "chrono",
  "clap",
  "comfy-table",
- "ethers-core",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
@@ -3189,6 +3188,7 @@ dependencies = [
  "rain_orderbook_subgraph_queries",
  "serde",
  "thiserror",
+ "tracing",
  "url",
 ]
 

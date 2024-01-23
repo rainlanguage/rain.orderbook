@@ -5,6 +5,7 @@ pub mod toast;
 pub mod transaction_status;
 
 mod commands;
+use commands::chain::get_chainid;
 use commands::vault::{vault_deposit, vault_detail, vaults_list};
 use commands::wallet::get_address_from_ledger;
 
@@ -14,7 +15,8 @@ fn main() {
             vaults_list,
             vault_detail,
             vault_deposit,
-            get_address_from_ledger
+            get_address_from_ledger,
+            get_chainid
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
