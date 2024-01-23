@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { Spinner, Toast } from 'flowbite-svelte';
+  import { Button, Spinner, Toast } from 'flowbite-svelte';
   import type { TransactionStatusNotice } from './typeshare/transactionStatus';
   import {
     CheckCircleSolid,
     CloseCircleSolid,
     ExclamationCircleSolid,
   } from 'flowbite-svelte-icons';
+  import { formatBlockExplorerTxUrl, activeChainHasBlockExplorer } from '$lib/stores/chain';
 
   export let transactionStatusNotice: TransactionStatusNotice;
 </script>
 
-<Toast class="mt-2 w-full !max-w-none">
+<Toast class="mt-2 w-full !max-w-none" dismissable={false}>
   {#if transactionStatusNotice.series_position}
     <div class="text-lg font-bold">
       Transaction {transactionStatusNotice.series_position.position} of
@@ -38,7 +39,17 @@
       <CheckCircleSolid class="h-10 w-10" color="green" />
       <div>
         <div class="mb-2 text-xl">Transaction Confirmed</div>
-        <div class="break-all">Hash: {transactionStatusNotice.status.payload}</div>
+        <div class="mb-4 break-all">Hash: {transactionStatusNotice.status.payload}</div>
+        {#if $activeChainHasBlockExplorer}
+          <Button
+            size="xs"
+            color="light"
+            href={formatBlockExplorerTxUrl(transactionStatusNotice.status.payload)}
+            target="_blank"
+          >
+            View on Block Explorer
+          </Button>
+        {/if}
       </div>
     {:else if transactionStatusNotice.status.type === 'Failed'}
       <CloseCircleSolid class="h-10 w-10" color="red" />
