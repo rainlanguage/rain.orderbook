@@ -6483,6 +6483,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-cli",
+ "typeshare",
 ]
 
 [[package]]
