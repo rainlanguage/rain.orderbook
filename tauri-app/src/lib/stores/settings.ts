@@ -32,7 +32,6 @@ export const isOrderbookAddressValid = derived(orderbookAddress, (val) => isAddr
 export const isWalletAddressValid = derived(walletAddress, (val) => isAddress(val));
 
 isRpcUrlValid.subscribe(value => {
-  console.log('isRpcUrlValid', value);
   if(value) {
     updateChainId();
   }

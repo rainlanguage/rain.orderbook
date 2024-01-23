@@ -2,7 +2,7 @@
   import { Button, Modal, Label, ButtonGroup, Spinner } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
-  import { vaultDeposit } from '$lib/stores/vaultDeposit';
+  import { vaultDeposit } from '$lib/utils/vaultDeposit';
 
   export let open = false;
   export let vault: TokenVault;
@@ -17,10 +17,10 @@
     open = false;
   }
 
-  async function deposit() {
+  async function execute() {
     isSubmitting = true;
     try {
-      await vaultDeposit.call(vault.vault.vault_id, vault.token.id, amountRaw);
+      await vaultDeposit(vault.vault.vault_id, vault.token.id, amountRaw);
       reset();
     } catch (e) {}
     isSubmitting = false;
@@ -84,7 +84,7 @@
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={deposit} disabled={!amountRaw || amountRaw === 0n || isSubmitting}>
+      <Button on:click={execute} disabled={!amountRaw || amountRaw === 0n || isSubmitting}>
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />
         {/if}

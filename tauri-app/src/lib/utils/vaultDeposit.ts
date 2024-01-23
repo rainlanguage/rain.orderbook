@@ -1,10 +1,9 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, walletDerivationIndex } from './settings';
+import { rpcUrl, orderbookAddress, walletDerivationIndex } from '../stores/settings';
 import { chainId } from '$lib/stores/chain';
 
-function useVaultDepositStore() {
-  async function call(vaultId: bigint, token: string, amount: bigint) {
+export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
     await invoke("vault_deposit", { 
       depositArgs: { 
         vault_id: vaultId.toString(),
@@ -21,10 +20,3 @@ function useVaultDepositStore() {
       } 
     });
   }
-
-  return {
-    call
-  }
-}
-
-export const vaultDeposit = useVaultDepositStore();
