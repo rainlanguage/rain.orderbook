@@ -1,4 +1,5 @@
 use alloy_ethers_typecast::client::LedgerClient;
+use alloy_ethers_typecast::client::LedgerClientError;
 use alloy_ethers_typecast::transaction::WritableClient;
 use alloy_primitives::U256;
 use alloy_sol_types::SolCall;
@@ -91,7 +92,7 @@ impl ExecuteTransaction {
         Ok(())
     }
 
-    pub async fn connect_ledger(&mut self) -> Result<LedgerClient> {
+    pub async fn connect_ledger(&mut self) -> Result<LedgerClient, LedgerClientError> {
         debug!("Connecting to Ledger device");
         self.transaction_args.clone().to_ledger_client().await
     }
