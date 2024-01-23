@@ -1,7 +1,11 @@
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{hex::FromHexError, Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
 use std::convert::TryInto;
 
+use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
+
+#[derive(Clone)]
 pub struct WithdrawArgs {
     pub token: String,
     pub vault_id: U256,
@@ -17,6 +21,38 @@ impl TryInto<withdrawCall> for WithdrawArgs {
             vaultId: self.vault_id,
             targetAmount: self.target_amount,
         })
+    }
+}
+
+impl WithdrawArgs {
+    /// Execute OrderbookV3 withdraw call
+    pub async fn execute<S: Fn(WriteTransactionStatus<withdrawCall>)>(
+        &self,
+        transaction_args: TransactionArgs,
+        transaction_status_changed: S,
+    ) -> Result<(), WritableTransactionExecuteError> {
+        let ledger_client = transaction_args
+            .clone()
+            .try_into_ledger_client()
+            .await
+            .map_err(WritableTransactionExecuteError::LedgerClient)?;
+
+        let withdraw_call: withdrawCall = self.clone().try_into().map_err(|_| {
+            WritableTransactionExecuteError::InvalidArgs(
+                "Failed to parse address String into Address".into(),
+            )
+        })?;
+        let params = transaction_args
+            .try_into_write_contract_parameters(withdraw_call)
+            .await
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+
+        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+            .execute()
+            .await
+            .map_err(WritableTransactionExecuteError::WritableClient)?;
+
+        Ok(())
     }
 }
 

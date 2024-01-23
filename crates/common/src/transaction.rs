@@ -28,7 +28,7 @@ pub struct TransactionArgs {
 }
 
 impl TransactionArgs {
-    pub async fn to_write_contract_parameters<T: SolCall + Clone>(
+    pub async fn try_into_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
     ) -> Result<WriteContractParameters<T>, TransactionArgsError> {
@@ -46,7 +46,7 @@ impl TransactionArgs {
             .map_err(TransactionArgsError::BuildParameters)
     }
 
-    pub async fn to_ledger_client(self) -> Result<LedgerClient, LedgerClientError> {
+    pub async fn try_into_ledger_client(self) -> Result<LedgerClient, LedgerClientError> {
         LedgerClient::new(self.derivation_index, self.chain_id, self.rpc_url.clone()).await
     }
 }

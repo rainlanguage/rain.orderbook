@@ -1,15 +1,8 @@
-use alloy_ethers_typecast::client::LedgerClient;
-use alloy_ethers_typecast::client::LedgerClientError;
-use alloy_ethers_typecast::transaction::WritableClient;
 use alloy_primitives::U256;
-use alloy_sol_types::SolCall;
-use anyhow::anyhow;
-use anyhow::Result;
 use clap::Args;
 use clap::FromArgMatches;
 use clap::Parser;
 use rain_orderbook_common::transaction::TransactionArgs;
-use tracing::{debug, info};
 
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {
@@ -57,43 +50,4 @@ pub struct CliTransactionCommandArgs<T: FromArgMatches + Args> {
 
     #[clap(flatten)]
     pub transaction_args: CliTransactionArgs,
-}
-
-pub struct ExecuteTransaction {
-    pub transaction_args: TransactionArgs,
-}
-
-impl<T: FromArgMatches + Args> From<CliTransactionCommandArgs<T>> for ExecuteTransaction {
-    fn from(value: CliTransactionCommandArgs<T>) -> Self {
-        Self {
-            transaction_args: value.transaction_args.into(),
-        }
-    }
-}
-
-impl ExecuteTransaction {
-    pub async fn send(
-        &self,
-        ledger_client: LedgerClient,
-        call: impl SolCall + Clone,
-    ) -> Result<()> {
-        let params = self
-            .transaction_args
-            .to_write_contract_parameters(call)
-            .await?;
-
-        let writable_client = WritableClient::new(ledger_client.client);
-        writable_client
-            .write(params)
-            .await
-            .map_err(|e| anyhow!(e))?;
-        info!("Awaiting signature from Ledger device");
-
-        Ok(())
-    }
-
-    pub async fn connect_ledger(&mut self) -> Result<LedgerClient, LedgerClientError> {
-        debug!("Connecting to Ledger device");
-        self.transaction_args.clone().to_ledger_client().await
-    }
 }
