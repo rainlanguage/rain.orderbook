@@ -126,7 +126,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=7c6f4d44ee7a352a31b5e7be75927684887af9ff#7c6f4d44ee7a352a31b5e7be75927684887af9ff"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=1f76426cfb228b3d3a65e1358b798c0cf413876b#1f76426cfb228b3d3a65e1358b798c0cf413876b"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -1132,18 +1132,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "comfy-table"
-version = "7.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c64043d6c7b7a4c58e39e7efccfdea7b93d885a795d0c054a69dbbf4dd52686"
-dependencies = [
- "crossterm",
- "strum",
- "strum_macros",
- "unicode-width",
-]
-
-[[package]]
 name = "common-path"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1302,28 +1290,6 @@ name = "crossbeam-utils"
 version = "0.8.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "248e3bacc7dc6baa3b21e405ee045c3047101a49145e7e9eca583ab4c2ca5345"
-
-[[package]]
-name = "crossterm"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f476fe445d41c9e991fd07515a6f463074b782242ccf4a5b7b1d1012e70824df"
-dependencies = [
- "bitflags 2.4.1",
- "crossterm_winapi",
- "libc",
- "parking_lot",
- "winapi",
-]
-
-[[package]]
-name = "crossterm_winapi"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acdd7c62a3665c7f6830a51635d9ac9b23ed385797f70a83bb8bafe9c572ab2b"
-dependencies = [
- "winapi",
-]
 
 [[package]]
 name = "crunchy"
@@ -4964,40 +4930,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "rain_orderbook_cli"
-version = "0.0.4"
-dependencies = [
- "alloy-ethers-typecast",
- "alloy-primitives",
- "alloy-sol-types",
- "anyhow",
- "chrono",
- "clap",
- "comfy-table",
- "ethers-core",
- "rain_orderbook_bindings",
- "rain_orderbook_common",
- "rain_orderbook_subgraph_queries",
- "reqwest",
- "rust-bigint",
- "serde",
- "serde_bytes",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
  "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
- "anyhow",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
  "serde",
+ "thiserror",
+ "tracing",
  "url",
 ]
 
@@ -5005,11 +4948,11 @@ dependencies = [
 name = "rain_orderbook_subgraph_queries"
 version = "0.0.1"
 dependencies = [
- "anyhow",
  "cynic",
  "cynic-codegen",
  "reqwest",
  "serde",
+ "thiserror",
  "typeshare",
 ]
 
@@ -5438,29 +5381,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-bigint"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe1d6964d886b707f3e2cec76ac5b0e887661a6699f695ed0d3d5bb4852d6959"
-dependencies = [
- "getrandom 0.2.12",
- "rust-gmp-kzen",
- "serde",
- "serde_derive",
-]
-
-[[package]]
-name = "rust-gmp-kzen"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e654bb304958a567aefa09e83cc313251388202c40bfc245fac19a0e2dd8d08"
-dependencies = [
- "libc",
- "num-traits",
- "serde",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5807,15 +5727,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_bytes"
-version = "0.11.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b8497c313fd43ab992087548117643f6fcd935cbf36f176ffda0aacf9591734"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde_derive"
 version = "1.0.195"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6032,15 +5943,6 @@ name = "shell-words"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
-
-[[package]]
-name = "signal-hook-registry"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "signature"
@@ -6573,9 +6475,8 @@ name = "tauri-app"
 version = "0.0.0"
 dependencies = [
  "alloy-ethers-typecast",
+ "alloy-primitives",
  "alloy-sol-types",
- "rain_orderbook_bindings",
- "rain_orderbook_cli",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
  "serde",
@@ -6992,9 +6893,7 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot",
  "pin-project-lite",
- "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.48.0",

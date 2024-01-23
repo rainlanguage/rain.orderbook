@@ -4,10 +4,8 @@
   import '@fontsource/dm-sans/600.css';
   import '@fontsource/dm-sans/800.css';
   import Sidebar from '$lib/Sidebar.svelte';
-  import { toasts } from '$lib/stores/toasts';
+  import { toastsList } from '$lib/stores/toasts';
   import AppToast from '$lib/AppToast.svelte';
-
-  $: toastsList = toasts.toastsList;
 </script>
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">

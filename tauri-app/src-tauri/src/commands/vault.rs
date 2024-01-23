@@ -1,9 +1,6 @@
 use crate::toast::{ToastMessageType, ToastPayload};
-use alloy_ethers_typecast::ethers_address_to_alloy;
-use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_ethers_typecast::transaction::WriteTransactionStatus;
 use alloy_sol_types::SolCall;
-use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
-use rain_orderbook_cli::transaction::ExecuteTransaction;
 use rain_orderbook_common::{
     deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
 };
@@ -40,75 +37,18 @@ pub async fn vault_deposit(
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
 ) -> Result<(), String> {
-    let mut execute_tx = ExecuteTransaction {
-        transaction_args: transaction_args.clone(),
-    };
-
-    // Connect to Ledger device
-    let ledger_client = execute_tx.connect_ledger().await.map_err(|e| -> String {
-        println!("error : {:?}", e);
-
-        let text = format!(
-            "Unlock your Ledger device and open the app for chain {}",
-            transaction_args.clone().chain_id
-        );
-        app_handle
-            .emit_all(
-                "toast",
-                ToastPayload {
-                    text: text.clone(),
-                    message_type: ToastMessageType::Error,
-                },
-            )
-            .unwrap();
-
-        text
-    })?;
-
-    // Call ERC20 approve
-    let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
-    let approve_call: approveCall = deposit_args.clone().into_approve_call(ledger_address);
-    let call_params = transaction_args
-        .to_write_contract_parameters(approve_call)
-        .map_err(|e| e.to_string())?;
-    WriteTransaction::new(ledger_client.client, call_params, 4, |status| {
-        handle_write_transaction_status_changed(app_handle.clone(), status)
-    })
-    .execute()
-    .await
-    .map_err(|e| toast_error(app_handle.clone(), format!("Error: {}", e.to_string())))?;
-
-    // Call OrderbookV3 deposit
-    let deposit_call: depositCall = deposit_args
-        .clone()
-        .try_into()
-        .map_err(|_| toast_error(app_handle.clone(), "Failed to construct depositCall".into()))?;
-    let ledger_client = execute_tx.connect_ledger().await.map_err(|e| -> String {
-        println!("error : {:?}", e);
-
-        let text = format!("Ledger error: {:?}", e);
-        app_handle
-            .emit_all(
-                "toast",
-                ToastPayload {
-                    text: text.clone(),
-                    message_type: ToastMessageType::Error,
-                },
-            )
-            .unwrap();
-
-        text
-    })?;
-    let call_params = transaction_args
-        .to_write_contract_parameters(deposit_call)
-        .map_err(|e| e.to_string())?;
-    WriteTransaction::new(ledger_client.client, call_params, 4, |status| {
-        handle_write_transaction_status_changed(app_handle.clone(), status)
-    })
-    .execute()
-    .await
-    .map_err(|e| toast_error(app_handle.clone(), format!("Error: {}", e.to_string())))?;
-
+    println!("----- Transaction (1/2): Approve ERC20 token spend -----");
+    deposit_args
+        .execute(
+            transaction_args,
+            |status| handle_write_transaction_status_changed(app_handle.clone(), status),
+            |status| handle_write_transaction_status_changed(app_handle.clone(), status),
+            || {
+                println!("----- Transaction (2/2): Deposit tokens into Orderbook -----");
+            },
+        )
+        .await
+        .map_err(|e| toast_error(app_handle.clone(), format!("{}", e)))?;
     Ok(())
 }
 
@@ -158,18 +98,7 @@ fn handle_write_transaction_status_changed<C: SolCall + Clone>(
                 .emit_all(
                     "toast",
                     ToastPayload {
-                        text: "Sending transaction".into(),
-                        message_type: ToastMessageType::Info,
-                    },
-                )
-                .unwrap();
-        }
-        WriteTransactionStatus::PendingConfirm => {
-            app_handle
-                .emit_all(
-                    "toast",
-                    ToastPayload {
-                        text: "Awaiting transaction confirmations".into(),
+                        text: "Submitting transaction".into(),
                         message_type: ToastMessageType::Info,
                     },
                 )

@@ -9,8 +9,6 @@ function useToastsStore(autohideMs = 5000) {
 
   listen<ToastPayload>('toast', (event) => add(event.payload));
 
-  const toastsList = derived(toasts, (toasts) => sortBy(Object.values(toasts), [(val) => val.timestamp, (val) => val.id]))
-
   function add(payload: ToastPayload) {
     const id = uuidv4();
     const timestamp = new Date();
@@ -27,10 +25,11 @@ function useToastsStore(autohideMs = 5000) {
     }, autohideMs);
   }
   return {
-    toasts,
-    toastsList,
+    subscribe: toasts.subscribe,
     add
   }
 }
 
 export const toasts = useToastsStore();
+
+export const toastsList = derived(toasts, (toasts) => sortBy(Object.values(toasts), [(val) => val.timestamp, (val) => val.id]))

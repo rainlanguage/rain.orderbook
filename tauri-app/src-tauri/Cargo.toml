@@ -16,9 +16,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
-rain_orderbook_bindings = { path = "../../crates/bindings" }
-rain_orderbook_cli = { path = "../../crates/cli" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "7c6f4d44ee7a352a31b5e7be75927684887af9ff" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "1f76426cfb228b3d3a65e1358b798c0cf413876b" }
+alloy-primitives = "0.5.4"
 alloy-sol-types = "0.5.4"
 
 [features]
