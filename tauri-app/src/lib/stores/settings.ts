@@ -3,9 +3,9 @@ import { writable, derived, get } from 'svelte/store';
 import every from 'lodash/every';
 import { isAddress } from 'viem';
 import { invoke } from '@tauri-apps/api';
+import { chainId } from '$lib/stores/chain';
 
 export const rpcUrl = writable(localStorage.getItem("settings.rpcUrl") || '');
-export const chainId = writable(parseInt(localStorage.getItem("settings.chainId") || '1'))
 export const subgraphUrl = writable(localStorage.getItem("settings.subgraphUrl") || '');
 export const orderbookAddress = writable(localStorage.getItem("settings.orderbookAddress") || '');
 export const walletAddress = writable(localStorage.getItem("settings.walletAddress") || '')
@@ -20,9 +20,7 @@ rpcUrl.subscribe(value => {
   localStorage.setItem("settings.rpcUrl", value || '');
   updateChainId();
 });
-chainId.subscribe(value => {
-  localStorage.setItem("settings.chainId", (value || 0).toString());
-});
+
 subgraphUrl.subscribe(value => {
   localStorage.setItem("settings.subgraphUrl", value || '');
 });

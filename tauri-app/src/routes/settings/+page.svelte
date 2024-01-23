@@ -7,12 +7,12 @@
     orderbookAddress,
     walletAddress,
     walletDerivationIndex,
-    chainId,
     isRpcUrlValid,
     isSubgraphUrlValid,
     isOrderbookAddressValid,
     isSettingsDefinedAndValid,
   } from '$lib/stores/settings';
+  import { activeChain } from '$lib/stores/chain';
   import InputLedgerWallet from '$lib/InputLedgerWallet.svelte';
 </script>
 
@@ -44,10 +44,10 @@
       </Helper>
     </div>
 
-    {#if $isRpcUrlValid && $chainId}
+    {#if $isRpcUrlValid && $activeChain}
       <div class="mb-8">
-        <Label class="bold mb-2 block text-xl">Chain ID</Label>
-        <Input label="RPC URL" name="chainId" required bind:value={$chainId} disabled />
+        <Label class="bold mb-2 block text-xl">Chain</Label>
+        <Input label="RPC URL" name="chainId" required bind:value={$activeChain.name} disabled />
         <Helper class="mt-2 text-sm">Automatically determined by your RPC URL.</Helper>
       </div>
     {/if}
