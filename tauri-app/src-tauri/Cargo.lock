@@ -126,7 +126,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=1f76426cfb228b3d3a65e1358b798c0cf413876b#1f76426cfb228b3d3a65e1358b798c0cf413876b"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0141369c9923e9c7a1048b05f167f3d767ea16c4#0141369c9923e9c7a1048b05f167f3d767ea16c4"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -879,7 +879,7 @@ checksum = "d38f2da7a0a2c4ccf0065be06397cc26a81f4e528be095826eee9d4adbb8c60f"
 dependencies = [
  "byteorder",
  "fnv",
- "uuid 1.6.1",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -909,9 +909,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.31"
+version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f2c685bad3eb3d45a01354cedb7d5faa66194d1d58ba6e267a8de788f79db38"
+checksum = "41daef31d7a747c5c847246f36de49ced6f7403b4cdabc807a97b5cc184cda7a"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -919,7 +919,7 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.0",
 ]
 
 [[package]]
@@ -3475,7 +3475,7 @@ dependencies = [
  "serde_json",
  "time",
  "url",
- "uuid 1.6.1",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -5277,7 +5277,7 @@ dependencies = [
  "rkyv_derive",
  "seahash",
  "tinyvec",
- "uuid 1.6.1",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -6383,7 +6383,7 @@ dependencies = [
  "serde",
  "tao-macros",
  "unicode-segmentation",
- "uuid 1.6.1",
+ "uuid 1.7.0",
  "windows 0.39.0",
  "windows-implement",
  "x11-dl",
@@ -6464,7 +6464,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "uuid 1.6.1",
+ "uuid 1.7.0",
  "webkit2gtk",
  "webview2-com",
  "windows 0.39.0",
@@ -6477,6 +6477,7 @@ dependencies = [
  "alloy-ethers-typecast",
  "alloy-primitives",
  "alloy-sol-types",
+ "chrono",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
  "serde",
@@ -6485,6 +6486,7 @@ dependencies = [
  "tauri-build",
  "tauri-cli",
  "typeshare",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -6540,7 +6542,7 @@ dependencies = [
  "thiserror",
  "time",
  "ureq",
- "uuid 1.6.1",
+ "uuid 1.7.0",
  "walkdir",
  "windows-sys 0.48.0",
  "winreg 0.51.0",
@@ -6624,7 +6626,7 @@ dependencies = [
  "tauri-utils",
  "thiserror",
  "time",
- "uuid 1.6.1",
+ "uuid 1.7.0",
  "walkdir",
 ]
 
@@ -6668,7 +6670,7 @@ dependencies = [
  "tauri-utils",
  "thiserror",
  "url",
- "uuid 1.6.1",
+ "uuid 1.7.0",
  "webview2-com",
  "windows 0.39.0",
 ]
@@ -6686,7 +6688,7 @@ dependencies = [
  "raw-window-handle",
  "tauri-runtime",
  "tauri-utils",
- "uuid 1.6.1",
+ "uuid 1.7.0",
  "webkit2gtk",
  "webview2-com",
  "windows 0.39.0",
@@ -7348,11 +7350,12 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
+checksum = "f00cc9702ca12d3c81455259621e676d0f7251cec66a21e98fe2e9a37db93b2a"
 dependencies = [
  "getrandom 0.2.12",
+ "serde",
  "sha1_smol",
 ]
 

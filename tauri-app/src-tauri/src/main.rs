@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 pub mod toast;
+pub mod transaction_status;
 
 mod commands;
 use commands::vault::{vault_deposit, vault_detail, vaults_list};

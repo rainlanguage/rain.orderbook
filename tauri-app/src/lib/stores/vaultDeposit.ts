@@ -15,8 +15,8 @@ function useVaultDepositStore() {
         orderbook_address: get(orderbookAddress),
         derivation_index: 0,
         chain_id: 137,
-        max_priority_fee_per_gas: '40000000000',
-        max_fee_per_gas: '40000000000',
+        max_priority_fee_per_gas: '400000000000',
+        max_fee_per_gas: '400000000000',
       } 
     });
   }

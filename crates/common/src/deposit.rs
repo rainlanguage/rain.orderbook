@@ -55,7 +55,7 @@ impl DepositArgs {
     }
 
     /// Execute ERC20 approve call
-    async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
+    pub async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
@@ -82,7 +82,7 @@ impl DepositArgs {
     }
 
     /// Execute OrderbookV3 deposit call
-    async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
+    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,

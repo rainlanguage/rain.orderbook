@@ -20,6 +20,8 @@ alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-ty
 alloy-primitives = "0.5.4"
 alloy-sol-types = "0.5.4"
 typeshare = "1.0.1"
+chrono = { version = "0.4.32", features = ["serde"] }
+uuid = { version = "1.7.0", features = ["serde"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
