@@ -11,8 +11,12 @@
       let
         pkgs = rainix.pkgs.${system};
       in {
-        rust-toolchain = rainix.rust-toolchain.${system};
         packages = rec {
+          tauri-release-env = pkgs.buildEnv {
+            name = "Tauri release environment";
+            paths = rainix.rust-build-inputs.${system};
+          };
+
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
             body = ''

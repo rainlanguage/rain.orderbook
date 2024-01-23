@@ -41,7 +41,7 @@ jobs:
           node-version: 20
 
       - name: install rust
-        run: nix profile install .#rust-toolchain.$(nix eval --impure --raw --expr 'builtins.currentSystem')
+        run: nix profile install .#tauri-release-env
 
       # - name: install Rust stable
       #   uses: dtolnay/rust-toolchain@stable
