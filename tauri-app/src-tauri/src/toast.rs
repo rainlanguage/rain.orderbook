@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
+use typeshare::typeshare;
 
+#[typeshare]
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ToastMessageType {
     Success,
@@ -8,6 +10,7 @@ pub enum ToastMessageType {
     Info,
 }
 
+#[typeshare]
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ToastPayload {
     pub message_type: ToastMessageType,

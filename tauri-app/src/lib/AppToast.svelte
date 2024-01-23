@@ -4,7 +4,7 @@
   import CloseCircleSolid from 'flowbite-svelte-icons/CloseCircleSolid.svelte';
   import ExclamationCircleSolid from 'flowbite-svelte-icons/ExclamationCircleSolid.svelte';
   import InfoCircleSolid from 'flowbite-svelte-icons/InfoCircleSolid.svelte';
-  import type { ToastData } from '$lib/types/toast';
+  import type { ToastData } from '$lib/stores/toasts';
 
   export let toast: ToastData;
 </script>

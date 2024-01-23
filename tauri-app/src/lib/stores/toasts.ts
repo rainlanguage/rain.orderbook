@@ -1,8 +1,13 @@
 import { derived, writable } from 'svelte/store';
-import type { ToastDataStore, ToastPayload } from '$lib/types/toast';
 import { v4 as uuidv4} from 'uuid';
 import { listen } from '@tauri-apps/api/event';
 import  sortBy from 'lodash/sortBy';
+
+import type { ToastPayload } from "$lib/typeshare/toast";
+
+export type ToastData = ToastPayload & { timestamp: Date; id: string };
+
+export type ToastDataStore = { [id: string]: ToastData };
 
 function useToastsStore(autohideMs = 5000) {
   const toasts = writable<ToastDataStore>({});
