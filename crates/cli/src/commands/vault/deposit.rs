@@ -3,6 +3,7 @@ use crate::{
     transaction::{CliTransactionCommandArgs, ExecuteTransaction},
 };
 use alloy_ethers_typecast::ethers_address_to_alloy;
+use alloy_primitives::U256;
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
@@ -38,10 +39,10 @@ pub struct CliDepositArgs {
     token: String,
 
     #[arg(short, long, help = "The ID of the vault")]
-    vault_id: u64,
+    vault_id: U256,
 
     #[arg(short, long, help = "The amount to deposit")]
-    amount: u64,
+    amount: U256,
 }
 
 impl From<CliDepositArgs> for DepositArgs {

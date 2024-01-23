@@ -31,10 +31,10 @@ pub struct CliTransactionArgs {
     pub rpc_url: String,
 
     #[arg(short = 'p', long, help = "Max priority fee per gas (in wei)")]
-    pub max_priority_fee_per_gas: Option<u128>,
+    pub max_priority_fee_per_gas: Option<U256>,
 
     #[arg(short, long, help = "Max fee per gas (in wei)")]
-    pub max_fee_per_gas: Option<u128>,
+    pub max_fee_per_gas: Option<U256>,
 }
 
 impl From<CliTransactionArgs> for TransactionArgs {
@@ -44,8 +44,8 @@ impl From<CliTransactionArgs> for TransactionArgs {
             derivation_index: val.derivation_index,
             chain_id: val.chain_id,
             rpc_url: val.rpc_url,
-            max_priority_fee_per_gas: val.max_priority_fee_per_gas.map(U256::from),
-            max_fee_per_gas: val.max_fee_per_gas.map(U256::from),
+            max_priority_fee_per_gas: val.max_priority_fee_per_gas,
+            max_fee_per_gas: val.max_fee_per_gas,
         }
     }
 }
