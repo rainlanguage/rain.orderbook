@@ -36,4 +36,4 @@ function useTransactionStatusNoticeStore(autoCloseMs = 5000) {
 
 export const transactionStatusNotices = useTransactionStatusNoticeStore();
 
-export const transactionStatusNoticesList = derived(transactionStatusNotices, (obj) => sortBy(Object.values(obj), [(val) => val.created_at, (val) => val.id]))
+export const transactionStatusNoticesList = derived(transactionStatusNotices, (obj) => sortBy(Object.values(obj), [(val) => new Date(val.created_at), (val) => val.id]))
