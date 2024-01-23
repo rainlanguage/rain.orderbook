@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainprotocol/rainix";
+    rainix.url = "github:rainprotocol/rainix/9fee1bef10be721d149b202da7378365540a3578";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -12,10 +12,8 @@
         pkgs = rainix.pkgs.${system};
       in {
         packages = rec {
-          tauri-release-env = pkgs.buildEnv {
-            name = "Tauri release environment";
-            paths = rainix.rust-build-inputs.${system};
-          };
+
+          tauri-release-env = rainix.tauri-release-env.${system};
 
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
