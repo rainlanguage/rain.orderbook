@@ -49,6 +49,8 @@ use typeshare::typeshare;
 #[typeshare]
 ```
 
+6. Rename the conflicting enum `TokenVaultOrderBy::VaultId` to `TokenVaultOrderBy::VaultId2` in `crates/subgraphs/src/types/vaults.rs`
+
 ## Generating Typescript Types from Rust Types
 
 Run the following from the repo root, outside the nix shell, to generate Typescript types from Rust types in `crates/subgraph/src/types`.

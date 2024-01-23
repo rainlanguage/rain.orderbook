@@ -1,9 +1,9 @@
 use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_queries::types::vaults::Vault;
+use rain_orderbook_subgraph_queries::types::vaults::TokenVault;
 
 use tracing::debug;
 #[derive(Args, Clone)]
@@ -24,24 +24,19 @@ impl Execute for List {
     }
 }
 
-fn build_table(vaults: Vec<Vault>) -> Result<Table> {
+fn build_table(vaults: Vec<TokenVault>) -> Result<Table> {
     let mut table = comfy_table::Table::new();
     table
         .load_preset(comfy_table::presets::UTF8_FULL)
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .set_header(vec!["Vault ID", "Owner", "Token", "Balance"]);
+        .set_header(vec!["ID", "Owner", "Token", "Balance"]);
 
     for vault in vaults.iter() {
-        let token_vaults = vault
-            .token_vaults
-            .clone()
-            .ok_or(anyhow!("No TokenVault linked to Vault"))?;
-
         table.add_row(vec![
-            vault.id.inner().into(),
+            format!("{}", vault.id.clone().into_inner()),
             format!("{}", vault.owner.id.0),
-            token_vaults[0].token.symbol.clone(),
-            token_vaults[0].balance_display.0.clone(),
+            vault.token.symbol.clone(),
+            vault.balance_display.0.clone(),
         ]);
     }
 

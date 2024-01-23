@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { Vault } from '$lib/typeshare/vault';
+  import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
 
   export let open = false;
-  export let vault: Vault;
+  export let vault: TokenVault;
   let amount: string = '';
   let amountRaw: bigint;
 
@@ -29,7 +29,16 @@
       Token
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.token_vaults && vault.token_vaults[0].token.name}
+      {vault.token.name}
+    </p>
+  </div>
+
+  <div>
+    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Balance
+    </h5>
+    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+      {vault.balance_display}
     </p>
   </div>
 
@@ -44,8 +53,8 @@
       <InputTokenAmount
         bind:value={amount}
         bind:valueRaw={amountRaw}
-        symbol={vault.token_vaults ? vault.token_vaults[0].token.symbol : ''}
-        decimals={vault.token_vaults ? vault.token_vaults[0].token.decimals : 16}
+        symbol={vault.token.symbol}
+        decimals={vault.token.decimals}
       />
     </ButtonGroup>
   </div>

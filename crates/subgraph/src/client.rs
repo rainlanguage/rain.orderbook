@@ -2,8 +2,8 @@ use crate::cynic_client::CynicClient;
 use crate::types::{
     order::{Order, OrderQuery, OrderQueryVariables},
     orders::{Order as OrdersListItem, OrdersQuery as OrdersListQuery},
-    vault::{Vault, VaultQuery, VaultQueryVariables},
-    vaults::{Vault as VaultsListItem, VaultsQuery as VaultsListQuery},
+    vault::{TokenVault, VaultQuery, VaultQueryVariables},
+    vaults::{TokenVault as VaultsListItem, VaultsQuery as VaultsListQuery},
 };
 use anyhow::{anyhow, Result};
 use cynic::Id;
@@ -33,17 +33,17 @@ impl OrderbookSubgraphClient {
             .query::<VaultsListQuery, ()>(self.url.clone(), ())
             .await?;
 
-        Ok(data.vaults)
+        Ok(data.token_vaults)
     }
 
-    pub async fn vault(&self, id: Id) -> Result<Vault> {
+    pub async fn vault(&self, id: Id) -> Result<TokenVault> {
         let data = self
             .query::<VaultQuery, VaultQueryVariables>(
                 self.url.clone(),
                 VaultQueryVariables { id: &id },
             )
             .await?;
-        let vault = data.vault.ok_or(anyhow!("Vault not found"))?;
+        let vault = data.token_vault.ok_or(anyhow!("Vault not found"))?;
 
         Ok(vault)
     }

@@ -9,46 +9,48 @@ fn vaults_query_gql_output() {
     let request_body = VaultQuery::build(VaultQueryVariables { id: &id });
 
     let expected_query = "query VaultQuery($id: ID!) {
-  vault(id: $id) {
+  tokenVault(id: $id) {
     id
     owner {
       id
     }
-    tokenVaults {
-      id
-      balance
-      balanceDisplay
-      token {
-        name
-        symbol
-        decimals
-      }
+    balance
+    balanceDisplay
+    token {
+      name
+      symbol
+      decimals
     }
-    deposits {
-      id
-      sender {
+    vault {
+      deposits(where: {tokenVault_: {id: $id, }, }) {
         id
+        transaction {
+          id
+        }
+        timestamp
+        sender {
+          id
+        }
+        amount
+        amountDisplay
       }
-      transaction {
+      withdraws(where: {tokenVault_: {id: $id, }, }) {
         id
+        sender {
+          id
+        }
+        transaction {
+          id
+        }
+        timestamp
+        amount
+        amountDisplay
+        requestedAmount
+        requestedAmountDisplay
+        tokenVault {
+          balanceDisplay
+        }
       }
-      timestamp
-      amount
-      amountDisplay
-    }
-    withdraws {
-      id
-      sender {
-        id
-      }
-      transaction {
-        id
-      }
-      timestamp
-      amount
-      amountDisplay
-      requestedAmount
-      requestedAmountDisplay
     }
   }
 }
