@@ -12,6 +12,9 @@
         pkgs = rainix.pkgs.${system};
       in {
         packages = rec {
+
+          tauri-release-env = rainix.tauri-release-env.${system};
+
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
             body = ''
