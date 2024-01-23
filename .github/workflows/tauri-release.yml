@@ -44,10 +44,6 @@ jobs:
       # Need to prebuild the sol artifacts so that rust can find them.
       - run: nix run .#rainix-sol-prelude
 
-      - name: install frontend dependencies
-        run: npm install
-        working-directory: ./tauri-app
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
