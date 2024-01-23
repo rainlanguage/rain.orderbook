@@ -27,6 +27,7 @@
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
     <TableHead>
+      <TableHeadCell>Vault ID</TableHeadCell>
       <TableHeadCell>Owner</TableHeadCell>
       <TableHeadCell>Token</TableHeadCell>
       <TableHeadCell>Balance</TableHeadCell>
@@ -34,6 +35,7 @@
     <TableBody>
       {#each $vaultsList as vault}
         <TableBodyRow on:click={() => gotoVault(vault.id)}>
+          <TableBodyCell tdClass="break-all px-4 py-2">{vault.vault_id}</TableBodyCell>
           <TableBodyCell tdClass="break-all px-4 py-2">{vault.owner.id}</TableBodyCell>
           <TableBodyCell tdClass="break-word p-2">{vault.token.name}</TableBodyCell>
           <TableBodyCell tdClass="break-all p-2">
