@@ -1,9 +1,8 @@
 import { isUrlValid } from '$lib/utils/url';
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import every from 'lodash/every';
 import { isAddress } from 'viem';
-import { invoke } from '@tauri-apps/api';
-import { chainId } from '$lib/stores/chain';
+import { updateChainId } from '$lib/stores/chain';
 
 export const rpcUrl = writable(localStorage.getItem("settings.rpcUrl") || '');
 export const subgraphUrl = writable(localStorage.getItem("settings.subgraphUrl") || '');
@@ -11,16 +10,9 @@ export const orderbookAddress = writable(localStorage.getItem("settings.orderboo
 export const walletAddress = writable(localStorage.getItem("settings.walletAddress") || '')
 export const walletDerivationIndex = writable(parseInt(localStorage.getItem("settings.walletDerivationIndex") || '0'))
 
-async function updateChainId() {
-  const val: number = await invoke('get_chainid', {rpcUrl: get(rpcUrl)});
-  chainId.set(val);
-}
-
 rpcUrl.subscribe(value => {
   localStorage.setItem("settings.rpcUrl", value || '');
-  updateChainId();
 });
-
 subgraphUrl.subscribe(value => {
   localStorage.setItem("settings.subgraphUrl", value || '');
 });
@@ -38,6 +30,13 @@ export const isRpcUrlValid = derived(rpcUrl, (val) => isUrlValid(val));
 export const isSubgraphUrlValid = derived(subgraphUrl, (val) => isUrlValid(val));
 export const isOrderbookAddressValid = derived(orderbookAddress, (val) => isAddress(val));
 export const isWalletAddressValid = derived(walletAddress, (val) => isAddress(val));
+
+isRpcUrlValid.subscribe(value => {
+  console.log('isRpcUrlValid', value);
+  if(value) {
+    updateChainId();
+  }
+})
 
 export const isSettingsDefined = derived([rpcUrl, subgraphUrl, orderbookAddress], (vals) => every(vals.map((v) => v && v.trim().length > 0)));
 export const isSettingsValid = derived([isRpcUrlValid, isSubgraphUrlValid], (vals) => every(vals));
