@@ -30,8 +30,6 @@ chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
 
-ethers-core = { git = "https://github.com/gakonst/ethers-rs.git", rev = "88095ba47eb6a3507f0db1767353b387b27a6e98", crate = "ethers-core" }
-
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
 
