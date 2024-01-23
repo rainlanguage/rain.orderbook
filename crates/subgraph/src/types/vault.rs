@@ -32,6 +32,8 @@ pub struct TokenVault {
 #[derive(cynic::QueryFragment, Debug, Serialize)]
 #[cynic(variables = "VaultQueryVariables")]
 pub struct Vault {
+    pub id: cynic::Id,
+    pub vault_id: BigInt,
     #[arguments(where: { tokenVault_: { id: $id } })]
     pub deposits: Option<Vec<VaultDeposit>>,
     #[arguments(where: { tokenVault_: { id: $id } })]
@@ -80,6 +82,7 @@ pub struct Transaction {
 #[derive(cynic::QueryFragment, Debug, Serialize)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
+    pub id: cynic::Id,
     pub name: String,
     pub symbol: String,
     pub decimals: i32,
