@@ -6,6 +6,8 @@ import { isAddress } from 'viem';
 export const rpcUrl = writable(localStorage.getItem("settings.rpcUrl") || '');
 export const subgraphUrl = writable(localStorage.getItem("settings.subgraphUrl") || '');
 export const orderbookAddress = writable(localStorage.getItem("settings.orderbookAddress") || '');
+export const walletAddress = writable(localStorage.getItem("settings.walletAddress") || '')
+export const walletDerivationIndex = writable(parseInt(localStorage.getItem("settings.walletDerivationIndex") || '0'))
 
 rpcUrl.subscribe(value => {
   localStorage.setItem("settings.rpcUrl", value || '');
@@ -16,10 +18,17 @@ subgraphUrl.subscribe(value => {
 orderbookAddress.subscribe(value => {
   localStorage.setItem("settings.orderbookAddress", value || '');
 });
+walletAddress.subscribe(value => {
+  localStorage.setItem("settings.walletAddress", value || '');
+});
+walletDerivationIndex.subscribe(value => {
+  localStorage.setItem("settings.walletDerivationIndex", (value || 0).toString());
+});
 
 export const isRpcUrlValid = derived(rpcUrl, (val) => isUrlValid(val));
 export const isSubgraphUrlValid = derived(subgraphUrl, (val) => isUrlValid(val));
 export const isOrderbookAddressValid = derived(orderbookAddress, (val) => isAddress(val));
+export const isWalletAddressValid = derived(walletAddress, (val) => isAddress(val));
 
 export const isSettingsDefined = derived([rpcUrl, subgraphUrl, orderbookAddress], (vals) => every(vals.map((v) => v && v.trim().length > 0)));
 export const isSettingsValid = derived([isRpcUrlValid, isSubgraphUrlValid], (vals) => every(vals));

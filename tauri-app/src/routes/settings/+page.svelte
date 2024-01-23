@@ -1,13 +1,16 @@
 <script lang="ts">
-  import { Alert, Heading, Label, Input, Helper, Badge } from 'flowbite-svelte';
+  import { Alert, Heading, Label, Input, Helper, Button } from 'flowbite-svelte';
   import BadgeExternalLink from '$lib/BadgeExternalLink.svelte';
   import {
     rpcUrl,
     subgraphUrl,
     orderbookAddress,
+    walletAddress,
+    walletDerivationIndex,
     isRpcUrlValid,
     isSubgraphUrlValid,
     isOrderbookAddressValid,
+    isWalletAddressValid,
     isSettingsDefinedAndValid,
   } from '$lib/stores/settings';
 </script>
@@ -54,7 +57,31 @@
     <Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
   {/if}
   <Helper class="mt-2 text-sm">
-    The Address of the deployed OrderbookV3 contract. Contact us for help setting up an Orderbook
+    The address of the deployed OrderbookV3 contract. Contact us for help setting up an Orderbook
     deployment.
+  </Helper>
+</div>
+
+<div class="mb-8">
+  <Label class="bold mb-2 block text-xl">Ledger Wallet Address</Label>
+  <Input label="Wallet Address" name="walletAddress" required bind:value={$walletAddress} />
+  {#if !$isWalletAddressValid && $walletAddress.length > 0}
+    <Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
+  {/if}
+  <Helper class="mt-2">
+    <span class="text-sm">The address of your Ledger wallet.</span>
+  </Helper>
+</div>
+
+<div class="mb-8">
+  <Label class="bold mb-2 block text-xl">Ledger Wallet Derivation Index</Label>
+  <Input
+    label="Wallet Derivation Index"
+    name="walletDerivationIndex"
+    required
+    bind:value={$walletDerivationIndex}
+  />
+  <Helper class="mt-2 text-sm">
+    The derivation index of your Ledger wallet address. Leave as the default if you're unsure.
   </Helper>
 </div>
