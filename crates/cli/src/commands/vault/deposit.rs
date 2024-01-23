@@ -11,7 +11,8 @@ pub type Deposit = CliTransactionCommandArgs<CliDepositArgs>;
 
 impl Execute for Deposit {
     async fn execute(&self) -> Result<()> {
-        let tx_args: TransactionArgs = self.transaction_args.clone().into();
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
         let deposit_args: DepositArgs = self.cmd_args.clone().into();
 
         println!("----- Transaction (1/2): Approve ERC20 token spend -----");

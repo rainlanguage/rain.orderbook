@@ -10,7 +10,8 @@ pub type Withdraw = CliTransactionCommandArgs<CliWithdrawArgs>;
 
 impl Execute for Withdraw {
     async fn execute(&self) -> Result<()> {
-        let tx_args: TransactionArgs = self.transaction_args.clone().into();
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
         let withdraw_args: WithdrawArgs = self.cmd_args.clone().into();
 
         println!("----- Withdraw tokens from Vault -----");

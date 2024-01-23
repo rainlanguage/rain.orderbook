@@ -18,7 +18,7 @@ pub struct CliTransactionArgs {
     pub derivation_index: Option<usize>,
 
     #[arg(short, long, help = "Chain ID of the network")]
-    pub chain_id: u64,
+    pub chain_id: Option<u64>,
 
     #[arg(short, long, help = "RPC URL")]
     pub rpc_url: String,
