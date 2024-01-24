@@ -1,10 +1,31 @@
+use std::collections::HashMap;
+use once_cell::sync::Lazy;
+
 use forker::*;
+
+pub static mut FORKS: Lazy<HashMap<String, ForkedEvm>> = Lazy::new(HashMap::new);
 
 #[tauri::command]
 pub async fn fork_call(fork_url: String, fork_block_number: Option<u64>, gas_limit: u64, from: Address, to: Address, calldata: Bytes, value: U256) -> Result<Bytes, String> {
 
-    // fork from the provided url
-    let mut forked_evm = ForkedEvm::new(None, fork_url, fork_block_number, gas_limit);
+    // build key from fork url and block number
+    let key = if let Some(block_number) = fork_block_number {
+        fork_url.clone() + &block_number.to_string()
+    } else {
+        fork_url.clone()
+    };
+
+    // fork from the provided url, if it is cached, use it, if not create it, and cache it in FORKS
+    let forked_evm: &mut ForkedEvm;
+    unsafe {
+        if let Some(v) = FORKS.get_mut(&key) {
+            forked_evm = v;
+        } else {
+            let new_forked_evm = ForkedEvm::new(None, fork_url, fork_block_number, gas_limit);
+            FORKS.insert(key.clone(), new_forked_evm);
+            forked_evm = FORKS.get_mut(&key).unwrap();
+        }
+    }
 
     // call a contract read-only
     let result = forked_evm.call_raw(from, to, calldata, value).map_err(|e| e.to_string())?;
