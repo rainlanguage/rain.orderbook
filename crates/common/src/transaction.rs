@@ -5,15 +5,13 @@ use alloy_ethers_typecast::{
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
 };
-use alloy_primitives::{hex::FromHexError, Address, U256};
+use alloy_primitives::{Address, U256};
 use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum TransactionArgsError {
-    #[error("Parse orderbook address error: {0}")]
-    ParseOrderbookAddress(#[from] FromHexError),
     #[error("Build parameters error: {0}")]
     BuildParameters(#[from] WriteContractParametersBuilderError),
     #[error("Parse Chain ID U256 to u64 error")]
@@ -40,9 +38,10 @@ impl TransactionArgs {
     pub async fn try_into_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
+        contract: Address,
     ) -> Result<WriteContractParameters<T>, TransactionArgsError> {
         WriteContractParametersBuilder::default()
-            .address(self.orderbook_address)
+            .address(contract)
             .call(call)
             .max_priority_fee_per_gas(self.max_priority_fee_per_gas)
             .max_fee_per_gas(self.max_fee_per_gas)

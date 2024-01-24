@@ -2,7 +2,7 @@ use crate::{
     execute::Execute, status::display_write_transaction_status,
     transaction::CliTransactionCommandArgs,
 };
-use alloy_primitives::U256;
+use alloy_primitives::{Address, U256};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
@@ -35,7 +35,7 @@ impl Execute for Deposit {
 #[derive(Args, Clone)]
 pub struct CliDepositArgs {
     #[arg(short, long, help = "The token address in hex format")]
-    token: String,
+    token: Address,
 
     #[arg(short, long, help = "The ID of the vault")]
     vault_id: U256,
