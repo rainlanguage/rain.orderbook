@@ -134,7 +134,6 @@ mod tests {
         let expected = Err("MissingFinalSemi: [Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)]".to_owned());
         assert_eq!(result, expected);
 
-        
         // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1);";
