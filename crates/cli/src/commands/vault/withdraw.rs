@@ -1,6 +1,6 @@
 use crate::status::display_write_transaction_status;
 use crate::{execute::Execute, transaction::CliTransactionCommandArgs};
-use alloy_primitives::U256;
+use alloy_primitives::{Address, U256};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
@@ -27,7 +27,7 @@ impl Execute for Withdraw {
 #[derive(Args, Clone)]
 pub struct CliWithdrawArgs {
     #[arg(short, long, help = "The token address in hex format")]
-    token: String,
+    token: Address,
 
     #[arg(short, long, help = "The ID of the vault")]
     vault_id: U256,
