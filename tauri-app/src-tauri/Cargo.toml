@@ -16,10 +16,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "1f76426cfb228b3d3a65e1358b798c0cf413876b" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", branch = "2024-01-24-fix-ethers-dep" }
 alloy-primitives = "0.5.4"
 typeshare = "1.0.1"
-forker = { git = "https://github.com/rainlanguage/forker", rev = "6f8529cb08f2ded251f5b2ab15b13b90619be1ea" }
+forker = { git = "https://github.com/rainlanguage/forker", rev = "0237cbd71bfdad659aa686ce548009a01124dc38" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
