@@ -19,7 +19,7 @@ rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", branch = "2024-01-24-fix-ethers-dep" }
 alloy-primitives = "0.5.4"
 typeshare = "1.0.1"
-forker = { git = "https://github.com/rainlanguage/forker", rev = "0237cbd71bfdad659aa686ce548009a01124dc38" }
+forker = { git = "https://github.com/rainlanguage/forker", rev = "650fbd03dfe0639b0f7c5513a02ea4c258d9ad68" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

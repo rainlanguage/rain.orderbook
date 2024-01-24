@@ -3,7 +3,7 @@
 
 mod commands;
 use commands::vault::{vault_detail, vaults_list};
-use commands::wallet::get_address_from_ledger;
+// use commands::wallet::get_address_from_ledger;
 use commands::fork::fork_call;
 
 fn main() {
@@ -11,7 +11,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             vaults_list,
             vault_detail,
-            get_address_from_ledger
+            // get_address_from_ledger,
+            fork_call
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

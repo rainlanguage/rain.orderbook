@@ -2616,7 +2616,7 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 [[package]]
 name = "forker"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/forker?rev=0237cbd71bfdad659aa686ce548009a01124dc38#0237cbd71bfdad659aa686ce548009a01124dc38"
+source = "git+https://github.com/rainlanguage/forker?rev=650fbd03dfe0639b0f7c5513a02ea4c258d9ad68#650fbd03dfe0639b0f7c5513a02ea4c258d9ad68"
 dependencies = [
  "ethers 2.0.7 (git+https://github.com/gakonst/ethers-rs)",
  "eyre",
