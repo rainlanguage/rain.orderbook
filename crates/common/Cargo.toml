@@ -20,6 +20,4 @@ alloy-sol-types = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }
+strict-yaml-rust = { workspace = true }

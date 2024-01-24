@@ -1,34 +1,59 @@
 use alloy_primitives::Address;
 use anyhow::Result;
-use dotrain::{parser::RainLangDocument, types::Namespace};
+use dotrain::{parser::RainDocument, types::Namespace};
 use dotrain_interpreter_dispair::DISPair;
 use dotrain_interpreter_parser::ParserV1;
 use rain_interpreter_bindings::IParserV1::parseReturn;
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use std::{convert::TryInto, fs::read_to_string, path::PathBuf};
+use strict_yaml_rust::StrictYamlLoader;
 
 pub struct AddOrderArgs {
-    /// Path to a .rain file
-    pub dotrain_path: PathBuf,
+    /// Body of a Dotrain file describing an addOrder call
+    /// File should have [strict yaml] frontmatter of the following structure
+    /// 
+    /// ```yaml
+    /// orderbook:
+    ///     order:
+    ///         deployer: 0x11111111111111111111111111111111
+    ///         validInputs:
+    ///             - address: 0x22222222222222222222222222222222
+    ///               decimals: 18
+    ///               vaultId: 0x1234
+    ///         validOutputs:
+    ///             - address: 0x55555555555555555555555555555555
+    ///               decimals: 8
+    ///               vaultId: 0x5678
+    /// ```
+    pub dotrain: String,
 }
 
 impl AddOrderArgs {
     async fn try_into_call(self) -> Result<addOrderCall> {
-        let rainlangdoc = RainLangDocument::create(dotrain_body, Namespace::Dispair, None);
+        // Parse file into dotrain document
+        let meta_store = Arc::new(RwLock::new(Store::default()));
+        let raindoc = RainDocument::create(dotrain_body, meta_store);
 
-        // @todo use dotrain parser to extract frontmatter
-        //  - parse frontmatter as yaml
-        //  - read deployer from yaml
-        //  - read validInputs from yaml
-        //  - read validOutputs from yaml
-
+        // Parse dotrain document frontmatter
+        let frontmatter_yaml = StrictYamlLoader::load_from_str(raindoc.front_matter())?
+        let deployer = &frontmatter_yaml[0]["orderbook"]["order"]["deployer"].parse::<Address>()?;
+        let valid_inputs: Vec<IO> = &frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].iter().map(|t| IO {
+            token: t["address"].parse::<Address>()?,
+            decimals: t["decimals"].parse::<u8>()?,
+            vault_id: U256::from_str(t["vaultId"])?,
+        }).collect();
+        let valid_outputs: Vec<IO> = &frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].iter().map(|t| IO {
+            token: t["address"].parse::<Address>()?,
+            decimals: t["decimals"].parse::<u8>()?,
+            vault_id: U256::from_str(t["vaultId"])?,
+        }).collect();
+        
         // Get DISPair addresses
-        let deployer_address = self.deployer.parse::<Address>()?;
-        let dispair = DISPair::from_deployer(deployer_address).await?;
+        let dispair = DISPair::from_deployer(deployer).await?;
 
-        // Parse rainlang into bytecode + constants
+        // Parse rainlang text into bytecode + constants
         let parser: ParserV1 = dispair.into();
-        let rainlang_parsed = parser.parse_text(rainlangdoc.text).await?;
+        let rainlang_parsed = parser.parse_text(raindoc.text()).await?;
 
         // @todo generate valid metadata including rainlangdoc.text
         // meta: arbitrary metadata https://github.com/rainlanguage/rain.metadata
@@ -38,10 +63,10 @@ impl AddOrderArgs {
 
         Ok(addOrderCall {
             config: OrderConfigV2 {
-                validInputs: vec![],
-                validOutputs: vec![],
+                validInputs: valid_inputs,
+                validOutputs: valid_outputs,
                 evaluableConfig: EvaluableConfigV3 {
-                    deployer: deployer_address,
+                    deployer,
                     bytecode: rainlang_parsed.bytecode,
                     constants: rainlang_parsed.constants,
                 },
@@ -63,14 +88,17 @@ mod tests {
     fn test_add_order_args_try_into() {
         let dotrain_text = "
 ---
-- validInputs:
-    - token: 0x0000000000000000000000000000000000000001
-      decimals: 16
-      vaultId: 1
-- validOutputs:
-    - token: 0x0000000000000000000000000000000000000002
-      decimals: 16
-      vaultId: 2
+orderbook:
+    order:
+        deployer: 0x11111111111111111111111111111111
+        validInputs:
+            - token: 0x0000000000000000000000000000000000000001
+            decimals: 16
+            vaultId: 0x1
+        validOutputs:
+            - token: 0x0000000000000000000000000000000000000002
+            decimals: 16
+            vaultId: 0x2
 ---
 start-time: 160000,
 end-time: 160600,
