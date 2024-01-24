@@ -15,14 +15,14 @@ pub enum Orderbook {
     Order(Order),
 
     #[command(subcommand)]
-    Vault(Vault),
+    Vault(Box<Vault>),
 }
 
 impl Orderbook {
     pub async fn execute(self) -> Result<()> {
         match self {
             Orderbook::Order(order) => order.execute().await,
-            Orderbook::Vault(vault) => vault.execute().await,
+            Orderbook::Vault(vault) => (*vault).execute().await,
         }
     }
 }
