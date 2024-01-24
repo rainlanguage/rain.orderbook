@@ -1,11 +1,9 @@
+use alloy_dyn_abi::JsonAbiExt;
+use alloy_json_abi::Error;
 use forker::*;
 use once_cell::sync::Lazy;
+use reqwest::Client;
 use std::{collections::HashMap, sync::Mutex};
-use alloy_dyn_abi::{DynSolType, DynSolValue, JsonAbiExt};
-use alloy_json_abi::Error;
-use reqwest::{Client, Response};
-use serde::{Serialize, Deserialize};
-use alloy_sol_types::{sol, SolCall, SolError, SolType, SolValue};
 
 /// static hashmap of fork evm instances, used for caching instances between runs
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
@@ -42,7 +40,7 @@ pub async fn fork_call(
             .call_raw(from, to, calldata, value)
             .map_err(|e| e.to_string())?
     };
-    
+
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
         Err(decode_error(&result.result).await?)
@@ -56,11 +54,14 @@ async fn decode_error(error_data: &[u8]) -> Result<String, String> {
     let url = "https://api.openchain.xyz/signature-database/v1/lookup";
     let (selector_hash_bytes, args_data) = error_data.split_at(4);
     let selector_hash = alloy_primitives::hex::encode_prefixed(selector_hash_bytes);
-    
+
     let client = Client::builder().build().unwrap();
     let res = client
         .get(url)
-        .query(&vec![("function", selector_hash.as_str()), ("filter", "true")])
+        .query(&vec![
+            ("function", selector_hash.as_str()),
+            ("filter", "true"),
+        ])
         .header("accept", "application/json")
         .send()
         .await
@@ -72,15 +73,15 @@ async fn decode_error(error_data: &[u8]) -> Result<String, String> {
     if let Some(selectors) = res["result"]["function"][selector_hash].as_array() {
         for opt_selector in selectors {
             if let Some(selector) = opt_selector["name"].as_str() {
-            if let Ok(error) = selector.parse::<Error>() {
-                if let Ok(result) = error.abi_decode_input(args_data, false) {
-                    return Ok(format!("{}: {:?}", error.name, result));
+                if let Ok(error) = selector.parse::<Error>() {
+                    if let Ok(result) = error.abi_decode_input(args_data, false) {
+                        return Ok(format!("{}: {:?}", error.name, result));
+                    }
                 }
             }
-            }
         }
-        return Ok("unknown error".to_owned());
+        Ok("unknown error".to_owned())
     } else {
-        return Ok("unknown error".to_owned());
+        Ok("unknown error".to_owned())
     }
 }
