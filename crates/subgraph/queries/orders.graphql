@@ -1,8 +1,5 @@
 query OrdersQuery {
-  orders(
-    orderBy:timestamp,
-    orderDirection:desc 
-  ) {
+  orders(orderBy: timestamp, orderDirection: desc) {
     id
     timestamp
     handleIO

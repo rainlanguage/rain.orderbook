@@ -1,22 +1,26 @@
-use crate::{
-    execute::Execute,
-    transaction::{CliTransactionCommandArgs, ExecuteTransaction},
-};
+use crate::status::display_write_transaction_status;
+use crate::{execute::Execute, transaction::CliTransactionCommandArgs};
+use alloy_primitives::U256;
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
+use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
 
 pub type Withdraw = CliTransactionCommandArgs<CliWithdrawArgs>;
 
 impl Execute for Withdraw {
     async fn execute(&self) -> Result<()> {
-        let mut execute_tx: ExecuteTransaction = self.clone().into();
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
         let withdraw_args: WithdrawArgs = self.cmd_args.clone().into();
-        let withdraw_call: withdrawCall = withdraw_args.try_into()?;
 
-        let ledger_client = execute_tx.connect_ledger().await?;
-        execute_tx.send(ledger_client, withdraw_call).await
+        println!("----- Withdraw tokens from Vault -----");
+        withdraw_args
+            .execute(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+        Ok(())
     }
 }
 
@@ -26,10 +30,10 @@ pub struct CliWithdrawArgs {
     token: String,
 
     #[arg(short, long, help = "The ID of the vault")]
-    vault_id: u64,
+    vault_id: U256,
 
     #[arg(short = 'a', long, help = "The target amount to withdraw")]
-    target_amount: u64,
+    target_amount: U256,
 }
 
 impl From<CliWithdrawArgs> for WithdrawArgs {

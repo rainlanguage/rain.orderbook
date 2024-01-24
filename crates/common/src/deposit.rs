@@ -1,33 +1,94 @@
-use alloy_primitives::{Address, U256};
-use anyhow::Result;
+use crate::error::WritableTransactionExecuteError;
+use crate::transaction::TransactionArgs;
+use alloy_ethers_typecast::transaction::WriteTransaction;
+use alloy_ethers_typecast::{ethers_address_to_alloy, transaction::WriteTransactionStatus};
+use alloy_primitives::{hex::FromHexError, Address, U256};
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DepositArgs {
     pub token: String,
-    pub vault_id: u64,
-    pub amount: u64,
+    pub vault_id: U256,
+    pub amount: U256,
 }
 
 impl TryInto<depositCall> for DepositArgs {
-    type Error = anyhow::Error;
+    type Error = FromHexError;
 
-    fn try_into(self) -> Result<depositCall> {
+    fn try_into(self) -> Result<depositCall, FromHexError> {
         Ok(depositCall {
             token: self.token.parse()?,
-            vaultId: U256::from(self.vault_id),
-            amount: U256::from(self.amount),
+            vaultId: self.vault_id,
+            amount: self.amount,
         })
     }
 }
 
 impl DepositArgs {
-    pub fn try_into_approve_call(self, spender: Address) -> Result<approveCall> {
-        Ok(approveCall {
+    pub fn into_approve_call(self, spender: Address) -> approveCall {
+        approveCall {
             spender,
-            amount: U256::from(self.amount),
-        })
+            amount: self.amount,
+        }
+    }
+
+    /// Execute ERC20 approve call
+    pub async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
+        &self,
+        transaction_args: TransactionArgs,
+        transaction_status_changed: S,
+    ) -> Result<(), WritableTransactionExecuteError> {
+        let ledger_client = transaction_args
+            .clone()
+            .try_into_ledger_client()
+            .await
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+
+        let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
+        let approve_call = self.clone().into_approve_call(ledger_address);
+        let params = transaction_args
+            .try_into_write_contract_parameters(approve_call)
+            .await
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+
+        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+            .execute()
+            .await
+            .map_err(WritableTransactionExecuteError::WritableClient)?;
+
+        Ok(())
+    }
+
+    /// Execute OrderbookV3 deposit call
+    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
+        &self,
+        transaction_args: TransactionArgs,
+        transaction_status_changed: S,
+    ) -> Result<(), WritableTransactionExecuteError> {
+        let ledger_client = transaction_args
+            .clone()
+            .try_into_ledger_client()
+            .await
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+
+        let deposit_call: depositCall = self.clone().try_into().map_err(|_| {
+            WritableTransactionExecuteError::InvalidArgs(
+                "Failed to parse address String into Address".into(),
+            )
+        })?;
+        let params = transaction_args
+            .try_into_write_contract_parameters(deposit_call)
+            .await
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+
+        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+            .execute()
+            .await
+            .map_err(WritableTransactionExecuteError::WritableClient)?;
+
+        Ok(())
     }
 }
 
@@ -40,8 +101,8 @@ mod tests {
     fn test_deposit_args_try_into() {
         let args = DepositArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
-            vault_id: 42,
-            amount: 100,
+            vault_id: U256::from(42),
+            amount: U256::from(100),
         };
 
         let result: Result<depositCall, _> = args.try_into();
@@ -65,23 +126,15 @@ mod tests {
     }
 
     #[test]
-    fn test_deposit_args_try_into_approve_call() {
+    fn test_deposit_args_into_approve_call() {
         let args = DepositArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
-            vault_id: 42,
-            amount: 100,
+            vault_id: U256::from(42),
+            amount: U256::from(100),
         };
         let spender_address = Address::repeat_byte(0x11);
-        let result: Result<approveCall, _> = args.try_into_approve_call(spender_address);
+        let approve_call: approveCall = args.into_approve_call(spender_address);
 
-        match result {
-            Ok(_) => (),
-            Err(e) => panic!("Unexpected error: {}", e),
-        }
-
-        assert!(result.is_ok());
-
-        let approve_call = result.unwrap();
         assert_eq!(approve_call.amount, U256::from(100));
         assert_eq!(
             approve_call.spender,

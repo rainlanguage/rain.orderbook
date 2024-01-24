@@ -1,35 +1,34 @@
 use crate::{
-    execute::Execute,
-    transaction::{CliTransactionCommandArgs, ExecuteTransaction},
+    execute::Execute, status::display_write_transaction_status,
+    transaction::CliTransactionCommandArgs,
 };
-use alloy_ethers_typecast::ethers_address_to_alloy;
+use alloy_primitives::U256;
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
-use rain_orderbook_common::deposit::DepositArgs;
-use tracing::info;
+use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
 
 pub type Deposit = CliTransactionCommandArgs<CliDepositArgs>;
 
 impl Execute for Deposit {
     async fn execute(&self) -> Result<()> {
-        // Prepare deposit call
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
         let deposit_args: DepositArgs = self.cmd_args.clone().into();
-        let deposit_call: depositCall = deposit_args.clone().try_into()?;
 
-        // Prepare approve call
-        let mut execute_tx: ExecuteTransaction = self.clone().into();
-        let ledger_client = execute_tx.connect_ledger().await?;
-        let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
-        let approve_call: approveCall =
-            deposit_args.clone().try_into_approve_call(ledger_address)?;
+        println!("----- Transaction (1/2): Approve ERC20 token spend -----");
+        deposit_args
+            .execute_approve(tx_args.clone(), |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
 
-        info!("Step 1/2: Approve token transfer");
-        execute_tx.send(ledger_client, approve_call).await?;
-
-        info!("Step 2/2: Deposit tokens into vault");
-        let ledger_client = execute_tx.connect_ledger().await?;
-        execute_tx.send(ledger_client, deposit_call).await
+        println!("----- Transaction (2/2): Deposit tokens into Orderbook -----");
+        deposit_args
+            .execute_deposit(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+        Ok(())
     }
 }
 
@@ -39,10 +38,10 @@ pub struct CliDepositArgs {
     token: String,
 
     #[arg(short, long, help = "The ID of the vault")]
-    vault_id: u64,
+    vault_id: U256,
 
     #[arg(short, long, help = "The amount to deposit")]
-    amount: u64,
+    amount: U256,
 }
 
 impl From<CliDepositArgs> for DepositArgs {

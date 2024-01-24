@@ -1,0 +1,7 @@
+[typescript.type_mappings]
+"Id" = "string"
+"BigInt" = "bigint"
+"BigDecimal" = "string"
+"Bytes" = "string"
+"Uuid" = "string"
+"DateTime" = "string"

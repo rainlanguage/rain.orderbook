@@ -18,8 +18,6 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
 
     IRouteProcessor public sRouteProcessor;
 
-    constructor(address deployer) OrderBookV3ArbOrderTaker(deployer) {}
-
     /// @inheritdoc OrderBookV3ArbOrderTaker
     function _beforeInitialize(bytes memory data) internal virtual override {
         (address routeProcessor) = abi.decode(data, (address));

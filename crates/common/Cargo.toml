@@ -16,9 +16,10 @@ dotrain_interpreter_dispair = { workspace = true }
 dotrain_interpreter_parser = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
-anyhow = { workspace = true }
 alloy-sol-types = { workspace = true }
 url = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
