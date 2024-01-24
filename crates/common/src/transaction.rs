@@ -28,7 +28,7 @@ pub enum TransactionArgsError {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TransactionArgs {
-    pub orderbook_address: String,
+    pub orderbook_address: Address,
     pub derivation_index: Option<usize>,
     pub chain_id: Option<u64>,
     pub rpc_url: String,
@@ -41,13 +41,8 @@ impl TransactionArgs {
         &self,
         call: T,
     ) -> Result<WriteContractParameters<T>, TransactionArgsError> {
-        let orderbook_address = self
-            .orderbook_address
-            .parse::<Address>()
-            .map_err(TransactionArgsError::ParseOrderbookAddress)?;
-
         WriteContractParametersBuilder::default()
-            .address(orderbook_address)
+            .address(self.orderbook_address)
             .call(call)
             .max_priority_fee_per_gas(self.max_priority_fee_per_gas)
             .max_fee_per_gas(self.max_fee_per_gas)
