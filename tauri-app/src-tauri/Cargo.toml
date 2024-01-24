@@ -21,6 +21,10 @@ alloy-primitives = "0.5.4"
 typeshare = "1.0.1"
 forker = { git = "https://github.com/rainlanguage/forker", rev = "650fbd03dfe0639b0f7c5513a02ea4c258d9ad68" }
 once_cell = "1.19.0"
+alloy-dyn-abi = "0.5.4"
+alloy-json-abi = "0.5.4"
+alloy-sol-types = { version = "0.5.4", features = ["json"] }
+reqwest = { version = "0.11.22", features = ["json"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
