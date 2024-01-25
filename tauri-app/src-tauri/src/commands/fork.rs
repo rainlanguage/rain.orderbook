@@ -1,5 +1,6 @@
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_json_abi::Error;
+use alloy_sol_types::Selectors;
 use forker::*;
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -8,6 +9,10 @@ use std::{collections::HashMap, sync::Mutex};
 
 /// static hashmap of fork evm instances, used for caching instances between runs
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// hashmap of cached error selectors    
+pub static SELECTORS: Lazy<Mutex<HashMap<Vec<u8>, Error>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[tauri::command]
@@ -41,7 +46,6 @@ pub async fn fork_call(
             .map_err(|e| e.to_string())?
     };
 
-    println!("{:?}", result);
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
         Err(decode_error(&result.result).await?)
@@ -53,11 +57,20 @@ pub async fn fork_call(
 
 /// decodes an error returned from calling a contract by searching its selector in registry
 async fn decode_error(error_data: &[u8]) -> Result<String, String> {
-    let url = "https://api.openchain.xyz/signature-database/v1/lookup";
-    println!("{:?}", error_data);
     let (selector_hash_bytes, args_data) = error_data.split_at(4);
     let selector_hash = alloy_primitives::hex::encode_prefixed(selector_hash_bytes);
 
+    // check if selector already is cached
+    {
+        let selectors = SELECTORS.lock().unwrap();
+        if let Some(error) = selectors.get(selector_hash_bytes) {
+            if let Ok(result) = error.abi_decode_input(args_data, false) {
+                return Ok(format!("{}: {:?}", error.name, result));
+            }
+        }
+    };
+
+    let url = "https://api.openchain.xyz/signature-database/v1/lookup";
     let client = Client::builder().build().unwrap();
     let res = client
         .get(url)
@@ -78,6 +91,11 @@ async fn decode_error(error_data: &[u8]) -> Result<String, String> {
             if let Some(selector) = opt_selector["name"].as_str() {
                 if let Ok(error) = selector.parse::<Error>() {
                     if let Ok(result) = error.abi_decode_input(args_data, false) {
+                        // cache the fetched selector
+                        {
+                            let mut cached_selectors = SELECTORS.lock().unwrap();
+                            cached_selectors.insert(selector_hash_bytes.to_vec(), error.clone());
+                        };
                         return Ok(format!("{}: {:?}", error.name, result));
                     }
                 }
