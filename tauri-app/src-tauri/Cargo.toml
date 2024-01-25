@@ -16,8 +16,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", branch = "2024-01-24-fix-ethers-dep" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "47b2d9f073ff891254af6ece6f0efc140566d3d5" }
 alloy-primitives = "0.5.4"
+alloy-sol-types = "0.5.4"
 typeshare = "1.0.1"
 forker = { git = "https://github.com/rainlanguage/forker", rev = "4108bbb23f167c8a91091453aa442985138f7af3" }
 once_cell = "1.19.0"
@@ -25,6 +26,8 @@ alloy-dyn-abi = "0.5.4"
 alloy-json-abi = "0.5.4"
 alloy-sol-types = { version = "0.5.4", features = ["json"] }
 reqwest = { version = "0.11.22", features = ["json"] }
+chrono = { version = "0.4.32", features = ["serde"] }
+uuid = { version = "1.7.0", features = ["serde"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

@@ -1,4 +1,4 @@
-use alloy_primitives::U256;
+use alloy_primitives::{Address, U256};
 use clap::Args;
 use clap::FromArgMatches;
 use clap::Parser;
@@ -7,7 +7,7 @@ use rain_orderbook_common::transaction::TransactionArgs;
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {
     #[arg(short, long, help = "Orderbook contract address")]
-    pub orderbook_address: String,
+    pub orderbook_address: Address,
 
     #[arg(
         short,
@@ -18,7 +18,7 @@ pub struct CliTransactionArgs {
     pub derivation_index: Option<usize>,
 
     #[arg(short, long, help = "Chain ID of the network")]
-    pub chain_id: u64,
+    pub chain_id: Option<u64>,
 
     #[arg(short, long, help = "RPC URL")]
     pub rpc_url: String,

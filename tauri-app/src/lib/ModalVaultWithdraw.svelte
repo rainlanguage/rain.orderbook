@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { Button, Modal, Label, Helper } from 'flowbite-svelte';
+  import { Button, Modal, Label, Helper, Spinner } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from './InputTokenAmount.svelte';
+  import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
 
   export let open = false;
   export let vault: TokenVault;
   let amount: string = '';
   let amountRaw: bigint = 0n;
   let amountGTBalance: boolean;
+  let isSubmitting = false;
 
   $: {
     try {
@@ -18,6 +20,16 @@
   function reset() {
     amount = '';
     amountRaw = 0n;
+    open = false;
+  }
+
+  async function execute() {
+    isSubmitting = true;
+    try {
+      await vaultWithdraw(vault.vault.vault_id, vault.token.id, amountRaw);
+      reset();
+    } catch (e) {}
+    isSubmitting = false;
   }
 </script>
 
@@ -37,6 +49,15 @@
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
       {vault.token.name}
+    </p>
+  </div>
+
+  <div>
+    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Owner
+    </h5>
+    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+      {vault.owner.id}
     </p>
   </div>
 
@@ -73,12 +94,17 @@
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={() => (open = false)}>Cancel</Button>
+      <Button color="alternative" on:click={reset}>Cancel</Button>
 
       <Button
-        on:click={() => alert('Handle "success"')}
-        disabled={!amountRaw || amountRaw === 0n || amountGTBalance}>Make Withdrawal</Button
+        on:click={execute}
+        disabled={!amountRaw || amountRaw === 0n || amountGTBalance || isSubmitting}
       >
+        {#if isSubmitting}
+          <Spinner class="mr-2 h-4 w-4" color="white" />
+        {/if}
+        Make Withdrawal
+      </Button>
     </div>
   </svelte:fragment>
 </Modal>

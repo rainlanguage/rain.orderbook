@@ -1,8 +1,12 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import checker from 'vite-plugin-checker';
 
 export default defineConfig({
-  plugins: [sveltekit()],
+  plugins: [sveltekit(), checker({
+    typescript: true,
+  })],
+ 
 
   // prevent vite from obscuring rust errors
   clearScreen: false,
