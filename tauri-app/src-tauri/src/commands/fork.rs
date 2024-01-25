@@ -21,7 +21,6 @@ pub async fn fork_call(
     from_address: &[u8],
     to_address: &[u8],
     calldata: &[u8],
-    gas_limit: u64,
 ) -> Result<Result<Bytes, String>, String> {
     let result = {
         // lock static FORKS
@@ -34,7 +33,7 @@ pub async fn fork_call(
         let forked_evm = if let Some(v) = forks.get_mut(&key) {
             v
         } else {
-            let new_forked_evm = ForkedEvm::new(None, fork_url, Some(fork_block_number), gas_limit);
+            let new_forked_evm = ForkedEvm::new(None, fork_url, Some(fork_block_number), 200000u64);
             forks.insert(key.clone(), new_forked_evm);
             forks.get_mut(&key).unwrap()
         };
@@ -128,7 +127,6 @@ mod tests {
 
         let fork_url = "https://rpc.ankr.com/polygon_mumbai".to_owned();
         let fork_block_number = 45122616u64;
-        let gas_limit = 200000u64;
 
         let deployer_address = decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap();
         let parser_address = decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap();
@@ -148,7 +146,6 @@ mod tests {
             &from_address,
             &parser_address,
             &calldata,
-            gas_limit,
         )
         .await;
         let expected = Err("MissingFinalSemi: [Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)]".to_owned());
@@ -165,7 +162,6 @@ mod tests {
             &from_address,
             &parser_address,
             &calldata,
-            gas_limit,
         )
         .await
         .unwrap()
@@ -182,7 +178,6 @@ mod tests {
             &from_address,
             &deployer_address,
             &calldata,
-            gas_limit,
         )
         .await;
         let expected = Err("BadOpInputsLength: [Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256), Uint(0x0000000000000000000000000000000000000000000000000000000000000002_U256, 256), Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)]".to_owned());
