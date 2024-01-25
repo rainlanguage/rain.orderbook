@@ -6,13 +6,21 @@ use reqwest::Client;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
 
+const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-database/v1/lookup";
+
 /// static hashmap of fork evm instances, used for caching instances between runs
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// hashmap of cached error selectors    
-pub static SELECTORS: Lazy<Mutex<HashMap<Vec<u8>, Error>>> =
+pub static SELECTORS: Lazy<Mutex<HashMap<[u8; 4], Error>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum DecodedErrorType {
+    Unknown,
+    Known { name: String, args: Vec<String> },
+}
 
 #[tauri::command]
 pub async fn fork_call(
@@ -21,7 +29,7 @@ pub async fn fork_call(
     from_address: &[u8],
     to_address: &[u8],
     calldata: &[u8],
-) -> Result<Result<Bytes, String>, String> {
+) -> Result<Result<Bytes, DecodedErrorType>, String> {
     let result = {
         // lock static FORKS
         let mut forks = FORKS.lock().unwrap();
@@ -30,18 +38,12 @@ pub async fn fork_call(
         let key = fork_url.to_owned() + &fork_block_number.to_string();
 
         // fork from the provided url, if it is cached, use it, if not create it, and cache it in FORKS
-        let forked_evm = if let Some(v) = forks.get_mut(&key) {
-            v
-        } else {
-            let new_forked_evm = ForkedEvm::new(
-                None,
-                fork_url.to_owned(),
-                Some(fork_block_number),
-                200000u64,
-            );
-            forks.insert(key.clone(), new_forked_evm);
-            forks.get_mut(&key).unwrap()
-        };
+        let forked_evm = forks.entry(key).or_insert(ForkedEvm::new(
+            None,
+            fork_url.to_owned(),
+            Some(fork_block_number),
+            200000u64,
+        ));
 
         // call a contract read-only
         forked_evm
@@ -51,34 +53,38 @@ pub async fn fork_call(
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
-        Err(decode_error(&result.result).await?)
+        Ok(Err(decode_error(&result.result).await?))
     } else {
         Ok(Ok(result.result))
     }
-    // Ok(Ok(()))
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
-async fn decode_error(error_data: &[u8]) -> Result<String, String> {
-    let (selector_hash_bytes, args_data) = error_data.split_at(4);
-    let selector_hash = alloy_primitives::hex::encode_prefixed(selector_hash_bytes);
+async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String> {
+    let (hash_bytes, args_data) = error_data.split_at(4);
+    let selector_hash = alloy_primitives::hex::encode_prefixed(hash_bytes);
+    let selector_hash_bytes: [u8; 4] = hash_bytes
+        .try_into()
+        .or(Err("provided data contains no selector".to_owned()))?;
 
     // check if selector already is cached
     {
         let selectors = SELECTORS.lock().unwrap();
-        if let Some(error) = selectors.get(selector_hash_bytes) {
+        if let Some(error) = selectors.get(&selector_hash_bytes) {
             if let Ok(result) = error.abi_decode_input(args_data, false) {
-                return Ok(format!("{}: {:?}", error.name, result));
+                return Ok(DecodedErrorType::Known {
+                    name: error.name.to_string(),
+                    args: result.iter().map(|v| format!("{:?}", v)).collect(),
+                });
             } else {
-                return Ok("unknown error".to_owned());
+                return Ok(DecodedErrorType::Unknown);
             }
         }
     };
 
-    let url = "https://api.openchain.xyz/signature-database/v1/lookup";
     let client = Client::builder().build().unwrap();
     let response = client
-        .get(url)
+        .get(SELECTOR_REGISTRY_URL)
         .query(&vec![
             ("function", selector_hash.as_str()),
             ("filter", "true"),
@@ -99,16 +105,19 @@ async fn decode_error(error_data: &[u8]) -> Result<String, String> {
                         // cache the fetched selector
                         {
                             let mut cached_selectors = SELECTORS.lock().unwrap();
-                            cached_selectors.insert(selector_hash_bytes.to_vec(), error.clone());
+                            cached_selectors.insert(selector_hash_bytes, error.clone());
                         };
-                        return Ok(format!("{}: {:?}", error.name, result));
+                        return Ok(DecodedErrorType::Known {
+                            name: error.name,
+                            args: result.iter().map(|v| format!("{:?}", v)).collect(),
+                        });
                     }
                 }
             }
         }
-        Ok("unknown error".to_owned())
+        Ok(DecodedErrorType::Unknown)
     } else {
-        Ok("unknown error".to_owned())
+        Ok(DecodedErrorType::Unknown)
     }
 }
 
@@ -121,7 +130,13 @@ mod tests {
     #[tokio::test]
     async fn test_error_decoder() {
         let x = decode_error(&[26, 198, 105, 8]).await;
-        assert_eq!(Ok("UnexpectedOperandValue: []".to_owned()), x);
+        assert_eq!(
+            Ok(DecodedErrorType::Known {
+                name: "UnexpectedOperandValue".to_owned(),
+                args: vec![]
+            }),
+            x
+        );
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -153,7 +168,10 @@ mod tests {
             &calldata,
         )
         .await;
-        let expected = Err("MissingFinalSemi: [Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)]".to_owned());
+        let expected = Ok(Err(DecodedErrorType::Known {
+            name: "MissingFinalSemi".to_owned(),
+            args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()]
+        }));
         assert_eq!(result, expected);
 
         // fixed semi error, but still has bad input problem
@@ -185,7 +203,14 @@ mod tests {
             &calldata,
         )
         .await;
-        let expected = Err("BadOpInputsLength: [Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256), Uint(0x0000000000000000000000000000000000000000000000000000000000000002_U256, 256), Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)]".to_owned());
+        let expected = Ok(Err(DecodedErrorType::Known {
+            name: "BadOpInputsLength".to_owned(),
+            args: vec![
+                "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned(), 
+                "Uint(0x0000000000000000000000000000000000000000000000000000000000000002_U256, 256)".to_owned(), 
+                "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned()
+            ]
+        }));
         assert_eq!(result, expected);
     }
 }
