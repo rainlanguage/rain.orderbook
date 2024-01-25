@@ -1,6 +1,5 @@
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_json_abi::Error;
-use alloy_sol_types::Selectors;
 use forker::*;
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -66,13 +65,15 @@ async fn decode_error(error_data: &[u8]) -> Result<String, String> {
         if let Some(error) = selectors.get(selector_hash_bytes) {
             if let Ok(result) = error.abi_decode_input(args_data, false) {
                 return Ok(format!("{}: {:?}", error.name, result));
+            } else {
+                return Ok("unknown error".to_owned());
             }
         }
     };
 
     let url = "https://api.openchain.xyz/signature-database/v1/lookup";
     let client = Client::builder().build().unwrap();
-    let res = client
+    let response = client
         .get(url)
         .query(&vec![
             ("function", selector_hash.as_str()),
@@ -86,7 +87,7 @@ async fn decode_error(error_data: &[u8]) -> Result<String, String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some(selectors) = res["result"]["function"][selector_hash].as_array() {
+    if let Some(selectors) = response["result"]["function"][selector_hash].as_array() {
         for opt_selector in selectors {
             if let Some(selector) = opt_selector["name"].as_str() {
                 if let Ok(error) = selector.parse::<Error>() {
@@ -133,11 +134,12 @@ mod tests {
         let parser_address = decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap();
         let from_address = decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap();
 
+        // has no semi at the end
         let rainlang_text = r"_: int-add(1)";
         let mut calldata = decode("0xfab4087a").unwrap(); // parse() selector
-        calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
+        calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text to build calldata
 
-        // this is calling parse() that will not run run integrity checks
+        // this is calling parse() that will not run integrity checks
         // in order to run integrity checks another call should be done on
         // expressionDeployer2() of deployer contract with same process
         let result = fork_call(
@@ -157,7 +159,7 @@ mod tests {
         let rainlang_text = r"_: int-add(1);";
         let mut calldata = decode("0xfab4087a").unwrap(); // parse() selector
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
-        let result = fork_call(
+        let expression_config = fork_call(
             fork_url.clone(),
             fork_block_number,
             &from_address,
@@ -170,7 +172,7 @@ mod tests {
         .unwrap();
 
         let mut calldata = decode("0xb7f14403").unwrap(); // deployExpression2(bytes,uint256[]) selector
-        calldata.extend_from_slice(&result); // extend with result of parse() which is expressionConfig
+        calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
         // get integrity check results, if not error indicates that text has no error
         // if ends with error, decode with the selectors
