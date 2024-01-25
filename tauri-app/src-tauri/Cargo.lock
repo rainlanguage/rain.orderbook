@@ -143,7 +143,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=47b2d9f073ff891254af6ece6f0efc140566d3d5#47b2d9f073ff891254af6ece6f0efc140566d3d5"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=cd8ad669bba44e0440a5a1f5186266454e317e6d#cd8ad669bba44e0440a5a1f5186266454e317e6d"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -7386,9 +7386,9 @@ dependencies = [
  "alloy-json-abi",
  "alloy-primitives",
  "alloy-sol-types",
+ "chrono",
  "forker",
  "once_cell",
- "chrono",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
  "reqwest",
