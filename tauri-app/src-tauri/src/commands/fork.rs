@@ -43,10 +43,10 @@ pub async fn fork_call(
 
         // fork from the provided url, if it is cached, use it, if not create it, and cache it in FORKS
         let forked_evm = forks.entry(key).or_insert(ForkedEvm::new(
-            None,
-            fork_url.to_owned(),
+            fork_url,
             Some(fork_block_number),
-            200000u64,
+            Some(200000u64),
+            None,
         ));
 
         // call a contract read-only
