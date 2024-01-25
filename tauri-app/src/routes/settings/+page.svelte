@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, Heading, Label, Input, Helper, Button } from 'flowbite-svelte';
+  import { Alert, Heading, Label, Input, Helper } from 'flowbite-svelte';
   import BadgeExternalLink from '$lib/BadgeExternalLink.svelte';
   import {
     rpcUrl,

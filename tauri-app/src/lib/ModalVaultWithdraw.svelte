@@ -11,11 +11,7 @@
   let amountGTBalance: boolean;
   let isSubmitting = false;
 
-  $: {
-    try {
-      amountGTBalance = amountRaw > vault.balance;
-    } catch (e) {}
-  }
+  $: amountGTBalance = amountRaw > vault.balance;
 
   function reset() {
     amount = '';
@@ -25,10 +21,8 @@
 
   async function execute() {
     isSubmitting = true;
-    try {
-      await vaultWithdraw(vault.vault.vault_id, vault.token.id, amountRaw);
-      reset();
-    } catch (e) {}
+    await vaultWithdraw(vault.vault.vault_id, vault.token.id, amountRaw);
+    reset();
     isSubmitting = false;
   }
 </script>
