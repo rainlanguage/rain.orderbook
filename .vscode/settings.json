@@ -9,17 +9,30 @@
   },
   "[javascript]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true
+      "source.fixAll.eslint": true,
+      "eslint.lintTask.enable": true
     }
   },
   "[typescript]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true
+      "source.fixAll.eslint": true,
+      "eslint.lintTask.enable": true
     }
   },
   "[svelte]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true
+      "source.fixAll.eslint": true,
+      "eslint.lintTask.enable": true
     }
-  }
+  },
+  "[javascript][svelte][typescript]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "eslint.validate": [
+    "svelte",
+    "javascript",
+    "typescript"
+  ]
 }
