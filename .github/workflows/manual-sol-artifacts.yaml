@@ -30,6 +30,8 @@ jobs:
       - run: nix run .#rainix-sol-artifacts
         env:
           ETH_RPC_URL: ${{ inputs.network == 'polygon' && secrets.CI_DEPLOY_POLYGON_RPC_URL || inputs.network == 'songbird' && secrets.CI_DEPLOY_SONGBIRD_RPC_URL || inputs.network == 'flare' && secrets.CI_DEPLOY_FLARE_RPC_URL || '' }}
-          ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-          BLOCKSCOUT_URL: ${{ inputs.network == 'songbird' && 'https://songbird-explorer.flare.network/api' || '' }}
+          # Flare has hardcoded api key https://flarescan.com/documentation/recipes/foundry-verification
+          ETHERSCAN_API_KEY: ${{ inputs.network == 'flare' && 'verifyContract' || secrets.EXPLORER_VERIFICATION_KEY }}
+          DEPLOY_VERIFIER: ${{ inputs.network == 'songbird' && 'blockscout' || 'etherscan' }}
+          DEPLOY_VERIFIER_URL: ${{ inputs.network == 'songbird' && 'https://songbird-explorer.flare.network/api' || inputs.network == flare && 'https://api.routescan.io/v2/network/mainnet/evm/14/etherscan' || '' }}
           EXPRESSION_DEPLOYER: ${{ vars.EXPRESSION_DEPLOYER }}
