@@ -1,26 +1,23 @@
 use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
-use alloy_primitives::{hex::FromHexError, Address, U256};
+use alloy_primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
 use serde::{Deserialize, Serialize};
-use std::convert::TryInto;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct WithdrawArgs {
-    pub token: String,
+    pub token: Address,
     pub vault_id: U256,
     pub target_amount: U256,
 }
 
-impl TryInto<withdrawCall> for WithdrawArgs {
-    type Error = FromHexError;
-
-    fn try_into(self) -> Result<withdrawCall, FromHexError> {
-        Ok(withdrawCall {
-            token: self.token.parse::<Address>()?,
-            vaultId: self.vault_id,
-            targetAmount: self.target_amount,
-        })
+impl From<WithdrawArgs> for withdrawCall {
+    fn from(val: WithdrawArgs) -> Self {
+        withdrawCall {
+            token: val.token,
+            vaultId: val.vault_id,
+            targetAmount: val.target_amount,
+        }
     }
 }
 
@@ -37,13 +34,9 @@ impl WithdrawArgs {
             .await
             .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
-        let withdraw_call: withdrawCall = self.clone().try_into().map_err(|_| {
-            WritableTransactionExecuteError::InvalidArgs(
-                "Failed to parse address String into Address".into(),
-            )
-        })?;
+        let withdraw_call: withdrawCall = self.clone().into();
         let params = transaction_args
-            .try_into_write_contract_parameters(withdraw_call)
+            .try_into_write_contract_parameters(withdraw_call, transaction_args.orderbook_address)
             .await
             .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
@@ -61,23 +54,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_withdraw_args_try_into() {
+    fn test_withdraw_args_into() {
         let args = WithdrawArgs {
-            token: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
+            token: "0x1234567890abcdef1234567890abcdef12345678"
+                .parse::<Address>()
+                .unwrap(),
             vault_id: U256::from(42),
             target_amount: U256::from(100),
         };
 
-        let result: Result<withdrawCall, _> = args.try_into();
-
-        match result {
-            Ok(_) => (),
-            Err(e) => panic!("Unexpected error: {}", e),
-        }
-
-        assert!(result.is_ok());
-
-        let withdraw_call = result.unwrap();
+        let withdraw_call: withdrawCall = args.into();
         assert_eq!(
             withdraw_call.token,
             "0x1234567890abcdef1234567890abcdef12345678"
