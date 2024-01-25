@@ -2,6 +2,7 @@ import { isUrlValid } from '$lib/utils/url';
 import { writable, derived } from 'svelte/store';
 import every from 'lodash/every';
 import { isAddress } from 'viem';
+import { updateChainId } from '$lib/stores/chain';
 
 export const rpcUrl = writable(localStorage.getItem("settings.rpcUrl") || '');
 export const subgraphUrl = writable(localStorage.getItem("settings.subgraphUrl") || '');
@@ -29,6 +30,12 @@ export const isRpcUrlValid = derived(rpcUrl, (val) => isUrlValid(val));
 export const isSubgraphUrlValid = derived(subgraphUrl, (val) => isUrlValid(val));
 export const isOrderbookAddressValid = derived(orderbookAddress, (val) => isAddress(val));
 export const isWalletAddressValid = derived(walletAddress, (val) => isAddress(val));
+
+isRpcUrlValid.subscribe(value => {
+  if(value) {
+    updateChainId();
+  }
+})
 
 export const isSettingsDefined = derived([rpcUrl, subgraphUrl, orderbookAddress], (vals) => every(vals.map((v) => v && v.trim().length > 0)));
 export const isSettingsValid = derived([isRpcUrlValid, isSubgraphUrlValid], (vals) => every(vals));

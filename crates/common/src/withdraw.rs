@@ -35,7 +35,7 @@ impl WithdrawArgs {
             .clone()
             .try_into_ledger_client()
             .await
-            .map_err(WritableTransactionExecuteError::LedgerClient)?;
+            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
 
         let withdraw_call: withdrawCall = self.clone().try_into().map_err(|_| {
             WritableTransactionExecuteError::InvalidArgs(
