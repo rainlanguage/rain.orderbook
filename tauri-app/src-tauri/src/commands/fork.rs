@@ -16,7 +16,7 @@ pub static SELECTORS: Lazy<Mutex<HashMap<Vec<u8>, Error>>> =
 
 #[tauri::command]
 pub async fn fork_call(
-    fork_url: String,
+    fork_url: &str,
     fork_block_number: u64,
     from_address: &[u8],
     to_address: &[u8],
@@ -27,13 +27,18 @@ pub async fn fork_call(
         let mut forks = FORKS.lock().unwrap();
 
         // build key from fork url and block number
-        let key = fork_url.clone() + &fork_block_number.to_string();
+        let key = fork_url.to_owned() + &fork_block_number.to_string();
 
         // fork from the provided url, if it is cached, use it, if not create it, and cache it in FORKS
         let forked_evm = if let Some(v) = forks.get_mut(&key) {
             v
         } else {
-            let new_forked_evm = ForkedEvm::new(None, fork_url, Some(fork_block_number), 200000u64);
+            let new_forked_evm = ForkedEvm::new(
+                None,
+                fork_url.to_owned(),
+                Some(fork_block_number),
+                200000u64,
+            );
             forks.insert(key.clone(), new_forked_evm);
             forks.get_mut(&key).unwrap()
         };
@@ -125,7 +130,7 @@ mod tests {
         // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
         // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
 
-        let fork_url = "https://rpc.ankr.com/polygon_mumbai".to_owned();
+        let fork_url = "https://rpc.ankr.com/polygon_mumbai";
         let fork_block_number = 45122616u64;
 
         let deployer_address = decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap();
@@ -141,7 +146,7 @@ mod tests {
         // in order to run integrity checks another call should be done on
         // expressionDeployer2() of deployer contract with same process
         let result = fork_call(
-            fork_url.clone(),
+            fork_url,
             fork_block_number,
             &from_address,
             &parser_address,
@@ -157,7 +162,7 @@ mod tests {
         let mut calldata = decode("0xfab4087a").unwrap(); // parse() selector
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
-            fork_url.clone(),
+            fork_url,
             fork_block_number,
             &from_address,
             &parser_address,
