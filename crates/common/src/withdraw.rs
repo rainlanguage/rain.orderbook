@@ -1,11 +1,11 @@
+use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{hex::FromHexError, Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
-use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
-
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct WithdrawArgs {
     pub token: String,
     pub vault_id: U256,

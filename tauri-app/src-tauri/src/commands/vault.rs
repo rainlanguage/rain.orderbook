@@ -1,6 +1,7 @@
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
+    withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_queries::types::{
     vault::TokenVault as VaultDetail, vaults::TokenVault as VaultsListItem,
@@ -54,7 +55,7 @@ pub async fn vault_deposit(
         })?;
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Deposit tokens into Orderbook".into(),
+        "Deposit tokens into vault".into(),
         Some(SeriesPosition {
             position: 2,
             total: 2,
@@ -62,6 +63,28 @@ pub async fn vault_deposit(
     );
     deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
+            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+        })
+        .await
+        .map_err(|e| {
+            let text = format!("{}", e);
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
+            text
+        })?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn vault_withdraw(
+    app_handle: AppHandle,
+    withdraw_args: WithdrawArgs,
+    transaction_args: TransactionArgs,
+) -> Result<(), String> {
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), None);
+    withdraw_args
+        .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await

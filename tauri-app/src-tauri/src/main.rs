@@ -6,7 +6,7 @@ pub mod transaction_status;
 
 mod commands;
 use commands::chain::get_chainid;
-use commands::vault::{vault_deposit, vault_detail, vaults_list};
+use commands::vault::{vault_deposit, vault_detail, vault_withdraw, vaults_list};
 use commands::wallet::get_address_from_ledger;
 
 fn main() {
@@ -15,6 +15,7 @@ fn main() {
             vaults_list,
             vault_detail,
             vault_deposit,
+            vault_withdraw,
             get_address_from_ledger,
             get_chainid
         ])
