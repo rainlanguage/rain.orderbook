@@ -1,38 +1,22 @@
 {
   "editor.rulers": [80],
   "svelte.enable-ts-plugin": true,
-
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file"
   },
-  "[javascript]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
-      "eslint.lintTask.enable": true
-    }
-  },
-  "[typescript]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
-      "eslint.lintTask.enable": true
-    }
-  },
-  "[svelte]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
-      "eslint.lintTask.enable": true
-    }
-  },
   "[javascript][svelte][typescript]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.eslint": "explicit",
+      "eslint.lintTask.enable": true
     }
   },
   "eslint.validate": [
-    "svelte",
     "javascript",
-    "typescript"
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "svelte"
   ]
 }
