@@ -9,7 +9,7 @@ license = "CAL-1.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "eb0e02ee40699808fb984461a920286c19a6c754" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "47b2d9f073ff891254af6ece6f0efc140566d3d5" }
 dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "21663b09177b9ebf00cb43da7233fbdd9b63da3a" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
