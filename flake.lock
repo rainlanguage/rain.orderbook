@@ -230,17 +230,17 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1706176137,
-        "narHash": "sha256-ALLW3PorhL6UDlRhrTqOHnM5Wgs0rehxcaWVrrG1VmA=",
+        "lastModified": 1706184415,
+        "narHash": "sha256-uSKGhIfJNZE4iBV5va9iXKcKkY8ST0/OtsCPAyvdWqk=",
         "owner": "rainprotocol",
         "repo": "rainix",
-        "rev": "963e54bd758903f783351d41d054648ca26cd080",
+        "rev": "ba01695e77f179940f07a0758da92a816b83be35",
         "type": "github"
       },
       "original": {
         "owner": "rainprotocol",
         "repo": "rainix",
-        "rev": "963e54bd758903f783351d41d054648ca26cd080",
+        "rev": "ba01695e77f179940f07a0758da92a816b83be35",
         "type": "github"
       }
     },
