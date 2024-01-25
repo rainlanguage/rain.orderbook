@@ -7,6 +7,7 @@ use alloy_ethers_typecast::{
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
 use alloy_sol_types::SolCall;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -25,7 +26,7 @@ pub enum TransactionArgsError {
     LedgerClient(#[from] LedgerClientError),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TransactionArgs {
     pub orderbook_address: String,
     pub derivation_index: Option<usize>,

@@ -17,18 +17,16 @@ impl Execute for Deposit {
 
         println!("----- Transaction (1/2): Approve ERC20 token spend -----");
         deposit_args
-            .execute(
-                tx_args,
-                |status| {
-                    display_write_transaction_status(status);
-                },
-                |status| {
-                    display_write_transaction_status(status);
-                },
-                || {
-                    println!("----- Transaction (2/2): Deposit tokens into Orderbook -----");
-                },
-            )
+            .execute_approve(tx_args.clone(), |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+
+        println!("----- Transaction (2/2): Deposit tokens into Orderbook -----");
+        deposit_args
+            .execute_deposit(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
             .await?;
         Ok(())
     }

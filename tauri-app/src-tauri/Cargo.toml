@@ -18,7 +18,10 @@ rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_queries = { path = "../../crates/subgraph" }
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "47b2d9f073ff891254af6ece6f0efc140566d3d5" }
 alloy-primitives = "0.5.4"
+alloy-sol-types = "0.5.4"
 typeshare = "1.0.1"
+chrono = { version = "0.4.32", features = ["serde"] }
+uuid = { version = "1.7.0", features = ["serde"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

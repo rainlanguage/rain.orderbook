@@ -26,4 +26,15 @@ export async function updateChainId() {
 
 export const activeChain = derived(chainId, (val) => {  
   return find(Object.values(chains), (c) => c.id === val);
+});
+
+export const activeChainHasBlockExplorer = derived(activeChain, (val) => {
+  return val && val.blockExplorers?.default !== undefined;
 })
+
+export function formatBlockExplorerTxUrl(txHash: string) {
+  const c = get(activeChain);
+  if(!c || !c.blockExplorers?.default) return;
+
+  return `${c.blockExplorers?.default.url}/tx/${txHash}`;
+}

@@ -4,9 +4,10 @@ use alloy_ethers_typecast::transaction::WriteTransaction;
 use alloy_ethers_typecast::{ethers_address_to_alloy, transaction::WriteTransactionStatus};
 use alloy_primitives::{hex::FromHexError, Address, U256};
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DepositArgs {
     pub token: String,
     pub vault_id: U256,
@@ -33,28 +34,8 @@ impl DepositArgs {
         }
     }
 
-    pub async fn execute<
-        A: Fn(WriteTransactionStatus<approveCall>),
-        D: Fn(WriteTransactionStatus<depositCall>),
-        S: Fn(),
-    >(
-        &self,
-        transaction_args: TransactionArgs,
-        approve_transaction_status_changed: A,
-        deposit_transaction_status_changed: D,
-        approve_transaction_success: S,
-    ) -> Result<(), WritableTransactionExecuteError> {
-        self.execute_approve(transaction_args.clone(), approve_transaction_status_changed)
-            .await?;
-        (approve_transaction_success)();
-        self.execute_deposit(transaction_args, deposit_transaction_status_changed)
-            .await?;
-
-        Ok(())
-    }
-
     /// Execute ERC20 approve call
-    async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
+    pub async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
@@ -81,7 +62,7 @@ impl DepositArgs {
     }
 
     /// Execute OrderbookV3 deposit call
-    async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
+    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,

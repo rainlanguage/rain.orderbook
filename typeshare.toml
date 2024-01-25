@@ -3,3 +3,5 @@
 "BigInt" = "bigint"
 "BigDecimal" = "string"
 "Bytes" = "string"
+"Uuid" = "string"
+"DateTime" = "string"

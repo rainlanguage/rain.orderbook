@@ -6,6 +6,8 @@
   import Sidebar from '$lib/Sidebar.svelte';
   import { toastsList } from '$lib/stores/toasts';
   import AppToast from '$lib/AppToast.svelte';
+  import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
+  import TransactionStatusNotice from '$lib/TransactionStatusNotice.svelte';
 </script>
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
@@ -15,7 +17,10 @@
     <slot />
   </main>
 
-  <div class="fixed right-5 top-5 z-50">
+  <div class="fixed right-5 top-5 z-50 w-full max-w-md">
+    {#each $transactionStatusNoticesList as transactionStatusNotice}
+      <TransactionStatusNotice {transactionStatusNotice} />
+    {/each}
     {#each $toastsList as toast}
       <AppToast {toast} />
     {/each}

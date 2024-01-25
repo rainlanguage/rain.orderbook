@@ -42,6 +42,15 @@
 
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Owner
+    </h5>
+    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+      {vault.owner.id}
+    </p>
+  </div>
+
+  <div>
+    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Balance
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
@@ -73,7 +82,7 @@
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={() => (open = false)}>Cancel</Button>
+      <Button color="alternative" on:click={reset}>Cancel</Button>
 
       <Button
         on:click={() => alert('Handle "success"')}
