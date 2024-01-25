@@ -19,7 +19,11 @@ pub static SELECTORS: Lazy<Mutex<HashMap<[u8; 4], Error>>> =
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum DecodedErrorType {
     Unknown,
-    Known { name: String, args: Vec<String> },
+    Known {
+        name: String,
+        args: Vec<String>,
+        sig: String,
+    },
 }
 
 #[tauri::command]
@@ -75,6 +79,7 @@ async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String> {
                 return Ok(DecodedErrorType::Known {
                     name: error.name.to_string(),
                     args: result.iter().map(|v| format!("{:?}", v)).collect(),
+                    sig: error.signature(),
                 });
             } else {
                 return Ok(DecodedErrorType::Unknown);
@@ -108,6 +113,7 @@ async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String> {
                             cached_selectors.insert(selector_hash_bytes, error.clone());
                         };
                         return Ok(DecodedErrorType::Known {
+                            sig: error.signature(),
                             name: error.name,
                             args: result.iter().map(|v| format!("{:?}", v)).collect(),
                         });
@@ -133,7 +139,8 @@ mod tests {
         assert_eq!(
             Ok(DecodedErrorType::Known {
                 name: "UnexpectedOperandValue".to_owned(),
-                args: vec![]
+                args: vec![],
+                sig: "UnexpectedOperandValue()".to_owned(),
             }),
             x
         );
@@ -170,7 +177,8 @@ mod tests {
         .await;
         let expected = Ok(Err(DecodedErrorType::Known {
             name: "MissingFinalSemi".to_owned(),
-            args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()]
+            args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()],
+            sig: "MissingFinalSemi(uint256)".to_owned(),
         }));
         assert_eq!(result, expected);
 
@@ -209,7 +217,8 @@ mod tests {
                 "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned(), 
                 "Uint(0x0000000000000000000000000000000000000000000000000000000000000002_U256, 256)".to_owned(), 
                 "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned()
-            ]
+            ],
+            sig: "BadOpInputsLength(uint256,uint256,uint256)".to_owned(),
         }));
         assert_eq!(result, expected);
     }
