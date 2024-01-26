@@ -15,7 +15,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             vaults_list,
             vault_detail,
-            fork_call
+            fork_call,
             vault_deposit,
             vault_withdraw,
             get_address_from_ledger,

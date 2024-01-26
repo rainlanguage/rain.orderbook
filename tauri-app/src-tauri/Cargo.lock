@@ -143,13 +143,13 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=cd8ad669bba44e0440a5a1f5186266454e317e6d#cd8ad669bba44e0440a5a1f5186266454e317e6d"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ed8d9b2c1747684843a3b63bb31343fb40db10c3#ed8d9b2c1747684843a3b63bb31343fb40db10c3"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "async-trait",
  "derive_builder",
- "ethers 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers 2.0.7",
  "serde",
  "serde_json",
  "thiserror",
@@ -2006,29 +2006,14 @@ name = "ethers"
 version = "2.0.7"
 source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47#b730b74a1c8d142d334aef71c949248139dd0d47"
 dependencies = [
- "ethers-addressbook 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-contract 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-middleware 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-signers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-solc 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
-]
-
-[[package]]
-name = "ethers"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "ethers-addressbook 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-contract 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-middleware 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-signers 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-solc 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-addressbook 2.0.7",
+ "ethers-contract 2.0.7",
+ "ethers-core 2.0.7",
+ "ethers-etherscan",
+ "ethers-middleware 2.0.7",
+ "ethers-providers 2.0.7",
+ "ethers-signers 2.0.7",
+ "ethers-solc",
 ]
 
 [[package]]
@@ -2049,18 +2034,7 @@ name = "ethers-addressbook"
 version = "2.0.7"
 source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47#b730b74a1c8d142d334aef71c949248139dd0d47"
 dependencies = [
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "once_cell",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "ethers-addressbook"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-core 2.0.7",
  "once_cell",
  "serde",
  "serde_json",
@@ -2082,29 +2056,11 @@ name = "ethers-contract"
 version = "2.0.7"
 source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47#b730b74a1c8d142d334aef71c949248139dd0d47"
 dependencies = [
- "ethers-contract-abigen 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-contract-derive 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-signers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "futures-util",
- "hex",
- "once_cell",
- "pin-project",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "ethers-contract"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "ethers-contract-abigen 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-contract-derive 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-contract-abigen 2.0.7",
+ "ethers-contract-derive 2.0.7",
+ "ethers-core 2.0.7",
+ "ethers-providers 2.0.7",
+ "ethers-signers 2.0.7",
  "futures-util",
  "hex",
  "once_cell",
@@ -2139,29 +2095,8 @@ source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c
 dependencies = [
  "Inflector",
  "dunce",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "eyre",
- "hex",
- "prettyplease",
- "proc-macro2",
- "quote",
- "regex",
- "serde",
- "serde_json",
- "syn 2.0.48",
- "toml 0.7.8",
- "walkdir",
-]
-
-[[package]]
-name = "ethers-contract-abigen"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "Inflector",
- "dunce",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-core 2.0.7",
+ "ethers-etherscan",
  "eyre",
  "hex",
  "prettyplease",
@@ -2203,23 +2138,8 @@ version = "2.0.7"
 source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47#b730b74a1c8d142d334aef71c949248139dd0d47"
 dependencies = [
  "Inflector",
- "ethers-contract-abigen 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "hex",
- "proc-macro2",
- "quote",
- "serde_json",
- "syn 2.0.48",
-]
-
-[[package]]
-name = "ethers-contract-derive"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "Inflector",
- "ethers-contract-abigen 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-contract-abigen 2.0.7",
+ "ethers-core 2.0.7",
  "hex",
  "proc-macro2",
  "quote",
@@ -2246,35 +2166,6 @@ dependencies = [
 name = "ethers-core"
 version = "2.0.7"
 source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47#b730b74a1c8d142d334aef71c949248139dd0d47"
-dependencies = [
- "arrayvec",
- "bytes",
- "cargo_metadata 0.15.4",
- "chrono",
- "elliptic-curve",
- "ethabi",
- "generic-array",
- "hex",
- "k256",
- "num_enum 0.6.1",
- "once_cell",
- "open-fastrlp",
- "rand 0.8.5",
- "rlp",
- "serde",
- "serde_json",
- "strum 0.24.1",
- "syn 2.0.48",
- "tempfile",
- "thiserror",
- "tiny-keccak",
- "unicode-xid",
-]
-
-[[package]]
-name = "ethers-core"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
 dependencies = [
  "arrayvec",
  "bytes",
@@ -2334,22 +2225,8 @@ name = "ethers-etherscan"
 version = "2.0.7"
 source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47#b730b74a1c8d142d334aef71c949248139dd0d47"
 dependencies = [
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-solc 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "reqwest",
- "semver 1.0.21",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ethers-etherscan"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-core 2.0.7",
+ "ethers-solc",
  "reqwest",
  "semver 1.0.21",
  "serde",
@@ -2365,37 +2242,11 @@ source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c
 dependencies = [
  "async-trait",
  "auto_impl",
- "ethers-contract 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-signers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "futures-channel",
- "futures-locks",
- "futures-util",
- "instant",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-futures",
- "url",
-]
-
-[[package]]
-name = "ethers-middleware"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "async-trait",
- "auto_impl",
- "ethers-contract 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "ethers-signers 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-contract 2.0.7",
+ "ethers-core 2.0.7",
+ "ethers-etherscan",
+ "ethers-providers 2.0.7",
+ "ethers-signers 2.0.7",
  "futures-channel",
  "futures-locks",
  "futures-util",
@@ -2445,41 +2296,7 @@ dependencies = [
  "base64 0.21.7",
  "bytes",
  "enr 0.8.1",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "futures-core",
- "futures-timer",
- "futures-util",
- "hashers",
- "hex",
- "http",
- "instant",
- "once_cell",
- "pin-project",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-futures",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "ws_stream_wasm",
-]
-
-[[package]]
-name = "ethers-providers"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "async-trait",
- "auto_impl",
- "base64 0.21.7",
- "bytes",
- "enr 0.8.1",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-core 2.0.7",
  "futures-core",
  "futures-timer",
  "futures-util",
@@ -2547,28 +2364,10 @@ dependencies = [
  "async-trait",
  "coins-bip32",
  "coins-bip39",
- "elliptic-curve",
- "eth-keystore",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "hex",
- "rand 0.8.5",
- "sha2",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "ethers-signers"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "async-trait",
- "coins-bip32",
- "coins-bip39",
  "coins-ledger",
  "elliptic-curve",
  "eth-keystore",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
+ "ethers-core 2.0.7",
  "futures-executor",
  "futures-util",
  "hex",
@@ -2604,7 +2403,7 @@ source = "git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c
 dependencies = [
  "cfg-if",
  "dunce",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
+ "ethers-core 2.0.7",
  "futures-util",
  "glob",
  "hex",
@@ -2622,36 +2421,6 @@ dependencies = [
  "solang-parser",
  "svm-rs",
  "svm-rs-builds",
- "thiserror",
- "tiny-keccak",
- "tokio",
- "tracing",
- "walkdir",
- "yansi 0.5.1",
-]
-
-[[package]]
-name = "ethers-solc"
-version = "2.0.7"
-source = "git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7#7b7c62327303866319a8b9ea84de517eef70dc09"
-dependencies = [
- "cfg-if",
- "dunce",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs.git?rev=ethers-v2.0.7)",
- "glob",
- "hex",
- "home",
- "md-5",
- "num_cpus",
- "once_cell",
- "path-slash",
- "rayon",
- "regex",
- "semver 1.0.21",
- "serde",
- "serde_json",
- "solang-parser",
- "svm-rs",
  "thiserror",
  "tiny-keccak",
  "tokio",
@@ -2851,10 +2620,10 @@ name = "foundry-abi"
 version = "0.1.0"
 source = "git+https://github.com/rainlanguage/foundry?rev=19df53f98fa9685e6c1317d24383c443bc8f52e0#19df53f98fa9685e6c1317d24383c443bc8f52e0"
 dependencies = [
- "ethers-contract 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-contract-abigen 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
+ "ethers-contract 2.0.7",
+ "ethers-contract-abigen 2.0.7",
+ "ethers-core 2.0.7",
+ "ethers-providers 2.0.7",
  "eyre",
  "foundry-macros",
  "syn 2.0.48",
@@ -2868,11 +2637,11 @@ dependencies = [
  "clap",
  "comfy-table",
  "dunce",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-middleware 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-providers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-solc 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
+ "ethers-core 2.0.7",
+ "ethers-etherscan",
+ "ethers-middleware 2.0.7",
+ "ethers-providers 2.0.7",
+ "ethers-solc",
  "eyre",
  "foundry-config",
  "foundry-macros",
@@ -2897,9 +2666,9 @@ source = "git+https://github.com/rainlanguage/foundry?rev=19df53f98fa9685e6c1317
 dependencies = [
  "Inflector",
  "dirs-next",
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-etherscan 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
- "ethers-solc 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
+ "ethers-core 2.0.7",
+ "ethers-etherscan",
+ "ethers-solc",
  "eyre",
  "figment",
  "globset",
@@ -2927,7 +2696,7 @@ source = "git+https://github.com/rainlanguage/foundry?rev=19df53f98fa9685e6c1317
 dependencies = [
  "auto_impl",
  "bytes",
- "ethers 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
+ "ethers 2.0.7",
  "eyre",
  "foundry-abi",
  "foundry-common",
@@ -2959,7 +2728,7 @@ name = "foundry-macros"
 version = "0.1.0"
 source = "git+https://github.com/rainlanguage/foundry?rev=19df53f98fa9685e6c1317d24383c443bc8f52e0#19df53f98fa9685e6c1317d24383c443bc8f52e0"
 dependencies = [
- "ethers-core 2.0.7 (git+https://github.com/gakonst/ethers-rs?rev=b730b74a1c8d142d334aef71c949248139dd0d47)",
+ "ethers-core 2.0.7",
  "foundry-macros-impl",
  "serde",
  "serde_json",
