@@ -105,7 +105,7 @@ impl AddOrderArgs {
 
         // Parse dotrain document frontmatter
         let frontmatter_yaml = StrictYamlLoader::load_from_str(raindoc.front_matter())
-            .map_err(|e| AddOrderArgsError::FrontmatterInvalidYaml(e))?;
+            .map_err(AddOrderArgsError::FrontmatterInvalidYaml)?;
 
         let deployer = frontmatter_yaml[0]["orderbook"]["order"]["deployer"]
             .as_str()
@@ -120,7 +120,7 @@ impl AddOrderArgs {
 
         // Get DISPair addresses
         let client = ReadableClientHttp::new_from_url(rpc_url)
-            .map_err(|e| AddOrderArgsError::ReadableClientError(e))?;
+            .map_err(AddOrderArgsError::ReadableClientError)?;
 
         // Read parser address from dispair contract
         let dispair = DISPair::from_deployer(deployer, client.clone())
@@ -145,7 +145,7 @@ impl AddOrderArgs {
                 validInputs: valid_inputs,
                 validOutputs: valid_outputs,
                 evaluableConfig: EvaluableConfigV3 {
-                    deployer: deployer,
+                    deployer,
                     bytecode: rainlang_parsed.bytecode,
                     constants: rainlang_parsed.constants,
                 },
@@ -224,7 +224,7 @@ price: sub(start-price mul(rate elapsed))
 ",
         );
         let args = AddOrderArgs { dotrain };
-        let add_order_call: addOrderCall = args.try_into_call().await.unwrap();
+        let add_order_call: addOrderCall = args.try_into_call(String::from("myrpc")).await.unwrap();
 
         assert_eq!(
             add_order_call.config.validInputs[0].token,
