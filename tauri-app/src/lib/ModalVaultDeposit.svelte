@@ -19,10 +19,8 @@
 
   async function execute() {
     isSubmitting = true;
-    try {
-      await vaultDeposit(vault.vault.vault_id, vault.token.id, amountRaw);
-      reset();
-    } catch (e) {}
+    await vaultDeposit(vault.vault.vault_id, vault.token.id, amountRaw);
+    reset();
     isSubmitting = false;
   }
 </script>

@@ -24,7 +24,7 @@ export async function updateChainId() {
   }
 }
 
-export const activeChain = derived(chainId, (val) => {  
+export const activeChain = derived(chainId, (val) => {
   return find(Object.values(chains), (c) => c.id === val);
 });
 
