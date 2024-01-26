@@ -1,12 +1,12 @@
 use crate::{
-    execute::Execute,
-    transaction::{CliTransactionCommandArgs, ExecuteTransaction},
+    execute::Execute, status::display_write_transaction_status,
+    transaction::CliTransactionCommandArgs,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Args;
-use rain_orderbook_bindings::IOrderBookV3::addOrderCall;
 use rain_orderbook_common::add_order::AddOrderArgs;
-use std::fs::File;
+use rain_orderbook_common::transaction::TransactionArgs;
+use std::fs::read_to_string;
 use std::path::PathBuf;
 
 pub type AddOrder = CliTransactionCommandArgs<CliAddOrderArgs>;
@@ -14,11 +14,16 @@ pub type AddOrder = CliTransactionCommandArgs<CliAddOrderArgs>;
 impl Execute for AddOrder {
     async fn execute(&self) -> Result<()> {
         let add_order_args: AddOrderArgs = self.cmd_args.clone().try_into()?;
-        let add_order_call: addOrderCall = add_order_args.try_into()?;
-        let mut execute_tx: ExecuteTransaction = self.clone().into();
+        let tx_args: TransactionArgs = self.transaction_args.clone().into();
 
-        let ledger_client = execute_tx.connect_ledger().await?;
-        execute_tx.send(ledger_client, add_order_call).await
+        println!("----- Add Order -----");
+        add_order_args
+            .execute(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -33,11 +38,10 @@ pub struct CliAddOrderArgs {
 }
 
 impl TryFrom<CliAddOrderArgs> for AddOrderArgs {
-    fn try_from(val: CliAddOrderArgs) -> Result<Self> {
-        let mut file = File::open(val.dotrain_path)?;
-        let mut text = String::new();
-        file.read_to_string(&mut text)?;
+    type Error = anyhow::Error;
 
-        Self { dotrain: text }
+    fn try_from(val: CliAddOrderArgs) -> Result<Self> {
+        let text = read_to_string(val.dotrain_path).map_err(|e| anyhow!(e))?;
+        Ok(Self { dotrain: text })
     }
 }
