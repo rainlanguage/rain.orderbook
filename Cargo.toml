@@ -31,13 +31,10 @@ typeshare = "1.0.1"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
 dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "21663b09177b9ebf00cb43da7233fbdd9b63da3a" }
-rain-meta = { git = "https://github.com/rainlanguage/rain.metadata.git", rev = "23055ef777a5476d83232dcf33e487e8805aef78", package = "rain-meta" }
-
-# rain.interpreter crates are read from submodules, so we can ensure the `forge build` is run on the bindings crate before `cargo build` is run
+rain-meta = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
 rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
-
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
