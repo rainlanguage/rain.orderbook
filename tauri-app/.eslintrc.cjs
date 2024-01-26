@@ -12,7 +12,7 @@ module.exports = {
   parserOptions: {
     sourceType: 'module',
     ecmaVersion: 2020,
-    extraFileExtensions: ['.svelte']
+    extraFileExtensions: ['.svelte', '.ts']
   },
   env: {
     browser: true,
@@ -27,5 +27,9 @@ module.exports = {
         parser: '@typescript-eslint/parser'
       }
     }
-  ]
+  ],
+  rules: {
+    'no-console': 'error',
+    'no-trailing-spaces': 'error'
+  }
 };

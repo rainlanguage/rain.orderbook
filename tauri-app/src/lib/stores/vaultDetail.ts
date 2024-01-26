@@ -15,7 +15,7 @@ function useVaultDetailStore() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({}));
     }
   });
-  
+
   async function refetch(id: string) {
     const res: VaultDetail = await invoke("vault_detail", {id, subgraphArgs: { url: get(subgraphUrl)} });
     update((value) => {
