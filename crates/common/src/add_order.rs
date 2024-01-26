@@ -1,17 +1,59 @@
-use alloy_primitives::Address;
-use anyhow::Result;
-use dotrain::{parser::RainDocument, types::Namespace};
-use dotrain_interpreter_dispair::DISPair;
-use dotrain_interpreter_parser::ParserV1;
-use rain_interpreter_bindings::IParserV1::parseReturn;
-use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
-use std::{convert::TryInto, fs::read_to_string, path::PathBuf};
-use strict_yaml_rust::StrictYamlLoader;
+use crate::transaction::{TransactionArgs, TransactionArgsError};
+use alloy_ethers_typecast::transaction::{
+    ReadableClientError, ReadableClientHttp, WritableClientError, WriteTransaction,
+    WriteTransactionStatus,
+};
+use alloy_primitives::{Address, U256};
+use dotrain::{RainDocument, Store};
+use rain_interpreter_dispair::{DISPair, DISPairError};
+use rain_interpreter_parser::{Parser, ParserError, ParserV1};
+use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO};
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AddOrderArgsError {
+    #[error("frontmatter is not valid strict yaml: {0}")]
+    FrontmatterInvalidYaml(#[from] ScanError),
+    #[error("deployer field is not a valid Address")]
+    FrontmatterDeployerInvalid,
+    #[error("validInputs field is not a valid array")]
+    FrontmatterInputsInvalid,
+    #[error("validOutputs field is not a valid array")]
+    FrontmatterOutputsInvalid,
+    #[error("validInputs or validOutputs is not a valid dict")]
+    FrontmatterIOInvalid,
+    #[error("token field is missing")]
+    FrontmatterIOTokenMissing,
+    #[error("token field is invalid")]
+    FrontmatterIOTokenInvalid,
+    #[error("decimals field is missing")]
+    FrontmatterIODecimalsMissing,
+    #[error("decimals field is not a valid u8")]
+    FrontmatterIODecimalsInvalid,
+    #[error("vaultId field is missing")]
+    FrontmatterIOVaultIdMissing,
+    #[error("vaultId field is not a valid U256")]
+    FrontmatterIOVaultIdInvalid,
+    #[error(transparent)]
+    DISPairError(#[from] DISPairError),
+    #[error(transparent)]
+    ReadableClientError(#[from] ReadableClientError),
+    #[error(transparent)]
+    ParserError(#[from] ParserError),
+    #[error(transparent)]
+    FromHexError(#[from] alloy_primitives::hex::FromHexError),
+    #[error(transparent)]
+    WritableClientError(#[from] WritableClientError),
+    #[error("TransactionArgs error: {0}")]
+    TransactionArgs(#[from] TransactionArgsError),
+}
 
 pub struct AddOrderArgs {
     /// Body of a Dotrain file describing an addOrder call
     /// File should have [strict yaml] frontmatter of the following structure
-    /// 
+    ///
     /// ```yaml
     /// orderbook:
     ///     order:
@@ -29,31 +71,68 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    async fn try_into_call(self) -> Result<addOrderCall> {
+    fn parse_io(&self, io_yamls: StrictYaml) -> Result<Vec<IO>, AddOrderArgsError> {
+        io_yamls
+            .into_vec()
+            .ok_or(AddOrderArgsError::FrontmatterInputsInvalid)?
+            .into_iter()
+            .map(|io_yaml| -> Result<IO, AddOrderArgsError> {
+                Ok(IO {
+                    token: io_yaml["token"]
+                        .as_str()
+                        .ok_or(AddOrderArgsError::FrontmatterIOTokenMissing)?
+                        .parse::<Address>()
+                        .map_err(|_| AddOrderArgsError::FrontmatterIOTokenInvalid)?,
+                    decimals: io_yaml["decimals"]
+                        .as_str()
+                        .ok_or(AddOrderArgsError::FrontmatterIODecimalsMissing)?
+                        .parse::<u8>()
+                        .map_err(|_| AddOrderArgsError::FrontmatterIODecimalsInvalid)?,
+                    vaultId: io_yaml["vaultId"]
+                        .as_str()
+                        .ok_or(AddOrderArgsError::FrontmatterIOVaultIdMissing)?
+                        .parse::<U256>()
+                        .map_err(|_| AddOrderArgsError::FrontmatterIOVaultIdInvalid)?,
+                })
+            })
+            .collect::<Result<Vec<IO>, AddOrderArgsError>>()
+    }
+
+    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
         // Parse file into dotrain document
         let meta_store = Arc::new(RwLock::new(Store::default()));
-        let raindoc = RainDocument::create(dotrain_body, meta_store);
+        let raindoc = RainDocument::create(self.dotrain.clone(), Some(meta_store));
 
         // Parse dotrain document frontmatter
-        let frontmatter_yaml = StrictYamlLoader::load_from_str(raindoc.front_matter())?
-        let deployer = &frontmatter_yaml[0]["orderbook"]["order"]["deployer"].parse::<Address>()?;
-        let valid_inputs: Vec<IO> = &frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].iter().map(|t| IO {
-            token: t["address"].parse::<Address>()?,
-            decimals: t["decimals"].parse::<u8>()?,
-            vault_id: U256::from_str(t["vaultId"])?,
-        }).collect();
-        let valid_outputs: Vec<IO> = &frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].iter().map(|t| IO {
-            token: t["address"].parse::<Address>()?,
-            decimals: t["decimals"].parse::<u8>()?,
-            vault_id: U256::from_str(t["vaultId"])?,
-        }).collect();
-        
+        let frontmatter_yaml = StrictYamlLoader::load_from_str(raindoc.front_matter())
+            .map_err(|e| AddOrderArgsError::FrontmatterInvalidYaml(e))?;
+
+        let deployer = frontmatter_yaml[0]["orderbook"]["order"]["deployer"]
+            .as_str()
+            .ok_or(AddOrderArgsError::FrontmatterDeployerInvalid)?
+            .parse::<Address>()
+            .map_err(|_| AddOrderArgsError::FrontmatterDeployerInvalid)?;
+
+        let valid_inputs: Vec<IO> =
+            self.parse_io(frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].clone())?;
+        let valid_outputs: Vec<IO> =
+            self.parse_io(frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone())?;
+
         // Get DISPair addresses
-        let dispair = DISPair::from_deployer(deployer).await?;
+        let client = ReadableClientHttp::new_from_url(rpc_url)
+            .map_err(|e| AddOrderArgsError::ReadableClientError(e))?;
+
+        // Read parser address from dispair contract
+        let dispair = DISPair::from_deployer(deployer, client.clone())
+            .await
+            .map_err(AddOrderArgsError::DISPairError)?;
 
         // Parse rainlang text into bytecode + constants
         let parser: ParserV1 = dispair.into();
-        let rainlang_parsed = parser.parse_text(raindoc.text()).await?;
+        let rainlang_parsed = parser
+            .parse_text(raindoc.body(), client)
+            .await
+            .map_err(AddOrderArgsError::ParserError)?;
 
         // @todo generate valid metadata including rainlangdoc.text
         // meta: arbitrary metadata https://github.com/rainlanguage/rain.metadata
@@ -66,7 +145,7 @@ impl AddOrderArgs {
                 validInputs: valid_inputs,
                 validOutputs: valid_outputs,
                 evaluableConfig: EvaluableConfigV3 {
-                    deployer,
+                    deployer: deployer,
                     bytecode: rainlang_parsed.bytecode,
                     constants: rainlang_parsed.constants,
                 },
@@ -74,19 +153,45 @@ impl AddOrderArgs {
             },
         })
     }
+
+    pub async fn execute<S: Fn(WriteTransactionStatus<addOrderCall>)>(
+        &self,
+        transaction_args: TransactionArgs,
+        transaction_status_changed: S,
+    ) -> Result<(), AddOrderArgsError> {
+        let ledger_client = transaction_args
+            .clone()
+            .try_into_ledger_client()
+            .await
+            .map_err(AddOrderArgsError::TransactionArgs)?;
+
+        let add_order_call = self
+            .try_into_call(transaction_args.clone().rpc_url)
+            .await
+            .unwrap();
+        let params = transaction_args
+            .try_into_write_contract_parameters(add_order_call, transaction_args.orderbook_address)
+            .await
+            .map_err(AddOrderArgsError::TransactionArgs)?;
+
+        WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
+            .execute()
+            .await
+            .map_err(AddOrderArgsError::WritableClientError)?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::Write;
-
     use super::*;
     use alloy_primitives::{hex, Address, U256};
-    use tempfile::NamedTempFile;
 
-    #[test]
-    fn test_add_order_args_try_into() {
-        let dotrain_text = "
+    #[tokio::test]
+    async fn test_add_order_args_try_into() {
+        let dotrain = String::from(
+            "
 ---
 orderbook:
     order:
@@ -116,26 +221,11 @@ elapsed: sub(now() start-time),
 
 max-amount: 1000e18,
 price: sub(start-price mul(rate elapsed))
-";
-        let mut dotrain_file = NamedTempFile::new().unwrap();
-        dotrain_file.reopen().unwrap();
-        dotrain_file.write_all(dotrain_text.as_bytes()).unwrap();
+",
+        );
+        let args = AddOrderArgs { dotrain };
+        let add_order_call: addOrderCall = args.try_into_call().await.unwrap();
 
-        let args = AddOrderArgs {
-            dotrain_path: PathBuf::from(dotrain_file.path()),
-            deployer: Address::repeat_byte(0x11).to_string(),
-        };
-
-        let result: Result<addOrderCall, _> = args.try_into();
-
-        match result {
-            Ok(_) => (),
-            Err(e) => panic!("Unexpected error: {}", e),
-        }
-
-        assert!(result.is_ok());
-
-        let add_order_call = result.unwrap();
         assert_eq!(
             add_order_call.config.validInputs[0].token,
             "0x0000000000000000000000000000000000000001"
