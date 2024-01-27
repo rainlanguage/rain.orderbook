@@ -118,17 +118,15 @@ impl AddOrderArgs {
         let valid_outputs: Vec<IO> =
             self.parse_io(frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone())?;
 
-        // Get DISPair addresses
+        // Read parser address from dispair contract
         let client = ReadableClientHttp::new_from_url(rpc_url)
             .map_err(AddOrderArgsError::ReadableClientError)?;
-
-        // Read parser address from dispair contract
         let dispair = DISPair::from_deployer(deployer, client.clone())
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
         // Parse rainlang text into bytecode + constants
-        let parser: ParserV1 = dispair.into();
+        let parser: ParserV1 = dispair.clone().into();
         let rainlang_parsed = parser
             .parse_text(raindoc.body(), client)
             .await
@@ -167,8 +165,7 @@ impl AddOrderArgs {
 
         let add_order_call = self
             .try_into_call(transaction_args.clone().rpc_url)
-            .await
-            .unwrap();
+            .await?;
         let params = transaction_args
             .try_into_write_contract_parameters(add_order_call, transaction_args.orderbook_address)
             .await
