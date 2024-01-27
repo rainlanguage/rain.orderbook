@@ -154,6 +154,8 @@ mod tests {
     const DEPLOYER_ADDRESS: &str = "0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b";
     const PARSER_ADDRESS: &str = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02";
     const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
+    const DEPLOY_EXPRESSION_2_SELECTOR: &str = "0xb7f14403"; // deployExpression2(bytes,uint256[])
+    const PARSE_SELECTOR: &str = "0xfab4087a"; // parse()
 
     #[tokio::test]
     async fn test_error_decoder() {
@@ -172,7 +174,7 @@ mod tests {
     async fn test_fork_call_parse_fail_parse() {
         // has no semi at the end
         let rainlang_text = r"_: int-add(1)";
-        let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
+        let mut calldata = ByteBuf::from(decode(PARSE_SELECTOR).unwrap());
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text to build calldata
 
         // this is calling parse() that will not run integrity checks
@@ -199,7 +201,7 @@ mod tests {
         // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1);";
-        let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
+        let mut calldata = ByteBuf::from(decode(PARSE_SELECTOR).unwrap());
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
             FORK_URL,
@@ -212,7 +214,7 @@ mod tests {
         .unwrap()
         .unwrap();
 
-        let mut calldata = ByteBuf::from(decode("0xb7f14403").unwrap()); // deployExpression2(bytes,uint256[]) selector
+        let mut calldata = ByteBuf::from(decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap());
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
         // get integrity check results, if ends with error, decode with the selectors
@@ -240,7 +242,7 @@ mod tests {
     async fn test_fork_call_parse_success() {
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1 2);";
-        let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
+        let mut calldata = ByteBuf::from(decode(PARSE_SELECTOR).unwrap());
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
             FORK_URL,
@@ -253,7 +255,7 @@ mod tests {
         .unwrap()
         .unwrap();
 
-        let mut calldata = ByteBuf::from(decode("0xb7f14403").unwrap()); // deployExpression2(bytes,uint256[]) selector
+        let mut calldata = ByteBuf::from(decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap());
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
         // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
