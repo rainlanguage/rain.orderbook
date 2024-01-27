@@ -11,7 +11,7 @@
   let amountGTBalance: boolean;
   let isSubmitting = false;
 
-  $: amountGTBalance = amountRaw > vault.balance;
+  $: amountGTBalance = vault !== undefined && amountRaw > vault.balance;
 
   function reset() {
     amount = '';
