@@ -7,30 +7,24 @@
 
   export let open = false;
 
-  let vaultId: string = '';
-  let vaultIdRaw: bigint = 0n;
+  let vaultId: bigint = 0n;
   let tokenAddress: string = '';
-  let tokenDecimals: string = '';
-  let tokenDecimalsRaw: number = 0;
-  let amount: string = '';
-  let amountRaw: bigint;
+  let tokenDecimals: number = 0;
+  let amount: bigint;
   let isSubmitting = false;
 
   function reset() {
-    vaultId = '';
-    vaultIdRaw = 0n;
+    vaultId = 0n;
     tokenAddress = '';
-    tokenDecimals = '';
-    tokenDecimalsRaw = 0;
-    amount = '';
-    amountRaw = 0n;
+    tokenDecimals = 0;
+    amount = 0n;
     isSubmitting = false;
     open = false;
   }
 
   async function execute() {
     isSubmitting = true;
-    await vaultDeposit(vaultIdRaw, tokenAddress, amountRaw);
+    await vaultDeposit(vaultId, tokenAddress, amount);
     reset();
     isSubmitting = false;
   }
@@ -41,18 +35,14 @@
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
     </h5>
-    <InputVaultId bind:value={vaultId} bind:valueRaw={vaultIdRaw} />
+    <InputVaultId bind:value={vaultId} />
   </div>
 
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Token
     </h5>
-    <InputToken
-      bind:address={tokenAddress}
-      bind:decimals={tokenDecimals}
-      bind:decimalsRaw={tokenDecimalsRaw}
-    />
+    <InputToken bind:address={tokenAddress} bind:decimals={tokenDecimals} />
   </div>
 
   <div class="mb-6">
@@ -62,13 +52,13 @@
     >
       Amount
     </Label>
-    <InputTokenAmount bind:value={amount} bind:valueRaw={amountRaw} decimals={tokenDecimalsRaw} />
+    <InputTokenAmount bind:value={amount} decimals={tokenDecimals} />
   </div>
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amountRaw || amountRaw === 0n || isSubmitting}>
+      <Button on:click={execute} disabled={!amount || amount === 0n || isSubmitting}>
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />
         {/if}

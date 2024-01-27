@@ -6,22 +6,20 @@
 
   export let open = false;
   export let vault: TokenVault;
-  let amount: string = '';
-  let amountRaw: bigint = 0n;
+  let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;
 
-  $: amountGTBalance = vault !== undefined && amountRaw > vault.balance;
+  $: amountGTBalance = vault !== undefined && amount > vault.balance;
 
   function reset() {
-    amount = '';
-    amountRaw = 0n;
+    amount = 0n;
     open = false;
   }
 
   async function execute() {
     isSubmitting = true;
-    await vaultWithdraw(vault.vault.vault_id, vault.token.id, amountRaw);
+    await vaultWithdraw(vault.vault.vault_id, vault.token.id, amount);
     reset();
     isSubmitting = false;
   }
@@ -73,10 +71,9 @@
     </Label>
     <InputTokenAmount
       bind:value={amount}
-      bind:valueRaw={amountRaw}
       symbol={vault.token.symbol}
       decimals={vault.token.decimals}
-      maxValueRaw={vault.balance}
+      maxValue={vault.balance}
     />
 
     <Helper color="red" class="h-6 text-sm">
@@ -92,7 +89,7 @@
 
       <Button
         on:click={execute}
-        disabled={!amountRaw || amountRaw === 0n || amountGTBalance || isSubmitting}
+        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
       >
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />

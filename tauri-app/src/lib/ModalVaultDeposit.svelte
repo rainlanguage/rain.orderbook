@@ -6,20 +6,18 @@
 
   export let open = false;
   export let vault: TokenVault;
-  let amount: string = '';
-  let amountRaw: bigint;
+  let amount: bigint;
   let isSubmitting = false;
 
   function reset() {
-    amount = '';
-    amountRaw = 0n;
+    amount = 0n;
     isSubmitting = false;
     open = false;
   }
 
   async function execute() {
     isSubmitting = true;
-    await vaultDeposit(vault.vault.vault_id, vault.token.id, amountRaw);
+    await vaultDeposit(vault.vault.vault_id, vault.token.id, amount);
     reset();
     isSubmitting = false;
   }
@@ -75,7 +73,6 @@
     <ButtonGroup class="w-full">
       <InputTokenAmount
         bind:value={amount}
-        bind:valueRaw={amountRaw}
         symbol={vault.token.symbol}
         decimals={vault.token.decimals}
       />
@@ -85,7 +82,7 @@
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amountRaw || amountRaw === 0n || isSubmitting}>
+      <Button on:click={execute} disabled={!amount || amount === 0n || isSubmitting}>
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />
         {/if}
