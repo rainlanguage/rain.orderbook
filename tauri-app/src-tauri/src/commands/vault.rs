@@ -43,16 +43,14 @@ pub async fn vault_deposit(
             total: 2,
         }),
     );
-    deposit_args
+    let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await
         .map_err(|e| {
-            let text = format!("{}", e);
             tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
-            text
-        })?;
+        });
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
         "Deposit tokens into vault".into(),
@@ -61,16 +59,14 @@ pub async fn vault_deposit(
             total: 2,
         }),
     );
-    deposit_args
+    let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await
         .map_err(|e| {
-            let text = format!("{}", e);
             tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
-            text
-        })?;
+        });
 
     Ok(())
 }
@@ -83,16 +79,14 @@ pub async fn vault_withdraw(
 ) -> Result<(), String> {
     let tx_status_notice =
         TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), None);
-    withdraw_args
+    let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await
         .map_err(|e| {
-            let text = format!("{}", e);
             tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
-            text
-        })?;
+        });
 
     Ok(())
 }

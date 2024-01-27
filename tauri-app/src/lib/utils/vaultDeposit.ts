@@ -2,8 +2,6 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl, orderbookAddress, walletDerivationIndex } from '../stores/settings';
 import { chainId } from '$lib/stores/chain';
-import { toasts } from '$lib/stores/toasts';
-import { ToastMessageType } from '$lib/typeshare/toast';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
   try {
@@ -22,10 +20,6 @@ export async function vaultDeposit(vaultId: bigint, token: string, amount: bigin
         max_fee_per_gas: '400000000000',
       }
     });
-  }  catch(e) {
-    toasts.add({
-      message_type: ToastMessageType.Error,
-      text: e as string
-    });
-  }
+  // eslint-disable-next-line no-empty
+  } catch(e) { }
 };
