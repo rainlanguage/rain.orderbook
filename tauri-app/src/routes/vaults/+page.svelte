@@ -11,9 +11,21 @@
   } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { vaultsList } from '$lib/stores/vaultsList';
+  import ModalVaultDepositGeneric from '$lib/ModalVaultDepositGeneric.svelte';
+  import ModalVaultWithdrawGeneric from '$lib/ModalVaultWithdrawGeneric.svelte';
+
+  let showDepositModal = false;
+  let showWithdrawModal = false;
 
   function gotoVault(id: string) {
     goto(`/vaults/${id}`);
+  }
+
+  function toggleDepositModal() {
+    showDepositModal = !showDepositModal;
+  }
+  function toggleWithdrawModal() {
+    showWithdrawModal = !showWithdrawModal;
   }
 
   redirectIfSettingsNotDefined();
@@ -56,3 +68,6 @@
     </TableBody>
   </Table>
 {/if}
+
+<ModalVaultDepositGeneric bind:open={showDepositModal} />
+<ModalVaultWithdrawGeneric bind:open={showWithdrawModal} />
