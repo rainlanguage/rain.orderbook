@@ -4,6 +4,7 @@ use forker::*;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use revm::primitives::Bytes;
+use serde_bytes::ByteBuf;
 use std::{collections::HashMap, sync::Mutex};
 
 const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-database/v1/lookup";
@@ -30,9 +31,9 @@ pub enum DecodedErrorType {
 pub async fn fork_call(
     fork_url: &str,
     fork_block_number: u64,
-    from_address: &[u8],
-    to_address: &[u8],
-    calldata: &[u8],
+    from_address: ByteBuf,
+    to_address: ByteBuf,
+    calldata: ByteBuf,
 ) -> Result<Result<Bytes, DecodedErrorType>, String> {
     // build key from fork url and block number
     let key = fork_url.to_owned() + &fork_block_number.to_string();
@@ -45,7 +46,11 @@ pub async fn fork_call(
 
         // call a contract read-only
         forked_evm
-            .call(from_address, to_address, calldata)
+            .call(
+                from_address.as_slice(),
+                to_address.as_slice(),
+                calldata.as_slice(),
+            )
             .map_err(|e| e.to_string())?
     } else {
         let mut forked_evm =
@@ -53,7 +58,11 @@ pub async fn fork_call(
 
         // call a contract read-only
         let res = forked_evm
-            .call(from_address, to_address, calldata)
+            .call(
+                from_address.as_slice(),
+                to_address.as_slice(),
+                calldata.as_slice(),
+            )
             .map_err(|e| e.to_string())?;
 
         // lock static FORKS
@@ -162,13 +171,16 @@ mod tests {
         let fork_url = "https://rpc.ankr.com/polygon_mumbai";
         let fork_block_number = 45122616u64;
 
-        let deployer_address = decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap();
-        let parser_address = decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap();
-        let from_address = decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap();
+        let deployer_address =
+            ByteBuf::from(decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap());
+        let parser_address =
+            ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
+        let from_address =
+            ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
 
         // has no semi at the end
         let rainlang_text = r"_: int-add(1)";
-        let mut calldata = decode("0xfab4087a").unwrap(); // parse() selector
+        let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text to build calldata
 
         // this is calling parse() that will not run integrity checks
@@ -177,9 +189,9 @@ mod tests {
         let result = fork_call(
             fork_url,
             fork_block_number,
-            &from_address,
-            &parser_address,
-            &calldata,
+            from_address.clone(),
+            parser_address.clone(),
+            calldata,
         )
         .await;
         let expected = Ok(Err(DecodedErrorType::Known {
@@ -192,20 +204,20 @@ mod tests {
         // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1);";
-        let mut calldata = decode("0xfab4087a").unwrap(); // parse() selector
+        let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
             fork_url,
             fork_block_number,
-            &from_address,
-            &parser_address,
-            &calldata,
+            from_address.clone(),
+            parser_address.clone(),
+            calldata,
         )
         .await
         .unwrap()
         .unwrap();
 
-        let mut calldata = decode("0xb7f14403").unwrap(); // deployExpression2(bytes,uint256[]) selector
+        let mut calldata = ByteBuf::from(decode("0xb7f14403").unwrap()); // deployExpression2(bytes,uint256[]) selector
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
         // get integrity check results, if not error indicates that text has no error
@@ -213,9 +225,9 @@ mod tests {
         let result = fork_call(
             fork_url,
             fork_block_number,
-            &from_address,
-            &deployer_address,
-            &calldata,
+            from_address,
+            deployer_address,
+            calldata,
         )
         .await;
         let expected = Ok(Err(DecodedErrorType::Known {

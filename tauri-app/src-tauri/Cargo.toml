@@ -27,6 +27,7 @@ alloy-sol-types = { version = "0.5.4", features = ["json"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 chrono = { version = "0.4.32", features = ["serde"] }
 uuid = { version = "1.7.0", features = ["serde"] }
+serde_bytes = "0.11.14"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
