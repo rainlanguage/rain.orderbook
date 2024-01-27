@@ -6,7 +6,6 @@
   import InputVaultId from './InputVaultId.svelte';
 
   export let open = false;
-
   let vaultId: bigint = 0n;
   let tokenAddress: string = '';
   let tokenDecimals: number = 0;
@@ -24,8 +23,11 @@
 
   async function execute() {
     isSubmitting = true;
-    await vaultDeposit(vaultId, tokenAddress, amount);
-    reset();
+    try {
+      await vaultDeposit(vaultId, tokenAddress, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
     isSubmitting = false;
   }
 </script>
@@ -57,8 +59,8 @@
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amount || amount === 0n || isSubmitting}>
+      <Button color="alternative" on:click={reset} disabled={$isSubmitting}>Cancel</Button>
+      <Button on:click={execute} disabled={!amount || amount === 0n || $isSubmitting}>
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />
         {/if}

@@ -24,8 +24,11 @@
 
   async function execute() {
     isSubmitting = true;
-    await vaultWithdraw(vaultId, tokenAddress, amount);
-    reset();
+    try {
+      await vaultWithdraw(vaultId, tokenAddress, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
     isSubmitting = false;
   }
 </script>

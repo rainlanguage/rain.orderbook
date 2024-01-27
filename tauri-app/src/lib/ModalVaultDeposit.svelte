@@ -17,8 +17,11 @@
 
   async function execute() {
     isSubmitting = true;
-    await vaultDeposit(vault.vault.vault_id, vault.token.id, amount);
-    reset();
+    try {
+      await vaultDeposit(vault.vault.vault_id, vault.token.id, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
     isSubmitting = false;
   }
 </script>

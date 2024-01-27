@@ -4,22 +4,19 @@ import { rpcUrl, orderbookAddress, walletDerivationIndex } from '../stores/setti
 import { chainId } from '$lib/stores/chain';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
-  try {
-    await invoke("vault_deposit", {
-      depositArgs: {
-        vault_id: vaultId.toString(),
-        token,
-        amount: amount.toString(),
-      },
-      transactionArgs: {
-        rpc_url: get(rpcUrl),
-        orderbook_address: get(orderbookAddress),
-        derivation_index: get(walletDerivationIndex),
-        chain_id: get(chainId),
-        max_priority_fee_per_gas: '400000000000',
-        max_fee_per_gas: '400000000000',
-      }
-    });
-  // eslint-disable-next-line no-empty
-  } catch(e) { }
-};
+  await invoke("vault_deposit", {
+    depositArgs: {
+      vault_id: vaultId.toString(),
+      token,
+      amount: amount.toString(),
+    },
+    transactionArgs: {
+      rpc_url: get(rpcUrl),
+      orderbook_address: get(orderbookAddress),
+      derivation_index: get(walletDerivationIndex),
+      chain_id: get(chainId),
+      max_priority_fee_per_gas: '400000000000',
+      max_fee_per_gas: '400000000000',
+    }
+  });
+}
