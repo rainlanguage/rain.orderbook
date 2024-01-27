@@ -1,7 +1,7 @@
 <script lang="ts">
   import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
   import {
-    Heading,
+    Button,
     Table,
     TableBody,
     TableBodyCell,
@@ -20,7 +20,16 @@
   vaultsList.refetch();
 </script>
 
-<Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Vaults</Heading>
+<div class="flex w-full">
+  <div class="flex-1"></div>
+  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vaults</h1>
+  <div class="flex-1">
+    <div class="flex justify-end space-x-2">
+      <Button color="green" size="xs" on:click={toggleDepositModal}>Deposit</Button>
+      <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Withdraw</Button>
+    </div>
+  </div>
+</div>
 
 {#if $vaultsList.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
