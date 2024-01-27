@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Alert, Helper, Input } from 'flowbite-svelte';
-  import { InfoCircleSolid } from 'flowbite-svelte-icons';
+  import { Helper, Input } from 'flowbite-svelte';
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
   import { isAddress } from 'viem';
@@ -22,7 +21,11 @@
 
   function decimalsComplete({ detail }: { detail: InputMask }) {
     decimals = detail.value;
-    decimalsRaw = parseInt(detail.unmaskedValue);
+    if (detail.unmaskedValue.length === 0) {
+      decimalsRaw = 0;
+    } else {
+      decimalsRaw = parseInt(detail.unmaskedValue);
+    }
   }
 </script>
 
@@ -47,11 +50,4 @@
     />
     <Helper class="break-word mt-2 text-sm">Decimals</Helper>
   </div>
-  {#if decimalsRaw === 0}
-    <Alert color="yellow" border class="mt-2">
-      <InfoCircleSolid slot="icon" class="h-6 w-6" />
-      This token does not specify a number of decimals. <br />You are inputting the raw integer
-      amount with 0 decimal places.
-    </Alert>
-  {/if}
 </div>
