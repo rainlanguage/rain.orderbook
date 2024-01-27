@@ -14,7 +14,8 @@ pub type AddOrder = CliTransactionCommandArgs<CliAddOrderArgs>;
 impl Execute for AddOrder {
     async fn execute(&self) -> Result<()> {
         let add_order_args: AddOrderArgs = self.cmd_args.clone().try_into()?;
-        let tx_args: TransactionArgs = self.transaction_args.clone().into();
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
 
         println!("----- Add Order -----");
         add_order_args
