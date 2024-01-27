@@ -17,6 +17,7 @@
   import utc from 'dayjs/plugin/utc';
   import bigIntSupport from 'dayjs/plugin/bigIntSupport';
   import ModalVaultWithdraw from '$lib/ModalVaultWithdraw.svelte';
+  import { walletAddress } from '$lib/stores/settings';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
@@ -86,12 +87,14 @@
         </p>
       </div>
 
-      <div class="pt-4">
-        <div class="flex justify-center space-x-20">
-          <Button color="green" size="xl" on:click={toggleDepositModal}>Deposit</Button>
-          <Button color="blue" size="xl" on:click={toggleWithdrawModal}>Withdraw</Button>
+      {#if $walletAddress !== '' && vault.owner.id === $walletAddress}
+        <div class="pt-4">
+          <div class="flex justify-center space-x-20">
+            <Button color="green" size="xl" on:click={toggleDepositModal}>Deposit</Button>
+            <Button color="blue" size="xl" on:click={toggleWithdrawModal}>Withdraw</Button>
+          </div>
         </div>
-      </div>
+      {/if}
     </Card>
 
     <div class="max-w-screen-xl space-y-12">
