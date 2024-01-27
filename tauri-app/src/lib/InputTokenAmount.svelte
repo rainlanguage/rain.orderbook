@@ -22,10 +22,15 @@
 
   function complete({ detail }: { detail: InputMask }) {
     value = detail.value;
-    try {
-      valueRaw = parseUnits(detail.unmaskedValue, decimals);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+
+    if (detail.unmaskedValue.length === 0) {
+      valueRaw = 0n;
+    } else {
+      try {
+        valueRaw = parseUnits(detail.unmaskedValue, decimals);
+        // eslint-disable-next-line no-empty
+      } catch (e) {}
+    }
   }
 
   function fillMaxValue() {
