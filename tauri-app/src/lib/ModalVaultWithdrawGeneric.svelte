@@ -53,7 +53,7 @@
       for="amount"
       class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
     >
-      Amount
+      Target Amount
     </Label>
     <InputTokenAmount bind:value={amount} decimals={tokenDecimals} />
   </div>

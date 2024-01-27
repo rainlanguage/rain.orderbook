@@ -70,7 +70,7 @@
       for="amount"
       class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
     >
-      Amount
+      Target Amount
     </Label>
     <InputTokenAmount
       bind:value={amount}
@@ -81,7 +81,7 @@
 
     <Helper color="red" class="h-6 text-sm">
       {#if amountGTBalance}
-        Amount cannot exceed available balance.
+        Target amount cannot exceed available balance.
       {/if}
     </Helper>
   </div>
