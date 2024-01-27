@@ -5,8 +5,8 @@ pub mod toast;
 pub mod transaction_status;
 
 mod commands;
-use commands::fork::fork_call;
 use commands::chain::get_chainid;
+use commands::fork::fork_call;
 use commands::vault::{vault_deposit, vault_detail, vault_withdraw, vaults_list};
 use commands::wallet::get_address_from_ledger;
 

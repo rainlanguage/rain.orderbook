@@ -5,6 +5,7 @@ use once_cell::sync::Lazy;
 use reqwest::Client;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
+use tauri::async_runtime::block_on;
 
 const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-database/v1/lookup";
 
@@ -34,25 +35,32 @@ pub async fn fork_call(
     to_address: &[u8],
     calldata: &[u8],
 ) -> Result<Result<Bytes, DecodedErrorType>, String> {
-    let result = {
-        // lock static FORKS
+    // build key from fork url and block number
+    let key = fork_url.to_owned() + &fork_block_number.to_string();
+
+    let is_cached = { FORKS.lock().unwrap().contains_key(&key) };
+
+    let result = if is_cached {
         let mut forks = FORKS.lock().unwrap();
-
-        // build key from fork url and block number
-        let key = fork_url.to_owned() + &fork_block_number.to_string();
-
-        // fork from the provided url, if it is cached, use it, if not create it, and cache it in FORKS
-        let forked_evm = forks.entry(key).or_insert(ForkedEvm::new(
-            fork_url,
-            Some(fork_block_number),
-            Some(200000u64),
-            None,
-        ));
+        let forked_evm = forks.get_mut(&key).unwrap();
 
         // call a contract read-only
         forked_evm
             .call(from_address, to_address, calldata)
             .map_err(|e| e.to_string())?
+    } else {
+        let mut forked_evm =
+            ForkedEvm::new(fork_url, Some(fork_block_number), Some(200000u64), None).await;
+
+        // call a contract read-only
+        let res = forked_evm
+            .call(from_address, to_address, calldata)
+            .map_err(|e| e.to_string())?;
+
+        // lock static FORKS
+        let mut forks = FORKS.lock().unwrap();
+        forks.insert(key, forked_evm);
+        res
     };
 
     if result.reverted {
