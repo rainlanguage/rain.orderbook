@@ -101,7 +101,7 @@ impl AddOrderArgs {
     async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
         // Parse file into dotrain document
         let meta_store = Arc::new(RwLock::new(Store::default()));
-        let raindoc = RainDocument::create(self.dotrain.clone(), Some(meta_store));
+        let raindoc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None);
 
         // Parse dotrain document frontmatter
         let frontmatter_yaml = StrictYamlLoader::load_from_str(raindoc.front_matter())
