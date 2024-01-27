@@ -49,7 +49,7 @@ pub async fn vault_deposit(
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
         });
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
@@ -65,7 +65,7 @@ pub async fn vault_deposit(
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
         });
 
     Ok(())
@@ -85,7 +85,7 @@ pub async fn vault_withdraw(
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
         });
 
     Ok(())
