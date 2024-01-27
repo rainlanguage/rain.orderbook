@@ -5,7 +5,6 @@ use once_cell::sync::Lazy;
 use reqwest::Client;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
-use tauri::async_runtime::block_on;
 
 const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-database/v1/lookup";
 

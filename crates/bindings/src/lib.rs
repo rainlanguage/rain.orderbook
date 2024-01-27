@@ -7,5 +7,5 @@ sol!(
 
 sol!(
     #![sol(all_derives = true)]
-    IERC20, "../../out/ERC20.sol/ERC20.json"
+    IERC20, "../../out/IERC20.sol/IERC20.json"
 );
