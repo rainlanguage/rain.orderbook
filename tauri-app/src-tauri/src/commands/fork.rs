@@ -163,16 +163,13 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fork_call_parse() {
-        // deployer_address 0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b
+    async fn test_fork_call_parse_fail_parse() {
         // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
         // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
 
         let fork_url = "https://rpc.ankr.com/polygon_mumbai";
         let fork_block_number = 45122616u64;
 
-        let deployer_address =
-            ByteBuf::from(decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap());
         let parser_address =
             ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
         let from_address =
@@ -200,6 +197,23 @@ mod tests {
             sig: "MissingFinalSemi(uint256)".to_owned(),
         }));
         assert_eq!(result, expected);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_fork_call_parse_fail_integirty() {
+        // deployer_address 0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b
+        // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
+        // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
+
+        let fork_url = "https://rpc.ankr.com/polygon_mumbai";
+        let fork_block_number = 45122616u64;
+
+        let deployer_address =
+            ByteBuf::from(decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap());
+        let parser_address =
+            ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
+        let from_address =
+            ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
 
         // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
@@ -239,6 +253,61 @@ mod tests {
             ],
             sig: "BadOpInputsLength(uint256,uint256,uint256)".to_owned(),
         }));
+        assert_eq!(result, expected);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_fork_call_parse_success() {
+        // deployer_address 0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b
+        // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
+        // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
+
+        let fork_url = "https://rpc.ankr.com/polygon_mumbai";
+        let fork_block_number = 45122616u64;
+
+        let deployer_address =
+            ByteBuf::from(decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap());
+        let parser_address =
+            ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
+        let from_address =
+            ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
+
+        // fixed semi error, but still has bad input problem
+        // get expressionconfig and call deployer to get integrity checks error
+        let rainlang_text = r"_: int-add(1 2);";
+        let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
+        calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
+        let expression_config = fork_call(
+            fork_url,
+            fork_block_number,
+            from_address.clone(),
+            parser_address.clone(),
+            calldata,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+        let mut calldata = ByteBuf::from(decode("0xb7f14403").unwrap()); // deployExpression2(bytes,uint256[]) selector
+        calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
+
+        // get integrity check results, if not error indicates that text has no error
+        // if ends with error, decode with the selectors
+        let result = fork_call(
+            fork_url,
+            fork_block_number,
+            from_address,
+            deployer_address,
+            calldata,
+        )
+        .await;
+        let expected = Ok(Ok(
+            Bytes::from(
+                alloy_primitives::hex::decode(
+                    "0x000000000000000000000000f22cda7695125487993110d706f3b001c8d106400000000000000000000000008a326d777bc34ea563bd21854b436d458112185b00000000000000000000000064c9b10e815a089698521b10be95c8c9c2ed0b3c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020001000000000000000000000000000000000000000000000000000000000000").unwrap()
+                )
+            )
+        );
         assert_eq!(result, expected);
     }
 }
