@@ -164,9 +164,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_fail_parse() {
-        // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
-        // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
-
         let fork_url = "https://rpc.ankr.com/polygon_mumbai";
         let fork_block_number = 45122616u64;
 
@@ -201,10 +198,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_fail_integrity() {
-        // deployer_address 0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b
-        // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
-        // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
-
         let fork_url = "https://rpc.ankr.com/polygon_mumbai";
         let fork_block_number = 45122616u64;
 
@@ -257,10 +250,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_success() {
-        // deployer_address 0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b
-        // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
-        // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
-
         let fork_url = "https://rpc.ankr.com/polygon_mumbai";
         let fork_block_number = 45122616u64;
 
