@@ -200,7 +200,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn test_fork_call_parse_fail_integirty() {
+    async fn test_fork_call_parse_fail_integrity() {
         // deployer_address 0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b
         // parser_address 0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02
         // some account as caller 0x5855A7b48a1f9811392B89F18A8e27347EF84E42
@@ -234,8 +234,7 @@ mod tests {
         let mut calldata = ByteBuf::from(decode("0xb7f14403").unwrap()); // deployExpression2(bytes,uint256[]) selector
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
-        // get integrity check results, if not error indicates that text has no error
-        // if ends with error, decode with the selectors
+        // get integrity check results, if ends with error, decode with the selectors
         let result = fork_call(
             fork_url,
             fork_block_number,
@@ -272,7 +271,6 @@ mod tests {
         let from_address =
             ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
 
-        // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1 2);";
         let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
@@ -291,8 +289,7 @@ mod tests {
         let mut calldata = ByteBuf::from(decode("0xb7f14403").unwrap()); // deployExpression2(bytes,uint256[]) selector
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
-        // get integrity check results, if not error indicates that text has no error
-        // if ends with error, decode with the selectors
+        // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
         let result = fork_call(
             fork_url,
             fork_block_number,
