@@ -59,8 +59,8 @@
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={reset} disabled={$isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amount || amount === 0n || $isSubmitting}>
+      <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
+      <Button on:click={execute} disabled={!amount || amount === 0n || isSubmitting}>
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />
         {/if}
