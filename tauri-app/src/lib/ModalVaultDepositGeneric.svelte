@@ -1,20 +1,27 @@
 <script lang="ts">
-  import { Button, Modal, Label, Spinner, Input, Helper } from 'flowbite-svelte';
+  import { Button, Modal, Label, Spinner } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
   import { vaultDeposit } from '$lib/utils/vaultDeposit';
   import InputToken from '$lib/InputToken.svelte';
+  import InputVaultId from './InputVaultId.svelte';
 
   export let open = false;
 
-  let vaultId: bigint;
-  let tokenAddress: string;
-  let tokenDecimals: number;
-
+  let vaultId: string = '';
+  let vaultIdRaw: bigint = 0n;
+  let tokenAddress: string = '';
+  let tokenDecimals: string = '';
+  let tokenDecimalsRaw: number = 0;
   let amount: string = '';
   let amountRaw: bigint;
   let isSubmitting = false;
 
   function reset() {
+    vaultId = '';
+    vaultIdRaw = 0n;
+    tokenAddress = '';
+    tokenDecimals = '';
+    tokenDecimalsRaw = 0;
     amount = '';
     amountRaw = 0n;
     isSubmitting = false;
@@ -23,28 +30,29 @@
 
   async function execute() {
     isSubmitting = true;
-    await vaultDeposit(vaultId, tokenAddress, amountRaw);
+    await vaultDeposit(vaultIdRaw, tokenAddress, amountRaw);
     reset();
     isSubmitting = false;
   }
 </script>
 
-<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={reset}>
+<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
     </h5>
-    <Input label="Vault ID" name="vaultId" required bind:value={vaultId} />
-    <Helper class="mt-2 text-sm">
-      A hex identifier to distinguish this Vault from others with the same Token and Owner
-    </Helper>
+    <InputVaultId bind:value={vaultId} bind:valueRaw={vaultIdRaw} />
   </div>
 
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Token
     </h5>
-    <InputToken bind:address={tokenAddress} bind:decimalsRaw={tokenDecimals} />
+    <InputToken
+      bind:address={tokenAddress}
+      bind:decimals={tokenDecimals}
+      bind:decimalsRaw={tokenDecimalsRaw}
+    />
   </div>
 
   <div class="mb-6">
@@ -54,7 +62,7 @@
     >
       Amount
     </Label>
-    <InputTokenAmount bind:value={amount} bind:valueRaw={amountRaw} decimals={tokenDecimals} />
+    <InputTokenAmount bind:value={amount} bind:valueRaw={amountRaw} decimals={tokenDecimalsRaw} />
   </div>
 
   <svelte:fragment slot="footer">
