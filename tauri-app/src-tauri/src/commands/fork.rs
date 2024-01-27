@@ -149,6 +149,12 @@ mod tests {
     use alloy_primitives::hex::decode;
     use alloy_sol_types::SolValue;
 
+    const FORK_URL: &str = "https://rpc.ankr.com/polygon_mumbai";
+    const FORK_BLOCK_NUMBER: u64 = 45122616;
+    const DEPLOYER_ADDRESS: &str = "0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b";
+    const PARSER_ADDRESS: &str = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02";
+    const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
+
     #[tokio::test]
     async fn test_error_decoder() {
         let x = decode_error(&[26, 198, 105, 8]).await;
@@ -164,14 +170,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_fail_parse() {
-        let fork_url = "https://rpc.ankr.com/polygon_mumbai";
-        let fork_block_number = 45122616u64;
-
-        let parser_address =
-            ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
-        let from_address =
-            ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
-
         // has no semi at the end
         let rainlang_text = r"_: int-add(1)";
         let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
@@ -181,10 +179,10 @@ mod tests {
         // in order to run integrity checks another call should be done on
         // expressionDeployer2() of deployer contract with same process
         let result = fork_call(
-            fork_url,
-            fork_block_number,
-            from_address.clone(),
-            parser_address.clone(),
+            FORK_URL,
+            FORK_BLOCK_NUMBER,
+            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
+            ByteBuf::from(decode(PARSER_ADDRESS).unwrap()),
             calldata,
         )
         .await;
@@ -198,26 +196,16 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_fail_integrity() {
-        let fork_url = "https://rpc.ankr.com/polygon_mumbai";
-        let fork_block_number = 45122616u64;
-
-        let deployer_address =
-            ByteBuf::from(decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap());
-        let parser_address =
-            ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
-        let from_address =
-            ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
-
         // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1);";
         let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
-            fork_url,
-            fork_block_number,
-            from_address.clone(),
-            parser_address.clone(),
+            FORK_URL,
+            FORK_BLOCK_NUMBER,
+            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
+            ByteBuf::from(decode(PARSER_ADDRESS).unwrap()),
             calldata,
         )
         .await
@@ -229,10 +217,10 @@ mod tests {
 
         // get integrity check results, if ends with error, decode with the selectors
         let result = fork_call(
-            fork_url,
-            fork_block_number,
-            from_address,
-            deployer_address,
+            FORK_URL,
+            FORK_BLOCK_NUMBER,
+            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
+            ByteBuf::from(decode(DEPLOYER_ADDRESS).unwrap()),
             calldata,
         )
         .await;
@@ -250,25 +238,15 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_success() {
-        let fork_url = "https://rpc.ankr.com/polygon_mumbai";
-        let fork_block_number = 45122616u64;
-
-        let deployer_address =
-            ByteBuf::from(decode("0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b").unwrap());
-        let parser_address =
-            ByteBuf::from(decode("0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02").unwrap());
-        let from_address =
-            ByteBuf::from(decode("0x5855A7b48a1f9811392B89F18A8e27347EF84E42").unwrap());
-
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1 2);";
         let mut calldata = ByteBuf::from(decode("0xfab4087a").unwrap()); // parse() selector
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
-            fork_url,
-            fork_block_number,
-            from_address.clone(),
-            parser_address.clone(),
+            FORK_URL,
+            FORK_BLOCK_NUMBER,
+            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
+            ByteBuf::from(decode(PARSER_ADDRESS).unwrap()),
             calldata,
         )
         .await
@@ -280,10 +258,10 @@ mod tests {
 
         // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
         let result = fork_call(
-            fork_url,
-            fork_block_number,
-            from_address,
-            deployer_address,
+            FORK_URL,
+            FORK_BLOCK_NUMBER,
+            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
+            ByteBuf::from(decode(DEPLOYER_ADDRESS).unwrap()),
             calldata,
         )
         .await;
