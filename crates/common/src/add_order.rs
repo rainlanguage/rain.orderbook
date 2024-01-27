@@ -8,9 +8,18 @@ use dotrain::{RainDocument, Store};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO};
+use rain_meta::{
+    RainMetaDocumentV1Item,
+    KnownMagic,
+    ContentType,
+    ContentEncoding,
+    ContentLanguage,
+    Error as RainMetaError,
+};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
+use serde_bytes::ByteBuf;
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -48,6 +57,8 @@ pub enum AddOrderArgsError {
     WritableClientError(#[from] WritableClientError),
     #[error("TransactionArgs error: {0}")]
     TransactionArgs(#[from] TransactionArgsError),
+    #[error(transparent)]
+    RainMetaError(#[from] RainMetaError),
 }
 
 pub struct AddOrderArgs {
@@ -132,11 +143,14 @@ impl AddOrderArgs {
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        // @todo generate valid metadata including rainlangdoc.text
-        // meta: arbitrary metadata https://github.com/rainlanguage/rain.metadata
-        // use this library to convert rainlang source string to valid metadata
-        // https://github.com/rainlanguage/rain.metadata/blob/main/crates/cli/src/meta/magic.rs
-        // -- need to create a new magic code for rainlang source
+        // Generate RainlangSource meta
+        let rainlang_source_meta_encoded = RainMetaDocumentV1Item {
+            payload: ByteBuf::from(raindoc.body().as_bytes()),
+            magic: KnownMagic::RainlangSourceV1,
+            content_type: ContentType::Text,
+            content_encoding: ContentEncoding::None,
+            content_language: ContentLanguage::None,
+        }.cbor_encode().map_err(AddOrderArgsError::RainMetaError)?;
 
         Ok(addOrderCall {
             config: OrderConfigV2 {
@@ -147,7 +161,7 @@ impl AddOrderArgs {
                     bytecode: rainlang_parsed.bytecode,
                     constants: rainlang_parsed.constants,
                 },
-                meta: vec![],
+                meta: rainlang_source_meta_encoded
             },
         })
     }

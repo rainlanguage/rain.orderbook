@@ -23,6 +23,7 @@ rain-meta = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
+serde_bytes = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
