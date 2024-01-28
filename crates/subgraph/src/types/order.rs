@@ -45,6 +45,14 @@ pub struct RainMetaV1 {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "IO")]
 pub struct Io {
+    pub token_vault: TokenVault,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct TokenVault {
+    pub id: cynic::Id,
+    pub vault_id: BigInt,
     pub token: Erc20,
 }
 

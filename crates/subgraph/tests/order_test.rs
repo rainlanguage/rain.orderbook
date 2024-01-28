@@ -22,19 +22,27 @@ fn orders_query_gql_output() {
     timestamp
     handleIO
     validInputs {
-      token {
+      tokenVault {
         id
-        name
-        symbol
-        decimals
+        vaultId
+        token {
+          id
+          name
+          symbol
+          decimals
+        }
       }
     }
     validOutputs {
-      token {
+      tokenVault {
         id
-        name
-        symbol
-        decimals
+        vaultId
+        token {
+          id
+          name
+          symbol
+          decimals
+        }
       }
     }
     meta {
