@@ -139,7 +139,7 @@ mod tests {
         );
         assert_eq!(
             order_v2.validOutputs[0].token,
-            "0x0000000000000000000000000000000000000005"
+            "0x0000000000000000000000000000000000000006"
                 .parse::<Address>()
                 .unwrap()
         );
