@@ -1,13 +1,12 @@
 use crate::{
     execute::Execute, status::display_write_transaction_status,
-    transaction::CliTransactionCommandArgs,
+    transaction::CliTransactionSubgraphCommandArgs,
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Args;
-use rain_orderbook_common::add_order::RemoveOrderArgs;
+use rain_orderbook_common::remove_order::RemoveOrderArgs;
+use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
-use std::fs::read_to_string;
-use std::path::PathBuf;
 
 pub type RemoveOrder = CliTransactionSubgraphCommandArgs<CliRemoveOrderArgs>;
 
@@ -18,8 +17,7 @@ impl Execute for RemoveOrder {
             .to_subgraph_client()
             .await?
             .order(self.cmd_args.order_id.clone().into())
-            .await?
-            .into();
+            .await?;
         let remove_order_args: RemoveOrderArgs = order.try_into()?;
 
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
@@ -38,10 +36,6 @@ impl Execute for RemoveOrder {
 
 #[derive(Args, Clone)]
 pub struct CliRemoveOrderArgs {
-    #[arg(
-        short
-        long,
-        help = "ID of the Order"
-    )]
+    #[arg(short, long, help = "ID of the Order")]
     order_id: String,
 }
