@@ -20,6 +20,7 @@ fn orders_query_gql_output() {
     expressionDeployer
     expression
     timestamp
+    handleIO
     validInputs {
       token {
         id

@@ -27,6 +27,8 @@ pub struct Order {
     pub expression_deployer: Bytes,
     pub expression: Bytes,
     pub timestamp: BigInt,
+    #[cynic(rename = "handleIO")]
+    pub handle_io: bool,
     pub valid_inputs: Option<Vec<Io>>,
     pub valid_outputs: Option<Vec<Io>>,
     pub meta: Option<RainMetaV1>,

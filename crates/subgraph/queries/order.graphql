@@ -10,6 +10,7 @@ query OrderQuery($id: ID!) {
     expressionDeployer
     expression
     timestamp
+    handleIO
    	validInputs {
       token {
         id
