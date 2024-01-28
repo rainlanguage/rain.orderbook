@@ -69,7 +69,7 @@ impl AddOrderArgs {
     ) -> Result<Vec<IO>, AddOrderArgsError> {
         io_yamls
             .into_vec()
-            .ok_or(AddOrderArgsError::FrontmatterFieldMissing("orderbook.order.{}", field_name))?
+            .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!("orderbook.order.{}", field_name)))?
             .into_iter()
             .map(|io_yaml| -> Result<IO, AddOrderArgsError> {
                 Ok(IO {
