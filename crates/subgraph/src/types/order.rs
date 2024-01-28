@@ -1,4 +1,5 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -8,7 +9,7 @@ pub struct OrderQueryVariables<'a> {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "OrderQueryVariables")]
 pub struct OrderQuery {
     #[arguments(id: $id)]
@@ -16,56 +17,61 @@ pub struct OrderQuery {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Order {
     pub id: cynic::Id,
     pub owner: Account,
+    pub order_active: bool,
     pub interpreter: Bytes,
     pub interpreter_store: Bytes,
     pub expression_deployer: Bytes,
     pub expression: Bytes,
     pub timestamp: BigInt,
-    pub take_orders: Option<Vec<TakeOrderEntity>>,
+    pub valid_inputs: Option<Vec<Io>>,
+    pub valid_outputs: Option<Vec<Io>>,
+    pub meta: Option<RainMetaV1>,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
-pub struct TakeOrderEntity {
-    pub id: cynic::Id,
-    pub sender: Account,
-    pub input: BigInt,
-    pub input_display: BigDecimal,
-    pub input_token: Erc20,
-    pub output: BigInt,
-    pub output_display: BigDecimal,
-    pub output_token: Erc20,
-    #[cynic(rename = "IORatio")]
-    pub ioratio: BigDecimal,
-    pub timestamp: BigInt,
-    pub transaction: Transaction,
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct RainMetaV1 {
+    pub meta_bytes: Bytes,
+    pub content: Vec<ContentMetaV1>,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
-pub struct Transaction {
-    pub block_number: BigInt,
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(graphql_type = "IO")]
+pub struct Io {
+    pub token: Erc20,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
+    pub id: cynic::Id,
+    pub name: String,
     pub symbol: String,
+    pub decimals: i32,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct ContentMetaV1 {
+    pub id: Bytes,
+    pub payload: Bytes,
+    pub magic_number: BigInt,
+    pub content_type: Option<String>,
+    pub content_encoding: Option<String>,
+    pub content_language: Option<String>,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Account {
     pub id: Bytes,
 }
-
-#[derive(cynic::Scalar, Debug, Clone)]
-pub struct BigDecimal(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct BigInt(pub String);

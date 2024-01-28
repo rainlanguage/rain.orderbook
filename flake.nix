@@ -36,6 +36,14 @@
               pkgs.typeshare
             ];
           };
+          ob-tauri-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-test";
+            body = ''
+              set -euxo pipefail
+
+              cd tauri-app && npm i && npm run test
+            '';
+          };
         } // rainix.packages.${system};
         devShells = rainix.devShells.${system};
       }
