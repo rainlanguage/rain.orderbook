@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Button, Modal, Label, ButtonGroup, Spinner, Helper } from 'flowbite-svelte';
+  import { Button, Modal, Label, ButtonGroup, Spinner } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
   import { vaultDeposit } from '$lib/utils/vaultDeposit';
+  import { toHex } from 'viem';
 
   export let open = false;
   export let vault: TokenVault;
@@ -32,11 +33,8 @@
       Vault ID
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.vault.vault_id}
+      {toHex(vault.vault.vault_id)}
     </p>
-    <Helper class="mt-2 text-sm">
-      A hex identifier to distinguish this Vault from others with the same Token and Owner
-    </Helper>
   </div>
 
   <div>

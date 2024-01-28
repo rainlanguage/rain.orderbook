@@ -18,6 +18,7 @@
   import bigIntSupport from 'dayjs/plugin/bigIntSupport';
   import ModalVaultWithdraw from '$lib/ModalVaultWithdraw.svelte';
   import { walletAddress } from '$lib/stores/settings';
+  import { toHex } from 'viem';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
@@ -55,7 +56,7 @@
           Vault ID
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {vault.vault.vault_id}
+          {toHex(vault.vault.vault_id)}
         </p>
       </div>
 

@@ -3,6 +3,7 @@
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from './InputTokenAmount.svelte';
   import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
+  import { toHex } from 'viem';
 
   export let open = false;
   export let vault: TokenVault;
@@ -34,7 +35,7 @@
       Vault ID
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.vault.vault_id}
+      {toHex(vault.vault.vault_id)}
     </p>
   </div>
 

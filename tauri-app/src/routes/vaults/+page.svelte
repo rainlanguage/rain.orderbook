@@ -13,6 +13,7 @@
   import { vaultsList } from '$lib/stores/vaultsList';
   import ModalVaultDepositGeneric from '$lib/ModalVaultDepositGeneric.svelte';
   import ModalVaultWithdrawGeneric from '$lib/ModalVaultWithdrawGeneric.svelte';
+  import { toHex } from 'viem';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -56,7 +57,7 @@
     <TableBody>
       {#each $vaultsList as vault}
         <TableBodyRow on:click={() => gotoVault(vault.id)}>
-          <TableBodyCell tdClass="break-all px-4 py-2">{vault.vault_id}</TableBodyCell>
+          <TableBodyCell tdClass="break-all px-4 py-2">{toHex(vault.vault_id)}</TableBodyCell>
           <TableBodyCell tdClass="break-all px-4 py-2">{vault.owner.id}</TableBodyCell>
           <TableBodyCell tdClass="break-word p-2">{vault.token.name}</TableBodyCell>
           <TableBodyCell tdClass="break-all p-2">
