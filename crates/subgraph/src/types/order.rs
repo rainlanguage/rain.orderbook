@@ -47,7 +47,7 @@ pub struct Io {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug,  Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
     pub id: cynic::Id,
@@ -57,7 +57,7 @@ pub struct Erc20 {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug,  Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct ContentMetaV1 {
     pub id: Bytes,
     pub payload: Bytes,
@@ -68,7 +68,7 @@ pub struct ContentMetaV1 {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug,  Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Account {
     pub id: Bytes,
 }
@@ -78,5 +78,3 @@ pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct Bytes(pub String);
-
-
