@@ -79,7 +79,7 @@
       {#if $walletAddress !== '' && order.owner.id === $walletAddress}
         <div class="pt-4">
           <div class="flex justify-center space-x-20">
-            <Button color="red" size="xl">Remove</Button>
+            <Button color="blue" size="xl">Remove</Button>
           </div>
         </div>
       {/if}
