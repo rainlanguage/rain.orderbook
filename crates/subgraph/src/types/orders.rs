@@ -1,4 +1,5 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -10,7 +11,7 @@ pub struct OrdersQuery {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Order {
     pub id: cynic::Id,
     pub timestamp: BigInt,
@@ -29,13 +30,13 @@ pub struct Order {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Transaction {
     pub id: cynic::Id,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "IO")]
 pub struct Io {
     pub token: Erc20,
@@ -44,19 +45,19 @@ pub struct Io {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Vault {
     pub id: cynic::Id,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct TokenVault {
     pub balance: BigInt,
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
     pub id: cynic::Id,
@@ -65,7 +66,7 @@ pub struct Erc20 {
 }
 
 #[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct Account {
     pub id: Bytes,
 }
