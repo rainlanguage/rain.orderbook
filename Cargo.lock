@@ -3697,9 +3697,12 @@ dependencies = [
 name = "rain_orderbook_subgraph_queries"
 version = "0.0.1"
 dependencies = [
+ "alloy-primitives 0.5.4",
  "cynic",
  "cynic-codegen",
+ "rain_orderbook_bindings",
  "reqwest",
+ "ruint",
  "serde",
  "thiserror",
  "typeshare",
