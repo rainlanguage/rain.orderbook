@@ -65,6 +65,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
+name = "alloy-dyn-abi"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cb9c4b008d0004a0518ba69f3cd9e94795f3c23b71a80e1ef3bf499f67fba23"
+dependencies = [
+ "alloy-json-abi",
+ "alloy-primitives",
+ "alloy-sol-type-parser",
+ "alloy-sol-types",
+ "const-hex",
+ "itoa",
+ "serde",
+ "serde_json",
+ "winnow",
+]
+
+[[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
 source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=32b54171c1bf76ba70f69bfd979d3bd78617b8b6#32b54171c1bf76ba70f69bfd979d3bd78617b8b6"
@@ -90,6 +107,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-type-parser",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2603,7 +2621,7 @@ version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "681030a937600a36906c185595136d26abfebb4aa9c65701cefcaf8578bb982b"
 dependencies = [
- "proc-macro-crate 1.3.1",
+ "proc-macro-crate 2.0.0",
  "proc-macro2",
  "quote",
  "syn 2.0.48",
@@ -3172,12 +3190,17 @@ dependencies = [
 name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
+ "alloy-dyn-abi",
  "alloy-ethers-typecast",
+ "alloy-json-abi",
  "alloy-primitives",
  "alloy-sol-types",
+ "once_cell",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
+ "reqwest",
  "serde",
+ "serde_json",
  "thiserror",
  "tracing",
  "url",

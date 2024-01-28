@@ -6102,12 +6102,17 @@ dependencies = [
 name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
+ "alloy-dyn-abi 0.5.4",
  "alloy-ethers-typecast",
+ "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
+ "once_cell",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_queries",
+ "reqwest",
  "serde",
+ "serde_json",
  "thiserror",
  "tracing",
  "url",

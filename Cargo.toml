@@ -12,6 +12,8 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "32b54171c1bf76ba70f69bfd979d3bd78617b8b6" }
 alloy-sol-types = { version = "0.5.4" }
 alloy-primitives = "0.5.4"
+alloy-json-abi = "0.5.4"
+alloy-dyn-abi = "0.5.4"
 anyhow = "1.0.70"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
 once_cell = "1.17.1"
@@ -19,6 +21,7 @@ reqwest = { version = "0.11.17", features = ["json"] }
 rust-bigint = "1.2.0"
 serde = "1.0.160"
 serde_bytes = "0.11.9"
+serde_json = "1.0"
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
