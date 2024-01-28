@@ -17,6 +17,7 @@ use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 
+
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
     #[error("frontmatter is not valid strict yaml: {0}")]
@@ -48,13 +49,13 @@ pub struct AddOrderArgs {
     /// ```yaml
     /// orderbook:
     ///     order:
-    ///         deployer: 0x11111111111111111111111111111111
+    ///         deployer: 0x1111111111111111111111111111111111111111
     ///         validInputs:
-    ///             - address: 0x22222222222222222222222222222222
+    ///             - address: 0x2222222222222222222222222222222222222222
     ///               decimals: 18
     ///               vaultId: 0x1234
     ///         validOutputs:
-    ///             - address: 0x55555555555555555555555555555555
+    ///             - address: 0x5555555555555555555555555555555555555555
     ///               decimals: 8
     ///               vaultId: 0x5678
     /// ```
@@ -62,14 +63,18 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    fn parse_io(
+    /// Parse an Io array from from frontmatter field (i.e. validInputs or validOutputs)
+    fn try_parse_frontmatter_io(
         &self,
         io_yamls: StrictYaml,
-        field_name: &str,
+        io_field_name: &str,
     ) -> Result<Vec<IO>, AddOrderArgsError> {
         io_yamls
             .into_vec()
-            .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!("orderbook.order.{}", field_name)))?
+            .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
+                "orderbook.order.{}",
+                io_field_name
+            )))?
             .into_iter()
             .map(|io_yaml| -> Result<IO, AddOrderArgsError> {
                 Ok(IO {
@@ -77,39 +82,39 @@ impl AddOrderArgs {
                         .as_str()
                         .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
                             "orderbook.order.{}.token",
-                            field_name
+                            io_field_name
                         )))?
                         .parse::<Address>()
                         .map_err(|_| {
                             AddOrderArgsError::FrontmatterFieldInvalid(format!(
                                 "orderbook.order.{}.token",
-                                field_name
+                                io_field_name
                             ))
                         })?,
                     decimals: io_yaml["decimals"]
                         .as_str()
                         .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
                             "orderbook.order.{}.decimals",
-                            field_name
+                            io_field_name
                         )))?
                         .parse::<u8>()
                         .map_err(|_| {
                             AddOrderArgsError::FrontmatterFieldInvalid(format!(
                                 "orderbook.order.{}.decimals",
-                                field_name
+                                io_field_name
                             ))
                         })?,
                     vaultId: io_yaml["vaultId"]
                         .as_str()
                         .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
                             "orderbook.order.{}.vault",
-                            field_name
+                            io_field_name
                         )))?
                         .parse::<U256>()
                         .map_err(|_| {
                             AddOrderArgsError::FrontmatterFieldInvalid(format!(
                                 "orderbook.order.{}.vault",
-                                field_name
+                                io_field_name
                             ))
                         })?,
                 })
@@ -117,13 +122,13 @@ impl AddOrderArgs {
             .collect::<Result<Vec<IO>, AddOrderArgsError>>()
     }
 
-    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
-        // Parse file into dotrain document
-        let meta_store = Arc::new(RwLock::new(Store::default()));
-        let raindoc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None);
-
+    /// Parse dotrain frontmatter to extract deployer, validInputs and validOutputs
+    fn try_parse_frontmatter(
+        &self,
+        frontmatter: &str,
+    ) -> Result<(Address, Vec<IO>, Vec<IO>), AddOrderArgsError> {
         // Parse dotrain document frontmatter
-        let frontmatter_yaml = StrictYamlLoader::load_from_str(raindoc.front_matter())
+        let frontmatter_yaml = StrictYamlLoader::load_from_str(frontmatter)
             .map_err(AddOrderArgsError::FrontmatterInvalidYaml)?;
 
         let deployer = frontmatter_yaml[0]["orderbook"]["order"]["deployer"]
@@ -136,32 +141,44 @@ impl AddOrderArgs {
                 AddOrderArgsError::FrontmatterFieldInvalid("orderbook.order.deployer".into())
             })?;
 
-        let valid_inputs: Vec<IO> = self.parse_io(
+        let valid_inputs: Vec<IO> = self.try_parse_frontmatter_io(
             frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].clone(),
             "validInputs",
         )?;
-        let valid_outputs: Vec<IO> = self.parse_io(
+        let valid_outputs: Vec<IO> = self.try_parse_frontmatter_io(
             frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone(),
             "validOutputs",
         )?;
 
-        // Read parser address from dispair contract
+        Ok((deployer, valid_inputs, valid_outputs))
+    }
+
+    /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
+    async fn try_parse_rainlang(
+        &self,
+        rpc_url: String,
+        deployer: Address,
+        rainlang: &str,
+    ) -> Result<(Vec<u8>, Vec<U256>), AddOrderArgsError> {
         let client = ReadableClientHttp::new_from_url(rpc_url)
             .map_err(AddOrderArgsError::ReadableClientError)?;
         let dispair = DISPair::from_deployer(deployer, client.clone())
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
-        // Parse rainlang text into bytecode + constants
         let parser: ParserV1 = dispair.clone().into();
         let rainlang_parsed = parser
-            .parse_text(raindoc.body(), client)
+            .parse_text(rainlang, client)
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        // Generate RainlangSource meta
+        Ok((rainlang_parsed.bytecode, rainlang_parsed.constants))
+    }
+
+    /// Generate RainlangSource meta
+    fn try_generate_meta(&self, rainlang: &str) -> Result<Vec<u8>, AddOrderArgsError> {
         let meta_doc = RainMetaDocumentV1Item {
-            payload: ByteBuf::from(raindoc.body().as_bytes()),
+            payload: ByteBuf::from(rainlang.as_bytes()),
             magic: KnownMagic::RainlangSourceV1,
             content_type: ContentType::OctetStream,
             content_encoding: ContentEncoding::None,
@@ -173,16 +190,33 @@ impl AddOrderArgs {
         )
         .map_err(AddOrderArgsError::RainMetaError)?;
 
+        Ok(meta_doc_bytes)
+    }
+
+    /// Generate an addOrder call from given dotrain
+    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
+        // Parse file into dotrain document
+        let meta_store = Arc::new(RwLock::new(Store::default()));
+        let raindoc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None);
+
+        // Prepare call
+        let (deployer, valid_inputs, valid_outputs) =
+            self.try_parse_frontmatter(raindoc.front_matter().as_str())?;
+        let (bytecode, constants) = self
+            .try_parse_rainlang(rpc_url, deployer, raindoc.body())
+            .await?;
+        let meta = self.try_generate_meta(raindoc.body())?;
+
         Ok(addOrderCall {
             config: OrderConfigV2 {
                 validInputs: valid_inputs,
                 validOutputs: valid_outputs,
                 evaluableConfig: EvaluableConfigV3 {
                     deployer,
-                    bytecode: rainlang_parsed.bytecode,
-                    constants: rainlang_parsed.constants,
+                    bytecode,
+                    constants,
                 },
-                meta: meta_doc_bytes,
+                meta,
             },
         })
     }
@@ -224,34 +258,21 @@ mod tests {
             "
 orderbook:
     order:
-        deployer: 0x11111111111111111111111111111111
+        deployer: 0x1111111111111111111111111111111111111111
         validInputs:
             - token: 0x0000000000000000000000000000000000000001
-            decimals: 16
-            vaultId: 0x1
+              decimals: 18
+              vaultId: 0x1
         validOutputs:
             - token: 0x0000000000000000000000000000000000000002
-            decimals: 16
-            vaultId: 0x2
+              decimals: 18
+              vaultId: 0x2
 ---
-start-time: 160000,
-end-time: 160600,
-start-price: 100e18,
-rate: 1e16
+max-amount: 100e18,
+price: 2e18;
 
-:ensure(
-    every(
-        gt(now() start-time))
-        lt(now() end-time)),
-    )
-),
-
-elapsed: sub(now() start-time),
-
-max-amount: 1000e18,
-price: sub(start-price mul(rate elapsed));
-
-:;
+max-amount: 100e18,
+price: 2e18;
 ",
         );
         let args = AddOrderArgs { dotrain };
@@ -263,7 +284,7 @@ price: sub(start-price mul(rate elapsed));
                 .parse::<Address>()
                 .unwrap()
         );
-        assert_eq!(add_order_call.config.validInputs[0].decimals, 16);
+        assert_eq!(add_order_call.config.validInputs[0].decimals, 18);
         assert_eq!(add_order_call.config.validInputs[0].vaultId, U256::from(1));
 
         assert_eq!(
@@ -272,30 +293,43 @@ price: sub(start-price mul(rate elapsed));
                 .parse::<Address>()
                 .unwrap()
         );
-        assert_eq!(add_order_call.config.validOutputs[0].decimals, 16);
+        assert_eq!(add_order_call.config.validOutputs[0].decimals, 18);
         assert_eq!(add_order_call.config.validOutputs[0].vaultId, U256::from(2));
 
         assert_eq!(
             add_order_call.config.evaluableConfig.deployer,
             hex!("1111111111111111111111111111111111111111")
         );
-        // @todo test against properly encoded dotrain bytecode
         assert_eq!(
             add_order_call.config.evaluableConfig.bytecode,
-            vec![0u8; 32]
+            vec![
+                2, 0, 0, 0, 12, 2, 2, 0, 2, 1, 0, 0, 0, 1, 0, 0, 1, 2, 2, 0, 2, 1, 0, 0, 0, 1, 0,
+                0, 1
+            ]
         );
-
-        // @todo test against properly encoded dotrain constants
+        /*
         assert_eq!(
             add_order_call.config.evaluableConfig.constants,
             vec![
-                U256::from(160000),
-                U256::from(160600),
-                U256::from(100e18),
-                U256::from(1e16),
+                U256::from(
+                    "0x0000000000000000000000000000000000000000000000056bc75e2d63100000"
+                ),
+                U256::from(
+                    "0x0000000000000000000000000000000000000000000000001bc16d674ec80000"
+                ),
+            ]
+        );*/
+        assert_eq!(
+            add_order_call.config.meta,
+            vec![
+                255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 88, 68, 10, 109, 97, 120, 45, 97,
+                109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105,
+                99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 10, 109, 97, 120, 45, 97, 109, 111, 117,
+                110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105, 99, 101, 58, 32,
+                50, 101, 49, 56, 59, 10, 1, 27, 255, 19, 16, 158, 65, 51, 111, 242, 2, 120, 24, 97,
+                112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45,
+                115, 116, 114, 101, 97, 109
             ]
         );
-
-        // @todo add example meta to rainlang and test it is parsed properly
     }
 }
