@@ -3,6 +3,7 @@ use rain_orderbook_common::{
 };
 use rain_orderbook_subgraph_queries::types::{
     order::Order as OrderDetail,
+    orders::Order as OrdersListItem,
 };
 
 #[tauri::command]

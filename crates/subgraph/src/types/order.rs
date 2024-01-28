@@ -46,6 +46,7 @@ pub struct Io {
     pub token: Erc20,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug,  Clone, Serialize)]
 #[cynic(graphql_type = "ERC20")]
 pub struct Erc20 {
@@ -66,6 +67,7 @@ pub struct ContentMetaV1 {
     pub content_language: Option<String>,
 }
 
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug,  Clone, Serialize)]
 pub struct Account {
     pub id: Bytes,

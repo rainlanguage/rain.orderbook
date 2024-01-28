@@ -55,7 +55,7 @@
       <TableHeadCell>Active</TableHeadCell>
       <TableHeadCell>Order ID</TableHeadCell>
       <TableHeadCell>Owner</TableHeadCell>
-      <TableHeadCell>Added At</TableHeadCell>
+      <TableHeadCell>Created At</TableHeadCell>
       <TableHeadCell>Input Token(s)</TableHeadCell>
       <TableHeadCell>Output Token(s)</TableHeadCell>
     </TableHead>
