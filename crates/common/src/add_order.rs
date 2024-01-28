@@ -7,19 +7,15 @@ use alloy_primitives::{Address, U256};
 use dotrain::{RainDocument, Store};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
-use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO};
 use rain_meta::{
+    ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
-    KnownMagic,
-    ContentType,
-    ContentEncoding,
-    ContentLanguage,
-    Error as RainMetaError,
 };
+use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO};
+use serde_bytes::ByteBuf;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
-use serde_bytes::ByteBuf;
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -144,13 +140,18 @@ impl AddOrderArgs {
             .map_err(AddOrderArgsError::ParserError)?;
 
         // Generate RainlangSource meta
-        let rainlang_source_meta_encoded = RainMetaDocumentV1Item {
+        let meta_doc = RainMetaDocumentV1Item {
             payload: ByteBuf::from(raindoc.body().as_bytes()),
             magic: KnownMagic::RainlangSourceV1,
-            content_type: ContentType::Text,
+            content_type: ContentType::OctetStream,
             content_encoding: ContentEncoding::None,
             content_language: ContentLanguage::None,
-        }.cbor_encode().map_err(AddOrderArgsError::RainMetaError)?;
+        };
+        let meta_doc_bytes = RainMetaDocumentV1Item::cbor_encode_seq(
+            &vec![meta_doc],
+            KnownMagic::RainMetaDocumentV1,
+        )
+        .map_err(AddOrderArgsError::RainMetaError)?;
 
         Ok(addOrderCall {
             config: OrderConfigV2 {
@@ -161,7 +162,7 @@ impl AddOrderArgs {
                     bytecode: rainlang_parsed.bytecode,
                     constants: rainlang_parsed.constants,
                 },
-                meta: rainlang_source_meta_encoded
+                meta: meta_doc_bytes,
             },
         })
     }
@@ -177,9 +178,7 @@ impl AddOrderArgs {
             .await
             .map_err(AddOrderArgsError::TransactionArgs)?;
 
-        let add_order_call = self
-            .try_into_call(transaction_args.clone().rpc_url)
-            .await?;
+        let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
         let params = transaction_args
             .try_into_write_contract_parameters(add_order_call, transaction_args.orderbook_address)
             .await
@@ -203,7 +202,6 @@ mod tests {
     async fn test_add_order_args_try_into() {
         let dotrain = String::from(
             "
----
 orderbook:
     order:
         deployer: 0x11111111111111111111111111111111
@@ -231,7 +229,9 @@ rate: 1e16
 elapsed: sub(now() start-time),
 
 max-amount: 1000e18,
-price: sub(start-price mul(rate elapsed))
+price: sub(start-price mul(rate elapsed));
+
+:;
 ",
         );
         let args = AddOrderArgs { dotrain };
