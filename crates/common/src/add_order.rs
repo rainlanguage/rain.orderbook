@@ -3,7 +3,7 @@ use alloy_ethers_typecast::transaction::{
     ReadableClientError, ReadableClientHttp, WritableClientError, WriteTransaction,
     WriteTransactionStatus,
 };
-use alloy_primitives::{Address, U256};
+use alloy_primitives::{hex::FromHexError, Address, U256};
 use dotrain::{RainDocument, Store};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
@@ -21,26 +21,10 @@ use thiserror::Error;
 pub enum AddOrderArgsError {
     #[error("frontmatter is not valid strict yaml: {0}")]
     FrontmatterInvalidYaml(#[from] ScanError),
-    #[error("deployer field is not a valid Address")]
-    FrontmatterDeployerInvalid,
-    #[error("validInputs field is not a valid array")]
-    FrontmatterInputsInvalid,
-    #[error("validOutputs field is not a valid array")]
-    FrontmatterOutputsInvalid,
-    #[error("validInputs or validOutputs is not a valid dict")]
-    FrontmatterIOInvalid,
-    #[error("token field is missing")]
-    FrontmatterIOTokenMissing,
-    #[error("token field is invalid")]
-    FrontmatterIOTokenInvalid,
-    #[error("decimals field is missing")]
-    FrontmatterIODecimalsMissing,
-    #[error("decimals field is not a valid u8")]
-    FrontmatterIODecimalsInvalid,
-    #[error("vaultId field is missing")]
-    FrontmatterIOVaultIdMissing,
-    #[error("vaultId field is not a valid U256")]
-    FrontmatterIOVaultIdInvalid,
+    #[error("order frontmatter field is invalid: {0}")]
+    FrontmatterFieldInvalid(String),
+    #[error("order frontmatter field is missing: {0}")]
+    FrontmatterFieldMissing(String),
     #[error(transparent)]
     DISPairError(#[from] DISPairError),
     #[error(transparent)]
@@ -48,7 +32,7 @@ pub enum AddOrderArgsError {
     #[error(transparent)]
     ParserError(#[from] ParserError),
     #[error(transparent)]
-    FromHexError(#[from] alloy_primitives::hex::FromHexError),
+    FromHexError(#[from] FromHexError),
     #[error(transparent)]
     WritableClientError(#[from] WritableClientError),
     #[error("TransactionArgs error: {0}")]
@@ -78,28 +62,56 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    fn parse_io(&self, io_yamls: StrictYaml) -> Result<Vec<IO>, AddOrderArgsError> {
+    fn parse_io(
+        &self,
+        io_yamls: StrictYaml,
+        field_name: &str,
+    ) -> Result<Vec<IO>, AddOrderArgsError> {
         io_yamls
             .into_vec()
-            .ok_or(AddOrderArgsError::FrontmatterInputsInvalid)?
+            .ok_or(AddOrderArgsError::FrontmatterFieldMissing("orderbook.order.{}", field_name))?
             .into_iter()
             .map(|io_yaml| -> Result<IO, AddOrderArgsError> {
                 Ok(IO {
                     token: io_yaml["token"]
                         .as_str()
-                        .ok_or(AddOrderArgsError::FrontmatterIOTokenMissing)?
+                        .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
+                            "orderbook.order.{}.token",
+                            field_name
+                        )))?
                         .parse::<Address>()
-                        .map_err(|_| AddOrderArgsError::FrontmatterIOTokenInvalid)?,
+                        .map_err(|_| {
+                            AddOrderArgsError::FrontmatterFieldInvalid(format!(
+                                "orderbook.order.{}.token",
+                                field_name
+                            ))
+                        })?,
                     decimals: io_yaml["decimals"]
                         .as_str()
-                        .ok_or(AddOrderArgsError::FrontmatterIODecimalsMissing)?
+                        .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
+                            "orderbook.order.{}.decimals",
+                            field_name
+                        )))?
                         .parse::<u8>()
-                        .map_err(|_| AddOrderArgsError::FrontmatterIODecimalsInvalid)?,
+                        .map_err(|_| {
+                            AddOrderArgsError::FrontmatterFieldInvalid(format!(
+                                "orderbook.order.{}.decimals",
+                                field_name
+                            ))
+                        })?,
                     vaultId: io_yaml["vaultId"]
                         .as_str()
-                        .ok_or(AddOrderArgsError::FrontmatterIOVaultIdMissing)?
+                        .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
+                            "orderbook.order.{}.vault",
+                            field_name
+                        )))?
                         .parse::<U256>()
-                        .map_err(|_| AddOrderArgsError::FrontmatterIOVaultIdInvalid)?,
+                        .map_err(|_| {
+                            AddOrderArgsError::FrontmatterFieldInvalid(format!(
+                                "orderbook.order.{}.vault",
+                                field_name
+                            ))
+                        })?,
                 })
             })
             .collect::<Result<Vec<IO>, AddOrderArgsError>>()
@@ -116,14 +128,22 @@ impl AddOrderArgs {
 
         let deployer = frontmatter_yaml[0]["orderbook"]["order"]["deployer"]
             .as_str()
-            .ok_or(AddOrderArgsError::FrontmatterDeployerInvalid)?
+            .ok_or(AddOrderArgsError::FrontmatterFieldMissing(
+                "orderbook.order.deployer".into(),
+            ))?
             .parse::<Address>()
-            .map_err(|_| AddOrderArgsError::FrontmatterDeployerInvalid)?;
+            .map_err(|_| {
+                AddOrderArgsError::FrontmatterFieldInvalid("orderbook.order.deployer".into())
+            })?;
 
-        let valid_inputs: Vec<IO> =
-            self.parse_io(frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].clone())?;
-        let valid_outputs: Vec<IO> =
-            self.parse_io(frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone())?;
+        let valid_inputs: Vec<IO> = self.parse_io(
+            frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].clone(),
+            "validInputs",
+        )?;
+        let valid_outputs: Vec<IO> = self.parse_io(
+            frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone(),
+            "validOutputs",
+        )?;
 
         // Read parser address from dispair contract
         let client = ReadableClientHttp::new_from_url(rpc_url)
