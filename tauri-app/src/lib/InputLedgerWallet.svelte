@@ -7,6 +7,7 @@
   import { invoke } from '@tauri-apps/api';
   import { isAddress } from 'viem';
   import { toasts } from '$lib/stores/toasts';
+  import { ToastMessageType } from './typeshare/toast';
 
   const maskOptions = {
     mask: Number,
@@ -38,9 +39,8 @@
       });
       walletAddress = res;
     } catch (error) {
-      console.error(error);
       toasts.add({
-        message_type: 'Error',
+        message_type: ToastMessageType.Error,
         text: `Ledger error: ${error}`,
       });
     }

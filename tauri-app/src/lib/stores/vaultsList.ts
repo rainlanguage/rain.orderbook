@@ -15,7 +15,7 @@ function useVaultsListStore() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     }
   });
-  
+
   async function refetch() {
     const res: Array<VaultsListItem> = await invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)} });
     set(res);
