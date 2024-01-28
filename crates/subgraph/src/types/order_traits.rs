@@ -29,7 +29,7 @@ impl TryInto<OrderV2> for OrderDetail {
             },
             validInputs: self
                 .valid_inputs
-                .unwrap_or(vec![])
+                .unwrap_or_default()
                 .into_iter()
                 .map(|v| -> Result<IO, OrderDetailError> {
                     Ok(IO {
@@ -41,7 +41,7 @@ impl TryInto<OrderV2> for OrderDetail {
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
             validOutputs: self
                 .valid_outputs
-                .unwrap_or(vec![])
+                .unwrap_or_default()
                 .into_iter()
                 .map(|v| -> Result<IO, OrderDetailError> {
                     Ok(IO {
@@ -58,7 +58,7 @@ impl TryInto<OrderV2> for OrderDetail {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::order::{Account, RainMetaV1, Io, BigInt, Bytes, Erc20, TokenVault};
+    use crate::types::order::{Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault};
 
     #[test]
     fn test_try_into_call() {
@@ -112,7 +112,7 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
-        assert_eq!(order_v2.handleIO, true);
+        assert!(order_v2.handleIO);
         assert_eq!(
             order_v2.evaluable.interpreter,
             "0x0000000000000000000000000000000000000002"

@@ -18,7 +18,7 @@ impl Execute for RemoveOrder {
             .await?
             .order(self.cmd_args.order_id.clone().into())
             .await?;
-        let remove_order_args: RemoveOrderArgs = order.try_into()?;
+        let remove_order_args: RemoveOrderArgs = order.into();
 
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
