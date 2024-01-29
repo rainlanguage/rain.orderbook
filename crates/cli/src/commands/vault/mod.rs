@@ -6,24 +6,24 @@ mod withdraw;
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Parser;
-use deposit::Deposit;
-use detail::Detail;
-use list::List;
-use withdraw::Withdraw;
+use deposit::CliVaultDepositArgs;
+use detail::CliVaultDetailArgs;
+use list::CliVaultListArgs;
+use withdraw::CliVaultWithdrawArgs;
 
 #[derive(Parser)]
 pub enum Vault {
     #[command(about = "Deposit tokens into a Vault")]
-    Deposit(Deposit),
+    Deposit(CliVaultDepositArgs),
 
     #[command(about = "Withdraw tokens from a Vault")]
-    Withdraw(Withdraw),
+    Withdraw(CliVaultWithdrawArgs),
 
     #[command(about = "List all Vaults", alias = "ls")]
-    List(List),
+    List(CliVaultListArgs),
 
     #[command(about = "View a Vault", alias = "view")]
-    Detail(Detail),
+    Detail(CliVaultDetailArgs),
 }
 
 impl Execute for Vault {

@@ -1,6 +1,6 @@
 use crate::{
     execute::Execute, status::display_write_transaction_status,
-    transaction::CliTransactionCommandArgs,
+    transaction::CliTransactionArgs,
 };
 use anyhow::{anyhow, Result};
 use clap::Args;
@@ -9,11 +9,9 @@ use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
-pub type AddOrder = CliTransactionCommandArgs<CliAddOrderArgs>;
-
-impl Execute for AddOrder {
+impl Execute for CliOrderAddArgs {
     async fn execute(&self) -> Result<()> {
-        let add_order_args: AddOrderArgs = self.cmd_args.clone().try_into()?;
+        let add_order_args: AddOrderArgs = self.clone().try_into()?;
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
 
@@ -29,19 +27,22 @@ impl Execute for AddOrder {
 }
 
 #[derive(Args, Clone)]
-pub struct CliAddOrderArgs {
+pub struct CliOrderAddArgs {
     #[arg(
         short = 'p',
         long,
         help = "Path to the .rain file specifying the order"
     )]
     dotrain_path: PathBuf,
+
+    #[clap(flatten)]
+    pub transaction_args: CliTransactionArgs,
 }
 
-impl TryFrom<CliAddOrderArgs> for AddOrderArgs {
+impl TryFrom<CliOrderAddArgs> for AddOrderArgs {
     type Error = anyhow::Error;
 
-    fn try_from(val: CliAddOrderArgs) -> Result<Self> {
+    fn try_from(val: CliOrderAddArgs) -> Result<Self> {
         let text = read_to_string(val.dotrain_path).map_err(|e| anyhow!(e))?;
         Ok(Self { dotrain: text })
     }

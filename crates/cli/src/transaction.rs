@@ -1,8 +1,6 @@
-use crate::subgraph::CliSubgraphArgs;
+
 use alloy_primitives::{Address, U256};
 use clap::Args;
-use clap::FromArgMatches;
-use clap::Parser;
 use rain_orderbook_common::transaction::TransactionArgs;
 
 #[derive(Args, Clone)]
@@ -42,25 +40,4 @@ impl From<CliTransactionArgs> for TransactionArgs {
             max_fee_per_gas: val.max_fee_per_gas,
         }
     }
-}
-
-#[derive(Parser, Clone)]
-pub struct CliTransactionCommandArgs<T: FromArgMatches + Args> {
-    #[clap(flatten)]
-    pub cmd_args: T,
-
-    #[clap(flatten)]
-    pub transaction_args: CliTransactionArgs,
-}
-
-#[derive(Parser, Clone)]
-pub struct CliTransactionSubgraphCommandArgs<T: FromArgMatches + Args> {
-    #[clap(flatten)]
-    pub cmd_args: T,
-
-    #[clap(flatten)]
-    pub transaction_args: CliTransactionArgs,
-
-    #[clap(flatten)]
-    pub subgraph_args: CliSubgraphArgs,
 }

@@ -1,6 +1,4 @@
 use clap::Args;
-use clap::FromArgMatches;
-use clap::Parser;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 
 #[derive(Args, Clone)]
@@ -19,13 +17,4 @@ impl From<CliSubgraphArgs> for SubgraphArgs {
             url: val.subgraph_url,
         }
     }
-}
-
-#[derive(Parser, Clone)]
-pub struct CliSubgraphCommandArgs<T: FromArgMatches + Args> {
-    #[clap(flatten)]
-    pub cmd_args: T,
-
-    #[clap(flatten)]
-    pub subgraph_args: CliSubgraphArgs,
 }
