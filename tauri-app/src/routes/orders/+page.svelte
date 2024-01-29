@@ -87,13 +87,13 @@
             {order.valid_outputs?.map((t) => t.token.symbol)}
           </TableBodyCell>
           <TableBodyCell tdClass="px-0">
-            {#if $walletAddressMatchesOrBlank(order.owner.id)}
+            {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
               <Button color="alternative" outline={false} id={`order-menu-${order.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
                 <DotsVerticalOutline class="dark:text-white"/>
               </Button>
             {/if}
           </TableBodyCell>
-          {#if $walletAddressMatchesOrBlank(order.owner.id)}
+          {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
             <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${order.id}`}>
               <DropdownItem on:click={(e) => {e.stopPropagation(); confirmRemoveOrder(order.id);}}>Remove</DropdownItem>
             </Dropdown>

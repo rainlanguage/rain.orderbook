@@ -82,7 +82,7 @@
         </p>
       </div>
 
-      {#if $walletAddressMatchesOrBlank(order.owner.id)}
+      {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
         <div class="pt-4">
           <div class="flex justify-center space-x-20">
             <ButtonLoading color="blue" size="xl" on:click={() => (showRemoveModal = true)}>
