@@ -1,16 +1,21 @@
 <script lang="ts">
-  import { Button, Modal, Label, ButtonGroup, Spinner } from 'flowbite-svelte';
-  import type { TokenVault } from '$lib/typeshare/vault';
+  import { Button, Modal, Label, Spinner } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
   import { vaultDeposit } from '$lib/utils/vaultDeposit';
-  import { toHex } from 'viem';
+  import InputToken from '$lib/InputToken.svelte';
+  import InputVaultId from './InputVaultId.svelte';
 
   export let open = false;
-  export let vault: TokenVault;
+  let vaultId: bigint = 0n;
+  let tokenAddress: string = '';
+  let tokenDecimals: number = 0;
   let amount: bigint;
   let isSubmitting = false;
 
   function reset() {
+    vaultId = 0n;
+    tokenAddress = '';
+    tokenDecimals = 0;
     amount = 0n;
     isSubmitting = false;
     open = false;
@@ -19,7 +24,7 @@
   async function execute() {
     isSubmitting = true;
     try {
-      await vaultDeposit(vault.vault.vault_id, vault.token.id, amount);
+      await vaultDeposit(vaultId, tokenAddress, amount);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -32,36 +37,14 @@
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
     </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {toHex(vault.vault.vault_id)}
-    </p>
+    <InputVaultId bind:value={vaultId} />
   </div>
 
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Token
     </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.token.name}
-    </p>
-  </div>
-
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Owner
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.owner.id}
-    </p>
-  </div>
-
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Balance
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.balance_display}
-    </p>
+    <InputToken bind:address={tokenAddress} bind:decimals={tokenDecimals} />
   </div>
 
   <div class="mb-6">
@@ -71,13 +54,7 @@
     >
       Amount
     </Label>
-    <ButtonGroup class="w-full">
-      <InputTokenAmount
-        bind:value={amount}
-        symbol={vault.token.symbol}
-        decimals={vault.token.decimals}
-      />
-    </ButtonGroup>
+    <InputTokenAmount bind:value={amount} decimals={tokenDecimals} />
   </div>
 
   <svelte:fragment slot="footer">

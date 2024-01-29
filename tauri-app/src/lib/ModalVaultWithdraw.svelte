@@ -3,26 +3,28 @@
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from './InputTokenAmount.svelte';
   import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
+  import { toHex } from 'viem';
 
   export let open = false;
   export let vault: TokenVault;
-  let amount: string = '';
-  let amountRaw: bigint = 0n;
+  let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;
 
-  $: amountGTBalance = amountRaw > vault.balance;
+  $: amountGTBalance = vault !== undefined && amount > vault.balance;
 
   function reset() {
-    amount = '';
-    amountRaw = 0n;
+    amount = 0n;
     open = false;
   }
 
   async function execute() {
     isSubmitting = true;
-    await vaultWithdraw(vault.vault.vault_id, vault.token.id, amountRaw);
-    reset();
+    try {
+      await vaultWithdraw(vault.vault.vault_id, vault.token.id, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
     isSubmitting = false;
   }
 </script>
@@ -33,7 +35,7 @@
       Vault ID
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.vault.vault_id}
+      {toHex(vault.vault.vault_id)}
     </p>
   </div>
 
@@ -69,19 +71,18 @@
       for="amount"
       class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
     >
-      Amount
+      Target Amount
     </Label>
     <InputTokenAmount
       bind:value={amount}
-      bind:valueRaw={amountRaw}
       symbol={vault.token.symbol}
       decimals={vault.token.decimals}
-      maxValueRaw={vault.balance}
+      maxValue={vault.balance}
     />
 
     <Helper color="red" class="h-6 text-sm">
       {#if amountGTBalance}
-        Amount cannot exceed available balance.
+        Target amount cannot exceed available balance.
       {/if}
     </Helper>
   </div>
@@ -92,7 +93,7 @@
 
       <Button
         on:click={execute}
-        disabled={!amountRaw || amountRaw === 0n || amountGTBalance || isSubmitting}
+        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
       >
         {#if isSubmitting}
           <Spinner class="mr-2 h-4 w-4" color="white" />

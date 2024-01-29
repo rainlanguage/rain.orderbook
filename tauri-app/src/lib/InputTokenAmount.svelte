@@ -5,13 +5,13 @@
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
 
-  export let symbol: string;
+  export let symbol: string | undefined = undefined;
   export let decimals: number = 0;
-  export let maxValueRaw: bigint | undefined = undefined;
-  export let value: string = '';
-  export let valueRaw: bigint;
+  export let maxValue: bigint | undefined = undefined;
+  let valueRaw: string = '';
+  export let value: bigint;
 
-  const maskOptions = {
+  $: maskOptions = {
     mask: Number,
     min: 0,
     lazy: false,
@@ -21,39 +21,47 @@
   };
 
   function complete({ detail }: { detail: InputMask }) {
-    value = detail.value;
-    try {
-      valueRaw = parseUnits(detail.unmaskedValue, decimals);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    valueRaw = detail.value;
+
+    if (detail.unmaskedValue.length === 0) {
+      value = 0n;
+    } else {
+      try {
+        value = parseUnits(detail.unmaskedValue, decimals);
+        // eslint-disable-next-line no-empty
+      } catch (e) {}
+    }
   }
 
   function fillMaxValue() {
-    if (!maxValueRaw) return;
+    if (!maxValue) return;
 
-    valueRaw = maxValueRaw;
-    value = formatUnits(maxValueRaw, decimals);
+    value = maxValue;
+    valueRaw = formatUnits(maxValue, decimals);
   }
 </script>
 
 <div class="w-full">
   <div class="relative flex w-full">
     <input
-      class="focus:border-primary-500 block w-full border-s-0 border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 first:rounded-s-lg first:border-s last:rounded-e-lg last:border-e disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400"
-      {value}
+      class={`focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 ${symbol && '!rounded-none !rounded-l-lg'}`}
+
+      value={valueRaw}
       use:imask={maskOptions}
       on:complete={complete}
     />
 
-    {#if maxValueRaw}
-      <div class="absolute right-20 flex h-10 flex-col justify-center">
+    {#if maxValue}
+      <div class="absolute right-[5.8rem] flex h-10 flex-col justify-center">
         <Button color="blue" class="px-2 py-1" size="xs" pill on:click={fillMaxValue}>MAX</Button>
       </div>
     {/if}
 
-    <InputAddon>
-      {symbol}
-    </InputAddon>
+    {#if symbol}
+      <InputAddon>
+        {symbol}
+      </InputAddon>
+    {/if}
   </div>
   {#if decimals === 0}
     <Alert color="yellow" border class="mt-2">
