@@ -22,6 +22,7 @@ alloy-sol-types = "0.5.4"
 typeshare = "1.0.1"
 chrono = { version = "0.4.32", features = ["serde"] }
 uuid = { version = "1.7.0", features = ["serde"] }
+anyhow = "1.0.79"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
