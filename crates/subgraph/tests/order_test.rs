@@ -14,30 +14,37 @@ fn orders_query_gql_output() {
     owner {
       id
     }
+    orderActive
     interpreter
     interpreterStore
     expressionDeployer
     expression
     timestamp
-    takeOrders {
-      id
-      sender {
+    validInputs {
+      token {
         id
-      }
-      input
-      inputDisplay
-      inputToken {
+        name
         symbol
+        decimals
       }
-      output
-      outputDisplay
-      outputToken {
+    }
+    validOutputs {
+      token {
+        id
+        name
         symbol
+        decimals
       }
-      IORatio
-      timestamp
-      transaction {
-        blockNumber
+    }
+    meta {
+      metaBytes
+      content {
+        id
+        payload
+        magicNumber
+        contentType
+        contentEncoding
+        contentLanguage
       }
     }
   }
