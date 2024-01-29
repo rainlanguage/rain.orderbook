@@ -1,27 +1,10 @@
 use crate::status::display_write_transaction_status;
-use crate::{execute::Execute,    transaction::CliTransactionArgs,
-};
+use crate::{execute::Execute, transaction::CliTransactionArgs};
 use alloy_primitives::{Address, U256};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
-
-impl Execute for CliVaultWithdrawArgs {
-    async fn execute(&self) -> Result<()> {
-        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
-        tx_args.try_fill_chain_id().await?;
-        let withdraw_args: WithdrawArgs = self.clone().into();
-
-        println!("----- Withdraw tokens from Vault -----");
-        withdraw_args
-            .execute(tx_args, |status| {
-                display_write_transaction_status(status);
-            })
-            .await?;
-        Ok(())
-    }
-}
 
 #[derive(Args, Clone)]
 pub struct CliVaultWithdrawArgs {
@@ -45,5 +28,21 @@ impl From<CliVaultWithdrawArgs> for WithdrawArgs {
             vault_id: val.vault_id,
             target_amount: val.target_amount,
         }
+    }
+}
+
+impl Execute for CliVaultWithdrawArgs {
+    async fn execute(&self) -> Result<()> {
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
+        let withdraw_args: WithdrawArgs = self.clone().into();
+
+        println!("----- Withdraw tokens from Vault -----");
+        withdraw_args
+            .execute(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+        Ok(())
     }
 }

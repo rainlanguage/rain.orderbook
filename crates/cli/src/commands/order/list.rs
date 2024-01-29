@@ -1,7 +1,4 @@
-use crate::{
-    execute::Execute,
-    subgraph::CliSubgraphArgs
-};
+use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;

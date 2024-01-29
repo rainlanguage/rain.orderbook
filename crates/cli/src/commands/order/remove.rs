@@ -1,10 +1,24 @@
-use crate::{execute::Execute, status::display_write_transaction_status,     transaction::CliTransactionArgs,
-    subgraph::CliSubgraphArgs};
+use crate::{
+    execute::Execute, status::display_write_transaction_status, subgraph::CliSubgraphArgs,
+    transaction::CliTransactionArgs,
+};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::remove_order::RemoveOrderArgs;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
+
+#[derive(Args, Clone)]
+pub struct CliOrderRemoveArgs {
+    #[arg(short, long, help = "ID of the Order")]
+    order_id: String,
+
+    #[clap(flatten)]
+    pub subgraph_args: CliSubgraphArgs,
+
+    #[clap(flatten)]
+    pub transaction_args: CliTransactionArgs,
+}
 
 impl Execute for CliOrderRemoveArgs {
     async fn execute(&self) -> Result<()> {
@@ -28,16 +42,4 @@ impl Execute for CliOrderRemoveArgs {
 
         Ok(())
     }
-}
-
-#[derive(Args, Clone)]
-pub struct CliOrderRemoveArgs {
-    #[arg(short, long, help = "ID of the Order")]
-    order_id: String,
-
-    #[clap(flatten)]
-    pub subgraph_args: CliSubgraphArgs,
-
-    #[clap(flatten)]
-    pub transaction_args: CliTransactionArgs,
 }

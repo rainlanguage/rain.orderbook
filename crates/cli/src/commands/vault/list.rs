@@ -1,5 +1,4 @@
-use crate::{    subgraph::CliSubgraphArgs
-,    execute::Execute};
+use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;

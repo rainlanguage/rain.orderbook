@@ -1,6 +1,5 @@
 use crate::{
-    execute::Execute, status::display_write_transaction_status,
-    transaction::CliTransactionArgs,
+    execute::Execute, status::display_write_transaction_status, transaction::CliTransactionArgs,
 };
 use anyhow::{anyhow, Result};
 use clap::Args;
@@ -8,23 +7,6 @@ use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
 use std::path::PathBuf;
-
-impl Execute for CliOrderAddArgs {
-    async fn execute(&self) -> Result<()> {
-        let add_order_args: AddOrderArgs = self.clone().try_into()?;
-        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
-        tx_args.try_fill_chain_id().await?;
-
-        println!("----- Add Order -----");
-        add_order_args
-            .execute(tx_args, |status| {
-                display_write_transaction_status(status);
-            })
-            .await?;
-
-        Ok(())
-    }
-}
 
 #[derive(Args, Clone)]
 pub struct CliOrderAddArgs {
@@ -45,5 +27,22 @@ impl TryFrom<CliOrderAddArgs> for AddOrderArgs {
     fn try_from(val: CliOrderAddArgs) -> Result<Self> {
         let text = read_to_string(val.dotrain_path).map_err(|e| anyhow!(e))?;
         Ok(Self { dotrain: text })
+    }
+}
+
+impl Execute for CliOrderAddArgs {
+    async fn execute(&self) -> Result<()> {
+        let add_order_args: AddOrderArgs = self.clone().try_into()?;
+        let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
+        tx_args.try_fill_chain_id().await?;
+
+        println!("----- Add Order -----");
+        add_order_args
+            .execute(tx_args, |status| {
+                display_write_transaction_status(status);
+            })
+            .await?;
+
+        Ok(())
     }
 }

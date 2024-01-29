@@ -1,7 +1,4 @@
-use crate::{
-    execute::Execute,
-    subgraph::CliSubgraphArgs
-};
+use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
