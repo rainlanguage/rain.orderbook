@@ -3,6 +3,7 @@
 
 pub mod toast;
 pub mod transaction_status;
+pub mod error;
 
 mod commands;
 use commands::chain::get_chainid;

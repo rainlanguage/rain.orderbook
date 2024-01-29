@@ -7,27 +7,28 @@ use rain_orderbook_subgraph_queries::types::{
     vault::TokenVault as VaultDetail, vaults::TokenVault as VaultsListItem,
 };
 use tauri::AppHandle;
-use anyhow::Result;
+use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn vaults_list(subgraph_args: SubgraphArgs) -> Result<Vec<VaultsListItem>> {
-    subgraph_args
+pub async fn vaults_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<VaultsListItem>> {
+    let vaults = subgraph_args
         .to_subgraph_client()
-        .await
-        .map_err(|_| String::from("Subgraph URL is invalid"))?
+        .await?
         .vaults()
-        .await
-        .map_err(|e| e.to_string())
+        .await?;
+
+    Ok(vaults)
 }
 
 #[tauri::command]
-pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> Result<VaultDetail> {
-    subgraph_args
+pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<VaultDetail> {
+    let vault = subgraph_args
         .to_subgraph_client()
-        .await
-        .map_err(|_| String::from("Subgraph URL is invalid"))?
+        .await?
         .vault(id.into())
-        .await
+        .await?;
+    
+    Ok(vault)
 }
 
 #[tauri::command]
@@ -35,7 +36,7 @@ pub async fn vault_deposit(
     app_handle: AppHandle,
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
-) -> Result<()> {
+) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
         "Approve ERC20 token transfer".into(),
         Some(SeriesPosition {
@@ -76,7 +77,7 @@ pub async fn vault_withdraw(
     app_handle: AppHandle,
     withdraw_args: WithdrawArgs,
     transaction_args: TransactionArgs,
-) -> Result<()> {
+) -> CommandResult<()> {
     let tx_status_notice =
         TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), None);
     let _ = withdraw_args

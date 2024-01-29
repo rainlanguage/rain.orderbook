@@ -7091,12 +7091,15 @@ dependencies = [
  "chrono",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_queries",
+ "ruint",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-cli",
+ "thiserror",
  "typeshare",
+ "url",
  "uuid 1.7.0",
 ]
 

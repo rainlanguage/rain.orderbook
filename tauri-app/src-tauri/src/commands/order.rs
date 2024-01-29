@@ -12,24 +12,28 @@ use rain_orderbook_subgraph_queries::types::{
     orders::Order as OrdersListItem,
 };
 use tauri::AppHandle;
-use anyhow::Result;
+use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn orders_list(subgraph_args: SubgraphArgs) -> Result<Vec<OrdersListItem>> {
-    subgraph_args
+pub async fn orders_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<OrdersListItem>> {
+    let orders = subgraph_args
         .to_subgraph_client()
         .await?
         .orders()
-        .await
+        .await?;
+    
+    Ok(orders)
 }
 
 #[tauri::command]
-pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> Result<OrderDetail> {
-    subgraph_args
+pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<OrderDetail> {
+    let order = subgraph_args
         .to_subgraph_client()
         .await?
         .order(id.into())
-        .await
+        .await?;
+
+    Ok(order)
 }
 
 
@@ -39,7 +43,7 @@ pub async fn order_remove(
     id: String,
     transaction_args: TransactionArgs,
     subgraph_args: SubgraphArgs
-) -> Result<()> {
+) -> CommandResult<()> {
     let order = subgraph_args
         .to_subgraph_client()
         .await
