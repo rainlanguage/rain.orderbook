@@ -19,8 +19,8 @@
   import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
 
-  let showRemoveModal = false;
   let removeModalOrderId: string;
+  let showRemoveModal = false;
 
   function gotoOrder(id: string) {
     goto(`/orders/${id}`);
