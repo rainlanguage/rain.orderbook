@@ -7,6 +7,7 @@
   import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
 
   export let data: { id: string };
   let showRemoveModal = false;
@@ -59,24 +60,28 @@
 
       <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Input Token(s)
+          Input Vaults
         </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.valid_inputs?.map((t) => t.token_vault.token.name)}
-        </p>
+        <div class="flex flex-wrap space-x-2 space-y-2">
+          {#each (order.valid_inputs || []) as t}
+            <ButtonVaultLink tokenVault={t.token_vault} />
+          {/each}
+        </div>
       </div>
 
       <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Output Token(s)
+          Output Vaults
         </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.valid_outputs?.map((t) => t.token_vault.token.name)}
-        </p>
+        <div class="flex flex-wrap space-x-2 space-y-2">
+          {#each (order.valid_outputs || []) as t}
+            <ButtonVaultLink tokenVault={t.token_vault} />
+          {/each}
+        </div>
       </div>
 
       {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-        <div class="pt-4">
+        <div class="mt-8">
           <div class="flex justify-center space-x-20">
             <ButtonLoading color="blue" size="xl" on:click={() => (showRemoveModal = true)}>
               Remove

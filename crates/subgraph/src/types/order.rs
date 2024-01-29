@@ -53,7 +53,14 @@ pub struct Io {
 pub struct TokenVault {
     pub id: cynic::Id,
     pub vault_id: BigInt,
+    pub vault: Vault,
     pub token: Erc20,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct Vault {
+    pub owner: Account,
 }
 
 #[typeshare]
