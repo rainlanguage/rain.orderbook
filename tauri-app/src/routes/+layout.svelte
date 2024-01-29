@@ -22,7 +22,9 @@
       <TransactionStatusNotice {transactionStatusNotice} />
     {/each}
     {#each $toastsList as toast}
+    <div class="flex justify-end">
       <AppToast {toast} />
+    </div>
     {/each}
   </div>
 </div>
