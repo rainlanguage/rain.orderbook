@@ -41,7 +41,6 @@ pub async fn order_remove(
     transaction_args: TransactionArgs,
     subgraph_args: SubgraphArgs
 ) -> Result<(), String> {
-    println!("order id is {:?}", id);
     let order = subgraph_args
         .to_subgraph_client()
         .await
