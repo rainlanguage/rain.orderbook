@@ -6,10 +6,14 @@
   import utc from 'dayjs/plugin/utc';
   import bigIntSupport from 'dayjs/plugin/bigIntSupport';
   import { walletAddress } from '$lib/stores/settings';
+  import ButtonLoading from '$lib/ButtonLoading.svelte';
+  import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
   export let data: { id: string };
+  let showRemoveModal = false;
+
   orderDetail.refetch(data.id);
   $: order = $orderDetail[data.id];
 </script>
@@ -79,10 +83,14 @@
       {#if $walletAddress !== '' && order.owner.id === $walletAddress}
         <div class="pt-4">
           <div class="flex justify-center space-x-20">
-            <Button color="blue" size="xl">Remove</Button>
+            <ButtonLoading color="blue" size="xl" on:click={() => (showRemoveModal = true)}>
+              Remove
+            </ButtonLoading>
           </div>
         </div>
       {/if}
     </Card>
   </div>
 {/if}
+
+<ModalOrderRemove bind:open={showRemoveModal} {order}/>
