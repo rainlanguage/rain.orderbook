@@ -16,7 +16,7 @@
   import { goto } from '$app/navigation';
   import { ordersList } from '$lib/stores/ordersList';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
+  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
 
   let removeModalOrderId: string;
