@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Button, Card } from 'flowbite-svelte';
-  import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
+  import { Card } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
@@ -8,6 +7,7 @@
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
+  import ButtonBack from '$lib/components/ButtonBack.svelte';
 
   export let data: { id: string };
   let showRemoveModal = false;
@@ -18,9 +18,7 @@
 
 <div class="flex w-full">
   <div class="flex-1">
-    <Button outline size="xs" class="w-32" color="primary" href="/orders">
-      <ArrowLeftSolid size="xs" /><span class="ml-2">All Orders</span>
-    </Button>
+    <ButtonBack />
   </div>
   <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Order</h1>
   <div class="flex-1"></div>

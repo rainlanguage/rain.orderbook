@@ -10,13 +10,13 @@
     TableBodyRow,
     TableBodyCell,
   } from 'flowbite-svelte';
-  import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import { walletAddress } from '$lib/stores/settings';
   import { toHex } from 'viem';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import ButtonBack from '$lib/components/ButtonBack.svelte';
 
   export let data: { id: string };
   let showDepositModal = false;
@@ -35,9 +35,7 @@
 
 <div class="flex w-full">
   <div class="flex-1">
-    <Button outline size="xs" class="w-32" color="primary" href="/vaults">
-      <ArrowLeftSolid size="xs" /><span class="ml-2">All Vaults</span>
-    </Button>
+    <ButtonBack />
   </div>
   <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vault</h1>
   <div class="flex-1"></div>
