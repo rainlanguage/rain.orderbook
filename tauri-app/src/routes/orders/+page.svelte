@@ -15,21 +15,14 @@
   import dayjs from 'dayjs';
   import utc from 'dayjs/plugin/utc';
   import bigIntSupport from 'dayjs/plugin/bigIntSupport';
+    import ModalOrderRemoveGeneric from '$lib/ModalOrderRemoveGeneric.svelte';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
-  let showDepositModal = false;
-  let showWithdrawModal = false;
+  let showRemoveModal = false;
 
   function gotoOrder(id: string) {
     goto(`/orders/${id}`);
-  }
-
-  function toggleDepositModal() {
-    showDepositModal = !showDepositModal;
-  }
-  function toggleWithdrawModal() {
-    showWithdrawModal = !showWithdrawModal;
   }
 
   redirectIfSettingsNotDefined();
@@ -41,8 +34,8 @@
   <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Orders</h1>
   <div class="flex-1">
     <div class="flex justify-end space-x-2">
-      <Button color="green" size="xs" on:click={toggleDepositModal}>Add</Button>
-      <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Remove</Button>
+      <Button color="green" size="xs" >Add</Button>
+      <Button color="blue" size="xs" on:click={() => (showRemoveModal = true)}>Remove</Button>
     </div>
   </div>
 </div>
@@ -88,3 +81,6 @@
     </TableBody>
   </Table>
 {/if}
+
+
+<ModalOrderRemoveGeneric bind:open={showRemoveModal} />
