@@ -1,5 +1,5 @@
 use cynic::Id;
-use rain_orderbook_subgraph_queries::types::order::{OrderQuery, OrderQueryVariables};
+use rain_orderbook_subgraph_client::types::order::{OrderQuery, OrderQueryVariables};
 
 #[test]
 fn orders_query_gql_output() {

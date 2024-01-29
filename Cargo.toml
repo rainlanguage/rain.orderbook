@@ -47,5 +47,5 @@ path = "crates/common"
 [workspace.dependencies.rain_orderbook_cli]
 path = "crates/cli"
 
-[workspace.dependencies.rain_orderbook_subgraph_queries]
+[workspace.dependencies.rain_orderbook_subgraph_client]
 path = "crates/subgraph"

@@ -10,7 +10,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [dependencies]
 rain_orderbook_bindings = { workspace = true }
-rain_orderbook_subgraph_queries = { workspace = true }
+rain_orderbook_subgraph_client = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 alloy-sol-types = { workspace = true }

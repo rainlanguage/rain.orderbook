@@ -4,7 +4,7 @@ use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_queries::types::orders::Order;
+use rain_orderbook_subgraph_client::types::orders::Order;
 
 use tracing::debug;
 #[derive(Args, Clone)]

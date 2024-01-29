@@ -3,7 +3,7 @@ use rain_orderbook_common::{
     deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_queries::types::{
+use rain_orderbook_subgraph_client::types::{
     vault::TokenVault as VaultDetail, vaults::TokenVault as VaultsListItem,
 };
 use tauri::AppHandle;

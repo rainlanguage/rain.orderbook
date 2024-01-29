@@ -1,5 +1,5 @@
 use cynic::Id;
-use rain_orderbook_subgraph_queries::types::vault::{VaultQuery, VaultQueryVariables};
+use rain_orderbook_subgraph_client::types::vault::{VaultQuery, VaultQueryVariables};
 
 #[test]
 fn vaults_query_gql_output() {
