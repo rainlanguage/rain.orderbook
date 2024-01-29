@@ -88,7 +88,7 @@
           </TableBodyCell>
           <TableBodyCell tdClass="px-0">
             {#if $walletAddressMatchesOrBlank(order.owner.id)}
-              <Button color="alternative" outline={false} id={`order-menu-${order.id}`} class="border-none px-2" on:click={(e)=> {e.stopPropagation();}}>
+              <Button color="alternative" outline={false} id={`order-menu-${order.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
                 <DotsVerticalOutline class="dark:text-white"/>
               </Button>
             {/if}
