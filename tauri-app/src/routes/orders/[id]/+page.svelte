@@ -3,9 +3,9 @@
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddress } from '$lib/stores/settings';
-  import ButtonLoading from '$lib/ButtonLoading.svelte';
-  import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
-  import BadgeActive from '$lib/BadgeActive.svelte';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
+  import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
   export let data: { id: string };

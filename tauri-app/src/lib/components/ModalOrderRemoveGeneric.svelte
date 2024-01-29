@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ModalConfirm from '$lib/ModalConfirm.svelte';
+  import ModalConfirm from '$lib/components/ModalConfirm.svelte';
   import { orderRemove } from '$lib/utils/orderRemove';
   import {Input, Helper} from 'flowbite-svelte';
 

@@ -12,7 +12,7 @@
   } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { ordersList } from '$lib/stores/ordersList';
-  import ModalOrderRemoveGeneric from '$lib/ModalOrderRemoveGeneric.svelte';
+  import ModalOrderRemoveGeneric from '$lib/components/ModalOrderRemoveGeneric.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
   let showRemoveModal = false;

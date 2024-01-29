@@ -12,8 +12,8 @@
   } from 'flowbite-svelte';
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
-  import ModalVaultDeposit from '$lib/ModalVaultDeposit.svelte';
-  import ModalVaultWithdraw from '$lib/ModalVaultWithdraw.svelte';
+  import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
+  import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import { walletAddress } from '$lib/stores/settings';
   import { toHex } from 'viem';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';

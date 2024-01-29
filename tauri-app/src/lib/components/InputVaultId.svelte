@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Helper } from 'flowbite-svelte';
-  import InputHex from '$lib/InputHex.svelte';
+  import InputHex from '$lib/components/InputHex.svelte';
 
   export let value: bigint;
 </script>

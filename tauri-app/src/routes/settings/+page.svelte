@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Alert, Heading, Label, Input, Helper } from 'flowbite-svelte';
-  import BadgeExternalLink from '$lib/BadgeExternalLink.svelte';
+  import BadgeExternalLink from '$lib/components/BadgeExternalLink.svelte';
   import {
     rpcUrl,
     subgraphUrl,
@@ -13,7 +13,7 @@
     isSettingsDefinedAndValid,
   } from '$lib/stores/settings';
   import { activeChain } from '$lib/stores/chain';
-  import InputLedgerWallet from '$lib/InputLedgerWallet.svelte';
+  import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
 </script>
 
 <Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Settings</Heading>

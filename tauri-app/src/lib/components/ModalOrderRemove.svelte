@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ModalConfirm from '$lib/ModalConfirm.svelte';
+  import ModalConfirm from '$lib/components/ModalConfirm.svelte';
   import type { Order } from '$lib/typeshare/order';
   import { orderRemove } from '$lib/utils/orderRemove';
 

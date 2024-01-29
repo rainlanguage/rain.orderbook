@@ -11,8 +11,8 @@
   } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { vaultsList } from '$lib/stores/vaultsList';
-  import ModalVaultDepositGeneric from '$lib/ModalVaultDepositGeneric.svelte';
-  import ModalVaultWithdrawGeneric from '$lib/ModalVaultWithdrawGeneric.svelte';
+  import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
+  import ModalVaultWithdrawGeneric from '$lib/components/ModalVaultWithdrawGeneric.svelte';
   import { toHex } from 'viem';
 
   let showDepositModal = false;
