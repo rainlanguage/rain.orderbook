@@ -8,6 +8,7 @@
   import { walletAddress } from '$lib/stores/settings';
   import ButtonLoading from '$lib/ButtonLoading.svelte';
   import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
+  import BadgeActive from '$lib/BadgeActive.svelte';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
@@ -31,8 +32,9 @@
   <div class="text-center text-gray-900 dark:text-white">Order not found</div>
 {:else}
   <div class="flex w-full flex-wrap justify-evenly space-y-12 xl:space-x-8 2xl:space-y-0">
-    <Card class="space-y-8" size="lg">
-      <div>
+    <Card class="relative" size="lg">
+      <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
+      <div class="mt-4">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Order ID
         </h5>
@@ -41,7 +43,7 @@
         </p>
       </div>
 
-      <div>
+      <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Owner Address
         </h5>
@@ -50,7 +52,7 @@
         </p>
       </div>
 
-      <div>
+      <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Created At
         </h5>
@@ -62,7 +64,7 @@
         </p>
       </div>
 
-      <div>
+      <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Input Token(s)
         </h5>
@@ -71,7 +73,7 @@
         </p>
       </div>
 
-      <div>
+      <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Output Token(s)
         </h5>
