@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Badge } from 'flowbite-svelte';
-  import IconExternalLink from './IconExternalLink.svelte';
+  import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   export let text: string;
   export let href: string;
   export let color:

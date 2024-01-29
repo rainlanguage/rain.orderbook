@@ -1,8 +1,8 @@
 import  find from 'lodash/find';
 import { derived, writable, get } from 'svelte/store';
 import * as chains from 'viem/chains'
-import { rpcUrl } from './settings';
-import { toasts } from './toasts';
+import { rpcUrl } from '$lib/stores/settings';
+import { toasts } from '$lib/stores/toasts';
 import { ToastMessageType } from '$lib/typeshare/toast';
 import { invoke } from '@tauri-apps/api';
 

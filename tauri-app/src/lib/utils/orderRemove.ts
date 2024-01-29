@@ -1,8 +1,8 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, walletDerivationIndex, subgraphUrl } from '../stores/settings';
+import { rpcUrl, orderbookAddress, walletDerivationIndex, subgraphUrl } from '$lib/stores/settings';
 import { chainId } from '$lib/stores/chain';
-import { MAX_FEE_PER_GAS_PLACEHOLDER } from './gas';
+import { MAX_FEE_PER_GAS_PLACEHOLDER } from '$lib/utils/gas';
 
 export async function orderRemove(id: string) {
   await invoke("order_remove", {

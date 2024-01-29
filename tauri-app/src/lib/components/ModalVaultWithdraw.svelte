@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
-  import InputTokenAmount from './InputTokenAmount.svelte';
+  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
   import { toHex } from 'viem';
-    import ButtonLoading from './ButtonLoading.svelte';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
 
   export let open = false;
   export let vault: TokenVault;

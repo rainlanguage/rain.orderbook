@@ -1,8 +1,8 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, walletDerivationIndex } from '../stores/settings';
+import { rpcUrl, orderbookAddress, walletDerivationIndex } from '$lib/stores/settings';
 import { chainId } from '$lib/stores/chain';
-import { MAX_FEE_PER_GAS_PLACEHOLDER } from './gas';
+import { MAX_FEE_PER_GAS_PLACEHOLDER } from '$lib/utils/gas';
 
 export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount: bigint) {
   await invoke("vault_withdraw", {
