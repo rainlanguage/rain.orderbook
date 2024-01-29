@@ -17,7 +17,6 @@ use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 
-
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
     #[error("frontmatter is not valid strict yaml: {0}")]
@@ -250,11 +249,10 @@ impl AddOrderArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-        
+
     #[test]
     fn test_try_parse_frontmatter() {
-        let frontmatter = 
-            "
+        let frontmatter = "
 orderbook:
     order:
         deployer: 0x1111111111111111111111111111111111111111
@@ -267,17 +265,31 @@ orderbook:
               decimals: 18
               vaultId: 0x2
 ";
-        let args = AddOrderArgs {
-            dotrain: "".into(),
-        };
+        let args = AddOrderArgs { dotrain: "".into() };
 
-        let (deployer, valid_inputs, valid_outputs) = args.try_parse_frontmatter(frontmatter).unwrap();
-        
-        assert_eq!(deployer, "0x1111111111111111111111111111111111111111".parse::<Address>().unwrap());
-        assert_eq!(valid_inputs[0].token, "0x0000000000000000000000000000000000000001".parse::<Address>().unwrap());
+        let (deployer, valid_inputs, valid_outputs) =
+            args.try_parse_frontmatter(frontmatter).unwrap();
+
+        assert_eq!(
+            deployer,
+            "0x1111111111111111111111111111111111111111"
+                .parse::<Address>()
+                .unwrap()
+        );
+        assert_eq!(
+            valid_inputs[0].token,
+            "0x0000000000000000000000000000000000000001"
+                .parse::<Address>()
+                .unwrap()
+        );
         assert_eq!(valid_inputs[0].decimals, 18);
         assert_eq!(valid_inputs[0].vaultId, U256::from(1));
-        assert_eq!(valid_outputs[0].token, "0x0000000000000000000000000000000000000002".parse::<Address>().unwrap());
+        assert_eq!(
+            valid_outputs[0].token,
+            "0x0000000000000000000000000000000000000002"
+                .parse::<Address>()
+                .unwrap()
+        );
         assert_eq!(valid_outputs[0].decimals, 18);
         assert_eq!(valid_outputs[0].vaultId, U256::from(2));
     }
@@ -291,11 +303,20 @@ price: 2e18;
 max-amount: 100e18,
 price: 2e18;
 ";
-        let args = AddOrderArgs {
-            dotrain: "".into()
-        };
+        let args = AddOrderArgs { dotrain: "".into() };
 
         let meta_bytes = args.try_generate_meta(rainlang).unwrap();
-        assert_eq!(meta_bytes, vec![255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 88, 68, 10, 109, 97, 120, 45, 97, 109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105, 99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 10, 109, 97, 120, 45, 97, 109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105, 99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 1, 27, 255, 19, 16, 158, 65, 51, 111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109]); 
+        assert_eq!(
+            meta_bytes,
+            vec![
+                255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 88, 68, 10, 109, 97, 120, 45, 97,
+                109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105,
+                99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 10, 109, 97, 120, 45, 97, 109, 111, 117,
+                110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105, 99, 101, 58, 32,
+                50, 101, 49, 56, 59, 10, 1, 27, 255, 19, 16, 158, 65, 51, 111, 242, 2, 120, 24, 97,
+                112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45,
+                115, 116, 114, 101, 97, 109
+            ]
+        );
     }
 }
