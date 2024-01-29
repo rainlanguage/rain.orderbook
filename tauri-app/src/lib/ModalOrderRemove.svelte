@@ -1,16 +1,15 @@
 <script lang="ts">
   import ModalConfirm from '$lib/ModalConfirm.svelte';
-  import type { Order } from '$lib/typeshare/order';
   import { orderRemove } from '$lib/utils/orderRemove';
 
   export let open = false;
-  export let order: Order;
+  export let orderId: string;
   let isSubmitting = false;
 
   async function remove() {
     isSubmitting = true;
     try {
-      await orderRemove(order.id);
+      await orderRemove(orderId);
       open = false;
       // eslint-disable-next-line no-empty
     } catch (e) {}

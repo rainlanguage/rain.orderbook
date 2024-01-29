@@ -40,3 +40,7 @@ isRpcUrlValid.subscribe(value => {
 export const isSettingsDefined = derived([rpcUrl, subgraphUrl, orderbookAddress], (vals) => every(vals.map((v) => v && v.trim().length > 0)));
 export const isSettingsValid = derived([isRpcUrlValid, isSubgraphUrlValid], (vals) => every(vals));
 export const isSettingsDefinedAndValid = derived([isSettingsDefined, isSettingsValid], (vals) => every(vals));
+
+export const walletAddressMatchesOrBlank = derived(walletAddress, val => {
+  return (otherAddress: string) => val === otherAddress || val === '';
+});

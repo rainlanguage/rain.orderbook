@@ -2,7 +2,7 @@
   import { Button, Card } from 'flowbite-svelte';
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
-  import { walletAddress } from '$lib/stores/settings';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/ButtonLoading.svelte';
   import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
   import BadgeActive from '$lib/BadgeActive.svelte';
@@ -75,7 +75,7 @@
         </p>
       </div>
 
-      {#if $walletAddress !== '' && order.owner.id === $walletAddress}
+      {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
         <div class="pt-4">
           <div class="flex justify-center space-x-20">
             <ButtonLoading color="blue" size="xl" on:click={() => (showRemoveModal = true)}>
@@ -86,6 +86,7 @@
       {/if}
     </Card>
   </div>
+
+  <ModalOrderRemove bind:open={showRemoveModal} orderId={order.id}/>
 {/if}
 
-<ModalOrderRemove bind:open={showRemoveModal} {order}/>
