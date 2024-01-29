@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, MutexGuard, PoisonError},
+};
 
 use crate::transaction::TransactionArgsError;
 use alloy_dyn_abi::JsonAbiExt;
@@ -28,7 +31,7 @@ pub enum WritableTransactionExecuteError {
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum DecodedErrorType {
+pub enum AbiDecodedErrorType {
     Unknown,
     Known {
         name: String,
@@ -38,30 +41,30 @@ pub enum DecodedErrorType {
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
-pub async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String> {
+pub async fn abi_decode_error(
+    error_data: &[u8],
+) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors> {
     let (hash_bytes, args_data) = error_data.split_at(4);
     let selector_hash = alloy_primitives::hex::encode_prefixed(hash_bytes);
-    let selector_hash_bytes: [u8; 4] = hash_bytes
-        .try_into()
-        .or(Err("provided data contains no selector".to_owned()))?;
+    let selector_hash_bytes: [u8; 4] = hash_bytes.try_into()?;
 
     // check if selector already is cached
     {
-        let selectors = SELECTORS.lock().unwrap();
+        let selectors = SELECTORS.lock()?;
         if let Some(error) = selectors.get(&selector_hash_bytes) {
             if let Ok(result) = error.abi_decode_input(args_data, false) {
-                return Ok(DecodedErrorType::Known {
+                return Ok(AbiDecodedErrorType::Known {
                     name: error.name.to_string(),
                     args: result.iter().map(|v| format!("{:?}", v)).collect(),
                     sig: error.signature(),
                 });
             } else {
-                return Ok(DecodedErrorType::Unknown);
+                return Ok(AbiDecodedErrorType::Unknown);
             }
         }
     };
 
-    let client = Client::builder().build().unwrap();
+    let client = Client::builder().build()?;
     let response = client
         .get(SELECTOR_REGISTRY_URL)
         .query(&vec![
@@ -70,11 +73,9 @@ pub async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String>
         ])
         .header("accept", "application/json")
         .send()
-        .await
-        .map_err(|e| e.to_string())?
+        .await?
         .json::<Value>()
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
 
     if let Some(selectors) = response["result"]["function"][selector_hash].as_array() {
         for opt_selector in selectors {
@@ -83,10 +84,10 @@ pub async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String>
                     if let Ok(result) = error.abi_decode_input(args_data, false) {
                         // cache the fetched selector
                         {
-                            let mut cached_selectors = SELECTORS.lock().unwrap();
+                            let mut cached_selectors = SELECTORS.lock()?;
                             cached_selectors.insert(selector_hash_bytes, error.clone());
                         };
-                        return Ok(DecodedErrorType::Known {
+                        return Ok(AbiDecodedErrorType::Known {
                             sig: error.signature(),
                             name: error.name,
                             args: result.iter().map(|v| format!("{:?}", v)).collect(),
@@ -95,8 +96,47 @@ pub async fn decode_error(error_data: &[u8]) -> Result<DecodedErrorType, String>
                 }
             }
         }
-        Ok(DecodedErrorType::Unknown)
+        Ok(AbiDecodedErrorType::Unknown)
     } else {
-        Ok(DecodedErrorType::Unknown)
+        Ok(AbiDecodedErrorType::Unknown)
+    }
+}
+
+#[derive(Debug)]
+pub enum AbiDecodeFailedErrors<'a> {
+    ReqwestError(reqwest::Error),
+    InvalidSelectorHash(std::array::TryFromSliceError),
+    SelectorsCachePoisoned(PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>),
+}
+
+impl std::fmt::Display for AbiDecodeFailedErrors<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidSelectorHash(v) => write!(f, "{}", v),
+            Self::SelectorsCachePoisoned(v) => write!(f, "{}", v),
+            Self::ReqwestError(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+impl std::error::Error for AbiDecodeFailedErrors<'_> {}
+
+impl From<std::array::TryFromSliceError> for AbiDecodeFailedErrors<'_> {
+    fn from(value: std::array::TryFromSliceError) -> Self {
+        Self::InvalidSelectorHash(value)
+    }
+}
+
+impl From<reqwest::Error> for AbiDecodeFailedErrors<'_> {
+    fn from(value: reqwest::Error) -> Self {
+        Self::ReqwestError(value)
+    }
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
+    for AbiDecodeFailedErrors<'a>
+{
+    fn from(value: PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>) -> Self {
+        Self::SelectorsCachePoisoned(value)
     }
 }

@@ -1,6 +1,6 @@
 use forker::*;
 use once_cell::sync::Lazy;
-use rain_orderbook_common::error::{decode_error, DecodedErrorType};
+use rain_orderbook_common::error::{abi_decode_error, AbiDecodedErrorType};
 use revm::primitives::Bytes;
 use serde_bytes::ByteBuf;
 use std::{collections::HashMap, sync::Mutex};
@@ -16,15 +16,17 @@ pub async fn fork_call(
     from_address: ByteBuf,
     to_address: ByteBuf,
     calldata: ByteBuf,
-) -> Result<Result<Bytes, DecodedErrorType>, String> {
+) -> Result<Result<Bytes, AbiDecodedErrorType>, String> {
     // build key from fork url and block number
     let key = fork_url.to_owned() + &fork_block_number.to_string();
 
-    let is_cached = { FORKS.lock().unwrap().contains_key(&key) };
+    let is_cached = { FORKS.lock().map_err(|e| e.to_string())?.contains_key(&key) };
 
     let result = if is_cached {
-        let mut forks = FORKS.lock().unwrap();
-        let forked_evm = forks.get_mut(&key).unwrap();
+        let mut forks = FORKS.lock().map_err(|e| e.to_string())?;
+        let forked_evm = forks
+            .get_mut(&key)
+            .ok_or("could not get the cached forked evm".to_owned())?;
 
         // call a contract read-only
         forked_evm
@@ -48,14 +50,16 @@ pub async fn fork_call(
             .map_err(|e| e.to_string())?;
 
         // lock static FORKS
-        let mut forks = FORKS.lock().unwrap();
+        let mut forks = FORKS.lock().map_err(|e| e.to_string())?;
         forks.insert(key, forked_evm);
         res
     };
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
-        Ok(Err(decode_error(&result.result).await?))
+        Ok(Err(abi_decode_error(&result.result)
+            .await
+            .map_err(|e| e.to_string())?))
     } else {
         Ok(Ok(result.result))
     }
@@ -77,14 +81,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_decoder() {
-        let x = decode_error(&[26, 198, 105, 8]).await;
+        let res = abi_decode_error(&[26, 198, 105, 8])
+            .await
+            .expect("failed to get error selector");
         assert_eq!(
-            Ok(DecodedErrorType::Known {
+            AbiDecodedErrorType::Known {
                 name: "UnexpectedOperandValue".to_owned(),
                 args: vec![],
                 sig: "UnexpectedOperandValue()".to_owned(),
-            }),
-            x
+            },
+            res
         );
     }
 
@@ -106,7 +112,7 @@ mod tests {
             calldata,
         )
         .await;
-        let expected = Ok(Err(DecodedErrorType::Known {
+        let expected = Ok(Err(AbiDecodedErrorType::Known {
             name: "MissingFinalSemi".to_owned(),
             args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()],
             sig: "MissingFinalSemi(uint256)".to_owned(),
@@ -144,7 +150,7 @@ mod tests {
             calldata,
         )
         .await;
-        let expected = Ok(Err(DecodedErrorType::Known {
+        let expected = Ok(Err(AbiDecodedErrorType::Known {
             name: "BadOpInputsLength".to_owned(),
             args: vec![
                 "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned(), 
