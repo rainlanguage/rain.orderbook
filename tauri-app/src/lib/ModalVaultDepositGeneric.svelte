@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { Button, Modal, Label, Spinner } from 'flowbite-svelte';
+  import { Button, Modal, Label } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
   import { vaultDeposit } from '$lib/utils/vaultDeposit';
   import InputToken from '$lib/InputToken.svelte';
-  import InputVaultId from './InputVaultId.svelte';
+  import InputVaultId from '$lib/InputVaultId.svelte';
+  import ButtonLoading from '$lib/ButtonLoading.svelte';
 
   export let open = false;
   let vaultId: bigint = 0n;
@@ -60,12 +61,9 @@
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amount || amount === 0n || isSubmitting}>
-        {#if isSubmitting}
-          <Spinner class="mr-2 h-4 w-4" color="white" />
-        {/if}
+      <ButtonLoading on:click={execute} disabled={!amount || amount === 0n || isSubmitting} loading={isSubmitting}>
         Submit Deposit
-      </Button>
+      </ButtonLoading>
     </div>
   </svelte:fragment>
 </Modal>
