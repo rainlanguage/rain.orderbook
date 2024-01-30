@@ -102,35 +102,14 @@ pub async fn abi_decode_error<'a>(
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AbiDecodeFailedErrors<'a> {
-    ReqwestError(reqwest::Error),
-    InvalidSelectorHash(std::array::TryFromSliceError),
+    #[error("Reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("InvalidSelectorHash error: {0}")]
+    InvalidSelectorHash(#[from] std::array::TryFromSliceError),
+    #[error("SelectorsCachePoisoned error: {0}")]
     SelectorsCachePoisoned(PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>),
-}
-
-impl std::fmt::Display for AbiDecodeFailedErrors<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidSelectorHash(v) => write!(f, "{}", v),
-            Self::SelectorsCachePoisoned(v) => write!(f, "{}", v),
-            Self::ReqwestError(v) => write!(f, "{}", v),
-        }
-    }
-}
-
-impl std::error::Error for AbiDecodeFailedErrors<'_> {}
-
-impl From<std::array::TryFromSliceError> for AbiDecodeFailedErrors<'_> {
-    fn from(value: std::array::TryFromSliceError) -> Self {
-        Self::InvalidSelectorHash(value)
-    }
-}
-
-impl From<reqwest::Error> for AbiDecodeFailedErrors<'_> {
-    fn from(value: reqwest::Error) -> Self {
-        Self::ReqwestError(value)
-    }
 }
 
 impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
@@ -141,34 +120,25 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ForkCallError<'a> {
+    #[error("EVMError error: {0}")]
     EVMError(String),
+    #[error("AbiDecodeFailed error: {0}")]
     AbiDecodeFailed(AbiDecodeFailedErrors<'a>),
+    #[error("ForkCachePoisoned error: {0}")]
     ForkCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
-}
-
-impl std::fmt::Display for ForkCallError<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::AbiDecodeFailed(v) => write!(f, "{}", v),
-            Self::ForkCachePoisoned(v) => write!(f, "{}", v),
-            Self::EVMError(v) => write!(f, "{}", v),
-        }
-    }
-}
-
-impl std::error::Error for ForkCallError<'_> {}
-
-impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
-    fn from(value: AbiDecodeFailedErrors<'a>) -> Self {
-        Self::AbiDecodeFailed(value)
-    }
 }
 
 impl From<String> for ForkCallError<'_> {
     fn from(value: String) -> Self {
         Self::EVMError(value)
+    }
+}
+
+impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
+    fn from(value: AbiDecodeFailedErrors<'a>) -> Self {
+        Self::AbiDecodeFailed(value)
     }
 }
 
