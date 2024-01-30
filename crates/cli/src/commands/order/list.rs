@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
 use rain_orderbook_subgraph_client::types::orders_list::Order;
 use tracing::info;
 
@@ -22,10 +22,11 @@ pub struct CliOrderListArgs {
 impl Execute for CliOrderListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
+        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
         let orders = subgraph_args
             .to_subgraph_client()
             .await?
-            .orders_list(self.pagination_args.clone().into())
+            .orders_list(pagination_args.clone().into())
             .await?;
 
         let table = build_orders_table(orders)?;

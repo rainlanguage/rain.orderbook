@@ -1,8 +1,7 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::types::{
-    orders_list::OrdersListQueryVariables, vaults_list::VaultsListQueryVariables,
-};
+
+use rain_orderbook_common::subgraph::SubgraphPaginationArgs;
 
 #[derive(Args, Clone)]
 pub struct CliSubgraphArgs {
@@ -36,26 +35,11 @@ pub struct CliSubgraphPaginationArgs {
     pub page_size: u16,
 }
 
-impl From<CliSubgraphPaginationArgs> for OrdersListQueryVariables {
+impl From<CliSubgraphPaginationArgs> for SubgraphPaginationArgs {
     fn from(val: CliSubgraphPaginationArgs) -> Self {
-        let page: i32 = val.page.saturating_sub(1).into();
-        let page_size: i32 = val.page_size.into();
-
-        OrdersListQueryVariables {
-            skip: Some(page_size * page),
-            first: Some(page_size),
-        }
-    }
-}
-
-impl From<CliSubgraphPaginationArgs> for VaultsListQueryVariables {
-    fn from(val: CliSubgraphPaginationArgs) -> Self {
-        let page: i32 = val.page.saturating_sub(1).into();
-        let page_size: i32 = val.page_size.into();
-
-        VaultsListQueryVariables {
-            skip: Some(page_size * page),
-            first: Some(page_size),
+        Self {
+            page: val.page,
+            page_size: val.page_size,
         }
     }
 }

@@ -6,7 +6,10 @@ use rain_orderbook_subgraph_client::types::orders_list::{
 fn orders_query_gql_output() {
     use cynic::QueryBuilder;
 
-    let request_body = OrdersListQuery::build(OrdersListQueryVariables { skip: Some(0), first: Some(10), });
+    let request_body = OrdersListQuery::build(OrdersListQueryVariables {
+        skip: Some(0),
+        first: Some(10),
+    });
 
     let expected_query = "query OrdersListQuery($first: Int, $skip: Int) {
   orders(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first) {

@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
 use rain_orderbook_subgraph_client::types::vaults_list::TokenVault;
 use tracing::info;
 
@@ -21,10 +21,11 @@ pub struct CliVaultListArgs {
 impl Execute for CliVaultListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
+        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
         let vaults = subgraph_args
             .to_subgraph_client()
             .await?
-            .vaults_list(self.pagination_args.clone().into())
+            .vaults_list(pagination_args.clone().into())
             .await?;
 
         let table = build_table(vaults)?;
