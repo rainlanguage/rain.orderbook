@@ -4,8 +4,8 @@ use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::types::vaults_list::TokenVault;
+use tracing::info;
 
-use tracing::debug;
 #[derive(Args, Clone)]
 pub struct CliVaultListArgs {
     #[clap(flatten)]
@@ -20,10 +20,9 @@ impl Execute for CliVaultListArgs {
             .await?
             .vaults_list()
             .await?;
-        debug!("{:#?}", vaults);
 
         let table = build_table(vaults)?;
-        println!("{}", table);
+        info!("{}", table);
 
         Ok(())
     }

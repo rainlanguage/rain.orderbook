@@ -7,6 +7,7 @@ use clap::Args;
 use rain_orderbook_common::remove_order::RemoveOrderArgs;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
+use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliOrderRemoveArgs {
@@ -33,7 +34,7 @@ impl Execute for CliOrderRemoveArgs {
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
 
-        println!("----- Remove Order -----");
+        info!("----- Remove Order -----");
         remove_order_args
             .execute(tx_args, |status| {
                 display_write_transaction_status(status);
