@@ -1,13 +1,14 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { TokenVault } from '$lib/typeshare/vaultDetail';
+  import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
+  import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultDeposit } from '$lib/utils/vaultDeposit';
   import { toHex } from 'viem';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
 
   export let open = false;
-  export let vault: TokenVault;
+  export let vault: TokenVaultDetail | TokenVaultListItem;
   let amount: bigint;
   let isSubmitting = false;
 
@@ -20,7 +21,7 @@
   async function execute() {
     isSubmitting = true;
     try {
-      await vaultDeposit(vault.vault.vault_id, vault.token.id, amount);
+      await vaultDeposit(vault.vault_id, vault.token.id, amount);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -34,7 +35,7 @@
       Vault ID
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {toHex(vault.vault.vault_id)}
+      {toHex(vault.vault_id)}
     </p>
   </div>
 

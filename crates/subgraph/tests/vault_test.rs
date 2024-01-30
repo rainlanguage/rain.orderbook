@@ -24,9 +24,9 @@ fn vaults_query_gql_output() {
       symbol
       decimals
     }
+    vaultId
     vault {
       id
-      vaultId
       deposits(where: {tokenVault_: {id: $id, }, }) {
         id
         transaction {

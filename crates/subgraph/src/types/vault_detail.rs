@@ -25,6 +25,7 @@ pub struct TokenVault {
     pub balance: BigInt,
     pub balance_display: BigDecimal,
     pub token: Erc20,
+    pub vault_id: BigInt,
     pub vault: Vault,
 }
 
@@ -33,7 +34,6 @@ pub struct TokenVault {
 #[cynic(variables = "VaultDetailQueryVariables")]
 pub struct Vault {
     pub id: cynic::Id,
-    pub vault_id: BigInt,
     #[arguments(where: { tokenVault_: { id: $id } })]
     pub deposits: Option<Vec<VaultDeposit>>,
     #[arguments(where: { tokenVault_: { id: $id } })]

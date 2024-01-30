@@ -56,7 +56,7 @@
           Vault ID
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {toHex(vault.vault.vault_id)}
+          {toHex(vault.vault_id)}
         </p>
       </div>
 
