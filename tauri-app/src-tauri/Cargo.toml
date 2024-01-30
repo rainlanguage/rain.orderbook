@@ -39,3 +39,16 @@ tauri-cli = "1.5"
 
 [patch.crates-io]
 revm-inspectors = { git = "https://github.com/paradigmxyz/evm-inspectors" }
+ethers = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-core = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-contract = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-contract-abigen = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-providers = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-signers = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-middleware = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+ethers-solc = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
+
+revm = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }
+revm-primitives = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }
+revm-interpreter = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }
+revm-precompile = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }

@@ -41,9 +41,9 @@ pub enum AbiDecodedErrorType {
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
-pub async fn abi_decode_error(
+pub async fn abi_decode_error<'a>(
     error_data: &[u8],
-) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors> {
+) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors<'a>> {
     let (hash_bytes, args_data) = error_data.split_at(4);
     let selector_hash = alloy_primitives::hex::encode_prefixed(hash_bytes);
     let selector_hash_bytes: [u8; 4] = hash_bytes.try_into()?;
