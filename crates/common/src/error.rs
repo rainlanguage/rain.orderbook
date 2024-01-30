@@ -177,3 +177,23 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkC
         Self::SelectorsCachePoisoned(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_error_decoder() {
+        let res = abi_decode_error(&[26, 198, 105, 8])
+            .await
+            .expect("failed to get error selector");
+        assert_eq!(
+            AbiDecodedErrorType::Known {
+                name: "UnexpectedOperandValue".to_owned(),
+                args: vec![],
+                sig: "UnexpectedOperandValue()".to_owned(),
+            },
+            res
+        );
+    }
+}

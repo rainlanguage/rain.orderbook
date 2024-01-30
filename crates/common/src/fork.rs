@@ -69,21 +69,6 @@ mod tests {
     const DEPLOY_EXPRESSION_2_SELECTOR: &str = "0xb7f14403"; // deployExpression2(bytes,uint256[])
     const PARSE_SELECTOR: &str = "0xfab4087a"; // parse()
 
-    #[tokio::test]
-    async fn test_error_decoder() {
-        let res = abi_decode_error(&[26, 198, 105, 8])
-            .await
-            .expect("failed to get error selector");
-        assert_eq!(
-            AbiDecodedErrorType::Known {
-                name: "UnexpectedOperandValue".to_owned(),
-                args: vec![],
-                sig: "UnexpectedOperandValue()".to_owned(),
-            },
-            res
-        );
-    }
-
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fork_call_parse_fail_parse() {
         // has no semi at the end
