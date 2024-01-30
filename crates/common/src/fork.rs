@@ -1,6 +1,7 @@
+use super::error::ForkCallError;
+use super::error::{abi_decode_error, AbiDecodedErrorType};
 use forker::*;
 use once_cell::sync::Lazy;
-use rain_orderbook_common::error::{abi_decode_error, AbiDecodedErrorType};
 use revm::primitives::Bytes;
 use serde_bytes::ByteBuf;
 use std::{collections::HashMap, sync::Mutex};
@@ -9,32 +10,27 @@ use std::{collections::HashMap, sync::Mutex};
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-#[tauri::command]
 pub async fn fork_call(
     fork_url: &str,
     fork_block_number: u64,
-    from_address: ByteBuf,
-    to_address: ByteBuf,
-    calldata: ByteBuf,
-) -> Result<Result<Bytes, AbiDecodedErrorType>, String> {
+    from_address: &[u8],
+    to_address: &[u8],
+    calldata: &[u8],
+) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
     // build key from fork url and block number
     let key = fork_url.to_owned() + &fork_block_number.to_string();
 
-    let is_cached = { FORKS.lock().map_err(|e| e.to_string())?.contains_key(&key) };
+    let is_cached = { FORKS.lock()?.contains_key(&key) };
 
     let result = if is_cached {
-        let mut forks = FORKS.lock().map_err(|e| e.to_string())?;
+        let mut forks = FORKS.lock()?;
         let forked_evm = forks
             .get_mut(&key)
             .ok_or("could not get the cached forked evm".to_owned())?;
 
         // call a contract read-only
         forked_evm
-            .call(
-                from_address.as_slice(),
-                to_address.as_slice(),
-                calldata.as_slice(),
-            )
+            .call(from_address, to_address, calldata)
             .map_err(|e| e.to_string())?
     } else {
         let mut forked_evm =
@@ -42,24 +38,18 @@ pub async fn fork_call(
 
         // call a contract read-only
         let res = forked_evm
-            .call(
-                from_address.as_slice(),
-                to_address.as_slice(),
-                calldata.as_slice(),
-            )
+            .call(from_address, to_address, calldata)
             .map_err(|e| e.to_string())?;
 
         // lock static FORKS
-        let mut forks = FORKS.lock().map_err(|e| e.to_string())?;
+        let mut forks = FORKS.lock()?;
         forks.insert(key, forked_evm);
         res
     };
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
-        Ok(Err(abi_decode_error(&result.result)
-            .await
-            .map_err(|e| e.to_string())?))
+        Ok(Err(abi_decode_error(&result.result).await?))
     } else {
         Ok(Ok(result.result))
     }
@@ -98,7 +88,7 @@ mod tests {
     async fn test_fork_call_parse_fail_parse() {
         // has no semi at the end
         let rainlang_text = r"_: int-add(1)";
-        let mut calldata = ByteBuf::from(decode(PARSE_SELECTOR).unwrap());
+        let mut calldata = &decode(PARSE_SELECTOR).unwrap();
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text to build calldata
 
         // this is calling parse() that will not run integrity checks
@@ -107,16 +97,16 @@ mod tests {
         let result = fork_call(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
-            ByteBuf::from(decode(PARSER_ADDRESS).unwrap()),
+            &decode(FROM_ADDRESS).unwrap(),
+            &decode(PARSER_ADDRESS).unwrap(),
             calldata,
         )
         .await;
         let expected = Ok(Err(AbiDecodedErrorType::Known {
-            name: "MissingFinalSemi".to_owned(),
-            args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()],
-            sig: "MissingFinalSemi(uint256)".to_owned(),
-        }));
+          name: "MissingFinalSemi".to_owned(),
+          args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()],
+          sig: "MissingFinalSemi(uint256)".to_owned(),
+      }));
         assert_eq!(result, expected);
     }
 
@@ -125,40 +115,40 @@ mod tests {
         // fixed semi error, but still has bad input problem
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1);";
-        let mut calldata = ByteBuf::from(decode(PARSE_SELECTOR).unwrap());
+        let mut calldata = &decode(PARSE_SELECTOR).unwrap();
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
-            ByteBuf::from(decode(PARSER_ADDRESS).unwrap()),
+            &decode(FROM_ADDRESS).unwrap(),
+            &decode(PARSER_ADDRESS).unwrap(),
             calldata,
         )
         .await
         .unwrap()
         .unwrap();
 
-        let mut calldata = ByteBuf::from(decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap());
+        let mut calldata = &decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
         // get integrity check results, if ends with error, decode with the selectors
         let result = fork_call(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
-            ByteBuf::from(decode(DEPLOYER_ADDRESS).unwrap()),
+            &decode(FROM_ADDRESS).unwrap(),
+            &decode(DEPLOYER_ADDRESS).unwrap(),
             calldata,
         )
         .await;
         let expected = Ok(Err(AbiDecodedErrorType::Known {
-            name: "BadOpInputsLength".to_owned(),
-            args: vec![
-                "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned(), 
-                "Uint(0x0000000000000000000000000000000000000000000000000000000000000002_U256, 256)".to_owned(), 
-                "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned()
-            ],
-            sig: "BadOpInputsLength(uint256,uint256,uint256)".to_owned(),
-        }));
+          name: "BadOpInputsLength".to_owned(),
+          args: vec![
+              "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned(), 
+              "Uint(0x0000000000000000000000000000000000000000000000000000000000000002_U256, 256)".to_owned(), 
+              "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned()
+          ],
+          sig: "BadOpInputsLength(uint256,uint256,uint256)".to_owned(),
+      }));
         assert_eq!(result, expected);
     }
 
@@ -166,38 +156,38 @@ mod tests {
     async fn test_fork_call_parse_success() {
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1 2);";
-        let mut calldata = ByteBuf::from(decode(PARSE_SELECTOR).unwrap());
+        let mut calldata = &decode(PARSE_SELECTOR).unwrap();
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
         let expression_config = fork_call(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
-            ByteBuf::from(decode(PARSER_ADDRESS).unwrap()),
+            &decode(FROM_ADDRESS).unwrap(),
+            &decode(PARSER_ADDRESS).unwrap(),
             calldata,
         )
         .await
         .unwrap()
         .unwrap();
 
-        let mut calldata = ByteBuf::from(decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap());
+        let mut calldata = &decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
 
         // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
         let result = fork_call(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            ByteBuf::from(decode(FROM_ADDRESS).unwrap()),
-            ByteBuf::from(decode(DEPLOYER_ADDRESS).unwrap()),
+            &decode(FROM_ADDRESS).unwrap(),
+            &decode(DEPLOYER_ADDRESS).unwrap(),
             calldata,
         )
         .await;
         let expected = Ok(Ok(
-            Bytes::from(
-                alloy_primitives::hex::decode(
-                    "0x000000000000000000000000f22cda7695125487993110d706f3b001c8d106400000000000000000000000008a326d777bc34ea563bd21854b436d458112185b00000000000000000000000064c9b10e815a089698521b10be95c8c9c2ed0b3c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020001000000000000000000000000000000000000000000000000000000000000").unwrap()
-                )
-            )
-        );
+          Bytes::from(
+              alloy_primitives::hex::decode(
+                  "0x000000000000000000000000f22cda7695125487993110d706f3b001c8d106400000000000000000000000008a326d777bc34ea563bd21854b436d458112185b00000000000000000000000064c9b10e815a089698521b10be95c8c9c2ed0b3c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020001000000000000000000000000000000000000000000000000000000000000").unwrap()
+              )
+          )
+      );
         assert_eq!(result, expected);
     }
 }

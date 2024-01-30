@@ -140,3 +140,40 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
         Self::SelectorsCachePoisoned(value)
     }
 }
+
+#[derive(Debug)]
+pub enum ForkCallError<'a> {
+    EVMError(String),
+    AbiDecodeFailed(AbiDecodeFailedErrors),
+    SelectorsCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
+}
+
+impl std::fmt::Display for ForkCallError<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AbiDecodeFailed(v) => write!(f, "{}", v),
+            Self::SelectorsCachePoisoned(v) => write!(f, "{}", v),
+            Self::EVMError(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+impl std::error::Error for ForkCallError<'_> {}
+
+impl From<AbiDecodeFailedErrors> for ForkCallError<'_> {
+    fn from(value: AbiDecodeFailedErrors) -> Self {
+        Self::AbiDecodeFailed(value)
+    }
+}
+
+impl From<String> for ForkCallError<'_> {
+    fn from(value: String) -> Self {
+        Self::EVMError(value)
+    }
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
+    fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
+        Self::SelectorsCachePoisoned(value)
+    }
+}
