@@ -1,16 +1,14 @@
 [package]
-name = "rain_orderbook_common"
+name = "rain-orderbook-common"
 version = "0.0.1"
 edition = "2021"
 license = "CAL-1.0"
 description = "Rain Orderbook CLI."
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-rain_orderbook_bindings = { workspace = true }
-rain_orderbook_subgraph_client = { workspace = true }
+rain-orderbook-bindings = { workspace = true }
+rain-orderbook-subgraph-client = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 alloy-sol-types = { workspace = true }
@@ -19,7 +17,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
-rain-meta = { workspace = true }
+rain-metadata = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }

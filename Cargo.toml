@@ -34,18 +34,18 @@ strict-yaml-rust = "0.1.2"
 ruint = "1.11.1"
 dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "8fcc7651df8abc49c72c648ac8e9c80b5e057e70" }
 rain-metadata = "0.0.2-alpha.2"
-rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
-rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
-rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
+rain-interpreter-bindings = { path = "lib/rain.interpreter/crates/bindings" }
+rain-interpreter-dispair = { path = "lib/rain.interpreter/crates/dispair" }
+rain-interpreter-parser = { path = "lib/rain.interpreter/crates/parser" }
 
-[workspace.dependencies.rain_orderbook_bindings]
+[workspace.dependencies.rain-orderbook-bindings]
 path = "crates/bindings"
 
-[workspace.dependencies.rain_orderbook_common]
+[workspace.dependencies.rain-orderbook-common]
 path = "crates/common"
 
-[workspace.dependencies.rain_orderbook_cli]
+[workspace.dependencies.rain-orderbook-cli]
 path = "crates/cli"
 
-[workspace.dependencies.rain_orderbook_subgraph_client]
+[workspace.dependencies.rain-orderbook-subgraph-client]
 path = "crates/subgraph"
