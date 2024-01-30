@@ -1,12 +1,12 @@
 import { get, writable } from 'svelte/store';
-import type { Order as OrdersListItem } from '$lib/typeshare/orders';
+import type { Order } from '$lib/typeshare/ordersList';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
 
 function useOrdersListStore() {
   const STORAGE_KEY = "orders.ordersList";
 
-  const { subscribe, set } = writable<Array<OrdersListItem>>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : []);
+  const { subscribe, set } = writable<Array<Order>>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : []);
 
   subscribe(value => {
     if(value) {
@@ -17,7 +17,7 @@ function useOrdersListStore() {
   });
 
   async function refetch() {
-    const res: Array<OrdersListItem> = await invoke("orders_list", {subgraphArgs: { url: get(subgraphUrl)} });
+    const res: Array<Order> = await invoke("orders_list", {subgraphArgs: { url: get(subgraphUrl)} });
     set(res);
   }
 

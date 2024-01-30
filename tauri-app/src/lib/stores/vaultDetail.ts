@@ -1,12 +1,12 @@
 import { get, writable } from 'svelte/store';
-import type { TokenVault as VaultDetail } from '$lib/typeshare/vault';
+import type { TokenVault } from '$lib/typeshare/vaultDetail';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
 
 function useVaultDetailStore() {
   const STORAGE_KEY = "vaults.vaultsDetail";
 
-  const { subscribe, update } = writable<{[id: string]: VaultDetail}>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : {});
+  const { subscribe, update } = writable<{[id: string]: TokenVault}>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : {});
 
   subscribe(value => {
     if(value) {
@@ -17,7 +17,7 @@ function useVaultDetailStore() {
   });
 
   async function refetch(id: string) {
-    const res: VaultDetail = await invoke("vault_detail", {id, subgraphArgs: { url: get(subgraphUrl)} });
+    const res: TokenVault = await invoke("vault_detail", {id, subgraphArgs: { url: get(subgraphUrl)} });
     update((value) => {
       return {... value, [id]: res};
     });

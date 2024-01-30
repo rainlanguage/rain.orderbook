@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { TokenVault } from '$lib/typeshare/vault';
+  import type { TokenVault } from '$lib/typeshare/vaultDetail';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
   import { toHex } from 'viem';
