@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
-  import ButtonLoading from '$lib/ButtonLoading.svelte';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { createEventDispatcher } from 'svelte';
 
   export let open = false;

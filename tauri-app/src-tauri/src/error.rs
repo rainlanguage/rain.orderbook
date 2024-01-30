@@ -1,5 +1,5 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
-use rain_orderbook_subgraph_queries::OrderbookSubgraphClientError;
+use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use url::ParseError;
 use thiserror::Error;
 use serde::{Serialize, ser::Serializer};

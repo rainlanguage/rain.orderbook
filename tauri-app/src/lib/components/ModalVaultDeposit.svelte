@@ -1,28 +1,26 @@
 <script lang="ts">
-  import { Button, Modal, Label, Helper } from 'flowbite-svelte';
+  import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
-  import InputTokenAmount from './InputTokenAmount.svelte';
-  import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
+  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
+  import { vaultDeposit } from '$lib/utils/vaultDeposit';
   import { toHex } from 'viem';
-    import ButtonLoading from './ButtonLoading.svelte';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
 
   export let open = false;
   export let vault: TokenVault;
-  let amount: bigint = 0n;
-  let amountGTBalance: boolean;
+  let amount: bigint;
   let isSubmitting = false;
-
-  $: amountGTBalance = vault !== undefined && amount > vault.balance;
 
   function reset() {
     amount = 0n;
+    isSubmitting = false;
     open = false;
   }
 
   async function execute() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vault.vault_id, vault.token.id, amount);
+      await vaultDeposit(vault.vault.vault_id, vault.token.id, amount);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -30,7 +28,7 @@
   }
 </script>
 
-<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={reset}>
+<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
@@ -72,32 +70,22 @@
       for="amount"
       class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
     >
-      Target Amount
+      Amount
     </Label>
-    <InputTokenAmount
-      bind:value={amount}
-      symbol={vault.token.symbol}
-      decimals={vault.token.decimals}
-      maxValue={vault.balance}
-    />
-
-    <Helper color="red" class="h-6 text-sm">
-      {#if amountGTBalance}
-        Target amount cannot exceed available balance.
-      {/if}
-    </Helper>
+    <ButtonGroup class="w-full">
+      <InputTokenAmount
+        bind:value={amount}
+        symbol={vault.token.symbol}
+        decimals={vault.token.decimals}
+      />
+    </ButtonGroup>
   </div>
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={reset}>Cancel</Button>
-
-      <ButtonLoading
-        on:click={execute}
-        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
-        loading={isSubmitting}
-      >
-        Make Withdrawal
+      <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
+      <ButtonLoading on:click={execute} disabled={!amount || amount === 0n || isSubmitting} loading={isSubmitting}>
+        Submit Deposit
       </ButtonLoading>
     </div>
   </svelte:fragment>

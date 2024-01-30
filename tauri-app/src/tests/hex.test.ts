@@ -1,6 +1,6 @@
 // sum.test.js
 import { expect, test } from 'vitest'
-import { HEX_INPUT_REGEX } from '../lib/utils/hex';
+import { HEX_INPUT_REGEX } from '$lib/utils/hex';
 
 
 test('HEX_INPUT_REGEX matches user typing hex input', () => {

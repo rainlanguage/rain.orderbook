@@ -3661,7 +3661,7 @@ dependencies = [
  "comfy-table",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
- "rain_orderbook_subgraph_queries",
+ "rain_orderbook_subgraph_client",
  "reqwest",
  "rust-bigint",
  "serde",
@@ -3684,7 +3684,7 @@ dependencies = [
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
  "rain_orderbook_bindings",
- "rain_orderbook_subgraph_queries",
+ "rain_orderbook_subgraph_client",
  "serde",
  "serde_bytes",
  "strict-yaml-rust",
@@ -3694,7 +3694,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rain_orderbook_subgraph_queries"
+name = "rain_orderbook_subgraph_client"
 version = "0.0.1"
 dependencies = [
  "alloy-primitives 0.5.4",

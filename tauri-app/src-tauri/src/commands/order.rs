@@ -7,7 +7,7 @@ use rain_orderbook_common::{
     remove_order::RemoveOrderArgs,
     transaction::TransactionArgs,
 };
-use rain_orderbook_subgraph_queries::types::{
+use rain_orderbook_subgraph_client::types::{
     order::Order as OrderDetail,
     orders::Order as OrdersListItem,
 };

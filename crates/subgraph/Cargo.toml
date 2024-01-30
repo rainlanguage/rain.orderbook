@@ -1,9 +1,9 @@
 [package]
-name = "rain_orderbook_subgraph_queries"
+name = "rain_orderbook_subgraph_client"
 version = "0.0.1"
 edition = "2021"
 license = "CAL-1.0"
-description = "Subgraph queries & schemas for the Rain Orderbook"
+description = "Subgraph client, queries & schemas for the Rain Orderbook"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -10,7 +10,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [dependencies]
 alloy-ethers-typecast = { workspace = true }
-rain_orderbook_subgraph_queries = { workspace = true }
+rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_common = { workspace = true }
 anyhow = { workspace = true }

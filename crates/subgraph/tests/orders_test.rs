@@ -1,4 +1,4 @@
-use rain_orderbook_subgraph_queries::types::orders::OrdersQuery;
+use rain_orderbook_subgraph_client::types::orders::OrdersQuery;
 
 #[test]
 fn orders_query_gql_output() {
