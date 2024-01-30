@@ -1,4 +1,4 @@
-query OrderQuery($id: ID!) {
+query OrderDetailQuery($id: ID!) {
   order(id: $id) {
     id
     owner {

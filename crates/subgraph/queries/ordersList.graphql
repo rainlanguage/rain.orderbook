@@ -1,4 +1,4 @@
-query OrdersQuery {
+query OrdersListQuery {
   orders(orderBy: timestamp, orderDirection: desc) {
     id
     timestamp

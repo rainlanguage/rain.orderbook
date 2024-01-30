@@ -1,12 +1,12 @@
-use rain_orderbook_subgraph_client::types::vaults::VaultsQuery;
+use rain_orderbook_subgraph_client::types::vaults_list::VaultsListQuery;
 
 #[test]
 fn vaults_query_gql_output() {
     use cynic::QueryBuilder;
 
-    let request_body = VaultsQuery::build(());
+    let request_body = VaultsListQuery::build(());
 
-    let expected_query = "query VaultsQuery {
+    let expected_query = "query VaultsListQuery {
   tokenVaults(orderBy: owner__id, orderDirection: desc) {
     id
     owner {

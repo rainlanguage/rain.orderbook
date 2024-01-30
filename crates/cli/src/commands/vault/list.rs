@@ -3,7 +3,7 @@ use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::types::vaults::TokenVault;
+use rain_orderbook_subgraph_client::types::vaults_list::TokenVault;
 
 use tracing::debug;
 #[derive(Args, Clone)]
@@ -15,7 +15,7 @@ pub struct CliVaultListArgs {
 impl Execute for CliVaultListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let vaults = subgraph_args.to_subgraph_client().await?.vaults().await?;
+        let vaults = subgraph_args.to_subgraph_client().await?.vaults_list().await?;
         debug!("{:#?}", vaults);
 
         let table = build_table(vaults)?;

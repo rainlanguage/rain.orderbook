@@ -4,7 +4,7 @@ use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::types::orders::Order;
+use rain_orderbook_subgraph_client::types::orders_list::Order;
 
 use tracing::debug;
 #[derive(Args, Clone)]
@@ -16,7 +16,11 @@ pub struct CliOrderListArgs {
 impl Execute for CliOrderListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let orders = subgraph_args.to_subgraph_client().await?.orders().await?;
+        let orders = subgraph_args
+            .to_subgraph_client()
+            .await?
+            .orders_list()
+            .await?;
         debug!("{:#?}", orders);
 
         let table = build_orders_table(orders)?;

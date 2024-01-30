@@ -1,14 +1,16 @@
 use cynic::Id;
-use rain_orderbook_subgraph_client::types::order::{OrderQuery, OrderQueryVariables};
+use rain_orderbook_subgraph_client::types::order_detail::{
+    OrderDetailQuery, OrderDetailQueryVariables,
+};
 
 #[test]
 fn orders_query_gql_output() {
     use cynic::QueryBuilder;
 
     let id = Id::new("1234");
-    let request_body = OrderQuery::build(OrderQueryVariables { id: &id });
+    let request_body = OrderDetailQuery::build(OrderDetailQueryVariables { id: &id });
 
-    let expected_query = "query OrderQuery($id: ID!) {
+    let expected_query = "query OrderDetailQuery($id: ID!) {
   order(id: $id) {
     id
     owner {

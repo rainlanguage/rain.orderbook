@@ -4,14 +4,14 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(cynic::QueryVariables, Debug)]
-pub struct OrderQueryVariables<'a> {
+pub struct OrderDetailQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "OrderQueryVariables")]
-pub struct OrderQuery {
+#[cynic(graphql_type = "Query", variables = "OrderDetailQueryVariables")]
+pub struct OrderDetailQuery {
     #[arguments(id: $id)]
     pub order: Option<Order>,
 }

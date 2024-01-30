@@ -26,7 +26,7 @@ impl Execute for CliOrderRemoveArgs {
         let order = subgraph_args
             .to_subgraph_client()
             .await?
-            .order(self.order_id.clone().into())
+            .order_detail(self.order_id.clone().into())
             .await?;
         let remove_order_args: RemoveOrderArgs = order.into();
 

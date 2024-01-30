@@ -1,12 +1,12 @@
-use rain_orderbook_subgraph_client::types::orders::OrdersQuery;
+use rain_orderbook_subgraph_client::types::orders_list::OrdersListQuery;
 
 #[test]
 fn orders_query_gql_output() {
     use cynic::QueryBuilder;
 
-    let request_body = OrdersQuery::build(());
+    let request_body = OrdersListQuery::build(());
 
-    let expected_query = "query OrdersQuery {
+    let expected_query = "query OrdersListQuery {
   orders(orderBy: timestamp, orderDirection: desc) {
     id
     timestamp

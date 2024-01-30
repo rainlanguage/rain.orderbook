@@ -4,21 +4,21 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(cynic::QueryVariables, Debug)]
-pub struct VaultQueryVariables<'a> {
+pub struct VaultDetailQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Serialize)]
-#[cynic(graphql_type = "Query", variables = "VaultQueryVariables")]
-pub struct VaultQuery {
+#[cynic(graphql_type = "Query", variables = "VaultDetailQueryVariables")]
+pub struct VaultDetailQuery {
     #[arguments(id: $id)]
     pub token_vault: Option<TokenVault>,
 }
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Serialize)]
-#[cynic(variables = "VaultQueryVariables")]
+#[cynic(variables = "VaultDetailQueryVariables")]
 pub struct TokenVault {
     pub id: cynic::Id,
     pub owner: Account,
@@ -30,7 +30,7 @@ pub struct TokenVault {
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Serialize)]
-#[cynic(variables = "VaultQueryVariables")]
+#[cynic(variables = "VaultDetailQueryVariables")]
 pub struct Vault {
     pub id: cynic::Id,
     pub vault_id: BigInt,
