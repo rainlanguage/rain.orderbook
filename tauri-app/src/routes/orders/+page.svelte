@@ -15,20 +15,12 @@
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
   import { ordersList } from '$lib/stores/ordersList';
+  import { orderRemove } from '$lib/utils/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
-
-  let removeModalOrderId: string;
-  let showRemoveModal = false;
 
   function gotoOrder(id: string) {
     goto(`/orders/${id}`);
-  }
-
-  function confirmRemoveOrder(id: string) {
-    removeModalOrderId = id;
-    showRemoveModal = true;
   }
 
   redirectIfSettingsNotDefined();
@@ -88,13 +80,11 @@
           </TableBodyCell>
           {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
             <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${order.id}`}>
-              <DropdownItem on:click={(e) => {e.stopPropagation(); confirmRemoveOrder(order.id);}}>Remove</DropdownItem>
+              <DropdownItem on:click={(e) => {e.stopPropagation(); orderRemove(order.id);}}>Remove</DropdownItem>
             </Dropdown>
           {/if}
         </TableBodyRow>
       {/each}
     </TableBody>
   </Table>
-
-  <ModalOrderRemove bind:open={showRemoveModal} orderId={removeModalOrderId} />
 {/if}

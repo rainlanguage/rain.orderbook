@@ -3,17 +3,27 @@
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
   import ButtonBack from '$lib/components/ButtonBack.svelte';
+  import { orderRemove } from '$lib/utils/orderRemove';
 
   export let data: { id: string };
-  let showRemoveModal = false;
+  let isSubmitting = false;
+
+  $: order = $orderDetail[data.id];
+
+  async function remove() {
+    isSubmitting = true;
+    try {
+      await orderRemove(order.id);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
 
   orderDetail.refetch(data.id);
-  $: order = $orderDetail[data.id];
 </script>
 
 <div class="flex w-full">
@@ -81,7 +91,7 @@
       {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
         <div class="mt-8">
           <div class="flex justify-center space-x-20">
-            <ButtonLoading color="blue" size="xl" on:click={() => (showRemoveModal = true)}>
+            <ButtonLoading color="blue" size="xl" on:click={remove} loading={isSubmitting}>
               Remove
             </ButtonLoading>
           </div>
@@ -89,7 +99,5 @@
       {/if}
     </Card>
   </div>
-
-  <ModalOrderRemove bind:open={showRemoveModal} orderId={order.id}/>
 {/if}
 
