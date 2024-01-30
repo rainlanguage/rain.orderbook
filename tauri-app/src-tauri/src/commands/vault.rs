@@ -1,3 +1,4 @@
+use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
@@ -7,15 +8,10 @@ use rain_orderbook_subgraph_client::types::{
     vault::TokenVault as VaultDetail, vaults::TokenVault as VaultsListItem,
 };
 use tauri::AppHandle;
-use crate::error::CommandResult;
 
 #[tauri::command]
 pub async fn vaults_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<VaultsListItem>> {
-    let vaults = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .vaults()
-        .await?;
+    let vaults = subgraph_args.to_subgraph_client().await?.vaults().await?;
 
     Ok(vaults)
 }
@@ -27,7 +23,7 @@ pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandRes
         .await?
         .vault(id.into())
         .await?;
-    
+
     Ok(vault)
 }
 

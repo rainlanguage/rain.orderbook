@@ -1,15 +1,15 @@
-use std::{
-    collections::HashMap,
-    sync::{Mutex, MutexGuard, PoisonError},
-};
-
 use crate::transaction::TransactionArgsError;
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
+use forker::ForkedEvm;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde_json::Value;
+use std::{
+    collections::HashMap,
+    sync::{Mutex, MutexGuard, PoisonError},
+};
 use thiserror::Error;
 
 pub const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-database/v1/lookup";
@@ -144,15 +144,15 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
 #[derive(Debug)]
 pub enum ForkCallError<'a> {
     EVMError(String),
-    AbiDecodeFailed(AbiDecodeFailedErrors),
-    SelectorsCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
+    AbiDecodeFailed(AbiDecodeFailedErrors<'a>),
+    ForkCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
 }
 
 impl std::fmt::Display for ForkCallError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::AbiDecodeFailed(v) => write!(f, "{}", v),
-            Self::SelectorsCachePoisoned(v) => write!(f, "{}", v),
+            Self::ForkCachePoisoned(v) => write!(f, "{}", v),
             Self::EVMError(v) => write!(f, "{}", v),
         }
     }
@@ -160,8 +160,8 @@ impl std::fmt::Display for ForkCallError<'_> {
 
 impl std::error::Error for ForkCallError<'_> {}
 
-impl From<AbiDecodeFailedErrors> for ForkCallError<'_> {
-    fn from(value: AbiDecodeFailedErrors) -> Self {
+impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
+    fn from(value: AbiDecodeFailedErrors<'a>) -> Self {
         Self::AbiDecodeFailed(value)
     }
 }
@@ -174,7 +174,7 @@ impl From<String> for ForkCallError<'_> {
 
 impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
     fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
-        Self::SelectorsCachePoisoned(value)
+        Self::ForkCachePoisoned(value)
     }
 }
 

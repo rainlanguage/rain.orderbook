@@ -3,7 +3,6 @@ use super::error::{abi_decode_error, AbiDecodedErrorType};
 use forker::*;
 use once_cell::sync::Lazy;
 use revm::primitives::Bytes;
-use serde_bytes::ByteBuf;
 use std::{collections::HashMap, sync::Mutex};
 
 /// static hashmap of fork evm instances, used for caching instances between runs
