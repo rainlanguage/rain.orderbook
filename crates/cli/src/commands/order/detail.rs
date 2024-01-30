@@ -6,7 +6,7 @@ use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliOrderDetailArgs {
-    #[arg(short, long, help = "ID of the Order")]
+    #[arg(short='i', long, help = "ID of the Order")]
     order_id: String,
 }
 

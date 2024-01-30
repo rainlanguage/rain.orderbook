@@ -36,6 +36,6 @@ impl Execute for RemoveOrder {
 
 #[derive(Args, Clone)]
 pub struct CliRemoveOrderArgs {
-    #[arg(short, long, help = "ID of the Order")]
+    #[arg(short='i', long, help = "ID of the Order")]
     order_id: String,
 }
