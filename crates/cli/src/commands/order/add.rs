@@ -31,18 +31,18 @@ impl Execute for AddOrder {
 #[derive(Args, Clone)]
 pub struct CliAddOrderArgs {
     #[arg(
-        short = 'p',
+        short = 'f',
         long,
         help = "Path to the .rain file specifying the order"
     )]
-    dotrain_path: PathBuf,
+    dotrain_file: PathBuf,
 }
 
 impl TryFrom<CliAddOrderArgs> for AddOrderArgs {
     type Error = anyhow::Error;
 
     fn try_from(val: CliAddOrderArgs) -> Result<Self> {
-        let text = read_to_string(val.dotrain_path).map_err(|e| anyhow!(e))?;
+        let text = read_to_string(val.dotrain_file).map_err(|e| anyhow!(e))?;
         Ok(Self { dotrain: text })
     }
 }
