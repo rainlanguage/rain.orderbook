@@ -8,6 +8,7 @@ use rain_orderbook_bindings::IOrderBookV3::removeOrderCall;
 use rain_orderbook_subgraph_queries::types::{
     order::Order as OrderDetail, order_traits::OrderDetailError,
 };
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -22,6 +23,7 @@ pub enum RemoveOrderArgsError {
     OrderDetailError(#[from] OrderDetailError),
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RemoveOrderArgs {
     pub order: OrderDetail,
 }

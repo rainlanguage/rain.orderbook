@@ -9,27 +9,30 @@
     TableHead,
     TableHeadCell,
     Badge,
+    Dropdown,
+    DropdownItem,
   } from 'flowbite-svelte';
+  import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
   import { ordersList } from '$lib/stores/ordersList';
   import dayjs from 'dayjs';
   import utc from 'dayjs/plugin/utc';
   import bigIntSupport from 'dayjs/plugin/bigIntSupport';
+  import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   dayjs.extend(utc);
   dayjs.extend(bigIntSupport);
 
-  let showDepositModal = false;
-  let showWithdrawModal = false;
+  let removeModalOrderId: string;
+  let showRemoveModal = false;
 
   function gotoOrder(id: string) {
     goto(`/orders/${id}`);
   }
 
-  function toggleDepositModal() {
-    showDepositModal = !showDepositModal;
-  }
-  function toggleWithdrawModal() {
-    showWithdrawModal = !showWithdrawModal;
+  function confirmRemoveOrder(id: string) {
+    removeModalOrderId = id;
+    showRemoveModal = true;
   }
 
   redirectIfSettingsNotDefined();
@@ -41,8 +44,7 @@
   <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Orders</h1>
   <div class="flex-1">
     <div class="flex justify-end space-x-2">
-      <Button color="green" size="xs" on:click={toggleDepositModal}>Add</Button>
-      <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Remove</Button>
+      <Button color="green" size="xs" >Add</Button>
     </div>
   </div>
 </div>
@@ -58,6 +60,7 @@
       <TableHeadCell>Created At</TableHeadCell>
       <TableHeadCell>Input Token(s)</TableHeadCell>
       <TableHeadCell>Output Token(s)</TableHeadCell>
+      <TableHeadCell padding="px-0"></TableHeadCell>
     </TableHead>
     <TableBody>
       {#each $ordersList as order}
@@ -83,8 +86,22 @@
           <TableBodyCell tdClass="break-word p-2">
             {order.valid_outputs?.map((t) => t.token.symbol)}
           </TableBodyCell>
+          <TableBodyCell tdClass="px-0">
+            {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
+              <Button color="alternative" outline={false} id={`order-menu-${order.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
+                <DotsVerticalOutline class="dark:text-white"/>
+              </Button>
+            {/if}
+          </TableBodyCell>
+          {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
+            <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${order.id}`}>
+              <DropdownItem on:click={(e) => {e.stopPropagation(); confirmRemoveOrder(order.id);}}>Remove</DropdownItem>
+            </Dropdown>
+          {/if}
         </TableBodyRow>
       {/each}
     </TableBody>
   </Table>
+
+  <ModalOrderRemove bind:open={showRemoveModal} orderId={removeModalOrderId} />
 {/if}

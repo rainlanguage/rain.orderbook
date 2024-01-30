@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { Button, Modal, Label, ButtonGroup, Spinner } from 'flowbite-svelte';
+  import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
   import InputTokenAmount from '$lib/InputTokenAmount.svelte';
   import { vaultDeposit } from '$lib/utils/vaultDeposit';
   import { toHex } from 'viem';
+  import ButtonLoading from '$lib/ButtonLoading.svelte';
 
   export let open = false;
   export let vault: TokenVault;
@@ -83,12 +84,9 @@
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amount || amount === 0n || isSubmitting}>
-        {#if isSubmitting}
-          <Spinner class="mr-2 h-4 w-4" color="white" />
-        {/if}
+      <ButtonLoading on:click={execute} disabled={!amount || amount === 0n || isSubmitting} loading={isSubmitting}>
         Submit Deposit
-      </Button>
+      </ButtonLoading>
     </div>
   </svelte:fragment>
 </Modal>
