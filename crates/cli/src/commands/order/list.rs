@@ -26,7 +26,7 @@ impl Execute for CliOrderListArgs {
         let orders = subgraph_args
             .to_subgraph_client()
             .await?
-            .orders_list(pagination_args.clone().into())
+            .orders_list(pagination_args)
             .await?;
 
         let table = build_orders_table(orders)?;

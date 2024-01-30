@@ -25,7 +25,7 @@ impl Execute for CliVaultListArgs {
         let vaults = subgraph_args
             .to_subgraph_client()
             .await?
-            .vaults_list(pagination_args.clone().into())
+            .vaults_list(pagination_args)
             .await?;
 
         let table = build_table(vaults)?;

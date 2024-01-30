@@ -32,23 +32,23 @@ impl OrderbookSubgraphClient {
         Self { url }
     }
 
-    pub async fn orders_list(
+    pub async fn orders_list<T: Into<OrdersListQueryVariables>>(
         &self,
-        variables: OrdersListQueryVariables,
+        variables: T,
     ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrdersListQuery, OrdersListQueryVariables>(self.url.clone(), variables)
+            .query::<OrdersListQuery, OrdersListQueryVariables>(self.url.clone(), variables.into())
             .await?;
 
         Ok(data.orders)
     }
 
-    pub async fn vaults_list(
+    pub async fn vaults_list<T: Into<VaultsListQueryVariables>>(
         &self,
-        variables: VaultsListQueryVariables,
+        variables: T,
     ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<VaultsListQuery, VaultsListQueryVariables>(self.url.clone(), variables)
+            .query::<VaultsListQuery, VaultsListQueryVariables>(self.url.clone(), variables.into())
             .await
             .map_err(OrderbookSubgraphClientError::CynicClientError)?;
 
