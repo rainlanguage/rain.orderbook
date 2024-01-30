@@ -8,7 +8,7 @@ use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
 
 #[derive(Args, Clone)]
 pub struct CliVaultDepositArgs {
-    #[arg(short='i', long, help = "The ID of the vault")]
+    #[arg(short = 'i', long, help = "The ID of the vault")]
     vault_id: U256,
 
     #[arg(short, long, help = "The token address in hex format")]
