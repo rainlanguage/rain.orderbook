@@ -14,18 +14,52 @@
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
-  import { ordersList } from '$lib/stores/ordersList';
+  import { ordersPage, refetchOrdersPage } from '$lib/stores/ordersList';
   import { orderRemove } from '$lib/utils/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
+  import { toasts } from '$lib/stores/toasts';
+  import { ToastMessageType } from '$lib/typeshare/toast';
 
-  function gotoOrder(id: string) {
-    goto(`/orders/${id}`);
+  let page = 1;
+  let isFetchingNext = false;
+  let isFetchingPrev = false;
+
+  async function prevPage() {
+    if(page <= 1) return;
+
+    isFetchingPrev = true;
+    try {
+      const req = refetchOrdersPage(page-1);
+      if($ordersPage(page-1).length === 0) {
+        await req;
+      }
+      page -=1;
+    // eslint-disable-next-line no-empty
+    } catch(e) {}
+    isFetchingPrev = false;
+  }
+  async function nextPage() {
+    isFetchingNext = true;
+    try {
+      const req = refetchOrdersPage(page+1);
+      if($ordersPage(page+1).length === 0) {
+        await req;
+      }
+      page +=1;
+    } catch(e) {
+      toasts.add({
+        message_type: ToastMessageType.Error,
+        text: "No more pages"
+      });
+    }
+    isFetchingNext = false;
   }
 
   redirectIfSettingsNotDefined();
-  ordersList.refetch();
+  refetchOrdersPage(page);
 </script>
 
 <PageHeader title="Orders">
@@ -34,7 +68,7 @@
   </svelte:fragment>
 </PageHeader>
 
-{#if $ordersList.length === 0}
+{#if $ordersPage(page).length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Orders found</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
@@ -48,8 +82,8 @@
       <TableHeadCell padding="px-0"></TableHeadCell>
     </TableHead>
     <TableBody>
-      {#each $ordersList as order}
-        <TableBodyRow on:click={() => gotoOrder(order.id)}>
+      {#each $ordersPage(page) as order}
+        <TableBodyRow on:click={() => goto(`/orders/${order.id}`)}>
           <TableBodyCell tdClass="px-4 py-2">
             {#if order.order_active}
               <Badge color="green">Active</Badge>
@@ -84,4 +118,8 @@
       {/each}
     </TableBody>
   </Table>
+
+  <div class="flex justify-end mt-2">
+    <ButtonsPagination page={page} on:previous={prevPage} on:next={nextPage} nextLoading={isFetchingNext} prevLoading={isFetchingPrev} />
+  </div>
 {/if}
