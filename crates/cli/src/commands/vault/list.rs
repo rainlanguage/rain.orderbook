@@ -22,7 +22,7 @@ impl Execute for CliVaultListArgs {
             .await?;
 
         let table = build_table(vaults)?;
-        info!("{}", table);
+        info!("\n{}", table);
 
         Ok(())
     }

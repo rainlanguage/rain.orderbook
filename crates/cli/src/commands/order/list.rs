@@ -23,7 +23,7 @@ impl Execute for CliOrderListArgs {
             .await?;
 
         let table = build_orders_table(orders)?;
-        info!("{}", table);
+        info!("\n{}", table);
 
         Ok(())
     }
