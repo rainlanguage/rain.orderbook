@@ -8440,13 +8440,11 @@ dependencies = [
 name = "tauri-app"
 version = "0.0.0"
 dependencies = [
- "alloy-dyn-abi 0.5.4",
  "alloy-ethers-typecast",
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "chrono",
- "once_cell",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
  "reqwest",

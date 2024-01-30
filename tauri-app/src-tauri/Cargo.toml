@@ -19,8 +19,6 @@ rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "9e830eda8a429fda60d1a87f480241c7678266bb" }
 alloy-primitives = "0.5.4"
 typeshare = "1.0.1"
-once_cell = "1.19.0"
-alloy-dyn-abi = "0.5.4"
 alloy-json-abi = "0.5.4"
 alloy-sol-types = { version = "0.5.4", features = ["json"] }
 reqwest = { version = "0.11.22", features = ["json"] }
