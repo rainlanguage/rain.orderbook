@@ -3,7 +3,7 @@ use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use url::ParseError;
 use thiserror::Error;
 use serde::{Serialize, ser::Serializer};
-use ruint::FromUintError;
+use alloy_primitives::ruint::FromUintError;
 
 #[derive(Debug, Error)]
 pub enum CommandError {

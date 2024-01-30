@@ -1,7 +1,6 @@
 use crate::types::order_detail;
-use alloy_primitives::{hex::FromHexError, Address, U256};
+use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::{EvaluableV2, OrderV2, IO};
-use ruint::ParseError;
 use std::num::TryFromIntError;
 use thiserror::Error;
 

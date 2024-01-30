@@ -16,7 +16,6 @@ typeshare = { workspace = true }
 serde = { workspace = true }
 alloy-primitives = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
-ruint = { workspace = true }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }
