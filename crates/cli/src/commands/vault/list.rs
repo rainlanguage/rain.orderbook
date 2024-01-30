@@ -15,7 +15,11 @@ pub struct CliVaultListArgs {
 impl Execute for CliVaultListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let vaults = subgraph_args.to_subgraph_client().await?.vaults_list().await?;
+        let vaults = subgraph_args
+            .to_subgraph_client()
+            .await?
+            .vaults_list()
+            .await?;
         debug!("{:#?}", vaults);
 
         let table = build_table(vaults)?;
