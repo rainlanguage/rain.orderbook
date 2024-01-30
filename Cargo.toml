@@ -9,7 +9,7 @@ license = "CAL-1.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "32b54171c1bf76ba70f69bfd979d3bd78617b8b6" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "9e830eda8a429fda60d1a87f480241c7678266bb" }
 alloy-sol-types = { version = "0.5.4" }
 alloy-primitives = "0.5.4"
 alloy-json-abi = "0.5.4"
@@ -21,7 +21,7 @@ reqwest = { version = "0.11.17", features = ["json"] }
 rust-bigint = "1.2.0"
 serde = "1.0.160"
 serde_bytes = "0.11.9"
-serde_json = "1.0"
+serde_json = "1.0.112"
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
@@ -32,6 +32,13 @@ cynic = "3.4.0"
 chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
+strict-yaml-rust = "0.1.2"
+ruint = "1.11.1"
+dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "8fcc7651df8abc49c72c648ac8e9c80b5e057e70" }
+rain-meta = { path = "lib/rain.metadata/crates/cli" }
+rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
+rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
+rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
@@ -42,5 +49,5 @@ path = "crates/common"
 [workspace.dependencies.rain_orderbook_cli]
 path = "crates/cli"
 
-[workspace.dependencies.rain_orderbook_subgraph_queries]
+[workspace.dependencies.rain_orderbook_subgraph_client]
 path = "crates/subgraph"

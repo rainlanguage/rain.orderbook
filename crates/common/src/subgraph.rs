@@ -1,4 +1,4 @@
-use rain_orderbook_subgraph_queries::OrderbookSubgraphClient;
+use rain_orderbook_subgraph_client::OrderbookSubgraphClient;
 use serde::{Deserialize, Serialize};
 use url::{ParseError, Url};
 

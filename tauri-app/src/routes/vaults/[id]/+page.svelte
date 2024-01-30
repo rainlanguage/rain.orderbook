@@ -12,13 +12,11 @@
   } from 'flowbite-svelte';
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
-  import ModalVaultDeposit from '$lib/ModalVaultDeposit.svelte';
-  import dayjs from 'dayjs';
-  import utc from 'dayjs/plugin/utc';
-  import bigIntSupport from 'dayjs/plugin/bigIntSupport';
-  import ModalVaultWithdraw from '$lib/ModalVaultWithdraw.svelte';
-  dayjs.extend(utc);
-  dayjs.extend(bigIntSupport);
+  import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
+  import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
+  import { walletAddress } from '$lib/stores/settings';
+  import { toHex } from 'viem';
+  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
   export let data: { id: string };
   let showDepositModal = false;
@@ -54,7 +52,7 @@
           Vault ID
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {vault.vault.vault_id}
+          {toHex(vault.vault.vault_id)}
         </p>
       </div>
 
@@ -86,12 +84,14 @@
         </p>
       </div>
 
-      <div class="pt-4">
-        <div class="flex justify-center space-x-20">
-          <Button color="green" size="xl" on:click={toggleDepositModal}>Deposit</Button>
-          <Button color="blue" size="xl" on:click={toggleWithdrawModal}>Withdraw</Button>
+      {#if $walletAddress !== '' && vault.owner.id === $walletAddress}
+        <div class="pt-4">
+          <div class="flex justify-center space-x-20">
+            <Button color="green" size="xl" on:click={toggleDepositModal}>Deposit</Button>
+            <Button color="blue" size="xl" on:click={toggleWithdrawModal}>Withdraw</Button>
+          </div>
         </div>
-      </div>
+      {/if}
     </Card>
 
     <div class="max-w-screen-xl space-y-12">
@@ -138,12 +138,9 @@
             <TableBody>
               {#each vault.vault.deposits as deposit}
                 <TableBodyRow>
-                  <TableBodyCell tdClass="px-4 py-2"
-                    >{dayjs(BigInt(deposit.timestamp) * BigInt('1000'))
-                      .utc(true)
-                      .local()
-                      .format('DD/MM/YYYY h:mm A')}</TableBodyCell
-                  >
+                  <TableBodyCell tdClass="px-4 py-2">
+                    {formatTimestampSecondsAsLocal(BigInt(deposit.timestamp))}
+                  </TableBodyCell>
                   <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
                     {deposit.sender.id}
                   </TableBodyCell>

@@ -1,5 +1,5 @@
 use cynic::Id;
-use rain_orderbook_subgraph_queries::types::order::{OrderQuery, OrderQueryVariables};
+use rain_orderbook_subgraph_client::types::order::{OrderQuery, OrderQueryVariables};
 
 #[test]
 fn orders_query_gql_output() {
@@ -14,30 +14,46 @@ fn orders_query_gql_output() {
     owner {
       id
     }
+    orderActive
     interpreter
     interpreterStore
     expressionDeployer
     expression
     timestamp
-    takeOrders {
-      id
-      sender {
+    handleIO
+    validInputs {
+      tokenVault {
         id
+        vaultId
+        token {
+          id
+          name
+          symbol
+          decimals
+        }
       }
-      input
-      inputDisplay
-      inputToken {
-        symbol
+    }
+    validOutputs {
+      tokenVault {
+        id
+        vaultId
+        token {
+          id
+          name
+          symbol
+          decimals
+        }
       }
-      output
-      outputDisplay
-      outputToken {
-        symbol
-      }
-      IORatio
-      timestamp
-      transaction {
-        blockNumber
+    }
+    meta {
+      metaBytes
+      content {
+        id
+        payload
+        magicNumber
+        contentType
+        contentEncoding
+        contentLanguage
       }
     }
   }

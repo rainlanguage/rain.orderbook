@@ -1,4 +1,4 @@
-use rain_orderbook_subgraph_queries::types::vaults::VaultsQuery;
+use rain_orderbook_subgraph_client::types::vaults::VaultsQuery;
 
 #[test]
 fn vaults_query_gql_output() {

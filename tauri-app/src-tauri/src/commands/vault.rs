@@ -3,31 +3,32 @@ use rain_orderbook_common::{
     deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_queries::types::{
+use rain_orderbook_subgraph_client::types::{
     vault::TokenVault as VaultDetail, vaults::TokenVault as VaultsListItem,
 };
 use tauri::AppHandle;
+use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn vaults_list(subgraph_args: SubgraphArgs) -> Result<Vec<VaultsListItem>, String> {
-    subgraph_args
+pub async fn vaults_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<VaultsListItem>> {
+    let vaults = subgraph_args
         .to_subgraph_client()
-        .await
-        .map_err(|_| String::from("Subgraph URL is invalid"))?
+        .await?
         .vaults()
-        .await
-        .map_err(|e| e.to_string())
+        .await?;
+
+    Ok(vaults)
 }
 
 #[tauri::command]
-pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> Result<VaultDetail, String> {
-    subgraph_args
+pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<VaultDetail> {
+    let vault = subgraph_args
         .to_subgraph_client()
-        .await
-        .map_err(|_| String::from("Subgraph URL is invalid"))?
+        .await?
         .vault(id.into())
-        .await
-        .map_err(|e| e.to_string())
+        .await?;
+    
+    Ok(vault)
 }
 
 #[tauri::command]
@@ -35,7 +36,7 @@ pub async fn vault_deposit(
     app_handle: AppHandle,
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
-) -> Result<(), String> {
+) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
         "Approve ERC20 token transfer".into(),
         Some(SeriesPosition {
@@ -43,16 +44,14 @@ pub async fn vault_deposit(
             total: 2,
         }),
     );
-    deposit_args
+    let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await
         .map_err(|e| {
-            let text = format!("{}", e);
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
-            text
-        })?;
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+        });
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
         "Deposit tokens into vault".into(),
@@ -61,16 +60,14 @@ pub async fn vault_deposit(
             total: 2,
         }),
     );
-    deposit_args
+    let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await
         .map_err(|e| {
-            let text = format!("{}", e);
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
-            text
-        })?;
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+        });
 
     Ok(())
 }
@@ -80,19 +77,17 @@ pub async fn vault_withdraw(
     app_handle: AppHandle,
     withdraw_args: WithdrawArgs,
     transaction_args: TransactionArgs,
-) -> Result<(), String> {
+) -> CommandResult<()> {
     let tx_status_notice =
         TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), None);
-    withdraw_args
+    let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
         })
         .await
         .map_err(|e| {
-            let text = format!("{}", e);
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), text.clone());
-            text
-        })?;
+            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+        });
 
     Ok(())
 }

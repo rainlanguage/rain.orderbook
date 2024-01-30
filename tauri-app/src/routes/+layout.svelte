@@ -3,11 +3,11 @@
   import '@fontsource/dm-sans/400.css';
   import '@fontsource/dm-sans/600.css';
   import '@fontsource/dm-sans/800.css';
-  import Sidebar from '$lib/Sidebar.svelte';
+  import Sidebar from '$lib/components/Sidebar.svelte';
   import { toastsList } from '$lib/stores/toasts';
-  import AppToast from '$lib/AppToast.svelte';
+  import AppToast from '$lib/components/AppToast.svelte';
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
-  import TransactionStatusNotice from '$lib/TransactionStatusNotice.svelte';
+  import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
 </script>
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
@@ -22,7 +22,9 @@
       <TransactionStatusNotice {transactionStatusNotice} />
     {/each}
     {#each $toastsList as toast}
+    <div class="flex justify-end">
       <AppToast {toast} />
+    </div>
     {/each}
   </div>
 </div>

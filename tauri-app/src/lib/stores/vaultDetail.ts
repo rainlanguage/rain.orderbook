@@ -1,7 +1,7 @@
 import { get, writable } from 'svelte/store';
 import type { TokenVault as VaultDetail } from '$lib/typeshare/vault';
 import { invoke } from '@tauri-apps/api';
-import { subgraphUrl } from './settings';
+import { subgraphUrl } from '$lib/stores/settings';
 
 function useVaultDetailStore() {
   const STORAGE_KEY = "vaults.vaultsDetail";

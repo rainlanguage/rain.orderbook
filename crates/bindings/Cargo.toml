@@ -1,11 +1,10 @@
 [package]
 name = "rain_orderbook_bindings"
+description = "Bindings for the Rain Orderbook Solidity contracts to Rust types."
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 alloy-sol-types = { workspace = true, features = ["json"] }

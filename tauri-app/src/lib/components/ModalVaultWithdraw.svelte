@@ -1,37 +1,42 @@
 <script lang="ts">
-  import { Button, Modal, Label, ButtonGroup, Spinner } from 'flowbite-svelte';
+  import { Button, Modal, Label, Helper } from 'flowbite-svelte';
   import type { TokenVault } from '$lib/typeshare/vault';
-  import InputTokenAmount from '$lib/InputTokenAmount.svelte';
-  import { vaultDeposit } from '$lib/utils/vaultDeposit';
+  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
+  import { vaultWithdraw } from '$lib/utils/vaultWithdraw';
+  import { toHex } from 'viem';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
 
   export let open = false;
   export let vault: TokenVault;
-  let amount: string = '';
-  let amountRaw: bigint;
+  let amount: bigint = 0n;
+  let amountGTBalance: boolean;
   let isSubmitting = false;
 
+  $: amountGTBalance = vault !== undefined && amount > vault.balance;
+
   function reset() {
-    amount = '';
-    amountRaw = 0n;
-    isSubmitting = false;
+    amount = 0n;
     open = false;
   }
 
   async function execute() {
     isSubmitting = true;
-    await vaultDeposit(vault.vault.vault_id, vault.token.id, amountRaw);
-    reset();
+    try {
+      await vaultWithdraw(vault.vault.vault_id, vault.token.id, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
     isSubmitting = false;
   }
 </script>
 
-<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
+<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={reset}>
   <div>
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Vault ID
     </h5>
     <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.vault.vault_id}
+      {toHex(vault.vault.vault_id)}
     </p>
   </div>
 
@@ -67,27 +72,33 @@
       for="amount"
       class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
     >
-      Amount
+      Target Amount
     </Label>
-    <ButtonGroup class="w-full">
-      <InputTokenAmount
-        bind:value={amount}
-        bind:valueRaw={amountRaw}
-        symbol={vault.token.symbol}
-        decimals={vault.token.decimals}
-      />
-    </ButtonGroup>
+    <InputTokenAmount
+      bind:value={amount}
+      symbol={vault.token.symbol}
+      decimals={vault.token.decimals}
+      maxValue={vault.balance}
+    />
+
+    <Helper color="red" class="h-6 text-sm">
+      {#if amountGTBalance}
+        Target amount cannot exceed available balance.
+      {/if}
+    </Helper>
   </div>
 
   <svelte:fragment slot="footer">
     <div class="flex w-full justify-end space-x-4">
-      <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={execute} disabled={!amountRaw || amountRaw === 0n || isSubmitting}>
-        {#if isSubmitting}
-          <Spinner class="mr-2 h-4 w-4" color="white" />
-        {/if}
-        Submit Deposit
-      </Button>
+      <Button color="alternative" on:click={reset}>Cancel</Button>
+
+      <ButtonLoading
+        on:click={execute}
+        disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
+        loading={isSubmitting}
+      >
+        Make Withdrawal
+      </ButtonLoading>
     </div>
   </svelte:fragment>
 </Modal>

@@ -12,9 +12,9 @@
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import LifeBuoySolid from 'flowbite-svelte-icons/LifeBuoySolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
-  import IconExternalLink from './IconExternalLink.svelte';
+  import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
-  import { isSettingsDefinedAndValid } from './stores/settings';
+  import { isSettingsDefinedAndValid } from '$lib/stores/settings';
 
   $: nonActiveClass = $isSettingsDefinedAndValid
     ? 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700'

@@ -6,7 +6,7 @@ use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliVaultDetailArgs {
-    #[arg(short, long, help = "ID of the Vault")]
+    #[arg(short='i', long, help = "ID of the Vault")]
     vault_id: String,
 }
 

@@ -17,8 +17,17 @@ jobs:
         working-directory: .
       - run: nix run .#rainix-rs-prelude
         working-directory: .
+
+      - run: nix run .#rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix run .#rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix run .#i9r-prelude
+        working-directory: lib/rain.interpreter
+
       - run: nix develop .#tauri-shell --command cargo build --verbose
         working-directory: ./tauri-app
       - run: nix run .#ob-tauri-prelude
+      - run: nix run .#ob-tauri-test
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
