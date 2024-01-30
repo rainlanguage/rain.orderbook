@@ -8,11 +8,11 @@ use rain_orderbook_common::withdraw::WithdrawArgs;
 
 #[derive(Args, Clone)]
 pub struct CliVaultWithdrawArgs {
+    #[arg(short='i', long, help = "The ID of the vault")]
+    vault_id: U256,
+    
     #[arg(short, long, help = "The token address in hex format")]
     token: Address,
-
-    #[arg(short, long, help = "The ID of the vault")]
-    vault_id: U256,
 
     #[arg(short = 'a', long, help = "The target amount to withdraw")]
     target_amount: U256,

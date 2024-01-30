@@ -10,7 +10,7 @@ use rain_orderbook_common::transaction::TransactionArgs;
 
 #[derive(Args, Clone)]
 pub struct CliOrderRemoveArgs {
-    #[arg(short, long, help = "ID of the Order")]
+    #[arg(short='i', long, help = "ID of the Order")]
     order_id: String,
 
     #[clap(flatten)]
