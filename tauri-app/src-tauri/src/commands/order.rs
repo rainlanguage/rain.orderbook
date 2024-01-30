@@ -1,4 +1,7 @@
-use crate::transaction_status::{TransactionStatusNoticeRwLock};
+use crate::{
+    transaction_status::{TransactionStatusNoticeRwLock},
+    toast::toast_error
+};
 use rain_orderbook_common::{
     subgraph::SubgraphArgs,
     remove_order::RemoveOrderArgs,
@@ -9,28 +12,28 @@ use rain_orderbook_subgraph_queries::types::{
     orders::Order as OrdersListItem,
 };
 use tauri::AppHandle;
-use crate::toast::toast_error;
+use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn orders_list(subgraph_args: SubgraphArgs) -> Result<Vec<OrdersListItem>, String> {
-    subgraph_args
+pub async fn orders_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<OrdersListItem>> {
+    let orders = subgraph_args
         .to_subgraph_client()
-        .await
-        .map_err(|_| String::from("Subgraph URL is invalid"))?
+        .await?
         .orders()
-        .await
-        .map_err(|e| e.to_string())
+        .await?;
+    
+    Ok(orders)
 }
 
 #[tauri::command]
-pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> Result<OrderDetail, String> {
-    subgraph_args
+pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<OrderDetail> {
+    let order = subgraph_args
         .to_subgraph_client()
-        .await
-        .map_err(|_| String::from("Subgraph URL is invalid"))?
+        .await?
         .order(id.into())
-        .await
-        .map_err(|e| e.to_string())
+        .await?;
+
+    Ok(order)
 }
 
 
@@ -40,21 +43,19 @@ pub async fn order_remove(
     id: String,
     transaction_args: TransactionArgs,
     subgraph_args: SubgraphArgs
-) -> Result<(), String> {
+) -> CommandResult<()> {
     let order = subgraph_args
         .to_subgraph_client()
         .await
-        .map_err(|_| {
-            let text = String::from("Subgraph URL is invalid");
-            toast_error(app_handle.clone(), text.clone());
-            text
+        .map_err(|e| {
+            toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
+            e
         })?
         .order(id.into())
         .await
         .map_err(|e| {
-            let text = e.to_string();
-            toast_error(app_handle.clone(), text.clone());
-            text
+            toast_error(app_handle.clone(), e.to_string());
+            e
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
 

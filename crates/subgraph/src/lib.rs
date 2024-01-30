@@ -5,4 +5,4 @@ pub mod types;
 #[cynic::schema("orderbook")]
 pub mod schema {}
 
-pub use client::OrderbookSubgraphClient;
+pub use client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
