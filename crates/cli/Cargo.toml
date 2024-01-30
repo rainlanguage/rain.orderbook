@@ -1,18 +1,16 @@
 [package]
-name = "rain_orderbook_cli"
+name = "rain-orderbook-cli"
 version = "0.0.4"
 edition = "2021"
 license = "CAL-1.0"
 description = "Rain Orderbook CLI."
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 alloy-ethers-typecast = { workspace = true }
-rain_orderbook_subgraph_client = { workspace = true }
-rain_orderbook_bindings = { workspace = true }
-rain_orderbook_common = { workspace = true }
+rain-orderbook-subgraph-client = { workspace = true }
+rain-orderbook-bindings = { workspace = true }
+rain-orderbook-common = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
 reqwest = { workspace = true }
