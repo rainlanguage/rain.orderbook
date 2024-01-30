@@ -1,8 +1,7 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::types::{
-    vaults_list::VaultsListQueryVariables,
-    orders_list::OrdersListQueryVariables
+    orders_list::OrdersListQueryVariables, vaults_list::VaultsListQueryVariables,
 };
 
 #[derive(Args, Clone)]
@@ -25,43 +24,38 @@ impl From<CliSubgraphArgs> for SubgraphArgs {
 
 #[derive(Args, Clone)]
 pub struct CliSubgraphPaginationArgs {
-    #[arg(
-        short,
-        long,
-        help = "Page number to query",
-        default_value="1"
-    )]
+    #[arg(short, long, help = "Page number to query", default_value = "1")]
     pub page: u16,
 
     #[arg(
-        short='l',
+        short = 'l',
         long,
         help = "Number of items per page",
-        default_value="25"
+        default_value = "25"
     )]
     pub page_size: u16,
 }
 
-impl Into<OrdersListQueryVariables> for CliSubgraphPaginationArgs {
-    fn into(self) -> OrdersListQueryVariables {
-        let page: i32 = self.page.checked_sub(1).unwrap_or(0).into();
-        let page_size: i32 = self.page_size.into();
+impl From<CliSubgraphPaginationArgs> for OrdersListQueryVariables {
+    fn from(val: CliSubgraphPaginationArgs) -> Self {
+        let page: i32 = val.page.saturating_sub(1).into();
+        let page_size: i32 = val.page_size.into();
 
         OrdersListQueryVariables {
             skip: Some(page_size * page),
-            first: Some(page_size)
+            first: Some(page_size),
         }
     }
 }
 
-impl Into<VaultsListQueryVariables> for CliSubgraphPaginationArgs {
-    fn into(self) -> VaultsListQueryVariables {
-        let page: i32 = self.page.checked_sub(1).unwrap_or(0).into();
-        let page_size: i32 = self.page_size.into();
+impl From<CliSubgraphPaginationArgs> for VaultsListQueryVariables {
+    fn from(val: CliSubgraphPaginationArgs) -> Self {
+        let page: i32 = val.page.saturating_sub(1).into();
+        let page_size: i32 = val.page_size.into();
 
         VaultsListQueryVariables {
             skip: Some(page_size * page),
-            first: Some(page_size)
+            first: Some(page_size),
         }
     }
 }

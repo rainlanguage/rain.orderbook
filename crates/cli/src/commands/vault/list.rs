@@ -1,4 +1,7 @@
-use crate::{execute::Execute, subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs}};
+use crate::{
+    execute::Execute,
+    subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
+};
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
