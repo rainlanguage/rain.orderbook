@@ -37,7 +37,7 @@ pub struct CliDepositArgs {
     #[arg(short, long, help = "The token address in hex format")]
     token: Address,
 
-    #[arg(short, long, help = "The ID of the vault")]
+    #[arg(short='i', long, help = "The ID of the vault")]
     vault_id: U256,
 
     #[arg(short, long, help = "The amount to deposit")]

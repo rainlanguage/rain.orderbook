@@ -27,6 +27,8 @@ pub struct Order {
     pub expression_deployer: Bytes,
     pub expression: Bytes,
     pub timestamp: BigInt,
+    #[cynic(rename = "handleIO")]
+    pub handle_io: bool,
     pub valid_inputs: Option<Vec<Io>>,
     pub valid_outputs: Option<Vec<Io>>,
     pub meta: Option<RainMetaV1>,
@@ -43,6 +45,14 @@ pub struct RainMetaV1 {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "IO")]
 pub struct Io {
+    pub token_vault: TokenVault,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct TokenVault {
+    pub id: cynic::Id,
+    pub vault_id: BigInt,
     pub token: Erc20,
 }
 

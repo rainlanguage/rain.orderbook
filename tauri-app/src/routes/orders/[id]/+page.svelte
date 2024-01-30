@@ -65,7 +65,7 @@
           Input Token(s)
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.valid_inputs?.map((t) => t.token.name)}
+          {order.valid_inputs?.map((t) => t.token_vault.token.name)}
         </p>
       </div>
 
@@ -74,7 +74,7 @@
           Output Token(s)
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.valid_outputs?.map((t) => t.token.name)}
+          {order.valid_outputs?.map((t) => t.token_vault.token.name)}
         </p>
       </div>
 

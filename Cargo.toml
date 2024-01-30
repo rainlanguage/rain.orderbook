@@ -31,6 +31,7 @@ chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
+ruint = "1.11.1"
 dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "8fcc7651df8abc49c72c648ac8e9c80b5e057e70" }
 rain-meta = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
