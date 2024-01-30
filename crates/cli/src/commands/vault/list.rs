@@ -1,4 +1,4 @@
-use crate::{execute::Execute, subgraph::CliSubgraphArgs};
+use crate::{execute::Execute, subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs}};
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
@@ -9,6 +9,9 @@ use tracing::info;
 #[derive(Args, Clone)]
 pub struct CliVaultListArgs {
     #[clap(flatten)]
+    pub pagination_args: CliSubgraphPaginationArgs,
+
+    #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
 }
 
@@ -18,7 +21,7 @@ impl Execute for CliVaultListArgs {
         let vaults = subgraph_args
             .to_subgraph_client()
             .await?
-            .vaults_list()
+            .vaults_list(self.pagination_args.clone().into())
             .await?;
 
         let table = build_table(vaults)?;

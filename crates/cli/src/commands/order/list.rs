@@ -1,4 +1,4 @@
-use crate::{execute::Execute, subgraph::CliSubgraphArgs};
+use crate::{execute::Execute, subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs}};
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
@@ -10,6 +10,9 @@ use tracing::info;
 #[derive(Args, Clone)]
 pub struct CliOrderListArgs {
     #[clap(flatten)]
+    pub pagination_args: CliSubgraphPaginationArgs,
+
+    #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
 }
 
@@ -19,7 +22,7 @@ impl Execute for CliOrderListArgs {
         let orders = subgraph_args
             .to_subgraph_client()
             .await?
-            .orders_list()
+            .orders_list(self.pagination_args.clone().into())
             .await?;
 
         let table = build_orders_table(orders)?;
