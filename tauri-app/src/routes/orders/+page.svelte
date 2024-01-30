@@ -18,6 +18,7 @@
   import { orderRemove } from '$lib/utils/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 
   function gotoOrder(id: string) {
     goto(`/orders/${id}`);
@@ -27,15 +28,11 @@
   ordersList.refetch();
 </script>
 
-<div class="flex w-full">
-  <div class="flex-1"></div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Orders</h1>
-  <div class="flex-1">
-    <div class="flex justify-end space-x-2">
-      <Button color="green" size="xs" >Add</Button>
-    </div>
-  </div>
-</div>
+<PageHeader title="Orders">
+  <svelte:fragment slot="actions">
+    <Button color="green" size="xs">Add</Button>
+  </svelte:fragment>
+</PageHeader>
 
 {#if $ordersList.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Orders found</div>

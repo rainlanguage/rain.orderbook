@@ -14,6 +14,7 @@
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
   import ModalVaultWithdrawGeneric from '$lib/components/ModalVaultWithdrawGeneric.svelte';
   import { toHex } from 'viem';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -33,16 +34,12 @@
   vaultsList.refetch();
 </script>
 
-<div class="flex w-full">
-  <div class="flex-1"></div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vaults</h1>
-  <div class="flex-1">
-    <div class="flex justify-end space-x-2">
-      <Button color="green" size="xs" on:click={toggleDepositModal}>Deposit</Button>
-      <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Withdraw</Button>
-    </div>
-  </div>
-</div>
+<PageHeader title="Vaults">
+  <svelte:fragment slot="actions">
+    <Button color="green" size="xs" on:click={toggleDepositModal}>Deposit</Button>
+    <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Withdraw</Button>
+  </svelte:fragment>
+</PageHeader>
 
 {#if $vaultsList.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
