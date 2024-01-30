@@ -14,7 +14,7 @@
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { walletAddress } from '$lib/stores/settings';
   import { toHex } from 'viem';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -37,12 +37,6 @@
 <PageHeader title="Vault">
   <svelte:fragment slot="breadcrumbs">
     <BreadcrumbItem href="/vaults">Vaults</BreadcrumbItem>
-  </svelte:fragment>
-  <svelte:fragment slot="actions">
-    {#if vault && $walletAddressMatchesOrBlank(vault.owner.id)}
-      <Button color="green" size="xs" on:click={toggleDepositModal}>Deposit</Button>
-      <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Withdraw</Button>
-    {/if}
   </svelte:fragment>
 </PageHeader>
 
@@ -87,6 +81,15 @@
           {vault.token.symbol}
         </p>
       </div>
+
+      {#if $walletAddress !== '' && vault.owner.id === $walletAddress}
+        <div class="pt-4">
+          <div class="flex justify-center space-x-20">
+            <Button color="green" size="xl" on:click={toggleDepositModal}>Deposit</Button>
+            <Button color="blue" size="xl" on:click={toggleWithdrawModal}>Withdraw</Button>
+          </div>
+        </div>
+      {/if}
     </Card>
 
     <div class="max-w-screen-xl space-y-12">

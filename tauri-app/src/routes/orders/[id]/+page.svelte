@@ -27,13 +27,6 @@
 </script>
 
 <PageHeader title="Order">
-  <svelte:fragment slot="actions">
-    {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-      <ButtonLoading color="blue" size="xs" on:click={remove} loading={isSubmitting}>
-        Remove
-      </ButtonLoading>
-    {/if}
-  </svelte:fragment>
   <svelte:fragment slot="breadcrumbs">
     <BreadcrumbItem href="/orders">Orders</BreadcrumbItem>
   </svelte:fragment>
@@ -93,6 +86,16 @@
           {/each}
         </div>
       </div>
+
+      {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
+        <div class="mt-8">
+          <div class="flex justify-center space-x-20">
+            <ButtonLoading color="blue" size="xl" on:click={remove} loading={isSubmitting}>
+              Remove
+            </ButtonLoading>
+          </div>
+        </div>
+      {/if}
     </Card>
   </div>
 {/if}
