@@ -15,13 +15,9 @@
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
   import { ordersList } from '$lib/stores/ordersList';
-  import dayjs from 'dayjs';
-  import utc from 'dayjs/plugin/utc';
-  import bigIntSupport from 'dayjs/plugin/bigIntSupport';
+  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
-  dayjs.extend(utc);
-  dayjs.extend(bigIntSupport);
 
   let removeModalOrderId: string;
   let showRemoveModal = false;
@@ -75,10 +71,7 @@
           <TableBodyCell tdClass="break-all px-4 py-2">{order.id}</TableBodyCell>
           <TableBodyCell tdClass="break-all px-4 py-2">{order.owner.id}</TableBodyCell>
           <TableBodyCell tdClass="break-word px-4 py-2">
-            {dayjs(BigInt(order.timestamp) * BigInt('1000'))
-              .utc(true)
-              .local()
-              .format('DD/MM/YYYY h:mm A')}
+            {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
           </TableBodyCell>
           <TableBodyCell tdClass="break-word p-2">
             {order.valid_inputs?.map((t) => t.token.symbol)}

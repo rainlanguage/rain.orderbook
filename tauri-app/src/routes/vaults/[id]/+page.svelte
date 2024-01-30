@@ -13,14 +13,10 @@
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/ModalVaultDeposit.svelte';
-  import dayjs from 'dayjs';
-  import utc from 'dayjs/plugin/utc';
-  import bigIntSupport from 'dayjs/plugin/bigIntSupport';
   import ModalVaultWithdraw from '$lib/ModalVaultWithdraw.svelte';
   import { walletAddress } from '$lib/stores/settings';
   import { toHex } from 'viem';
-  dayjs.extend(utc);
-  dayjs.extend(bigIntSupport);
+  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
   export let data: { id: string };
   let showDepositModal = false;
@@ -142,12 +138,9 @@
             <TableBody>
               {#each vault.vault.deposits as deposit}
                 <TableBodyRow>
-                  <TableBodyCell tdClass="px-4 py-2"
-                    >{dayjs(BigInt(deposit.timestamp) * BigInt('1000'))
-                      .utc(true)
-                      .local()
-                      .format('DD/MM/YYYY h:mm A')}</TableBodyCell
-                  >
+                  <TableBodyCell tdClass="px-4 py-2">
+                    {formatTimestampSecondsAsLocal(BigInt(deposit.timestamp))}
+                  </TableBodyCell>
                   <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
                     {deposit.sender.id}
                   </TableBodyCell>

@@ -2,15 +2,11 @@
   import { Button, Card } from 'flowbite-svelte';
   import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
-  import dayjs from 'dayjs';
-  import utc from 'dayjs/plugin/utc';
-  import bigIntSupport from 'dayjs/plugin/bigIntSupport';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/ButtonLoading.svelte';
   import ModalOrderRemove from '$lib/ModalOrderRemove.svelte';
   import BadgeActive from '$lib/BadgeActive.svelte';
-  dayjs.extend(utc);
-  dayjs.extend(bigIntSupport);
+  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
   export let data: { id: string };
   let showRemoveModal = false;
@@ -57,10 +53,7 @@
           Created At
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {dayjs(BigInt(order.timestamp) * BigInt('1000'))
-            .utc(true)
-            .local()
-            .format('DD/MM/YYYY h:mm A')}
+          {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
         </p>
       </div>
 
