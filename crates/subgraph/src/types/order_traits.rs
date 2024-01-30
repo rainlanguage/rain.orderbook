@@ -80,8 +80,8 @@ mod tests {
                     vault_id: BigInt("1".into()),
                     vault: Vault {
                         owner: Account {
-                            id: Bytes("".into())
-                        }
+                            id: Bytes("".into()),
+                        },
                     },
                     token: Erc20 {
                         id: cynic::Id::new("0x0000000000000000000000000000000000000005"),
@@ -97,8 +97,8 @@ mod tests {
                     vault_id: BigInt("2".into()),
                     vault: Vault {
                         owner: Account {
-                            id: Bytes("".into())
-                        }
+                            id: Bytes("".into()),
+                        },
                     },
                     token: Erc20 {
                         id: cynic::Id::new("0x0000000000000000000000000000000000000006"),
