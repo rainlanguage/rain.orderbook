@@ -5,23 +5,22 @@
 
   const dispatch = createEventDispatcher();
 
-  export let page = 1;
-  export let prevLoading = false;
-  export let nextLoading = false;
+  export let index: number = 1;
+  export let loading = false;
 </script>
 
 <div class="flex items-center">
-  {#if prevLoading || nextLoading }
+  {#if loading}
     <Spinner class="mr-4 h-5 w-5" color="white" />
   {/if}
-  <Button class="rounded-none rounded-l-lg border-1" disabled={prevLoading} on:click={() => dispatch('previous')} color="light">
+  <Button class="rounded-none rounded-l-lg border-1" disabled={loading} on:click={() => dispatch('previous')} color="light">
     <ArrowLeftOutline class="w-3.5 h-3.5 me-2" />
     Previous
   </Button>
   <div class="text-center font-medium justify-center px-5 py-2.5 text-sm bg-white border border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600">
-    {page}
+    {index}
   </div>
-  <Button class="rounded-none rounded-r-lg border-1" disabled={nextLoading} on:click={() => dispatch('next')} color="light">
+  <Button class="rounded-none rounded-r-lg border-1" disabled={loading} on:click={() => dispatch('next')} color="light">
     Next
     <ArrowRightOutline class="w-3.5 h-3.5 ms-2" />
   </Button>

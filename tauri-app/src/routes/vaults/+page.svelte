@@ -21,6 +21,7 @@
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
   import type { TokenVault } from '$lib/typeshare/vaultsList';
+  import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -29,7 +30,7 @@
   let withdrawModalVault: TokenVault;
 
   redirectIfSettingsNotDefined();
-  vaultsList.refetch();
+  vaultsList.fetchPage(1);
 </script>
 
 <PageHeader title="Vaults">
@@ -38,7 +39,7 @@
   </svelte:fragment>
 </PageHeader>
 
-{#if $vaultsList.length === 0}
+{#if $vaultsList.page.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
@@ -50,7 +51,7 @@
       <TableHeadCell></TableHeadCell>
     </TableHead>
     <TableBody>
-      {#each $vaultsList as vault}
+      {#each $vaultsList.currentPage as vault}
         <TableBodyRow on:click={() => {goto(`/vaults/${vault.id}`)}}>
           <TableBodyCell tdClass="break-all px-4 py-2">{toHex(vault.vault_id)}</TableBodyCell>
           <TableBodyCell tdClass="break-all px-4 py-2">{vault.owner.id}</TableBodyCell>
@@ -76,6 +77,11 @@
       {/each}
     </TableBody>
   </Table>
+
+  <div class="flex justify-end mt-2">
+    <ButtonsPagination index={$vaultsList.index} on:previous={vaultsList.fetchPrev} on:next={vaultsList.fetchNext} loading={$vaultsList.isFetching} />
+  </div>
+
   <ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
   <ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />
 {/if}
