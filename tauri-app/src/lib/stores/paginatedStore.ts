@@ -96,7 +96,7 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
         toasts.add({
           message_type: ToastMessageType.Success,
           text: `Exported to CSV at ${path}`,
-          breakText: true
+          break_text: true
         });
       }
     } catch(e) {
