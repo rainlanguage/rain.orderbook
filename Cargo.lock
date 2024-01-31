@@ -3702,7 +3702,6 @@ dependencies = [
  "cynic-codegen",
  "rain_orderbook_bindings",
  "reqwest",
- "ruint",
  "serde",
  "thiserror",
  "typeshare",

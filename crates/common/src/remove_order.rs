@@ -5,9 +5,7 @@ use alloy_ethers_typecast::transaction::{
 use alloy_primitives::hex::FromHexError;
 
 use rain_orderbook_bindings::IOrderBookV3::removeOrderCall;
-use rain_orderbook_subgraph_client::types::{
-    order::Order as OrderDetail, order_traits::OrderDetailError,
-};
+use rain_orderbook_subgraph_client::types::{order_detail::Order, order_traits::OrderDetailError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -25,11 +23,11 @@ pub enum RemoveOrderArgsError {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RemoveOrderArgs {
-    pub order: OrderDetail,
+    pub order: Order,
 }
 
-impl From<OrderDetail> for RemoveOrderArgs {
-    fn from(order: OrderDetail) -> Self {
+impl From<Order> for RemoveOrderArgs {
+    fn from(order: Order) -> Self {
         Self { order }
     }
 }

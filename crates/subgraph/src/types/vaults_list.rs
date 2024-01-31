@@ -5,7 +5,7 @@ use typeshare::typeshare;
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
-pub struct VaultsQuery {
+pub struct VaultsListQuery {
     #[arguments(orderBy: "owner__id", orderDirection: "desc")]
     pub token_vaults: Vec<TokenVault>,
 }

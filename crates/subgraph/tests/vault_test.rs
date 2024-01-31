@@ -1,14 +1,16 @@
 use cynic::Id;
-use rain_orderbook_subgraph_client::types::vault::{VaultQuery, VaultQueryVariables};
+use rain_orderbook_subgraph_client::types::vault_detail::{
+    VaultDetailQuery, VaultDetailQueryVariables,
+};
 
 #[test]
 fn vaults_query_gql_output() {
     use cynic::QueryBuilder;
 
     let id = Id::new("1234");
-    let request_body = VaultQuery::build(VaultQueryVariables { id: &id });
+    let request_body = VaultDetailQuery::build(VaultDetailQueryVariables { id: &id });
 
-    let expected_query = "query VaultQuery($id: ID!) {
+    let expected_query = "query VaultDetailQuery($id: ID!) {
   tokenVault(id: $id) {
     id
     owner {

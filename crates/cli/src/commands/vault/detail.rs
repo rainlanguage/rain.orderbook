@@ -19,7 +19,7 @@ impl Execute for CliVaultDetailArgs {
         let vault = subgraph_args
             .to_subgraph_client()
             .await?
-            .vault(self.vault_id.clone().into())
+            .vault_detail(self.vault_id.clone().into())
             .await?;
         info!("{:#?}", vault);
 

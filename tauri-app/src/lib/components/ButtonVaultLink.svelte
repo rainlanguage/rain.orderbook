@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import type { TokenVault } from "$lib/typeshare/order";
+    import type { TokenVault } from "$lib/typeshare/orderDetail";
     import { formatAddressShorthand } from "$lib/utils/address";
     import { Button } from "flowbite-svelte";
     import { toHex } from "viem";

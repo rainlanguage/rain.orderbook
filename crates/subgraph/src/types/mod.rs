@@ -1,5 +1,5 @@
-pub mod order;
+pub mod order_detail;
 pub mod order_traits;
-pub mod orders;
-pub mod vault;
-pub mod vaults;
+pub mod orders_list;
+pub mod vault_detail;
+pub mod vaults_list;

@@ -22,10 +22,10 @@ When this project is migrated to use the subgraph schema defined in `subgraph/sc
 
 1. Run the following commands to generate Rust types from GraphQL Queries
 ```bash
-cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/vault.graphql  > crates/subgraph/src/types/vault.rs
-cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/vaults.graphql  > crates/subgraph/src/types/vaults.rs
-cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/order.graphql  > crates/subgraph/src/types/order.rs
-cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/orders.graphql  > crates/subgraph/src/types/orders.rs
+cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/vaultDetail.graphql  > crates/subgraph/src/types/vault_detail.rs
+cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/vaultsList.graphql  > crates/subgraph/src/types/vaults_list.rs
+cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/orderDetail.graphql  > crates/subgraph/src/types/order_detail.rs
+cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/ordersList.graphql  > crates/subgraph/src/types/orders_list.rs
 ```
 
 2. Prepend each generated types file with the following:

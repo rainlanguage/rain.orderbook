@@ -1,9 +1,13 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::types::{
-    order::{Order, OrderQuery, OrderQueryVariables},
-    orders::{Order as OrdersListItem, OrdersQuery as OrdersListQuery},
-    vault::{TokenVault, VaultQuery, VaultQueryVariables},
-    vaults::{TokenVault as VaultsListItem, VaultsQuery as VaultsListQuery},
+    order_detail,
+    order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
+    orders_list,
+    orders_list::OrdersListQuery,
+    vault_detail,
+    vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
+    vaults_list,
+    vaults_list::VaultsListQuery,
 };
 use cynic::Id;
 use reqwest::Url;
@@ -28,7 +32,9 @@ impl OrderbookSubgraphClient {
         Self { url }
     }
 
-    pub async fn orders(&self) -> Result<Vec<OrdersListItem>, OrderbookSubgraphClientError> {
+    pub async fn orders_list(
+        &self,
+    ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
         let data = self
             .query::<OrdersListQuery, ()>(self.url.clone(), ())
             .await?;
@@ -36,7 +42,9 @@ impl OrderbookSubgraphClient {
         Ok(data.orders)
     }
 
-    pub async fn vaults(&self) -> Result<Vec<VaultsListItem>, OrderbookSubgraphClientError> {
+    pub async fn vaults_list(
+        &self,
+    ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
         let data = self
             .query::<VaultsListQuery, ()>(self.url.clone(), ())
             .await
@@ -45,11 +53,14 @@ impl OrderbookSubgraphClient {
         Ok(data.token_vaults)
     }
 
-    pub async fn vault(&self, id: Id) -> Result<TokenVault, OrderbookSubgraphClientError> {
+    pub async fn vault_detail(
+        &self,
+        id: Id,
+    ) -> Result<vault_detail::TokenVault, OrderbookSubgraphClientError> {
         let data = self
-            .query::<VaultQuery, VaultQueryVariables>(
+            .query::<VaultDetailQuery, VaultDetailQueryVariables>(
                 self.url.clone(),
-                VaultQueryVariables { id: &id },
+                VaultDetailQueryVariables { id: &id },
             )
             .await
             .map_err(OrderbookSubgraphClientError::CynicClientError)?;
@@ -60,11 +71,14 @@ impl OrderbookSubgraphClient {
         Ok(vault)
     }
 
-    pub async fn order(&self, id: Id) -> Result<Order, OrderbookSubgraphClientError> {
+    pub async fn order_detail(
+        &self,
+        id: Id,
+    ) -> Result<order_detail::Order, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrderQuery, OrderQueryVariables>(
+            .query::<OrderDetailQuery, OrderDetailQueryVariables>(
                 self.url.clone(),
-                OrderQueryVariables { id: &id },
+                OrderDetailQueryVariables { id: &id },
             )
             .await?;
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;

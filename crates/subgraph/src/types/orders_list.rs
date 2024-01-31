@@ -5,7 +5,7 @@ use typeshare::typeshare;
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query")]
-pub struct OrdersQuery {
+pub struct OrdersListQuery {
     #[arguments(orderBy: "timestamp", orderDirection: "desc")]
     pub orders: Vec<Order>,
 }

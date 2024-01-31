@@ -4,28 +4,28 @@ use rain_orderbook_common::{
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::types::{
-    vault::TokenVault as VaultDetail, vaults::TokenVault as VaultsListItem,
+    vault_detail, vaults_list
 };
 use tauri::AppHandle;
 use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn vaults_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<VaultsListItem>> {
+pub async fn vaults_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<vaults_list::TokenVault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
         .await?
-        .vaults()
+        .vaults_list()
         .await?;
 
     Ok(vaults)
 }
 
 #[tauri::command]
-pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<VaultDetail> {
+pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<vault_detail::TokenVault> {
     let vault = subgraph_args
         .to_subgraph_client()
         .await?
-        .vault(id.into())
+        .vault_detail(id.into())
         .await?;
     
     Ok(vault)

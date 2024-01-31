@@ -1,4 +1,4 @@
-query VaultsQuery {
+query VaultsListQuery {
   tokenVaults(orderBy: owner__id, orderDirection: desc) {
     id
     owner {
