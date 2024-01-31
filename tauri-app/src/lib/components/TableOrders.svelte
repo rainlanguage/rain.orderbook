@@ -11,7 +11,7 @@
     Dropdown,
     DropdownItem,
   } from 'flowbite-svelte';
-  import { DotsVerticalOutline } from 'flowbite-svelte-icons';
+  import { DotsVerticalOutline, FileCsvOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
   import { orderRemove } from '$lib/utils/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
@@ -19,6 +19,7 @@
   import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
   import type { PaginatedCachedStore } from '$lib/stores/paginatedStore';
   import type { Order } from '$lib/typeshare/ordersList';
+  import ButtonLoading from './ButtonLoading.svelte';
 
   export let ordersList: PaginatedCachedStore<Order>;
 </script>
@@ -74,7 +75,11 @@
     </TableBody>
   </Table>
 
-  <div class="flex justify-end mt-2">
+  <div class="flex justify-between mt-2">
+    <ButtonLoading size="xs" color="blue" on:click={() => ordersList.exportCsv()} loading={$ordersList.isExporting}>
+      <FileCsvOutline class="w-4 h-4 mr-2"/>
+      Export to CSV
+    </ButtonLoading>
     <ButtonsPagination index={$ordersList.index} on:previous={ordersList.fetchPrev} on:next={ordersList.fetchNext} loading={$ordersList.isFetching} />
   </div>
 {/if}
