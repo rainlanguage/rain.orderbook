@@ -3,10 +3,17 @@ use serde::Serialize;
 use typeshare::typeshare;
 
 #[typeshare]
+#[derive(cynic::QueryVariables, Debug)]
+pub struct VaultsListQueryVariables {
+    pub first: Option<i32>,
+    pub skip: Option<i32>,
+}
+
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query")]
+#[cynic(graphql_type = "Query", variables = "VaultsListQueryVariables")]
 pub struct VaultsListQuery {
-    #[arguments(orderBy: "owner__id", orderDirection: "desc")]
+    #[arguments(orderBy: "owner__id", orderDirection: "desc", skip: $skip, first: $first)]
     pub token_vaults: Vec<TokenVault>,
 }
 

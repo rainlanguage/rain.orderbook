@@ -3,7 +3,7 @@ import { v4 as uuidv4} from 'uuid';
 import { listen } from '@tauri-apps/api/event';
 import  sortBy from 'lodash/sortBy';
 
-import type { ToastPayload } from "$lib/typeshare/toast";
+import { ToastMessageType, type ToastPayload } from "$lib/typeshare/toast";
 
 export type ToastData = ToastPayload & { timestamp: Date; id: string };
 
@@ -29,9 +29,18 @@ function useToastsStore(autohideMs = 5000) {
       });
     }, autohideMs);
   }
+
+  function error(text: string) {
+    add({
+      message_type: ToastMessageType.Error,
+      text
+    });
+  }
+
   return {
     subscribe: toasts.subscribe,
-    add
+    add,
+    error
   }
 }
 

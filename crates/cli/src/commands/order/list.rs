@@ -1,14 +1,20 @@
-use crate::{execute::Execute, subgraph::CliSubgraphArgs};
+use crate::{
+    execute::Execute,
+    subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
+};
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
 use rain_orderbook_subgraph_client::types::orders_list::Order;
 use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliOrderListArgs {
+    #[clap(flatten)]
+    pub pagination_args: CliSubgraphPaginationArgs,
+
     #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
 }
@@ -16,10 +22,11 @@ pub struct CliOrderListArgs {
 impl Execute for CliOrderListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
+        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
         let orders = subgraph_args
             .to_subgraph_client()
             .await?
-            .orders_list()
+            .orders_list(pagination_args)
             .await?;
 
         let table = build_orders_table(orders)?;

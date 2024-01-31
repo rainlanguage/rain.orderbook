@@ -19,13 +19,10 @@
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import PageHeader from '$lib/components/PageHeader.svelte';
-
-  function gotoOrder(id: string) {
-    goto(`/orders/${id}`);
-  }
+  import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
 
   redirectIfSettingsNotDefined();
-  ordersList.refetch();
+  ordersList.fetchPage(1);
 </script>
 
 <PageHeader title="Orders">
@@ -34,7 +31,7 @@
   </svelte:fragment>
 </PageHeader>
 
-{#if $ordersList.length === 0}
+{#if $ordersList.page.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Orders found</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
@@ -48,8 +45,8 @@
       <TableHeadCell padding="px-0"></TableHeadCell>
     </TableHead>
     <TableBody>
-      {#each $ordersList as order}
-        <TableBodyRow on:click={() => gotoOrder(order.id)}>
+      {#each $ordersList.currentPage as order}
+        <TableBodyRow on:click={() => goto(`/orders/${order.id}`)}>
           <TableBodyCell tdClass="px-4 py-2">
             {#if order.order_active}
               <Badge color="green">Active</Badge>
@@ -84,4 +81,8 @@
       {/each}
     </TableBody>
   </Table>
+
+  <div class="flex justify-end mt-2">
+    <ButtonsPagination index={$ordersList.index} on:previous={ordersList.fetchPrev} on:next={ordersList.fetchNext} loading={$ordersList.isFetching} />
+  </div>
 {/if}
