@@ -1,5 +1,5 @@
-query OrdersQuery {
-  orders(orderBy: timestamp, orderDirection: desc) {
+query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
+  orders(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first) {
     id
     timestamp
     handleIO

@@ -1,26 +1,32 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
+    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
+    remove_order::RemoveOrderArgs,
+    transaction::TransactionArgs,
 };
 use rain_orderbook_subgraph_client::types::{
-    order::Order as OrderDetail, orders::Order as OrdersListItem,
+    order_detail,
+    orders_list
 };
 use tauri::AppHandle;
 
 #[tauri::command]
-pub async fn orders_list(subgraph_args: SubgraphArgs) -> CommandResult<Vec<OrdersListItem>> {
-    let orders = subgraph_args.to_subgraph_client().await?.orders().await?;
-
+pub async fn orders_list(subgraph_args: SubgraphArgs, pagination_args: SubgraphPaginationArgs) -> CommandResult<Vec<orders_list::Order>> {
+    let orders = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .orders_list(pagination_args)
+        .await?;
     Ok(orders)
 }
 
 #[tauri::command]
-pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<OrderDetail> {
+pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<order_detail::Order> {
     let order = subgraph_args
         .to_subgraph_client()
         .await?
-        .order(id.into())
+        .order_detail(id.into())
         .await?;
 
     Ok(order)
@@ -40,7 +46,7 @@ pub async fn order_remove(
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e
         })?
-        .order(id.into())
+        .order_detail(id.into())
         .await
         .map_err(|e| {
             toast_error(app_handle.clone(), e.to_string());

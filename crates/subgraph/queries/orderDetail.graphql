@@ -1,4 +1,4 @@
-query OrderQuery($id: ID!) {
+query OrderDetailQuery($id: ID!) {
   order(id: $id) {
     id
     owner {
@@ -15,6 +15,11 @@ query OrderQuery($id: ID!) {
       tokenVault {
         id
         vaultId
+        vault {
+          owner {
+            id
+          }
+        }
         token {
           id
           name
@@ -27,6 +32,11 @@ query OrderQuery($id: ID!) {
       tokenVault {
         id
         vaultId
+        vault {
+          owner {
+            id
+          }
+        }
         token {
           id
           name

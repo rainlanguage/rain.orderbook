@@ -5,9 +5,7 @@ use alloy_ethers_typecast::transaction::{
 use alloy_primitives::hex::FromHexError;
 
 use rain_orderbook_bindings::IOrderBookV3::removeOrderCall;
-use rain_orderbook_subgraph_client::types::{
-    order::Order as OrderDetail, order_traits::OrderDetailError,
-};
+use rain_orderbook_subgraph_client::types::{order_detail::Order, order_traits::OrderDetailError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -25,11 +23,11 @@ pub enum RemoveOrderArgsError {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RemoveOrderArgs {
-    pub order: OrderDetail,
+    pub order: Order,
 }
 
-impl From<OrderDetail> for RemoveOrderArgs {
-    fn from(order: OrderDetail) -> Self {
+impl From<Order> for RemoveOrderArgs {
+    fn from(order: Order) -> Self {
         Self { order }
     }
 }
@@ -50,11 +48,7 @@ impl RemoveOrderArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), RemoveOrderArgsError> {
-        let ledger_client = transaction_args
-            .clone()
-            .try_into_ledger_client()
-            .await
-            .map_err(RemoveOrderArgsError::TransactionArgs)?;
+        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let remove_order_call: removeOrderCall = self.try_into()?;
         let params = transaction_args
@@ -62,13 +56,11 @@ impl RemoveOrderArgs {
                 remove_order_call,
                 transaction_args.orderbook_address,
             )
-            .await
-            .map_err(RemoveOrderArgsError::TransactionArgs)?;
+            .await?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
-            .await
-            .map_err(RemoveOrderArgsError::WritableClientError)?;
+            .await?;
 
         Ok(())
     }

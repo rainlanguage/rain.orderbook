@@ -35,7 +35,7 @@ pub enum AddOrderArgsError {
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
     WritableClientError(#[from] WritableClientError),
-    #[error("TransactionArgs error: {0}")]
+    #[error(transparent)]
     TransactionArgs(#[from] TransactionArgsError),
     #[error(transparent)]
     RainMetaError(#[from] RainMetaError),

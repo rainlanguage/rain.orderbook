@@ -3,10 +3,17 @@ use serde::Serialize;
 use typeshare::typeshare;
 
 #[typeshare]
+#[derive(cynic::QueryVariables, Debug)]
+pub struct OrdersListQueryVariables {
+    pub first: Option<i32>,
+    pub skip: Option<i32>,
+}
+
+#[typeshare]
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query")]
-pub struct OrdersQuery {
-    #[arguments(orderBy: "timestamp", orderDirection: "desc")]
+#[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
+pub struct OrdersListQuery {
+    #[arguments(orderBy: "timestamp", orderDirection: "desc", skip: $skip, first: $first)]
     pub orders: Vec<Order>,
 }
 

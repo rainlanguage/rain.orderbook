@@ -1,4 +1,4 @@
-query VaultQuery($id: ID!) {
+query VaultDetailQuery($id: ID!) {
   tokenVault(id: $id) {
     id
     owner {
@@ -12,9 +12,9 @@ query VaultQuery($id: ID!) {
       symbol
       decimals
     }
+    vaultId
     vault {
       id
-      vaultId
       deposits(where: {tokenVault_: {id: $id, }, }) {
         id
         transaction {

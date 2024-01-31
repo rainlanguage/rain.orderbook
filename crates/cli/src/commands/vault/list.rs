@@ -1,24 +1,35 @@
-use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
+use crate::{
+    execute::Execute,
+    subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
+};
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::types::vaults::TokenVault;
+use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
+use rain_orderbook_subgraph_client::types::vaults_list::TokenVault;
+use tracing::info;
 
-use tracing::debug;
 #[derive(Args, Clone)]
-pub struct CliVaultListArgs {}
+pub struct CliVaultListArgs {
+    #[clap(flatten)]
+    pub pagination_args: CliSubgraphPaginationArgs,
 
-pub type List = CliSubgraphCommandArgs<CliVaultListArgs>;
+    #[clap(flatten)]
+    pub subgraph_args: CliSubgraphArgs,
+}
 
-impl Execute for List {
+impl Execute for CliVaultListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let vaults = subgraph_args.to_subgraph_client().await?.vaults().await?;
-        debug!("{:#?}", vaults);
+        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
+        let vaults = subgraph_args
+            .to_subgraph_client()
+            .await?
+            .vaults_list(pagination_args)
+            .await?;
 
         let table = build_table(vaults)?;
-        println!("{}", table);
+        info!("\n{}", table);
 
         Ok(())
     }

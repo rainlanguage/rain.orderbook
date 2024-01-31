@@ -1,30 +1,8 @@
-import { get, writable } from 'svelte/store';
-import type { TokenVault as VaultsListItem } from '$lib/typeshare/vaults';
+import { get } from 'svelte/store';
+import type { TokenVault } from '$lib/typeshare/vaultsList';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
+import { usePaginatedCachedStore } from './paginatedStore';
 
-function useVaultsListStore() {
-  const STORAGE_KEY = "vaults.vaultsList";
 
-  const { subscribe, set } = writable<Array<VaultsListItem>>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : []);
-
-  subscribe(value => {
-    if(value) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
-    }
-  });
-
-  async function refetch() {
-    const res: Array<VaultsListItem> = await invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)} });
-    set(res);
-  }
-
-  return {
-    subscribe,
-    refetch
-  }
-}
-
-export const vaultsList = useVaultsListStore();
+export const vaultsList = usePaginatedCachedStore<TokenVault>('vaultsList', (page, pageSize = 10) => invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page, page_size: pageSize } }));

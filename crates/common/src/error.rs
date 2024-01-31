@@ -20,11 +20,11 @@ pub static SELECTORS: Lazy<Mutex<HashMap<[u8; 4], AlloyError>>> =
 
 #[derive(Error, Debug)]
 pub enum WritableTransactionExecuteError {
-    #[error("WritableClient error: {0}")]
+    #[error(transparent)]
     WritableClient(#[from] WritableClientError),
-    #[error("TransactionArgs error: {0}")]
+    #[error(transparent)]
     TransactionArgs(#[from] TransactionArgsError),
-    #[error("LedgerClient error: {0}")]
+    #[error(transparent)]
     LedgerClient(#[from] LedgerClientError),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),

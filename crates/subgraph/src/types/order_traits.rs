@@ -1,7 +1,6 @@
-use crate::types::order::Order as OrderDetail;
-use alloy_primitives::{hex::FromHexError, Address, U256};
+use crate::types::order_detail;
+use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::{EvaluableV2, OrderV2, IO};
-use ruint::ParseError;
 use std::num::TryFromIntError;
 use thiserror::Error;
 
@@ -15,7 +14,7 @@ pub enum OrderDetailError {
     ParseError(#[from] ParseError),
 }
 
-impl TryInto<OrderV2> for OrderDetail {
+impl TryInto<OrderV2> for order_detail::Order {
     type Error = OrderDetailError;
 
     fn try_into(self) -> Result<OrderV2, OrderDetailError> {
@@ -58,11 +57,13 @@ impl TryInto<OrderV2> for OrderDetail {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::order::{Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault};
+    use crate::types::order_detail::{
+        Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault, Vault,
+    };
 
     #[test]
     fn test_try_into_call() {
-        let order_detail = OrderDetail {
+        let order_detail = order_detail::Order {
             id: "1".into(),
             owner: Account {
                 id: Bytes("0x0000000000000000000000000000000000000001".into()),
@@ -78,6 +79,11 @@ mod tests {
                 token_vault: TokenVault {
                     id: "".into(),
                     vault_id: BigInt("1".into()),
+                    vault: Vault {
+                        owner: Account {
+                            id: Bytes("".into()),
+                        },
+                    },
                     token: Erc20 {
                         id: cynic::Id::new("0x0000000000000000000000000000000000000005"),
                         name: "".into(),
@@ -90,6 +96,11 @@ mod tests {
                 token_vault: TokenVault {
                     id: "".into(),
                     vault_id: BigInt("2".into()),
+                    vault: Vault {
+                        owner: Account {
+                            id: Bytes("".into()),
+                        },
+                    },
                     token: Erc20 {
                         id: cynic::Id::new("0x0000000000000000000000000000000000000006"),
                         name: "".into(),

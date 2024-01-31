@@ -1,25 +1,36 @@
-use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
+use crate::{
+    execute::Execute,
+    subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
+};
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::types::orders::Order;
+use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
+use rain_orderbook_subgraph_client::types::orders_list::Order;
+use tracing::info;
 
-use tracing::debug;
 #[derive(Args, Clone)]
-pub struct CliOrderListArgs {}
+pub struct CliOrderListArgs {
+    #[clap(flatten)]
+    pub pagination_args: CliSubgraphPaginationArgs,
 
-pub type List = CliSubgraphCommandArgs<CliOrderListArgs>;
+    #[clap(flatten)]
+    pub subgraph_args: CliSubgraphArgs,
+}
 
-impl Execute for List {
+impl Execute for CliOrderListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let orders = subgraph_args.to_subgraph_client().await?.orders().await?;
-        debug!("{:#?}", orders);
+        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
+        let orders = subgraph_args
+            .to_subgraph_client()
+            .await?
+            .orders_list(pagination_args)
+            .await?;
 
         let table = build_orders_table(orders)?;
-        println!("{}", table);
+        info!("\n{}", table);
 
         Ok(())
     }

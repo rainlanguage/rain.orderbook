@@ -15,37 +15,23 @@
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
   import { ordersList } from '$lib/stores/ordersList';
+  import { orderRemove } from '$lib/utils/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
-
-  let removeModalOrderId: string;
-  let showRemoveModal = false;
-
-  function gotoOrder(id: string) {
-    goto(`/orders/${id}`);
-  }
-
-  function confirmRemoveOrder(id: string) {
-    removeModalOrderId = id;
-    showRemoveModal = true;
-  }
+  import PageHeader from '$lib/components/PageHeader.svelte';
+  import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
 
   redirectIfSettingsNotDefined();
-  ordersList.refetch();
+  ordersList.fetchPage(1);
 </script>
 
-<div class="flex w-full">
-  <div class="flex-1"></div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Orders</h1>
-  <div class="flex-1">
-    <div class="flex justify-end space-x-2">
-      <Button color="green" size="xs" >Add</Button>
-    </div>
-  </div>
-</div>
+<PageHeader title="Orders">
+  <svelte:fragment slot="actions">
+    <Button color="green" size="xs">Add</Button>
+  </svelte:fragment>
+</PageHeader>
 
-{#if $ordersList.length === 0}
+{#if $ordersList.page.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Orders found</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
@@ -59,8 +45,8 @@
       <TableHeadCell padding="px-0"></TableHeadCell>
     </TableHead>
     <TableBody>
-      {#each $ordersList as order}
-        <TableBodyRow on:click={() => gotoOrder(order.id)}>
+      {#each $ordersList.currentPage as order}
+        <TableBodyRow on:click={() => goto(`/orders/${order.id}`)}>
           <TableBodyCell tdClass="px-4 py-2">
             {#if order.order_active}
               <Badge color="green">Active</Badge>
@@ -88,7 +74,7 @@
           </TableBodyCell>
           {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
             <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${order.id}`}>
-              <DropdownItem on:click={(e) => {e.stopPropagation(); confirmRemoveOrder(order.id);}}>Remove</DropdownItem>
+              <DropdownItem on:click={(e) => {e.stopPropagation(); orderRemove(order.id);}}>Remove</DropdownItem>
             </Dropdown>
           {/if}
         </TableBodyRow>
@@ -96,5 +82,7 @@
     </TableBody>
   </Table>
 
-  <ModalOrderRemove bind:open={showRemoveModal} orderId={removeModalOrderId} />
+  <div class="flex justify-end mt-2">
+    <ButtonsPagination index={$ordersList.index} on:previous={ordersList.fetchPrev} on:next={ordersList.fetchNext} loading={$ordersList.isFetching} />
+  </div>
 {/if}

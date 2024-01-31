@@ -4,14 +4,14 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(cynic::QueryVariables, Debug)]
-pub struct OrderQueryVariables<'a> {
+pub struct OrderDetailQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "OrderQueryVariables")]
-pub struct OrderQuery {
+#[cynic(graphql_type = "Query", variables = "OrderDetailQueryVariables")]
+pub struct OrderDetailQuery {
     #[arguments(id: $id)]
     pub order: Option<Order>,
 }
@@ -53,7 +53,14 @@ pub struct Io {
 pub struct TokenVault {
     pub id: cynic::Id,
     pub vault_id: BigInt,
+    pub vault: Vault,
     pub token: Erc20,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct Vault {
+    pub owner: Account,
 }
 
 #[typeshare]

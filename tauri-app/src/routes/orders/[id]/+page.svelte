@@ -1,29 +1,44 @@
 <script lang="ts">
-  import { Button, Card } from 'flowbite-svelte';
-  import ArrowLeftSolid from 'flowbite-svelte-icons/ArrowLeftSolid.svelte';
+  import { BreadcrumbItem, Card } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
+  import { orderRemove } from '$lib/utils/orderRemove';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 
   export let data: { id: string };
-  let showRemoveModal = false;
+  let isSubmitting = false;
+
+  $: order = $orderDetail[data.id];
+
+  async function remove() {
+    isSubmitting = true;
+    try {
+      await orderRemove(order.id);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
 
   orderDetail.refetch(data.id);
-  $: order = $orderDetail[data.id];
 </script>
 
-<div class="flex w-full">
-  <div class="flex-1">
-    <Button outline size="xs" class="w-32" color="primary" href="/orders">
-      <ArrowLeftSolid size="xs" /><span class="ml-2">All Orders</span>
-    </Button>
-  </div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Order</h1>
-  <div class="flex-1"></div>
-</div>
+<PageHeader title="Order">
+  <svelte:fragment slot="actions">
+    {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
+      <ButtonLoading color="blue" size="xs" on:click={remove} loading={isSubmitting}>
+        Remove
+      </ButtonLoading>
+    {/if}
+  </svelte:fragment>
+  <svelte:fragment slot="breadcrumbs">
+    <BreadcrumbItem href="/orders">Orders</BreadcrumbItem>
+  </svelte:fragment>
+</PageHeader>
+
 {#if order === undefined}
   <div class="text-center text-gray-900 dark:text-white">Order not found</div>
 {:else}
@@ -59,34 +74,26 @@
 
       <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Input Token(s)
+          Input Vaults
         </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.valid_inputs?.map((t) => t.token_vault.token.name)}
-        </p>
+        <div class="flex flex-wrap space-x-2 space-y-2">
+          {#each (order.valid_inputs || []) as t}
+            <ButtonVaultLink tokenVault={t.token_vault} />
+          {/each}
+        </div>
       </div>
 
       <div class="mt-8">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Output Token(s)
+          Output Vaults
         </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.valid_outputs?.map((t) => t.token_vault.token.name)}
-        </p>
-      </div>
-
-      {#if $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-        <div class="pt-4">
-          <div class="flex justify-center space-x-20">
-            <ButtonLoading color="blue" size="xl" on:click={() => (showRemoveModal = true)}>
-              Remove
-            </ButtonLoading>
-          </div>
+        <div class="flex flex-wrap space-x-2 space-y-2">
+          {#each (order.valid_outputs || []) as t}
+            <ButtonVaultLink tokenVault={t.token_vault} />
+          {/each}
         </div>
-      {/if}
+      </div>
     </Card>
   </div>
-
-  <ModalOrderRemove bind:open={showRemoveModal} orderId={order.id}/>
 {/if}
 
