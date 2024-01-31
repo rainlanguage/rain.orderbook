@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BreadcrumbItem, Card } from 'flowbite-svelte';
+  import { Card } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
@@ -8,11 +8,11 @@
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
   import { orderRemove } from '$lib/utils/orderRemove';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import { page } from '$app/stores';
 
-  export let data: { id: string };
   let isSubmitting = false;
 
-  $: order = $orderDetail[data.id];
+  $: order = $orderDetail[$page.params.id];
 
   async function remove() {
     isSubmitting = true;
@@ -23,7 +23,7 @@
     isSubmitting = false;
   }
 
-  orderDetail.refetch(data.id);
+  orderDetail.refetch($page.params.id);
 </script>
 
 <PageHeader title="Order">
@@ -33,9 +33,6 @@
         Remove
       </ButtonLoading>
     {/if}
-  </svelte:fragment>
-  <svelte:fragment slot="breadcrumbs">
-    <BreadcrumbItem href="/orders">Orders</BreadcrumbItem>
   </svelte:fragment>
 </PageHeader>
 
