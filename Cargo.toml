@@ -36,6 +36,7 @@ rain-meta = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
 rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
+csv = "1.3.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
