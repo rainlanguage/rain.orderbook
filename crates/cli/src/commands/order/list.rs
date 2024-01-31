@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs::canonicalize, path::PathBuf};
 
 use crate::{
     execute::Execute,
@@ -40,7 +40,8 @@ impl Execute for CliOrderListArgs {
         if let Some(csv_file) = self.csv_file.clone() {
             let orders_flattened: Vec<OrderFlattened> =
                 orders.into_iter().map(|o| o.into()).collect();
-            orders_flattened.write_csv(csv_file)?;
+            orders_flattened.write_csv(csv_file.clone())?;
+            info!("Saved to CSV at {:?}", canonicalize(csv_file.as_path())?);
         } else {
             let table = build_table(orders)?;
             info!("\n{}", table);

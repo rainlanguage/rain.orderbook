@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs::canonicalize, path::PathBuf};
 
 use crate::{
     execute::Execute,
@@ -39,7 +39,8 @@ impl Execute for CliVaultListArgs {
         if let Some(csv_file) = self.csv_file.clone() {
             let vaults_flattened: Vec<TokenVaultFlattened> =
                 vaults.into_iter().map(|o| o.into()).collect();
-            vaults_flattened.write_csv(csv_file)?;
+            vaults_flattened.write_csv(csv_file.clone())?;
+            info!("Saved to CSV at {:?}", canonicalize(csv_file.as_path())?);
         } else {
             let table = build_table(vaults)?;
             info!("\n{}", table);
