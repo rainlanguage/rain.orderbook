@@ -29,7 +29,7 @@ pub fn toast_error(app_handle: AppHandle, text: String) {
     let toast = ToastPayload {
         message_type: ToastMessageType::Error,
         text,
-        break_text: false,
+        break_text: None,
     };
     toast.emit(app_handle);
 }
