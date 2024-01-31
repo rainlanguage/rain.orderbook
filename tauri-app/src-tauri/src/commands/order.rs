@@ -1,5 +1,4 @@
 use crate::error::CommandResult;
-use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     remove_order::RemoveOrderArgs,
