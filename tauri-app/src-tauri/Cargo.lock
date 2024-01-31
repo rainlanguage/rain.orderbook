@@ -8337,6 +8337,7 @@ dependencies = [
  "chrono",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
+ "reqwest",
  "serde",
  "serde_bytes",
  "serde_json",

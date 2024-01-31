@@ -1,17 +1,19 @@
 use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    deposit::DepositArgs,     subgraph::{SubgraphArgs, SubgraphPaginationArgs},
-     transaction::TransactionArgs,
+    deposit::DepositArgs,
+    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
+    transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_client::types::{
-    vault_detail, vaults_list
-};
+use rain_orderbook_subgraph_client::types::{vault_detail, vaults_list};
 use tauri::AppHandle;
 
 #[tauri::command]
-pub async fn vaults_list(subgraph_args: SubgraphArgs, pagination_args: SubgraphPaginationArgs) -> CommandResult<Vec<vaults_list::TokenVault>> {
+pub async fn vaults_list(
+    subgraph_args: SubgraphArgs,
+    pagination_args: SubgraphPaginationArgs,
+) -> CommandResult<Vec<vaults_list::TokenVault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
         .await?
@@ -21,7 +23,10 @@ pub async fn vaults_list(subgraph_args: SubgraphArgs, pagination_args: SubgraphP
 }
 
 #[tauri::command]
-pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<vault_detail::TokenVault> {
+pub async fn vault_detail(
+    id: String,
+    subgraph_args: SubgraphArgs,
+) -> CommandResult<vault_detail::TokenVault> {
     let vault = subgraph_args
         .to_subgraph_client()
         .await?

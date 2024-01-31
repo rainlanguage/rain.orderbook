@@ -1,18 +1,18 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
     remove_order::RemoveOrderArgs,
+    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
     transaction::TransactionArgs,
 };
-use rain_orderbook_subgraph_client::types::{
-    order_detail,
-    orders_list
-};
+use rain_orderbook_subgraph_client::types::{order_detail, orders_list};
 use tauri::AppHandle;
 
 #[tauri::command]
-pub async fn orders_list(subgraph_args: SubgraphArgs, pagination_args: SubgraphPaginationArgs) -> CommandResult<Vec<orders_list::Order>> {
+pub async fn orders_list(
+    subgraph_args: SubgraphArgs,
+    pagination_args: SubgraphPaginationArgs,
+) -> CommandResult<Vec<orders_list::Order>> {
     let orders = subgraph_args
         .to_subgraph_client()
         .await?
@@ -22,7 +22,10 @@ pub async fn orders_list(subgraph_args: SubgraphArgs, pagination_args: SubgraphP
 }
 
 #[tauri::command]
-pub async fn order_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<order_detail::Order> {
+pub async fn order_detail(
+    id: String,
+    subgraph_args: SubgraphArgs,
+) -> CommandResult<order_detail::Order> {
     let order = subgraph_args
         .to_subgraph_client()
         .await?

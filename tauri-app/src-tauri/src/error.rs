@@ -1,9 +1,9 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
-use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
-use url::ParseError;
-use thiserror::Error;
-use serde::{Serialize, ser::Serializer};
 use alloy_primitives::ruint::FromUintError;
+use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
+use serde::{ser::Serializer, Serialize};
+use thiserror::Error;
+use url::ParseError;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
