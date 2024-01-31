@@ -5,8 +5,8 @@ use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::types::orders_list::Order;
+use tracing::info;
 
-use tracing::debug;
 #[derive(Args, Clone)]
 pub struct CliOrderListArgs {
     #[clap(flatten)]
@@ -21,10 +21,9 @@ impl Execute for CliOrderListArgs {
             .await?
             .orders_list()
             .await?;
-        debug!("{:#?}", orders);
 
         let table = build_orders_table(orders)?;
-        println!("{}", table);
+        info!("\n{}", table);
 
         Ok(())
     }

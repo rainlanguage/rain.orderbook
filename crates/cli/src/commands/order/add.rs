@@ -7,6 +7,7 @@ use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliOrderAddArgs {
@@ -36,7 +37,7 @@ impl Execute for CliOrderAddArgs {
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
 
-        println!("----- Add Order -----");
+        info!("----- Add Order -----");
         add_order_args
             .execute(tx_args, |status| {
                 display_write_transaction_status(status);

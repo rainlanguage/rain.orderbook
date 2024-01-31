@@ -5,6 +5,7 @@ use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
+use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliVaultWithdrawArgs {
@@ -37,7 +38,7 @@ impl Execute for CliVaultWithdrawArgs {
         tx_args.try_fill_chain_id().await?;
         let withdraw_args: WithdrawArgs = self.clone().into();
 
-        println!("----- Withdraw tokens from Vault -----");
+        info!("----- Withdraw tokens from Vault -----");
         withdraw_args
             .execute(tx_args, |status| {
                 display_write_transaction_status(status);
