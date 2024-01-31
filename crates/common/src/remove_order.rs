@@ -5,7 +5,7 @@ use alloy_ethers_typecast::transaction::{
 use alloy_primitives::hex::FromHexError;
 
 use rain_orderbook_bindings::IOrderBookV3::removeOrderCall;
-use rain_orderbook_subgraph_client::types::{order_detail::Order, order_traits::OrderDetailError};
+use rain_orderbook_subgraph_client::types::{order_detail::Order, order_detail_traits::OrderDetailError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
