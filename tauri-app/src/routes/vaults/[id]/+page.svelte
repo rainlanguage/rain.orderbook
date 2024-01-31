@@ -9,6 +9,7 @@
     TableBody,
     TableBodyRow,
     TableBodyCell,
+    BreadcrumbItem,
   } from 'flowbite-svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
@@ -16,7 +17,7 @@
   import { walletAddress } from '$lib/stores/settings';
   import { toHex } from 'viem';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import ButtonBack from '$lib/components/ButtonBack.svelte';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 
   export let data: { id: string };
   let showDepositModal = false;
@@ -33,13 +34,12 @@
   }
 </script>
 
-<div class="flex w-full">
-  <div class="flex-1">
-    <ButtonBack />
-  </div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Vault</h1>
-  <div class="flex-1"></div>
-</div>
+<PageHeader title="Vault">
+  <svelte:fragment slot="breadcrumbs">
+    <BreadcrumbItem href="/vaults">Vaults</BreadcrumbItem>
+  </svelte:fragment>
+</PageHeader>
+
 {#if vault === undefined}
   <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
 {:else}

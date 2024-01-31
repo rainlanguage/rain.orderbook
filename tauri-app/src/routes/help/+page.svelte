@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Heading } from 'flowbite-svelte';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 </script>
 
-<Heading tag="h1" class="text-center text-4xl font-bold">Help</Heading>
+<PageHeader title="Help">
+</PageHeader>

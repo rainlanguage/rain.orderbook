@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, Heading, Label, Input, Helper } from 'flowbite-svelte';
+  import { Alert, Label, Input, Helper } from 'flowbite-svelte';
   import BadgeExternalLink from '$lib/components/BadgeExternalLink.svelte';
   import {
     rpcUrl,
@@ -14,9 +14,11 @@
   } from '$lib/stores/settings';
   import { activeChain } from '$lib/stores/chain';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 </script>
 
-<Heading tag="h1" class="mb-8 text-center text-4xl font-bold">Settings</Heading>
+<PageHeader title="Settings">
+</PageHeader>
 
 <div class="flex w-full justify-center">
   <div class="max-w-screen-lg">

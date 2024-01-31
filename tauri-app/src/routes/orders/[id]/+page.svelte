@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { Card } from 'flowbite-svelte';
+  import { BreadcrumbItem, Card } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import ButtonBack from '$lib/components/ButtonBack.svelte';
   import { orderRemove } from '$lib/utils/orderRemove';
+  import PageHeader from '$lib/components/PageHeader.svelte';
 
   export let data: { id: string };
   let isSubmitting = false;
@@ -26,13 +26,12 @@
   orderDetail.refetch(data.id);
 </script>
 
-<div class="flex w-full">
-  <div class="flex-1">
-    <ButtonBack />
-  </div>
-  <h1 class="flex-0 mb-8 text-4xl font-bold text-gray-900 dark:text-white">Order</h1>
-  <div class="flex-1"></div>
-</div>
+<PageHeader title="Order">
+  <svelte:fragment slot="breadcrumbs">
+    <BreadcrumbItem href="/orders">Orders</BreadcrumbItem>
+  </svelte:fragment>
+</PageHeader>
+
 {#if order === undefined}
   <div class="text-center text-gray-900 dark:text-white">Order not found</div>
 {:else}
