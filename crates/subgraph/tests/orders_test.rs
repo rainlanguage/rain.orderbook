@@ -11,7 +11,7 @@ fn orders_query_gql_output() {
         first: Some(10),
     });
 
-    let expected_query = "query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
+    let expected_query = "query OrdersListQuery($first: Int, $skip: Int) {
   orders(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first) {
     id
     timestamp
@@ -48,6 +48,7 @@ fn orders_query_gql_output() {
         decimals
       }
       tokenVault {
+        id
         balance
       }
       vault {
