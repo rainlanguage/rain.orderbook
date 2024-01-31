@@ -1,14 +1,14 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+pub mod error;
 pub mod toast;
 pub mod transaction_status;
-pub mod error;
 
 mod commands;
 use commands::chain::get_chainid;
+use commands::order::{order_detail, order_remove, orders_list};
 use commands::vault::{vault_deposit, vault_detail, vault_withdraw, vaults_list};
-use commands::order::{orders_list, order_detail, order_remove};
 use commands::wallet::get_address_from_ledger;
 
 fn main() {

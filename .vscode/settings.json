@@ -9,7 +9,7 @@
   "[javascript][svelte][typescript]": {
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "explicit",
-      "eslint.lintTask.enable": true
+      "eslint.lintTask.enable": "explicit"
     }
   },
   "eslint.validate": [
