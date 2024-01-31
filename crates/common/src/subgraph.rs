@@ -24,24 +24,30 @@ pub struct SubgraphPaginationArgs {
 
 impl From<SubgraphPaginationArgs> for OrdersListQueryVariables {
     fn from(val: SubgraphPaginationArgs) -> Self {
-        let page: i32 = val.page.saturating_sub(1).into();
-        let page_size: i32 = val.page_size.into();
+        let (skip, first): (Option<i32>, Option<i32>) = val.into();
 
         OrdersListQueryVariables {
-            skip: Some(page_size * page),
-            first: Some(page_size),
+            skip,
+            first,
         }
     }
 }
 
 impl From<SubgraphPaginationArgs> for VaultsListQueryVariables {
     fn from(val: SubgraphPaginationArgs) -> Self {
+        let (skip, first): (Option<i32>, Option<i32>) = val.into();
+
+        Self {
+            skip,
+            first,
+        }
+    }
+}
+impl From<SubgraphPaginationArgs> for (Option<i32>, Option<i32>) {
+    fn from(val: SubgraphPaginationArgs) -> Self {
         let page: i32 = val.page.saturating_sub(1).into();
         let page_size: i32 = val.page_size.into();
-
-        VaultsListQueryVariables {
-            skip: Some(page_size * page),
-            first: Some(page_size),
-        }
+        
+        (Some(page_size * page), Some(page_size))
     }
 }
