@@ -49,8 +49,7 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
         let data = self
             .query::<VaultsListQuery, VaultsListQueryVariables>(self.url.clone(), variables.into())
-            .await
-            .map_err(OrderbookSubgraphClientError::CynicClientError)?;
+            .await?;
 
         Ok(data.token_vaults)
     }
@@ -64,8 +63,7 @@ impl OrderbookSubgraphClient {
                 self.url.clone(),
                 VaultDetailQueryVariables { id: &id },
             )
-            .await
-            .map_err(OrderbookSubgraphClientError::CynicClientError)?;
+            .await?;
         let vault = data
             .token_vault
             .ok_or(OrderbookSubgraphClientError::Empty)?;

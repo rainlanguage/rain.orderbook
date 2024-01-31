@@ -5,22 +5,22 @@ use alloy_ethers_typecast::{
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
 };
-use alloy_primitives::{Address, U256};
+use alloy_primitives::{ruint::FromUintError, Address, U256};
 use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum TransactionArgsError {
-    #[error("Build parameters error: {0}")]
+    #[error(transparent)]
     BuildParameters(#[from] WriteContractParametersBuilderError),
-    #[error("Parse Chain ID U256 to u64 error")]
-    ChainIdParse,
+    #[error(transparent)]
+    ChainIdParse(#[from] FromUintError<u64>),
     #[error("Chain ID is required, but set to None")]
     ChainIdNone,
-    #[error("Readable client error: {0}")]
+    #[error(transparent)]
     ReadableClient(#[from] ReadableClientError),
-    #[error("Ledger Client Error {0}")]
+    #[error(transparent)]
     LedgerClient(#[from] LedgerClientError),
 }
 
@@ -40,25 +40,22 @@ impl TransactionArgs {
         call: T,
         contract: Address,
     ) -> Result<WriteContractParameters<T>, TransactionArgsError> {
-        WriteContractParametersBuilder::default()
+        let params = WriteContractParametersBuilder::default()
             .address(contract)
             .call(call)
             .max_priority_fee_per_gas(self.max_priority_fee_per_gas)
             .max_fee_per_gas(self.max_fee_per_gas)
-            .build()
-            .map_err(TransactionArgsError::BuildParameters)
+            .build()?;
+
+        Ok(params)
     }
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_url(self.rpc_url.clone())
-                .map_err(TransactionArgsError::ReadableClient)?
+            let chain_id = ReadableClientHttp::new_from_url(self.rpc_url.clone())?
                 .get_chainid()
-                .await
-                .map_err(TransactionArgsError::ReadableClient)?;
-            let chain_id_u64: u64 = chain_id
-                .try_into()
-                .map_err(|_| TransactionArgsError::ChainIdParse)?;
+                .await?;
+            let chain_id_u64: u64 = chain_id.try_into()?;
 
             self.chain_id = Some(chain_id_u64);
         }
@@ -69,9 +66,11 @@ impl TransactionArgs {
     pub async fn try_into_ledger_client(self) -> Result<LedgerClient, TransactionArgsError> {
         match self.chain_id {
             Some(chain_id) => {
-                LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone())
-                    .await
-                    .map_err(TransactionArgsError::LedgerClient)
+                let client =
+                    LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone())
+                        .await?;
+
+                Ok(client)
             }
             None => Err(TransactionArgsError::ChainIdNone),
         }

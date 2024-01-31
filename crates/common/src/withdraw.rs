@@ -28,22 +28,16 @@ impl WithdrawArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WritableTransactionExecuteError> {
-        let ledger_client = transaction_args
-            .clone()
-            .try_into_ledger_client()
-            .await
-            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let withdraw_call: withdrawCall = self.clone().into();
         let params = transaction_args
             .try_into_write_contract_parameters(withdraw_call, transaction_args.orderbook_address)
-            .await
-            .map_err(WritableTransactionExecuteError::TransactionArgs)?;
+            .await?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
-            .await
-            .map_err(WritableTransactionExecuteError::WritableClient)?;
+            .await?;
 
         Ok(())
     }
