@@ -58,7 +58,7 @@ impl TryInto<OrderV2> for OrderDetail {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::order::{Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault};
+    use crate::types::order::{Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault, Vault};
 
     #[test]
     fn test_try_into_call() {
@@ -78,6 +78,11 @@ mod tests {
                 token_vault: TokenVault {
                     id: "".into(),
                     vault_id: BigInt("1".into()),
+                    vault: Vault {
+                        owner: Account {
+                            id: Bytes("".into()),
+                        },
+                    },
                     token: Erc20 {
                         id: cynic::Id::new("0x0000000000000000000000000000000000000005"),
                         name: "".into(),
@@ -90,6 +95,11 @@ mod tests {
                 token_vault: TokenVault {
                     id: "".into(),
                     vault_id: BigInt("2".into()),
+                    vault: Vault {
+                        owner: Account {
+                            id: Bytes("".into()),
+                        },
+                    },
                     token: Erc20 {
                         id: cynic::Id::new("0x0000000000000000000000000000000000000006"),
                         name: "".into(),

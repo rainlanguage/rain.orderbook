@@ -25,6 +25,11 @@ fn orders_query_gql_output() {
       tokenVault {
         id
         vaultId
+        vault {
+          owner {
+            id
+          }
+        }
         token {
           id
           name
@@ -37,6 +42,11 @@ fn orders_query_gql_output() {
       tokenVault {
         id
         vaultId
+        vault {
+          owner {
+            id
+          }
+        }
         token {
           id
           name
