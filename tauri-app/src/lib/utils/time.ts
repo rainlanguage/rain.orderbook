@@ -1,12 +1,10 @@
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import bigIntSupport from 'dayjs/plugin/bigIntSupport';
-dayjs.extend(utc);
+import localizedFormat from 'dayjs/plugin/localizedFormat';
 dayjs.extend(bigIntSupport);
+dayjs.extend(localizedFormat);
 
 export function formatTimestampSecondsAsLocal(timestampSeconds: bigint) {
   return dayjs(timestampSeconds  * BigInt('1000'))
-    .utc(true)
-    .local()
-    .format('DD/MM/YYYY h:mm A');
+    .format('L LT');
 }
