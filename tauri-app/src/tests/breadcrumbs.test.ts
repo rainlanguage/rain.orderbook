@@ -1,6 +1,4 @@
-// sum.test.js
 import { expect, test } from 'vitest'
-import { HEX_INPUT_REGEX } from '$lib/utils/hex';
 import { generateBreadcrumbs } from '$lib/utils/breadcrumbs';
 
 
