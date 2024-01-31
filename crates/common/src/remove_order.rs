@@ -48,11 +48,7 @@ impl RemoveOrderArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), RemoveOrderArgsError> {
-        let ledger_client = transaction_args
-            .clone()
-            .try_into_ledger_client()
-            .await
-            .map_err(RemoveOrderArgsError::TransactionArgs)?;
+        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let remove_order_call: removeOrderCall = self.try_into()?;
         let params = transaction_args
@@ -60,13 +56,11 @@ impl RemoveOrderArgs {
                 remove_order_call,
                 transaction_args.orderbook_address,
             )
-            .await
-            .map_err(RemoveOrderArgsError::TransactionArgs)?;
+            .await?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
-            .await
-            .map_err(RemoveOrderArgsError::WritableClientError)?;
+            .await?;
 
         Ok(())
     }

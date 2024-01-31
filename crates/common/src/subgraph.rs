@@ -26,10 +26,7 @@ impl From<SubgraphPaginationArgs> for OrdersListQueryVariables {
     fn from(val: SubgraphPaginationArgs) -> Self {
         let (skip, first): (Option<i32>, Option<i32>) = val.into();
 
-        OrdersListQueryVariables {
-            skip,
-            first,
-        }
+        OrdersListQueryVariables { skip, first }
     }
 }
 
@@ -37,17 +34,14 @@ impl From<SubgraphPaginationArgs> for VaultsListQueryVariables {
     fn from(val: SubgraphPaginationArgs) -> Self {
         let (skip, first): (Option<i32>, Option<i32>) = val.into();
 
-        Self {
-            skip,
-            first,
-        }
+        Self { skip, first }
     }
 }
 impl From<SubgraphPaginationArgs> for (Option<i32>, Option<i32>) {
     fn from(val: SubgraphPaginationArgs) -> Self {
         let page: i32 = val.page.saturating_sub(1).into();
         let page_size: i32 = val.page_size.into();
-        
+
         (Some(page_size * page), Some(page_size))
     }
 }
