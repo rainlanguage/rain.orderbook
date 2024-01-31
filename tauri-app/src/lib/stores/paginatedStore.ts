@@ -25,7 +25,10 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
 
   async function fetchPage(page: number = 1, pageSize: number = 10) {
     const res: Array<T> = await fetchPageHandler(page, pageSize);
-    if(res.length === 0) throw Error("No results found");
+    if(res.length === 0) {
+      toasts.error("No results found");
+      throw Error("No results found");
+    }
 
     allPages.update((val) => {
       val[page] = res;
@@ -43,9 +46,8 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
       try {
         await promise;
         pageIndex.set(newPage);
-      } catch(e) {
-        toasts.error(e);
-      }
+      // eslint-disable-next-line no-empty
+      } catch(e) {}
     } else {
       pageIndex.set(newPage);
     }
