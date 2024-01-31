@@ -1,4 +1,4 @@
-use crate::{execute::Execute, subgraph::CliSubgraphCommandArgs};
+use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
@@ -8,11 +8,12 @@ use rain_orderbook_subgraph_client::types::orders::Order;
 
 use tracing::debug;
 #[derive(Args, Clone)]
-pub struct CliOrderListArgs {}
+pub struct CliOrderListArgs {
+    #[clap(flatten)]
+    pub subgraph_args: CliSubgraphArgs,
+}
 
-pub type List = CliSubgraphCommandArgs<CliOrderListArgs>;
-
-impl Execute for List {
+impl Execute for CliOrderListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
         let orders = subgraph_args.to_subgraph_client().await?.orders().await?;

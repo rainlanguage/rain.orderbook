@@ -1,19 +1,41 @@
 use crate::{
-    execute::Execute, status::display_write_transaction_status,
-    transaction::CliTransactionCommandArgs,
+    execute::Execute, status::display_write_transaction_status, transaction::CliTransactionArgs,
 };
 use alloy_primitives::{Address, U256};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
 
-pub type Deposit = CliTransactionCommandArgs<CliDepositArgs>;
+#[derive(Args, Clone)]
+pub struct CliVaultDepositArgs {
+    #[arg(short = 'i', long, help = "The ID of the vault")]
+    vault_id: U256,
 
-impl Execute for Deposit {
+    #[arg(short, long, help = "The token address in hex format")]
+    token: Address,
+
+    #[arg(short, long, help = "The amount to deposit")]
+    amount: U256,
+
+    #[clap(flatten)]
+    pub transaction_args: CliTransactionArgs,
+}
+
+impl From<CliVaultDepositArgs> for DepositArgs {
+    fn from(val: CliVaultDepositArgs) -> Self {
+        DepositArgs {
+            token: val.token,
+            vault_id: val.vault_id,
+            amount: val.amount,
+        }
+    }
+}
+
+impl Execute for CliVaultDepositArgs {
     async fn execute(&self) -> Result<()> {
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
-        let deposit_args: DepositArgs = self.cmd_args.clone().into();
+        let deposit_args: DepositArgs = self.clone().into();
 
         println!("----- Transaction (1/2): Approve ERC20 token spend -----");
         deposit_args
@@ -29,27 +51,5 @@ impl Execute for Deposit {
             })
             .await?;
         Ok(())
-    }
-}
-
-#[derive(Args, Clone)]
-pub struct CliDepositArgs {
-    #[arg(short, long, help = "The token address in hex format")]
-    token: Address,
-
-    #[arg(short='i', long, help = "The ID of the vault")]
-    vault_id: U256,
-
-    #[arg(short, long, help = "The amount to deposit")]
-    amount: U256,
-}
-
-impl From<CliDepositArgs> for DepositArgs {
-    fn from(val: CliDepositArgs) -> Self {
-        DepositArgs {
-            token: val.token,
-            vault_id: val.vault_id,
-            amount: val.amount,
-        }
     }
 }

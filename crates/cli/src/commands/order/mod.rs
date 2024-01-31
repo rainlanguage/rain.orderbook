@@ -4,26 +4,26 @@ mod list;
 mod remove;
 
 use crate::execute::Execute;
-use add::AddOrder;
+use add::CliOrderAddArgs;
 use anyhow::Result;
 use clap::Parser;
-use detail::Detail;
-use list::List;
-use remove::RemoveOrder;
+use detail::CliOrderDetailArgs;
+use list::CliOrderListArgs;
+use remove::CliOrderRemoveArgs;
 
 #[derive(Parser)]
 pub enum Order {
     #[command(about = "List all Orders", alias = "ls")]
-    List(List),
+    List(CliOrderListArgs),
 
     #[command(about = "View an Order", alias = "view")]
-    Detail(Detail),
+    Detail(CliOrderDetailArgs),
 
     #[command(about = "Create an Order", alias = "add")]
-    Create(AddOrder),
+    Create(CliOrderAddArgs),
 
     #[command(about = "Remove an Order", alias = "rm")]
-    Remove(RemoveOrder),
+    Remove(CliOrderRemoveArgs),
 }
 
 impl Execute for Order {

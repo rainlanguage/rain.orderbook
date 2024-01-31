@@ -1,6 +1,6 @@
 use crate::{
-    execute::Execute, status::display_write_transaction_status,
-    transaction::CliTransactionSubgraphCommandArgs,
+    execute::Execute, status::display_write_transaction_status, subgraph::CliSubgraphArgs,
+    transaction::CliTransactionArgs,
 };
 use anyhow::Result;
 use clap::Args;
@@ -8,15 +8,25 @@ use rain_orderbook_common::remove_order::RemoveOrderArgs;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
 
-pub type RemoveOrder = CliTransactionSubgraphCommandArgs<CliRemoveOrderArgs>;
+#[derive(Args, Clone)]
+pub struct CliOrderRemoveArgs {
+    #[arg(short = 'i', long, help = "ID of the Order")]
+    order_id: String,
 
-impl Execute for RemoveOrder {
+    #[clap(flatten)]
+    pub subgraph_args: CliSubgraphArgs,
+
+    #[clap(flatten)]
+    pub transaction_args: CliTransactionArgs,
+}
+
+impl Execute for CliOrderRemoveArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
         let order = subgraph_args
             .to_subgraph_client()
             .await?
-            .order(self.cmd_args.order_id.clone().into())
+            .order(self.order_id.clone().into())
             .await?;
         let remove_order_args: RemoveOrderArgs = order.into();
 
@@ -32,10 +42,4 @@ impl Execute for RemoveOrder {
 
         Ok(())
     }
-}
-
-#[derive(Args, Clone)]
-pub struct CliRemoveOrderArgs {
-    #[arg(short='i', long, help = "ID of the Order")]
-    order_id: String,
 }
