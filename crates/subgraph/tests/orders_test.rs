@@ -1,3 +1,4 @@
+use insta::assert_snapshot;
 use rain_orderbook_subgraph_client::types::orders_list::{
     OrdersListQuery, OrdersListQueryVariables,
 };
@@ -11,53 +12,5 @@ fn orders_query_gql_output() {
         first: Some(10),
     });
 
-    let expected_query = "query OrdersListQuery($first: Int, $skip: Int) {
-  orders(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first) {
-    id
-    timestamp
-    handleIO
-    orderJSONString
-    owner {
-      id
-    }
-    orderActive
-    expression
-    interpreter
-    interpreterStore
-    transaction {
-      id
-    }
-    validInputs {
-      token {
-        id
-        symbol
-        decimals
-      }
-      tokenVault {
-        id
-        balance
-      }
-      vault {
-        id
-      }
-    }
-    validOutputs {
-      token {
-        id
-        symbol
-        decimals
-      }
-      tokenVault {
-        id
-        balance
-      }
-      vault {
-        id
-      }
-    }
-  }
-}
-
-";
-    assert_eq!(request_body.query, expected_query);
+    assert_snapshot!(request_body.query);
 }

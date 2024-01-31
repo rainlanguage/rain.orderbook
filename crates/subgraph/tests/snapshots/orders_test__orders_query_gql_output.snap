@@ -1,0 +1,52 @@
+---
+source: crates/subgraph/tests/orders_test.rs
+expression: request_body.query
+---
+query OrdersListQuery($first: Int, $skip: Int) {
+  orders(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first) {
+    id
+    timestamp
+    handleIO
+    orderJSONString
+    owner {
+      id
+    }
+    orderActive
+    expression
+    interpreter
+    interpreterStore
+    transaction {
+      id
+    }
+    validInputs {
+      token {
+        id
+        symbol
+        decimals
+      }
+      tokenVault {
+        id
+        balance
+      }
+      vault {
+        id
+      }
+    }
+    validOutputs {
+      token {
+        id
+        symbol
+        decimals
+      }
+      tokenVault {
+        id
+        balance
+      }
+      vault {
+        id
+      }
+    }
+  }
+}
+
+

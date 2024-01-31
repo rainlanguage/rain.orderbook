@@ -1,0 +1,55 @@
+---
+source: crates/subgraph/tests/vault_test.rs
+expression: request_body.query
+---
+query VaultDetailQuery($id: ID!) {
+  tokenVault(id: $id) {
+    id
+    owner {
+      id
+    }
+    balance
+    balanceDisplay
+    token {
+      id
+      name
+      symbol
+      decimals
+    }
+    vaultId
+    vault {
+      id
+      deposits(where: {tokenVault_: {id: $id, }, }) {
+        id
+        transaction {
+          id
+        }
+        timestamp
+        sender {
+          id
+        }
+        amount
+        amountDisplay
+      }
+      withdraws(where: {tokenVault_: {id: $id, }, }) {
+        id
+        sender {
+          id
+        }
+        transaction {
+          id
+        }
+        timestamp
+        amount
+        amountDisplay
+        requestedAmount
+        requestedAmountDisplay
+        tokenVault {
+          balanceDisplay
+        }
+      }
+    }
+  }
+}
+
+
