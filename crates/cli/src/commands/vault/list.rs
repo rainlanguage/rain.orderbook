@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     execute::Execute,
     subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
@@ -6,11 +8,17 @@ use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
-use rain_orderbook_subgraph_client::types::vaults_list::TokenVault;
+use rain_orderbook_subgraph_client::{
+    types::{flattened::TokenVaultFlattened, vaults_list::TokenVault},
+    WriteCsv,
+};
 use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliVaultListArgs {
+    #[arg(long, help = "Write results to a CSV file at the path provided")]
+    pub csv_file: Option<PathBuf>,
+
     #[clap(flatten)]
     pub pagination_args: CliSubgraphPaginationArgs,
 
@@ -28,8 +36,14 @@ impl Execute for CliVaultListArgs {
             .vaults_list(pagination_args)
             .await?;
 
-        let table = build_table(vaults)?;
-        info!("\n{}", table);
+        if let Some(csv_file) = self.csv_file.clone() {
+            let vaults_flattened: Vec<TokenVaultFlattened> =
+                vaults.into_iter().map(|o| o.into()).collect();
+            vaults_flattened.write_csv(csv_file)?;
+        } else {
+            let table = build_table(vaults)?;
+            info!("\n{}", table);
+        }
 
         Ok(())
     }
