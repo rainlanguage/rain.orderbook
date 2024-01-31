@@ -1,5 +1,4 @@
 use crate::error::CommandResult;
-use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     deposit::DepositArgs,
