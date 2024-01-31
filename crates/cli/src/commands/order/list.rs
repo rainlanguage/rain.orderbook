@@ -37,8 +37,8 @@ impl Execute for CliOrderListArgs {
             .orders_list(pagination_args)
             .await?;
 
-            if let Some(csv_file) = self.csv_file.clone() {
-                let orders_flattened: Vec<OrderFlattened> =
+        if let Some(csv_file) = self.csv_file.clone() {
+            let orders_flattened: Vec<OrderFlattened> =
                 orders.into_iter().map(|o| o.into()).collect();
             orders_flattened.write_csv(csv_file)?;
         } else {
