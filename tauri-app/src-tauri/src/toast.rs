@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use typeshare::typeshare;
 use tauri::{AppHandle, Manager};
+use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone)]
@@ -20,8 +20,7 @@ pub struct ToastPayload {
 
 impl ToastPayload {
     pub fn emit(&self, app_handle: AppHandle) {
-        let _ = app_handle
-            .emit_all("toast", self);
+        let _ = app_handle.emit_all("toast", self);
     }
 }
 
