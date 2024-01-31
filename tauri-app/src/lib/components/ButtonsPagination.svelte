@@ -13,7 +13,7 @@
   {#if loading}
     <Spinner class="mr-4 h-5 w-5" color="white" />
   {/if}
-  <Button class="rounded-none rounded-l-lg border-1" disabled={loading} on:click={() => dispatch('previous')} color="light">
+  <Button class="rounded-none rounded-l-lg border-1" disabled={loading || index == 1} on:click={() => dispatch('previous')} color="light">
     <ArrowLeftOutline class="w-3.5 h-3.5 me-2" />
     Previous
   </Button>
