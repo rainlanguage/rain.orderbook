@@ -16,7 +16,13 @@ alloy-ethers-typecast = { workspace = true }
 alloy-sol-types = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
+once_cell = { workspace = true }
+alloy-json-abi = { workspace = true }
+alloy-dyn-abi = { workspace = true }
+reqwest = { workspace = true }
 strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
 rain-meta = { workspace = true }
@@ -24,6 +30,7 @@ rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
 serde_bytes = { workspace = true }
+forker = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

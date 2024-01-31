@@ -64,9 +64,7 @@ impl TransactionStatusNoticeRwLock {
             label,
             series_position,
         };
-        let new_self = Self(RwLock::new(notice));
-
-        new_self
+        Self(RwLock::new(notice))
     }
 
     pub fn update_status_and_emit<T: SolCall + Clone>(
