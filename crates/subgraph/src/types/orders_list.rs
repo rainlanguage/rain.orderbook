@@ -60,6 +60,7 @@ pub struct Vault {
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 pub struct TokenVault {
+    pub id: cynic::Id,
     pub balance: BigInt,
 }
 

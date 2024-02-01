@@ -1,6 +1,6 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
-use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
+use rain_orderbook_subgraph_client::{OrderbookSubgraphClientError, WriteCsvError};
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
@@ -21,6 +21,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     LedgerClientError(#[from] LedgerClientError),
+
+    #[error(transparent)]
+    WriteCsvError(#[from] WriteCsvError),
 }
 
 impl Serialize for CommandError {

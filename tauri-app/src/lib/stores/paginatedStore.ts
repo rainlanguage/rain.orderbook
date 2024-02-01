@@ -1,10 +1,36 @@
-import { derived, get, writable } from 'svelte/store';
+import { derived, get, writable, type Invalidator, type Subscriber } from 'svelte/store';
 import { toasts } from './toasts';
+import { save } from '@tauri-apps/api/dialog';
+import dayjs from 'dayjs';
+import { ToastMessageType } from '$lib/typeshare/toast';
 
-export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number, pageSize: number) => Promise<Array<T>>) {
-  const allPages = writable<{[page: number]: Array<T>}>(localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : []);
+type Unsubscriber = () => void;
+
+export interface PaginatedCachedStore<T> {
+    subscribe: ( subscriber: Subscriber<Page<T>>, invalidate?: Invalidator<Page<T>>) => Unsubscriber,
+    fetchPage: (page?: number, pageSize?: number) => Promise<void>;
+    fetchPrev: () => Promise<void>;
+    fetchNext: () => Promise<void>;
+    exportCsv: () => void;
+}
+
+export interface Page<T> {
+  index: number;
+  currentPage: T[];
+  page: (page: number) => T[];
+  isFetching: boolean;
+  isExporting: boolean;
+}
+
+export interface AllPages<T> {
+  [pageIndex: number]: Array<T>
+}
+
+export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number, pageSize: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
+  const allPages = writable<AllPages<T>>(localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : []);
   const pageIndex = writable(1);
   const isFetching = writable(false);
+  const isExporting = writable(false);
 
   allPages.subscribe(value => {
     if(value) {
@@ -16,11 +42,12 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
 
   const page = derived(allPages, $allPages => (page: number) => $allPages[page] || []);
 
-  const { subscribe } = derived([page, pageIndex, isFetching], ([$page, $pageIndex, $isFetching]) => ({
+  const { subscribe } = derived([page, pageIndex, isFetching, isExporting], ([$page, $pageIndex, $isFetching, $isExporting]) => ({
     index: $pageIndex,
     currentPage: $page($pageIndex),
     page: $page,
     isFetching: $isFetching,
+    isExporting: $isExporting
   }));
 
   async function fetchPage(page: number = 1, pageSize: number = 10) {
@@ -57,10 +84,32 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
   const fetchPrev = () => swrvPage(get(pageIndex) - 1);
   const fetchNext = () => swrvPage(get(pageIndex) + 1);
 
+  async function exportCsv() {
+    isExporting.set(true);
+    try {
+      const path = await save({
+        title: 'Save CSV As',
+        defaultPath: `${key}_${dayjs().toISOString()}.csv`,
+      });
+      if(path) {
+        await writeCsvHandler(path);
+        toasts.add({
+          message_type: ToastMessageType.Success,
+          text: `Exported to CSV at ${path}`,
+          break_text: true
+        });
+      }
+    } catch(e) {
+      toasts.error(e as string);
+    }
+    isExporting.set(false);
+  }
+
   return {
     subscribe,
     fetchPage,
     fetchPrev,
     fetchNext,
-  };
+    exportCsv,
+  } as PaginatedCachedStore<T>;
 }

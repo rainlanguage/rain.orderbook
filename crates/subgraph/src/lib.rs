@@ -1,4 +1,5 @@
 mod client;
+mod csv;
 mod cynic_client;
 pub mod types;
 
@@ -6,3 +7,4 @@ pub mod types;
 pub mod schema {}
 
 pub use client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
+pub use csv::{WriteCsv, WriteCsvError};

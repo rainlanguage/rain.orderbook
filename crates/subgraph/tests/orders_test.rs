@@ -34,6 +34,7 @@ fn orders_query_gql_output() {
         decimals
       }
       tokenVault {
+        id
         balance
       }
       vault {
@@ -47,6 +48,7 @@ fn orders_query_gql_output() {
         decimals
       }
       tokenVault {
+        id
         balance
       }
       vault {

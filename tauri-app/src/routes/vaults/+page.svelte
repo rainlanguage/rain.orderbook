@@ -15,13 +15,14 @@
   import { vaultsList } from '$lib/stores/vaultsList';
   import { toHex } from 'viem';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { DotsVerticalOutline } from 'flowbite-svelte-icons';
+  import { DotsVerticalOutline, FileCsvOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
   import type { TokenVault } from '$lib/typeshare/vaultsList';
   import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -74,7 +75,11 @@
     </TableBody>
   </Table>
 
-  <div class="flex justify-end mt-2">
+  <div class="flex justify-between mt-2">
+    <ButtonLoading size="xs" color="blue" on:click={() => vaultsList.exportCsv()} loading={$vaultsList.isExporting}>
+      <FileCsvOutline class="w-4 h-4 mr-2"/>
+      Export to CSV
+    </ButtonLoading>
     <ButtonsPagination index={$vaultsList.index} on:previous={vaultsList.fetchPrev} on:next={vaultsList.fetchNext} loading={$vaultsList.isFetching} />
   </div>
 

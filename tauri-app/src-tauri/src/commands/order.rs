@@ -5,7 +5,11 @@ use rain_orderbook_common::{
     subgraph::{SubgraphArgs, SubgraphPaginationArgs},
     transaction::TransactionArgs,
 };
-use rain_orderbook_subgraph_client::types::{order_detail, orders_list};
+use rain_orderbook_subgraph_client::{
+    types::{flattened::OrderFlattened, order_detail, orders_list},
+    WriteCsv,
+};
+use std::path::PathBuf;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -19,6 +23,23 @@ pub async fn orders_list(
         .orders_list(pagination_args)
         .await?;
     Ok(orders)
+}
+
+#[tauri::command]
+pub async fn orders_list_write_csv(
+    path: PathBuf,
+    subgraph_args: SubgraphArgs,
+    pagination_args: SubgraphPaginationArgs,
+) -> CommandResult<()> {
+    let orders = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .orders_list(pagination_args)
+        .await?;
+    let orders_flattened: Vec<OrderFlattened> = orders.into_iter().map(|o| o.into()).collect();
+    orders_flattened.write_csv(path)?;
+
+    Ok(())
 }
 
 #[tauri::command]

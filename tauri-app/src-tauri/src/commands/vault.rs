@@ -6,7 +6,11 @@ use rain_orderbook_common::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_client::types::{vault_detail, vaults_list};
+use rain_orderbook_subgraph_client::{
+    types::{flattened::TokenVaultFlattened, vault_detail, vaults_list},
+    WriteCsv,
+};
+use std::path::PathBuf;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -20,6 +24,23 @@ pub async fn vaults_list(
         .vaults_list(pagination_args)
         .await?;
     Ok(vaults)
+}
+
+#[tauri::command]
+pub async fn vaults_list_write_csv(
+    path: PathBuf,
+    subgraph_args: SubgraphArgs,
+    pagination_args: SubgraphPaginationArgs,
+) -> CommandResult<()> {
+    let vaults = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .vaults_list(pagination_args)
+        .await?;
+    let vaults_flattened: Vec<TokenVaultFlattened> = vaults.into_iter().map(|o| o.into()).collect();
+    vaults_flattened.write_csv(path)?;
+
+    Ok(())
 }
 
 #[tauri::command]

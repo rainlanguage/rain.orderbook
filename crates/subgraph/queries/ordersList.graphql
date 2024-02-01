@@ -21,6 +21,7 @@ query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
         decimals
       }
       tokenVault {
+        id
         balance
       }
       vault {

@@ -5,4 +5,8 @@ import { subgraphUrl } from '$lib/stores/settings';
 import { usePaginatedCachedStore } from './paginatedStore';
 
 
-export const vaultsList = usePaginatedCachedStore<TokenVault>('vaultsList', (page, pageSize = 10) => invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page, page_size: pageSize } }));
+export const vaultsList = usePaginatedCachedStore<TokenVault>(
+  'vaultsList',
+  (page, pageSize = 10) => invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page, page_size: pageSize } }),
+  (path) => invoke("vaults_list_write_csv", {path, subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page: 1, page_size: 1000 } })
+);
