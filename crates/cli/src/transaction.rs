@@ -22,13 +22,13 @@ pub struct CliTransactionArgs {
     #[arg(short, long, help = "RPC URL")]
     pub rpc_url: String,
 
-    #[arg(short = 'p', long, help = "Max priority fee per gas (in wei)")]
+    #[arg(short = 'p', long, help = "Max priority fee per gas (in wei)", conflicts_with("gas_fee_speed"))]
     pub max_priority_fee_per_gas: Option<U256>,
 
-    #[arg(short, long, help = "Max fee per gas (in wei)")]
+    #[arg(short, long, help = "Max fee per gas (in wei)", conflicts_with("gas_fee_speed"))]
     pub max_fee_per_gas: Option<U256>,
 
-    #[arg(short, long, help = "Sets a sensible --max-fee-per-gas and --max-priority-fee-per-gas based on desired transaction speed. Slow is cheapest fee, Fastest is most expensive fee.", default_value="medium")]
+    #[arg(short, long, help = "Chooses sensible gas fees for a desired transaction speed.", default_value="medium")]
     pub gas_fee_speed: Option<CliGasFeeSpeed>
 }
 
