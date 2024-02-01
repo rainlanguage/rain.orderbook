@@ -9,7 +9,6 @@
     TableBody,
     TableBodyRow,
     TableBodyCell,
-    BreadcrumbItem,
   } from 'flowbite-svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
@@ -18,13 +17,13 @@
   import { toHex } from 'viem';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import { page } from '$app/stores';
 
-  export let data: { id: string };
   let showDepositModal = false;
   let showWithdrawModal = false;
 
-  vaultDetail.refetch(data.id);
-  $: vault = $vaultDetail[data.id];
+  vaultDetail.refetch($page.params.id);
+  $: vault = $vaultDetail[$page.params.id];
 
   function toggleDepositModal() {
     showDepositModal = !showDepositModal;
@@ -35,9 +34,6 @@
 </script>
 
 <PageHeader title="Vault">
-  <svelte:fragment slot="breadcrumbs">
-    <BreadcrumbItem href="/vaults">Vaults</BreadcrumbItem>
-  </svelte:fragment>
   <svelte:fragment slot="actions">
     {#if vault && $walletAddressMatchesOrBlank(vault.owner.id)}
       <Button color="green" size="xs" on:click={toggleDepositModal}>Deposit</Button>

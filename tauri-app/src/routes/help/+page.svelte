@@ -2,5 +2,4 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
 </script>
 
-<PageHeader title="Help">
-</PageHeader>
+<PageHeader title="Help" />

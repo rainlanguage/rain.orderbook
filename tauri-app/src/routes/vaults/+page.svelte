@@ -33,11 +33,7 @@
   vaultsList.fetchPage(1);
 </script>
 
-<PageHeader title="Vaults">
-  <svelte:fragment slot="actions">
-    <Button color="green" size="xs" on:click={() => (showDepositGenericModal = true)}>Deposit</Button>
-  </svelte:fragment>
-</PageHeader>
+<PageHeader title="Vaults" />
 
 {#if $vaultsList.page.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>

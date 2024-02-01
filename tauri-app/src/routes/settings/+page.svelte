@@ -17,8 +17,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
 </script>
 
-<PageHeader title="Settings">
-</PageHeader>
+<PageHeader title="Settings" />
 
 <div class="flex w-full justify-center">
   <div class="max-w-screen-lg">
