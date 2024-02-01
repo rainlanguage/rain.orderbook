@@ -1,4 +1,5 @@
 use cynic::Id;
+use insta::assert_snapshot;
 use rain_orderbook_subgraph_client::types::vault_detail::{
     VaultDetailQuery, VaultDetailQueryVariables,
 };
@@ -10,56 +11,5 @@ fn vaults_query_gql_output() {
     let id = Id::new("1234");
     let request_body = VaultDetailQuery::build(VaultDetailQueryVariables { id: &id });
 
-    let expected_query = "query VaultDetailQuery($id: ID!) {
-  tokenVault(id: $id) {
-    id
-    owner {
-      id
-    }
-    balance
-    balanceDisplay
-    token {
-      id
-      name
-      symbol
-      decimals
-    }
-    vaultId
-    vault {
-      id
-      deposits(where: {tokenVault_: {id: $id, }, }) {
-        id
-        transaction {
-          id
-        }
-        timestamp
-        sender {
-          id
-        }
-        amount
-        amountDisplay
-      }
-      withdraws(where: {tokenVault_: {id: $id, }, }) {
-        id
-        sender {
-          id
-        }
-        transaction {
-          id
-        }
-        timestamp
-        amount
-        amountDisplay
-        requestedAmount
-        requestedAmountDisplay
-        tokenVault {
-          balanceDisplay
-        }
-      }
-    }
-  }
-}
-
-";
-    assert_eq!(request_body.query, expected_query);
+    assert_snapshot!(request_body.query);
 }

@@ -1,0 +1,66 @@
+---
+source: crates/subgraph/tests/order_test.rs
+expression: request_body.query
+---
+query OrderDetailQuery($id: ID!) {
+  order(id: $id) {
+    id
+    owner {
+      id
+    }
+    orderActive
+    interpreter
+    interpreterStore
+    expressionDeployer
+    expression
+    timestamp
+    handleIO
+    validInputs {
+      tokenVault {
+        id
+        vaultId
+        vault {
+          owner {
+            id
+          }
+        }
+        token {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
+    }
+    validOutputs {
+      tokenVault {
+        id
+        vaultId
+        vault {
+          owner {
+            id
+          }
+        }
+        token {
+          id
+          name
+          symbol
+          decimals
+        }
+      }
+    }
+    meta {
+      metaBytes
+      content {
+        id
+        payload
+        magicNumber
+        contentType
+        contentEncoding
+        contentLanguage
+      }
+    }
+  }
+}
+
+

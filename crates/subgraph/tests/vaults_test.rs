@@ -1,3 +1,4 @@
+use insta::assert_snapshot;
 use rain_orderbook_subgraph_client::types::vaults_list::{
     VaultsListQuery, VaultsListQueryVariables,
 };
@@ -11,24 +12,5 @@ fn vaults_query_gql_output() {
         first: Some(10),
     });
 
-    let expected_query = "query VaultsListQuery($first: Int, $skip: Int) {
-  tokenVaults(orderBy: owner__id, orderDirection: desc, skip: $skip, first: $first) {
-    id
-    owner {
-      id
-    }
-    vaultId
-    token {
-      id
-      name
-      symbol
-      decimals
-    }
-    balanceDisplay
-    balance
-  }
-}
-
-";
-    assert_eq!(request_body.query, expected_query);
+    assert_snapshot!(request_body.query);
 }
