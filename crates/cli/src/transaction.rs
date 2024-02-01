@@ -1,6 +1,7 @@
 use alloy_primitives::{Address, U256};
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
+use alloy_ethers_typecast::transaction::GasFeeSpeed;
 
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {
@@ -26,6 +27,9 @@ pub struct CliTransactionArgs {
 
     #[arg(short, long, help = "Max fee per gas (in wei)")]
     pub max_fee_per_gas: Option<U256>,
+
+    #[arg(short, long, help = "Sets a sensible --max-fee-per-gas and --max-priority-fee-per-gas based on desired transaction speed. Slow is cheapest fee, Fastest is most expensive fee.", default_value="medium")]
+    pub gas_fee_speed: Option<CliGasFeeSpeed>
 }
 
 impl From<CliTransactionArgs> for TransactionArgs {
@@ -37,6 +41,26 @@ impl From<CliTransactionArgs> for TransactionArgs {
             rpc_url: val.rpc_url,
             max_priority_fee_per_gas: val.max_priority_fee_per_gas,
             max_fee_per_gas: val.max_fee_per_gas,
+            gas_fee_speed: val.gas_fee_speed.map(|e| e.into())
+        }
+    }
+}
+
+#[derive(clap::ValueEnum, Clone)]
+pub enum CliGasFeeSpeed {
+    Slow,
+    Medium,
+    Fast,
+    Fastest,
+}
+
+impl From<CliGasFeeSpeed> for GasFeeSpeed {
+    fn from(val: CliGasFeeSpeed) -> Self {
+        match val {
+            CliGasFeeSpeed::Slow => GasFeeSpeed::Slow,
+            CliGasFeeSpeed::Medium => GasFeeSpeed::Medium,
+            CliGasFeeSpeed::Fast => GasFeeSpeed::Fast,
+            CliGasFeeSpeed::Fastest => GasFeeSpeed::Fastest
         }
     }
 }

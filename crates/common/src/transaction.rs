@@ -1,6 +1,7 @@
 use alloy_ethers_typecast::{
     client::{LedgerClient, LedgerClientError},
     transaction::{
+        GasFeeSpeed,
         ReadableClientError, ReadableClientHttp, WriteContractParameters,
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
@@ -32,6 +33,7 @@ pub struct TransactionArgs {
     pub rpc_url: String,
     pub max_priority_fee_per_gas: Option<U256>,
     pub max_fee_per_gas: Option<U256>,
+    pub gas_fee_speed: Option<GasFeeSpeed>
 }
 
 impl TransactionArgs {
@@ -67,7 +69,7 @@ impl TransactionArgs {
         match self.chain_id {
             Some(chain_id) => {
                 let client =
-                    LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone())
+                    LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone(), self.gas_fee_speed.unwrap_or(GasFeeSpeed::Slow))
                         .await?;
 
                 Ok(client)
