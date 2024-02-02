@@ -46,8 +46,8 @@ pub enum AddOrderArgsError {
 }
 
 pub struct AddOrderArgs {
-    /// Body of a Dotrain file describing an addOrder call
-    /// File should have [strict yaml] frontmatter of the following structure
+    /// Text of a dotrain file describing an addOrder call
+    /// Text MUST have strict yaml frontmatter of the following structure
     ///
     /// ```yaml
     /// orderbook:
@@ -62,6 +62,9 @@ pub struct AddOrderArgs {
     ///               decimals: 8
     ///               vaultId: 0x5678
     /// ```
+    ///
+    /// Text MUST have valid dotrain body succeding frontmatter.
+    /// The dotrain body must contain two entrypoints: `calulate-io` and `handle-io`.
     pub dotrain: String,
 }
 
@@ -200,12 +203,12 @@ impl AddOrderArgs {
     async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
         // Parse file into dotrain document
         let meta_store = Arc::new(RwLock::new(Store::default()));
-        let raindoc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None);
-        let rainlang = raindoc.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS)?;
+        let dotrain_doc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None);
+        let rainlang = dotrain_doc.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS)?;
 
         // Prepare call
         let (deployer, valid_inputs, valid_outputs) =
-            self.try_parse_frontmatter(raindoc.front_matter().as_str())?;
+            self.try_parse_frontmatter(dotrain_doc.front_matter().as_str())?;
         let (bytecode, constants) = self
             .try_parse_rainlang(rpc_url, deployer, rainlang.clone())
             .await?;
@@ -295,7 +298,7 @@ orderbook:
 
     #[test]
     fn test_try_generate_meta() {
-        let rainlang = String::from(
+        let dotrain_body = String::from(
             "
 #calculate-io
 max-amount: 100e18,
@@ -308,7 +311,7 @@ price: 2e18;
         );
         let args = AddOrderArgs { dotrain: "".into() };
 
-        let meta_bytes = args.try_generate_meta(rainlang).unwrap();
+        let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
         assert_eq!(
             meta_bytes,
             vec![
