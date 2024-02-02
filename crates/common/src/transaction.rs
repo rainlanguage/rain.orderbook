@@ -1,7 +1,7 @@
 use alloy_ethers_typecast::{
     client::{LedgerClient, LedgerClientError},
+    gas_fee_middleware::GasFeeSpeed,
     transaction::{
-        GasFeeSpeed,
         ReadableClientError, ReadableClientHttp, WriteContractParameters,
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
@@ -10,6 +10,7 @@ use alloy_primitives::{ruint::FromUintError, Address, U256};
 use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
 
 #[derive(Error, Debug)]
 pub enum TransactionArgsError {
@@ -69,7 +70,7 @@ impl TransactionArgs {
         match self.chain_id {
             Some(chain_id) => {
                 let client =
-                    LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone(), self.gas_fee_speed.unwrap_or(GasFeeSpeed::Slow))
+                    LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone(), self.gas_fee_speed)
                         .await?;
 
                 Ok(client)

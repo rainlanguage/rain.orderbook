@@ -1,7 +1,7 @@
 use alloy_primitives::{Address, U256};
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
-use alloy_ethers_typecast::transaction::GasFeeSpeed;
+use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;
 
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {
@@ -41,7 +41,7 @@ impl From<CliTransactionArgs> for TransactionArgs {
             rpc_url: val.rpc_url,
             max_priority_fee_per_gas: val.max_priority_fee_per_gas,
             max_fee_per_gas: val.max_fee_per_gas,
-            gas_fee_speed: val.gas_fee_speed.map(|e| e.into())
+            gas_fee_speed: val.gas_fee_speed.map(|g| g.into())
         }
     }
 }

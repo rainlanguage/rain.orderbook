@@ -192,25 +192,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?branch=2024-01-31-gas-oracle#d53ec35ac2f82b98b17047fa33e782268431eb24"
-dependencies = [
- "alloy-primitives 0.5.4",
- "alloy-sol-types 0.5.4",
- "async-trait",
- "derive_builder",
- "ethers",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
- "tracing-subscriber",
- "url",
-]
-
-[[package]]
-name = "alloy-ethers-typecast"
-version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=9e830eda8a429fda60d1a87f480241c7678266bb#9e830eda8a429fda60d1a87f480241c7678266bb"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=3e9ef1d9943056535044f22d35ed99e96bd44d9b#3e9ef1d9943056535044f22d35ed99e96bd44d9b"
 dependencies = [
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
@@ -6535,7 +6517,7 @@ dependencies = [
 name = "rain_interpreter_dispair"
 version = "0.1.0"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=9e830eda8a429fda60d1a87f480241c7678266bb)",
+ "alloy-ethers-typecast",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "ethers",
@@ -6552,7 +6534,7 @@ dependencies = [
 name = "rain_interpreter_parser"
 version = "0.1.0"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=9e830eda8a429fda60d1a87f480241c7678266bb)",
+ "alloy-ethers-typecast",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "ethers",
@@ -6577,7 +6559,7 @@ name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
  "alloy-dyn-abi 0.5.4",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?branch=2024-01-31-gas-oracle)",
+ "alloy-ethers-typecast",
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
@@ -8406,7 +8388,7 @@ dependencies = [
 name = "tauri-app"
 version = "0.0.0"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?branch=2024-01-31-gas-oracle)",
+ "alloy-ethers-typecast",
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",

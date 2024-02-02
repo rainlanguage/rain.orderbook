@@ -1,8 +1,8 @@
 use crate::error::CommandResult;
 use alloy_ethers_typecast::{
+    gas_fee_middleware::GasFeeSpeed,
     client::LedgerClient,
     ethers_address_to_alloy,
-    transaction::GasFeeSpeed
 };
 use alloy_primitives::Address;
 
@@ -12,7 +12,7 @@ pub async fn get_address_from_ledger(
     chain_id: u64,
     rpc_url: String,
 ) -> CommandResult<Address> {
-    let ledger_client = LedgerClient::new(derivation_index, chain_id, rpc_url.clone(), GasFeeSpeed::Slow).await?;
+    let ledger_client = LedgerClient::new(derivation_index, chain_id, rpc_url.clone(), None).await?;
     let ledger_address = ethers_address_to_alloy(ledger_client.client.address());
 
     Ok(ledger_address)
