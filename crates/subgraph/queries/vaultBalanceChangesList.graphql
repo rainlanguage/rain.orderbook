@@ -1,0 +1,52 @@
+query VaultBalanceChangesListQuery($id: ID!, $skip: Int = 0, $first: Int = 25) {
+  vaultDeposits(orderBy: timestamp, orderDirection: desc, where:{tokenVault_:{ id: $id}}, skip:$skip, first:$first) {
+    id
+    vaultId
+  	timestamp
+    amount
+    amountDisplay
+    sender {
+      id
+    }
+    transaction {
+      id
+    }
+    tokenVault {
+      id
+      token {
+        id
+        name
+        symbol
+        decimals
+      }
+      balance
+      balanceDisplay
+    }
+  }
+  vaultWithdraws(orderBy: timestamp, orderDirection: desc, where:{tokenVault_:{ id: $id}}, skip:$skip, first:$first) {
+    id
+    vaultId
+  	timestamp
+    amount
+    amountDisplay
+    sender {
+      id
+    }
+    transaction {
+      id
+    }
+    tokenVault {
+      id
+      token {
+        id
+        name
+        symbol
+        decimals
+      }
+      balance
+      balanceDisplay
+    }
+    requestedAmount
+    requestedAmountDisplay
+  }
+}

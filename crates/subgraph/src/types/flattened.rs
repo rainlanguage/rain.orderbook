@@ -1,4 +1,6 @@
-use super::{orders_list, vaults_list};
+use super::{
+    orders_list, vault_balancechange::VaultBalanceChange, vault_balancechanges_list, vaults_list,
+};
 use crate::csv::WriteCsv;
 use serde::{Deserialize, Serialize};
 
@@ -77,3 +79,38 @@ impl From<orders_list::Order> for OrderFlattened {
 }
 
 impl WriteCsv<OrderFlattened> for Vec<OrderFlattened> {}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VaultBalanceChangeFlattened {
+    pub id: String,
+    pub timestamp: vault_balancechanges_list::BigInt,
+    pub sender: vault_balancechanges_list::Bytes,
+    pub amount: vault_balancechanges_list::BigDecimal,
+    pub change_type: String,
+    pub balance: vault_balancechanges_list::BigDecimal,
+}
+
+impl From<VaultBalanceChange> for VaultBalanceChangeFlattened {
+    fn from(val: VaultBalanceChange) -> Self {
+        match val {
+            VaultBalanceChange::Deposit(v) => Self {
+                id: v.id.into_inner(),
+                timestamp: v.timestamp,
+                sender: v.sender.id,
+                amount: v.amount_display,
+                change_type: String::from("Deposit"),
+                balance: v.token_vault.balance_display
+            },
+            VaultBalanceChange::Withdraw(v) => Self {
+                id: v.id.into_inner(),
+                timestamp: v.timestamp,
+                sender: v.sender.id,
+                amount: v.amount_display,
+                change_type: String::from("Withdraw"),
+                balance: v.token_vault.balance_display
+            },
+        }
+    }
+}
+
+impl WriteCsv<VaultBalanceChangeFlattened> for Vec<VaultBalanceChangeFlattened> {}

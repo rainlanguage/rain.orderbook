@@ -1,3 +1,4 @@
+mod balancechanges_list;
 mod deposit;
 mod detail;
 mod list;
@@ -5,6 +6,7 @@ mod withdraw;
 
 use crate::execute::Execute;
 use anyhow::Result;
+use balancechanges_list::CliVaultBalancechangesList;
 use clap::Parser;
 use deposit::CliVaultDepositArgs;
 use detail::CliVaultDetailArgs;
@@ -24,6 +26,9 @@ pub enum Vault {
 
     #[command(about = "View a Vault", alias = "view")]
     Detail(CliVaultDetailArgs),
+
+    #[command(about = "List balance changes for a Vault (i.e. deposits + withdraws)")]
+    ListBalanceChanges(CliVaultBalancechangesList),
 }
 
 impl Execute for Vault {
@@ -33,6 +38,7 @@ impl Execute for Vault {
             Vault::Withdraw(withdraw) => withdraw.execute().await,
             Vault::List(list) => list.execute().await,
             Vault::Detail(detail) => detail.execute().await,
+            Vault::ListBalanceChanges(balancechanges) => balancechanges.execute().await,
         }
     }
 }
