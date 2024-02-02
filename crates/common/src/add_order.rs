@@ -63,8 +63,7 @@ pub struct AddOrderArgs {
 
 impl AddOrderArgs {
     /// Parse an Io array from from frontmatter field (i.e. validInputs or validOutputs)
-    fn try_parse_frontmatter_io(
-        &self,
+    pub(crate) fn try_parse_frontmatter_io(
         io_yamls: StrictYaml,
         io_field_name: &str,
     ) -> Result<Vec<IO>, AddOrderArgsError> {
@@ -122,8 +121,7 @@ impl AddOrderArgs {
     }
 
     /// Parse dotrain frontmatter to extract deployer, validInputs and validOutputs
-    fn try_parse_frontmatter(
-        &self,
+    pub(crate) fn try_parse_frontmatter(
         frontmatter: &str,
     ) -> Result<(Address, Vec<IO>, Vec<IO>), AddOrderArgsError> {
         // Parse dotrain document frontmatter
@@ -140,11 +138,11 @@ impl AddOrderArgs {
                 AddOrderArgsError::FrontmatterFieldInvalid("orderbook.order.deployer".into())
             })?;
 
-        let valid_inputs: Vec<IO> = self.try_parse_frontmatter_io(
+        let valid_inputs: Vec<IO> = Self::try_parse_frontmatter_io(
             frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].clone(),
             "validInputs",
         )?;
-        let valid_outputs: Vec<IO> = self.try_parse_frontmatter_io(
+        let valid_outputs: Vec<IO> = Self::try_parse_frontmatter_io(
             frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone(),
             "validOutputs",
         )?;
@@ -200,7 +198,7 @@ impl AddOrderArgs {
 
         // Prepare call
         let (deployer, valid_inputs, valid_outputs) =
-            self.try_parse_frontmatter(raindoc.front_matter().as_str())?;
+            Self::try_parse_frontmatter(raindoc.front_matter().as_str())?;
         let (bytecode, constants) = self
             .try_parse_rainlang(rpc_url, deployer, raindoc.body())
             .await?;
@@ -265,10 +263,9 @@ orderbook:
               decimals: 18
               vaultId: 0x2
 ";
-        let args = AddOrderArgs { dotrain: "".into() };
 
         let (deployer, valid_inputs, valid_outputs) =
-            args.try_parse_frontmatter(frontmatter).unwrap();
+            AddOrderArgs::try_parse_frontmatter(frontmatter).unwrap();
 
         assert_eq!(
             deployer,

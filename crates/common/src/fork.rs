@@ -1,9 +1,17 @@
 use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
+use crate::add_order::AddOrderArgs;
+use alloy_primitives::hex::decode;
+use alloy_sol_types::SolCall;
 use forker::*;
 use once_cell::sync::Lazy;
+use rain_interpreter_bindings::DeployerISP::iParserCall;
+use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
+use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
+
+const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
 
 /// static hashmap of fork evm instances, used for caching instances between runs
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
@@ -52,6 +60,62 @@ pub async fn fork_call<'a>(
     } else {
         Ok(Ok(result.result))
     }
+}
+
+/// checks the front matter validity and returns the deployer address if check went ok
+pub async fn fork_parse_dotrain(
+    rainlang_string: String,
+    front_matter: String,
+    fork_url: &str,
+    fork_block_number: u64,
+) -> Result<Bytes, String> {
+    // let rain_document = RainDocument::create(dotrain, None, None);
+    let deployer = AddOrderArgs::try_parse_frontmatter(&front_matter)
+        .map_err(|e| e.to_string())?
+        .0;
+    // let entrypoints = ["calculate-order", "handle-io"];
+    // let rainlang_string = rain_document
+    //     .compose(&entrypoints)
+    //     .map_err(|e| e.to_string())?;
+
+    let calldata = iParserCall {}.abi_encode();
+    let parser_address = fork_call(
+        fork_url,
+        fork_block_number,
+        &decode(FROM_ADDRESS).unwrap(),
+        deployer.as_slice(),
+        &calldata,
+    )
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let calldata = parseCall {
+        data: rainlang_string.as_bytes().to_vec(),
+    }
+    .abi_encode();
+    let expression_config = fork_call(
+        fork_url,
+        fork_block_number,
+        &decode(FROM_ADDRESS).unwrap(),
+        &parser_address,
+        &calldata,
+    )
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let mut calldata = deployExpression2Call::SELECTOR.to_vec();
+    calldata.extend_from_slice(&expression_config);
+    fork_call(
+        fork_url,
+        fork_block_number,
+        &decode(FROM_ADDRESS).unwrap(),
+        deployer.as_slice(),
+        &calldata,
+    )
+    .await
+    .map_err(|e| e.to_string())??;
+
+    Ok(expression_config)
 }
 
 #[cfg(test)]

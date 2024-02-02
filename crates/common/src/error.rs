@@ -40,6 +40,17 @@ pub enum AbiDecodedErrorType {
     },
 }
 
+impl From<AbiDecodedErrorType> for String {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        match value {
+            AbiDecodedErrorType::Unknown => "native parser panicked with unknown error!".to_owned(),
+            AbiDecodedErrorType::Known { name, args, .. } => {
+                format!("native parser panicked with: {}\n{}", name, args.join("\n"))
+            }
+        }
+    }
+}
+
 /// decodes an error returned from calling a contract by searching its selector in registry
 pub async fn abi_decode_error<'a>(
     error_data: &[u8],
