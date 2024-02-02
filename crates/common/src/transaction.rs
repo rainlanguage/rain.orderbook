@@ -11,7 +11,6 @@ use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-
 #[derive(Error, Debug)]
 pub enum TransactionArgsError {
     #[error(transparent)]
@@ -34,7 +33,7 @@ pub struct TransactionArgs {
     pub rpc_url: String,
     pub max_priority_fee_per_gas: Option<U256>,
     pub max_fee_per_gas: Option<U256>,
-    pub gas_fee_speed: Option<GasFeeSpeed>
+    pub gas_fee_speed: Option<GasFeeSpeed>,
 }
 
 impl TransactionArgs {
@@ -69,9 +68,13 @@ impl TransactionArgs {
     pub async fn try_into_ledger_client(self) -> Result<LedgerClient, TransactionArgsError> {
         match self.chain_id {
             Some(chain_id) => {
-                let client =
-                    LedgerClient::new(self.derivation_index, chain_id, self.rpc_url.clone(), self.gas_fee_speed)
-                        .await?;
+                let client = LedgerClient::new(
+                    self.derivation_index,
+                    chain_id,
+                    self.rpc_url.clone(),
+                    self.gas_fee_speed,
+                )
+                .await?;
 
                 Ok(client)
             }

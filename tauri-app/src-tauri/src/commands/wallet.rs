@@ -1,6 +1,5 @@
 use crate::error::CommandResult;
 use alloy_ethers_typecast::{
-    gas_fee_middleware::GasFeeSpeed,
     client::LedgerClient,
     ethers_address_to_alloy,
 };

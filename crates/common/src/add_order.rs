@@ -230,10 +230,7 @@ impl AddOrderArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), AddOrderArgsError> {
-        let ledger_client = transaction_args
-            .clone()
-            .try_into_ledger_client()
-            .await?;
+        let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
         let params = transaction_args
