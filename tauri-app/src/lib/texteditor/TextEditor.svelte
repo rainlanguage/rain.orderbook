@@ -25,8 +25,10 @@
 	};
 	const metaStore = new MetaStore(false);
 	const rainlangCodemirror = new RainlangExtension(config, metaStore);
+	
+	// get the codemirror view, state, etc from the plugin once the codemirror instance is runnings
+	// ley view = plugin.view;
 	$: plugin = rainlangCodemirror.plugin;
-	// plugin?.view.openLintPanel();
 
 	// the extension theme
 	const theme = lightTheme;
