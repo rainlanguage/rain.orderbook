@@ -35,6 +35,7 @@
             '';
             additionalBuildInputs = [
               pkgs.typeshare
+              pkgs.wasm-bindgen-cli
             ];
           };
           ob-tauri-test =  rainix.mkTask.${system} {
