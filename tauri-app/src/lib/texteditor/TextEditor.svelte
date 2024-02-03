@@ -1,20 +1,19 @@
 <script lang="ts">
-	import { darkTheme } from './themes/dark';
-  import { lightTheme } from './themes/light';
+	import { lightTheme, darkTheme } from './themes';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { forkParseDotrain } from './forkParse';
-  import { rpcUrl } from '$lib/stores/settings';
 	import { openLintPanel, closeLintPanel } from "@codemirror/lint";
 	import { RainlangExtension, type LanguageServicesConfig, RainDocument, type Problem, MetaStore } from 'codemirror-rainlang';
 
-	// reactive vars, for fork url and block number
+	// @TODO - reactive vars, for fork url and block number
 	export let forkUrl: string;
+	export let forkBlockNumber: number;
 	$: forkUrl;
-	const blockNumber = 100000; // should be set to some convenient value
+	$: forkBlockNumber;
 
 	// the fork calback fn
 	const callback = async(dotrain: RainDocument): Promise<Problem[]> => {
-		return forkParseDotrain(dotrain, forkUrl, blockNumber);
+		return forkParseDotrain(dotrain, forkUrl, forkBlockNumber);
 	}
 
 	// extension config
@@ -25,7 +24,7 @@
 	};
 	const metaStore = new MetaStore(false);
 	const rainlangCodemirror = new RainlangExtension(config, metaStore);
-	
+
 	// get the codemirror view, state, etc from the plugin once the codemirror instance is runnings
 	// ley view = plugin.view;
 	$: plugin = rainlangCodemirror.plugin;

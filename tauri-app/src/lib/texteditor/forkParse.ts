@@ -14,8 +14,8 @@ export async function forkParseDotrain(dotrain: RainDocument, forkUrl: string, f
   const frontMatter = dotrain.frontMatter;
   try {
     // set the hardcoded entrypoints
-    rainlang = await dotrain.compose(["calculate-order", "handle-io"]);
-  } catch(err) {
+    rainlang = await dotrain.compose(["calculate-io", "handle-io"]);
+  } catch(err) { // if compose fails reject with the caught error
     if ("Reject" in (err as ComposeError)) {
       return [{
         msg: (err as any).Reject,
@@ -31,7 +31,7 @@ export async function forkParseDotrain(dotrain: RainDocument, forkUrl: string, f
     // invoke tauri fork parse command
     await invoke('fork_parse', { rainlang, frontMatter, forkUrl, forkBlockNumber });
     return [];
-  } catch(err) {
+  } catch(err) { // if the fork call fails reject with the caught errors
     return [{
       msg: err as any as string,
       position: [0, 0],

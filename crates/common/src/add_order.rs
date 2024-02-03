@@ -206,7 +206,7 @@ impl AddOrderArgs {
 
         // Prepare call
         let (deployer, valid_inputs, valid_outputs) =
-            Self::try_parse_frontmatter(raindoc.front_matter().as_str())?;
+            Self::try_parse_frontmatter(dotrain_doc.front_matter().as_str())?;
         let (bytecode, constants) = self
             .try_parse_rainlang(rpc_url, deployer, rainlang.clone())
             .await?;
