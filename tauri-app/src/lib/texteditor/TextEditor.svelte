@@ -1,68 +1,42 @@
 <script lang="ts">
 	import { darkTheme } from './themes/dark';
   import { lightTheme } from './themes/light';
-	import {
-		autocompletion,
-		closeBrackets,
-		closeBracketsKeymap,
-		completionKeymap
-	} from '@codemirror/autocomplete';
-	import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-	import { defaultHighlightStyle, indentOnInput, syntaxHighlighting } from '@codemirror/language';
-	import { searchKeymap } from '@codemirror/search';
-	import {
-		drawSelection,
-		highlightActiveLineGutter,
-		highlightSpecialChars,
-		keymap,
-		lineNumbers
-	} from '@codemirror/view';
-	import { RainLanguage } from 'codemirror-rainlang';
 	import CodeMirror from 'svelte-codemirror-editor';
+	import { forkParseDotrain } from './forkParse';
+  import { rpcUrl } from '$lib/stores/settings';
+	import { openLintPanel, closeLintPanel } from "@codemirror/lint";
+	import { RainlangExtension, type LanguageServicesConfig, RainDocument, type Problem, MetaStore } from 'codemirror-rainlang';
 
-	const rainlangCodemirror = new RainlangExtension({
-		hover: false,
-		completion: false,
-		initialOpMeta: opMeta
-	});
+	// reactive vars, for fork url and block number
+	export let forkUrl: string;
+	$: forkUrl;
+	const blockNumber = 100000; // should be set to some convenient value
 
-	$: raw && compileDocument();
+	// the fork calback fn
+	const callback = async(dotrain: RainDocument): Promise<Problem[]> => {
+		return forkParseDotrain(dotrain, forkUrl, blockNumber);
+	}
 
-	/// @see https://codemirror.net/docs/extensions/ for the full list of extensions maintained by CodeMirror
+	// extension config
+	const config: LanguageServicesConfig = {
+		hover: true,
+		completion: true,
+		callback
+	};
+	const metaStore = new MetaStore(false);
+	const rainlangCodemirror = new RainlangExtension(config, metaStore);
+	$: plugin = rainlangCodemirror.plugin;
+	// plugin?.view.openLintPanel();
 
-	/// Editing
-	const whitespace = [indentOnInput()];
-	const editingHelpers = [autocompletion(), closeBrackets(), drawSelection(), history()];
-	const editingExtension = [whitespace, editingHelpers];
-
-	/// Presentation
-	// const styling = [];
-	const presentationFeatures = [highlightSpecialChars()];
-	const gutters = [highlightActiveLineGutter(), lineNumbers()];
-	// const tooltips = [];
-	const presentationExtension = [gutters, presentationFeatures];
-
-	/// Input Handling
-	const keymapsExtension = keymap.of([
-		...closeBracketsKeymap,
-		...completionKeymap,
-		...defaultKeymap,
-		...historyKeymap,
-		...searchKeymap
-	]);
-	const inputHandlingExtension = [keymapsExtension];
-
-	/// Language
-	const languageExtension = [syntaxHighlighting(defaultHighlightStyle, { fallback: true })];
+	// the extension theme
+	const theme = lightTheme;
 
 </script>
 
 <div class="h-full flex-grow">
 	<CodeMirror
-		bind:value={raw}
-		readonly={readOnly}
-		editable={!readOnly}
-		theme={$darkMode ? darkTheme : lightTheme}
+		value={""}
+		theme={theme}
 		styles={{
 			'&': {
 				flexGrow: 1,
@@ -72,13 +46,7 @@
     useTab={true}
     tabSize={2}
 		extensions={[
-      RainLanguage(),
-			editingExtension,
-			presentationExtension,
-			inputHandlingExtension,
-			languageExtension,
-			// primitivesExtension,
-			rainlangCodemirror.extension
+			rainlangCodemirror
 		]}
 	/>
 </div>

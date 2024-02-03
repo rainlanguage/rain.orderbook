@@ -64,13 +64,13 @@ pub async fn fork_call<'a>(
 
 /// checks the front matter validity and returns the deployer address if check went ok
 pub async fn fork_parse_dotrain(
-    rainlang_string: String,
-    front_matter: String,
+    rainlang_string: &str,
+    front_matter: &str,
     fork_url: &str,
     fork_block_number: u64,
 ) -> Result<Bytes, String> {
     // let rain_document = RainDocument::create(dotrain, None, None);
-    let deployer = AddOrderArgs::try_parse_frontmatter(&front_matter)
+    let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)
         .map_err(|e| e.to_string())?
         .0;
     // let entrypoints = ["calculate-order", "handle-io"];

@@ -12,6 +12,7 @@ use commands::vault::{
     vault_deposit, vault_detail, vault_withdraw, vaults_list, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
+use commands::fork::fork_parse;
 
 fn main() {
     tauri::Builder::default()
@@ -26,7 +27,8 @@ fn main() {
             order_detail,
             order_remove,
             get_address_from_ledger,
-            get_chainid
+            get_chainid,
+            fork_parse,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
