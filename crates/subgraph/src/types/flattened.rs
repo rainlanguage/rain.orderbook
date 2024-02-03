@@ -99,7 +99,7 @@ impl From<VaultBalanceChange> for VaultBalanceChangeFlattened {
                 sender: v.sender.id,
                 amount: v.amount_display,
                 change_type: String::from("Deposit"),
-                balance: v.token_vault.balance_display
+                balance: v.token_vault.balance_display,
             },
             VaultBalanceChange::Withdraw(v) => Self {
                 id: v.id.into_inner(),
@@ -107,7 +107,7 @@ impl From<VaultBalanceChange> for VaultBalanceChangeFlattened {
                 sender: v.sender.id,
                 amount: v.amount_display,
                 change_type: String::from("Withdraw"),
-                balance: v.token_vault.balance_display
+                balance: v.token_vault.balance_display,
             },
         }
     }

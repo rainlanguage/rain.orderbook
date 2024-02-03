@@ -1,16 +1,16 @@
-mod list_balance_changes;
 mod deposit;
 mod detail;
 mod list;
+mod list_balance_changes;
 mod withdraw;
 
 use crate::execute::Execute;
 use anyhow::Result;
-use list_balance_changes::CliVaultListBalanceChanges;
 use clap::Parser;
 use deposit::CliVaultDepositArgs;
 use detail::CliVaultDetailArgs;
 use list::CliVaultListArgs;
+use list_balance_changes::CliVaultListBalanceChanges;
 use withdraw::CliVaultWithdrawArgs;
 
 #[derive(Parser)]

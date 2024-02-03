@@ -38,12 +38,19 @@ impl Execute for CliVaultListBalanceChanges {
         let vault_balance_changes = subgraph_args
             .to_subgraph_client()
             .await?
-            .vault_list_balance_changes(self.vault_id.clone().into(), skip, first)
+            .vault_list_balance_changes(
+                self.vault_id.clone().into(),
+                skip.map(|v| v as u32),
+                first.map(|v| v as u32),
+            )
             .await?;
 
         if let Some(csv_file) = self.csv_file.clone() {
             let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
-                vault_balance_changes.into_iter().map(|o| o.into()).collect();
+                vault_balance_changes
+                    .into_iter()
+                    .map(|o| o.into())
+                    .collect();
             vault_balance_changes_flattened.write_csv(csv_file.clone())?;
             info!("Saved to CSV at {:?}", canonicalize(csv_file.as_path())?);
         } else {
