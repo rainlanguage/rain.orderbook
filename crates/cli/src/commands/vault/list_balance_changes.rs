@@ -10,13 +10,13 @@ use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
 use rain_orderbook_subgraph_client::{
-    types::{flattened::VaultBalanceChangeFlattened, vault_balancechange::VaultBalanceChange},
+    types::{flattened::VaultBalanceChangeFlattened, vault_balance_change::VaultBalanceChange},
     WriteCsv,
 };
 use tracing::info;
 
 #[derive(Args, Clone)]
-pub struct CliVaultBalancechangesList {
+pub struct CliVaultListBalanceChanges {
     #[arg(short = 'i', long, help = "ID of the Vault")]
     vault_id: String,
 
@@ -30,24 +30,24 @@ pub struct CliVaultBalancechangesList {
     subgraph_args: CliSubgraphArgs,
 }
 
-impl Execute for CliVaultBalancechangesList {
+impl Execute for CliVaultListBalanceChanges {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
         let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
         let (skip, first): (Option<i32>, Option<i32>) = pagination_args.into();
-        let vault_balancechanges = subgraph_args
+        let vault_balance_changes = subgraph_args
             .to_subgraph_client()
             .await?
-            .vault_balancechanges_list(self.vault_id.clone().into(), skip, first)
+            .vault_list_balance_changes(self.vault_id.clone().into(), skip, first)
             .await?;
 
         if let Some(csv_file) = self.csv_file.clone() {
-            let vault_balancechanges_flattened: Vec<VaultBalanceChangeFlattened> =
-                vault_balancechanges.into_iter().map(|o| o.into()).collect();
-            vault_balancechanges_flattened.write_csv(csv_file.clone())?;
+            let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
+                vault_balance_changes.into_iter().map(|o| o.into()).collect();
+            vault_balance_changes_flattened.write_csv(csv_file.clone())?;
             info!("Saved to CSV at {:?}", canonicalize(csv_file.as_path())?);
         } else {
-            let table = build_table(vault_balancechanges)?;
+            let table = build_table(vault_balance_changes)?;
             info!("\n{}", table);
         }
 
@@ -55,7 +55,7 @@ impl Execute for CliVaultBalancechangesList {
     }
 }
 
-fn build_table(balancechange: Vec<VaultBalanceChange>) -> Result<Table> {
+fn build_table(balance_change: Vec<VaultBalanceChange>) -> Result<Table> {
     let mut table = comfy_table::Table::new();
     table
         .load_preset(comfy_table::presets::UTF8_FULL)
@@ -68,8 +68,8 @@ fn build_table(balancechange: Vec<VaultBalanceChange>) -> Result<Table> {
             "Change Type",
         ]);
 
-    for balancechange in balancechange.iter() {
-        match balancechange {
+    for balance_change in balance_change.iter() {
+        match balance_change {
             VaultBalanceChange::Withdraw(w) => {
                 let timestamp_i64 = w.timestamp.0.parse::<i64>()?;
                 let timestamp_naive = NaiveDateTime::from_timestamp_opt(timestamp_i64, 0)

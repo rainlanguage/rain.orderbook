@@ -4,12 +4,12 @@ use crate::types::{
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
-    vault_balancechange::VaultBalanceChange,
-    vault_balancechanges_list::{
-        VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
-    },
+    vault_balance_change::VaultBalanceChange,
     vault_detail,
     vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
+    vault_list_balance_changes::{
+        VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
+    },
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
 };
@@ -90,13 +90,7 @@ impl OrderbookSubgraphClient {
         Ok(order)
     }
 
-    /// Helper to merge and paginate two graphql query response lists
-    /// 1. Fetch a page
-    /// 2. Insert page contents in merged vec & sort by timetamp
-    /// 3. Check if skip & first variables have been met
-    ///      - If not, repeat 2-4
-    ///      - If so, return merged vec
-    pub async fn vault_balancechanges_list(
+    pub async fn vault_list_balance_changes(
         &self,
         id: cynic::Id,
         skip: Option<i32>,

@@ -1,5 +1,5 @@
 use super::{
-    orders_list, vault_balancechange::VaultBalanceChange, vault_balancechanges_list, vaults_list,
+    orders_list, vault_balance_change::VaultBalanceChange, vault_list_balance_changes, vaults_list,
 };
 use crate::csv::WriteCsv;
 use serde::{Deserialize, Serialize};
@@ -83,11 +83,11 @@ impl WriteCsv<OrderFlattened> for Vec<OrderFlattened> {}
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VaultBalanceChangeFlattened {
     pub id: String,
-    pub timestamp: vault_balancechanges_list::BigInt,
-    pub sender: vault_balancechanges_list::Bytes,
-    pub amount: vault_balancechanges_list::BigDecimal,
+    pub timestamp: vault_list_balance_changes::BigInt,
+    pub sender: vault_list_balance_changes::Bytes,
+    pub amount: vault_list_balance_changes::BigDecimal,
     pub change_type: String,
-    pub balance: vault_balancechanges_list::BigDecimal,
+    pub balance: vault_list_balance_changes::BigDecimal,
 }
 
 impl From<VaultBalanceChange> for VaultBalanceChangeFlattened {
