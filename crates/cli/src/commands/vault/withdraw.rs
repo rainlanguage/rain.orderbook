@@ -19,7 +19,7 @@ pub struct CliVaultWithdrawArgs {
     target_amount: U256,
 
     #[clap(flatten)]
-    pub transaction_args: CliTransactionArgs,
+    transaction_args: CliTransactionArgs,
 }
 
 impl From<CliVaultWithdrawArgs> for WithdrawArgs {

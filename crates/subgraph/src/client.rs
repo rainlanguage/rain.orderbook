@@ -1,5 +1,5 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
-use crate::pagination::{PageQueryVariables, PaginationClient};
+use crate::pagination::{PageQueryVariables, PaginationClient, PaginationClientError};
 use crate::types::{
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
@@ -22,10 +22,12 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum OrderbookSubgraphClientError {
-    #[error("Cynic Client Error: {0}")]
+    #[error(transparent)]
     CynicClientError(#[from] CynicClientError),
     #[error("Subgraph query returned no data")]
     Empty,
+    #[error(transparent)]
+    PaginationClientError(#[from] PaginationClientError),
 }
 
 pub struct OrderbookSubgraphClient {
@@ -33,7 +35,6 @@ pub struct OrderbookSubgraphClient {
 }
 
 impl CynicClient for OrderbookSubgraphClient {}
-impl PaginationClient for OrderbookSubgraphClient {}
 
 impl OrderbookSubgraphClient {
     pub fn new(url: Url) -> Self {
@@ -100,7 +101,8 @@ impl OrderbookSubgraphClient {
         skip: Option<u32>,
         first: Option<u32>,
     ) -> Result<Vec<VaultBalanceChange>, OrderbookSubgraphClientError> {
-        let res = self
+        let pagination_client = PaginationClient::new(200);
+        let res = pagination_client
             .query_paginated(
                 skip,
                 first,

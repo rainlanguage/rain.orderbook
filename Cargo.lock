@@ -4769,6 +4769,7 @@ dependencies = [
  "reqwest",
  "serde",
  "thiserror",
+ "tokio",
  "typeshare",
 ]
 
