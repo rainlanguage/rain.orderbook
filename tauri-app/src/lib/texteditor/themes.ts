@@ -1,6 +1,7 @@
 import { createTheme } from 'thememirror';
 import { tags } from '@lezer/highlight';
 
+// configured to resemble vscode default light theme
 export const lightTheme = createTheme({
 	variant: 'light',
 	settings: {
@@ -104,6 +105,7 @@ export const lightTheme = createTheme({
 	]
 });
 
+// configured to resemble vscode default dark theme
 export const darkTheme = createTheme({
 	variant: 'dark',
 	settings: {

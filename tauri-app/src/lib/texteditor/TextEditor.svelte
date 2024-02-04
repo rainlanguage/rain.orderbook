@@ -15,8 +15,8 @@
 		return forkParseDotrain(dotrain, forkUrl, forkBlockNumber);
 	}
 
-	const metaStore = new MetaStore(false);
 	// extension config
+	const metaStore = new MetaStore(false);
 	const config: LanguageServicesConfig = {
 		hover: true,
 		completion: true,
@@ -25,26 +25,28 @@
 	};
 	const rainlangCodemirror = new RainlangExtension(config);
 
-	// get the codemirror view, state, etc from the plugin once the codemirror instance is runnings
-	// plugin is undefined until the codemirror ext is instantiated
-	$: plugin = rainlangCodemirror.plugin;
-
-	// open/close problem panel - it also has default hotkey cmd + shift + m
+	// in order to get the codemirror EditorView from the plugin
+	// plugin is undefined until the codemirror ext is instantiated/running
+	// for example: open/close problem panel - it also has a default hotkey: cmd + shift + m
+	// can be opened right after extension gets running
+	// let plugin = rainlangCodemirror.plugin;
+	// let editorView = plugin.view;
 	// import { openLintPanel, closeLintPanel } from "@codemirror/lint";
-	// if (plugin) openLintPanel(plugin?.view)
+	// if (editorView) openLintPanel(editorView)
 
 	// the extension theme, light/dark
-	const theme = lightTheme;
+	const activeTheme = lightTheme;
 
-	// initial dotrain string
-	export let dotrain_string: string = "/* start writing your expression */";
+	// dotrain string bound to editor
+	export let dotrain_string: string;
 
 </script>
 
 <div class="h-full flex-grow">
 	<CodeMirror
 		bind:value={dotrain_string}
-		theme={theme}
+		placeholder="start writing your strategy here..."
+		theme={activeTheme}
 		styles={{
 			'&': {
 				flexGrow: 1,
