@@ -14,10 +14,10 @@
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
-  import { toHex } from 'viem';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
+  import { bigintStringToHex } from '$lib/utils/hex';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -52,7 +52,7 @@
           Vault ID
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {toHex(vault.vault_id)}
+          {bigintStringToHex(vault.vault_id)}
         </p>
       </div>
 
