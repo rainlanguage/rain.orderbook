@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { lightTheme, darkTheme } from './themes';
+	import { lightTheme } from './themes';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { forkParseDotrain } from './forkParse';
-	import { openLintPanel, closeLintPanel } from "@codemirror/lint";
 	import { RainlangExtension, type LanguageServicesConfig, RainDocument, type Problem, MetaStore } from 'codemirror-rainlang';
 
 	// @TODO - reactive vars, for fork url and block number
@@ -29,17 +28,22 @@
 	// get the codemirror view, state, etc from the plugin once the codemirror instance is runnings
 	// plugin is undefined until the codemirror ext is instantiated
 	$: plugin = rainlangCodemirror.plugin;
+
 	// open/close problem panel - it also has default hotkey cmd + shift + m
+	// import { openLintPanel, closeLintPanel } from "@codemirror/lint";
 	// if (plugin) openLintPanel(plugin?.view)
 
-	// the extension theme
+	// the extension theme, light/dark
 	const theme = lightTheme;
+
+	// initial dotrain string
+	export let dotrain_string: string = "/* start writing your expression */";
 
 </script>
 
 <div class="h-full flex-grow">
 	<CodeMirror
-		value={""}
+		bind:value={dotrain_string}
 		theme={theme}
 		styles={{
 			'&': {

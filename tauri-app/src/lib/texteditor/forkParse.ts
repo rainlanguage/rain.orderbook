@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { invoke } from '@tauri-apps/api';
-import { RainDocument, type Problem, type ComposeError, ErrorCode } from "codemirror-rainlang";
+import { RainDocument, ErrorCode, type Problem } from "codemirror-rainlang";
 
 /**
  * Parses a RainDocument with native parser with hardcoded entrypoints
@@ -15,15 +15,32 @@ export async function forkParseDotrain(dotrain: RainDocument, forkUrl: string, f
   try {
     // set the hardcoded entrypoints
     rainlang = await dotrain.compose(["calculate-io", "handle-io"]);
-  } catch(err) { // if compose fails reject with the caught error
-    if ("Reject" in (err as ComposeError)) {
+  } catch(err) {
+    // if compose fails, reject with the caught error
+    if (err && typeof err === "object") {
+      if ("Reject" in err) {
+        return [{
+          msg: err.Reject as string,
+          position: [0, 0],
+          code: ErrorCode.NativeParserError
+        }]
+      } else if ("Problems" in err) {
+        return err.Problems as Problem[]
+      } else {
+        // in case of unexpected panic with uknown error type
+        return [{
+          msg: "something went wrong: " + (typeof err === "string" ? err : err instanceof Error ? err.message : ""),
+          position: [0, 0],
+          code: ErrorCode.NativeParserError
+        }]
+      }
+    } else {
+      // in case of unexpected panic with uknown error type
       return [{
-        msg: (err as any).Reject,
+        msg: "something went wrong: " + (typeof err === "string" ? err : ""),
         position: [0, 0],
         code: ErrorCode.NativeParserError
       }]
-    } else {
-      return (err as any).Problems
     }
   }
 
@@ -31,10 +48,11 @@ export async function forkParseDotrain(dotrain: RainDocument, forkUrl: string, f
     // invoke tauri fork parse command
     await invoke('fork_parse', { rainlang, frontMatter, forkUrl, forkBlockNumber });
     return [];
-  } catch(err) { // if the fork call fails reject with the caught errors
+  } catch(err) {
+    // if the fork call fails, reject with the caught errors
     return [{
-      msg: err as any as string,
-      position: [0, 0],
+      msg: typeof err === "string" ? err : err instanceof Error ? err.message : "",
+      position: [0, 0], // default position for native parser errors without knowing offset
       code: ErrorCode.NativeParserError
     }]
   }
