@@ -61,9 +61,9 @@
 	/>
 </div>
 
-<style lang="postcss" global>
+<!-- <style lang="postcss" global>
 	.codemirror-wrapper {
 		display: flex;
 		height: 100%;
 	}
-</style>
+</style> -->

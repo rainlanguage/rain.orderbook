@@ -49,7 +49,7 @@
     "@fontsource/dm-sans": "^5.0.18",
     "@imask/svelte": "^7.3.0",
     "@tauri-apps/api": "^1.5.3",
-    "codemirror-rainlang": "github:rainlanguage/rainlang-codemirror#d6ab591f4a354ad632b5377e34d21624433078c2",
+    "codemirror-rainlang": "github:rainlanguage/rainlang-codemirror#1f003726faa1523073bcff68781631c847f41f17",
     "dayjs": "^1.11.10",
     "lodash": "^4.17.21",
     "uuid": "^9.0.1",
