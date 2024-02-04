@@ -16,18 +16,21 @@
 		return forkParseDotrain(dotrain, forkUrl, forkBlockNumber);
 	}
 
+	const metaStore = new MetaStore(false);
 	// extension config
 	const config: LanguageServicesConfig = {
 		hover: true,
 		completion: true,
-		callback
+		callback,
+		metaStore
 	};
-	const metaStore = new MetaStore(false);
-	const rainlangCodemirror = new RainlangExtension(config, metaStore);
+	const rainlangCodemirror = new RainlangExtension(config);
 
 	// get the codemirror view, state, etc from the plugin once the codemirror instance is runnings
-	// ley view = plugin.view;
+	// plugin is undefined until the codemirror ext is instantiated
 	$: plugin = rainlangCodemirror.plugin;
+	// open/close problem panel - it also has default hotkey cmd + shift + m
+	// if (plugin) openLintPanel(plugin?.view)
 
 	// the extension theme
 	const theme = lightTheme;
