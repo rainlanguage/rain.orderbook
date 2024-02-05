@@ -42,18 +42,22 @@ pub enum AbiDecodedErrorType {
 
 impl From<AbiDecodedErrorType> for String {
     fn from(value: AbiDecodedErrorType) -> Self {
-        match value {
-            AbiDecodedErrorType::Unknown => "native parser panicked with unknown error!".to_owned(),
-            AbiDecodedErrorType::Known { name, args, .. } => {
-                format!("native parser panicked with: {}\n{}", name, args.join("\n"))
-            }
-        }
+        value.to_string()
     }
 }
 
 impl std::fmt::Display for AbiDecodedErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", std::convert::Into::<String>::into(self.clone()))
+        match self {
+            AbiDecodedErrorType::Unknown => {
+                f.write_str("native parser panicked with unknown error!")
+            }
+            AbiDecodedErrorType::Known { name, args, .. } => f.write_str(&format!(
+                "native parser panicked with: {}\n{}",
+                name,
+                args.join("\n")
+            )),
+        }
     }
 }
 
@@ -166,23 +170,23 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkC
 }
 
 #[derive(Debug, Error)]
-pub enum ForkParseError<'a> {
+pub enum ForkParseError {
     #[error("ForkCall error: {0}")]
-    ForkCallFailed(ForkCallError<'a>),
+    ForkCallFailed(ForkCallError<'static>),
     #[error("{0}")]
     AbiDecodedError(AbiDecodedErrorType),
     #[error("Invalid Front Matter error: {0}")]
     InvalidFrontMatter(#[from] AddOrderArgsError),
 }
 
-impl<'a> From<AbiDecodedErrorType> for ForkParseError<'a> {
+impl From<AbiDecodedErrorType> for ForkParseError {
     fn from(value: AbiDecodedErrorType) -> Self {
         Self::AbiDecodedError(value)
     }
 }
 
-impl<'a> From<ForkCallError<'a>> for ForkParseError<'a> {
-    fn from(value: ForkCallError<'a>) -> Self {
+impl From<ForkCallError<'static>> for ForkParseError {
+    fn from(value: ForkCallError<'static>) -> Self {
         Self::ForkCallFailed(value)
     }
 }

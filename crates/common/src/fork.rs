@@ -66,12 +66,12 @@ pub async fn fork_call<'a>(
 /// checks the front matter validity and parses the given rainlang string
 /// with the deployer parsed from the front matter
 /// returns abi encoded expression config on Ok variant
-pub async fn fork_parse_rainlang<'a>(
+pub async fn fork_parse_rainlang(
     rainlang_string: &str,
     front_matter: &str,
     fork_url: &str,
     fork_block_number: u64,
-) -> Result<Bytes, ForkParseError<'a>> {
+) -> Result<Bytes, ForkParseError> {
     let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
