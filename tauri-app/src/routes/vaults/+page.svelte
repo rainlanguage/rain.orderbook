@@ -31,7 +31,7 @@
   let withdrawModalVault: TokenVault;
 
   redirectIfSettingsNotDefined();
-  vaultsList.fetchPage(1);
+  vaultsList.fetchFirst();
 </script>
 
 <PageHeader title="Vaults" />

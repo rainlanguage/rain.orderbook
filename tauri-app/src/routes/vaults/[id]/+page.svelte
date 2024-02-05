@@ -37,7 +37,7 @@
   }
 
   const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
-  vaultListBalanceChanges.fetchPage(1);
+  vaultListBalanceChanges.fetchFirst();
 </script>
 
 <PageHeader title="Vault">
