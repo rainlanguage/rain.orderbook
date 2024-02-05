@@ -1,4 +1,4 @@
-use crate::transaction::TransactionArgsError;
+use crate::{add_order::AddOrderArgsError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
@@ -48,6 +48,12 @@ impl From<AbiDecodedErrorType> for String {
                 format!("native parser panicked with: {}\n{}", name, args.join("\n"))
             }
         }
+    }
+}
+
+impl std::fmt::Display for AbiDecodedErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", std::convert::Into::<String>::into(self.clone()))
     }
 }
 
@@ -156,6 +162,28 @@ impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
 impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
     fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
         Self::ForkCachePoisoned(value)
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ForkParseError<'a> {
+    #[error("ForkCall error: {0}")]
+    ForkCallFailed(ForkCallError<'a>),
+    #[error("{0}")]
+    AbiDecodedError(AbiDecodedErrorType),
+    #[error("Invalid Front Matter error: {0}")]
+    InvalidFrontMatter(#[from] AddOrderArgsError),
+}
+
+impl<'a> From<AbiDecodedErrorType> for ForkParseError<'a> {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        Self::AbiDecodedError(value)
+    }
+}
+
+impl<'a> From<ForkCallError<'a>> for ForkParseError<'a> {
+    fn from(value: ForkCallError<'a>) -> Self {
+        Self::ForkCallFailed(value)
     }
 }
 

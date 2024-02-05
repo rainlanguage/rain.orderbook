@@ -25,8 +25,8 @@
 	};
 	const rainlangCodemirror = new RainlangExtension(config);
 
-	// in order to get the codemirror EditorView from the plugin
-	// plugin is undefined until the codemirror ext is instantiated/running
+	// in order to get the codemirror EditorView from the plugin,
+	// plugin is undefined until the codemirror ext is instantiated/running,
 	// for example: open/close problem panel - it also has a default hotkey: cmd + shift + m
 	// can be opened right after extension gets running
 	// let plugin = rainlangCodemirror.plugin;
@@ -53,8 +53,8 @@
 				height: '100%'
 			}
 		}}
-    useTab={true}
-    tabSize={2}
+		useTab={true}
+		tabSize={2}
 		extensions={[
 			rainlangCodemirror
 		]}

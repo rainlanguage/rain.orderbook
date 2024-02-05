@@ -1,6 +1,7 @@
 use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
 use crate::add_order::AddOrderArgs;
+use crate::error::ForkParseError;
 use alloy_primitives::hex::decode;
 use alloy_sol_types::SolCall;
 use forker::*;
@@ -62,21 +63,16 @@ pub async fn fork_call<'a>(
     }
 }
 
-/// checks the front matter validity and returns the deployer address if check went ok
-pub async fn fork_parse_dotrain(
+/// checks the front matter validity and parses the given rainlang string
+/// with the deployer parsed from the front matter
+/// returns abi encoded expression config on Ok variant
+pub async fn fork_parse_rainlang<'a>(
     rainlang_string: &str,
     front_matter: &str,
     fork_url: &str,
     fork_block_number: u64,
-) -> Result<Bytes, String> {
-    // let rain_document = RainDocument::create(dotrain, None, None);
-    let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)
-        .map_err(|e| e.to_string())?
-        .0;
-    // let entrypoints = ["calculate-order", "handle-io"];
-    // let rainlang_string = rain_document
-    //     .compose(&entrypoints)
-    //     .map_err(|e| e.to_string())?;
+) -> Result<Bytes, ForkParseError<'a>> {
+    let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
     let parser_address = fork_call(
@@ -86,8 +82,7 @@ pub async fn fork_parse_dotrain(
         deployer.as_slice(),
         &calldata,
     )
-    .await
-    .map_err(|e| e.to_string())??;
+    .await??;
 
     let calldata = parseCall {
         data: rainlang_string.as_bytes().to_vec(),
@@ -100,8 +95,7 @@ pub async fn fork_parse_dotrain(
         &parser_address,
         &calldata,
     )
-    .await
-    .map_err(|e| e.to_string())??;
+    .await??;
 
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
@@ -112,8 +106,7 @@ pub async fn fork_parse_dotrain(
         deployer.as_slice(),
         &calldata,
     )
-    .await
-    .map_err(|e| e.to_string())??;
+    .await??;
 
     Ok(expression_config)
 }
