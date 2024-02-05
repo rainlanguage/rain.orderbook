@@ -34,7 +34,7 @@ pub enum PaginationClientError {
 pub trait PaginationClient {
     fn parse_pagination_args(pagination_args: PaginationArgs) -> QueryPaginationVariables {
         let first: i32 = pagination_args.page_size.into();
-        let skip: i32 = ((pagination_args.page-1) * pagination_args.page_size).into();
+        let skip: i32 = ((pagination_args.page - 1) * pagination_args.page_size).into();
 
         QueryPaginationVariables {
             first: Some(first),
@@ -406,38 +406,37 @@ mod test {
 
     #[test]
     fn parse_pagination_args() {
-        let pagination_client = MockPaginationClient {};
         let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
             page: 1,
-            page_size: 25
+            page_size: 25,
         });
         assert_eq!(query_pagination_vars.skip, Some(0));
         assert_eq!(query_pagination_vars.first, Some(25));
 
         let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
             page: 2,
-            page_size: 25
+            page_size: 25,
         });
         assert_eq!(query_pagination_vars.skip, Some(25));
         assert_eq!(query_pagination_vars.first, Some(25));
 
         let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
             page: 3,
-            page_size: 25
+            page_size: 25,
         });
         assert_eq!(query_pagination_vars.skip, Some(50));
         assert_eq!(query_pagination_vars.first, Some(25));
 
         let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
             page: 1,
-            page_size: 5
+            page_size: 5,
         });
         assert_eq!(query_pagination_vars.skip, Some(0));
         assert_eq!(query_pagination_vars.first, Some(5));
 
         let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
             page: 1,
-            page_size: 10
+            page_size: 10,
         });
         assert_eq!(query_pagination_vars.skip, Some(0));
         assert_eq!(query_pagination_vars.first, Some(10));
