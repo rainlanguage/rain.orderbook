@@ -20,11 +20,11 @@ struct EventContextV1 {
 }
 
 enum EventsV1 {
+    TOUCH,
     DEPOSIT,
     WITHDRAW,
     ADD_ORDER,
-    REMOVE_ORDER,
-    TOUCH
+    REMOVE_ORDER
 }
 
 interface IOrderBookV4 is IOrderBookV3 {
