@@ -113,7 +113,7 @@ pub trait PageQueryVariables {
 
 #[cfg(test)]
 mod test {
-    use super::{PageQueryVariables, PaginationClient};
+    use super::*;
     use crate::{pagination::QueryPaginationVariables, utils::slice_list, PageQueryClient};
 
     #[derive(Clone)]
@@ -402,5 +402,44 @@ mod test {
             .await
             .unwrap();
         assert_eq!(vals, (50u32..550u32).collect::<Vec<u32>>());
+    }
+
+    #[test]
+    fn parse_pagination_args() {
+        let pagination_client = MockPaginationClient {};
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+            page: 1,
+            page_size: 25
+        });
+        assert_eq!(query_pagination_vars.skip, Some(0));
+        assert_eq!(query_pagination_vars.first, Some(25));
+
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+            page: 2,
+            page_size: 25
+        });
+        assert_eq!(query_pagination_vars.skip, Some(25));
+        assert_eq!(query_pagination_vars.first, Some(25));
+
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+            page: 3,
+            page_size: 25
+        });
+        assert_eq!(query_pagination_vars.skip, Some(50));
+        assert_eq!(query_pagination_vars.first, Some(25));
+
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+            page: 1,
+            page_size: 5
+        });
+        assert_eq!(query_pagination_vars.skip, Some(0));
+        assert_eq!(query_pagination_vars.first, Some(5));
+
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+            page: 1,
+            page_size: 10
+        });
+        assert_eq!(query_pagination_vars.skip, Some(0));
+        assert_eq!(query_pagination_vars.first, Some(10));
     }
 }
