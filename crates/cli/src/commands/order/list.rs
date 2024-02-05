@@ -8,10 +8,10 @@ use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::{PaginationArgs, SubgraphArgs};
+use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
     types::{flattened::OrderFlattened, orders_list::Order},
-    WriteCsv,
+    PaginationArgs, WriteCsv,
 };
 use tracing::info;
 

@@ -1,7 +1,6 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-
-use rain_orderbook_common::subgraph::PaginationArgs;
+use rain_orderbook_subgraph_client::PaginationArgs;
 
 #[derive(Args, Clone)]
 pub struct CliSubgraphArgs {

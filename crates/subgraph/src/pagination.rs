@@ -1,6 +1,19 @@
 use crate::{cynic_client::CynicClientError, utils::slice_list};
+use serde::{Deserialize, Serialize};
 use std::num::TryFromIntError;
 use thiserror::Error;
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct PaginationArgs {
+    pub page: u16,
+    pub page_size: u16,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct QueryPaginationVariables {
+    pub skip: Option<i32>,
+    pub first: Option<i32>,
+}
 
 #[derive(Error, Debug)]
 pub enum PaginationClientError {
@@ -18,37 +31,36 @@ pub enum PaginationClientError {
 ///
 /// After fetching the required pages, it retuns the desired page based
 /// the given 'skip' + 'first'.
-pub struct PaginationClient {
-    page_size: u32,
-}
+pub trait PaginationClient {
+    fn parse_pagination_args(pagination_args: PaginationArgs) -> QueryPaginationVariables {
+        let first: i32 = pagination_args.page_size.into();
+        let skip: i32 = (pagination_args.page * pagination_args.page_size).into();
 
-impl PaginationClient {
-    pub fn new(page_size: u32) -> Self {
-        Self { page_size }
+        QueryPaginationVariables {
+            first: Some(first),
+            skip: Some(skip),
+        }
     }
 
-    pub async fn query_paginated<
-        T: Clone,
-        V: PageQueryVariables + Clone,
-        Q: PageQueryClient<T, V>,
-    >(
+    async fn query_paginated<T: Clone, V: PageQueryVariables + Clone, Q: PageQueryClient<T, V>>(
         &self,
-        skip: Option<u32>,
-        first: Option<u32>,
+        pagination_variables: QueryPaginationVariables,
         page_query_client: Q,
         page_query_variables: V,
+        page_query_limit: i32,
     ) -> Result<Vec<T>, PaginationClientError> {
         let mut results = vec![];
         let mut more_pages_available = true;
         let mut page_skip = 0;
-        let page_first = i32::try_from(self.page_size)?;
-
-        let max_results_len = first.map(|f| skip.unwrap_or(0) + f);
+        let max_results_len = pagination_variables
+            .first
+            .map(|f| pagination_variables.skip.unwrap_or(0) + f);
 
         // Loop through fetching another page if there are more pages available AND we have not yet receive the max results length (as specified by our pagination skip & first)
         while more_pages_available && max_results_len.map_or(true, |l| results.len() < l as usize) {
             // Fetch a page
-            let variables = page_query_variables.with_pagination(Some(page_skip), Some(page_first));
+            let variables =
+                page_query_variables.with_pagination(Some(page_skip), Some(page_query_limit));
             let res = page_query_client.query_page(variables.clone()).await;
 
             match res {
@@ -62,7 +74,7 @@ impl PaginationClient {
                     else {
                         results.extend(page_results);
                         results = Q::sort_results(results);
-                        page_skip += page_first;
+                        page_skip += page_query_limit;
                         Ok(())
                     }
                 }
@@ -75,7 +87,10 @@ impl PaginationClient {
             }?;
         }
 
-        Ok(slice_list(results, skip, first))
+        let skip_u16 = pagination_variables.skip.map(u16::try_from).transpose()?;
+        let first_u16 = pagination_variables.first.map(u16::try_from).transpose()?;
+
+        Ok(slice_list(results, skip_u16, first_u16))
     }
 }
 
@@ -99,7 +114,7 @@ pub trait PageQueryVariables {
 #[cfg(test)]
 mod test {
     use super::{PageQueryVariables, PaginationClient};
-    use crate::{utils::slice_list, PageQueryClient};
+    use crate::{pagination::QueryPaginationVariables, utils::slice_list, PageQueryClient};
 
     #[derive(Clone)]
     struct MockPageQueryVariables {
@@ -112,6 +127,9 @@ mod test {
         }
     }
 
+    struct MockPaginationClient {}
+    impl PaginationClient for MockPaginationClient {}
+
     #[derive(Clone)]
     struct MockPageQueryClient {}
     impl PageQueryClient<u32, MockPageQueryVariables> for MockPageQueryClient {
@@ -119,10 +137,10 @@ mod test {
             &self,
             variables: MockPageQueryVariables,
         ) -> Result<Vec<u32>, crate::cynic_client::CynicClientError> {
-            let all_vals: Vec<u32> = (0u32..1000u32).collect();
+            let all_vals: Vec<u32> = (0..1000).collect();
 
-            let skip = variables.skip.map(|v| u32::try_from(v).unwrap());
-            let first = variables.first.map(|v| u32::try_from(v).unwrap());
+            let skip = variables.skip.map(|v| u16::try_from(v).unwrap());
+            let first = variables.first.map(|v| u16::try_from(v).unwrap());
             let page_vals = slice_list(all_vals, skip, first);
 
             Ok(page_vals)
@@ -141,10 +159,17 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
-            .query_paginated(None, None, page_query_client, page_query_variables)
+            .query_paginated(
+                QueryPaginationVariables {
+                    skip: None,
+                    first: None,
+                },
+                page_query_client,
+                page_query_variables,
+                50,
+            )
             .await
             .unwrap();
 
@@ -158,10 +183,17 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
-            .query_paginated(Some(100), None, page_query_client, page_query_variables)
+            .query_paginated(
+                QueryPaginationVariables {
+                    skip: Some(100),
+                    first: None,
+                },
+                page_query_client,
+                page_query_variables,
+                50,
+            )
             .await
             .unwrap();
 
@@ -176,10 +208,17 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
-            .query_paginated(None, Some(500), page_query_client, page_query_variables)
+            .query_paginated(
+                QueryPaginationVariables {
+                    skip: None,
+                    first: Some(500),
+                },
+                page_query_client,
+                page_query_variables,
+                50,
+            )
             .await
             .unwrap();
 
@@ -193,14 +232,21 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
-        let vals = pagination_client
-            .query_paginated(None, Some(500), page_query_client, page_query_variables)
+        let pagination_client = MockPaginationClient {};
+        let vals: Vec<_> = pagination_client
+            .query_paginated(
+                QueryPaginationVariables {
+                    skip: Some(50),
+                    first: Some(500),
+                },
+                page_query_client,
+                page_query_variables,
+                50,
+            )
             .await
             .unwrap();
 
-        assert_eq!(vals, (0u32..500u32).collect::<Vec<u32>>());
+        assert_eq!(vals, (50u32..550u32).collect::<Vec<u32>>());
     }
 
     #[tokio::test]
@@ -210,10 +256,17 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
-            .query_paginated(Some(2000), None, page_query_client, page_query_variables)
+            .query_paginated(
+                QueryPaginationVariables {
+                    skip: Some(2000),
+                    first: None,
+                },
+                page_query_client,
+                page_query_variables,
+                50,
+            )
             .await
             .unwrap();
 
@@ -227,10 +280,17 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
-            .query_paginated(None, Some(2000), page_query_client, page_query_variables)
+            .query_paginated(
+                QueryPaginationVariables {
+                    skip: None,
+                    first: Some(2000),
+                },
+                page_query_client,
+                page_query_variables,
+                200,
+            )
             .await
             .unwrap();
 
@@ -244,14 +304,16 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(50);
-
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                Some(2000),
-                Some(500),
+                QueryPaginationVariables {
+                    skip: Some(2000),
+                    first: Some(500),
+                },
                 page_query_client,
                 page_query_variables,
+                50,
             )
             .await
             .unwrap();
@@ -266,61 +328,76 @@ mod test {
             skip: None,
             first: None,
         };
-        let pagination_client = PaginationClient::new(5);
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                Some(50),
-                Some(500),
+                QueryPaginationVariables {
+                    skip: Some(50),
+                    first: Some(500),
+                },
                 page_query_client.clone(),
                 page_query_variables.clone(),
+                5,
             )
             .await
             .unwrap();
         assert_eq!(vals, (50u32..550u32).collect::<Vec<u32>>());
 
-        let pagination_client = PaginationClient::new(30);
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                Some(50),
-                Some(500),
+                QueryPaginationVariables {
+                    skip: Some(50),
+                    first: Some(500),
+                },
                 page_query_client.clone(),
                 page_query_variables.clone(),
+                30,
             )
             .await
             .unwrap();
         assert_eq!(vals, (50u32..550u32).collect::<Vec<u32>>());
 
-        let pagination_client = PaginationClient::new(99);
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                Some(50),
-                Some(500),
+                QueryPaginationVariables {
+                    skip: Some(50),
+                    first: Some(500),
+                },
                 page_query_client.clone(),
                 page_query_variables.clone(),
+                99,
             )
             .await
             .unwrap();
         assert_eq!(vals, (50u32..550u32).collect::<Vec<u32>>());
 
-        let pagination_client = PaginationClient::new(123);
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                Some(50),
-                Some(500),
+                QueryPaginationVariables {
+                    skip: Some(50),
+                    first: Some(500),
+                },
                 page_query_client.clone(),
                 page_query_variables.clone(),
+                123,
             )
             .await
             .unwrap();
         assert_eq!(vals, (50u32..550u32).collect::<Vec<u32>>());
 
-        let pagination_client = PaginationClient::new(2000);
+        let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                Some(50),
-                Some(500),
+                QueryPaginationVariables {
+                    skip: Some(50),
+                    first: Some(500),
+                },
                 page_query_client.clone(),
                 page_query_variables.clone(),
+                2000,
             )
             .await
             .unwrap();

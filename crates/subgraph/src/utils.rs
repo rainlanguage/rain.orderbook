@@ -1,5 +1,5 @@
 /// Slice a subset of a list, by optional skip (i.e. slice start) and first (i.e. slice length)
-pub fn slice_list<T: Clone>(list: Vec<T>, skip: Option<u32>, first: Option<u32>) -> Vec<T> {
+pub fn slice_list<T: Clone>(list: Vec<T>, skip: Option<u16>, first: Option<u16>) -> Vec<T> {
     let mut list_sliced = list.clone();
     if let Some(s) = skip {
         if list_sliced.len() > s as usize {

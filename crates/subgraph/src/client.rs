@@ -1,5 +1,7 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
-use crate::pagination::{PageQueryVariables, PaginationClient, PaginationClientError};
+use crate::pagination::{
+    PageQueryVariables, PaginationArgs, PaginationClient, PaginationClientError,
+};
 use crate::types::{
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
@@ -35,29 +37,44 @@ pub struct OrderbookSubgraphClient {
 }
 
 impl CynicClient for OrderbookSubgraphClient {}
+impl PaginationClient for OrderbookSubgraphClient {}
 
 impl OrderbookSubgraphClient {
     pub fn new(url: Url) -> Self {
         Self { url }
     }
 
-    pub async fn orders_list<T: Into<OrdersListQueryVariables>>(
+    pub async fn orders_list(
         &self,
-        variables: T,
+        pagination_args: PaginationArgs,
     ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<OrdersListQuery, OrdersListQueryVariables>(self.url.clone(), variables.into())
+            .query::<OrdersListQuery, OrdersListQueryVariables>(
+                self.url.clone(),
+                OrdersListQueryVariables {
+                    first: pagination_variables.first,
+                    skip: pagination_variables.skip,
+                },
+            )
             .await?;
 
         Ok(data.orders)
     }
 
-    pub async fn vaults_list<T: Into<VaultsListQueryVariables>>(
+    pub async fn vaults_list(
         &self,
-        variables: T,
+        pagination_args: PaginationArgs,
     ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<VaultsListQuery, VaultsListQueryVariables>(self.url.clone(), variables.into())
+            .query::<VaultsListQuery, VaultsListQueryVariables>(
+                self.url.clone(),
+                VaultsListQueryVariables {
+                    first: pagination_variables.first,
+                    skip: pagination_variables.skip,
+                },
+            )
             .await?;
 
         Ok(data.token_vaults)
@@ -98,14 +115,12 @@ impl OrderbookSubgraphClient {
     pub async fn vault_list_balance_changes(
         &self,
         id: cynic::Id,
-        skip: Option<u32>,
-        first: Option<u32>,
+        pagination_args: PaginationArgs,
     ) -> Result<Vec<VaultBalanceChange>, OrderbookSubgraphClientError> {
-        let pagination_client = PaginationClient::new(200);
-        let res = pagination_client
+        let pagination_vars = Self::parse_pagination_args(pagination_args);
+        let res = self
             .query_paginated(
-                skip,
-                first,
+                pagination_vars,
                 VaultListBalanceChangesPageQueryClient {
                     url: self.url.clone(),
                 },
@@ -114,6 +129,7 @@ impl OrderbookSubgraphClient {
                     skip: Some(0),
                     first: Some(200),
                 },
+                200,
             )
             .await?;
 

@@ -2,15 +2,15 @@ use std::{fs::canonicalize, path::PathBuf};
 
 use crate::{
     execute::Execute,
-    subgraph::{CliSubgraphArgs, CliPaginationArgs},
+    subgraph::{CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::{SubgraphArgs, PaginationArgs};
+use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
     types::{flattened::TokenVaultFlattened, vaults_list::TokenVault},
-    WriteCsv,
+    PaginationArgs, WriteCsv,
 };
 use tracing::info;
 
