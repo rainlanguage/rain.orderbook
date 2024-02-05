@@ -34,7 +34,7 @@ pub enum PaginationClientError {
 pub trait PaginationClient {
     fn parse_pagination_args(pagination_args: PaginationArgs) -> QueryPaginationVariables {
         let first: i32 = pagination_args.page_size.into();
-        let skip: i32 = (pagination_args.page * pagination_args.page_size).into();
+        let skip: i32 = ((pagination_args.page-1) * pagination_args.page_size).into();
 
         QueryPaginationVariables {
             first: Some(first),
