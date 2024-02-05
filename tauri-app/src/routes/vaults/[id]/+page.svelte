@@ -17,7 +17,11 @@
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
+  import { useVaultListBalanceChanges } from '$lib/stores/vaultListBalanceChanges';
   import { bigintStringToHex } from '$lib/utils/hex';
+  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import { FileCsvOutline } from 'flowbite-svelte-icons';
+  import ButtonsPagination  from '$lib/components/ButtonsPagination.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -31,6 +35,9 @@
   function toggleWithdrawModal() {
     showWithdrawModal = !showWithdrawModal;
   }
+
+  const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
+  vaultListBalanceChanges.fetchPage(1);
 </script>
 
 <PageHeader title="Vault">
@@ -87,62 +94,49 @@
 
     <div class="max-w-screen-xl space-y-12">
       <div class="w-full">
-        <Heading tag="h4" class="mb-2">Withdrawals</Heading>
+        <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
 
-        {#if !vault.vault.withdraws || vault.vault.withdraws.length === 0}
-          <div class="my-4 text-center text-gray-900 dark:text-white">No withdrawals found</div>
+        {#if $vaultListBalanceChanges.currentPage.length === 0}
+          <div class="my-4 text-center text-gray-900 dark:text-white">No deposits or withdrawals found</div>
         {:else}
-          <Table divClass="mx-8 cursor-pointer" hoverable={true}>
-            <TableHead>
-              <TableHeadCell>Sender</TableHeadCell>
-              <TableHeadCell>Requested Amount</TableHeadCell>
-              <TableHeadCell>Amount</TableHeadCell>
-            </TableHead>
-            <TableBody>
-              {#each vault.vault.withdraws as withdraw}
-                <TableBodyRow>
-                  <TableBodyCell tdClass="break-all px-4 py-2">{withdraw.sender.id}</TableBodyCell>
-                  <TableBodyCell tdClass="break-word p-2"
-                    >{withdraw.requested_amount_display}</TableBodyCell
-                  >
-                  <TableBodyCell tdClass="break-word p-2">{withdraw.amount_display}</TableBodyCell>
-                </TableBodyRow>
-              {/each}
-            </TableBody>
-          </Table>
-        {/if}
-      </div>
-
-      <div class="w-full">
-        <Heading tag="h4" class="mb-2">Deposits</Heading>
-
-        {#if !vault.vault.deposits || vault.vault.deposits.length === 0}
-          <div class="my-4 text-center text-gray-900 dark:text-white">No deposits found</div>
-        {:else}
-          <Table divClass="cursor-pointer" hoverable={true}>
+          <Table divClass="cursor-pointer">
             <TableHead>
               <TableHeadCell>Date</TableHeadCell>
               <TableHeadCell>Sender</TableHeadCell>
-
-              <TableHeadCell>Amount</TableHeadCell>
+              <TableHeadCell>Transaction Hash</TableHeadCell>
+              <TableHeadCell>Balance Change</TableHeadCell>
+              <TableHeadCell>Type</TableHeadCell>
             </TableHead>
             <TableBody>
-              {#each vault.vault.deposits as deposit}
-                <TableBodyRow>
-                  <TableBodyCell tdClass="px-4 py-2">
-                    {formatTimestampSecondsAsLocal(BigInt(deposit.timestamp))}
-                  </TableBodyCell>
-                  <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
-                    {deposit.sender.id}
-                  </TableBodyCell>
-                  <TableBodyCell tdClass="break-word p-2 text-right"
-                    >{deposit.amount_display}
-                    {vault.token.symbol}</TableBodyCell
-                  >
-                </TableBodyRow>
+              {#each $vaultListBalanceChanges.currentPage as vaultBalanceChange}
+                  <TableBodyRow>
+                    <TableBodyCell tdClass="px-4 py-2">
+                      {formatTimestampSecondsAsLocal(BigInt(vaultBalanceChange.content.timestamp))}
+                    </TableBodyCell>
+                    <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
+                      {vaultBalanceChange.content.sender.id}
+                    </TableBodyCell>
+                    <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
+                      {vaultBalanceChange.content.transaction.id}
+                    </TableBodyCell>
+                    <TableBodyCell tdClass="break-word p-2 text-right">
+                      {vaultBalanceChange.type === 'Withdraw' ? '-' : ''}{vaultBalanceChange.content.amount_display} {vaultBalanceChange.content.token_vault.token.symbol}
+                    </TableBodyCell>
+                    <TableBodyCell tdClass="break-word p-2 text-right">
+                      {vaultBalanceChange.type}
+                    </TableBodyCell>
+                  </TableBodyRow>
               {/each}
             </TableBody>
           </Table>
+
+          <div class="flex justify-between mt-2">
+            <ButtonLoading size="xs" color="blue" on:click={() => vaultListBalanceChanges.exportCsv()} loading={$vaultListBalanceChanges.isExporting}>
+              <FileCsvOutline class="w-4 h-4 mr-2"/>
+              Export to CSV
+            </ButtonLoading>
+            <ButtonsPagination index={$vaultListBalanceChanges.index} on:previous={vaultListBalanceChanges.fetchPrev} on:next={vaultListBalanceChanges.fetchNext} loading={$vaultListBalanceChanges.isFetching} />
+          </div>
         {/if}
       </div>
     </div>
