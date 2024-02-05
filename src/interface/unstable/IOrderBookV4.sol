@@ -7,35 +7,27 @@ import {
     SignedContextV1
 } from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 
-struct EvaluableConfigV4 {
-    IExpressionDeployerV3 deployer;
+struct EvaluableV3 {
+    IInterpreterV3 i9r;
+    IInterpreterStoreV2 store;
+    SourceIndexV2 sourceIndex;
     bytes bytecode;
     uint256[] constants;
     bytes meta;
 }
 
-struct EventContextV1 {
+struct OrderBookActionV1 {
+    EvaluableV3 evaluable;
     uint256[] senderContext;
     SignedContextV1[] signedContexts;
 }
 
-enum EventsV1 {
-    TOUCH,
-    DEPOSIT,
-    WITHDRAW,
-    ADD_ORDER,
-    REMOVE_ORDER
-}
-
 interface IOrderBookV4 is IOrderBookV3 {
-    function on(EventsV1 evt, EvaluableConfigV4 calldata evaluableConfig) external;
-    function off(EventsV1 evt, bytes32 evaluableHash) external;
+    function touch(OrderBookActionV1[] calldata actions) external;
 
-    function touch(EventContextV1 calldata eventContext) external;
+    function deposit(address token, uint256 vaultId, uint256 amount, OrderBookActionV1[] calldata actions) external;
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount, OrderBookActionV1[] calldata actions) external;
 
-    function deposit(address token, uint256 vaultId, uint256 amount, EventContextV1 calldata eventContext) external;
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount, EventContextV1 calldata eventContext) external;
-
-    function addOrder(OrderConfigV2 calldata config, EventContextV1 calldata eventContext) external returns (bool stateChanged);
-    function removeOrder(OrderV2 calldata order, EventContextV1 calldata eventContext) external returns (bool stateChanged);
+    function addOrder(OrderConfigV2 calldata config, OrderBookActionV1[] calldata actions) external returns (bool stateChanged);
+    function removeOrder(OrderV2 calldata order, OrderBookActionV1[] calldata actions) external returns (bool stateChanged);
 }
