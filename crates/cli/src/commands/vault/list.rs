@@ -2,12 +2,12 @@ use std::{fs::canonicalize, path::PathBuf};
 
 use crate::{
     execute::Execute,
-    subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
+    subgraph::{CliSubgraphArgs, CliPaginationArgs},
 };
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
+use rain_orderbook_common::subgraph::{SubgraphArgs, PaginationArgs};
 use rain_orderbook_subgraph_client::{
     types::{flattened::TokenVaultFlattened, vaults_list::TokenVault},
     WriteCsv,
@@ -20,7 +20,7 @@ pub struct CliVaultListArgs {
     pub csv_file: Option<PathBuf>,
 
     #[clap(flatten)]
-    pub pagination_args: CliSubgraphPaginationArgs,
+    pub pagination_args: CliPaginationArgs,
 
     #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
@@ -29,7 +29,7 @@ pub struct CliVaultListArgs {
 impl Execute for CliVaultListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
+        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
         let vaults = subgraph_args
             .to_subgraph_client()
             .await?
