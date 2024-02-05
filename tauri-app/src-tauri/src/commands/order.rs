@@ -2,12 +2,13 @@ use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     remove_order::RemoveOrderArgs,
-    subgraph::{SubgraphArgs, PaginationArgs},
+    subgraph::SubgraphArgs,
     transaction::TransactionArgs,
 };
 use rain_orderbook_subgraph_client::{
     types::{flattened::OrderFlattened, order_detail, orders_list},
     WriteCsv,
+    PaginationArgs
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
