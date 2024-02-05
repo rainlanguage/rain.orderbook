@@ -8,7 +8,7 @@ type Unsubscriber = () => void;
 
 export interface PaginatedCachedStore<T> {
     subscribe: ( subscriber: Subscriber<Page<T>>, invalidate?: Invalidator<Page<T>>) => Unsubscriber,
-    fetchPage: (page?: number, pageSize?: number) => Promise<void>;
+    fetchPage: (page?: number) => Promise<void>;
     fetchPrev: () => Promise<void>;
     fetchNext: () => Promise<void>;
     exportCsv: () => void;
@@ -26,7 +26,7 @@ export interface AllPages<T> {
   [pageIndex: number]: Array<T>
 }
 
-export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number, pageSize: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
+export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
   const allPages = writable<AllPages<T>>(localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : []);
   const pageIndex = writable(1);
   const isFetching = writable(false);
@@ -50,8 +50,8 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
     isExporting: $isExporting
   }));
 
-  async function fetchPage(page: number = 1, pageSize: number = 10) {
-    const res: Array<T> = await fetchPageHandler(page, pageSize);
+  async function fetchPage(page: number = 1) {
+    const res: Array<T> = await fetchPageHandler(page);
     if(res.length === 0) {
       toasts.error("No results found");
       throw Error("No results found");
