@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {console2} from "forge-std/console2.sol";
-
 import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -14,11 +12,11 @@ import {SourceIndexV2} from "rain.interpreter/interface/unstable/IInterpreterV2.
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
 import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter/lib/ns/LibNamespace.sol";
-import {IOrderBookV3, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
-import {IOrderBookV3ArbOrderTaker, IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
+import {IOrderBookV3, NoOrders} from "../interface/IOrderBookV3.sol";
+import {IOrderBookV3ArbOrderTaker, IOrderBookV3OrderTaker} from "../interface/IOrderBookV3ArbOrderTaker.sol";
 import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
 import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
-import {TakeOrdersConfigV2} from "../interface/unstable/IOrderBookV3.sol";
+import {TakeOrdersConfigV2} from "../interface/IOrderBookV3.sol";
 import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
 import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";

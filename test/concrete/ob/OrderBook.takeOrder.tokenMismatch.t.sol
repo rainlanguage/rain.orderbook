@@ -2,7 +2,7 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OrderV2, IO, TakeOrderConfigV2, TakeOrdersConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {OrderV2, IO, TakeOrderConfigV2, TakeOrdersConfigV2} from "src/interface//IOrderBookV3.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
 import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 

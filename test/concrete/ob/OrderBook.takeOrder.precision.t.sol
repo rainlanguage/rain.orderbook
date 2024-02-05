@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Test.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2, IO, OrderConfigV2
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "src/interface//IOrderBookV3.sol";
 import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 

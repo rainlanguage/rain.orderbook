@@ -15,7 +15,7 @@ import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
 import {IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
 import {IInterpreterStoreV2} from "rain.interpreter/interface/unstable/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
-import {IOrderBookV3} from "src/interface/unstable/IOrderBookV3.sol";
+import {IOrderBookV3} from "src/interface//IOrderBookV3.sol";
 import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";

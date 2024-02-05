@@ -9,7 +9,7 @@ import {
     IExpressionDeployerV3,
     TakeOrderConfigV2,
     TakeOrdersConfigV2
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "../../../src/interface/IOrderBookV3.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
     OrderBookV3ArbOrderTakerConfigV1,

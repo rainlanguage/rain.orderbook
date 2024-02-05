@@ -10,7 +10,7 @@ import {
     IERC3156FlashBorrower,
     TakeOrdersConfigV2,
     IERC3156FlashLender
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "src/interface/IOrderBookV3.sol";
 
 abstract contract IOrderBookV3Stub is IOrderBookV3 {
     /// @inheritdoc IOrderBookV3

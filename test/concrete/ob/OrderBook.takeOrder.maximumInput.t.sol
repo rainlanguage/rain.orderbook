@@ -11,7 +11,7 @@ import {
     IO,
     EvaluableConfigV3,
     OrderConfigV2
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "src/interface//IOrderBookV3.sol";
 import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
 

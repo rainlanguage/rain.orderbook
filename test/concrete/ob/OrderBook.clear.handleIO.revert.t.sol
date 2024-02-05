@@ -3,7 +3,7 @@ pragma solidity =0.8.19;
 
 import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {ClearConfig, OrderV2, TakeOrderConfigV2, IO, OrderConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {ClearConfig, OrderV2, TakeOrderConfigV2, IO, OrderConfigV2} from "src/interface//IOrderBookV3.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
 import {EnsureFailed} from "rain.interpreter/lib/op/logic/LibOpEnsureNP.sol";

@@ -11,7 +11,7 @@ import {
     TakeOrderConfigV2,
     TakeOrdersConfigV2,
     ClearConfig
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "src/interface//IOrderBookV3.sol";
 import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
 import {IERC3156FlashBorrower} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";

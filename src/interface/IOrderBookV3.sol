@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.18;
 
-import "../ierc3156/IERC3156FlashLender.sol";
+import {IERC3156FlashLender, IERC3156FlashBorrower} from "./ierc3156/IERC3156FlashLender.sol";
 import {IExpressionDeployerV3, EvaluableV2} from "rain.interpreter/lib/caller/LibEvaluable.sol";
 import {
     EvaluableConfigV3,
@@ -10,7 +10,7 @@ import {
 } from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 
 /// Import unmodified structures from older versions of `IOrderBook`.
-import {IO, ClearConfig, ClearStateChange} from "../deprecated/IOrderBookV2.sol";
+import {IO, ClearConfig, ClearStateChange} from "./deprecated/IOrderBookV2.sol";
 
 /// Thrown when take orders is called with no orders.
 error NoOrders();

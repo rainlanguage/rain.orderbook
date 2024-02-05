@@ -11,7 +11,7 @@ import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/L
 import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "../interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
+import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "../interface/IOrderBookV3.sol";
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
 import {
     IInterpreterV2,

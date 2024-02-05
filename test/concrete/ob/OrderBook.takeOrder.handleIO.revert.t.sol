@@ -10,7 +10,7 @@ import {
     IO,
     OrderConfigV2,
     TakeOrdersConfigV2
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "src/interface//IOrderBookV3.sol";
 import {EnsureFailed} from "rain.interpreter/lib/op/logic/LibOpEnsureNP.sol";
 import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
