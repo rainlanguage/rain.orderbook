@@ -3,7 +3,7 @@ source: crates/subgraph/tests/vaults_test.rs
 expression: request_body.query
 ---
 query VaultsListQuery($first: Int, $skip: Int) {
-  tokenVaults(orderBy: owner__id, orderDirection: desc, skip: $skip, first: $first) {
+  tokenVaults(orderBy: id, orderDirection: desc, skip: $skip, first: $first) {
     id
     owner {
       id
