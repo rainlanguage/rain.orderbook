@@ -141,7 +141,7 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>> for Abi
 
 #[derive(Debug, Error)]
 pub enum ForkCallError {
-    #[error("EVMError error: {0}")]
+    #[error("{0}")]
     EVMError(String),
     #[error("AbiDecodeFailed error: {0}")]
     AbiDecodeFailed(AbiDecodeFailedErrors),
@@ -165,23 +165,19 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkC
 
 #[derive(Debug, Error)]
 pub enum ForkParseError {
-    #[error("ForkCall error: {0}")]
-    ForkCallFailed(ForkCallError),
+    #[error(transparent)]
+    ForkCallFailed(#[from] ForkCallError),
     #[error("{0}")]
     AbiDecodedError(AbiDecodedErrorType),
-    #[error("Invalid Front Matter error: {0}")]
-    InvalidFrontMatter(#[from] AddOrderArgsError),
+    #[error("Invalid Front Matter: {0}")]
+    FrontMatterInvalid(#[from] AddOrderArgsError),
+    #[error("Invalid Parser address received from deployer")]
+    ParserAddressInvalid,
 }
 
 impl From<AbiDecodedErrorType> for ForkParseError {
     fn from(value: AbiDecodedErrorType) -> Self {
         Self::AbiDecodedError(value)
-    }
-}
-
-impl From<ForkCallError> for ForkParseError {
-    fn from(value: ForkCallError) -> Self {
-        Self::ForkCallFailed(value)
     }
 }
 

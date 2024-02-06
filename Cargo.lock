@@ -4749,6 +4749,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "slice_as_array",
  "strict-yaml-rust",
  "thiserror",
  "tokio",
@@ -5761,6 +5762,12 @@ checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "slice_as_array"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64c963ee59ddedb5ab95dc2cd97c48b4a292572a52c5636fbbabdb9985bfe4c3"
 
 [[package]]
 name = "smallvec"
