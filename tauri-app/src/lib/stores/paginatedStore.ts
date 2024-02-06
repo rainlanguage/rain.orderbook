@@ -8,7 +8,7 @@ type Unsubscriber = () => void;
 
 export interface PaginatedCachedStore<T> {
     subscribe: ( subscriber: Subscriber<Page<T>>, invalidate?: Invalidator<Page<T>>) => Unsubscriber,
-    fetchPage: (page?: number, pageSize?: number) => Promise<void>;
+    fetchPage: (page?: number) => Promise<void>;
     fetchPrev: () => Promise<void>;
     fetchNext: () => Promise<void>;
     exportCsv: () => void;
@@ -26,7 +26,7 @@ export interface AllPages<T> {
   [pageIndex: number]: Array<T>
 }
 
-export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number, pageSize: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
+export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
   const allPages = writable<AllPages<T>>(localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : []);
   const pageIndex = writable(1);
   const isFetching = writable(false);
@@ -50,10 +50,9 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
     isExporting: $isExporting
   }));
 
-  async function fetchPage(page: number = 1, pageSize: number = 10) {
-    const res: Array<T> = await fetchPageHandler(page, pageSize);
+  async function fetchPage(page: number = 1) {
+    const res: Array<T> = await fetchPageHandler(page);
     if(res.length === 0) {
-      toasts.error("No results found");
       throw Error("No results found");
     }
 
@@ -63,7 +62,7 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
     });
   }
 
-  async function swrvPage(newPage: number) {
+  async function swrvPage(newPage: number, displayError: boolean = false) {
     if(newPage <= 0) return;
     if(get(isFetching)) return;
 
@@ -74,15 +73,21 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
         await promise;
         pageIndex.set(newPage);
       // eslint-disable-next-line no-empty
-      } catch(e) {}
+      } catch(e) {
+        if(displayError) {
+          toasts.error((e as Error).message);
+        }
+      }
     } else {
       pageIndex.set(newPage);
     }
     isFetching.set(false);
   }
 
-  const fetchPrev = () => swrvPage(get(pageIndex) - 1);
-  const fetchNext = () => swrvPage(get(pageIndex) + 1);
+  const fetchPrev = () => swrvPage(get(pageIndex) - 1, true);
+  const fetchNext = () => swrvPage(get(pageIndex) + 1, true);
+  const fetchFirst = () => swrvPage(1);
+
 
   async function exportCsv() {
     isExporting.set(true);
@@ -107,6 +112,7 @@ export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page:
 
   return {
     subscribe,
+    fetchFirst,
     fetchPage,
     fetchPrev,
     fetchNext,

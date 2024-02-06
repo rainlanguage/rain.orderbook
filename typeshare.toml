@@ -1,6 +1,6 @@
 [typescript.type_mappings]
 "Id" = "string"
-"BigInt" = "bigint"
+"BigInt" = "string"
 "BigDecimal" = "string"
 "Bytes" = "string"
 "Uuid" = "string"

@@ -2,13 +2,14 @@ use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     deposit::DepositArgs,
-    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
+    subgraph::SubgraphArgs,
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{flattened::TokenVaultFlattened, vault_detail, vaults_list},
+    types::{flattened::{TokenVaultFlattened, VaultBalanceChangeFlattened}, vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
     WriteCsv,
+    PaginationArgs,
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -16,7 +17,7 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn vaults_list(
     subgraph_args: SubgraphArgs,
-    pagination_args: SubgraphPaginationArgs,
+    pagination_args: PaginationArgs,
 ) -> CommandResult<Vec<vaults_list::TokenVault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
@@ -30,7 +31,7 @@ pub async fn vaults_list(
 pub async fn vaults_list_write_csv(
     path: PathBuf,
     subgraph_args: SubgraphArgs,
-    pagination_args: SubgraphPaginationArgs,
+    pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
     let vaults = subgraph_args
         .to_subgraph_client()
@@ -39,6 +40,38 @@ pub async fn vaults_list_write_csv(
         .await?;
     let vaults_flattened: Vec<TokenVaultFlattened> = vaults.into_iter().map(|o| o.into()).collect();
     vaults_flattened.write_csv(path)?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn vault_list_balance_changes(
+    id: String,
+    subgraph_args: SubgraphArgs,
+    pagination_args: PaginationArgs,
+) -> CommandResult<Vec<VaultBalanceChange>> {
+    let data = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .vault_list_balance_changes(id.into(), pagination_args)
+        .await?;
+    Ok(data)
+}
+
+#[tauri::command]
+pub async fn vault_list_balance_changes_write_csv(
+    id: String,
+    path: PathBuf,
+    subgraph_args: SubgraphArgs,
+    pagination_args: PaginationArgs,
+) -> CommandResult<()> {
+    let data = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .vault_list_balance_changes(id.into(), pagination_args)
+        .await?;
+    let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.into()).collect();
+    data_flattened.write_csv(path)?;
 
     Ok(())
 }
