@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { lightTheme } from './themes';
+	import { lightTheme } from '../utils/codeMirrorThemes';
 	import CodeMirror from 'svelte-codemirror-editor';
-	import { forkParseDotrain } from './forkParse';
+	import { parseDotrain } from '../utils/parseDotrain';
 	import { RainlangExtension, type LanguageServicesConfig, RainDocument, type Problem, MetaStore } from 'codemirror-rainlang';
 
 	// @TODO - reactive vars, for fork url and block number
@@ -12,7 +12,7 @@
 
 	// the fork calback fn
 	const callback = async(dotrain: RainDocument): Promise<Problem[]> => {
-		return forkParseDotrain(dotrain, forkUrl, forkBlockNumber);
+		return parseDotrain(dotrain, forkUrl, forkBlockNumber);
 	}
 
 	// extension config
@@ -42,28 +42,19 @@
 
 </script>
 
-<div class="h-full flex-grow">
-	<CodeMirror
-		bind:value={dotrain_string}
-		placeholder="start writing your strategy here..."
-		theme={activeTheme}
-		styles={{
-			'&': {
-				flexGrow: 1,
-				height: '100%'
-			}
-		}}
-		useTab={true}
-		tabSize={2}
-		extensions={[
-			rainlangCodemirror
-		]}
-	/>
-</div>
-
-<!-- <style lang="postcss" global>
-	.codemirror-wrapper {
-		display: flex;
-		height: 100%;
-	}
-</style> -->
+<CodeMirror
+	bind:value={dotrain_string}
+	placeholder="start writing your strategy here..."
+	theme={activeTheme}
+	styles={{
+		'&': {
+			flexGrow: 1,
+			height: '100%'
+		}
+	}}
+	useTab={true}
+	tabSize={2}
+	extensions={[
+		rainlangCodemirror
+	]}
+/>

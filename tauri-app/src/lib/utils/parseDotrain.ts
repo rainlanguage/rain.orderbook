@@ -9,7 +9,7 @@ import { RainDocument, ErrorCode, type Problem } from "codemirror-rainlang";
  * @param forkBlockNumber - fork block number
  * @returns Resolves with empty array or with array of Problems if encountered an error
  */
-export async function forkParseDotrain(dotrain: RainDocument, forkUrl: string, forkBlockNumber: number): Promise<Problem[]> {
+export async function parseDotrain(dotrain: RainDocument, forkUrl: string, forkBlockNumber: number): Promise<Problem[]> {
   let rainlang: string;
   const frontMatter = dotrain.frontMatter;
   try {
