@@ -12,7 +12,8 @@ use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
 
-const FROM_ADDRESS: Address = Address::repeat_byte(0x1);
+/// Arbitrary address used to call forked contracts
+const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
 
 /// Cache of evm fork instances, keyed by rpc url + block number
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
@@ -77,7 +78,7 @@ pub async fn fork_parse_rainlang(
     let deployer = AddOrderArgs::try_parse_frontmatter(frontmatter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
-    let parser = fork_call(rpc_url, block_number, FROM_ADDRESS, deployer, &calldata).await??;
+    let parser = fork_call(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
     let parser_bytes =
         slice_as_array!(parser.as_ref(), [u8; 20]).ok_or(ForkParseError::ParserAddressInvalid)?;
     let parser_address = Address::from(parser_bytes);
@@ -89,7 +90,7 @@ pub async fn fork_parse_rainlang(
     let expression_config = fork_call(
         rpc_url,
         block_number,
-        FROM_ADDRESS,
+        SENDER_ADDRESS,
         parser_address,
         &calldata,
     )
@@ -97,7 +98,7 @@ pub async fn fork_parse_rainlang(
 
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
-    fork_call(rpc_url, block_number, FROM_ADDRESS, deployer, &calldata).await??;
+    fork_call(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
 
     Ok(expression_config)
 }
