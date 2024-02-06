@@ -151,7 +151,7 @@ pub enum ForkCallError {
     ForkCacheKeyMissing(String),
 }
 
-impl<'a> From<AbiDecodeFailedErrors> for ForkCallError {
+impl From<AbiDecodeFailedErrors> for ForkCallError {
     fn from(value: AbiDecodeFailedErrors) -> Self {
         Self::AbiDecodeFailed(value)
     }
