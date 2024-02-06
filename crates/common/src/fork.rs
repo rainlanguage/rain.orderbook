@@ -10,7 +10,6 @@ use rain_interpreter_bindings::DeployerISP::iParserCall;
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
 use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
-use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use std::{collections::HashMap, sync::Mutex};
 
@@ -20,30 +19,44 @@ const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
 pub static FORKS: Lazy<Arc<Mutex<HashMap<String, ForkedEvm>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
 
-pub async fn fork_call<'a>(
+pub async fn fork_call(
     rpc_url: &str,
     block_number: u64,
     from_address: &[u8],
     to_address: &[u8],
     calldata: &[u8],
-) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError<'a>> {
+) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
     // build cache key from fork url and block number
     let key = rpc_url.to_owned() + &block_number.to_string();
 
-    // load evm fork from cache, or generate one and save to cache
-    let mut cache = FORKS.lock()?;
-    let cached_evm_fork = cache.entry(key);
-    let evm_fork = match cached_evm_fork {
-        Entry::Occupied(o) => o.into_mut(),
-        Entry::Vacant(v) => {
-            let new_evm_fork =
-                ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
-            v.insert(new_evm_fork)
-        }
-    };
+    let is_cached = FORKS.lock()?.contains_key(&key);
+    let result = if is_cached {
+        // load evm fork from cache
+        let mut forks = FORKS.lock()?;
+        let forked_evm = forks
+            .get_mut(&key)
+            .ok_or(ForkCallError::ForkCacheKeyMissing(key))?;
 
-    // call contract on evm fork
-    let result = evm_fork.call(from_address, to_address, calldata)?;
+        // call contract on evm fork
+        forked_evm
+            .call(from_address, to_address, calldata)
+            .map_err(|e| ForkCallError::EVMError(e.to_string()))?
+    } else {
+        // Generate new evm fork
+        let mut forked_evm =
+            ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
+
+        // call contract on evm fork
+        let result = forked_evm
+            .call(from_address, to_address, calldata)
+            .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
+
+        // add new fork to cache
+        let mut forks = FORKS.lock()?;
+        forks.insert(key, forked_evm);
+
+        result
+    };
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert

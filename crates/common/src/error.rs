@@ -2,7 +2,6 @@ use crate::{add_order::AddOrderArgsError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
-use eyre::Report;
 use forker::ForkedEvm;
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -63,9 +62,9 @@ impl std::fmt::Display for AbiDecodedErrorType {
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
-pub async fn abi_decode_error<'a>(
+pub async fn abi_decode_error(
     error_data: &[u8],
-) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors<'a>> {
+) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors> {
     let (hash_bytes, args_data) = error_data.split_at(4);
     let selector_hash = alloy_primitives::hex::encode_prefixed(hash_bytes);
     let selector_hash_bytes: [u8; 4] = hash_bytes.try_into()?;
@@ -125,49 +124,49 @@ pub async fn abi_decode_error<'a>(
 }
 
 #[derive(Debug, Error)]
-pub enum AbiDecodeFailedErrors<'a> {
+pub enum AbiDecodeFailedErrors {
     #[error("Reqwest error: {0}")]
     ReqwestError(#[from] reqwest::Error),
     #[error("InvalidSelectorHash error: {0}")]
     InvalidSelectorHash(#[from] std::array::TryFromSliceError),
-    #[error("SelectorsCachePoisoned error: {0}")]
-    SelectorsCachePoisoned(PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>),
+    #[error("Selectors Cache Poisoned")]
+    SelectorsCachePoisoned,
 }
 
-impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
-    for AbiDecodeFailedErrors<'a>
-{
-    fn from(value: PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>) -> Self {
-        Self::SelectorsCachePoisoned(value)
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>> for AbiDecodeFailedErrors {
+    fn from(_value: PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>) -> Self {
+        Self::SelectorsCachePoisoned
     }
 }
 
 #[derive(Debug, Error)]
-pub enum ForkCallError<'a> {
+pub enum ForkCallError {
     #[error("EVMError error: {0}")]
-    EVMError(#[from] Report),
+    EVMError(String),
     #[error("AbiDecodeFailed error: {0}")]
-    AbiDecodeFailed(AbiDecodeFailedErrors<'a>),
-    #[error("ForkCachePoisoned error: {0}")]
-    ForkCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
+    AbiDecodeFailed(AbiDecodeFailedErrors),
+    #[error("Fork Cache Poisoned")]
+    ForkCachePoisoned,
+    #[error("Missing expected cache key {0}")]
+    ForkCacheKeyMissing(String),
 }
 
-impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
-    fn from(value: AbiDecodeFailedErrors<'a>) -> Self {
+impl<'a> From<AbiDecodeFailedErrors> for ForkCallError {
+    fn from(value: AbiDecodeFailedErrors) -> Self {
         Self::AbiDecodeFailed(value)
     }
 }
 
-impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
-    fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
-        Self::ForkCachePoisoned(value)
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError {
+    fn from(_value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
+        Self::ForkCachePoisoned
     }
 }
 
 #[derive(Debug, Error)]
 pub enum ForkParseError {
     #[error("ForkCall error: {0}")]
-    ForkCallFailed(ForkCallError<'static>),
+    ForkCallFailed(ForkCallError),
     #[error("{0}")]
     AbiDecodedError(AbiDecodedErrorType),
     #[error("Invalid Front Matter error: {0}")]
@@ -180,8 +179,8 @@ impl From<AbiDecodedErrorType> for ForkParseError {
     }
 }
 
-impl From<ForkCallError<'static>> for ForkParseError {
-    fn from(value: ForkCallError<'static>) -> Self {
+impl From<ForkCallError> for ForkParseError {
+    fn from(value: ForkCallError) -> Self {
         Self::ForkCallFailed(value)
     }
 }

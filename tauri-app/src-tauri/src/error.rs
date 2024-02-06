@@ -28,7 +28,7 @@ pub enum CommandError {
     WriteCsvError(#[from] WriteCsvError),
 
     #[error(transparent)]
-    ForkParseRainlangError(ForkParseError),
+    ForkParseError(#[from] ForkParseError),
 
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
@@ -44,9 +44,3 @@ impl Serialize for CommandError {
 }
 
 pub type CommandResult<T> = Result<T, CommandError>;
-
-impl From<ForkParseError> for CommandError {
-    fn from(value: ForkParseError) -> Self {
-        Self::ForkParseRainlangError(value)
-    }
-}
