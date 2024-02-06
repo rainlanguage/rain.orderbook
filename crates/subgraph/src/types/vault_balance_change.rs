@@ -4,6 +4,7 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", content = "content")]
 pub enum VaultBalanceChange {
     Deposit(VaultDeposit),
     Withdraw(VaultWithdraw),
