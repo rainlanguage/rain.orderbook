@@ -7,6 +7,7 @@
   import { loadDotrainFile } from '$lib/utils/dotrain';
   import { toasts } from '$lib/stores/toasts';
   import { orderAdd } from '$lib/utils/orderAdd';
+    import { Card } from 'flowbite-svelte';
 
   let dotrain: string = '';
   let isOpening = false;
@@ -43,11 +44,17 @@
   </svelte:fragment>
 </PageHeader>
 
-<div class="mb-4">
-	<h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-		Order Strategy
-	</h5>
-  <CodeMirrorDotrain bind:value={dotrain} disabled={isSubmitting} />
+
+<div class="flex justify-center w-full mb-4">
+  <div class="w-full">
+    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Order Dotrain
+    </h5>
+
+    <Card size="xl" class="w-full">
+      <CodeMirrorDotrain bind:value={dotrain} disabled={isSubmitting} />
+    </Card>
+  </div>
 </div>
 
 <div class="flex justify-end">

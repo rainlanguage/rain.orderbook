@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { lightTheme } from '../utils/codeMirrorThemes';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { parseDotrain } from '../utils/parseDotrain';
 	import { RainlangExtension, type LanguageServicesConfig, RainDocument, type Problem, MetaStore } from 'codemirror-rainlang';
 	import { rpcUrl } from '$lib/stores/settings';
+	import { codeMirrorTheme } from '$lib/stores/darkMode';
 
 	export let value: string;
 	export let disabled = false;
+
 
 	const callback = async(dotrain: RainDocument): Promise<Problem[]> => parseDotrain(dotrain, $rpcUrl, 5000);
 	const metaStore = new MetaStore(false);
@@ -22,7 +23,7 @@
 <CodeMirror
 	bind:value
 	extensions={[rainlangExtension]}
-	theme={lightTheme}
+	theme={$codeMirrorTheme}
 	readonly={disabled}
 	useTab={true}
 	tabSize={2}
