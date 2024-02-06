@@ -2,12 +2,13 @@ use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     remove_order::RemoveOrderArgs,
-    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
+    subgraph::SubgraphArgs,
     transaction::TransactionArgs,
 };
 use rain_orderbook_subgraph_client::{
     types::{flattened::OrderFlattened, order_detail, orders_list},
     WriteCsv,
+    PaginationArgs
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -15,7 +16,7 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn orders_list(
     subgraph_args: SubgraphArgs,
-    pagination_args: SubgraphPaginationArgs,
+    pagination_args: PaginationArgs,
 ) -> CommandResult<Vec<orders_list::Order>> {
     let orders = subgraph_args
         .to_subgraph_client()
@@ -29,7 +30,7 @@ pub async fn orders_list(
 pub async fn orders_list_write_csv(
     path: PathBuf,
     subgraph_args: SubgraphArgs,
-    pagination_args: SubgraphPaginationArgs,
+    pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
     let orders = subgraph_args
         .to_subgraph_client()

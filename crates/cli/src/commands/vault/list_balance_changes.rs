@@ -2,16 +2,16 @@ use std::{fs::canonicalize, path::PathBuf};
 
 use crate::{
     execute::Execute,
-    subgraph::{CliSubgraphArgs, CliSubgraphPaginationArgs},
+    subgraph::{CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::{anyhow, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::{SubgraphArgs, SubgraphPaginationArgs};
+use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
     types::{flattened::VaultBalanceChangeFlattened, vault_balance_change::VaultBalanceChange},
-    WriteCsv,
+    PaginationArgs, WriteCsv,
 };
 use tracing::info;
 
@@ -24,7 +24,7 @@ pub struct CliVaultListBalanceChanges {
     pub csv_file: Option<PathBuf>,
 
     #[clap(flatten)]
-    pagination_args: CliSubgraphPaginationArgs,
+    pagination_args: CliPaginationArgs,
 
     #[clap(flatten)]
     subgraph_args: CliSubgraphArgs,
@@ -33,16 +33,11 @@ pub struct CliVaultListBalanceChanges {
 impl Execute for CliVaultListBalanceChanges {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: SubgraphPaginationArgs = self.pagination_args.clone().into();
-        let (skip, first): (Option<i32>, Option<i32>) = pagination_args.into();
+        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
         let vault_balance_changes = subgraph_args
             .to_subgraph_client()
             .await?
-            .vault_list_balance_changes(
-                self.vault_id.clone().into(),
-                skip.map(|v| v as u32),
-                first.map(|v| v as u32),
-            )
+            .vault_list_balance_changes(self.vault_id.clone().into(), pagination_args)
             .await?;
 
         if let Some(csv_file) = self.csv_file.clone() {

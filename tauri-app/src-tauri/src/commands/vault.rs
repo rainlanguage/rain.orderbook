@@ -2,13 +2,14 @@ use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     deposit::DepositArgs,
-    subgraph::{SubgraphArgs, SubgraphPaginationArgs},
+    subgraph::SubgraphArgs,
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::{
     types::{flattened::TokenVaultFlattened, vault_detail, vaults_list},
     WriteCsv,
+    PaginationArgs,
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -16,7 +17,7 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn vaults_list(
     subgraph_args: SubgraphArgs,
-    pagination_args: SubgraphPaginationArgs,
+    pagination_args: PaginationArgs,
 ) -> CommandResult<Vec<vaults_list::TokenVault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
@@ -30,7 +31,7 @@ pub async fn vaults_list(
 pub async fn vaults_list_write_csv(
     path: PathBuf,
     subgraph_args: SubgraphArgs,
-    pagination_args: SubgraphPaginationArgs,
+    pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
     let vaults = subgraph_args
         .to_subgraph_client()

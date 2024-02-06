@@ -10,4 +10,4 @@ pub mod schema {}
 
 pub use client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
 pub use csv::{WriteCsv, WriteCsvError};
-pub use pagination::PageQueryClient;
+pub use pagination::{PageQueryClient, PaginationArgs};
