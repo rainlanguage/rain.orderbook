@@ -38,6 +38,9 @@
             '';
             additionalBuildInputs = [
               pkgs.typeshare
+              pkgs.wasm-bindgen-cli
+              rainix.rust-toolchain.${system}
+              rainix.rust-build-inputs.${system}
             ];
           };
           ob-tauri-test =  rainix.mkTask.${system} {
