@@ -5,8 +5,8 @@
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { loadDotrainFile } from '$lib/utils/dotrain';
-  import { toasts} from '$lib/stores/toasts';
-    import { orderAdd } from '$lib/utils/orderAdd';
+  import { toasts } from '$lib/stores/toasts';
+  import { orderAdd } from '$lib/utils/orderAdd';
 
   let dotrain: string = '';
   let isOpening = false;
@@ -39,7 +39,7 @@
 
 <PageHeader title="Add Order">
   <svelte:fragment slot="actions">
-    <ButtonLoading size="sm" loading={isOpening} color="blue" on:click={openFile}>Load Dotrain File</ButtonLoading>
+    <ButtonLoading size="xs" loading={isOpening} color="blue" on:click={openFile}>Load Dotrain File</ButtonLoading>
   </svelte:fragment>
 </PageHeader>
 
