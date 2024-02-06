@@ -2,7 +2,7 @@ use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
 use crate::add_order::AddOrderArgs;
 use crate::error::ForkParseError;
-use alloy_primitives::Address;
+use alloy_primitives::{Address, FixedBytes};
 use alloy_sol_types::SolCall;
 use forker::*;
 use once_cell::sync::Lazy;
@@ -78,10 +78,8 @@ pub async fn fork_parse_rainlang(
     let deployer = AddOrderArgs::try_parse_frontmatter(frontmatter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
-    let parser = fork_call(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
-    let parser_bytes =
-        slice_as_array!(parser.as_ref(), [u8; 20]).ok_or(ForkParseError::ParserAddressInvalid)?;
-    let parser_address = Address::from(parser_bytes);
+    let response = fork_call(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
+    let parser_address = Address::from_word(FixedBytes::from_slice(response.as_ref()));
 
     let calldata = parseCall {
         data: rainlang.as_bytes().to_vec(),
