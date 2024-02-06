@@ -16,10 +16,10 @@ use std::{collections::HashMap, sync::Mutex};
 const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
 
 /// Cache of evm fork instances, keyed by rpc url + block number
-pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
+pub static EVM_FORK_CACHE: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub async fn fork_call(
+pub async fn call_fork(
     rpc_url: &str,
     block_number: u64,
     sender: Address,
@@ -29,10 +29,10 @@ pub async fn fork_call(
     // build cache key from fork url and block number
     let key = rpc_url.to_owned() + &block_number.to_string();
 
-    let is_cached = FORKS.lock()?.contains_key(&key);
+    let is_cached = EVM_FORK_CACHE.lock()?.contains_key(&key);
     let result = if is_cached {
         // load evm fork from cache
-        let mut forks = FORKS.lock()?;
+        let mut forks = EVM_FORK_CACHE.lock()?;
         let forked_evm = forks
             .get_mut(&key)
             .ok_or(ForkCallError::ForkCacheKeyMissing(key))?;
@@ -52,7 +52,7 @@ pub async fn fork_call(
             .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
 
         // add new fork to cache
-        let mut forks = FORKS.lock()?;
+        let mut forks = EVM_FORK_CACHE.lock()?;
         forks.insert(key, forked_evm);
 
         result
@@ -69,7 +69,7 @@ pub async fn fork_call(
 /// checks the front matter validity and parses the given rainlang string
 /// with the deployer parsed from the front matter
 /// returns abi encoded expression config on Ok variant
-pub async fn fork_parse_rainlang(
+pub async fn parse_dotrain_fork(
     frontmatter: &str,
     rainlang: &str,
     rpc_url: &str,
@@ -78,14 +78,14 @@ pub async fn fork_parse_rainlang(
     let deployer = AddOrderArgs::try_parse_frontmatter(frontmatter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
-    let response = fork_call(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
+    let response = call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
     let parser_address = Address::from_word(FixedBytes::from_slice(response.as_ref()));
 
     let calldata = parseCall {
         data: rainlang.as_bytes().to_vec(),
     }
     .abi_encode();
-    let expression_config = fork_call(
+    let expression_config = call_fork(
         rpc_url,
         block_number,
         SENDER_ADDRESS,
@@ -96,7 +96,7 @@ pub async fn fork_parse_rainlang(
 
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
-    fork_call(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
+    call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
 
     Ok(expression_config)
 }
@@ -126,7 +126,7 @@ mod tests {
         // this is calling parse() that will not run integrity checks
         // in order to run integrity checks another call should be done on
         // expressionDeployer2() of deployer contract with same process
-        let result = fork_call(
+        let result = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
             FROM_ADDRESS,
@@ -154,7 +154,7 @@ mod tests {
             .unwrap();
 
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
-        let expression_config = fork_call(
+        let expression_config = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
             FROM_ADDRESS,
@@ -172,7 +172,7 @@ mod tests {
             .unwrap();
 
         // get integrity check results, if ends with error, decode with the selectors
-        let result = fork_call(
+        let result = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
             FROM_ADDRESS,
@@ -203,7 +203,7 @@ mod tests {
             .parse::<Address>()
             .unwrap();
 
-        let expression_config = fork_call(
+        let expression_config = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
             FROM_ADDRESS,
@@ -221,7 +221,7 @@ mod tests {
             .unwrap();
 
         // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
-        let result = fork_call(
+        let result = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
             FROM_ADDRESS,

@@ -46,7 +46,7 @@ export async function parseDotrain(dotrain: RainDocument): Promise<Problem[]> {
 
   try {
     // invoke tauri fork parse command
-    await invoke('fork_parse', { frontmatter: dotrain.frontMatter, rainlang, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
+    await invoke('parse_dotrain', { frontmatter: dotrain.frontMatter, rainlang, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
     return [];
   } catch(err) {
     // if the fork call fails, reject with the caught errors
