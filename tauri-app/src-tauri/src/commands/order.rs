@@ -7,7 +7,7 @@ use rain_orderbook_common::{
     add_order::AddOrderArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{flattened::OrderFlattened, order_detail, orders_list},
+    types::{flattened::{OrderFlattened, TryIntoFlattenedError},  order_detail, orders_list},
     WriteCsv,
     PaginationArgs
 };
@@ -38,7 +38,7 @@ pub async fn orders_list_write_csv(
         .await?
         .orders_list(pagination_args)
         .await?;
-    let orders_flattened: Vec<OrderFlattened> = orders.into_iter().map(|o| o.into()).collect();
+    let orders_flattened: Vec<OrderFlattened> = orders.into_iter().map(|o| o.try_into()).collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
     orders_flattened.write_csv(path)?;
 
     Ok(())
