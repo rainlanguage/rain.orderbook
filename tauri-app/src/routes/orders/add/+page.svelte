@@ -45,18 +45,19 @@
 </PageHeader>
 
 
-<div class="flex justify-center w-full mb-4">
-  <div class="w-full">
+<div class="flex justify-center w-full">
+  <div class="w-full max-w-screen-xl mb-4">
     <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       Order Dotrain
     </h5>
 
-    <Card size="xl" class="w-full">
+    <Card size="xl" class="w-full mb-4">
       <CodeMirrorDotrain bind:value={dotrain} disabled={isSubmitting} />
     </Card>
-  </div>
-</div>
 
-<div class="flex justify-end">
-  <ButtonLoading color="green" size="xl" loading={isSubmitting} disabled={isEmpty} on:click={execute}>Add Order</ButtonLoading>
+
+    <div class="flex justify-end">
+      <ButtonLoading color="green" size="xl" loading={isSubmitting} disabled={isEmpty} on:click={execute}>Add Order</ButtonLoading>
+    </div>
+  </div>
 </div>
