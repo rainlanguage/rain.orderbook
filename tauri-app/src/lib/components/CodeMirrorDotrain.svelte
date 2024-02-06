@@ -27,9 +27,9 @@
 	useTab={true}
 	tabSize={2}
 	styles={{
-	"&": {
+		"&": {
 			width: "100%",
 			minHeight: "400px",
-	},
-}}
+		},
+	}}
 />
