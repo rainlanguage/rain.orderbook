@@ -2,6 +2,7 @@ use crate::{add_order::AddOrderArgsError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
+use eyre::Report;
 use forker::ForkedEvm;
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -144,17 +145,11 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
 #[derive(Debug, Error)]
 pub enum ForkCallError<'a> {
     #[error("EVMError error: {0}")]
-    EVMError(String),
+    EVMError(#[from] Report),
     #[error("AbiDecodeFailed error: {0}")]
     AbiDecodeFailed(AbiDecodeFailedErrors<'a>),
     #[error("ForkCachePoisoned error: {0}")]
     ForkCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
-}
-
-impl From<String> for ForkCallError<'_> {
-    fn from(value: String) -> Self {
-        Self::EVMError(value)
-    }
 }
 
 impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {

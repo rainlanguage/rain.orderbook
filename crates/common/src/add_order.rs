@@ -24,9 +24,9 @@ static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-i
 pub enum AddOrderArgsError {
     #[error("frontmatter is not valid strict yaml: {0}")]
     FrontmatterInvalidYaml(#[from] ScanError),
-    #[error("order frontmatter field is invalid: {0}")]
+    #[error("Invalid Field: {0}")]
     FrontmatterFieldInvalid(String),
-    #[error("order frontmatter field is missing: {0}")]
+    #[error("Missing Field: {0}")]
     FrontmatterFieldMissing(String),
     #[error(transparent)]
     DISPairError(#[from] DISPairError),
@@ -134,9 +134,12 @@ impl AddOrderArgs {
         frontmatter: &str,
     ) -> Result<(Address, Vec<IO>, Vec<IO>), AddOrderArgsError> {
         // Parse dotrain document frontmatter
+        println!("called try_parse_frontmatter {:?}", frontmatter);
+
         let frontmatter_yaml = StrictYamlLoader::load_from_str(frontmatter)
             .map_err(AddOrderArgsError::FrontmatterInvalidYaml)?;
 
+        println!("frontmatter_yaml {:?}", frontmatter_yaml);
         let deployer = frontmatter_yaml[0]["orderbook"]["order"]["deployer"]
             .as_str()
             .ok_or(AddOrderArgsError::FrontmatterFieldMissing(

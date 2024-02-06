@@ -31,6 +31,7 @@ rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
 serde_bytes = { workspace = true }
 forker = { workspace = true }
+eyre = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

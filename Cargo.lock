@@ -4736,6 +4736,7 @@ dependencies = [
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "dotrain",
+ "eyre",
  "forker",
  "once_cell",
  "rain-meta 1.0.0",

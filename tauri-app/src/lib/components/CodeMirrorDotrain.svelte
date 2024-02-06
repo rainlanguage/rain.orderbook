@@ -7,7 +7,6 @@
 	export let value: string;
 	export let disabled = false;
 
-
 	const callback = async(dotrain: RainDocument): Promise<Problem[]> => parseDotrain(dotrain);
 	const metaStore = new MetaStore(false);
 	const config: LanguageServicesConfig = {

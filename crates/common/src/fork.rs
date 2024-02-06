@@ -10,50 +10,40 @@ use rain_interpreter_bindings::DeployerISP::iParserCall;
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
 use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
+use std::collections::hash_map::Entry;
+use std::sync::Arc;
 use std::{collections::HashMap, sync::Mutex};
 
 const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
 
-/// static hashmap of fork evm instances, used for caching instances between runs
-pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+/// Cache of evm fork instances, keyed by rpc url + block number
+pub static FORKS: Lazy<Arc<Mutex<HashMap<String, ForkedEvm>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 pub async fn fork_call<'a>(
-    fork_url: &str,
-    fork_block_number: u64,
+    rpc_url: &str,
+    block_number: u64,
     from_address: &[u8],
     to_address: &[u8],
     calldata: &[u8],
 ) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError<'a>> {
-    // build key from fork url and block number
-    let key = fork_url.to_owned() + &fork_block_number.to_string();
+    // build cache key from fork url and block number
+    let key = rpc_url.to_owned() + &block_number.to_string();
 
-    let is_cached = { FORKS.lock()?.contains_key(&key) };
-
-    let result = if is_cached {
-        let mut forks = FORKS.lock()?;
-        let forked_evm = forks
-            .get_mut(&key)
-            .ok_or("could not get the cached forked evm".to_owned())?;
-
-        // call a contract read-only
-        forked_evm
-            .call(from_address, to_address, calldata)
-            .map_err(|e| e.to_string())?
-    } else {
-        let mut forked_evm =
-            ForkedEvm::new(fork_url, Some(fork_block_number), Some(200000u64), None).await;
-
-        // call a contract read-only
-        let res = forked_evm
-            .call(from_address, to_address, calldata)
-            .map_err(|e| e.to_string())?;
-
-        // lock static FORKS
-        let mut forks = FORKS.lock()?;
-        forks.insert(key, forked_evm);
-        res
+    // load evm fork from cache, or generate one and save to cache
+    let mut cache = FORKS.lock()?;
+    let cached_evm_fork = cache.entry(key);
+    let evm_fork = match cached_evm_fork {
+        Entry::Occupied(o) => o.into_mut(),
+        Entry::Vacant(v) => {
+            let new_evm_fork =
+                ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
+            v.insert(new_evm_fork)
+        }
     };
+
+    // call contract on evm fork
+    let result = evm_fork.call(from_address, to_address, calldata)?;
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
@@ -67,17 +57,17 @@ pub async fn fork_call<'a>(
 /// with the deployer parsed from the front matter
 /// returns abi encoded expression config on Ok variant
 pub async fn fork_parse_rainlang(
-    rainlang_string: &str,
-    front_matter: &str,
-    fork_url: &str,
-    fork_block_number: u64,
+    frontmatter: &str,
+    rainlang: &str,
+    rpc_url: &str,
+    block_number: u64,
 ) -> Result<Bytes, ForkParseError> {
-    let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)?.0;
+    let deployer = AddOrderArgs::try_parse_frontmatter(frontmatter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
     let parser_address = fork_call(
-        fork_url,
-        fork_block_number,
+        rpc_url,
+        block_number,
         &decode(FROM_ADDRESS).unwrap(),
         deployer.as_slice(),
         &calldata,
@@ -85,12 +75,12 @@ pub async fn fork_parse_rainlang(
     .await??;
 
     let calldata = parseCall {
-        data: rainlang_string.as_bytes().to_vec(),
+        data: rainlang.as_bytes().to_vec(),
     }
     .abi_encode();
     let expression_config = fork_call(
-        fork_url,
-        fork_block_number,
+        rpc_url,
+        block_number,
         &decode(FROM_ADDRESS).unwrap(),
         &parser_address,
         &calldata,
@@ -100,8 +90,8 @@ pub async fn fork_parse_rainlang(
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
     fork_call(
-        fork_url,
-        fork_block_number,
+        rpc_url,
+        block_number,
         &decode(FROM_ADDRESS).unwrap(),
         deployer.as_slice(),
         &calldata,

@@ -12,7 +12,6 @@ import { get } from 'svelte/store';
  */
 export async function parseDotrain(dotrain: RainDocument): Promise<Problem[]> {
   let rainlang: string;
-  const frontMatter = dotrain.frontMatter;
   try {
     // set the hardcoded entrypoints
     rainlang = await dotrain.compose(["calculate-io", "handle-io"]);
@@ -47,7 +46,7 @@ export async function parseDotrain(dotrain: RainDocument): Promise<Problem[]> {
 
   try {
     // invoke tauri fork parse command
-    await invoke('fork_parse', { frontMatter, rainlang, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
+    await invoke('fork_parse', { frontmatter: dotrain.frontMatter, rainlang, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
     return [];
   } catch(err) {
     // if the fork call fails, reject with the caught errors
