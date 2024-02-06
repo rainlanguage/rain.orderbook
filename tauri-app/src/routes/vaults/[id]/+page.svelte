@@ -70,7 +70,7 @@
           Owner Address
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {vault.owner.id}
+          <Hash type={HashType.Wallet} shorten={false} value={vault.owner.id} />
         </p>
       </div>
 
