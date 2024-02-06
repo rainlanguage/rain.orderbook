@@ -1,8 +1,9 @@
-use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
 use serde::{Deserialize, Serialize};
+
+use crate::{transaction::TransactionArgs, transaction_error::WritableTransactionExecuteError};
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct WithdrawArgs {

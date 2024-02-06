@@ -1,8 +1,5 @@
-use crate::{add_order::AddOrderArgsError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
-use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
-use forker::ForkedEvm;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde_json::Value;
@@ -17,18 +14,6 @@ pub const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-dat
 /// hashmap of cached error selectors    
 pub static SELECTORS: Lazy<Mutex<HashMap<[u8; 4], AlloyError>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
-
-#[derive(Error, Debug)]
-pub enum WritableTransactionExecuteError {
-    #[error(transparent)]
-    WritableClient(#[from] WritableClientError),
-    #[error(transparent)]
-    TransactionArgs(#[from] TransactionArgsError),
-    #[error(transparent)]
-    LedgerClient(#[from] LedgerClientError),
-    #[error("Invalid input args: {0}")]
-    InvalidArgs(String),
-}
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum AbiDecodedErrorType {
@@ -138,56 +123,6 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>>
 {
     fn from(value: PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>) -> Self {
         Self::SelectorsCachePoisoned(value)
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum ForkCallError<'a> {
-    #[error("EVMError error: {0}")]
-    EVMError(String),
-    #[error("AbiDecodeFailed error: {0}")]
-    AbiDecodeFailed(AbiDecodeFailedErrors<'a>),
-    #[error("ForkCachePoisoned error: {0}")]
-    ForkCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
-}
-
-impl From<String> for ForkCallError<'_> {
-    fn from(value: String) -> Self {
-        Self::EVMError(value)
-    }
-}
-
-impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
-    fn from(value: AbiDecodeFailedErrors<'a>) -> Self {
-        Self::AbiDecodeFailed(value)
-    }
-}
-
-impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
-    fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
-        Self::ForkCachePoisoned(value)
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum ForkParseError {
-    #[error("ForkCall error: {0}")]
-    ForkCallFailed(ForkCallError<'static>),
-    #[error("{0}")]
-    AbiDecodedError(AbiDecodedErrorType),
-    #[error("Invalid Front Matter error: {0}")]
-    InvalidFrontMatter(#[from] AddOrderArgsError),
-}
-
-impl From<AbiDecodedErrorType> for ForkParseError {
-    fn from(value: AbiDecodedErrorType) -> Self {
-        Self::AbiDecodedError(value)
-    }
-}
-
-impl From<ForkCallError<'static>> for ForkParseError {
-    fn from(value: ForkCallError<'static>) -> Self {
-        Self::ForkCallFailed(value)
     }
 }
 

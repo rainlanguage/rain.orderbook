@@ -1,22 +1,74 @@
-use super::error::ForkCallError;
-use super::error::{abi_decode_error, AbiDecodedErrorType};
-use crate::add_order::AddOrderArgs;
-use crate::error::ForkParseError;
+use crate::add_order::AddOrderArgsError;
+use crate::decode_abi_error::{AbiDecodeFailedErrors, AbiDecodedErrorType};
+use crate::{add_order::AddOrderArgs, decode_abi_error::abi_decode_error};
 use alloy_primitives::hex::decode;
 use alloy_sol_types::SolCall;
+use forker::ForkedEvm;
 use forker::*;
 use once_cell::sync::Lazy;
 use rain_interpreter_bindings::DeployerISP::iParserCall;
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
 use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
+use std::sync::{MutexGuard, PoisonError};
 use std::{collections::HashMap, sync::Mutex};
+use thiserror::Error;
 
 const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
 
 /// static hashmap of fork evm instances, used for caching instances between runs
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+
+#[derive(Debug, Error)]
+pub enum ForkCallError<'a> {
+    #[error("EVMError error: {0}")]
+    EVMError(String),
+    #[error("AbiDecodeFailed error: {0}")]
+    AbiDecodeFailed(AbiDecodeFailedErrors<'a>),
+    #[error("ForkCachePoisoned error: {0}")]
+    ForkCachePoisoned(PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>),
+}
+
+impl From<String> for ForkCallError<'_> {
+    fn from(value: String) -> Self {
+        Self::EVMError(value)
+    }
+}
+
+impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
+    fn from(value: AbiDecodeFailedErrors<'a>) -> Self {
+        Self::AbiDecodeFailed(value)
+    }
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
+    fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
+        Self::ForkCachePoisoned(value)
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ForkParseError {
+    #[error("ForkCall error: {0}")]
+    ForkCallFailed(ForkCallError<'static>),
+    #[error("{0}")]
+    AbiDecodedError(AbiDecodedErrorType),
+    #[error("Invalid Front Matter error: {0}")]
+    InvalidFrontMatter(#[from] AddOrderArgsError),
+}
+
+impl From<AbiDecodedErrorType> for ForkParseError {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        Self::AbiDecodedError(value)
+    }
+}
+
+impl From<ForkCallError<'static>> for ForkParseError {
+    fn from(value: ForkCallError<'static>) -> Self {
+        Self::ForkCallFailed(value)
+    }
+}
 
 pub async fn fork_call<'a>(
     fork_url: &str,
