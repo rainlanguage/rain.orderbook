@@ -1,7 +1,6 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-
-use rain_orderbook_common::subgraph::SubgraphPaginationArgs;
+use rain_orderbook_subgraph_client::PaginationArgs;
 
 #[derive(Args, Clone)]
 pub struct CliSubgraphArgs {
@@ -22,7 +21,7 @@ impl From<CliSubgraphArgs> for SubgraphArgs {
 }
 
 #[derive(Args, Clone)]
-pub struct CliSubgraphPaginationArgs {
+pub struct CliPaginationArgs {
     #[arg(short, long, help = "Page number to query", default_value = "1")]
     pub page: u16,
 
@@ -35,8 +34,8 @@ pub struct CliSubgraphPaginationArgs {
     pub page_size: u16,
 }
 
-impl From<CliSubgraphPaginationArgs> for SubgraphPaginationArgs {
-    fn from(val: CliSubgraphPaginationArgs) -> Self {
+impl From<CliPaginationArgs> for PaginationArgs {
+    fn from(val: CliPaginationArgs) -> Self {
         Self {
             page: val.page,
             page_size: val.page_size,

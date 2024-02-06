@@ -13,7 +13,7 @@ pub struct VaultsListQueryVariables {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "VaultsListQueryVariables")]
 pub struct VaultsListQuery {
-    #[arguments(orderBy: "owner__id", orderDirection: "desc", skip: $skip, first: $first)]
+    #[arguments(orderBy: "id", orderDirection: "desc", skip: $skip, first: $first)]
     pub token_vaults: Vec<TokenVault>,
 }
 
