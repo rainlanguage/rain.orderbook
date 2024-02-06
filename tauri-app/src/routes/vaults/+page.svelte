@@ -23,6 +23,8 @@
   import type { TokenVault } from '$lib/typeshare/vaultsList';
   import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import HashShortened from '$lib/components/HashShortened.svelte';
+  import { HashType } from '$lib/utils/hash';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -51,9 +53,9 @@
       {#each $vaultsList.currentPage as vault}
         <TableBodyRow on:click={() => {goto(`/vaults/${vault.id}`)}}>
           <TableBodyCell tdClass="break-all px-4 py-2">{toHex(vault.vault_id)}</TableBodyCell>
-          <TableBodyCell tdClass="break-all px-4 py-2">{vault.owner.id}</TableBodyCell>
-          <TableBodyCell tdClass="break-word p-2">{vault.token.name}</TableBodyCell>
-          <TableBodyCell tdClass="break-all p-2">
+          <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"><HashShortened type={HashType.Wallet} value={vault.owner.id} /></TableBodyCell>
+          <TableBodyCell tdClass="break-word p-2 min-w-48">{vault.token.name}</TableBodyCell>
+          <TableBodyCell tdClass="break-all p-2 min-w-48">
             {vault.balance_display}
             {vault.token.symbol}
           </TableBodyCell>
