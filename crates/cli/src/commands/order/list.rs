@@ -5,7 +5,7 @@ use crate::{
     subgraph::{CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::{anyhow, Result};
-use chrono::{NaiveDateTime, TimeZone, Utc};
+use chrono::{Local, NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
@@ -58,7 +58,7 @@ fn build_table(orders: Vec<Order>) -> Result<Table> {
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
         .set_header(vec![
             "Order ID",
-            "Added At (UTC)",
+            "Added At",
             "Active",
             "Owner",
             "Input Tokens",
@@ -69,11 +69,11 @@ fn build_table(orders: Vec<Order>) -> Result<Table> {
         let timestamp_i64 = order.timestamp.0.parse::<i64>()?;
         let timestamp_naive = NaiveDateTime::from_timestamp_opt(timestamp_i64, 0)
             .ok_or(anyhow!("Failed to parse timestamp into NaiveDateTime"))?;
-        let timestamp_utc = Utc.from_utc_datetime(&timestamp_naive);
+        let timestamp_local = Utc.from_utc_datetime(&timestamp_naive).with_timezone(&Local);
 
         table.add_row(vec![
             order.id.inner().into(),
-            format!("{}", timestamp_utc.format("%Y-%m-%d %H:%M:%S")),
+            format!("{}", timestamp_local.format("%Y-%m-%d %I:%M:%S %p")),
             format!("{}", order.order_active),
             format!("{}", order.owner.id.0),
             order

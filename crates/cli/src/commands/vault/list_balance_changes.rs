@@ -5,7 +5,7 @@ use crate::{
     subgraph::{CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::{anyhow, Result};
-use chrono::{NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
@@ -64,7 +64,7 @@ fn build_table(balance_change: Vec<VaultBalanceChange>) -> Result<Table> {
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
         .set_header(vec![
             "ID",
-            "Changed At (UTC)",
+            "Changed At",
             "Sender",
             "Balance Change",
             "Change Type",
@@ -76,11 +76,13 @@ fn build_table(balance_change: Vec<VaultBalanceChange>) -> Result<Table> {
                 let timestamp_i64 = w.timestamp.0.parse::<i64>()?;
                 let timestamp_naive = NaiveDateTime::from_timestamp_opt(timestamp_i64, 0)
                     .ok_or(anyhow!("Failed to parse timestamp into NaiveDateTime"))?;
-                let timestamp_utc = Utc.from_utc_datetime(&timestamp_naive);
+                let timestamp_local = Utc
+                    .from_utc_datetime(&timestamp_naive)
+                    .with_timezone(&Local);
 
                 table.add_row(vec![
                     format!("{}", w.id.clone().into_inner()),
-                    format!("{}", timestamp_utc.format("%Y-%m-%d %H:%M:%S")),
+                    format!("{}", timestamp_local.format("%Y-%m-%d %I:%M:%S %p")),
                     format!("{}", w.sender.id.clone().0),
                     format!("-{}", w.amount_display.0),
                     "Withdraw".to_string(),
@@ -90,11 +92,11 @@ fn build_table(balance_change: Vec<VaultBalanceChange>) -> Result<Table> {
                 let timestamp_i64 = d.timestamp.0.parse::<i64>()?;
                 let timestamp_naive = NaiveDateTime::from_timestamp_opt(timestamp_i64, 0)
                     .ok_or(anyhow!("Failed to parse timestamp into NaiveDateTime"))?;
-                let timestamp_utc = Utc.from_utc_datetime(&timestamp_naive);
+                let timestamp_local = Utc.from_utc_datetime(&timestamp_naive).with_timezone(&Local);
 
                 table.add_row(vec![
                     format!("{}", d.id.clone().into_inner()),
-                    format!("{}", timestamp_utc.format("%Y-%m-%d %H:%M:%S")),
+                    format!("{}", timestamp_local.format("%Y-%m-%d %I:%M:%S %p")),
                     format!("{}", d.sender.id.clone().0),
                     format!("{}", d.amount_display.0),
                     "Deposit".to_string(),
