@@ -47,7 +47,7 @@ impl std::fmt::Display for AbiDecodedErrorType {
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
-pub async fn abi_decode_error<'a>(
+pub async fn decode_abi_error<'a>(
     error_data: &[u8],
 ) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors<'a>> {
     let (hash_bytes, args_data) = error_data.split_at(4);
@@ -132,7 +132,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_decoder() {
-        let res = abi_decode_error(&[26, 198, 105, 8])
+        let res = decode_abi_error(&[26, 198, 105, 8])
             .await
             .expect("failed to get error selector");
         assert_eq!(

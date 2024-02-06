@@ -1,6 +1,6 @@
 use crate::add_order::AddOrderArgsError;
 use crate::decode_abi_error::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use crate::{add_order::AddOrderArgs, decode_abi_error::abi_decode_error};
+use crate::{add_order::AddOrderArgs, decode_abi_error::decode_abi_error};
 use alloy_primitives::hex::decode;
 use alloy_sol_types::SolCall;
 use forker::ForkedEvm;
@@ -110,7 +110,7 @@ pub async fn fork_call<'a>(
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
-        Ok(Err(abi_decode_error(&result.result).await?))
+        Ok(Err(decode_abi_error(&result.result).await?))
     } else {
         Ok(Ok(result.result))
     }
