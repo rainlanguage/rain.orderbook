@@ -17,9 +17,11 @@ serde = { workspace = true }
 alloy-primitives = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 csv = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
+tokio = { workspace = true }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }

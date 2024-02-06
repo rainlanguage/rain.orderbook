@@ -26,6 +26,7 @@ cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/
 cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/vaultsList.graphql  > crates/subgraph/src/types/vaults_list.rs
 cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/orderDetail.graphql  > crates/subgraph/src/types/order_detail.rs
 cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/ordersList.graphql  > crates/subgraph/src/types/orders_list.rs
+cynic querygen --schema crates/subgraph/schema/orderbook.graphql --query crates/subgraph/queries/vaultBalanceChangesList.graphql  > crates/subgraph/src/types/vault_list_balance_changes.rs
 ```
 
 2. Prepend each generated types file with the following:
