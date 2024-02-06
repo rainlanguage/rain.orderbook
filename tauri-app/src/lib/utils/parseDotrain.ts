@@ -52,7 +52,7 @@ export async function parseDotrain(dotrain: RainDocument): Promise<Problem[]> {
     // if the fork call fails, reject with the caught errors
     return [{
       msg: typeof err === "string" ? err : err instanceof Error ? err.message : "",
-      position: [0, 0], // default position for native parser errors without knowing offset
+      position: [0, dotrain.frontMatter.length], // default position for native parser errors without knowing offset
       code: ErrorCode.NativeParserError
     }]
   }
