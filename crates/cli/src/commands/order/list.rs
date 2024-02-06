@@ -4,13 +4,12 @@ use crate::{
     execute::Execute,
     subgraph::{CliPaginationArgs, CliSubgraphArgs},
 };
-use anyhow::{anyhow, Result};
-use chrono::{Local, NaiveDateTime, TimeZone, Utc};
+use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
-    types::{flattened::OrderFlattened, orders_list::Order},
+    types::flattened::{OrderFlattened, TryIntoFlattenedError},
     PaginationArgs, WriteCsv,
 };
 use tracing::info;
@@ -36,14 +35,17 @@ impl Execute for CliOrderListArgs {
             .await?
             .orders_list(pagination_args)
             .await?;
+        let orders_flattened: Vec<OrderFlattened> =
+            orders
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
 
         if let Some(csv_file) = self.csv_file.clone() {
-            let orders_flattened: Vec<OrderFlattened> =
-                orders.into_iter().map(|o| o.into()).collect();
             orders_flattened.write_csv(csv_file.clone())?;
             info!("Saved to CSV at {:?}", canonicalize(csv_file.as_path())?);
         } else {
-            let table = build_table(orders)?;
+            let table = build_table(orders_flattened)?;
             info!("\n{}", table);
         }
 
@@ -51,7 +53,7 @@ impl Execute for CliOrderListArgs {
     }
 }
 
-fn build_table(orders: Vec<Order>) -> Result<Table> {
+fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
     let mut table = comfy_table::Table::new();
     table
         .load_preset(comfy_table::presets::UTF8_FULL)
@@ -65,37 +67,14 @@ fn build_table(orders: Vec<Order>) -> Result<Table> {
             "Output Tokens",
         ]);
 
-    for order in orders.iter() {
-        let timestamp_i64 = order.timestamp.0.parse::<i64>()?;
-        let timestamp_naive = NaiveDateTime::from_timestamp_opt(timestamp_i64, 0)
-            .ok_or(anyhow!("Failed to parse timestamp into NaiveDateTime"))?;
-        let timestamp_local = Utc.from_utc_datetime(&timestamp_naive).with_timezone(&Local);
-
+    for order in orders.into_iter() {
         table.add_row(vec![
-            order.id.inner().into(),
-            format!("{}", timestamp_local.format("%Y-%m-%d %I:%M:%S %p")),
+            order.id,
+            order.timestamp_display,
             format!("{}", order.order_active),
-            format!("{}", order.owner.id.0),
-            order
-                .valid_inputs
-                .clone()
-                .map_or("".into(), |valid_inputs| {
-                    valid_inputs
-                        .into_iter()
-                        .map(|v| v.token.symbol)
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                }),
-            order
-                .valid_outputs
-                .clone()
-                .map_or("".into(), |valid_outputs| {
-                    valid_outputs
-                        .into_iter()
-                        .map(|v| v.token.symbol)
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                }),
+            format!("{}", order.owner.0),
+            order.valid_inputs_token_symbols_display,
+            order.valid_outputs_token_symbols_display,
         ]);
     }
 
