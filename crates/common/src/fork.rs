@@ -14,6 +14,7 @@ use std::sync::{MutexGuard, PoisonError};
 use std::{collections::HashMap, sync::Mutex};
 use thiserror::Error;
 
+/// arbitrary address used to call contracts from in fork
 const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
 
 /// static hashmap of fork evm instances, used for caching instances between runs
