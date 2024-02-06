@@ -7,8 +7,9 @@ import { updateChainId } from '$lib/stores/chain';
 export const rpcUrl = writable(localStorage.getItem("settings.rpcUrl") || '');
 export const subgraphUrl = writable(localStorage.getItem("settings.subgraphUrl") || '');
 export const orderbookAddress = writable(localStorage.getItem("settings.orderbookAddress") || '');
-export const walletAddress = writable(localStorage.getItem("settings.walletAddress") || '')
-export const walletDerivationIndex = writable(parseInt(localStorage.getItem("settings.walletDerivationIndex") || '0'))
+export const walletAddress = writable(localStorage.getItem("settings.walletAddress") || '');
+export const walletDerivationIndex = writable(parseInt(localStorage.getItem("settings.walletDerivationIndex") || '0'));
+export const forkBlockNumber = writable(parseInt(localStorage.getItem("settings.forkBlockNumber") || '45122616'));
 
 rpcUrl.subscribe(value => {
   localStorage.setItem("settings.rpcUrl", value || '');
@@ -24,6 +25,9 @@ walletAddress.subscribe(value => {
 });
 walletDerivationIndex.subscribe(value => {
   localStorage.setItem("settings.walletDerivationIndex", (value || 0).toString());
+});
+forkBlockNumber.subscribe(value => {
+  localStorage.setItem("settings.forkBlockNumber", (value || 45122616).toString());
 });
 
 export const isRpcUrlValid = derived(rpcUrl, (val) => isUrlValid(val));

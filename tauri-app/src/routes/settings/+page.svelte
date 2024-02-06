@@ -11,6 +11,7 @@
     isSubgraphUrlValid,
     isOrderbookAddressValid,
     isSettingsDefinedAndValid,
+    forkBlockNumber,
   } from '$lib/stores/settings';
   import { activeChain } from '$lib/stores/chain';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
@@ -83,6 +84,14 @@
         bind:derivationIndex={$walletDerivationIndex}
         bind:walletAddress={$walletAddress}
       />
+    </div>
+
+    <div class="mb-8">
+      <Label class="bold mb-2 block text-xl">Forked Block Number</Label>
+      <Input label="Parsing Fork Block Number" name="parsingForkBlockNumber" required bind:value={$forkBlockNumber} />
+      <Helper class="mt-2 text-sm">
+        The block number that will be forked to run the Rainlang Parser contract on.
+      </Helper>
     </div>
   </div>
 </div>

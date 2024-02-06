@@ -4,13 +4,13 @@ use crate::error::CommandResult;
 
 #[tauri::command]
 pub async fn fork_parse(
-    rainlang: &str,
     front_matter: &str,
-    fork_url: &str,
-    fork_block_number: u64,
+    rainlang: &str,
+    rpc_url: &str,
+    block_number: u64,
 ) -> CommandResult<Bytes> {
     Ok(
-        fork_parse_rainlang(rainlang, front_matter, fork_url, fork_block_number)
+        fork_parse_rainlang(front_matter, rainlang, rpc_url, block_number)
             .await
             .map(Bytes::from)?,
     )
