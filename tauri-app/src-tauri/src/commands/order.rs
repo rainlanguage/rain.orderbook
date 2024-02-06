@@ -4,6 +4,7 @@ use rain_orderbook_common::{
     remove_order::RemoveOrderArgs,
     subgraph::{SubgraphArgs, SubgraphPaginationArgs},
     transaction::TransactionArgs,
+    add_order::AddOrderArgs,
 };
 use rain_orderbook_subgraph_client::{
     types::{flattened::OrderFlattened, order_detail, orders_list},
@@ -54,6 +55,26 @@ pub async fn order_detail(
         .await?;
 
     Ok(order)
+}
+
+#[tauri::command]
+pub async fn order_add(
+    app_handle: AppHandle,
+    add_order_args: AddOrderArgs,
+    transaction_args: TransactionArgs,
+) -> CommandResult<()> {
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into(), None);
+        add_order_args
+            .execute(transaction_args, |status| {
+                tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+            })
+            .await
+            .map_err(|e| {
+                toast_error(app_handle.clone(), e.to_string());
+                e
+            })?;
+
+    Ok(())
 }
 
 #[tauri::command]

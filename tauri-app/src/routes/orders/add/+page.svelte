@@ -6,18 +6,31 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { loadDotrainFile } from '$lib/utils/dotrain';
   import { toasts} from '$lib/stores/toasts';
+    import { orderAdd } from '$lib/utils/orderAdd';
 
-  let isLoading = false;
-  let dotrain: string;
+  let dotrain: string = '';
+  let isOpening = false;
+  let isSubmitting = false;
+
+  $: isEmpty = dotrain.length === 0;
 
   async function openFile() {
-    isLoading = true
+    isOpening = true
     try {
       dotrain = await loadDotrainFile();
     } catch(e) {
       toasts.error(e as string);
     }
-    isLoading = false
+    isOpening = false
+  }
+
+  async function execute() {
+    isSubmitting = true;
+    try {
+      await orderAdd(dotrain);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
   }
 
   redirectIfSettingsNotDefined();
@@ -26,7 +39,7 @@
 
 <PageHeader title="Add Order">
   <svelte:fragment slot="actions">
-    <ButtonLoading size="sm" loading={isLoading} color="blue" on:click={openFile}>Open a Dotrain File</ButtonLoading>
+    <ButtonLoading size="sm" loading={isOpening} color="blue" on:click={openFile}>Load Dotrain File</ButtonLoading>
   </svelte:fragment>
 </PageHeader>
 
@@ -34,9 +47,9 @@
 	<h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
 		Order Strategy
 	</h5>
-  <CodeMirrorDotrain bind:value={dotrain} />
+  <CodeMirrorDotrain bind:value={dotrain} disabled={isSubmitting} />
 </div>
 
 <div class="flex justify-end">
-  <ButtonLoading color="green" size="xl">Publish Order</ButtonLoading>
+  <ButtonLoading color="green" size="xl" loading={isSubmitting} disabled={isEmpty} on:click={execute}>Add Order</ButtonLoading>
 </div>

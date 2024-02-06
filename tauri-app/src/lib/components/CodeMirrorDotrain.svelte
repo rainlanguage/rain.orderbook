@@ -6,6 +6,7 @@
 	import { rpcUrl } from '$lib/stores/settings';
 
 	export let value: string;
+	export let disabled = false;
 
 	const callback = async(dotrain: RainDocument): Promise<Problem[]> => parseDotrain(dotrain, $rpcUrl, 5000);
 	const metaStore = new MetaStore(false);
@@ -22,12 +23,13 @@
 	bind:value
 	extensions={[rainlangExtension]}
 	theme={lightTheme}
+	readonly={disabled}
 	useTab={true}
 	tabSize={2}
 	styles={{
 	"&": {
 			width: "100%",
-			minHeight: "400px"
+			minHeight: "400px",
 	},
 }}
 />
