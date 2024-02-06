@@ -1,4 +1,4 @@
-use crate::transaction::TransactionArgsError;
+use crate::{add_order::AddOrderArgsError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
@@ -38,6 +38,27 @@ pub enum AbiDecodedErrorType {
         args: Vec<String>,
         sig: String,
     },
+}
+
+impl From<AbiDecodedErrorType> for String {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        value.to_string()
+    }
+}
+
+impl std::fmt::Display for AbiDecodedErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AbiDecodedErrorType::Unknown => {
+                f.write_str("native parser panicked with unknown error!")
+            }
+            AbiDecodedErrorType::Known { name, args, .. } => f.write_str(&format!(
+                "native parser panicked with: {}\n{}",
+                name,
+                args.join("\n")
+            )),
+        }
+    }
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
@@ -145,6 +166,28 @@ impl<'a> From<AbiDecodeFailedErrors<'a>> for ForkCallError<'a> {
 impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError<'a> {
     fn from(value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
         Self::ForkCachePoisoned(value)
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ForkParseError {
+    #[error("ForkCall error: {0}")]
+    ForkCallFailed(ForkCallError<'static>),
+    #[error("{0}")]
+    AbiDecodedError(AbiDecodedErrorType),
+    #[error("Invalid Front Matter error: {0}")]
+    InvalidFrontMatter(#[from] AddOrderArgsError),
+}
+
+impl From<AbiDecodedErrorType> for ForkParseError {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        Self::AbiDecodedError(value)
+    }
+}
+
+impl From<ForkCallError<'static>> for ForkParseError {
+    fn from(value: ForkCallError<'static>) -> Self {
+        Self::ForkCallFailed(value)
     }
 }
 
