@@ -7,7 +7,7 @@ pub async fn parse_dotrain(
     frontmatter: &str,
     rainlang: &str,
     rpc_url: &str,
-    block_number: u64,
+    block_number: Option<u64>,
 ) -> CommandResult<Bytes> {
     Ok(
         parse_rainlang_fork(frontmatter, rainlang, rpc_url, block_number)
