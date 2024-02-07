@@ -55,14 +55,14 @@ pub struct AddOrderArgs {
     /// orderbook:
     ///     order:
     ///         deployer: 0x1111111111111111111111111111111111111111
-    ///         validInputs:
+    ///         valid-inputs:
     ///             - address: 0x2222222222222222222222222222222222222222
     ///               decimals: 18
-    ///               vaultId: 0x1234
-    ///         validOutputs:
+    ///               vault-id: 0x1234
+    ///         valid-outputs:
     ///             - address: 0x5555555555555555555555555555555555555555
     ///               decimals: 8
-    ///               vaultId: 0x5678
+    ///               vault-id: 0x5678
     /// ```
     ///
     /// Text MUST have valid dotrain body succeding frontmatter.
@@ -71,7 +71,7 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    /// Parse an Io array from from frontmatter field (i.e. validInputs or validOutputs)
+    /// Parse an Io array from from frontmatter field (i.e. valid-inputs or valid-outputs)
     pub(crate) fn try_parse_frontmatter_io(
         io_yamls: StrictYaml,
         io_field_name: &str,
@@ -111,16 +111,16 @@ impl AddOrderArgs {
                                 io_field_name
                             ))
                         })?,
-                    vaultId: io_yaml["vaultId"]
+                    vaultId: io_yaml["vault-id"]
                         .as_str()
                         .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
-                            "orderbook.order.{}.vault",
+                            "orderbook.order.{}.vault-id",
                             io_field_name
                         )))?
                         .parse::<U256>()
                         .map_err(|_| {
                             AddOrderArgsError::FrontmatterFieldInvalid(format!(
-                                "orderbook.order.{}.vault",
+                                "orderbook.order.{}.vault-id",
                                 io_field_name
                             ))
                         })?,
@@ -129,7 +129,7 @@ impl AddOrderArgs {
             .collect::<Result<Vec<IO>, AddOrderArgsError>>()
     }
 
-    /// Parse dotrain frontmatter to extract deployer, validInputs and validOutputs
+    /// Parse dotrain frontmatter to extract deployer, valid-inputs and valid-outputs
     pub(crate) fn try_parse_frontmatter(
         frontmatter: &str,
     ) -> Result<(Address, Vec<IO>, Vec<IO>), AddOrderArgsError> {
@@ -148,12 +148,12 @@ impl AddOrderArgs {
             })?;
 
         let valid_inputs: Vec<IO> = Self::try_parse_frontmatter_io(
-            frontmatter_yaml[0]["orderbook"]["order"]["validInputs"].clone(),
-            "validInputs",
+            frontmatter_yaml[0]["orderbook"]["order"]["valid-inputs"].clone(),
+            "valid-inputs",
         )?;
         let valid_outputs: Vec<IO> = Self::try_parse_frontmatter_io(
-            frontmatter_yaml[0]["orderbook"]["order"]["validOutputs"].clone(),
-            "validOutputs",
+            frontmatter_yaml[0]["orderbook"]["order"]["valid-outputs"].clone(),
+            "valid-outputs",
         )?;
 
         Ok((deployer, valid_inputs, valid_outputs))
@@ -258,14 +258,14 @@ mod tests {
 orderbook:
     order:
         deployer: 0x1111111111111111111111111111111111111111
-        validInputs:
+        valid-inputs:
             - token: 0x0000000000000000000000000000000000000001
               decimals: 18
-              vaultId: 0x1
-        validOutputs:
+              vault-id: 0x1
+        valid-outputs:
             - token: 0x0000000000000000000000000000000000000002
               decimals: 18
-              vaultId: 0x2
+              vault-id: 0x2
 ";
 
         let (deployer, valid_inputs, valid_outputs) =
