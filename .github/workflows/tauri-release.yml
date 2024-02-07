@@ -41,8 +41,17 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libssl-dev
 
       # Need to prebuild the sol artifacts so that rust can find them.
-      - run: nix run .#rainix-sol-prelude
-      - run: nix run .#ob-tauri-prelude
+      - run: nix develop --command rainix-sol-prelude
+      - run: nix develop --command rainix-rs-prelude
+
+      - run: nix develop --command rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop --command rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop --command i9r-prelude
+        working-directory: lib/rain.interpreter
+
+      - run: nix develop .#tauri-shell --command ob-tauri-prelude
 
       - uses: tauri-apps/tauri-action@v0
         env:
