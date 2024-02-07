@@ -38,7 +38,7 @@ jobs:
         if: matrix.platform == 'ubuntu-20.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf pkg-config
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libssl-dev
 
       # Need to prebuild the sol artifacts so that rust can find them.
       - run: nix run .#rainix-sol-prelude
