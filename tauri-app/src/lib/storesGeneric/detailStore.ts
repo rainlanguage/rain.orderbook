@@ -1,7 +1,7 @@
-import { useCachedWritable } from '$lib/storesGeneric/cachedWritable';
+import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 
-export function useDetailStore<T>(key: string, fetchById: (id: string) => Promise<T>) {
-  const {subscribe, update} = useCachedWritable<{[id: string]: T}>(key, {}, (value) => JSON.stringify(value), (value) => JSON.parse(value));
+export function detailStore<T>(key: string, fetchById: (id: string) => Promise<T>) {
+  const {subscribe, update} = cachedWritableStore<{[id: string]: T}>(key, {}, (value) => JSON.stringify(value), (value) => JSON.parse(value));
 
   subscribe(value => {
     if(value) {

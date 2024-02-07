@@ -1,6 +1,6 @@
 import { writable } from "svelte/store";
 
-export function useCachedWritable<T>(
+export function cachedWritableStore<T>(
   key: string,
   defaultValue: T,
   serialize: (value: T) => string,
@@ -27,15 +27,15 @@ export function useCachedWritable<T>(
   return data;
 }
 
-export const cachedWritableString = (key: string, defaultValue = '') => useCachedWritable<string>(key, defaultValue, (v) => v, (v) => v);
-export const cachedWritableInt = (key: string, defaultValue = 0) => useCachedWritable<number>(key, defaultValue, (v) => v.toString(), (v) => parseInt(v));
+export const cachedWritableString = (key: string, defaultValue = '') => cachedWritableStore<string>(key, defaultValue, (v) => v, (v) => v);
+export const cachedWritableInt = (key: string, defaultValue = 0) => cachedWritableStore<number>(key, defaultValue, (v) => v.toString(), (v) => parseInt(v));
 
 
-export const useCachedWritableOptional = <T>(
+export const cachedWritableOptionalStore = <T>(
   key: string,
   defaultValue: T | undefined = undefined,
   serialize: (value: T) => string,
   deserialize: (serialized: string) => T
-) => useCachedWritable<T | undefined>(key, defaultValue, (v) => v ? serialize(v) : '', (v) => v ? deserialize(v) : undefined);
+) => cachedWritableStore<T | undefined>(key, defaultValue, (v) => v ? serialize(v) : '', (v) => v ? deserialize(v) : undefined);
 
-export const cachedWritableIntOptional = (key: string, defaultValue = undefined) => useCachedWritableOptional<number>(key, defaultValue, (v) => v.toString(), (v) => parseInt(v));
+export const cachedWritableIntOptional = (key: string, defaultValue = undefined) => cachedWritableOptionalStore<number>(key, defaultValue, (v) => v.toString(), (v) => parseInt(v));
