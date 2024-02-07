@@ -48,7 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tauriScript: 'cargo tauri'
+          tauriScript: 'nix develop --command cargo tauri'
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: 'App v__VERSION__-${{ github.sha }}'
           releaseBody: 'See the assets to download this version and install.'
