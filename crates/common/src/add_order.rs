@@ -7,7 +7,7 @@ use alloy_primitives::{hex::FromHexError, Address, U256};
 use dotrain::{ComposeError, RainDocument, Store};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
-use rain_meta::{
+use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
