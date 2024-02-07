@@ -15,48 +15,64 @@ use std::{collections::HashMap, sync::Mutex};
 /// Arbitrary address used to call forked contracts
 const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
 
-/// Cache of evm fork instances, keyed by rpc url + block number
-pub static EVM_FORK_CACHE: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static FORKED_EVM_CACHE: Lazy<ForkedEvmCache> = Lazy::new(|| ForkedEvmCache::new());
 
-pub async fn call_fork(
-    rpc_url: &str,
-    block_number: u64,
+pub struct ForkedEvmCache {
+    cache: Arc<Mutex<HashMap<String, ForkedEvm>>>,
+}
+
+impl ForkedEvmCache {
+    fn new() -> Self {
+        Self {
+            cache: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    /// Create a new evm fork at the provided block number and save to cache
+    async fn add(&self, rpc_url: &str, block_number: u64) -> Result<String> {
+        // build cache key from fork url and block number
+        let cache_key = rpc_url.to_owned() + &block_number.to_string();
+
+        let is_cached = self.cache.lock()?.contains_key(&cache_key);
+        let result = if !is_cached {
+            // Generate new evm fork
+            let mut forked_evm =
+                ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
+
+            // add new fork to cache
+            let mut forks = self.cache.lock()?;
+            forks.insert(cache_key, forked_evm);
+        };
+
+        Ok(cache_key)
+    }
+
+    /// Create a new evm fork at the latest block number and save to cache
+    async fn add_at_latest_block(&self, rpc_url: &str) -> Result<String> {
+        let client = ReadableClientHttp::new_from_url(rpc_url)?;
+        let block_number = client.get_block_number().await?;
+
+        self.add(rpc_url, block_number)
+    }
+}
+
+/// Call a contract on the cached evm fork
+pub async fn call_cached_fork(
+    cache_key: String,
     sender: Address,
     address: Address,
     calldata: &[u8],
 ) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
-    // build cache key from fork url and block number
-    let key = rpc_url.to_owned() + &block_number.to_string();
+    // load evm fork from cache
+    let mut cache = FORKED_EVM_CACHE.lock()?;
+    let forked_evm = cache
+        .get_mut(&cache_key)
+        .ok_or(ForkCallError::ForkCacheKeyMissing(cache_key))?;
 
-    let is_cached = EVM_FORK_CACHE.lock()?.contains_key(&key);
-    let result = if is_cached {
-        // load evm fork from cache
-        let mut forks = EVM_FORK_CACHE.lock()?;
-        let forked_evm = forks
-            .get_mut(&key)
-            .ok_or(ForkCallError::ForkCacheKeyMissing(key))?;
-
-        // call contract on evm fork
-        forked_evm
-            .call(sender.as_slice(), address.as_slice(), calldata)
-            .map_err(|e| ForkCallError::EVMError(e.to_string()))?
-    } else {
-        // Generate new evm fork
-        let mut forked_evm =
-            ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
-
-        // call contract on evm fork
-        let result = forked_evm
-            .call(sender.as_slice(), address.as_slice(), calldata)
-            .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
-
-        // add new fork to cache
-        let mut forks = EVM_FORK_CACHE.lock()?;
-        forks.insert(key, forked_evm);
-
-        result
-    };
+    // call contract on evm fork
+    let result = forked_evm
+        .call(sender.as_slice(), address.as_slice(), calldata)
+        .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
 
     if result.reverted {
         // decode result bytes to error selectors if it was a revert
@@ -73,30 +89,31 @@ pub async fn parse_rainlang_fork(
     frontmatter: &str,
     rainlang: &str,
     rpc_url: &str,
-    block_number: u64,
+    block_number: Option<u64>,
 ) -> Result<Bytes, ForkParseError> {
     let deployer = try_parse_frontmatter(frontmatter)?.0;
 
+    // Prepare evm fork
+    let mut cache = FORKED_EVM_CACHE.lock()?;
+    let cache_key = cache.add(rpc_url, block_number_fork).await?;
+
+    // Call deployer contract: iParserCall
     let calldata = iParserCall {}.abi_encode();
-    let response = call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
+    let response = call_cached_fork(cache_key, SENDER_ADDRESS, deployer, &calldata).await??;
     let parser_address = Address::from_word(FixedBytes::from_slice(response.as_ref()));
 
+    // Call parser contract: parseCall
     let calldata = parseCall {
         data: rainlang.as_bytes().to_vec(),
     }
     .abi_encode();
-    let expression_config = call_fork(
-        rpc_url,
-        block_number,
-        SENDER_ADDRESS,
-        parser_address,
-        &calldata,
-    )
-    .await??;
+    let expression_config =
+        call_cached_fork(cache_key, SENDER_ADDRESS, parser_address, &calldata).await??;
 
+    // Call deployer: deployExpression2Call
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
-    call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
+    call_cached_fork(cache_key, SENDER_ADDRESS, deployer, &calldata).await??;
 
     Ok(expression_config)
 }
