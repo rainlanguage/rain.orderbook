@@ -1,4 +1,7 @@
-use crate::transaction::{TransactionArgs, TransactionArgsError};
+use crate::{
+    front_matter::{try_parse_frontmatter, FrontMatterError},
+    transaction::{TransactionArgs, TransactionArgsError},
+};
 use alloy_ethers_typecast::transaction::{
     ReadableClientError, ReadableClientHttp, WritableClientError, WriteTransaction,
     WriteTransactionStatus,
@@ -11,23 +14,20 @@ use rain_meta::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
-use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO};
+use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::sync::{Arc, RwLock};
-use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 
 pub static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
-    #[error("frontmatter is not valid strict yaml: {0}")]
-    FrontmatterInvalidYaml(#[from] ScanError),
-    #[error("Invalid Field: {0}")]
-    FrontmatterFieldInvalid(String),
-    #[error("Missing Field: {0}")]
-    FrontmatterFieldMissing(String),
+    #[error("Empty Front Matter")]
+    EmptyFrontmatter,
+    #[error("Front Matter: {0}")]
+    FrontmatterError(#[from] FrontMatterError),
     #[error(transparent)]
     DISPairError(#[from] DISPairError),
     #[error(transparent)]
@@ -71,97 +71,6 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    /// Parse an Io array from from frontmatter field (i.e. valid-inputs or valid-outputs)
-    pub(crate) fn try_parse_frontmatter_io(
-        io_yamls: StrictYaml,
-        io_field_name: &str,
-    ) -> Result<Vec<IO>, AddOrderArgsError> {
-        io_yamls
-            .into_vec()
-            .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
-                "orderbook.order.{}",
-                io_field_name
-            )))?
-            .into_iter()
-            .map(|io_yaml| -> Result<IO, AddOrderArgsError> {
-                Ok(IO {
-                    token: io_yaml["token"]
-                        .as_str()
-                        .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
-                            "orderbook.order.{}.token",
-                            io_field_name
-                        )))?
-                        .parse::<Address>()
-                        .map_err(|_| {
-                            AddOrderArgsError::FrontmatterFieldInvalid(format!(
-                                "orderbook.order.{}.token",
-                                io_field_name
-                            ))
-                        })?,
-                    decimals: io_yaml["decimals"]
-                        .as_str()
-                        .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
-                            "orderbook.order.{}.decimals",
-                            io_field_name
-                        )))?
-                        .parse::<u8>()
-                        .map_err(|_| {
-                            AddOrderArgsError::FrontmatterFieldInvalid(format!(
-                                "orderbook.order.{}.decimals",
-                                io_field_name
-                            ))
-                        })?,
-                    vaultId: io_yaml["vault-id"]
-                        .as_str()
-                        .ok_or(AddOrderArgsError::FrontmatterFieldMissing(format!(
-                            "orderbook.order.{}.vault-id",
-                            io_field_name
-                        )))?
-                        .parse::<U256>()
-                        .map_err(|_| {
-                            AddOrderArgsError::FrontmatterFieldInvalid(format!(
-                                "orderbook.order.{}.vault-id",
-                                io_field_name
-                            ))
-                        })?,
-                })
-            })
-            .collect::<Result<Vec<IO>, AddOrderArgsError>>()
-    }
-
-    /// Parse dotrain frontmatter to extract deployer, valid-inputs and valid-outputs
-    pub(crate) fn try_parse_frontmatter(
-        frontmatter: &str,
-    ) -> Result<(Address, Vec<IO>, Vec<IO>), AddOrderArgsError> {
-        // Parse dotrain document frontmatter
-        let frontmatter_yaml = StrictYamlLoader::load_from_str(frontmatter)
-            .map_err(AddOrderArgsError::FrontmatterInvalidYaml)?;
-
-        let deployer = frontmatter_yaml[0]["orderbook"]["order"]["deployer"]
-            .as_str()
-            .ok_or(AddOrderArgsError::FrontmatterFieldMissing(
-                "orderbook.order.deployer".into(),
-            ))?
-            .parse::<Address>()
-            .map_err(|_| {
-                AddOrderArgsError::FrontmatterFieldInvalid("orderbook.order.deployer".into())
-            })?;
-
-        let valid_inputs: Vec<IO> = Self::try_parse_frontmatter_io(
-            frontmatter_yaml[0]["orderbook"]["order"]["valid-inputs"].clone(),
-            "valid-inputs",
-        )?;
-        let valid_outputs: Vec<IO> = Self::try_parse_frontmatter_io(
-            frontmatter_yaml[0]["orderbook"]["order"]["valid-outputs"].clone(),
-            "valid-outputs",
-        )?;
-
-        // @TODO - parse and get rebinds
-        // let rebinds: Vec<Rebind> = frontmatter_yaml[0]["bind"]
-
-        Ok((deployer, valid_inputs, valid_outputs))
-    }
-
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
     async fn try_parse_rainlang(
         &self,
@@ -207,13 +116,16 @@ impl AddOrderArgs {
         // Parse file into dotrain document
         let meta_store = Arc::new(RwLock::new(Store::default()));
 
-        // @TODO - supply rebinds to the rain document instance
-        let dotrain_doc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None, None);
-        let rainlang = dotrain_doc.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS)?;
+        let front_matter = RainDocument::get_front_matter(&self.dotrain)
+            .ok_or(AddOrderArgsError::EmptyFrontmatter)?;
 
         // Prepare call
-        let (deployer, valid_inputs, valid_outputs) =
-            Self::try_parse_frontmatter(dotrain_doc.front_matter())?;
+        let (deployer, valid_inputs, valid_outputs, rebinds) = try_parse_frontmatter(front_matter)?;
+
+        let dotrain_doc =
+            RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
+        let rainlang = dotrain_doc.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS)?;
+
         let (bytecode, constants) = self
             .try_parse_rainlang(rpc_url, deployer, rainlang.clone())
             .await?;
@@ -256,49 +168,6 @@ impl AddOrderArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_try_parse_frontmatter() {
-        let frontmatter = "
-orderbook:
-    order:
-        deployer: 0x1111111111111111111111111111111111111111
-        valid-inputs:
-            - token: 0x0000000000000000000000000000000000000001
-              decimals: 18
-              vault-id: 0x1
-        valid-outputs:
-            - token: 0x0000000000000000000000000000000000000002
-              decimals: 18
-              vault-id: 0x2
-";
-
-        let (deployer, valid_inputs, valid_outputs) =
-            AddOrderArgs::try_parse_frontmatter(frontmatter).unwrap();
-
-        assert_eq!(
-            deployer,
-            "0x1111111111111111111111111111111111111111"
-                .parse::<Address>()
-                .unwrap()
-        );
-        assert_eq!(
-            valid_inputs[0].token,
-            "0x0000000000000000000000000000000000000001"
-                .parse::<Address>()
-                .unwrap()
-        );
-        assert_eq!(valid_inputs[0].decimals, 18);
-        assert_eq!(valid_inputs[0].vaultId, U256::from(1));
-        assert_eq!(
-            valid_outputs[0].token,
-            "0x0000000000000000000000000000000000000002"
-                .parse::<Address>()
-                .unwrap()
-        );
-        assert_eq!(valid_outputs[0].decimals, 18);
-        assert_eq!(valid_outputs[0].vaultId, U256::from(2));
-    }
 
     #[test]
     fn test_try_generate_meta() {

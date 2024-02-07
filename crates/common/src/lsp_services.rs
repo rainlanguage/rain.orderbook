@@ -1,8 +1,11 @@
+use crate::front_matter::try_parse_frontmatter_rebinds;
+
 use super::add_order::REQUIRED_DOTRAIN_BODY_ENTRYPOINTS;
 use super::fork::parse_dotrain_fork;
 use dotrain::{
     error::{ComposeError, ErrorCode},
     types::ast::Problem,
+    RainDocument,
 };
 use dotrain_lsp::{
     lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
@@ -17,10 +20,11 @@ pub static LANG_SERVICES: Lazy<RainLanguageServices> = Lazy::new(RainLanguageSer
 
 /// get hover for a given text document item
 pub fn get_hover(text_document: &TextDocumentItem, position: Position) -> Option<Hover> {
-    // @TODO - get rebinds
-    // let rebinds = AddOrderArgs::try_parse_frontmatter(frontmatter)?.3;
+    let rebinds = RainDocument::get_front_matter(&text_document.text)
+        .map(try_parse_frontmatter_rebinds)
+        .and_then(|v| v);
 
-    LANG_SERVICES.do_hover(text_document, position, None, None)
+    LANG_SERVICES.do_hover(text_document, position, None, rebinds)
 }
 
 /// get completion items for a given text document item
@@ -28,10 +32,11 @@ pub fn get_completion(
     text_document: &TextDocumentItem,
     position: Position,
 ) -> Option<Vec<CompletionItem>> {
-    // @TODO - get rebinds
-    // let rebinds = AddOrderArgs::try_parse_frontmatter(frontmatter)?.3;
+    let rebinds = RainDocument::get_front_matter(&text_document.text)
+        .map(try_parse_frontmatter_rebinds)
+        .and_then(|v| v);
 
-    LANG_SERVICES.do_complete(text_document, position, None, None)
+    LANG_SERVICES.do_complete(text_document, position, None, rebinds)
 }
 
 /// get problems for a given text document item
@@ -40,26 +45,17 @@ pub async fn get_problems(
     rpc_url: &str,
     block_number: u64,
 ) -> Vec<Problem> {
-    // @TODO - get rebinds
-    // let front_matter = match RainDocument::get_front_matter(&text_document.text) {
-    //     Some(v) => v,
-    //     None => {
-    //         return vec![Problem {
-    //             msg: "expected front matter".to_owned(),
-    //             position: [0, 0],
-    //             code: ErrorCode::NativeParserError,
-    //         }]
-    //     }
-    // };
-    // let rebinds = AddOrderArgs::try_parse_frontmatter(frontmatter)?.3;
+    let rebinds = RainDocument::get_front_matter(&text_document.text)
+        .map(try_parse_frontmatter_rebinds)
+        .and_then(|v| v);
 
-    let rain_document = LANG_SERVICES.new_rain_document(text_document, None);
+    let rain_document = LANG_SERVICES.new_rain_document(text_document, rebinds);
     let all_problems = rain_document.all_problems();
     if !all_problems.is_empty() {
         all_problems.iter().map(|&v| v.clone()).collect()
     } else {
         let front_matter = rain_document.front_matter();
-        let rainlang = match rain_document.compose(REQUIRED_DOTRAIN_BODY_ENTRYPOINTS.as_slice()) {
+        let rainlang = match rain_document.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS) {
             Ok(v) => v,
             Err(e) => match e {
                 ComposeError::Reject(msg) => {

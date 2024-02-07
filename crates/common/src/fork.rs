@@ -1,7 +1,7 @@
 use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
-use crate::add_order::AddOrderArgs;
 use crate::error::ForkParseError;
+use crate::front_matter::try_parse_frontmatter;
 use alloy_primitives::{Address, FixedBytes};
 use alloy_sol_types::SolCall;
 use forker::*;
@@ -75,7 +75,7 @@ pub async fn parse_dotrain_fork(
     rpc_url: &str,
     block_number: u64,
 ) -> Result<Bytes, ForkParseError> {
-    let deployer = AddOrderArgs::try_parse_frontmatter(frontmatter)?.0;
+    let deployer = try_parse_frontmatter(frontmatter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
     let response = call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
