@@ -3,14 +3,14 @@ import { derived } from 'svelte/store';
 import every from 'lodash/every';
 import { isAddress } from 'viem';
 import { updateChainId } from '$lib/stores/chain';
-import { cachedWritableInt, cachedWritableIntOptional, cachedWritableString } from '$lib/stores/cachedWritable';
+import { cachedWritableInt, cachedWritableString } from '$lib/storesGeneric/cachedWritable';
 
 export const rpcUrl = cachedWritableString("settings.rpcUrl", '');
 export const subgraphUrl = cachedWritableString("settings.subgraphUrl", '');
 export const orderbookAddress = cachedWritableString("settings.orderbookAddress", '');
 export const walletAddress = cachedWritableString("settings.walletAddress", '');
 export const walletDerivationIndex = cachedWritableInt("settings.walletDerivationIndex", 0);
-export const forkBlockNumber = cachedWritableIntOptional("settings.forkBlockNumber");
+export const forkBlockNumber = cachedWritableInt("settings.forkBlockNumber", 53247376);
 
 export const isRpcUrlValid = derived(rpcUrl, (val) => val  && isUrlValid(val));
 export const isSubgraphUrlValid = derived(subgraphUrl, (val) => val && isUrlValid(val));
