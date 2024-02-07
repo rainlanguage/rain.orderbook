@@ -1,8 +1,9 @@
 import { derived, get, writable, type Invalidator, type Subscriber } from 'svelte/store';
-import { toasts } from './toasts';
+import { toasts } from '../stores/toasts';
 import { save } from '@tauri-apps/api/dialog';
 import dayjs from 'dayjs';
 import { ToastMessageType } from '$lib/typeshare/toast';
+import { useCachedWritable } from '$lib/storesGeneric/cachedWritable';
 
 type Unsubscriber = () => void;
 
@@ -26,19 +27,14 @@ export interface AllPages<T> {
   [pageIndex: number]: Array<T>
 }
 
+
+const cachedWritablePages = <T>(key: string) => useCachedWritable<AllPages<T>>(key, [], (value) => JSON.stringify(value), (value) => JSON.parse(value));
+
 export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
-  const allPages = writable<AllPages<T>>(localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : []);
+  const allPages = cachedWritablePages<T>(key);
   const pageIndex = writable(1);
   const isFetching = writable(false);
   const isExporting = writable(false);
-
-  allPages.subscribe(value => {
-    if(value) {
-      localStorage.setItem(key, JSON.stringify(value));
-    } else {
-      localStorage.setItem(key, JSON.stringify([]));
-    }
-  });
 
   const page = derived(allPages, $allPages => (page: number) => $allPages[page] || []);
 

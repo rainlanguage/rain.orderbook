@@ -1,32 +1,7 @@
-import { get, writable } from 'svelte/store';
 import type { TokenVault } from '$lib/typeshare/vaultDetail';
+import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
+import { useDetailStore } from '$lib/storesGeneric/detailStore';
 
-function useVaultDetailStore() {
-  const STORAGE_KEY = "vaults.vaultsDetail";
-
-  const { subscribe, update } = writable<{[id: string]: TokenVault}>(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) : {});
-
-  subscribe(value => {
-    if(value) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({}));
-    }
-  });
-
-  async function refetch(id: string) {
-    const res: TokenVault = await invoke("vault_detail", {id, subgraphArgs: { url: get(subgraphUrl)} });
-    update((value) => {
-      return {... value, [id]: res};
-    });
-  }
-
-  return {
-    subscribe,
-    refetch
-  }
-}
-
-export const vaultDetail = useVaultDetailStore();
+export const vaultDetail = useDetailStore<TokenVault>("vaults.vaultsDetail", (id: string) => invoke("vault_detail", {id, subgraphArgs: { url: get(subgraphUrl)} }));

@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import type { TokenVault } from '$lib/typeshare/vaultsList';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
-import { usePaginatedCachedStore } from './paginatedStore';
+import { usePaginatedCachedStore } from '$lib/storesGeneric/paginatedStore';
 
 
 export const vaultsList = usePaginatedCachedStore<TokenVault>(
