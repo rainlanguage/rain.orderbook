@@ -10,7 +10,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = rainix.pkgs.${system};
-      in {
+      in rec {
         packages = rec {
 
           tauri-release-env = rainix.tauri-release-env.${system};
@@ -52,7 +52,12 @@
             '';
           };
         } // rainix.packages.${system};
-        devShells = rainix.devShells.${system};
+
+        devShells.default = pkgs.mkShell {
+          packages = [ packages.ob-tauri-prelude ];
+          inputsFrom = [ rainix.devShells.${system}.default ];
+        };
+
       }
     );
 
