@@ -3,7 +3,7 @@ import { toasts } from '../stores/toasts';
 import { save } from '@tauri-apps/api/dialog';
 import dayjs from 'dayjs';
 import { ToastMessageType } from '$lib/typeshare/toast';
-import { useCachedWritable } from '$lib/storesGeneric/cachedWritable';
+import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 
 type Unsubscriber = () => void;
 
@@ -28,9 +28,9 @@ export interface AllPages<T> {
 }
 
 
-const cachedWritablePages = <T>(key: string) => useCachedWritable<AllPages<T>>(key, [], (value) => JSON.stringify(value), (value) => JSON.parse(value));
+const cachedWritablePages = <T>(key: string) => cachedWritableStore<AllPages<T>>(key, [], (value) => JSON.stringify(value), (value) => JSON.parse(value));
 
-export function usePaginatedCachedStore<T>(key: string, fetchPageHandler: (page: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
+export function listStore<T>(key: string, fetchPageHandler: (page: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
   const allPages = cachedWritablePages<T>(key);
   const pageIndex = writable(1);
   const isFetching = writable(false);

@@ -3,7 +3,7 @@ import { derived } from 'svelte/store';
 import every from 'lodash/every';
 import { isAddress } from 'viem';
 import { updateChainId } from '$lib/stores/chain';
-import { cachedWritableInt, cachedWritableString } from '$lib/storesGeneric/cachedWritable';
+import { cachedWritableInt, cachedWritableString } from '$lib/storesGeneric/cachedWritableStore';
 
 export const rpcUrl = cachedWritableString("settings.rpcUrl", '');
 export const subgraphUrl = cachedWritableString("settings.subgraphUrl", '');
