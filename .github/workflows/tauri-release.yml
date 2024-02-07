@@ -42,6 +42,7 @@ jobs:
 
       # Need to prebuild the sol artifacts so that rust can find them.
       - run: nix run .#rainix-sol-prelude
+      - run: nix run .#ob-tauri-prelude
 
       - uses: tauri-apps/tauri-action@v0
         env:
