@@ -5,6 +5,7 @@ use crate::error::ForkParseError;
 use alloy_primitives::hex::decode;
 use alloy_sol_types::SolCall;
 use forker::*;
+use foundry_evm::executors::RawCallResult;
 use once_cell::sync::Lazy;
 use rain_interpreter_bindings::DeployerISP::iParserCall;
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
@@ -24,7 +25,7 @@ pub async fn fork_call<'a>(
     from_address: &[u8],
     to_address: &[u8],
     calldata: &[u8],
-) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError<'a>> {
+) -> Result<Result<RawCallResult, AbiDecodedErrorType>, ForkCallError<'a>> {
     // build key from fork url and block number
     let key = fork_url.to_owned() + &fork_block_number.to_string();
 
@@ -59,7 +60,7 @@ pub async fn fork_call<'a>(
         // decode result bytes to error selectors if it was a revert
         Ok(Err(abi_decode_error(&result.result).await?))
     } else {
-        Ok(Ok(result.result))
+        Ok(Ok(result))
     }
 }
 
@@ -82,7 +83,8 @@ pub async fn fork_parse_rainlang(
         deployer.as_slice(),
         &calldata,
     )
-    .await??;
+    .await??
+    .result;
 
     let calldata = parseCall {
         data: rainlang_string.as_bytes().to_vec(),
@@ -95,7 +97,8 @@ pub async fn fork_parse_rainlang(
         &parser_address,
         &calldata,
     )
-    .await??;
+    .await??
+    .result;
 
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
@@ -168,7 +171,8 @@ mod tests {
         )
         .await
         .unwrap()
-        .unwrap();
+        .unwrap()
+        .result;
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
@@ -210,7 +214,8 @@ mod tests {
         )
         .await
         .unwrap()
-        .unwrap();
+        .unwrap()
+        .result;
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
