@@ -13,7 +13,7 @@
 
 <PageHeader title="Orders">
   <svelte:fragment slot="actions">
-    <Button color="green" size="xs">Add</Button>
+    <Button color="green" size="xs" href="/orders/add">Add</Button>
   </svelte:fragment>
 </PageHeader>
 

@@ -1,5 +1,6 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
+use rain_orderbook_common::add_order::AddOrderArgsError;
 use rain_orderbook_common::error::ForkParseError;
 use rain_orderbook_subgraph_client::{OrderbookSubgraphClientError, WriteCsvError};
 use serde::{ser::Serializer, Serialize};
@@ -27,7 +28,10 @@ pub enum CommandError {
     WriteCsvError(#[from] WriteCsvError),
 
     #[error(transparent)]
-    ForkParseRainlangError(ForkParseError),
+    ForkParseError(#[from] ForkParseError),
+
+    #[error(transparent)]
+    AddOrderArgsError(#[from] AddOrderArgsError),
 }
 
 impl Serialize for CommandError {
@@ -40,9 +44,3 @@ impl Serialize for CommandError {
 }
 
 pub type CommandResult<T> = Result<T, CommandError>;
-
-impl From<ForkParseError> for CommandError {
-    fn from(value: ForkParseError) -> Self {
-        Self::ForkParseRainlangError(value)
-    }
-}

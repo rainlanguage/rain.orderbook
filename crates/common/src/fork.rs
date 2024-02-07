@@ -2,7 +2,7 @@ use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
 use crate::add_order::AddOrderArgs;
 use crate::error::ForkParseError;
-use alloy_primitives::hex::decode;
+use alloy_primitives::{Address, FixedBytes};
 use alloy_sol_types::SolCall;
 use forker::*;
 use once_cell::sync::Lazy;
@@ -12,47 +12,50 @@ use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
 
-const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
+/// Arbitrary address used to call forked contracts
+const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
 
-/// static hashmap of fork evm instances, used for caching instances between runs
-pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
+/// Cache of evm fork instances, keyed by rpc url + block number
+pub static EVM_FORK_CACHE: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub async fn fork_call<'a>(
-    fork_url: &str,
-    fork_block_number: u64,
-    from_address: &[u8],
-    to_address: &[u8],
+pub async fn call_fork(
+    rpc_url: &str,
+    block_number: u64,
+    sender: Address,
+    address: Address,
     calldata: &[u8],
-) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError<'a>> {
-    // build key from fork url and block number
-    let key = fork_url.to_owned() + &fork_block_number.to_string();
+) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
+    // build cache key from fork url and block number
+    let key = rpc_url.to_owned() + &block_number.to_string();
 
-    let is_cached = { FORKS.lock()?.contains_key(&key) };
-
+    let is_cached = EVM_FORK_CACHE.lock()?.contains_key(&key);
     let result = if is_cached {
-        let mut forks = FORKS.lock()?;
+        // load evm fork from cache
+        let mut forks = EVM_FORK_CACHE.lock()?;
         let forked_evm = forks
             .get_mut(&key)
-            .ok_or("could not get the cached forked evm".to_owned())?;
+            .ok_or(ForkCallError::ForkCacheKeyMissing(key))?;
 
-        // call a contract read-only
+        // call contract on evm fork
         forked_evm
-            .call(from_address, to_address, calldata)
-            .map_err(|e| e.to_string())?
+            .call(sender.as_slice(), address.as_slice(), calldata)
+            .map_err(|e| ForkCallError::EVMError(e.to_string()))?
     } else {
+        // Generate new evm fork
         let mut forked_evm =
-            ForkedEvm::new(fork_url, Some(fork_block_number), Some(200000u64), None).await;
+            ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
 
-        // call a contract read-only
-        let res = forked_evm
-            .call(from_address, to_address, calldata)
-            .map_err(|e| e.to_string())?;
+        // call contract on evm fork
+        let result = forked_evm
+            .call(sender.as_slice(), address.as_slice(), calldata)
+            .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
 
-        // lock static FORKS
-        let mut forks = FORKS.lock()?;
+        // add new fork to cache
+        let mut forks = EVM_FORK_CACHE.lock()?;
         forks.insert(key, forked_evm);
-        res
+
+        result
     };
 
     if result.reverted {
@@ -66,47 +69,34 @@ pub async fn fork_call<'a>(
 /// checks the front matter validity and parses the given rainlang string
 /// with the deployer parsed from the front matter
 /// returns abi encoded expression config on Ok variant
-pub async fn fork_parse_rainlang(
-    rainlang_string: &str,
-    front_matter: &str,
-    fork_url: &str,
-    fork_block_number: u64,
+pub async fn parse_dotrain_fork(
+    frontmatter: &str,
+    rainlang: &str,
+    rpc_url: &str,
+    block_number: u64,
 ) -> Result<Bytes, ForkParseError> {
-    let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)?.0;
+    let deployer = AddOrderArgs::try_parse_frontmatter(frontmatter)?.0;
 
     let calldata = iParserCall {}.abi_encode();
-    let parser_address = fork_call(
-        fork_url,
-        fork_block_number,
-        &decode(FROM_ADDRESS).unwrap(),
-        deployer.as_slice(),
-        &calldata,
-    )
-    .await??;
+    let response = call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
+    let parser_address = Address::from_word(FixedBytes::from_slice(response.as_ref()));
 
     let calldata = parseCall {
-        data: rainlang_string.as_bytes().to_vec(),
+        data: rainlang.as_bytes().to_vec(),
     }
     .abi_encode();
-    let expression_config = fork_call(
-        fork_url,
-        fork_block_number,
-        &decode(FROM_ADDRESS).unwrap(),
-        &parser_address,
+    let expression_config = call_fork(
+        rpc_url,
+        block_number,
+        SENDER_ADDRESS,
+        parser_address,
         &calldata,
     )
     .await??;
 
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
-    fork_call(
-        fork_url,
-        fork_block_number,
-        &decode(FROM_ADDRESS).unwrap(),
-        deployer.as_slice(),
-        &calldata,
-    )
-    .await??;
+    call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
 
     Ok(expression_config)
 }
@@ -119,9 +109,7 @@ mod tests {
 
     const FORK_URL: &str = "https://rpc.ankr.com/polygon_mumbai";
     const FORK_BLOCK_NUMBER: u64 = 45122616;
-    const DEPLOYER_ADDRESS: &str = "0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b";
-    const PARSER_ADDRESS: &str = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02";
-    const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
+    const FROM_ADDRESS: Address = Address::repeat_byte(0x1);
     const DEPLOY_EXPRESSION_2_SELECTOR: &str = "0xb7f14403"; // deployExpression2(bytes,uint256[])
     const PARSE_SELECTOR: &str = "0xfab4087a"; // parse()
 
@@ -131,15 +119,18 @@ mod tests {
         let rainlang_text = r"_: int-add(1)";
         let mut calldata = decode(PARSE_SELECTOR).unwrap();
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text to build calldata
+        let parser_address: Address = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02"
+            .parse::<Address>()
+            .unwrap();
 
         // this is calling parse() that will not run integrity checks
         // in order to run integrity checks another call should be done on
         // expressionDeployer2() of deployer contract with same process
-        let result = fork_call(
+        let result = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            &decode(FROM_ADDRESS).unwrap(),
-            &decode(PARSER_ADDRESS).unwrap(),
+            FROM_ADDRESS,
+            parser_address,
             &calldata,
         )
         .await
@@ -158,12 +149,16 @@ mod tests {
         // get expressionconfig and call deployer to get integrity checks error
         let rainlang_text = r"_: int-add(1);";
         let mut calldata = decode(PARSE_SELECTOR).unwrap();
+        let parser_address: Address = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02"
+            .parse::<Address>()
+            .unwrap();
+
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
-        let expression_config = fork_call(
+        let expression_config = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            &decode(FROM_ADDRESS).unwrap(),
-            &decode(PARSER_ADDRESS).unwrap(),
+            FROM_ADDRESS,
+            parser_address,
             &calldata,
         )
         .await
@@ -172,13 +167,16 @@ mod tests {
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
+        let deployer_address: Address = "0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b"
+            .parse::<Address>()
+            .unwrap();
 
         // get integrity check results, if ends with error, decode with the selectors
-        let result = fork_call(
+        let result = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            &decode(FROM_ADDRESS).unwrap(),
-            &decode(DEPLOYER_ADDRESS).unwrap(),
+            FROM_ADDRESS,
+            deployer_address,
             &calldata,
         )
         .await
@@ -201,11 +199,15 @@ mod tests {
         let rainlang_text = r"_: int-add(1 2);";
         let mut calldata = decode(PARSE_SELECTOR).unwrap();
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
-        let expression_config = fork_call(
+        let parser_address: Address = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02"
+            .parse::<Address>()
+            .unwrap();
+
+        let expression_config = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            &decode(FROM_ADDRESS).unwrap(),
-            &decode(PARSER_ADDRESS).unwrap(),
+            FROM_ADDRESS,
+            parser_address,
             &calldata,
         )
         .await
@@ -214,13 +216,16 @@ mod tests {
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
+        let deployer_address: Address = "0x5155cE66E704c5Ce79a0c6a1b79113a6033a999b"
+            .parse::<Address>()
+            .unwrap();
 
         // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
-        let result = fork_call(
+        let result = call_fork(
             FORK_URL,
             FORK_BLOCK_NUMBER,
-            &decode(FROM_ADDRESS).unwrap(),
-            &decode(DEPLOYER_ADDRESS).unwrap(),
+            FROM_ADDRESS,
+            deployer_address,
             &calldata,
         )
         .await

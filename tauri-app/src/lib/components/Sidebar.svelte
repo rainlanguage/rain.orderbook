@@ -5,7 +5,6 @@
     SidebarItem,
     SidebarWrapper,
     SidebarBrand,
-    DarkMode,
   } from 'flowbite-svelte';
   import HomeSolid from 'flowbite-svelte-icons/HomeSolid.svelte';
   import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
@@ -15,6 +14,7 @@
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
   import { isSettingsDefinedAndValid } from '$lib/stores/settings';
+  import ButtonDarkMode from './ButtonDarkMode.svelte';
 
   $: nonActiveClass = $isSettingsDefinedAndValid
     ? 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700'
@@ -68,7 +68,7 @@
       </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border class="flex justify-end">
-      <DarkMode />
+      <ButtonDarkMode />
     </SidebarGroup>
   </SidebarWrapper>
 </Sidebar>

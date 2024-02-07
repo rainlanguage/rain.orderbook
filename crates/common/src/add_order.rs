@@ -12,6 +12,7 @@ use rain_meta::{
     RainMetaDocumentV1Item,
 };
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO};
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
@@ -23,9 +24,9 @@ static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-i
 pub enum AddOrderArgsError {
     #[error("frontmatter is not valid strict yaml: {0}")]
     FrontmatterInvalidYaml(#[from] ScanError),
-    #[error("order frontmatter field is invalid: {0}")]
+    #[error("Invalid Field: {0}")]
     FrontmatterFieldInvalid(String),
-    #[error("order frontmatter field is missing: {0}")]
+    #[error("Missing Field: {0}")]
     FrontmatterFieldMissing(String),
     #[error(transparent)]
     DISPairError(#[from] DISPairError),
@@ -45,6 +46,7 @@ pub enum AddOrderArgsError {
     ComposeError(#[from] ComposeError),
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AddOrderArgs {
     /// Text of a dotrain file describing an addOrder call
     /// Text MUST have strict yaml frontmatter of the following structure

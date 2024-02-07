@@ -17,7 +17,11 @@
         "open": true
       },
       "dialog": {
-        "save": true
+        "save": true,
+        "open": true
+      },
+      "fs": {
+        "readFile": true
       }
     },
     "bundle": {
