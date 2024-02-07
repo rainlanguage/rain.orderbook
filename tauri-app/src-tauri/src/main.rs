@@ -14,6 +14,7 @@ use commands::vault::{
     vault_withdraw, vaults_list, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
+use commands::lsp_services::{provide_completion, provide_hover, provide_problems};
 
 fn main() {
     tauri::Builder::default()
@@ -33,6 +34,9 @@ fn main() {
             get_address_from_ledger,
             get_chainid,
             parse_dotrain,
+            provide_completion, 
+            provide_hover, 
+            provide_problems
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

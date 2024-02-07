@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api';
-import { RainDocument, ErrorCode, type Problem } from "codemirror-rainlang";
+import { RainDocument, ErrorCode, type Problem, TextDocumentItem, Position, Hover, CompletionItem } from "codemirror-rainlang";
 import { forkBlockNumber, rpcUrl } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 
@@ -52,8 +52,38 @@ export async function parseDotrain(dotrain: RainDocument): Promise<Problem[]> {
     // if the fork call fails, reject with the caught errors
     return [{
       msg: typeof err === "string" ? err : err instanceof Error ? err.message : "",
-      position: [0, dotrain.frontMatter.length], // default position for native parser errors without knowing offset
+      position: [0, 0], // default position for native parser errors without knowing offset
       code: ErrorCode.NativeParserError
     }]
   }
+}
+
+/**
+ * Provides problems callback by invoking related tauri command
+ */
+export async function problemsCallback(textDocument: TextDocumentItem): Promise<Problem[]> {
+  try {
+    return await invoke('provide_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
+  }
+  catch (err) {
+    return [{
+      msg: typeof err === "string" ? err : err instanceof Error ? err.message : "something went wrong!",
+      position: [0, 0],
+      code: ErrorCode.NativeParserError
+    }]
+  }
+}
+
+/**
+ * Provides hover callback by invoking related tauri command
+ */
+export async function hoverCallback(textDocument: TextDocumentItem, position: Position): Promise<Hover | null> {
+  return await invoke('provide_hover', { textDocument, position });
+}
+
+/**
+ * Provides completion callback by invoking related tauri command
+ */
+export async function completionCallback(textDocument: TextDocumentItem, position: Position): Promise<CompletionItem[] | null> {
+  return await invoke('provide_completion', { textDocument, position });
 }

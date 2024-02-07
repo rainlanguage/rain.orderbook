@@ -4,7 +4,7 @@ use alloy_ethers_typecast::transaction::{
     WriteTransactionStatus,
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
-use dotrain::{ComposeError, RainDocument, Store};
+use dotrain::{error::ComposeError, RainDocument, Store};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
 use rain_meta::{
@@ -18,7 +18,7 @@ use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 
-static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
+pub static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -156,6 +156,9 @@ impl AddOrderArgs {
             "valid-outputs",
         )?;
 
+        // @TODO - parse and get rebinds
+        // let rebinds: Vec<Rebind> = frontmatter_yaml[0]["bind"]
+
         Ok((deployer, valid_inputs, valid_outputs))
     }
 
@@ -203,12 +206,14 @@ impl AddOrderArgs {
     async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
         // Parse file into dotrain document
         let meta_store = Arc::new(RwLock::new(Store::default()));
-        let dotrain_doc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None);
+
+        // @TODO - supply rebinds to the rain document instance
+        let dotrain_doc = RainDocument::create(self.dotrain.clone(), Some(meta_store), None, None);
         let rainlang = dotrain_doc.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS)?;
 
         // Prepare call
         let (deployer, valid_inputs, valid_outputs) =
-            Self::try_parse_frontmatter(dotrain_doc.front_matter().as_str())?;
+            Self::try_parse_frontmatter(dotrain_doc.front_matter())?;
         let (bytecode, constants) = self
             .try_parse_rainlang(rpc_url, deployer, rainlang.clone())
             .await?;
