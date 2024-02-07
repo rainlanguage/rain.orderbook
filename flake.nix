@@ -53,9 +53,10 @@
           };
         } // rainix.packages.${system};
 
-        devShells.default = pkgs.mkShell {
+        devShells.default = rainix.devShells.${system}.default;
+        devShells.tauri-shell = pkgs.mkShell {
           packages = [ packages.ob-tauri-prelude ];
-          inputsFrom = [ rainix.devShells.${system}.default ];
+          inputsFrom = [ rainix.devShells.${system}.tauri-shell ];
         };
 
       }
