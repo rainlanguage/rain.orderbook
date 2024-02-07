@@ -7,7 +7,7 @@ use rain_orderbook_common::{
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{flattened::{TokenVaultFlattened, VaultBalanceChangeFlattened}, vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
+    types::{flattened::{TokenVaultFlattened, VaultBalanceChangeFlattened, TryIntoFlattenedError}, vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
     WriteCsv,
     PaginationArgs,
 };
@@ -70,7 +70,7 @@ pub async fn vault_list_balance_changes_write_csv(
         .await?
         .vault_list_balance_changes(id.into(), pagination_args)
         .await?;
-    let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.into()).collect();
+    let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.try_into()).collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
     data_flattened.write_csv(path)?;
 
     Ok(())
