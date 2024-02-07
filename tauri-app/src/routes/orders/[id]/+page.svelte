@@ -9,6 +9,8 @@
   import { orderRemove } from '$lib/utils/orderRemove';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
+  import Hash from '$lib/components/Hash.svelte';
+  import { HashType } from '$lib/utils/hash';
 
   let isSubmitting = false;
 
@@ -40,14 +42,14 @@
   <div class="text-center text-gray-900 dark:text-white">Order not found</div>
 {:else}
   <div class="flex w-full flex-wrap justify-evenly space-y-12 xl:space-x-8 2xl:space-y-0">
-    <Card class="relative" size="lg">
+    <Card class="relative" size="xl">
       <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
       <div class="mt-4">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Order ID
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.id}
+          <Hash type={HashType.Identifier} shorten={false} value={order.id} />
         </p>
       </div>
 
@@ -56,7 +58,7 @@
           Owner Address
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {order.owner.id}
+          <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
         </p>
       </div>
 

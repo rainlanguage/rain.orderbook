@@ -22,6 +22,8 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { FileCsvOutline } from 'flowbite-svelte-icons';
   import ButtonsPagination  from '$lib/components/ButtonsPagination.svelte';
+  import Hash from '$lib/components/Hash.svelte';
+  import { HashType } from '$lib/utils/hash';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -68,7 +70,7 @@
           Owner Address
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {vault.owner.id}
+          <Hash type={HashType.Wallet} shorten={false} value={vault.owner.id} />
         </p>
       </div>
 
@@ -113,11 +115,11 @@
                     <TableBodyCell tdClass="px-4 py-2">
                       {formatTimestampSecondsAsLocal(BigInt(vaultBalanceChange.content.timestamp))}
                     </TableBodyCell>
-                    <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
-                      {vaultBalanceChange.content.sender.id}
+                    <TableBodyCell tdClass="break-all py-2 min-w-48">
+                      <Hash type={HashType.Wallet} value={vaultBalanceChange.content.sender.id} />
                     </TableBodyCell>
-                    <TableBodyCell tdClass="break-all py-2 text-xs space-y-1">
-                      {vaultBalanceChange.content.transaction.id}
+                    <TableBodyCell tdClass="break-all py-2 min-w-48">
+                      <Hash type={HashType.Transaction} value={vaultBalanceChange.content.transaction.id} />
                     </TableBodyCell>
                     <TableBodyCell tdClass="break-word p-2 text-right">
                       {vaultBalanceChange.type === 'Withdraw' ? '-' : ''}{vaultBalanceChange.content.amount_display} {vaultBalanceChange.content.token_vault.token.symbol}

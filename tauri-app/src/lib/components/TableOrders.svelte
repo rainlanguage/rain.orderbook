@@ -20,6 +20,8 @@
   import type { PaginatedCachedStore } from '$lib/stores/paginatedStore';
   import type { Order } from '$lib/typeshare/ordersList';
   import ButtonLoading from './ButtonLoading.svelte';
+  import Hash from './Hash.svelte';
+  import { HashType } from '$lib/utils/hash';
 
   export let ordersList: PaginatedCachedStore<Order>;
 </script>
@@ -47,8 +49,8 @@
               <Badge color="yellow">Inactive</Badge>
             {/if}
           </TableBodyCell>
-          <TableBodyCell tdClass="break-all px-4 py-2">{order.id}</TableBodyCell>
-          <TableBodyCell tdClass="break-all px-4 py-2">{order.owner.id}</TableBodyCell>
+          <TableBodyCell tdClass="break-all px-4 py-2"><Hash type={HashType.Identifier} value={order.id} /></TableBodyCell>
+          <TableBodyCell tdClass="break-all px-4 py-2"><Hash type={HashType.Wallet} value={order.owner.id} /></TableBodyCell>
           <TableBodyCell tdClass="break-word px-4 py-2">
             {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
           </TableBodyCell>

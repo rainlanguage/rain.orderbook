@@ -37,10 +37,18 @@ function useToastsStore(autohideMs = 5000) {
     });
   }
 
+  function success(text: string) {
+    add({
+      message_type: ToastMessageType.Success,
+      text
+    });
+  }
+
   return {
     subscribe: toasts.subscribe,
     add,
-    error
+    error,
+    success
   }
 }
 
