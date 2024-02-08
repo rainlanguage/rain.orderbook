@@ -26,7 +26,7 @@
   export let ordersList: PaginatedCachedStore<Order>;
 </script>
 
-{#if $ordersList.page.length === 0}
+{#if $ordersList.currentPage.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Orders found</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
