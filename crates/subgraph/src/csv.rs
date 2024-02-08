@@ -22,7 +22,11 @@ where
         for item in self.clone().into_iter() {
             csv_writer.serialize(item)?;
         }
-        let text = String::from_utf8(csv_writer.into_inner().map_err(|_| TryIntoCsvError::CsvIntoInnerError)?)?;
+        let text = String::from_utf8(
+            csv_writer
+                .into_inner()
+                .map_err(|_| TryIntoCsvError::CsvIntoInnerError)?,
+        )?;
 
         Ok(text)
     }
