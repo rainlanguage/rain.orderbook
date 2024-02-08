@@ -25,7 +25,7 @@ alloy-dyn-abi = { workspace = true }
 reqwest = { workspace = true }
 strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
-rain-meta = { workspace = true }
+rain-metadata = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }

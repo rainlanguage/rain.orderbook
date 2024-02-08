@@ -25,9 +25,9 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix run .#rainix-sol-prelude
-      - run: nix run .#rainix-rs-prelude
-      - run: nix run .#rainix-sol-artifacts
+      - run: nix develop --command rainix-sol-prelude
+      - run: nix develop --command rainix-rs-prelude
+      - run: nix develop --command rainix-sol-artifacts
         env:
           ETH_RPC_URL: ${{ inputs.network == 'polygon' && secrets.CI_DEPLOY_POLYGON_RPC_URL || inputs.network == 'songbird' && secrets.CI_DEPLOY_SONGBIRD_RPC_URL || inputs.network == 'flare' && secrets.CI_DEPLOY_FLARE_RPC_URL || '' }}
           # Flare has hardcoded api key https://flarescan.com/documentation/recipes/foundry-verification
