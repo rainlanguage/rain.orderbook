@@ -1870,7 +1870,7 @@ dependencies = [
  "getrandom",
  "magic_string",
  "once_cell",
- "rain-metadata",
+ "rain-metadata 0.0.2-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex",
  "revm",
  "serde",
@@ -4608,8 +4608,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
-name = "rain-meta"
-version = "1.0.0"
+name = "rain-metadata"
+version = "0.0.2-alpha.2"
 dependencies = [
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
@@ -4752,7 +4752,7 @@ dependencies = [
  "dotrain-lsp",
  "forker",
  "once_cell",
- "rain-meta",
+ "rain-metadata 0.0.2-alpha.2",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",

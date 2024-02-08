@@ -32,21 +32,21 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix run .#rainix-sol-prelude
+      - run: nix develop --command rainix-sol-prelude
         working-directory: lib/rain.interpreter
-      - run: nix run .#rainix-rs-prelude
+      - run: nix develop --command rainix-rs-prelude
         working-directory: lib/rain.interpreter
-      - run: nix run .#i9r-prelude
+      - run: nix develop --command i9r-prelude
         working-directory: lib/rain.interpreter
-      - run: nix run .#rainix-sol-prelude
+      - run: nix develop --command rainix-sol-prelude
         working-directory: lib/rain.metadata
 
-      - run: nix run .#rainix-sol-prelude
-      - run: nix run .#rainix-rs-prelude
+      - run: nix develop --command rainix-sol-prelude
+      - run: nix develop --command rainix-rs-prelude
 
       - name: Run ${{ matrix.task }}
         env:
           ETH_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
           DEPLOY_VERIFIER: 'etherscan'
-        run: nix run .#${{ matrix.task }}
+        run: nix develop --command ${{ matrix.task }}

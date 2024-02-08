@@ -35,7 +35,7 @@ thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
 dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "d31564805c0463bbd59f902a4b699d7bb4085c5b" }
 dotrain-lsp = { git = "https://github.com/rainlanguage/dotrain.git", rev = "d31564805c0463bbd59f902a4b699d7bb4085c5b" }
-rain-meta = { path = "lib/rain.metadata/crates/cli" }
+rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
 rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
