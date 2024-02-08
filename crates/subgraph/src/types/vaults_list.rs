@@ -26,6 +26,13 @@ pub struct TokenVault {
     pub token: Erc20,
     pub balance_display: BigDecimal,
     pub balance: BigInt,
+    pub orders: Option<Vec<Order>>,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct Order {
+    pub id: cynic::Id,
 }
 
 #[typeshare]

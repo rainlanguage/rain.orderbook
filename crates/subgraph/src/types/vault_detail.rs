@@ -27,6 +27,7 @@ pub struct TokenVault {
     pub token: Erc20,
     pub vault_id: BigInt,
     pub vault: Vault,
+    pub orders: Option<Vec<Order>>,
 }
 
 #[typeshare]
@@ -75,6 +76,12 @@ pub struct VaultDeposit {
 #[typeshare]
 #[derive(cynic::QueryFragment, Debug, Serialize)]
 pub struct Transaction {
+    pub id: cynic::Id,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+pub struct Order {
     pub id: cynic::Id,
 }
 

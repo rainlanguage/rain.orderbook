@@ -49,6 +49,9 @@ query VaultDetailQuery($id: ID!) {
         }
       }
     }
+    orders {
+      id
+    }
   }
 }
 

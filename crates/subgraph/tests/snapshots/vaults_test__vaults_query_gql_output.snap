@@ -17,6 +17,9 @@ query VaultsListQuery($first: Int, $skip: Int) {
     }
     balanceDisplay
     balance
+    orders {
+      id
+    }
   }
 }
 
