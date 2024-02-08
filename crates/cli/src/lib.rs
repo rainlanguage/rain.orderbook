@@ -1,4 +1,4 @@
-use crate::commands::{Order, Vault};
+use crate::commands::{Order, Vault, OrderClear};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
@@ -16,6 +16,9 @@ pub enum Orderbook {
 
     #[command(subcommand)]
     Vault(Box<Vault>),
+
+    #[command(subcommand)]
+    OrderClear(OrderClear),
 }
 
 impl Orderbook {
@@ -23,6 +26,7 @@ impl Orderbook {
         match self {
             Orderbook::Order(order) => order.execute().await,
             Orderbook::Vault(vault) => (*vault).execute().await,
+            Orderbook::OrderClear(order_clear) => (order_clear).execute().await,
         }
     }
 }
