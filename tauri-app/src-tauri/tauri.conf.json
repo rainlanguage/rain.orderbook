@@ -21,7 +21,8 @@
         "open": true
       },
       "fs": {
-        "readFile": true
+        "readFile": true,
+        "writeFile": true
       }
     },
     "bundle": {

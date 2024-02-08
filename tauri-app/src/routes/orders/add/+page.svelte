@@ -4,25 +4,52 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { loadDotrainFile } from '$lib/utils/dotrain';
+  import { loadDotrainFile, saveDotrainFileAs, saveFile as saveDotrainFile } from '$lib/utils/file';
   import { toasts } from '$lib/stores/toasts';
   import { orderAdd } from '$lib/utils/orderAdd';
-    import { Card } from 'flowbite-svelte';
+  import { Card } from 'flowbite-svelte';
 
   let dotrain: string = '';
+  let path: string;
   let isOpening = false;
+  let isSavingAs = false;
+  let isSaving = false;
   let isSubmitting = false;
 
   $: isEmpty = dotrain.length === 0;
 
   async function openFile() {
-    isOpening = true
+    isOpening = true;
     try {
-      dotrain = await loadDotrainFile();
+      [dotrain, path] = await loadDotrainFile();
     } catch(e) {
       toasts.error(e as string);
     }
-    isOpening = false
+    isOpening = false;
+  }
+
+  async function saveFileAs() {
+    isSavingAs = true;
+    try {
+      path = await saveDotrainFileAs(dotrain);
+      toasts.success(`Saved to ${path}`, {break_text: true});
+    } catch(e) {
+      toasts.error(e as string);
+    }
+    isSavingAs = false;
+  }
+
+  async function saveFile() {
+    if(!path) return;
+
+    isSaving = true;
+    try {
+      await saveDotrainFile(dotrain, path);
+      toasts.success(`Saved to ${path}`, {break_text: true});
+    } catch(e) {
+      toasts.error(e as string);
+    }
+    isSaving = false;
   }
 
   async function execute() {
@@ -40,6 +67,10 @@
 
 <PageHeader title="Add Order">
   <svelte:fragment slot="actions">
+    {#if path}
+      <ButtonLoading size="xs" loading={isSaving} color="green" on:click={saveFile}>Save</ButtonLoading>
+    {/if}
+    <ButtonLoading size="xs" loading={isSavingAs} color="green" on:click={saveFileAs}>Save As</ButtonLoading>
     <ButtonLoading size="xs" loading={isOpening} color="blue" on:click={openFile}>Load Dotrain File</ButtonLoading>
   </svelte:fragment>
 </PageHeader>
