@@ -13,6 +13,7 @@ use commands::vault::{
     vault_deposit, vault_detail, vault_list_balance_changes, vault_list_balance_changes_write_csv,
     vault_withdraw, vaults_list, vaults_list_write_csv,
 };
+use commands::order_clear::{order_clears_list, order_clears_list_write_csv};
 use commands::wallet::get_address_from_ledger;
 
 fn main() {
@@ -30,6 +31,8 @@ fn main() {
             order_detail,
             order_add,
             order_remove,
+            order_clears_list,
+            order_clears_list_write_csv,
             get_address_from_ledger,
             get_chainid,
             parse_dotrain,
