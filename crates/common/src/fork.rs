@@ -69,7 +69,7 @@ pub async fn call_fork(
 /// checks the front matter validity and parses the given rainlang string
 /// with the deployer parsed from the front matter
 /// returns abi encoded expression config on Ok variant
-pub async fn parse_dotrain_fork(
+pub async fn parse_rainlang_fork(
     frontmatter: &str,
     rainlang: &str,
     rpc_url: &str,

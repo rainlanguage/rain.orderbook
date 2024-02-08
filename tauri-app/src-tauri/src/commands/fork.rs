@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use alloy_primitives::bytes::Bytes;
-use rain_orderbook_common::fork::parse_dotrain_fork;
+use rain_orderbook_common::fork::parse_rainlang_fork;
 
 #[tauri::command]
 pub async fn parse_dotrain(
@@ -10,7 +10,7 @@ pub async fn parse_dotrain(
     block_number: u64,
 ) -> CommandResult<Bytes> {
     Ok(
-        parse_dotrain_fork(frontmatter, rainlang, rpc_url, block_number)
+        parse_rainlang_fork(frontmatter, rainlang, rpc_url, block_number)
             .await
             .map(Bytes::from)?,
     )
