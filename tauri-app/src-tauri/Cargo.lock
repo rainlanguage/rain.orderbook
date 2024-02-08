@@ -2293,7 +2293,7 @@ dependencies = [
  "lsp-types",
  "magic_string",
  "once_cell",
- "rain-meta 1.0.0 (git+https://github.com/rainprotocol/rain.metadata.git?rev=42712f1469ff7943ba7abe324216c96b8e8c707a)",
+ "rain-meta",
  "regex",
  "revm",
  "serde",
@@ -6454,6 +6454,31 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-meta"
 version = "1.0.0"
+source = "git+https://github.com/rainprotocol/rain.metadata.git?rev=42712f1469ff7943ba7abe324216c96b8e8c707a#42712f1469ff7943ba7abe324216c96b8e8c707a"
+dependencies = [
+ "alloy-json-abi 0.5.4",
+ "alloy-primitives 0.5.4",
+ "alloy-sol-types 0.5.4",
+ "anyhow",
+ "deflate",
+ "futures",
+ "graphql_client",
+ "inflate",
+ "itertools 0.10.5",
+ "once_cell",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_json",
+ "strum 0.24.1",
+ "validator",
+]
+
+[[package]]
+name = "rain-metadata"
+version = "0.0.2-alpha.2"
 dependencies = [
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
@@ -6477,31 +6502,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "validator",
-]
-
-[[package]]
-name = "rain-meta"
-version = "1.0.0"
-source = "git+https://github.com/rainprotocol/rain.metadata.git?rev=42712f1469ff7943ba7abe324216c96b8e8c707a#42712f1469ff7943ba7abe324216c96b8e8c707a"
-dependencies = [
- "alloy-json-abi 0.5.4",
- "alloy-primitives 0.5.4",
- "alloy-sol-types 0.5.4",
- "anyhow",
- "deflate",
- "futures",
- "graphql_client",
- "inflate",
- "itertools 0.10.5",
- "once_cell",
- "regex",
- "reqwest",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_json",
- "strum 0.24.1",
  "validator",
 ]
 
@@ -6566,7 +6566,7 @@ dependencies = [
  "dotrain",
  "forker",
  "once_cell",
- "rain-meta 1.0.0",
+ "rain-metadata",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
