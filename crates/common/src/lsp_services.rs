@@ -42,8 +42,8 @@ pub async fn get_problems(
     rpc_url: &str,
     block_number: u64,
 ) -> Vec<Problem> {
-    let front_matter = RainDocument::get_front_matter(&text_document.text).unwrap_or("");
-    let rebinds = try_parse_frontmatter_rebinds(front_matter);
+    let frontmatter = RainDocument::get_front_matter(&text_document.text).unwrap_or("");
+    let rebinds = try_parse_frontmatter_rebinds(frontmatter);
 
     let rain_document = LANG_SERVICES.new_rain_document(text_document, rebinds);
     let all_problems = rain_document.all_problems();
@@ -64,7 +64,7 @@ pub async fn get_problems(
             },
         };
 
-        parse_rainlang_fork(front_matter, &rainlang, rpc_url, block_number)
+        parse_rainlang_fork(frontmatter, &rainlang, rpc_url, block_number)
             .await
             .map_or_else(
                 |e| {

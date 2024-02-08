@@ -42,32 +42,19 @@ pub fn try_parse_frontmatter(
         "valid-outputs",
     )?;
 
-    let mut bad_rebinds = false;
-    let mut rebinds = vec![];
-    if let Some(items) = frontmatter_yaml[0]["bind"].as_vec() {
-        for item in items {
-            if let Some(kv) = item.as_hash() {
-                for (key, value) in kv {
-                    if key.as_str().is_some() && value.as_str().is_some() {
-                        rebinds.push(Rebind(
-                            key.as_str().unwrap().to_owned(),
-                            value.as_str().unwrap().to_owned(),
-                        ))
-                    } else {
-                        bad_rebinds = true;
-                        break;
-                    }
-                }
-            }
-        }
-    };
-    let opts_rebinds = if bad_rebinds { None } else { Some(rebinds) };
+    let rebinds = get_rebinds_from_yaml(&frontmatter_yaml);
 
-    Ok((deployer, valid_inputs, valid_outputs, opts_rebinds))
+    Ok((deployer, valid_inputs, valid_outputs, rebinds))
 }
 
-pub fn try_parse_frontmatter_rebinds(front_matter: &str) -> Option<Vec<Rebind>> {
-    let frontmatter_yaml = StrictYamlLoader::load_from_str(front_matter).ok()?;
+/// parses a yaml text and tries to get rebindings from it
+pub fn try_parse_frontmatter_rebinds(frontmatter: &str) -> Option<Vec<Rebind>> {
+    let frontmatter_yaml = StrictYamlLoader::load_from_str(frontmatter).ok()?;
+    get_rebinds_from_yaml(&frontmatter_yaml)
+}
+
+/// gets rebindings from a parsed yaml
+pub fn get_rebinds_from_yaml(frontmatter_yaml: &[StrictYaml]) -> Option<Vec<Rebind>> {
     let mut rebinds = vec![];
     let items = frontmatter_yaml[0]["bind"].as_vec()?;
     for item in items {
