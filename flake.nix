@@ -55,7 +55,10 @@
 
         devShells.default = rainix.devShells.${system}.default;
         devShells.tauri-shell = pkgs.mkShell {
-          packages = [ packages.ob-tauri-prelude ];
+          packages = [
+            packages.ob-tauri-prelude
+            packages.ob-tauri-test
+          ];
           inputsFrom = [ rainix.devShells.${system}.tauri-shell ];
         };
 
