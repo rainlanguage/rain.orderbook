@@ -3,11 +3,7 @@
     Heading,
     Button,
     Card,
-    Table,
-    TableHead,
     TableHeadCell,
-    TableBody,
-    TableBodyRow,
     TableBodyCell,
   } from 'flowbite-svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
@@ -19,11 +15,10 @@
   import { page } from '$app/stores';
   import { useVaultListBalanceChanges } from '$lib/stores/vaultListBalanceChanges';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { FileCsvOutline } from 'flowbite-svelte-icons';
-  import ButtonsPagination  from '$lib/components/ButtonsPagination.svelte';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/utils/hash';
+  import AppTable from '$lib/components/AppTable.svelte';
+  import { goto } from '$app/navigation';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -87,59 +82,57 @@
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Balance
         </h5>
-        <p class="break-all break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
           {vault.balance_display}
           {vault.token.symbol}
         </p>
       </div>
+
+      {#if vault.orders && vault.orders.length > 0}
+        <div>
+          <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Orders
+          </h5>
+          <p class="flex flex-wrap justify-start">
+            {#each vault.orders as order}
+              <Button class="px-1 py-0 mt-1 mr-1" color="alternative" on:click={() => goto(`/orders/${order.id}`)}><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button>
+            {/each}
+          </p>
+        </div>
+      {/if}
     </Card>
 
     <div class="max-w-screen-xl space-y-12">
       <div class="w-full">
         <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
 
-        {#if $vaultListBalanceChanges.currentPage.length === 0}
-          <div class="my-4 text-center text-gray-900 dark:text-white">No deposits or withdrawals found</div>
-        {:else}
-          <Table divClass="cursor-pointer">
-            <TableHead>
-              <TableHeadCell>Date</TableHeadCell>
-              <TableHeadCell>Sender</TableHeadCell>
-              <TableHeadCell>Transaction Hash</TableHeadCell>
-              <TableHeadCell>Balance Change</TableHeadCell>
-              <TableHeadCell>Type</TableHeadCell>
-            </TableHead>
-            <TableBody>
-              {#each $vaultListBalanceChanges.currentPage as vaultBalanceChange}
-                  <TableBodyRow>
-                    <TableBodyCell tdClass="px-4 py-2">
-                      {formatTimestampSecondsAsLocal(BigInt(vaultBalanceChange.content.timestamp))}
-                    </TableBodyCell>
-                    <TableBodyCell tdClass="break-all py-2 min-w-48">
-                      <Hash type={HashType.Wallet} value={vaultBalanceChange.content.sender.id} />
-                    </TableBodyCell>
-                    <TableBodyCell tdClass="break-all py-2 min-w-48">
-                      <Hash type={HashType.Transaction} value={vaultBalanceChange.content.transaction.id} />
-                    </TableBodyCell>
-                    <TableBodyCell tdClass="break-word p-2 text-right">
-                      {vaultBalanceChange.type === 'Withdraw' ? '-' : ''}{vaultBalanceChange.content.amount_display} {vaultBalanceChange.content.token_vault.token.symbol}
-                    </TableBodyCell>
-                    <TableBodyCell tdClass="break-word p-2 text-right">
-                      {vaultBalanceChange.type}
-                    </TableBodyCell>
-                  </TableBodyRow>
-              {/each}
-            </TableBody>
-          </Table>
+        <AppTable listStore={vaultListBalanceChanges} emptyMessage="No deposits or withdrawals found" rowHoverable={false}>
+          <svelte:fragment slot="head">
+            <TableHeadCell>Date</TableHeadCell>
+            <TableHeadCell>Sender</TableHeadCell>
+            <TableHeadCell>Transaction Hash</TableHeadCell>
+            <TableHeadCell>Balance Change</TableHeadCell>
+            <TableHeadCell>Type</TableHeadCell>
+          </svelte:fragment>
 
-          <div class="flex justify-between mt-2">
-            <ButtonLoading size="xs" color="blue" on:click={() => vaultListBalanceChanges.exportCsv()} loading={$vaultListBalanceChanges.isExporting}>
-              <FileCsvOutline class="w-4 h-4 mr-2"/>
-              Export to CSV
-            </ButtonLoading>
-            <ButtonsPagination index={$vaultListBalanceChanges.index} on:previous={vaultListBalanceChanges.fetchPrev} on:next={vaultListBalanceChanges.fetchNext} loading={$vaultListBalanceChanges.isFetching} />
-          </div>
-        {/if}
+          <svelte:fragment slot="bodyRow" let:item>
+            <TableBodyCell tdClass="px-4 py-2">
+              {formatTimestampSecondsAsLocal(BigInt(item.content.timestamp))}
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2 min-w-48">
+              <Hash type={HashType.Wallet} value={item.content.sender.id} />
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2 min-w-48">
+              <Hash type={HashType.Transaction} value={item.content.transaction.id} />
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-word p-2 text-right">
+              {item.type === 'Withdraw' ? '-' : ''}{item.content.amount_display} {item.content.token_vault.token.symbol}
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-word p-2 text-right">
+              {item.type}
+            </TableBodyCell>
+          </svelte:fragment>
+        </AppTable>
       </div>
     </div>
   </div>

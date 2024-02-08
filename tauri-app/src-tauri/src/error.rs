@@ -3,7 +3,7 @@ use alloy_primitives::ruint::FromUintError;
 use rain_orderbook_common::add_order::AddOrderArgsError;
 use rain_orderbook_common::error::ForkParseError;
 use rain_orderbook_subgraph_client::{
-    types::flattened::TryIntoFlattenedError, OrderbookSubgraphClientError, WriteCsvError,
+    types::flattened::TryIntoFlattenedError, OrderbookSubgraphClientError, TryIntoCsvError,
 };
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
@@ -27,7 +27,7 @@ pub enum CommandError {
     LedgerClientError(#[from] LedgerClientError),
 
     #[error(transparent)]
-    WriteCsvError(#[from] WriteCsvError),
+    TryIntoCsvError(#[from] TryIntoCsvError),
 
     #[error(transparent)]
     ForkParseError(#[from] ForkParseError),
@@ -37,6 +37,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     TryIntoFlattenedError(#[from] TryIntoFlattenedError),
+
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
 }
 
 impl Serialize for CommandError {

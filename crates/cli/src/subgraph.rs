@@ -32,6 +32,9 @@ pub struct CliPaginationArgs {
         default_value = "25"
     )]
     pub page_size: u16,
+
+    #[arg(long, help = "Output results in CSV format")]
+    pub csv: bool,
 }
 
 impl From<CliPaginationArgs> for PaginationArgs {

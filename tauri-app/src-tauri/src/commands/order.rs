@@ -9,10 +9,11 @@ use rain_orderbook_subgraph_client::{
         flattened::{OrderFlattened, TryIntoFlattenedError},
         order_detail, orders_list,
     },
-    PaginationArgs, WriteCsv,
+    PaginationArgs, TryIntoCsv,
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
+use std::fs;
 
 #[tauri::command]
 pub async fn orders_list(
@@ -33,16 +34,10 @@ pub async fn orders_list_write_csv(
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
-    let orders = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .orders_list(pagination_args)
-        .await?;
-    let orders_flattened: Vec<OrderFlattened> = orders
-        .into_iter()
-        .map(|o| o.try_into())
-        .collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
-    orders_flattened.write_csv(path)?;
+    let orders = orders_list(subgraph_args, pagination_args).await?;
+    let orders_flattened: Vec<OrderFlattened> = orders.into_iter().map(|o| o.try_into()).collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
+    let csv_text = orders_flattened.try_into_csv()?;
+    fs::write(path, csv_text)?;
 
     Ok(())
 }

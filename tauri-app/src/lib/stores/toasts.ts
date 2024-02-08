@@ -30,17 +30,19 @@ function useToastsStore(autohideMs = 5000) {
     }, autohideMs);
   }
 
-  function error(text: string) {
+  function error(text: string, payload: ToastPayload | object = {}) {
     add({
       message_type: ToastMessageType.Error,
-      text
+      text,
+      ...payload
     });
   }
 
-  function success(text: string) {
+  function success(text: string, payload: ToastPayload | object = {}) {
     add({
       message_type: ToastMessageType.Success,
-      text
+      text,
+      ...payload
     });
   }
 
