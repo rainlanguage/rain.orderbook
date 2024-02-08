@@ -1,4 +1,5 @@
-<script lang="ts" generics="T">
+<script lang="ts" generic="T" context="module">
+  type T = unknown;
   import {
     Table,
     TableBody,
