@@ -8,17 +8,21 @@
   export let type: HashType | undefined = undefined;
   export let shorten = true;
   export let sliceLen = 5;
+  export let copyOnClick = true;
 
   $: id = shorten ? `hash-${value}` : undefined;
   $: displayValue = value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
 
-  function copy() {
-    navigator.clipboard.writeText(value);
-    toasts.success("Copied to clipboard");
+  function copy(e) {
+    if(copyOnClick) {
+      e.stopPropagation();
+      navigator.clipboard.writeText(value);
+      toasts.success("Copied to clipboard");
+    }
   }
 </script>
 
-<button type="button" {id} class="inline-block flex justify-start items-center space-x-2" on:click|stopPropagation={copy}>
+<button type="button" {id} class="inline-block flex justify-start items-center space-x-2" on:click={copy}>
   {#if type === HashType.Wallet }
     <WalletOutline size="sm" />
   {:else if type === HashType.Identifier }

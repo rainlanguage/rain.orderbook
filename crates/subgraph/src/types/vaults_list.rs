@@ -26,6 +26,14 @@ pub struct TokenVault {
     pub token: Erc20,
     pub balance_display: BigDecimal,
     pub balance: BigInt,
+    #[arguments(orderBy: "id", orderDirection: "desc")]
+    pub orders: Option<Vec<Order>>,
+}
+
+#[typeshare]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+pub struct Order {
+    pub id: cynic::Id,
 }
 
 #[typeshare]
@@ -53,7 +61,63 @@ pub enum OrderDirection {
     Desc,
 }
 
-#[typeshare]
+#[derive(cynic::Enum, Clone, Copy, Debug)]
+#[cynic(graphql_type = "Order_orderBy")]
+pub enum OrderOrderBy {
+    #[cynic(rename = "id")]
+    Id,
+    #[cynic(rename = "orderHash")]
+    OrderHash,
+    #[cynic(rename = "owner")]
+    Owner,
+    #[cynic(rename = "owner__id")]
+    OwnerId,
+    #[cynic(rename = "interpreter")]
+    Interpreter,
+    #[cynic(rename = "interpreterStore")]
+    InterpreterStore,
+    #[cynic(rename = "expressionDeployer")]
+    ExpressionDeployer,
+    #[cynic(rename = "expression")]
+    Expression,
+    #[cynic(rename = "orderActive")]
+    OrderActive,
+    #[cynic(rename = "handleIO")]
+    HandleIo,
+    #[cynic(rename = "meta")]
+    Meta,
+    #[cynic(rename = "meta__id")]
+    MetaId,
+    #[cynic(rename = "meta__metaBytes")]
+    MetaMetaBytes,
+    #[cynic(rename = "validInputs")]
+    ValidInputs,
+    #[cynic(rename = "validOutputs")]
+    ValidOutputs,
+    #[cynic(rename = "orderJSONString")]
+    OrderJsonstring,
+    #[cynic(rename = "expressionJSONString")]
+    ExpressionJsonstring,
+    #[cynic(rename = "transaction")]
+    Transaction,
+    #[cynic(rename = "transaction__id")]
+    TransactionId,
+    #[cynic(rename = "transaction__timestamp")]
+    TransactionTimestamp,
+    #[cynic(rename = "transaction__blockNumber")]
+    TransactionBlockNumber,
+    #[cynic(rename = "emitter")]
+    Emitter,
+    #[cynic(rename = "emitter__id")]
+    EmitterId,
+    #[cynic(rename = "timestamp")]
+    Timestamp,
+    #[cynic(rename = "takeOrders")]
+    TakeOrders,
+    #[cynic(rename = "ordersClears")]
+    OrdersClears,
+}
+
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "TokenVault_orderBy")]
 pub enum TokenVaultOrderBy {
