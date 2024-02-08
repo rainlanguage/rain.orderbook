@@ -52,7 +52,7 @@
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
         {#if item.orders}
-          <div class="flex flex-wrap justify-start">
+          <div class="flex flex-wrap justify-start items-end">
             {#each item.orders.slice(0, 3) as order}
               <Button class="px-1 py-0 mt-1 mr-1" color="alternative" on:click={() => goto(`/orders/${order.id}`)}><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button>
             {/each}
