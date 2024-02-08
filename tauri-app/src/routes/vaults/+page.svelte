@@ -4,27 +4,22 @@
     Button,
     Dropdown,
     DropdownItem,
-    Table,
-    TableBody,
     TableBodyCell,
-    TableBodyRow,
-    TableHead,
     TableHeadCell,
   } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { vaultsList } from '$lib/stores/vaultsList';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { DotsVerticalOutline, FileCsvOutline } from 'flowbite-svelte-icons';
+  import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
   import type { TokenVault } from '$lib/typeshare/vaultsList';
-  import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/utils/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
+  import AppTable from '$lib/components/AppTable.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -33,60 +28,44 @@
   let withdrawModalVault: TokenVault;
 
   redirectIfSettingsNotDefined();
-  vaultsList.fetchFirst();
 </script>
 
 <PageHeader title="Vaults" />
 
-{#if $vaultsList.currentPage.length === 0}
-  <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
-{:else}
-  <Table divClass="cursor-pointer" hoverable={true}>
-    <TableHead>
-      <TableHeadCell>Vault ID</TableHeadCell>
-      <TableHeadCell>Owner</TableHeadCell>
-      <TableHeadCell>Token</TableHeadCell>
-      <TableHeadCell>Balance</TableHeadCell>
-      <TableHeadCell></TableHeadCell>
-    </TableHead>
-    <TableBody>
-      {#each $vaultsList.currentPage as vault}
-        <TableBodyRow on:click={() => {goto(`/vaults/${vault.id}`)}}>
-          <TableBodyCell tdClass="break-all px-4 py-2">{bigintStringToHex(vault.vault_id)}</TableBodyCell>
-          <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"><Hash type={HashType.Wallet} value={vault.owner.id} /></TableBodyCell>
-          <TableBodyCell tdClass="break-word p-2 min-w-48">{vault.token.name}</TableBodyCell>
-          <TableBodyCell tdClass="break-all p-2 min-w-48">
-            {vault.balance_display}
-            {vault.token.symbol}
-          </TableBodyCell>
-          <TableBodyCell tdClass="px-0">
-            {#if $walletAddressMatchesOrBlank(vault.owner.id)}
-              <Button color="alternative" outline={false} id={`vault-menu-${vault.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
-                <DotsVerticalOutline class="dark:text-white"/>
-              </Button>
-            {/if}
-          </TableBodyCell>
-          {#if $walletAddressMatchesOrBlank(vault.owner.id)}
-            <Dropdown placement="bottom-end" triggeredBy={`#vault-menu-${vault.id}`}>
-              <DropdownItem on:click={(e) => {e.stopPropagation(); depositModalVault=vault; showDepositModal = true;}}>Deposit</DropdownItem>
-              <DropdownItem on:click={(e) => {e.stopPropagation(); withdrawModalVault=vault; showWithdrawModal = true;}}>Withdraw</DropdownItem>
-            </Dropdown>
-          {/if}
-        </TableBodyRow>
-      {/each}
-    </TableBody>
-  </Table>
+<AppTable listStore={vaultsList} emptyMessage="No Vaults Found" on:clickRow={(e) => { goto(`/vaults/${e.detail.item.id}`); }}>
+  <svelte:fragment slot="head">
+    <TableHeadCell>Vault ID</TableHeadCell>
+    <TableHeadCell>Owner</TableHeadCell>
+    <TableHeadCell>Token</TableHeadCell>
+    <TableHeadCell>Balance</TableHeadCell>
+    <TableHeadCell></TableHeadCell>
+  </svelte:fragment>
 
-  <div class="flex justify-between mt-2">
-    <ButtonLoading size="xs" color="blue" on:click={() => vaultsList.exportCsv()} loading={$vaultsList.isExporting}>
-      <FileCsvOutline class="w-4 h-4 mr-2"/>
-      Export to CSV
-    </ButtonLoading>
-    <ButtonsPagination index={$vaultsList.index} on:previous={vaultsList.fetchPrev} on:next={vaultsList.fetchNext} loading={$vaultsList.isFetching} />
-  </div>
+  <svelte:fragment slot="bodyRow" let:item>
+      <TableBodyCell tdClass="break-all px-4 py-2">{bigintStringToHex(item.vault_id)}</TableBodyCell>
+      <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell>
+      <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
+      <TableBodyCell tdClass="break-all p-2 min-w-48">
+        {item.balance_display}
+        {item.token.symbol}
+      </TableBodyCell>
+      <TableBodyCell tdClass="px-0">
+        {#if $walletAddressMatchesOrBlank(item.owner.id)}
+          <Button color="alternative" outline={false} id={`vault-menu-${item.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
+            <DotsVerticalOutline class="dark:text-white"/>
+          </Button>
+        {/if}
+      </TableBodyCell>
+      {#if $walletAddressMatchesOrBlank(item.owner.id)}
+        <Dropdown placement="bottom-end" triggeredBy={`#vault-menu-${item.id}`}>
+          <DropdownItem on:click={(e) => {e.stopPropagation(); depositModalVault=item; showDepositModal = true;}}>Deposit</DropdownItem>
+          <DropdownItem on:click={(e) => {e.stopPropagation(); withdrawModalVault=item; showWithdrawModal = true;}}>Withdraw</DropdownItem>
+        </Dropdown>
+      {/if}
 
-  <ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
-  <ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />
-{/if}
+    <ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
+    <ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />
+  </svelte:fragment>
+</AppTable>
 
 <ModalVaultDepositGeneric bind:open={showDepositGenericModal} />

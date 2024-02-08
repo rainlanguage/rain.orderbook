@@ -14,13 +14,13 @@
   const dispatch = createEventDispatcher();
 
   export let listStore: PaginatedCachedStore<T>;
-  export let itemName: string = "Item"
+  export let emptyMessage: string = "None found"
   export let rowHoverable = true;
   export let enableCsvExport = true;
 </script>
 
 {#if $listStore.currentPage.length === 0}
-  <div class="text-center text-gray-900 dark:text-white">No {itemName}s found</div>
+  <div class="text-center text-gray-900 dark:text-white">{emptyMessage}</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={rowHoverable}>
     <TableHead>
