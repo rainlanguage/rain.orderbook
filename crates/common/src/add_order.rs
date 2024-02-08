@@ -1,5 +1,6 @@
 use crate::{
     front_matter::{try_parse_frontmatter, FrontMatterError},
+    lsp_services::LANG_SERVICES,
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{
@@ -7,7 +8,7 @@ use alloy_ethers_typecast::transaction::{
     WriteTransactionStatus,
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
-use dotrain::{error::ComposeError, RainDocument, Store};
+use dotrain::{error::ComposeError, RainDocument};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
 use rain_meta::{
@@ -17,7 +18,6 @@ use rain_meta::{
 use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use std::sync::{Arc, RwLock};
 use thiserror::Error;
 
 pub static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
@@ -114,7 +114,7 @@ impl AddOrderArgs {
     /// Generate an addOrder call from given dotrain
     async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
         // Parse file into dotrain document
-        let meta_store = Arc::new(RwLock::new(Store::default()));
+        let meta_store = LANG_SERVICES.meta_store();
 
         let front_matter = RainDocument::get_front_matter(&self.dotrain)
             .ok_or(AddOrderArgsError::EmptyFrontmatter)?;
