@@ -1,5 +1,3 @@
-use std::{fs::canonicalize, path::PathBuf};
-
 use crate::{
     execute::Execute,
     subgraph::{CliPaginationArgs, CliSubgraphArgs},
@@ -10,15 +8,12 @@ use comfy_table::Table;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
     types::flattened::{OrderClearFlattened, TryIntoFlattenedError},
-    PaginationArgs, WriteCsv,
+    PaginationArgs, TryIntoCsv,
 };
 use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliOrderClearListArgs {
-    #[arg(long, help = "Write results to a CSV file at the path provided")]
-    pub csv_file: Option<PathBuf>,
-
     #[clap(flatten)]
     pub pagination_args: CliPaginationArgs,
 
@@ -40,9 +35,9 @@ impl Execute for CliOrderClearListArgs {
             .map(|o| o.try_into())
             .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
 
-        if let Some(csv_file) = self.csv_file.clone() {
-            order_clears_flattened.write_csv(csv_file.clone())?;
-            info!("Saved to CSV at {:?}", canonicalize(csv_file.as_path())?);
+        if self.pagination_args.csv {
+            let csv_text = order_clears_flattened.try_into_csv()?;
+            println!("{}", csv_text);
         } else {
             let table = build_table(order_clears_flattened)?;
             info!("\n{}", table);
