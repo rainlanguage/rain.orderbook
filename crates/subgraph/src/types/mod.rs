@@ -6,3 +6,4 @@ pub mod vault_balance_change;
 pub mod vault_detail;
 pub mod vault_list_balance_changes;
 pub mod vaults_list;
+pub mod order_clears_list;
