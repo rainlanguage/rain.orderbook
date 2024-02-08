@@ -8,7 +8,7 @@ use rain_orderbook_common::{
 };
 use rain_orderbook_subgraph_client::{
     types::{flattened::{TokenVaultFlattened, VaultBalanceChangeFlattened, TryIntoFlattenedError}, vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
-    WriteCsv,
+    TryIntoCsv,
     PaginationArgs,
 };
 use std::path::PathBuf;

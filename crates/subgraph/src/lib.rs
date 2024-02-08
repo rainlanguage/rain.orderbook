@@ -9,5 +9,5 @@ pub mod utils;
 pub mod schema {}
 
 pub use client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
-pub use csv::{WriteCsv, WriteCsvError};
+pub use csv::{TryIntoCsv, TryIntoCsvError};
 pub use pagination::{PageQueryClient, PaginationArgs};
