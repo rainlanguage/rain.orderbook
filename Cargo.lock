@@ -4663,6 +4663,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_interpreter_bindings"
+version = "0.1.0"
+source = "git+https://github.com/rainlanguage/rain.interpreter?rev=ee5702e0fcc370dd2501eeebc7f705249d1e8f99#ee5702e0fcc370dd2501eeebc7f705249d1e8f99"
+dependencies = [
+ "alloy-primitives 0.5.4",
+ "alloy-sol-types 0.5.4",
+]
+
+[[package]]
 name = "rain_interpreter_dispair"
 version = "0.1.0"
 dependencies = [
@@ -4670,13 +4679,24 @@ dependencies = [
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "ethers",
- "rain_interpreter_bindings",
+ "rain_interpreter_bindings 0.1.0",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "rain_interpreter_eval"
+version = "0.1.0"
+source = "git+https://github.com/rainlanguage/rain.interpreter?rev=ee5702e0fcc370dd2501eeebc7f705249d1e8f99#ee5702e0fcc370dd2501eeebc7f705249d1e8f99"
+dependencies = [
+ "alloy-primitives 0.5.4",
+ "alloy-sol-types 0.5.4",
+ "rain_interpreter_bindings 0.1.0 (git+https://github.com/rainlanguage/rain.interpreter?rev=ee5702e0fcc370dd2501eeebc7f705249d1e8f99)",
+ "thiserror",
 ]
 
 [[package]]
@@ -4687,7 +4707,7 @@ dependencies = [
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "ethers",
- "rain_interpreter_bindings",
+ "rain_interpreter_bindings 0.1.0",
  "rain_interpreter_dispair",
  "serde",
  "serde_json",
@@ -4739,8 +4759,9 @@ dependencies = [
  "forker",
  "once_cell",
  "rain-meta 1.0.0",
- "rain_interpreter_bindings",
+ "rain_interpreter_bindings 0.1.0",
  "rain_interpreter_dispair",
+ "rain_interpreter_eval",
  "rain_interpreter_parser",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",

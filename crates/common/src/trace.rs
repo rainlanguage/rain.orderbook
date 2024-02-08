@@ -1,24 +1,27 @@
-use crate::fork::fork_call;
-use rain_interpreter_bindings::DeployerISP::{iParserCall, iStoreCall};
+use crate::error::ForkEvalError;
+use crate::fork::{fork_call, FROM_ADDRESS};
+use alloy_primitives::hex::decode;
+use alloy_primitives::{Address, BlockNumber, Bytes};
+use alloy_sol_types::{SolCall, SolType};
+use rain_interpreter_bindings::DeployerISP::{iInterpreterCall, iParserCall, iStoreCall};
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
 use rain_interpreter_bindings::IInterpreterV2::eval2Call;
 use rain_interpreter_bindings::IParserV1::parseCall;
+use rain_interpreter_eval::{CreateEncodedDispatch, CreateNamespace};
 
 pub async fn fork_eval_order(
     rainlang_string: &str,
-    front_matter: &str,
+    source_index: u16,
+    deployer: Address,
     fork_url: &str,
     fork_block_number: u64,
-) -> Result<Bytes, ForkEvalError> {
-    let deployer = AddOrderArgs::try_parse_frontmatter(front_matter)?.0;
-
-    let calldata = iParserCall {}.abi_encode();
+) -> Result<(), ForkEvalError> {
     let parser_address = fork_call(
         fork_url,
         fork_block_number,
         &decode(FROM_ADDRESS).unwrap(),
         deployer.as_slice(),
-        &calldata,
+        &iParserCall {}.abi_encode(),
     )
     .await??
     .result;
@@ -29,6 +32,16 @@ pub async fn fork_eval_order(
         &decode(FROM_ADDRESS).unwrap(),
         deployer.as_slice(),
         &iParserCall {}.abi_encode(),
+    )
+    .await??
+    .result;
+
+    let interpreter = fork_call(
+        fork_url,
+        fork_block_number,
+        &decode(FROM_ADDRESS).unwrap(),
+        deployer.as_slice(),
+        &iInterpreterCall {}.abi_encode(),
     )
     .await??
     .result;
@@ -61,14 +74,15 @@ pub async fn fork_eval_order(
     let deploy_return_decoded =
         deployExpression2Call::abi_decode_returns(&deploy_return.result, true).unwrap();
 
-    let expression_address = deploy_return_decoded.expression;
+    let dispatch = CreateEncodedDispatch::encode(deploy_return_decoded.expression, source_index);
+    let qualified_namespace = CreateNamespace::qualify_namespace(namespace, sender);
 
-    let eval_args = evalCall {
-        store: store,
-        namespace: vec![],
+    let eval_args = eval2Call {
+        store: Address::from_slice(&store),
+        namespace: qualified_namespace,
         dispatch,
-        context,
-        signedContext,
+        context: vec![],
+        inputs: vec![],
     };
     let calldata = eval_args.abi_encode();
 
@@ -76,7 +90,8 @@ pub async fn fork_eval_order(
         fork_url,
         fork_block_number,
         &decode(FROM_ADDRESS).unwrap(),
-        &store,
+        &interpreter,
         &calldata,
     );
+    Ok(())
 }

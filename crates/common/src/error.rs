@@ -191,6 +191,26 @@ impl From<ForkCallError<'static>> for ForkParseError {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum ForkEvalError {
+    #[error("ForkEval error: {0}")]
+    ForkCallFailed(ForkCallError<'static>),
+    #[error("{0}")]
+    AbiDecodedError(AbiDecodedErrorType),
+}
+
+impl From<AbiDecodedErrorType> for ForkEvalError {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        Self::AbiDecodedError(value)
+    }
+}
+
+impl From<ForkCallError<'static>> for ForkEvalError {
+    fn from(value: ForkCallError<'static>) -> Self {
+        Self::ForkCallFailed(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

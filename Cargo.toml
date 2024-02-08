@@ -38,6 +38,7 @@ rain-meta = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
 rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
+rain_interpreter_eval = { git = "https://github.com/rainlanguage/rain.interpreter", rev = "ee5702e0fcc370dd2501eeebc7f705249d1e8f99"}
 csv = "1.3.0"
 forker = { git = "https://github.com/rainlanguage/forker", rev = "0649c401d8ec489b13bf7bc4a8a05f0950b4b5e0" }
 revm-inspectors = "=0.1.0"

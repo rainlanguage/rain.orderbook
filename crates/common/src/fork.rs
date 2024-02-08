@@ -13,7 +13,7 @@ use rain_interpreter_bindings::IParserV1::parseCall;
 use revm::primitives::Bytes;
 use std::{collections::HashMap, sync::Mutex};
 
-const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
+pub const FROM_ADDRESS: &str = "0x5855A7b48a1f9811392B89F18A8e27347EF84E42";
 
 /// static hashmap of fork evm instances, used for caching instances between runs
 pub static FORKS: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
