@@ -13,6 +13,7 @@ use rain_orderbook_subgraph_client::{
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
+use std::fs;
 
 #[tauri::command]
 pub async fn vaults_list(
@@ -35,7 +36,8 @@ pub async fn vaults_list_write_csv(
 ) -> CommandResult<()> {
     let vaults = vaults_list(subgraph_args, pagination_args).await?;
     let vaults_flattened: Vec<TokenVaultFlattened> = vaults.into_iter().map(|o| o.into()).collect();
-    vaults_flattened.write_csv(path)?;
+    let csv_text = vaults_flattened.try_into_csv()?;
+    fs::write(path, csv_text)?;
 
     Ok(())
 }
@@ -63,7 +65,8 @@ pub async fn vault_list_balance_changes_write_csv(
 ) -> CommandResult<()> {
     let data = vault_list_balance_changes(id, subgraph_args, pagination_args).await?;
     let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.try_into()).collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
-    data_flattened.write_csv(path)?;
+    let csv_text = data_flattened.try_into_csv()?;
+    fs::write(path, csv_text)?;
 
     Ok(())
 }
