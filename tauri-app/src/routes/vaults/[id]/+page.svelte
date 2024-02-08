@@ -18,6 +18,7 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/utils/hash';
   import AppTable from '$lib/components/AppTable.svelte';
+  import { goto } from '$app/navigation';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -81,11 +82,24 @@
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Balance
         </h5>
-        <p class="break-all break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
           {vault.balance_display}
           {vault.token.symbol}
         </p>
       </div>
+
+      {#if vault.orders && vault.orders.length > 0}
+        <div>
+          <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Orders
+          </h5>
+          <p class="flex flex-wrap justify-start">
+            {#each vault.orders as order}
+              <Button class="px-1 py-0 mt-1 mr-1" color="alternative" on:click={() => goto(`/orders/${order.id}`)}><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button>
+            {/each}
+          </p>
+        </div>
+      {/if}
     </Card>
 
     <div class="max-w-screen-xl space-y-12">
