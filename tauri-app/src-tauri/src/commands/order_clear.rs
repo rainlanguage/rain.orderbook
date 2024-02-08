@@ -2,10 +2,11 @@ use crate::error::CommandResult;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
     types::{flattened::{OrderClearFlattened, TryIntoFlattenedError}, order_clears_list},
-    WriteCsv,
+    TryIntoCsv,
     PaginationArgs,
 };
 use std::path::PathBuf;
+use std::fs;
 
 #[tauri::command]
 pub async fn order_clears_list(
@@ -35,7 +36,8 @@ pub async fn order_clears_list_write_csv(
             .into_iter()
             .map(|o| o.try_into())
             .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
-    order_clears_flattened.write_csv(path)?;
+    let csv_text = order_clears_flattened.try_into_csv()?;
+    fs::write(path, csv_text)?;
 
     Ok(())
 }
