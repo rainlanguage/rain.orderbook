@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
 
-pub static REQUIRED_DOTRAIN_BODY_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
+pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -124,7 +124,7 @@ impl AddOrderArgs {
 
         let dotrain_doc =
             RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
-        let rainlang = dotrain_doc.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS)?;
+        let rainlang = dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?;
 
         let (bytecode, constants) = self
             .try_parse_rainlang(rpc_url, deployer, rainlang.clone())

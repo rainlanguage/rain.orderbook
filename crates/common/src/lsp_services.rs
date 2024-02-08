@@ -1,4 +1,4 @@
-use super::add_order::REQUIRED_DOTRAIN_BODY_ENTRYPOINTS;
+use super::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use super::fork::parse_rainlang_fork;
 use super::front_matter::try_parse_frontmatter_rebinds;
 use dotrain::{
@@ -50,7 +50,7 @@ pub async fn get_problems(
     if !all_problems.is_empty() {
         all_problems.iter().map(|&v| v.clone()).collect()
     } else {
-        let rainlang = match rain_document.compose(&REQUIRED_DOTRAIN_BODY_ENTRYPOINTS) {
+        let rainlang = match rain_document.compose(&ORDERBOOK_ORDER_ENTRYPOINTS) {
             Ok(v) => v,
             Err(e) => match e {
                 ComposeError::Reject(msg) => {
@@ -64,13 +64,17 @@ pub async fn get_problems(
             },
         };
 
-        match parse_rainlang_fork(front_matter, &rainlang, rpc_url, block_number).await {
-            Ok(_) => vec![],
-            Err(e) => vec![Problem {
-                msg: e.to_string(),
-                position: [0, 0],
-                code: ErrorCode::NativeParserError,
-            }],
-        }
+        parse_rainlang_fork(front_matter, &rainlang, rpc_url, block_number)
+            .await
+            .map_or_else(
+                |e| {
+                    vec![Problem {
+                        msg: e.to_string(),
+                        position: [0, 0],
+                        code: ErrorCode::NativeParserError,
+                    }]
+                },
+                |_| vec![],
+            )
     }
 }
