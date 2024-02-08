@@ -27,11 +27,7 @@ pub async fn order_clears_list_write_csv(
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
-    let order_clears = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .order_clears_list(pagination_args)
-        .await?;
+    let order_clears = order_clears_list(subgraph_args, pagination_args).await?;
     let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
             .into_iter()
             .map(|o| o.try_into())
