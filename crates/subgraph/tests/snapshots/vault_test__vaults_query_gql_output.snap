@@ -49,7 +49,7 @@ query VaultDetailQuery($id: ID!) {
         }
       }
     }
-    orders {
+    orders(orderBy: id, orderDirection: desc) {
       id
     }
   }
