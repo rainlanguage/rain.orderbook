@@ -15,6 +15,8 @@ use crate::types::{
     },
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
+    order_clears_list,
+    order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
 };
 use crate::PageQueryClient;
 use chrono::NaiveDateTime;
@@ -134,6 +136,24 @@ impl OrderbookSubgraphClient {
             .await?;
 
         Ok(res)
+    }
+
+    pub async fn order_clears_list(
+        &self,
+        pagination_args: PaginationArgs,
+    ) -> Result<Vec<order_clears_list::OrderClear>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
+        let data = self
+            .query::<OrderClearsListQuery, OrderClearsListQueryVariables>(
+                self.url.clone(),
+                OrderClearsListQueryVariables {
+                    first: pagination_variables.first,
+                    skip: pagination_variables.skip,
+                },
+            )
+            .await?;
+
+        Ok(data.order_clears)
     }
 }
 
