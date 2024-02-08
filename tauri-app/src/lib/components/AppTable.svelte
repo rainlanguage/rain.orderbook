@@ -1,5 +1,4 @@
-<script lang="ts" generic="T" context="module">
-  type T = unknown;
+<script lang="ts" generics="T">
   import {
     Table,
     TableBody,
@@ -14,6 +13,7 @@
 
   const dispatch = createEventDispatcher();
 
+  // eslint-disable-next-line no-undef
   export let listStore: PaginatedCachedStore<T>;
   export let emptyMessage: string = "None found"
   export let rowHoverable = true;
