@@ -35,6 +35,9 @@ pub enum CommandError {
     
     #[error(transparent)]
     TryIntoFlattenedError(#[from] TryIntoFlattenedError),
+
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
 }
 
 impl Serialize for CommandError {
