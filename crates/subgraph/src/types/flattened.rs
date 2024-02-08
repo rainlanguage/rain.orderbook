@@ -5,7 +5,7 @@ use super::{
     vault_list_balance_changes, vaults_list,
 };
 use crate::utils::format_bigint_timestamp_display;
-use crate::{csv::WriteCsv, utils::FormatTimestampDisplayError};
+use crate::{csv::TryIntoCsv, utils::FormatTimestampDisplayError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -46,7 +46,7 @@ impl From<vaults_list::TokenVault> for TokenVaultFlattened {
     }
 }
 
-impl WriteCsv<TokenVaultFlattened> for Vec<TokenVaultFlattened> {}
+impl TryIntoCsv<TokenVaultFlattened> for Vec<TokenVaultFlattened> {}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OrderFlattened {
@@ -113,7 +113,7 @@ impl TryFrom<orders_list::Order> for OrderFlattened {
     }
 }
 
-impl WriteCsv<OrderFlattened> for Vec<OrderFlattened> {}
+impl TryIntoCsv<OrderFlattened> for Vec<OrderFlattened> {}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VaultBalanceChangeFlattened {
@@ -156,7 +156,7 @@ impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {
     }
 }
 
-impl WriteCsv<VaultBalanceChangeFlattened> for Vec<VaultBalanceChangeFlattened> {}
+impl TryIntoCsv<VaultBalanceChangeFlattened> for Vec<VaultBalanceChangeFlattened> {}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OrderClearFlattened {
@@ -203,4 +203,4 @@ impl TryFrom<order_clears_list::OrderClear> for OrderClearFlattened {
     }
 }
 
-impl WriteCsv<OrderClearFlattened> for Vec<OrderClearFlattened> {}
+impl TryIntoCsv<OrderClearFlattened> for Vec<OrderClearFlattened> {}
