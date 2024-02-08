@@ -38,7 +38,7 @@
 
 <PageHeader title="Vaults" />
 
-{#if $vaultsList.currentPage.length}
+{#if $vaultsList.currentPage.length === 0}
   <div class="text-center text-gray-900 dark:text-white">No Vaults found</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={true}>
