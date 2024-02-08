@@ -38,6 +38,7 @@
     <TableHeadCell>Owner</TableHeadCell>
     <TableHeadCell>Token</TableHeadCell>
     <TableHeadCell>Balance</TableHeadCell>
+    <TableHeadCell>Orders</TableHeadCell>
     <TableHeadCell></TableHeadCell>
   </svelte:fragment>
 
@@ -48,6 +49,16 @@
       <TableBodyCell tdClass="break-all p-2 min-w-48">
         {item.balance_display}
         {item.token.symbol}
+      </TableBodyCell>
+      <TableBodyCell tdClass="break-all p-2 min-w-48">
+        {#if item.orders}
+          <div class="flex flex-wrap justify-start">
+            {#each item.orders.slice(0, 3) as order}
+              <Button class="px-1 py-0 mt-1 mr-1" color="alternative" on:click={() => goto(`/orders/${order.id}`)}><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button>
+            {/each}
+            {#if item.orders.length > 3}...{/if}
+          </div>
+        {/if}
       </TableBodyCell>
       <TableBodyCell tdClass="px-0">
         {#if $walletAddressMatchesOrBlank(item.owner.id)}
