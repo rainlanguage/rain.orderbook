@@ -8,7 +8,7 @@ use rain_orderbook_common::{
 };
 use rain_orderbook_subgraph_client::{
     types::{flattened::{OrderFlattened, TryIntoFlattenedError},  order_detail, orders_list},
-    WriteCsv,
+    TryIntoCsv,
     PaginationArgs
 };
 use std::path::PathBuf;
