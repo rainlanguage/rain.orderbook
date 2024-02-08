@@ -35,11 +35,10 @@ impl Execute for CliOrderClearListArgs {
             .await?
             .order_clears_list(pagination_args)
             .await?;
-        let order_clears_flattened: Vec<OrderClearFlattened> =
-            order_clears
-                .into_iter()
-                .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
+        let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
+            .into_iter()
+            .map(|o| o.try_into())
+            .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
 
         if let Some(csv_file) = self.csv_file.clone() {
             order_clears_flattened.write_csv(csv_file.clone())?;
@@ -76,9 +75,15 @@ fn build_table(order_clears: Vec<OrderClearFlattened>) -> Result<Table> {
             format!("{:?}", order_clear.sender),
             format!("{:?}", order_clear.clearer),
             order_clear.order_a_id,
-            format!("{:?} {}", order_clear.bounty_amount_a, order_clear.bounty_token_a),
+            format!(
+                "{:?} {}",
+                order_clear.bounty_amount_a, order_clear.bounty_token_a
+            ),
             order_clear.order_b_id,
-            format!("{:?} {}", order_clear.bounty_amount_b, order_clear.bounty_token_b),
+            format!(
+                "{:?} {}",
+                order_clear.bounty_amount_b, order_clear.bounty_token_b
+            ),
         ]);
     }
 

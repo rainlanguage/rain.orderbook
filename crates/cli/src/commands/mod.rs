@@ -1,5 +1,5 @@
 mod order;
-mod vault;
 mod order_clear;
+mod vault;
 
-pub use self::{order::Order, vault::Vault, order_clear::OrderClear};
+pub use self::{order::Order, order_clear::OrderClear, vault::Vault};

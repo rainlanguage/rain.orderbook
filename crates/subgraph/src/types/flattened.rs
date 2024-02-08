@@ -1,8 +1,8 @@
 use std::num::ParseIntError;
 
 use super::{
-    orders_list, vault_balance_change::VaultBalanceChange, vault_list_balance_changes, vaults_list,
-    order_clears_list,
+    order_clears_list, orders_list, vault_balance_change::VaultBalanceChange,
+    vault_list_balance_changes, vaults_list,
 };
 use crate::utils::format_bigint_timestamp_display;
 use crate::{csv::WriteCsv, utils::FormatTimestampDisplayError};

@@ -3,6 +3,8 @@ use crate::pagination::{
     PageQueryVariables, PaginationArgs, PaginationClient, PaginationClientError,
 };
 use crate::types::{
+    order_clears_list,
+    order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
     orders_list,
@@ -15,8 +17,6 @@ use crate::types::{
     },
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
-    order_clears_list,
-    order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
 };
 use crate::PageQueryClient;
 use chrono::NaiveDateTime;

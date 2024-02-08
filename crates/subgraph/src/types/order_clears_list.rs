@@ -212,5 +212,3 @@ pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
 pub struct Bytes(pub String);
-
-

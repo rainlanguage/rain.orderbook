@@ -14,7 +14,7 @@ pub enum OrderClear {
 impl Execute for OrderClear {
     async fn execute(&self) -> Result<()> {
         match self {
-          OrderClear::List(list) => list.execute().await,
+            OrderClear::List(list) => list.execute().await,
         }
     }
 }
