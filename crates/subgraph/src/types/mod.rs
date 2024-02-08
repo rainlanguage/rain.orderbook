@@ -1,4 +1,5 @@
 pub mod flattened;
+pub mod order_clears_list;
 pub mod order_detail;
 pub mod order_detail_traits;
 pub mod orders_list;

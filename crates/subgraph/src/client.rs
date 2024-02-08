@@ -3,6 +3,8 @@ use crate::pagination::{
     PageQueryVariables, PaginationArgs, PaginationClient, PaginationClientError,
 };
 use crate::types::{
+    order_clears_list,
+    order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
     orders_list,
@@ -134,6 +136,24 @@ impl OrderbookSubgraphClient {
             .await?;
 
         Ok(res)
+    }
+
+    pub async fn order_clears_list(
+        &self,
+        pagination_args: PaginationArgs,
+    ) -> Result<Vec<order_clears_list::OrderClear>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
+        let data = self
+            .query::<OrderClearsListQuery, OrderClearsListQueryVariables>(
+                self.url.clone(),
+                OrderClearsListQueryVariables {
+                    first: pagination_variables.first,
+                    skip: pagination_variables.skip,
+                },
+            )
+            .await?;
+
+        Ok(data.order_clears)
     }
 }
 
