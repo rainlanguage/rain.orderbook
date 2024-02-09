@@ -1,4 +1,4 @@
-use crate::{add_order::AddOrderArgsError, transaction::TransactionArgsError};
+use crate::{front_matter::FrontMatterError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
 use alloy_json_abi::Error as AlloyError;
@@ -169,10 +169,8 @@ pub enum ForkParseError {
     ForkCallFailed(#[from] ForkCallError),
     #[error("{0}")]
     AbiDecodedError(AbiDecodedErrorType),
-    #[error("Invalid Front Matter: {0}")]
-    FrontMatterInvalid(#[from] AddOrderArgsError),
-    #[error("Invalid Parser address received from deployer")]
-    ParserAddressInvalid,
+    #[error("Front Matter: {0}")]
+    FrontMatterError(#[from] FrontMatterError),
 }
 
 impl From<AbiDecodedErrorType> for ForkParseError {

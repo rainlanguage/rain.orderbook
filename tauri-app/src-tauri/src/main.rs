@@ -8,6 +8,7 @@ pub mod transaction_status;
 mod commands;
 use commands::chain::get_chainid;
 use commands::fork::parse_dotrain;
+use commands::lsp_services::{provide_completion, provide_hover, provide_problems};
 use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv};
 use commands::vault::{
     vault_deposit, vault_detail, vault_list_balance_changes, vault_list_balance_changes_write_csv,
@@ -36,6 +37,9 @@ fn main() {
             get_address_from_ledger,
             get_chainid,
             parse_dotrain,
+            provide_completion,
+            provide_hover,
+            provide_problems
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
