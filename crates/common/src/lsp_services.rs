@@ -1,6 +1,6 @@
-use super::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-use super::fork::parse_rainlang_on_fork;
-use super::front_matter::try_parse_frontmatter_rebinds;
+use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
+use crate::front_matter::try_parse_frontmatter_rebinds;
+use crate::rainlang::parse_rainlang_on_fork;
 use dotrain::{
     error::{ComposeError, ErrorCode},
     types::ast::Problem,
