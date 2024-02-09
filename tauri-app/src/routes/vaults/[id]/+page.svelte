@@ -19,6 +19,8 @@
   import { HashType } from '$lib/utils/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { goto } from '$app/navigation';
+  import ChartBalanceChange from '$lib/components/ChartBalanceChange.svelte';
+  import { formatTimestampSecondsAsAsISO } from '$lib/utils/time';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -50,7 +52,7 @@
   <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
 {:else}
   <div class="flex w-full flex-wrap justify-evenly space-y-12 xl:space-x-8 2xl:space-y-0">
-    <Card class="space-y-8" size="lg">
+    <Card class="space-y-8" size="md">
       <div>
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Vault ID
@@ -100,6 +102,10 @@
           </p>
         </div>
       {/if}
+    </Card>
+
+    <Card size="lg" class="w-full">
+      <ChartBalanceChange dataRows={$vaultListBalanceChanges.currentPage} dataRowTransformer={(d) => ({value: d.type === 'Withdraw' ? -1 * parseFloat(d.content.amount_display) :  parseFloat(d.content.amount_display), time: formatTimestampSecondsAsAsISO(BigInt(d.content.timestamp)), color: d.type === 'Withdraw' ? 'blue' : 'green'})} />
     </Card>
 
     <div class="max-w-screen-xl space-y-12">

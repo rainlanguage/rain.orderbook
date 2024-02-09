@@ -8,3 +8,8 @@ export function formatTimestampSecondsAsLocal(timestampSeconds: bigint) {
   return dayjs(timestampSeconds  * BigInt('1000'))
     .format('L LT');
 }
+
+export function formatTimestampSecondsAsAsISO(timestampSeconds: bigint) {
+  return dayjs(timestampSeconds  * BigInt('1000'))
+    .format('YYYY-MM-DD');
+}
