@@ -1,6 +1,9 @@
 use crate::{front_matter::FrontMatterError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
-use alloy_ethers_typecast::{client::LedgerClientError, transaction::WritableClientError};
+use alloy_ethers_typecast::{
+    client::LedgerClientError,
+    transaction::{ReadableClientError, WritableClientError},
+};
 use alloy_json_abi::Error as AlloyError;
 use forker::ForkedEvm;
 use once_cell::sync::Lazy;
@@ -149,6 +152,8 @@ pub enum ForkCallError {
     ForkCachePoisoned,
     #[error("Missing expected cache key {0}")]
     ForkCacheKeyMissing(String),
+    #[error(transparent)]
+    ReadableClientError(#[from] ReadableClientError),
 }
 
 impl From<AbiDecodeFailedErrors> for ForkCallError {
@@ -165,17 +170,27 @@ impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkC
 
 #[derive(Debug, Error)]
 pub enum ForkParseError {
+    #[error("Fork Cache Poisoned")]
+    ForkCachePoisoned,
     #[error(transparent)]
     ForkCallFailed(#[from] ForkCallError),
     #[error("{0}")]
     AbiDecodedError(AbiDecodedErrorType),
     #[error("Front Matter: {0}")]
     FrontMatterError(#[from] FrontMatterError),
+    #[error(transparent)]
+    ReadableClientError(#[from] ReadableClientError),
 }
 
 impl From<AbiDecodedErrorType> for ForkParseError {
     fn from(value: AbiDecodedErrorType) -> Self {
         Self::AbiDecodedError(value)
+    }
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkParseError {
+    fn from(_value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
+        Self::ForkCachePoisoned
     }
 }
 
