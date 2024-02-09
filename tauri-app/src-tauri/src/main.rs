@@ -18,6 +18,12 @@ use commands::order_clear::{order_clears_list, order_clears_list_write_csv};
 use commands::wallet::get_address_from_ledger;
 
 fn main() {
+    // Disable webkitgtk Accelerated Compositing to avoid a blank screen
+    // See https://github.com/tauri-apps/tauri/issues/5143
+    if std::env::consts::OS == "linux" {
+        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    }
+    
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             vaults_list,
@@ -43,4 +49,9 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    // Cleanup env var
+    if std::env::consts::OS == "linux" {
+        std::env::remove_var("WEBKIT_DISABLE_COMPOSITING_MODE");
+    }
 }
