@@ -1,5 +1,5 @@
 use super::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-use super::fork::parse_rainlang_fork;
+use super::fork::parse_rainlang_on_fork;
 use super::front_matter::try_parse_frontmatter_rebinds;
 use dotrain::{
     error::{ComposeError, ErrorCode},
@@ -64,7 +64,7 @@ pub async fn get_problems(
             },
         };
 
-        parse_rainlang_fork(frontmatter, &rainlang, rpc_url, block_number)
+        parse_rainlang_on_fork(frontmatter, &rainlang, rpc_url, Some(block_number))
             .await
             .map_or_else(
                 |e| {
