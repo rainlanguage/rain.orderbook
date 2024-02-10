@@ -1,5 +1,5 @@
 use crate::{
-    front_matter::{try_parse_frontmatter, FrontMatterError},
+    frontmatter::{try_parse_frontmatter, FrontmatterError},
     lsp_services::LANG_SERVICES,
     transaction::{TransactionArgs, TransactionArgsError},
 };
@@ -27,7 +27,7 @@ pub enum AddOrderArgsError {
     #[error("Empty Front Matter")]
     EmptyFrontmatter,
     #[error("Front Matter: {0}")]
-    FrontmatterError(#[from] FrontMatterError),
+    FrontmatterError(#[from] FrontmatterError),
     #[error(transparent)]
     DISPairError(#[from] DISPairError),
     #[error(transparent)]
@@ -116,11 +116,11 @@ impl AddOrderArgs {
         // Parse file into dotrain document
         let meta_store = LANG_SERVICES.meta_store();
 
-        let front_matter = RainDocument::get_front_matter(&self.dotrain)
+        let frontmatter = RainDocument::get_front_matter(&self.dotrain)
             .ok_or(AddOrderArgsError::EmptyFrontmatter)?;
 
         // Prepare call
-        let (deployer, valid_inputs, valid_outputs, rebinds) = try_parse_frontmatter(front_matter)?;
+        let (deployer, valid_inputs, valid_outputs, rebinds) = try_parse_frontmatter(frontmatter)?;
 
         let dotrain_doc =
             RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);

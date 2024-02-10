@@ -1,4 +1,4 @@
-use crate::{front_matter::FrontMatterError, transaction::TransactionArgsError};
+use crate::{frontmatter::FrontmatterError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_ethers_typecast::{
     client::LedgerClientError,
@@ -177,7 +177,7 @@ pub enum ForkParseError {
     #[error("{0}")]
     AbiDecodedError(AbiDecodedErrorType),
     #[error("Front Matter: {0}")]
-    FrontMatterError(#[from] FrontMatterError),
+    FrontmatterError(#[from] FrontmatterError),
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
 }

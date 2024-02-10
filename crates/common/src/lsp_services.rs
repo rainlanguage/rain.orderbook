@@ -1,5 +1,5 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-use crate::front_matter::try_parse_frontmatter_rebinds;
+use crate::frontmatter::try_parse_frontmatter_rebinds;
 use crate::rainlang::parse_rainlang_on_fork;
 use dotrain::{
     error::{ComposeError, ErrorCode},
