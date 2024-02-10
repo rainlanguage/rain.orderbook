@@ -11,7 +11,6 @@ pub async fn parse_dotrain(
 ) -> CommandResult<Bytes> {
     Ok(
         parse_rainlang_on_fork(frontmatter, rainlang, rpc_url, block_number)
-            .await
-            .map(Bytes::from)?,
+            .await?
     )
 }
