@@ -4,7 +4,7 @@ use crate::rainlang::parse_rainlang_on_fork;
 use dotrain::{
     error::{ComposeError, ErrorCode},
     types::ast::Problem,
-    RainDocument,
+    RainDocument, Rebind,
 };
 use dotrain_lsp::{
     lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
@@ -17,64 +17,68 @@ use once_cell::sync::Lazy;
 /// all the dotrain usage in this crate
 pub static LANG_SERVICES: Lazy<RainLanguageServices> = Lazy::new(RainLanguageServices::default);
 
-/// get hover for a given text document item
-pub fn get_hover(text_document: &TextDocumentItem, position: Position) -> Option<Hover> {
-    let rebinds =
-        RainDocument::get_front_matter(&text_document.text).and_then(try_parse_frontmatter_rebinds);
-
-    LANG_SERVICES.do_hover(text_document, position, None, rebinds)
+pub struct DotrainAddOrderLsp {
+    text_document: TextDocumentItem,
+    frontmatter: String,
+    rebinds: Option<Vec<Rebind>>,
 }
 
-/// get completion items for a given text document item
-pub fn get_completion(
-    text_document: &TextDocumentItem,
-    position: Position,
-) -> Option<Vec<CompletionItem>> {
-    let rebinds =
-        RainDocument::get_front_matter(&text_document.text).and_then(try_parse_frontmatter_rebinds);
+impl DotrainAddOrderLsp {
+    pub fn new(text_document: TextDocumentItem) -> Self {
+        let frontmatter = RainDocument::get_front_matter(&text_document.text);
+        let rebinds = frontmatter.and_then(try_parse_frontmatter_rebinds);
 
-    LANG_SERVICES.do_complete(text_document, position, None, rebinds)
-}
+        Self {
+            text_document: text_document.clone(),
+            frontmatter: frontmatter.unwrap_or("").to_string(),
+            rebinds,
+        }
+    }
 
-/// get problems for a given text document item
-pub async fn get_problems(
-    text_document: &TextDocumentItem,
-    rpc_url: &str,
-    block_number: u64,
-) -> Vec<Problem> {
-    let frontmatter = RainDocument::get_front_matter(&text_document.text).unwrap_or("");
-    let rebinds = try_parse_frontmatter_rebinds(frontmatter);
+    /// get hover for a given text document item
+    pub fn hover(&self, position: Position) -> Option<Hover> {
+        LANG_SERVICES.do_hover(&self.text_document, position, None, self.rebinds.clone())
+    }
 
-    let rain_document = LANG_SERVICES.new_rain_document(text_document, rebinds);
-    let all_problems = rain_document.all_problems();
-    if !all_problems.is_empty() {
-        all_problems.iter().map(|&v| v.clone()).collect()
-    } else {
-        let rainlang = match rain_document.compose(&ORDERBOOK_ORDER_ENTRYPOINTS) {
-            Ok(v) => v,
-            Err(e) => match e {
-                ComposeError::Reject(msg) => {
-                    return vec![Problem {
-                        msg,
-                        position: [0, 0],
-                        code: ErrorCode::NativeParserError,
-                    }]
-                }
-                ComposeError::Problems(problems) => return problems,
-            },
-        };
+    /// get completion items for a given text document item
+    pub fn completion(&self, position: Position) -> Option<Vec<CompletionItem>> {
+        LANG_SERVICES.do_complete(&self.text_document, position, None, self.rebinds.clone())
+    }
 
-        parse_rainlang_on_fork(frontmatter, &rainlang, rpc_url, Some(block_number))
-            .await
-            .map_or_else(
-                |e| {
-                    vec![Problem {
-                        msg: e.to_string(),
-                        position: [0, 0],
-                        code: ErrorCode::NativeParserError,
-                    }]
+    /// get problems for a given text document item
+    pub async fn problems(&self, rpc_url: &str, block_number: Option<u64>) -> Vec<Problem> {
+        let rain_document =
+            LANG_SERVICES.new_rain_document(&self.text_document, self.rebinds.clone());
+        let all_problems = rain_document.all_problems();
+        if !all_problems.is_empty() {
+            all_problems.iter().map(|&v| v.clone()).collect()
+        } else {
+            let rainlang = match rain_document.compose(&ORDERBOOK_ORDER_ENTRYPOINTS) {
+                Ok(v) => v,
+                Err(e) => match e {
+                    ComposeError::Reject(msg) => {
+                        return vec![Problem {
+                            msg,
+                            position: [0, 0],
+                            code: ErrorCode::NativeParserError,
+                        }]
+                    }
+                    ComposeError::Problems(problems) => return problems,
                 },
-                |_| vec![],
-            )
+            };
+
+            parse_rainlang_on_fork(&self.frontmatter, &rainlang, rpc_url, block_number)
+                .await
+                .map_or_else(
+                    |e| {
+                        vec![Problem {
+                            msg: e.to_string(),
+                            position: [0, 0],
+                            code: ErrorCode::NativeParserError,
+                        }]
+                    },
+                    |_| vec![],
+                )
+        }
     }
 }

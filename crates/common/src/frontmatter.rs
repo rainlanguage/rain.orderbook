@@ -24,8 +24,7 @@ pub fn try_parse_frontmatter(
     // Parse dotrain document frontmatter
     let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter)
         .map_err(FrontmatterError::FrontmatterInvalidYaml)?;
-    let frontmatter_yaml = frontmatter_yaml_vec
-        .get(0)
+    let frontmatter_yaml = frontmatter_yaml_vec.first()
         .ok_or(FrontmatterError::FrontmatterEmpty)?;
 
     let deployer = frontmatter_yaml["orderbook"]["order"]["deployer"]
@@ -47,7 +46,7 @@ pub fn try_parse_frontmatter(
         "valid-outputs",
     )?;
 
-    let rebinds = get_rebinds_from_yaml(&frontmatter_yaml);
+    let rebinds = get_rebinds_from_yaml(frontmatter_yaml);
 
     Ok((deployer, valid_inputs, valid_outputs, rebinds))
 }
@@ -55,9 +54,9 @@ pub fn try_parse_frontmatter(
 /// parses a yaml text and tries to get rebindings from it
 pub fn try_parse_frontmatter_rebinds(frontmatter: &str) -> Option<Vec<Rebind>> {
     let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter).ok()?;
-    let frontmatter_yaml = frontmatter_yaml_vec.get(0)?;
+    let frontmatter_yaml = frontmatter_yaml_vec.first()?;
 
-    get_rebinds_from_yaml(&frontmatter_yaml)
+    get_rebinds_from_yaml(frontmatter_yaml)
 }
 
 /// gets rebindings from a parsed yaml
