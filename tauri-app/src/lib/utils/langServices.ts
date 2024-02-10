@@ -8,7 +8,7 @@ import { get } from 'svelte/store';
  */
 export async function problemsCallback(textDocument: TextDocumentItem): Promise<Problem[]> {
   try {
-    return await invoke('provide_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
+    return await invoke('call_lsp_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
   }
   catch (err) {
     return [{
@@ -23,12 +23,12 @@ export async function problemsCallback(textDocument: TextDocumentItem): Promise<
  * Provides hover callback by invoking related tauri command
  */
 export async function hoverCallback(textDocument: TextDocumentItem, position: Position): Promise<Hover | null> {
-  return await invoke('provide_hover', { textDocument, position });
+  return await invoke('call_lsp_hover', { textDocument, position });
 }
 
 /**
  * Provides completion callback by invoking related tauri command
  */
 export async function completionCallback(textDocument: TextDocumentItem, position: Position): Promise<CompletionItem[] | null> {
-  return await invoke('provide_completion', { textDocument, position });
+  return await invoke('call_lsp_completion', { textDocument, position });
 }
