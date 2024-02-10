@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use alloy_primitives::bytes::Bytes;
-use rain_orderbook_common::fork::parse_rainlang_on_fork;
+use rain_orderbook_common::rainlang::parse_rainlang_on_fork;
 
 #[tauri::command]
 pub async fn parse_dotrain(

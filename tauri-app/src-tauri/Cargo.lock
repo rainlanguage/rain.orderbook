@@ -192,7 +192,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=c00a8b8f00802e8291f64b9a89494b83ce9c8169#c00a8b8f00802e8291f64b9a89494b83ce9c8169"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=846dae9034c79f3935a0021635c9a6ee2d91f13e#846dae9034c79f3935a0021635c9a6ee2d91f13e"
 dependencies = [
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
@@ -6592,6 +6592,7 @@ dependencies = [
  "serde_json",
  "strict-yaml-rust",
  "thiserror",
+ "tokio",
  "tracing",
  "url",
 ]
