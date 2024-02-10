@@ -18,6 +18,8 @@
   export let emptyMessage: string = "None found"
   export let rowHoverable = true;
   export let enableCsvExport = true;
+
+  listStore.fetchFirst();
 </script>
 
 {#if $listStore.currentPage.length === 0}
