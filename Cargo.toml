@@ -9,7 +9,7 @@ license = "CAL-1.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "c00a8b8f00802e8291f64b9a89494b83ce9c8169" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "846dae9034c79f3935a0021635c9a6ee2d91f13e" }
 alloy-sol-types = { version = "0.5.4" }
 alloy-primitives = "0.5.4"
 alloy-json-abi = "0.5.4"
@@ -33,7 +33,8 @@ chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "8fcc7651df8abc49c72c648ac8e9c80b5e057e70" }
+dotrain = { git = "https://github.com/rainlanguage/dotrain.git", rev = "d31564805c0463bbd59f902a4b699d7bb4085c5b" }
+dotrain-lsp = { git = "https://github.com/rainlanguage/dotrain.git", rev = "d31564805c0463bbd59f902a4b699d7bb4085c5b" }
 rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }

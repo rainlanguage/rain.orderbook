@@ -1,15 +1,15 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    remove_order::RemoveOrderArgs,
-    subgraph::SubgraphArgs,
+    add_order::AddOrderArgs, remove_order::RemoveOrderArgs, subgraph::SubgraphArgs,
     transaction::TransactionArgs,
-    add_order::AddOrderArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{flattened::{OrderFlattened, TryIntoFlattenedError},  order_detail, orders_list},
-    TryIntoCsv,
-    PaginationArgs
+    types::{
+        flattened::{OrderFlattened, TryIntoFlattenedError},
+        order_detail, orders_list,
+    },
+    PaginationArgs, TryIntoCsv,
 };
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -63,15 +63,15 @@ pub async fn order_add(
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into(), None);
-        add_order_args
-            .execute(transaction_args, |status| {
-                tx_status_notice.update_status_and_emit(app_handle.clone(), status);
-            })
-            .await
-            .map_err(|e| {
-                toast_error(app_handle.clone(), e.to_string());
-                e
-            })?;
+    add_order_args
+        .execute(transaction_args, |status| {
+            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+        })
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
 
     Ok(())
 }

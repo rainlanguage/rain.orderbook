@@ -2,7 +2,7 @@
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
 
-  export let value: number;
+  export let value: number | undefined = undefined;
   export let required = true;
 
   const maskOptions = {
@@ -12,11 +12,7 @@
   };
 
   function complete({ detail }: { detail: InputMask }) {
-    if (detail.unmaskedValue.length === 0) {
-      value = 0;
-    } else {
-      value = parseInt(detail.unmaskedValue);
-    }
+    value = detail.unmaskedValue.length === 0 ? undefined : parseInt(detail.unmaskedValue);
   }
 </script>
 
@@ -26,4 +22,5 @@
   class="block w-full disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right p-2.5 focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 bg-gray-50 text-gray-900 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 border-gray-300 dark:border-gray-600 text-sm rounded-lg"
   use:imask={maskOptions}
   on:complete={complete}
+  placeholder="(latest block)"
 />

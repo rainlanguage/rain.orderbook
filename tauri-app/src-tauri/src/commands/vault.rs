@@ -1,15 +1,16 @@
 use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    deposit::DepositArgs,
-    subgraph::SubgraphArgs,
-    transaction::TransactionArgs,
+    deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{flattened::{TokenVaultFlattened, VaultBalanceChangeFlattened, TryIntoFlattenedError}, vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
-    TryIntoCsv,
-    PaginationArgs,
+    types::{
+        flattened::{TokenVaultFlattened, TryIntoFlattenedError, VaultBalanceChangeFlattened},
+        vault_balance_change::VaultBalanceChange,
+        vault_detail, vaults_list,
+    },
+    PaginationArgs, TryIntoCsv,
 };
 use std::path::PathBuf;
 use tauri::AppHandle;

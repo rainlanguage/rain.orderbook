@@ -89,9 +89,9 @@
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">Fork Block Number</Label>
-      <InputBlockNumber required bind:value={$forkBlockNumber} />
+      <InputBlockNumber bind:value={$forkBlockNumber} required={false} />
       <Helper class="mt-2 text-sm">
-        The block number to fork when calling the Rainlang Parser contract.
+        The block number to fork when calling the Rainlang Parser contract. Defaults to the latest block.
       </Helper>
     </div>
   </div>
