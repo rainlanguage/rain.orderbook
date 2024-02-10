@@ -19,8 +19,8 @@
   import { HashType } from '$lib/utils/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { goto } from '$app/navigation';
-  import ChartBalanceChange from '$lib/components/ChartBalanceChange.svelte';
-  import { formatTimestampSecondsAsAsISO } from '$lib/utils/time';
+  import ChartHistogram from '$lib/components/ChartHistogram.svelte';
+  import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -36,6 +36,12 @@
   }
 
   const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
+
+  $: vaultListBalanceChangesCurrentPageChartData = $vaultListBalanceChanges.currentPage.map((d) => ({
+        value: d.type === 'Withdraw' ? -1 * parseFloat(d.content.amount_display) : parseFloat(d.content.amount_display),
+        time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
+        color: d.type === 'Withdraw' ? 'blue' : 'green'})
+    );
 </script>
 
 <PageHeader title="Vault">
@@ -104,7 +110,7 @@
     </Card>
 
     <Card size="lg" class="w-full">
-      <ChartBalanceChange dataRows={$vaultListBalanceChanges.currentPage} dataRowTransformer={(d) => ({value: d.type === 'Withdraw' ? -1 * parseFloat(d.content.amount_display) :  parseFloat(d.content.amount_display), time: formatTimestampSecondsAsAsISO(BigInt(d.content.timestamp)), color: d.type === 'Withdraw' ? 'blue' : 'green'})} />
+      <ChartHistogram data={vaultListBalanceChangesCurrentPageChartData} />
     </Card>
 
     <div class="max-w-screen-xl space-y-12">
