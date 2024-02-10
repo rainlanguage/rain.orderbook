@@ -24,7 +24,8 @@ pub fn try_parse_frontmatter(
     // Parse dotrain document frontmatter
     let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter)
         .map_err(FrontmatterError::FrontmatterInvalidYaml)?;
-    let frontmatter_yaml = frontmatter_yaml_vec.first()
+    let frontmatter_yaml = frontmatter_yaml_vec
+        .first()
         .ok_or(FrontmatterError::FrontmatterEmpty)?;
 
     let deployer = frontmatter_yaml["orderbook"]["order"]["deployer"]
