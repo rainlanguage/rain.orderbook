@@ -1,7 +1,6 @@
 use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
 use alloy_primitives::Address;
-use forker::*;
 use once_cell::sync::Lazy;
 use revm::primitives::Bytes;
 use std::collections::HashMap;
