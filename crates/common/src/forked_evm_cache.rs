@@ -4,8 +4,9 @@ use alloy_primitives::Address;
 use forker::*;
 use once_cell::sync::Lazy;
 use revm::primitives::Bytes;
+use std::collections::HashMap;
 use std::sync::Arc;
-use std::{collections::HashMap, sync::Mutex};
+use tokio::sync::Mutex;
 
 pub static FORKED_EVM_CACHE: Lazy<ForkedEvmCache> = Lazy::new(|| ForkedEvmCache::new());
 
@@ -28,12 +29,9 @@ impl ForkedEvmCache {
     /// Create a new evm fork at the provided block number and save to cache
     pub async fn create(&self, rpc_url: &str, block_number: u64) -> Result<(), ForkCallError> {
         let cache_key = Self::make_cache_key(rpc_url, block_number);
-
-        // Generate new evm fork
         let forked_evm = ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
 
-        // add new fork to cache
-        let mut forks = self.cache.lock()?;
+        let mut forks = self.cache.lock().await;
         forks.insert(cache_key.clone(), forked_evm);
 
         Ok(())
@@ -47,7 +45,7 @@ impl ForkedEvmCache {
     ) -> Result<String, ForkCallError> {
         let cache_key = Self::make_cache_key(rpc_url, block_number);
 
-        let is_cached = self.cache.lock()?.contains_key(&cache_key);
+        let is_cached = self.cache.lock().await.contains_key(&cache_key);
         if !is_cached {
             self.create(rpc_url, block_number).await?;
         }
@@ -64,7 +62,7 @@ impl ForkedEvmCache {
         calldata: &[u8],
     ) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
         // call contract on evm fork
-        let mut cache = self.cache.lock()?;
+        let mut cache = self.cache.lock().await;
         let forked_evm = cache
             .get_mut(&cache_key)
             .ok_or(ForkCallError::ForkCacheKeyMissing(cache_key.clone()))?;
