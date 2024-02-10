@@ -2,7 +2,7 @@ use crate::error::ForkParseError;
 use crate::forked_evm_cache::FORKED_EVM_CACHE;
 use crate::frontmatter::try_parse_frontmatter;
 use alloy_ethers_typecast::transaction::ReadableClientHttp;
-use alloy_primitives::{Address, FixedBytes, bytes::Bytes};
+use alloy_primitives::{bytes::Bytes, Address, FixedBytes};
 use alloy_sol_types::SolCall;
 use rain_interpreter_bindings::DeployerISP::iParserCall;
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
@@ -27,9 +27,8 @@ pub async fn parse_rainlang_on_fork(
         Some(b) => b,
         None => {
             let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
-            let block_number = client.get_block_number().await?;
 
-            block_number
+            client.get_block_number().await?
         }
     };
     let cache_key = FORKED_EVM_CACHE
@@ -58,7 +57,7 @@ pub async fn parse_rainlang_on_fork(
     FORKED_EVM_CACHE
         .call(cache_key, SENDER_ADDRESS, deployer, &calldata)
         .await??;
-    let expression_config_bytes = Bytes::from(expression_config);
+    let expression_config_bytes = expression_config;
 
     Ok(expression_config_bytes)
 }

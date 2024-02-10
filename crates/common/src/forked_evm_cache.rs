@@ -1,13 +1,13 @@
 use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
-use alloy_primitives::Address;
+use alloy_primitives::{bytes::Bytes, Address};
+use forker::ForkedEvm;
 use once_cell::sync::Lazy;
-use revm::primitives::Bytes;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-pub static FORKED_EVM_CACHE: Lazy<ForkedEvmCache> = Lazy::new(|| ForkedEvmCache::new());
+pub static FORKED_EVM_CACHE: Lazy<ForkedEvmCache> = Lazy::new(ForkedEvmCache::new);
 
 pub struct ForkedEvmCache {
     cache: Arc<Mutex<HashMap<String, ForkedEvm>>>,
@@ -73,7 +73,7 @@ impl ForkedEvmCache {
             // decode result bytes to error selectors if it was a revert
             Ok(Err(abi_decode_error(&result.result).await?))
         } else {
-            Ok(Ok(result.result))
+            Ok(Ok(Bytes::from(result.result)))
         }
     }
 }
