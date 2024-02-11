@@ -1,8 +1,8 @@
 <script lang="ts">
   import { lightweightChartsTheme } from "$lib/stores/darkMode";
   import { ButtonGroup, Spinner } from "flowbite-svelte";
-  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon,  } from "lightweight-charts";
-  import { onMount } from "svelte";
+  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon  } from "lightweight-charts";
+  import { onDestroy, onMount } from "svelte";
   import ButtonTab from '$lib/components/ButtonTab.svelte';
 
   export let data: {value: number, time: UTCTimestamp, color?: string}[] = [];
@@ -52,6 +52,12 @@
     series = chart.addHistogramSeries();
     setOptions();
   }
+  function destoroyChart() {
+    if (chart == undefined) return;
+
+    chart.remove();
+    chart = undefined;
+  }
 
   $: timeDelta, setTimeScale();
   $: data, setData();
@@ -59,6 +65,9 @@
 
   onMount(() => {
     setupChart();
+  });
+  onDestroy(() => {
+    destoroyChart();
   });
 </script>
 
