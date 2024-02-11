@@ -22,6 +22,7 @@
   import ChartHistogram from '$lib/components/ChartHistogram.svelte';
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import { sortBy } from 'lodash';
+  import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -39,9 +40,9 @@
   const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
 
   $: vaultListBalanceChangesCurrentPageChartData = sortBy($vaultListBalanceChanges.currentPage.map((d) => ({
-        value: d.type === 'Withdraw' ? -1 * parseFloat(d.content.amount_display) : parseFloat(d.content.amount_display),
+        value: d.type === VaultBalanceChangeType.Withdraw ? -1 * parseFloat(d.content.amount_display) : parseFloat(d.content.amount_display),
         time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-        color: d.type === 'Withdraw' ? 'blue' : 'green'
+        color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
     })), (d) => d.time);
 </script>
 
@@ -137,7 +138,7 @@
             <Hash type={HashType.Transaction} value={item.content.transaction.id} />
           </TableBodyCell>
           <TableBodyCell tdClass="break-word p-2 text-right">
-            {item.type === 'Withdraw' ? '-' : ''}{item.content.amount_display} {item.content.token_vault.token.symbol}
+            {item.type === VaultBalanceChangeType.Withdraw ? '-' : ''}{item.content.amount_display} {item.content.token_vault.token.symbol}
           </TableBodyCell>
           <TableBodyCell tdClass="break-word p-2 text-right">
             {item.type}
