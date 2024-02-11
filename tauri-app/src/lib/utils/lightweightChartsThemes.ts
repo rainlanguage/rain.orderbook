@@ -2,11 +2,23 @@ import { ColorType } from 'lightweight-charts';
 
 export const themes = {
   dark: {
-    textColor: 'white',
-    background: { type: ColorType.Solid, color: "#1F2937" } ,
+    layout: {
+      textColor: 'white',
+      background: { type: ColorType.Solid, color: "#1F2937" },
+    },
+    grid: {
+      vertLines: { color: '#444' },
+      horzLines: { color: '#444' },
+    },
   },
   light: {
-    textColor: 'black',
-    background: { type: ColorType.Solid, color: 'white' } ,
+    layout: {
+      textColor: 'black',
+      background: { type: ColorType.Solid, color: 'white' },
+    },
+    grid: {
+      vertLines: { color: '#444' },
+      horzLines: { color: '#444' },
+    },
   }
 }

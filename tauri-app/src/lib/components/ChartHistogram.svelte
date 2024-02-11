@@ -42,7 +42,7 @@
   function setOptions() {
     if(chart === undefined) return;
 
-    chart.applyOptions({ layout: $lightweightChartsTheme, autoSize: true, })
+    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true });
   }
 
   function setupChart() {
