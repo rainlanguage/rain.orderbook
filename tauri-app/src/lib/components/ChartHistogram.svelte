@@ -55,7 +55,7 @@
 
 <div class="w-full h-full relative">
   <div id={elementId} class="w-full min-h-[32rem] h-full" {...$$props}></div>
-  {#if data.length > 0}
+  {#if data.length > 0 || loading}
     <div class="absolute top-5 right-5 z-50">
       {#if loading}
         <Spinner class="mr-2 h-4 w-4" color="white" />
