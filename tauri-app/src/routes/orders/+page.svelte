@@ -8,7 +8,6 @@
   import TableOrders from '$lib/components/TableOrders.svelte';
 
   redirectIfSettingsNotDefined();
-  ordersList.fetchFirst();
 </script>
 
 <PageHeader title="Orders">

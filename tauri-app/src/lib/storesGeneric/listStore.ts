@@ -10,6 +10,7 @@ type Unsubscriber = () => void;
 export interface PaginatedCachedStore<T> {
     subscribe: ( subscriber: Subscriber<Page<T>>, invalidate?: Invalidator<Page<T>>) => Unsubscriber,
     fetchPage: (page?: number) => Promise<void>;
+    fetchFirst: () => Promise<void>;
     fetchPrev: () => Promise<void>;
     fetchNext: () => Promise<void>;
     exportCsv: () => void;

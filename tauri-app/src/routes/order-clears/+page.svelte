@@ -19,7 +19,6 @@
   import { FileCsvOutline } from 'flowbite-svelte-icons';
 
   redirectIfSettingsNotDefined();
-  orderClearsList.fetchFirst();
 </script>
 
 <PageHeader title="Order Clears" />
