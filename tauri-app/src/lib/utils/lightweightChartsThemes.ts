@@ -17,8 +17,8 @@ export const themes = {
       background: { type: ColorType.Solid, color: 'white' },
     },
     grid: {
-      vertLines: { color: '#444' },
-      horzLines: { color: '#444' },
+      vertLines: { color: '#9ca3af' },
+      horzLines: { color: '#9ca3af' },
     },
   }
 }
