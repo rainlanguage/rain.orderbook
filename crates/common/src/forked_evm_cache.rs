@@ -1,104 +1,81 @@
 use super::error::ForkCallError;
 use super::error::{abi_decode_error, AbiDecodedErrorType};
-use crate::error::ForkParseError;
-use crate::front_matter::try_parse_frontmatter;
-use alloy_primitives::{Address, FixedBytes};
-use alloy_sol_types::SolCall;
-use forker::*;
+use alloy_primitives::{bytes::Bytes, Address};
+use forker::ForkedEvm;
 use once_cell::sync::Lazy;
-use rain_interpreter_bindings::DeployerISP::iParserCall;
-use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
-use rain_interpreter_bindings::IParserV1::parseCall;
-use revm::primitives::Bytes;
-use std::{collections::HashMap, sync::Mutex};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
-/// Arbitrary address used to call forked contracts
-const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
+pub static FORKED_EVM_CACHE: Lazy<ForkedEvmCache> = Lazy::new(ForkedEvmCache::new);
 
-/// Cache of evm fork instances, keyed by rpc url + block number
-pub static EVM_FORK_CACHE: Lazy<Mutex<HashMap<String, ForkedEvm>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+pub struct ForkedEvmCache {
+    cache: Arc<Mutex<HashMap<String, ForkedEvm>>>,
+}
 
-pub async fn call_fork(
-    rpc_url: &str,
-    block_number: u64,
-    sender: Address,
-    address: Address,
-    calldata: &[u8],
-) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
-    // build cache key from fork url and block number
-    let key = rpc_url.to_owned() + &block_number.to_string();
+impl ForkedEvmCache {
+    fn new() -> Self {
+        Self {
+            cache: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
 
-    let is_cached = EVM_FORK_CACHE.lock()?.contains_key(&key);
-    let result = if is_cached {
-        // load evm fork from cache
-        let mut forks = EVM_FORK_CACHE.lock()?;
-        let forked_evm = forks
-            .get_mut(&key)
-            .ok_or(ForkCallError::ForkCacheKeyMissing(key))?;
+    // Construct cache key from fork url + block number
+    fn make_cache_key(rpc_url: &str, block_number: u64) -> String {
+        format!("{}-{}", rpc_url, block_number)
+    }
 
+    /// Create a new evm fork at the provided block number and save to cache
+    pub async fn create(&self, rpc_url: &str, block_number: u64) -> Result<(), ForkCallError> {
+        let cache_key = Self::make_cache_key(rpc_url, block_number);
+        let forked_evm = ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
+
+        let mut forks = self.cache.lock().await;
+        forks.insert(cache_key.clone(), forked_evm);
+
+        Ok(())
+    }
+
+    /// Get ForkedEvm from cache or create one save to cache if not found.
+    pub async fn get_or_create(
+        &self,
+        rpc_url: &str,
+        block_number: u64,
+    ) -> Result<String, ForkCallError> {
+        let cache_key = Self::make_cache_key(rpc_url, block_number);
+
+        let is_cached = self.cache.lock().await.contains_key(&cache_key);
+        if !is_cached {
+            self.create(rpc_url, block_number).await?;
+        }
+
+        Ok(cache_key)
+    }
+
+    /// Call a contract on the cached evm fork
+    pub async fn call(
+        &self,
+        cache_key: String,
+        sender: Address,
+        address: Address,
+        calldata: &[u8],
+    ) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
         // call contract on evm fork
-        forked_evm
-            .call(sender.as_slice(), address.as_slice(), calldata)
-            .map_err(|e| ForkCallError::EVMError(e.to_string()))?
-    } else {
-        // Generate new evm fork
-        let mut forked_evm =
-            ForkedEvm::new(rpc_url, Some(block_number), Some(200000u64), None).await;
-
-        // call contract on evm fork
+        let mut cache = self.cache.lock().await;
+        let forked_evm = cache
+            .get_mut(&cache_key)
+            .ok_or(ForkCallError::ForkCacheKeyMissing(cache_key.clone()))?;
         let result = forked_evm
             .call(sender.as_slice(), address.as_slice(), calldata)
             .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
 
-        // add new fork to cache
-        let mut forks = EVM_FORK_CACHE.lock()?;
-        forks.insert(key, forked_evm);
-
-        result
-    };
-
-    if result.reverted {
-        // decode result bytes to error selectors if it was a revert
-        Ok(Err(abi_decode_error(&result.result).await?))
-    } else {
-        Ok(Ok(result.result))
+        if result.reverted {
+            // decode result bytes to error selectors if it was a revert
+            Ok(Err(abi_decode_error(&result.result).await?))
+        } else {
+            Ok(Ok(Bytes::from(result.result)))
+        }
     }
-}
-
-/// checks the front matter validity and parses the given rainlang string
-/// with the deployer parsed from the front matter
-/// returns abi encoded expression config on Ok variant
-pub async fn parse_rainlang_fork(
-    frontmatter: &str,
-    rainlang: &str,
-    rpc_url: &str,
-    block_number: u64,
-) -> Result<Bytes, ForkParseError> {
-    let deployer = try_parse_frontmatter(frontmatter)?.0;
-
-    let calldata = iParserCall {}.abi_encode();
-    let response = call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
-    let parser_address = Address::from_word(FixedBytes::from_slice(response.as_ref()));
-
-    let calldata = parseCall {
-        data: rainlang.as_bytes().to_vec(),
-    }
-    .abi_encode();
-    let expression_config = call_fork(
-        rpc_url,
-        block_number,
-        SENDER_ADDRESS,
-        parser_address,
-        &calldata,
-    )
-    .await??;
-
-    let mut calldata = deployExpression2Call::SELECTOR.to_vec();
-    calldata.extend_from_slice(&expression_config);
-    call_fork(rpc_url, block_number, SENDER_ADDRESS, deployer, &calldata).await??;
-
-    Ok(expression_config)
 }
 
 #[cfg(test)]
@@ -126,15 +103,14 @@ mod tests {
         // this is calling parse() that will not run integrity checks
         // in order to run integrity checks another call should be done on
         // expressionDeployer2() of deployer contract with same process
-        let result = call_fork(
-            FORK_URL,
-            FORK_BLOCK_NUMBER,
-            FROM_ADDRESS,
-            parser_address,
-            &calldata,
-        )
-        .await
-        .expect("test failed!");
+        let cache_key = FORKED_EVM_CACHE
+            .get_or_create(FORK_URL, FORK_BLOCK_NUMBER)
+            .await
+            .unwrap();
+        let result = FORKED_EVM_CACHE
+            .call(cache_key, FROM_ADDRESS, parser_address, &calldata)
+            .await
+            .expect("test failed!");
         let expected = Err(AbiDecodedErrorType::Known {
             name: "MissingFinalSemi".to_owned(),
             args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()],
@@ -154,16 +130,15 @@ mod tests {
             .unwrap();
 
         calldata.extend_from_slice(&rainlang_text.abi_encode()); // extend with rainlang text
-        let expression_config = call_fork(
-            FORK_URL,
-            FORK_BLOCK_NUMBER,
-            FROM_ADDRESS,
-            parser_address,
-            &calldata,
-        )
-        .await
-        .unwrap()
-        .unwrap();
+        let cache_key = FORKED_EVM_CACHE
+            .get_or_create(FORK_URL, FORK_BLOCK_NUMBER)
+            .await
+            .unwrap();
+        let expression_config = FORKED_EVM_CACHE
+            .call(cache_key, FROM_ADDRESS, parser_address, &calldata)
+            .await
+            .unwrap()
+            .unwrap();
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
@@ -172,15 +147,14 @@ mod tests {
             .unwrap();
 
         // get integrity check results, if ends with error, decode with the selectors
-        let result = call_fork(
-            FORK_URL,
-            FORK_BLOCK_NUMBER,
-            FROM_ADDRESS,
-            deployer_address,
-            &calldata,
-        )
-        .await
-        .expect("test failed!");
+        let cache_key = FORKED_EVM_CACHE
+            .get_or_create(FORK_URL, FORK_BLOCK_NUMBER)
+            .await
+            .unwrap();
+        let result = FORKED_EVM_CACHE
+            .call(cache_key, FROM_ADDRESS, deployer_address, &calldata)
+            .await
+            .expect("test failed!");
         let expected = Err(AbiDecodedErrorType::Known {
             name: "BadOpInputsLength".to_owned(),
             args: vec![
@@ -202,17 +176,15 @@ mod tests {
         let parser_address: Address = "0xea3b12393D2EFc4F3E15D41b30b3d020610B9e02"
             .parse::<Address>()
             .unwrap();
-
-        let expression_config = call_fork(
-            FORK_URL,
-            FORK_BLOCK_NUMBER,
-            FROM_ADDRESS,
-            parser_address,
-            &calldata,
-        )
-        .await
-        .unwrap()
-        .unwrap();
+        let cache_key = FORKED_EVM_CACHE
+            .get_or_create(FORK_URL, FORK_BLOCK_NUMBER)
+            .await
+            .unwrap();
+        let expression_config = FORKED_EVM_CACHE
+            .call(cache_key, FROM_ADDRESS, parser_address, &calldata)
+            .await
+            .unwrap()
+            .unwrap();
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
         calldata.extend_from_slice(&expression_config); // extend with result of parse() which is expressionConfig
@@ -221,15 +193,14 @@ mod tests {
             .unwrap();
 
         // expression deploys ok so the expressionConfig in previous step can be used to deploy onchain
-        let result = call_fork(
-            FORK_URL,
-            FORK_BLOCK_NUMBER,
-            FROM_ADDRESS,
-            deployer_address,
-            &calldata,
-        )
-        .await
-        .expect("test failed");
+        let cache_key = FORKED_EVM_CACHE
+            .get_or_create(FORK_URL, FORK_BLOCK_NUMBER)
+            .await
+            .unwrap();
+        let result = FORKED_EVM_CACHE
+            .call(cache_key, FROM_ADDRESS, deployer_address, &calldata)
+            .await
+            .expect("test failed");
         let expected = Ok(
             Bytes::from(
                 alloy_primitives::hex::decode(
