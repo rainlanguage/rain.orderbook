@@ -11,5 +11,5 @@ export function formatTimestampSecondsAsLocal(timestampSeconds: bigint) {
 }
 
 export function timestampSecondsToUTCTimestamp(timestampSeconds: bigint) {
-  return dayjs(timestampSeconds  * BigInt('1000')).second() as UTCTimestamp
+  return dayjs(timestampSeconds  * BigInt('1000')).unix() as UTCTimestamp
 }
