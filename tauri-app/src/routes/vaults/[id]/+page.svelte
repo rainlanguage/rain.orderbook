@@ -23,6 +23,7 @@
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import { sortBy } from 'lodash';
   import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
+  import { bigintToFloat } from '$lib/utils/number';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -41,7 +42,7 @@
   vaultListBalanceChanges.fetchAll(1);
 
   $: vaultListBalanceChangesAllChartData = $vaultListBalanceChanges.all.map((d) => ({
-      value: d.type === VaultBalanceChangeType.Withdraw ? -1 * parseFloat(d.content.amount_display) : parseFloat(d.content.amount_display),
+      value: d.type === VaultBalanceChangeType.Withdraw ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals) :  bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
       time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
       color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
   }));
@@ -114,7 +115,7 @@
       {/if}
     </Card>
 
-    <ChartHistogram data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+    <ChartHistogram priceUnit={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
   </div>
 
   <div class="space-y-12 mt-8">

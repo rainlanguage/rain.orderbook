@@ -1,7 +1,7 @@
 <script lang="ts">
   import { lightweightChartsTheme } from "$lib/stores/darkMode";
   import { ButtonGroup, Spinner } from "flowbite-svelte";
-  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon  } from "lightweight-charts";
+  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon, type BarPrice  } from "lightweight-charts";
   import { onDestroy, onMount } from "svelte";
   import ButtonTab from '$lib/components/ButtonTab.svelte';
 
@@ -42,7 +42,7 @@
   function setOptions() {
     if(chart === undefined) return;
 
-    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true });
+    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true, localization: { priceFormatter: (p: BarPrice) => p }});
   }
 
   function setupChart() {
