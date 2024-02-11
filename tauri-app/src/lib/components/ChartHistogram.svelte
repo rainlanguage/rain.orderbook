@@ -3,7 +3,6 @@
   import { ButtonGroup, Spinner } from "flowbite-svelte";
   import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon,  } from "lightweight-charts";
   import { onMount } from "svelte";
-  import { v4 } from "uuid";
   import ButtonTab from '$lib/components/ButtonTab.svelte';
 
   export let data: {value: number, time: UTCTimestamp, color?: string}[] = [];
@@ -15,7 +14,7 @@
   const TIME_DELTA_30_DAYS = TIME_DELTA_24_HOURS * 30;
   const TIME_DELTA_1_YEAR = TIME_DELTA_24_HOURS * 365;
 
-  let elementId: string = v4();
+  let chartElement: HTMLElement | undefined = undefined;
   let chart: IChartApi | undefined;
   let series: ISeriesApi<"Histogram", Time, WhitespaceData<Time> | HistogramData<Time>, HistogramSeriesOptions, DeepPartial<HistogramStyleOptions & SeriesOptionsCommon>> | undefined;
   let timeDelta: number = TIME_DELTA_7_DAYS;
@@ -40,13 +39,23 @@
     setTimeScale();
   }
 
+  function setOptions() {
+    if(chart === undefined) return;
+
+    chart.applyOptions({ layout: $lightweightChartsTheme, autoSize: true, })
+  }
+
   function setupChart() {
-    chart = createChart(document.getElementById(elementId) as HTMLElement, { layout: $lightweightChartsTheme, autoSize: true, });
+    if(chartElement === undefined) return;
+
+    chart = createChart(chartElement);
     series = chart.addHistogramSeries();
+    setOptions();
   }
 
   $: timeDelta, setTimeScale();
   $: data, setData();
+  $: $lightweightChartsTheme, setOptions();
 
   onMount(() => {
     setupChart();
@@ -54,7 +63,7 @@
 </script>
 
 <div class="w-full h-full relative">
-  <div id={elementId} class="w-full min-h-[32rem] h-full" {...$$props}></div>
+  <div bind:this={chartElement} class="w-full min-h-[32rem] h-full" {...$$props}></div>
   {#if data.length > 0 || loading}
     <div class="absolute top-5 right-5 z-50">
       {#if loading}
