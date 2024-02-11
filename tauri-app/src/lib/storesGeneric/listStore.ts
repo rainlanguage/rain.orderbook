@@ -41,11 +41,10 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
   const isFetchingAll = writable(false);
   const isExporting = writable(false);
 
-  const all = derived(allPages, $allPages => flatten<T>(Object.values($allPages) as T[]) || []);
   const page = derived(allPages, $allPages => (page: number) => $allPages[page] || []);
 
-  const { subscribe } = derived([all, page, pageIndex, isFetching, isFetchingAll, isExporting], ([$all, $page, $pageIndex, $isFetching, $isFetchingAll, $isExporting]) => ({
-    all: $all,
+  const { subscribe } = derived([allPages, page, pageIndex, isFetching, isFetchingAll, isExporting], ([$allPages, $page, $pageIndex, $isFetching, $isFetchingAll, $isExporting]) => ({
+    all: flatten<T>(Object.values($allPages) as T[]) || [],
     index: $pageIndex,
     currentPage: $page($pageIndex),
     isFetching: $isFetching,
