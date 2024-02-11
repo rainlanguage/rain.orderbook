@@ -44,7 +44,7 @@
         <FileCsvOutline class="w-4 h-4 mr-2"/>
         Export to CSV
       </ButtonLoading>
-      <ButtonsPagination index={$listStore.index} on:previous={listStore.fetchPrev} on:next={listStore.fetchNext} loading={$listStore.isFetching} />
+      <ButtonsPagination index={$listStore.index + 1} on:previous={listStore.fetchPrev} on:next={listStore.fetchNext} loading={$listStore.isFetching} />
     </div>
   {/if}
 {/if}
