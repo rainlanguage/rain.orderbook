@@ -38,12 +38,15 @@
   }
 
   const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
+  vaultListBalanceChanges.fetchAll(1);
 
-  $: vaultListBalanceChangesCurrentPageChartData = sortBy($vaultListBalanceChanges.currentPage.map((d) => ({
-        value: d.type === VaultBalanceChangeType.Withdraw ? -1 * parseFloat(d.content.amount_display) : parseFloat(d.content.amount_display),
-        time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-        color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
-    })), (d) => d.time);
+  $: vaultListBalanceChangesAllChartData = $vaultListBalanceChanges.all.map((d) => ({
+      value: d.type === VaultBalanceChangeType.Withdraw ? -1 * parseFloat(d.content.amount_display) : parseFloat(d.content.amount_display),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
+      color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
+  }));
+
+  $: vaultListBalanceChangesAllChartDataSorted = sortBy(vaultListBalanceChangesAllChartData, (d) => d.time);
 </script>
 
 <PageHeader title="Vault">
@@ -111,7 +114,7 @@
       {/if}
     </Card>
 
-    <ChartHistogram data={vaultListBalanceChangesCurrentPageChartData} />
+    <ChartHistogram data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
   </div>
 
   <div class="space-y-12 mt-8">
