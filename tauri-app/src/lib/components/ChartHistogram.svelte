@@ -8,6 +8,7 @@
   export let data: {value: number, time: UTCTimestamp, color?: string}[] = [];
   export let loading = false;
   export let emptyMessage = "None found"
+  export let title: string | undefined = undefined;
 
   const TIME_DELTA_24_HOURS = 60 * 60 * 24;
   const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
@@ -73,19 +74,28 @@
 
 <div class="w-full h-full relative">
   <div bind:this={chartElement} class="w-full min-h-[32rem] h-full" {...$$props}></div>
-  {#if data.length > 0 || loading}
-    <div class="absolute top-5 right-5 z-50">
-      {#if loading}
-        <Spinner class="mr-2 h-4 w-4" color="white" />
-      {/if}
-        <ButtonGroup class="bg-gray-800">
-          <ButtonTab on:click={() => (timeDelta = TIME_DELTA_1_YEAR)} active={timeDelta === TIME_DELTA_1_YEAR} size="xs" class="px-2 py-1">1 Year</ButtonTab>
-          <ButtonTab on:click={() => (timeDelta = TIME_DELTA_30_DAYS)} active={timeDelta === TIME_DELTA_30_DAYS} size="xs" class="px-2 py-1">30 Days</ButtonTab>
-          <ButtonTab on:click={() => (timeDelta = TIME_DELTA_7_DAYS)} active={timeDelta === TIME_DELTA_7_DAYS} size="xs" class="px-2 py-1">7 Days</ButtonTab>
-          <ButtonTab on:click={() => (timeDelta = TIME_DELTA_24_HOURS)} active={timeDelta === TIME_DELTA_24_HOURS} size="xs" class="px-2 py-1">24 Hours</ButtonTab>
-        </ButtonGroup>
-    </div>
-  {:else}
-    <div class="absolute top-5 z-50 w-full text-center text-gray-900 dark:text-white">{emptyMessage}</div>
-  {/if}
+
+  <div class="absolute top-5 left-5 z-50 text-gray-900 dark:text-white">
+    {#if title !== undefined}
+      <div class="text-xl mb-2">{title}</div>
+    {/if}
+
+    {#if data.length === 0 && !loading}
+      <div>{emptyMessage}</div>
+    {/if}
+  </div>
+
+  <div class="absolute top-5 right-5 z-50">
+    {#if loading}
+      <Spinner class="mr-2 h-4 w-4" color="white" />
+    {/if}
+    {#if data.length > 0}
+      <ButtonGroup class="bg-gray-800">
+        <ButtonTab on:click={() => (timeDelta = TIME_DELTA_1_YEAR)} active={timeDelta === TIME_DELTA_1_YEAR} size="xs" class="px-2 py-1">1 Year</ButtonTab>
+        <ButtonTab on:click={() => (timeDelta = TIME_DELTA_30_DAYS)} active={timeDelta === TIME_DELTA_30_DAYS} size="xs" class="px-2 py-1">30 Days</ButtonTab>
+        <ButtonTab on:click={() => (timeDelta = TIME_DELTA_7_DAYS)} active={timeDelta === TIME_DELTA_7_DAYS} size="xs" class="px-2 py-1">7 Days</ButtonTab>
+        <ButtonTab on:click={() => (timeDelta = TIME_DELTA_24_HOURS)} active={timeDelta === TIME_DELTA_24_HOURS} size="xs" class="px-2 py-1">24 Hours</ButtonTab>
+      </ButtonGroup>
+    {/if}
+  </div>
 </div>

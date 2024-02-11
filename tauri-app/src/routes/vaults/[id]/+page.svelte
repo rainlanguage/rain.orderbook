@@ -62,7 +62,7 @@
 {#if vault === undefined}
   <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
 {:else}
-  <div class="flex w-full justify-center flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 ">
+  <div class="flex w-full justify-center flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
     <Card class="space-y-8 grow-0 w-full" size="md">
       <div>
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -115,10 +115,10 @@
       {/if}
     </Card>
 
-    <ChartHistogram priceUnit={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+    <ChartHistogram title="Deposits & Withdrawals" priceUnit={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
   </div>
 
-  <div class="space-y-12 mt-8">
+  <div class="space-y-12">
     <div class="w-full">
       <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
 
