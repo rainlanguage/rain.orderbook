@@ -1,7 +1,7 @@
 <script lang="ts">
   import { lightweightChartsTheme } from "$lib/stores/darkMode";
   import { ButtonGroup } from "flowbite-svelte";
-  import { createChart, type IChartApi, type UTCTimestamp } from "lightweight-charts";
+  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon,  } from "lightweight-charts";
   import { onMount } from "svelte";
   import { v4 } from "uuid";
   import ButtonTab from '$lib/components/ButtonTab.svelte';
@@ -15,28 +15,39 @@
 
   let elementId: string = v4();
   let chart: IChartApi | undefined;
+  let series: ISeriesApi<"Histogram", Time, WhitespaceData<Time> | HistogramData<Time>, HistogramSeriesOptions, DeepPartial<HistogramStyleOptions & SeriesOptionsCommon>> | undefined;
   let timeDelta: number = TIME_DELTA_7_DAYS;
   let timeFrom: UTCTimestamp;
   let timeTo: UTCTimestamp;
 
-  $: {
-    if(chart !== undefined) {
-      timeTo = Math.floor(new Date().getTime() / 1000) as UTCTimestamp;
+  function setTimeScale() {
+    if(chart === undefined) return;
+
+    timeTo = Math.floor(new Date().getTime() / 1000) as UTCTimestamp;
       timeFrom = timeTo - timeDelta as UTCTimestamp;
       chart.timeScale().setVisibleRange({
         from: timeFrom,
         to: timeTo
       });
-    }
   }
 
-  function renderChart() {
-    chart = createChart(document.getElementById(elementId) as HTMLElement, { layout: $lightweightChartsTheme, autoSize: true, });
-    const histogramSeries = chart.addHistogramSeries();
-    histogramSeries.setData(data);
+  function setData() {
+    if(series === undefined) return;
+
+    series.setData(data);
+    setTimeScale();
   }
+
+  function setupChart() {
+    chart = createChart(document.getElementById(elementId) as HTMLElement, { layout: $lightweightChartsTheme, autoSize: true, });
+    series = chart.addHistogramSeries();
+  }
+
+  $: timeDelta, setTimeScale();
+  $: data, setData();
+
   onMount(() => {
-    renderChart();
+    setupChart();
   });
 </script>
 
