@@ -1,6 +1,6 @@
 use crate::{
+    dotrain_add_order_lsp::LANG_SERVICES,
     frontmatter::{try_parse_frontmatter, FrontmatterError},
-    lsp_services::LANG_SERVICES,
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{

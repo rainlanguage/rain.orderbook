@@ -1,9 +1,9 @@
 pub mod add_order;
 pub mod deposit;
+pub mod dotrain_add_order_lsp;
 pub mod error;
 pub mod forked_evm_cache;
 pub mod frontmatter;
-pub mod lsp_services;
 pub mod rainlang;
 pub mod remove_order;
 pub mod subgraph;
