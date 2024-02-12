@@ -2,7 +2,7 @@ use std::num::ParseIntError;
 
 use super::{
     order_clears_list, orders_list, vault_balance_change::VaultBalanceChange,
-    vault_list_balance_changes, vaults_list,
+    vault_list_balance_changes, vaults_list, order_takes_list,
 };
 use crate::utils::format_bigint_timestamp_display;
 use crate::{csv::TryIntoCsv, utils::FormatTimestampDisplayError};
@@ -204,3 +204,53 @@ impl TryFrom<order_clears_list::OrderClear> for OrderClearFlattened {
 }
 
 impl TryIntoCsv<OrderClearFlattened> for Vec<OrderClearFlattened> {}
+
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct OrderTakeFlattened {
+    pub id: String,
+    pub timestamp: order_takes_list::BigInt,
+    pub timestamp_display: String,
+    pub transaction: cynic::Id,
+    pub sender: order_takes_list::Bytes,
+    pub order_id: cynic::Id,
+    pub ioratio: order_takes_list::BigDecimal,
+    pub input: order_takes_list::BigInt,
+    pub input_display: order_takes_list::BigDecimal,
+    pub input_token_id: cynic::Id,
+    pub input_token_symbol: String,
+    pub input_ioindex: order_takes_list::BigInt,
+    pub output: order_takes_list::BigInt,
+    pub output_display:order_takes_list:: BigDecimal,
+    pub output_token_id: cynic::Id,
+    pub output_token_symbol: String,
+    pub output_ioindex: order_takes_list::BigInt,
+}
+
+impl TryFrom<order_takes_list::TakeOrderEntity> for OrderTakeFlattened {
+    type Error = TryIntoFlattenedError;
+
+    fn try_from(val: order_takes_list::TakeOrderEntity) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: val.id.into_inner(),
+            timestamp: val.timestamp.clone(),
+            timestamp_display: format_bigint_timestamp_display(val.timestamp.0)?,
+            transaction: val.transaction.id,
+            sender: val.sender.id,
+            order_id: val.order.id,
+            ioratio: val.ioratio,
+            input: val.input,
+            input_display: val.input_display,
+            input_token_id: val.input_token.id,
+            input_token_symbol: val.input_token.symbol,
+            input_ioindex: val.input_ioindex,
+            output: val.output,
+            output_display: val.output_display,
+            output_token_id: val.output_token.id,
+            output_token_symbol: val.output_token.symbol,
+            output_ioindex: val.output_ioindex,
+        })
+    }
+}
+
+impl TryIntoCsv<OrderTakeFlattened> for Vec<OrderTakeFlattened> {}
