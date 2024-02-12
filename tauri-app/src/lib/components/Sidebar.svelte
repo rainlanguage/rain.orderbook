@@ -9,7 +9,6 @@
   import HomeSolid from 'flowbite-svelte-icons/HomeSolid.svelte';
   import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
-  import LifeBuoySolid from 'flowbite-svelte-icons/LifeBuoySolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
@@ -60,11 +59,6 @@
       <SidebarItem label="Settings" href="/settings">
         <svelte:fragment slot="icon">
           <GearSolid class="h-5 w-5" />
-        </svelte:fragment>
-      </SidebarItem>
-      <SidebarItem label="Help" href="/help">
-        <svelte:fragment slot="icon">
-          <LifeBuoySolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
       <SidebarItem label="Documentation" target="_blank" href="https://docs.rainlang.xyz/intro">
