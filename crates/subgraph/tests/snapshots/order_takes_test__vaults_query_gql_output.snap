@@ -1,9 +1,9 @@
-query OrderTakesListQuery($id: ID!, $skip: Int = 0, $first: Int = 25) {
-  takeOrderEntities(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first, where: {
-    order_: {
-      id: $id
-    }
-  }) {
+---
+source: crates/subgraph/tests/order_takes_test.rs
+expression: request_body.query
+---
+query OrderTakesListQuery($first: Int, $id: ID!, $skip: Int) {
+  takeOrderEntities(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first, where: {order_: {id: $id, }, }) {
     id
     transaction {
       id
@@ -42,3 +42,5 @@ query OrderTakesListQuery($id: ID!, $skip: Int = 0, $first: Int = 25) {
     }
   }
 }
+
+
