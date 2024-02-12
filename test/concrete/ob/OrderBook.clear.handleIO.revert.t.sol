@@ -88,14 +88,14 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
         bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
 
-        checkClearOrderHandleIO(aliceString, bobString, "alice err", "bob err");
+        checkClearOrderHandleIO(aliceString, bobString, "bob err", "bob err");
     }
 
     function testClearOrderHandleIO2() external {
         bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
         bytes memory bobString = "_ _:max-int-value() 1e18;:;";
 
-        checkClearOrderHandleIO(aliceString, bobString, "alice err", "bob err");
+        checkClearOrderHandleIO(aliceString, bobString, "alice err", "alice err");
     }
 
     function testClearOrderHandleIO3() external {
@@ -109,8 +109,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure<1>(1);";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure<1>(1);";
+        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(1 \"alice err\");";
+        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(1 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
