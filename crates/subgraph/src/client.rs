@@ -7,6 +7,8 @@ use crate::types::{
     order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
+    order_takes_list,
+    order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
     vault_balance_change::VaultBalanceChange,
@@ -17,8 +19,6 @@ use crate::types::{
     },
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
-    order_takes_list,
-    order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables}
 };
 use crate::PageQueryClient;
 use chrono::NaiveDateTime;

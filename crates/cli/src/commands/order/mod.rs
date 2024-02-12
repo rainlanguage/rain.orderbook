@@ -1,8 +1,8 @@
 mod add;
 mod detail;
 mod list;
-mod remove;
 mod list_takes;
+mod remove;
 
 use crate::execute::Execute;
 use add::CliOrderAddArgs;
@@ -10,8 +10,8 @@ use anyhow::Result;
 use clap::Parser;
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
-use remove::CliOrderRemoveArgs;
 use list_takes::CliOrderListTakes;
+use remove::CliOrderRemoveArgs;
 
 #[derive(Parser)]
 pub enum Order {
