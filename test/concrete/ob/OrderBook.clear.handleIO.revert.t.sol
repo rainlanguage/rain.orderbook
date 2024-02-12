@@ -6,7 +6,6 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {ClearConfig, OrderV2, TakeOrderConfigV2, IO, OrderConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
 import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
-import {EnsureFailed} from "rain.interpreter/lib/op/logic/LibOpEnsureNP.sol";
 
 /// @title OrderBookClearHandleIORevertTest
 /// @notice A test harness for testing the OrderBook clear function will run
@@ -79,51 +78,39 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     }
 
     function testClearOrderHandleIO0() external {
-        bytes memory aliceErr = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
-        bytes memory bobErr = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
+        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
+        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
 
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure<1>(0);";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure<2>(0);";
-
-        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+        checkClearOrderHandleIO(aliceString, bobString, "alice err", "bob err");
     }
 
     function testClearOrderHandleIO1() external {
-        bytes memory aliceErr = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
-        bytes memory bobErr = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
-
         bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure<2>(0);";
+        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
 
-        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+        checkClearOrderHandleIO(aliceString, bobString, "bob err", "bob err");
     }
 
     function testClearOrderHandleIO2() external {
-        bytes memory aliceErr = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
-        bytes memory bobErr = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
-
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure<1>(0);";
+        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
         bytes memory bobString = "_ _:max-int-value() 1e18;:;";
 
-        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+        checkClearOrderHandleIO(aliceString, bobString, "alice err", "alice err");
     }
 
     function testClearOrderHandleIO3() external {
-        bytes memory aliceErr = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
-        bytes memory bobErr = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
+        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
+        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
 
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure<1>(0);";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure<1>(0);";
-
-        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+        checkClearOrderHandleIO(aliceString, bobString, "alice err", "bob err");
     }
 
     function testClearOrderHandleIO4() external {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure<1>(1);";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure<1>(1);";
+        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(1 \"alice err\");";
+        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(1 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
