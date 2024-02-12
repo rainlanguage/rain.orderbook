@@ -115,7 +115,7 @@
       {/if}
     </Card>
 
-    <ChartHistogram title="Deposits & Withdrawals" priceUnit={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+    <ChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
   </div>
 
   <div class="space-y-12">

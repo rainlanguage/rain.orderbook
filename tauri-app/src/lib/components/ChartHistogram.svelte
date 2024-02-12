@@ -9,6 +9,7 @@
   export let loading = false;
   export let emptyMessage = "None found"
   export let title: string | undefined = undefined;
+  export let priceSymbol: string | undefined = undefined;
 
   const TIME_DELTA_24_HOURS = 60 * 60 * 24;
   const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
@@ -43,7 +44,7 @@
   function setOptions() {
     if(chart === undefined) return;
 
-    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true, localization: { priceFormatter: (p: BarPrice) => p }});
+    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true, localization: { priceFormatter: (p: BarPrice) => priceSymbol ? `${p} ${priceSymbol}` : p }});
   }
 
   function setupChart() {
