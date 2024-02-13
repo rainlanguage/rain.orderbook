@@ -13,7 +13,7 @@ use rain_orderbook_subgraph_client::{
 use tracing::info;
 
 #[derive(Args, Clone)]
-pub struct CliOrderListTakes {
+pub struct CliOrderTakesListArgs {
     #[arg(short = 'i', long, help = "ID of the Order")]
     order_id: String,
 
@@ -24,7 +24,7 @@ pub struct CliOrderListTakes {
     subgraph_args: CliSubgraphArgs,
 }
 
-impl Execute for CliOrderListTakes {
+impl Execute for CliOrderTakesListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
         let pagination_args: PaginationArgs = self.pagination_args.clone().into();
