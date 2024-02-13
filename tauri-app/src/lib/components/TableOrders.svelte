@@ -12,13 +12,13 @@
   import { orderRemove } from '$lib/utils/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
-  import type { PaginatedCachedStore } from '$lib/storesGeneric/listStore';
+  import type { ListStore } from '$lib/storesGeneric/listStore';
   import type { Order } from '$lib/typeshare/ordersList';
   import Hash from './Hash.svelte';
   import { HashType } from '$lib/utils/hash';
   import AppTable from '$lib/components/AppTable.svelte';
 
-  export let ordersList: PaginatedCachedStore<Order>;
+  export let ordersList: ListStore<Order>;
 </script>
 
 <AppTable listStore={ordersList} emptyMessage="No Orders Found" on:clickRow={(e) => { goto(`/orders/${e.detail.item.id}`); }}>

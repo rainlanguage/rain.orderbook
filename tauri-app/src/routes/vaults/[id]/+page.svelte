@@ -19,7 +19,7 @@
   import { HashType } from '$lib/utils/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { goto } from '$app/navigation';
-  import ChartHistogram from '$lib/components/ChartHistogram.svelte';
+  import LightweightChartHistogram from '$lib/components/LightweightChartHistogram.svelte';
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import { sortBy } from 'lodash';
   import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
@@ -115,7 +115,7 @@
       {/if}
     </Card>
 
-    <ChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+    <LightweightChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
   </div>
 
   <div class="space-y-12">
