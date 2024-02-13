@@ -55,7 +55,7 @@
 {#if order === undefined}
   <div class="text-center text-gray-900 dark:text-white">Order not found</div>
 {:else}
-  <div class="flex w-full justify-center flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
+  <div class="w-full flex justify-center items-stretch flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
     <Card class="space-y-8 grow-0 w-full relative" size="md">
       <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
       <div class="mt-4">

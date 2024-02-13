@@ -81,8 +81,8 @@
   });
 </script>
 
-<div class="w-full h-full relative">
-  <div bind:this={chartElement} class="w-full min-h-[32rem] h-full" {...$$props}></div>
+<div class="w-full relative">
+  <div bind:this={chartElement} class="w-full h-full" {...$$props}></div>
 
   <div class="absolute top-5 left-5 z-50 text-gray-900 dark:text-white">
     {#if title !== undefined}
