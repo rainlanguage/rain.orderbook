@@ -1,7 +1,6 @@
 mod add;
 mod detail;
 mod list;
-mod list_takes;
 mod remove;
 
 use crate::execute::Execute;
@@ -10,7 +9,6 @@ use anyhow::Result;
 use clap::Parser;
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
-use list_takes::CliOrderListTakes;
 use remove::CliOrderRemoveArgs;
 
 #[derive(Parser)]
@@ -26,9 +24,6 @@ pub enum Order {
 
     #[command(about = "Remove an Order", alias = "rm")]
     Remove(CliOrderRemoveArgs),
-
-    #[command(about = "List takes for an Order", alias = "ls-takes")]
-    ListTakes(CliOrderListTakes),
 }
 
 impl Execute for Order {
@@ -38,7 +33,6 @@ impl Execute for Order {
             Order::Detail(detail) => detail.execute().await,
             Order::Create(create) => create.execute().await,
             Order::Remove(remove) => remove.execute().await,
-            Order::ListTakes(list_takes) => list_takes.execute().await,
         }
     }
 }
