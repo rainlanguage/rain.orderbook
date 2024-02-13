@@ -1,7 +1,10 @@
 name: 'publish'
 
 # This will trigger the action on each push to the `release` branch.
-on: [push]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   publish-tauri:
@@ -11,7 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-          macos-11,
+          macos-12,
+          macos-14,
+          ubuntu-20.04
+          # Someone who cares can make windows work.
+          # windows-latest
         ]
 
     runs-on: ${{ matrix.platform }}
@@ -55,4 +62,3 @@ jobs:
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: 'App v__VERSION__-${{ github.sha }}'
           releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
