@@ -7,7 +7,7 @@ use detail::CliOrderTakeDetailArgs;
 
 #[derive(Parser)]
 pub enum OrderTake {
-    #[command(about = "List all Takes for an Order", alias = "ls")]
+    #[command(about = "View an Order Take", alias = "view")]
     Detail(CliOrderTakeDetailArgs),
 }
 
