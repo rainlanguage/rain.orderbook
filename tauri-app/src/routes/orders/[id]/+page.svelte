@@ -14,6 +14,7 @@
   import AppTable from '$lib/components/AppTable.svelte';
   import { sortBy } from 'lodash';
   import { useOrderTakesList } from '$lib/stores/orderTakesList';
+  import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
 
   let isSubmitting = false;
 
@@ -106,7 +107,7 @@
         </div>
       </div>
     </Card>
-
+    <LightweightChartLine title="Takes" data={orderTakesListChartDataSorted} loading={$orderTakesList.isFetchingAll} emptyMessage="No takes found" />
   </div>
 
   <div class="space-y-12">
