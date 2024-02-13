@@ -1,7 +1,11 @@
-<script lang="ts" generics="T, D, O">
+<script lang="ts" generics="T extends keyof SeriesOptionsMap, D, O">
+  // eslint-disable-next-line no-undef
+  type ISeriesApiType =  ISeriesApi<T, Time, WhitespaceData<Time>, O, DeepPartial<O & SeriesOptionsCommon>>;
+
   import { lightweightChartsTheme } from "$lib/stores/darkMode";
   import { ButtonGroup, Spinner } from "flowbite-svelte";
-  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon, type BarPrice  } from "lightweight-charts";
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon, type BarPrice, type SeriesOptionsMap  } from "lightweight-charts";
   import { onDestroy, onMount } from "svelte";
   import ButtonTab from '$lib/components/ButtonTab.svelte';
 
@@ -10,7 +14,7 @@
   export let emptyMessage = "None found"
   export let title: string | undefined = undefined;
   export let priceSymbol: string | undefined = undefined;
-  export let createSeries: (chart: IChartApi) => ISeriesApi<T, Time, WhitespaceData<Time> | D<Time>, O, DeepPartial<O & SeriesOptionsCommon>>;
+  export let createSeries: (chart: IChartApi) => ISeriesApiType;
 
   const TIME_DELTA_24_HOURS = 60 * 60 * 24;
   const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
@@ -19,7 +23,7 @@
 
   let chartElement: HTMLElement | undefined = undefined;
   let chart: IChartApi | undefined;
-  let series: ISeriesApi<T, Time, WhitespaceData<Time> | D<Time>, O, DeepPartial<O & SeriesOptionsCommon>> | undefined;
+  let series: ISeriesApiType | undefined;
   let timeDelta: number = TIME_DELTA_7_DAYS;
   let timeFrom: UTCTimestamp;
   let timeTo: UTCTimestamp;
