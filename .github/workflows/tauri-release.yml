@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 2024-02-14-ci-build-mac-intel
 
 jobs:
   publish-tauri:
@@ -14,11 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-          macos-12,
-          macos-14,
-          ubuntu-20.04
-          # Someone who cares can make windows work.
-          # windows-latest
+          macos-12
         ]
 
     runs-on: ${{ matrix.platform }}
@@ -54,7 +51,19 @@ jobs:
 
       - run: nix develop .#tauri-shell --command ob-tauri-prelude
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: build release on host (mac x86_64 only)
+        if: matrix.platform == 'macos-12'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
+          releaseName: 'App v__VERSION__-${{ github.sha }}'
+          releaseBody: 'See the assets to download this version and install.'
+
+      - name: build release via nix
+        if: matrix.platform != 'macos-12'
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
