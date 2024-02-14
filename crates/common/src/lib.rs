@@ -9,6 +9,7 @@ pub mod remove_order;
 pub mod subgraph;
 pub mod transaction;
 pub mod withdraw;
+pub mod fuzz;
 
 pub use dotrain;
 pub use dotrain_lsp;
