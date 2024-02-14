@@ -30,6 +30,7 @@ rain-metadata = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
+rain-interpreter-eval = { workspace = true }
 serde_bytes = { workspace = true }
 forker = { workspace = true }
 tokio = { workspace = true }

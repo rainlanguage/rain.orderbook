@@ -23,7 +23,8 @@ impl FuzzRunner {
             forked_evm: ForkedEvm::new(fork_cfg).await,
         }
     }
-    pub fn run(&self, input: &[u8]) -> FuzzResult {
+    pub fn run(&self, input: &[u8]) -> () {
         let mut runs: Vec<RainEvalResult> = Vec::new();
+        ()
     }
 }
