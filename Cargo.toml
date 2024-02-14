@@ -54,7 +54,7 @@ revm = { version = "3", default-features = false, features = [
     "optional_no_base_fee",
     "arbitrary",
 ] }
-
+proptest = "1.4.0"
 k256 = "=0.13.1"
 # foundry-compilers = "=0.3.6"
 

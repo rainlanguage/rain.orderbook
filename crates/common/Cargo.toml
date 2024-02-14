@@ -34,6 +34,7 @@ rain-interpreter-eval = { workspace = true }
 serde_bytes = { workspace = true }
 forker = { workspace = true }
 tokio = { workspace = true }
+proptest = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
