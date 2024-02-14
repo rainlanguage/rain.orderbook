@@ -7,6 +7,6 @@ import { listStore } from '$lib/storesGeneric/listStore';
 
 export const vaultsList = listStore<TokenVault>(
   'vaultsList',
-  (page) => invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page, page_size: 10 } }),
+  (page) => invoke("vaults_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page: page+1, page_size: 10 } }),
   (path) => invoke("vaults_list_write_csv", {path, subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page: 1, page_size: 1000 } })
 );

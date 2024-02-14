@@ -2,6 +2,7 @@ use crate::types::vault_list_balance_changes::{VaultDeposit, VaultWithdraw};
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 
+// This MUST match the names in tauri-app/src/lib/types/vaultBalanceChange.ts VaultBalanceChangeType
 #[typeshare]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "content")]

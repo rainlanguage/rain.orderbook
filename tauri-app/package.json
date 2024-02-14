@@ -49,6 +49,7 @@
     "@tauri-apps/api": "^1.5.3",
     "codemirror-rainlang": "github:rainlanguage/rainlang-codemirror#fae4c771f1977a04f187c283f6ad1e7bf8c02ee3",
     "dayjs": "^1.11.10",
+    "lightweight-charts": "^4.1.3",
     "lodash": "^4.17.21",
     "svelte-codemirror-editor": "^1.2.0",
     "thememirror": "^2.0.1",

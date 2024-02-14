@@ -19,6 +19,11 @@
   import { HashType } from '$lib/utils/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { goto } from '$app/navigation';
+  import ChartHistogram from '$lib/components/ChartHistogram.svelte';
+  import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
+  import { sortBy } from 'lodash';
+  import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
+  import { bigintToFloat } from '$lib/utils/number';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -34,6 +39,15 @@
   }
 
   const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
+  vaultListBalanceChanges.fetchAll(1);
+
+  $: vaultListBalanceChangesAllChartData = $vaultListBalanceChanges.all.map((d) => ({
+      value: d.type === VaultBalanceChangeType.Withdraw ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals) :  bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
+      color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
+  }));
+
+  $: vaultListBalanceChangesAllChartDataSorted = sortBy(vaultListBalanceChangesAllChartData, (d) => d.time);
 </script>
 
 <PageHeader title="Vault">
@@ -48,8 +62,8 @@
 {#if vault === undefined}
   <div class="text-center text-gray-900 dark:text-white">Vault not found</div>
 {:else}
-  <div class="flex w-full flex-wrap justify-evenly space-y-12 xl:space-x-8 2xl:space-y-0">
-    <Card class="space-y-8" size="lg">
+  <div class="flex w-full justify-center flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
+    <Card class="space-y-8 grow-0 w-full" size="md">
       <div>
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
           Vault ID
@@ -101,38 +115,40 @@
       {/if}
     </Card>
 
-    <div class="max-w-screen-xl space-y-12">
-      <div class="w-full">
-        <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
+    <ChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+  </div>
 
-        <AppTable listStore={vaultListBalanceChanges} emptyMessage="No deposits or withdrawals found" rowHoverable={false}>
-          <svelte:fragment slot="head">
-            <TableHeadCell>Date</TableHeadCell>
-            <TableHeadCell>Sender</TableHeadCell>
-            <TableHeadCell>Transaction Hash</TableHeadCell>
-            <TableHeadCell>Balance Change</TableHeadCell>
-            <TableHeadCell>Type</TableHeadCell>
-          </svelte:fragment>
+  <div class="space-y-12">
+    <div class="w-full">
+      <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
 
-          <svelte:fragment slot="bodyRow" let:item>
-            <TableBodyCell tdClass="px-4 py-2">
-              {formatTimestampSecondsAsLocal(BigInt(item.content.timestamp))}
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2 min-w-48">
-              <Hash type={HashType.Wallet} value={item.content.sender.id} />
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2 min-w-48">
-              <Hash type={HashType.Transaction} value={item.content.transaction.id} />
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-word p-2 text-right">
-              {item.type === 'Withdraw' ? '-' : ''}{item.content.amount_display} {item.content.token_vault.token.symbol}
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-word p-2 text-right">
-              {item.type}
-            </TableBodyCell>
-          </svelte:fragment>
-        </AppTable>
-      </div>
+      <AppTable listStore={vaultListBalanceChanges} emptyMessage="No deposits or withdrawals found" rowHoverable={false}>
+        <svelte:fragment slot="head">
+          <TableHeadCell>Date</TableHeadCell>
+          <TableHeadCell>Sender</TableHeadCell>
+          <TableHeadCell>Transaction Hash</TableHeadCell>
+          <TableHeadCell>Balance Change</TableHeadCell>
+          <TableHeadCell>Type</TableHeadCell>
+        </svelte:fragment>
+
+        <svelte:fragment slot="bodyRow" let:item>
+          <TableBodyCell tdClass="px-4 py-2">
+            {formatTimestampSecondsAsLocal(BigInt(item.content.timestamp))}
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2 min-w-48">
+            <Hash type={HashType.Wallet} value={item.content.sender.id} />
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2 min-w-48">
+            <Hash type={HashType.Transaction} value={item.content.transaction.id} />
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-word p-2 text-right">
+            {item.type === VaultBalanceChangeType.Withdraw ? '-' : ''}{item.content.amount_display} {item.content.token_vault.token.symbol}
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-word p-2 text-right">
+            {item.type}
+          </TableBodyCell>
+        </svelte:fragment>
+      </AppTable>
     </div>
   </div>
 {/if}
