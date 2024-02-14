@@ -21,7 +21,7 @@
 	url = https://github.com/rainprotocol/rain.solmem
 [submodule "lib/rain.interpreter"]
 	path = lib/rain.interpreter
-	url = https://github.com/rainprotocol/rain.interpreter
+	url = https://github.com/rainlanguage/rain.interpreter
 [submodule "lib/rain.factory"]
 	path = lib/rain.factory
 	url = https://github.com/rainprotocol/rain.factory
