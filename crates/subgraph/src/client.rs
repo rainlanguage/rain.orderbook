@@ -7,6 +7,8 @@ use crate::types::{
     order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
+    order_takes_list,
+    order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
     vault_balance_change::VaultBalanceChange,
@@ -154,6 +156,26 @@ impl OrderbookSubgraphClient {
             .await?;
 
         Ok(data.order_clears)
+    }
+
+    pub async fn order_takes_list(
+        &self,
+        order_id: cynic::Id,
+        pagination_args: PaginationArgs,
+    ) -> Result<Vec<order_takes_list::TakeOrderEntity>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
+        let data = self
+            .query::<OrderTakesListQuery, OrderTakesListQueryVariables>(
+                self.url.clone(),
+                OrderTakesListQueryVariables {
+                    id: &order_id,
+                    first: pagination_variables.first,
+                    skip: pagination_variables.skip,
+                },
+            )
+            .await?;
+
+        Ok(data.take_order_entities)
     }
 }
 
