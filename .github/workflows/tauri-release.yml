@@ -14,7 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-          macos-latest,
+          macos-12,
+          macos-14,
           ubuntu-20.04
           # Someone who cares can make windows work.
           # windows-latest
