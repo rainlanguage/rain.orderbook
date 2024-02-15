@@ -1,11 +1,7 @@
 name: 'publish'
 
 # This will trigger the action on each push to the `release` branch.
-on:
-  push:
-    branches:
-      - main
-      - 2024-02-15-test-mac-build
+on: [push]
 
 jobs:
   publish-tauri:
