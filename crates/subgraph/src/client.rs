@@ -56,6 +56,7 @@ impl OrderbookSubgraphClient {
         Self { url }
     }
 
+    /// Fetch single order
     pub async fn order_detail(
         &self,
         id: Id,
@@ -70,6 +71,7 @@ impl OrderbookSubgraphClient {
         Ok(order)
     }
 
+    /// Fetch all orders, paginated
     pub async fn orders_list(
         &self,
         pagination_args: PaginationArgs,
@@ -110,6 +112,7 @@ impl OrderbookSubgraphClient {
         Ok(all_pages_merged)
     }
 
+    /// Fetch single order take
     pub async fn order_take_detail(
         &self,
         id: Id,
@@ -126,6 +129,7 @@ impl OrderbookSubgraphClient {
         Ok(order_take)
     }
 
+    /// Fetch all order takes paginated for a single order
     pub async fn order_takes_list(
         &self,
         order_id: cynic::Id,
@@ -173,6 +177,7 @@ impl OrderbookSubgraphClient {
         Ok(all_pages_merged)
     }
 
+    /// Fetch single vault
     pub async fn vault_detail(
         &self,
         id: Id,
@@ -189,6 +194,7 @@ impl OrderbookSubgraphClient {
         Ok(vault)
     }
 
+    /// Fetch all vaults, paginated
     pub async fn vaults_list(
         &self,
         pagination_args: PaginationArgs,
@@ -230,6 +236,7 @@ impl OrderbookSubgraphClient {
         Ok(all_pages_merged)
     }
 
+    /// Fetch all vault deposits + withdrawals merged paginated, for a single vault
     pub async fn vault_balance_changes_list(
         &self,
         id: cynic::Id,
@@ -282,6 +289,7 @@ impl OrderbookSubgraphClient {
         Ok(all_pages_merged)
     }
 
+    /// Fetch all order clears, paginated
     pub async fn order_clears_list(
         &self,
         pagination_args: PaginationArgs,
