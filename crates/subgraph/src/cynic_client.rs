@@ -16,15 +16,16 @@ pub enum CynicClientError {
 }
 
 pub trait CynicClient {
+    fn get_base_url(&self) -> Url;
+
     async fn query<R: QueryFragment + QueryBuilder<V> + for<'a> Deserialize<'a>, V: Serialize>(
         &self,
-        base_url: Url,
         variables: V,
     ) -> Result<R, CynicClientError> {
         let request_body = R::build(variables);
 
         let response = reqwest::Client::new()
-            .post(base_url.clone())
+            .post(self.get_base_url())
             .json(&request_body)
             .send()
             .await?;

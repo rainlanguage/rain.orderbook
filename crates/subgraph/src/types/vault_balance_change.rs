@@ -1,4 +1,4 @@
-use crate::types::vault_list_balance_changes::{VaultDeposit, VaultWithdraw};
+use crate::types::vault_balance_changes_list::{VaultDeposit, VaultWithdraw};
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 

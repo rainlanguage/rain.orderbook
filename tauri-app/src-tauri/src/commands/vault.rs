@@ -47,7 +47,7 @@ pub async fn vaults_list_write_csv(
 }
 
 #[tauri::command]
-pub async fn vault_list_balance_changes(
+pub async fn vault_balance_changes_list(
     id: String,
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
@@ -55,13 +55,13 @@ pub async fn vault_list_balance_changes(
     let data = subgraph_args
         .to_subgraph_client()
         .await?
-        .vault_list_balance_changes(id.into(), pagination_args)
+        .vault_balance_changes_list(id.into(), pagination_args)
         .await?;
     Ok(data)
 }
 
 #[tauri::command]
-pub async fn vault_list_balance_changes_write_csv(
+pub async fn vault_balance_changes_list_write_csv(
     id: String,
     path: PathBuf,
     subgraph_args: SubgraphArgs,
@@ -69,7 +69,7 @@ pub async fn vault_list_balance_changes_write_csv(
     let data = subgraph_args
         .to_subgraph_client()
         .await?
-        .vault_list_balance_changes_all(id.into())
+        .vault_balance_changes_list_all(id.into())
         .await?;
     let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.try_into()).collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
     let csv_text = data_flattened.try_into_csv()?;
