@@ -51,7 +51,7 @@ impl Execute for CliOrderListArgs {
                     .into_iter()
                     .map(|o| o.try_into())
                     .collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
-    
+
             let table = build_table(orders_flattened)?;
             info!("\n{}", table);
         }

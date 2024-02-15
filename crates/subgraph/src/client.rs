@@ -71,13 +71,20 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of orders_list query
-    pub async fn orders_list_all(&self) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
+    pub async fn orders_list_all(
+        &self,
+    ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
-        
+
         loop {
-            let page_data = self.orders_list(PaginationArgs { page, page_size: ALL_PAGES_QUERY_PAGE_SIZE }).await?;
-            if page_data.len() == 0 {
+            let page_data = self
+                .orders_list(PaginationArgs {
+                    page,
+                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                })
+                .await?;
+            if page_data.is_empty() {
                 break;
             } else {
                 all_pages_merged.extend(page_data);
@@ -106,13 +113,20 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of vaults_list query
-    pub async fn vaults_list_all(&self) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
+    pub async fn vaults_list_all(
+        &self,
+    ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
-        
+
         loop {
-            let page_data = self.vaults_list(PaginationArgs { page, page_size: ALL_PAGES_QUERY_PAGE_SIZE }).await?;
-            if page_data.len() == 0 {
+            let page_data = self
+                .vaults_list(PaginationArgs {
+                    page,
+                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                })
+                .await?;
+            if page_data.is_empty() {
                 break;
             } else {
                 all_pages_merged.extend(page_data);
@@ -179,13 +193,24 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of vault_list_balance_changes query
-    pub async fn vault_list_balance_changes_all(&self, id: cynic::Id) -> Result<Vec<VaultBalanceChange>, OrderbookSubgraphClientError> {
+    pub async fn vault_list_balance_changes_all(
+        &self,
+        id: cynic::Id,
+    ) -> Result<Vec<VaultBalanceChange>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
-        
+
         loop {
-            let page_data = self.vault_list_balance_changes(id.clone(), PaginationArgs { page, page_size: ALL_PAGES_QUERY_PAGE_SIZE }).await?;
-            if page_data.len() == 0 {
+            let page_data = self
+                .vault_list_balance_changes(
+                    id.clone(),
+                    PaginationArgs {
+                        page,
+                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                    },
+                )
+                .await?;
+            if page_data.is_empty() {
                 break;
             } else {
                 all_pages_merged.extend(page_data);
@@ -214,13 +239,20 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of order_clears_list query
-    pub async fn order_clears_list_all(&self) -> Result<Vec<order_clears_list::OrderClear>, OrderbookSubgraphClientError> {
+    pub async fn order_clears_list_all(
+        &self,
+    ) -> Result<Vec<order_clears_list::OrderClear>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
-        
+
         loop {
-            let page_data = self.order_clears_list(PaginationArgs { page, page_size: ALL_PAGES_QUERY_PAGE_SIZE }).await?;
-            if page_data.len() == 0 {
+            let page_data = self
+                .order_clears_list(PaginationArgs {
+                    page,
+                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                })
+                .await?;
+            if page_data.is_empty() {
                 break;
             } else {
                 all_pages_merged.extend(page_data);
@@ -251,13 +283,24 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of order_takes_list query
-    pub async fn order_takes_list_all(&self, order_id: cynic::Id) -> Result<Vec<order_takes_list::TakeOrderEntity>, OrderbookSubgraphClientError> {
+    pub async fn order_takes_list_all(
+        &self,
+        order_id: cynic::Id,
+    ) -> Result<Vec<order_takes_list::TakeOrderEntity>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
-        
+
         loop {
-            let page_data = self.order_takes_list(order_id.clone(), PaginationArgs { page, page_size: ALL_PAGES_QUERY_PAGE_SIZE }).await?;
-            if page_data.len() == 0 {
+            let page_data = self
+                .order_takes_list(
+                    order_id.clone(),
+                    PaginationArgs {
+                        page,
+                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                    },
+                )
+                .await?;
+            if page_data.is_empty() {
                 break;
             } else {
                 all_pages_merged.extend(page_data);
@@ -266,7 +309,6 @@ impl OrderbookSubgraphClient {
         }
         Ok(all_pages_merged)
     }
-    
 
     pub async fn order_take_detail(
         &self,

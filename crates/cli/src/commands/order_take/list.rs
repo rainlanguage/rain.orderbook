@@ -38,7 +38,7 @@ impl Execute for CliOrderTakesListArgs {
                 .into_iter()
                 .map(|o| o.try_into())
                 .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
-    
+
             let csv_text = order_takes_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
@@ -52,7 +52,7 @@ impl Execute for CliOrderTakesListArgs {
                 .into_iter()
                 .map(|o| o.try_into())
                 .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
-    
+
             let table = build_table(order_takes_flattened)?;
             info!("\n{}", table);
         }

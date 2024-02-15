@@ -54,7 +54,7 @@ impl Execute for CliVaultListBalanceChanges {
                     .into_iter()
                     .map(|o| o.try_into())
                     .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
-                        
+
             let table = build_table(vault_balance_changes_flattened)?;
             info!("\n{}", table);
         }
