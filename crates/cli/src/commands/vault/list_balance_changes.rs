@@ -13,7 +13,7 @@ use rain_orderbook_subgraph_client::{
 use tracing::info;
 
 #[derive(Args, Clone)]
-pub struct CliVaultListBalanceChanges {
+pub struct CliVaultBalanceChangesList {
     #[arg(short = 'i', long, help = "ID of the Vault")]
     vault_id: String,
 
@@ -24,7 +24,7 @@ pub struct CliVaultListBalanceChanges {
     subgraph_args: CliSubgraphArgs,
 }
 
-impl Execute for CliVaultListBalanceChanges {
+impl Execute for CliVaultBalanceChangesList {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
 
@@ -32,7 +32,7 @@ impl Execute for CliVaultListBalanceChanges {
             let vault_balance_changes = subgraph_args
                 .to_subgraph_client()
                 .await?
-                .vault_list_balance_changes_all(self.vault_id.clone().into())
+                .vault_balance_changes_list_all(self.vault_id.clone().into())
                 .await?;
             let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
                 vault_balance_changes
@@ -47,14 +47,14 @@ impl Execute for CliVaultListBalanceChanges {
             let vault_balance_changes = subgraph_args
                 .to_subgraph_client()
                 .await?
-                .vault_list_balance_changes(self.vault_id.clone().into(), pagination_args)
+                .vault_balance_changes_list(self.vault_id.clone().into(), pagination_args)
                 .await?;
             let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
                 vault_balance_changes
                     .into_iter()
                     .map(|o| o.try_into())
                     .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
-                        
+
             let table = build_table(vault_balance_changes_flattened)?;
             info!("\n{}", table);
         }

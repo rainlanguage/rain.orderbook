@@ -7,5 +7,5 @@ pub mod order_takes_list;
 pub mod orders_list;
 pub mod vault_balance_change;
 pub mod vault_detail;
-pub mod vault_list_balance_changes;
+pub mod vault_balance_changes_list;
 pub mod vaults_list;

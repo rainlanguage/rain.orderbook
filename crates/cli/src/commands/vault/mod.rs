@@ -10,7 +10,7 @@ use clap::Parser;
 use deposit::CliVaultDepositArgs;
 use detail::CliVaultDetailArgs;
 use list::CliVaultListArgs;
-use list_balance_changes::CliVaultListBalanceChanges;
+use list_balance_changes::CliVaultBalanceChangesList;
 use withdraw::CliVaultWithdrawArgs;
 
 #[derive(Parser)]
@@ -28,7 +28,7 @@ pub enum Vault {
     Detail(CliVaultDetailArgs),
 
     #[command(about = "List balance changes for a Vault (i.e. deposits + withdraws)")]
-    ListBalanceChanges(CliVaultListBalanceChanges),
+    ListBalanceChanges(CliVaultBalanceChangesList),
 }
 
 impl Execute for Vault {
