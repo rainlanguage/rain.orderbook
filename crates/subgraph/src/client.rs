@@ -14,11 +14,11 @@ use crate::types::{
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
     vault_balance_change::VaultBalanceChange,
-    vault_detail,
-    vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
     vault_balance_changes_list::{
         VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
     },
+    vault_detail,
+    vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
 };
