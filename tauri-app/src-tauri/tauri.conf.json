@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "rain-orderbook-tauri-app",
+    "productName": "Rain Orderbook",
     "version": "0.0.0"
   },
   "tauri": {
@@ -28,7 +28,7 @@
     "bundle": {
       "active": true,
       "targets": ["deb", "nsis", "msi", "app", "dmg", "updater"],
-      "identifier": "com.rainlanguage.orderbook.tauri-app",
+      "identifier": "com.rainlanguage.orderbook",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
