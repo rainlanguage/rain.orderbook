@@ -7,14 +7,14 @@
   } from 'flowbite-svelte';
   import {  FileCsvOutline } from 'flowbite-svelte-icons';
   import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
-  import type { PaginatedCachedStore } from '$lib/storesGeneric/listStore';
+  import type { ListStore } from '$lib/storesGeneric/listStore';
   import ButtonLoading from './ButtonLoading.svelte';
   import { createEventDispatcher } from 'svelte';
 
   const dispatch = createEventDispatcher();
 
   // eslint-disable-next-line no-undef
-  export let listStore: PaginatedCachedStore<T>;
+  export let listStore: ListStore<T>;
   export let emptyMessage: string = "None found"
   export let rowHoverable = true;
   export let enableCsvExport = true;

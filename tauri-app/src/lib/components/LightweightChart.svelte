@@ -1,7 +1,11 @@
-<script lang="ts">
+<script lang="ts" generics="T extends keyof SeriesOptionsMap, D, O">
+  // eslint-disable-next-line no-undef
+  type ISeriesApiType =  ISeriesApi<T, Time, WhitespaceData<Time>, O, DeepPartial<O & SeriesOptionsCommon>>;
+
   import { lightweightChartsTheme } from "$lib/stores/darkMode";
   import { ButtonGroup, Spinner } from "flowbite-svelte";
-  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type HistogramData, type HistogramSeriesOptions, type HistogramStyleOptions, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon, type BarPrice  } from "lightweight-charts";
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  import { createChart, type IChartApi, type UTCTimestamp, type ISeriesApi, type WhitespaceData, type Time, type DeepPartial, type SeriesOptionsCommon, type BarPrice, type SeriesOptionsMap  } from "lightweight-charts";
   import { onDestroy, onMount } from "svelte";
   import ButtonTab from '$lib/components/ButtonTab.svelte';
 
@@ -10,6 +14,7 @@
   export let emptyMessage = "None found"
   export let title: string | undefined = undefined;
   export let priceSymbol: string | undefined = undefined;
+  export let createSeries: (chart: IChartApi) => ISeriesApiType;
 
   const TIME_DELTA_24_HOURS = 60 * 60 * 24;
   const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
@@ -18,7 +23,7 @@
 
   let chartElement: HTMLElement | undefined = undefined;
   let chart: IChartApi | undefined;
-  let series: ISeriesApi<"Histogram", Time, WhitespaceData<Time> | HistogramData<Time>, HistogramSeriesOptions, DeepPartial<HistogramStyleOptions & SeriesOptionsCommon>> | undefined;
+  let series: ISeriesApiType | undefined;
   let timeDelta: number = TIME_DELTA_7_DAYS;
   let timeFrom: UTCTimestamp;
   let timeTo: UTCTimestamp;
@@ -34,6 +39,13 @@
       });
   }
 
+  function setOptions() {
+    if(chart === undefined) return;
+
+    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true, localization: { priceFormatter: (p: BarPrice) => priceSymbol ? `${p} ${priceSymbol}` : p }});
+  }
+
+
   function setData() {
     if(series === undefined || data.length === 0) return;
 
@@ -41,25 +53,21 @@
     setTimeScale();
   }
 
-  function setOptions() {
-    if(chart === undefined) return;
+  function destroyChart() {
+    if (chart == undefined) return;
 
-    chart.applyOptions({ ...$lightweightChartsTheme, autoSize: true, localization: { priceFormatter: (p: BarPrice) => priceSymbol ? `${p} ${priceSymbol}` : p }});
+    chart.remove();
+    chart = undefined;
   }
 
   function setupChart() {
     if(chartElement === undefined) return;
 
     chart = createChart(chartElement);
-    series = chart.addHistogramSeries();
+    series = createSeries(chart);
     setOptions();
   }
-  function destoroyChart() {
-    if (chart == undefined) return;
 
-    chart.remove();
-    chart = undefined;
-  }
 
   $: timeDelta, setTimeScale();
   $: data, setData();
@@ -69,12 +77,12 @@
     setupChart();
   });
   onDestroy(() => {
-    destoroyChart();
+    destroyChart();
   });
 </script>
 
-<div class="w-full h-full relative">
-  <div bind:this={chartElement} class="w-full min-h-[32rem] h-full" {...$$props}></div>
+<div class="w-full relative">
+  <div bind:this={chartElement} class="w-full h-full" {...$$props}></div>
 
   <div class="absolute top-5 left-5 z-50 text-gray-900 dark:text-white">
     {#if title !== undefined}

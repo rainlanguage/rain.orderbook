@@ -32,6 +32,7 @@
               typeshare crates/subgraph/src/types/orders_list_for_vault.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/ordersListForVault.ts;
               typeshare crates/subgraph/src/types/order_clears_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderClearsList.ts;
               typeshare crates/subgraph/src/types/order_takes_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakesList.ts;
+              typeshare crates/subgraph/src/types/order_take_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakeDetail.ts;
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
 

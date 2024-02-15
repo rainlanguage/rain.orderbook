@@ -7,6 +7,8 @@ use crate::types::{
     order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
+    order_take_detail,
+    order_take_detail::{OrderTakeDetailQuery, OrderTakeDetailQueryVariables},
     order_takes_list,
     order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
     orders_list,
@@ -176,6 +178,23 @@ impl OrderbookSubgraphClient {
             .await?;
 
         Ok(data.take_order_entities)
+    }
+
+    pub async fn order_take_detail(
+        &self,
+        id: Id,
+    ) -> Result<order_take_detail::TakeOrderEntity, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<OrderTakeDetailQuery, OrderTakeDetailQueryVariables>(
+                self.url.clone(),
+                OrderTakeDetailQueryVariables { id: &id },
+            )
+            .await?;
+        let order_take = data
+            .take_order_entity
+            .ok_or(OrderbookSubgraphClientError::Empty)?;
+
+        Ok(order_take)
     }
 }
 

@@ -1,16 +1,20 @@
 <script lang="ts">
-  import { Card } from 'flowbite-svelte';
+  import { Card, Heading, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
   import { orderRemove } from '$lib/utils/orderRemove';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/utils/hash';
+  import AppTable from '$lib/components/AppTable.svelte';
+  import { sortBy } from 'lodash';
+  import { useOrderTakesList } from '$lib/stores/orderTakesList';
+  import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
 
   let isSubmitting = false;
 
@@ -24,6 +28,16 @@
     } catch (e) {}
     isSubmitting = false;
   }
+
+  const orderTakesList = useOrderTakesList($page.params.id);
+  orderTakesList.fetchAll(1);
+
+  $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
+      value: parseFloat(d.ioratio),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+      color: 'blue',
+  }));
+  $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
 
   orderDetail.refetch($page.params.id);
 </script>
@@ -41,8 +55,8 @@
 {#if order === undefined}
   <div class="text-center text-gray-900 dark:text-white">Order not found</div>
 {:else}
-  <div class="flex w-full flex-wrap justify-evenly space-y-12 xl:space-x-8 2xl:space-y-0">
-    <Card class="relative" size="xl">
+  <div class="w-full flex justify-center items-stretch flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
+    <Card class="space-y-8 grow-0 w-full relative" size="md">
       <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
       <div class="mt-4">
         <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -93,6 +107,45 @@
         </div>
       </div>
     </Card>
+    <LightweightChartLine title="Takes" data={orderTakesListChartDataSorted} loading={$orderTakesList.isFetchingAll} emptyMessage="No takes found" />
+  </div>
+
+  <div class="space-y-12">
+    <div class="w-full">
+      <Heading tag="h4" class="mb-2">Takes</Heading>
+
+      <AppTable listStore={orderTakesList} emptyMessage="No takes found" rowHoverable={false}>
+        <svelte:fragment slot="head">
+          <TableHeadCell>Date</TableHeadCell>
+          <TableHeadCell>Sender</TableHeadCell>
+          <TableHeadCell>Transaction Hash</TableHeadCell>
+          <TableHeadCell>Input</TableHeadCell>
+          <TableHeadCell>Output</TableHeadCell>
+          <TableHeadCell>IO Ratio</TableHeadCell>
+        </svelte:fragment>
+
+        <svelte:fragment slot="bodyRow" let:item>
+          <TableBodyCell tdClass="px-4 py-2">
+            {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2 min-w-32">
+            <Hash type={HashType.Wallet} value={item.sender.id} />
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2 min-w-32">
+            <Hash type={HashType.Transaction} value={item.transaction.id} />
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2">
+            {item.input_display} {item.input_token.symbol}
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2">
+            {item.output_display} {item.output_token.symbol}
+          </TableBodyCell>
+          <TableBodyCell tdClass="break-all py-2">
+            {item.ioratio}  {item.input_token.symbol}/{item.output_token.symbol}
+          </TableBodyCell>
+        </svelte:fragment>
+      </AppTable>
+    </div>
   </div>
 {/if}
 

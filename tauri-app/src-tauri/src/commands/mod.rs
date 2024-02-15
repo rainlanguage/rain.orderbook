@@ -5,3 +5,4 @@ pub mod order;
 pub mod order_clear;
 pub mod vault;
 pub mod wallet;
+pub mod order_take;
