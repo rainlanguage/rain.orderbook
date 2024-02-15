@@ -34,7 +34,7 @@ pub struct CliPaginationArgs {
     )]
     pub page_size: u16,
 
-    #[arg(long, help = "Output results in CSV format", conflicts_with("page"), conflicts_with("page_size"))]
+    #[arg(long, help = "Output all items in CSV format (not paginated)", conflicts_with("page"), conflicts_with("page_size"))]
     pub csv: bool,
 }
 
