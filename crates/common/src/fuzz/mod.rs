@@ -78,7 +78,7 @@ impl FuzzRunner {
     pub fn parse_scenarios(&self) -> Result<Vec<RunnerScenario>, FuzzRunnerError> {
         let frontmatter = self.document.front_matter();
         let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter)
-            .map_err(|e| FrontmatterError::FrontmatterInvalidYaml(e))?;
+            .map_err(FrontmatterError::FrontmatterInvalidYaml)?;
         let frontmatter_yaml = frontmatter_yaml_vec
             .first()
             .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
@@ -142,7 +142,7 @@ impl FuzzRunner {
                 let mut val: [u8; 32] = [0; 32];
                 self.rng.fill_bytes(&mut val);
                 let hex = format!("0x{}", alloy_primitives::hex::encode(val));
-                rebinds.push(Rebind(rebind.to_string(), hex.into()));
+                rebinds.push(Rebind(rebind.to_string(), hex));
             }
 
             let document = RainDocument::create(
