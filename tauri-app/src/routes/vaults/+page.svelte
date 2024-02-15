@@ -30,7 +30,11 @@
   redirectIfSettingsNotDefined();
 </script>
 
-<PageHeader title="Vaults" />
+<PageHeader title="Vaults">
+  <svelte:fragment slot="actions">
+    <Button color="green" size="xs" on:click={() => (showDepositGenericModal = true)}>Deposit</Button>
+  </svelte:fragment>
+</PageHeader>
 
 <AppTable listStore={vaultsList} emptyMessage="No Vaults Found" on:clickRow={(e) => { goto(`/vaults/${e.detail.item.id}`); }}>
   <svelte:fragment slot="head">
