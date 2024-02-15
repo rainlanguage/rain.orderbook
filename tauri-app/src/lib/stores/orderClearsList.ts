@@ -7,5 +7,5 @@ import { listStore } from '$lib/storesGeneric/listStore';
 export const orderClearsList = listStore<OrderClear>(
   'orderClearsList',
   (page) => invoke("order_clears_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page: page+1, page_size: 10 } }),
-  (path) => invoke("order_clears_list_write_csv", { path, subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page: 1, page_size: 1000 } })
+  (path) => invoke("order_clears_list_write_csv", { path, subgraphArgs: { url: get(subgraphUrl)} })
 );
