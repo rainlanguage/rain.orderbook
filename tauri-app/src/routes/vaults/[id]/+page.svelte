@@ -13,7 +13,7 @@
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
-  import { useVaultListBalanceChanges } from '$lib/stores/vaultListBalanceChanges';
+  import { useVaultBalanceChangesList } from '$lib/stores/vaultBalanceChangesList';
   import { bigintStringToHex } from '$lib/utils/hex';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/utils/hash';
@@ -38,16 +38,16 @@
     showWithdrawModal = !showWithdrawModal;
   }
 
-  const vaultListBalanceChanges = useVaultListBalanceChanges($page.params.id);
-  vaultListBalanceChanges.fetchAll(1);
+  const vaultBalanceChangesList = useVaultBalanceChangesList($page.params.id);
+  vaultBalanceChangesList.fetchAll(1);
 
-  $: vaultListBalanceChangesAllChartData = $vaultListBalanceChanges.all.map((d) => ({
+  $: vaultBalanceChangesListAllChartData = $vaultBalanceChangesList.all.map((d) => ({
       value: d.type === VaultBalanceChangeType.Withdraw ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals) :  bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
       time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
       color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
   }));
 
-  $: vaultListBalanceChangesAllChartDataSorted = sortBy(vaultListBalanceChangesAllChartData, (d) => d.time);
+  $: vaultBalanceChangesListAllChartDataSorted = sortBy(vaultBalanceChangesListAllChartData, (d) => d.time);
 </script>
 
 <PageHeader title="Vault">
@@ -115,14 +115,14 @@
       {/if}
     </Card>
 
-    <LightweightChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultListBalanceChangesAllChartDataSorted} loading={$vaultListBalanceChanges.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+    <LightweightChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultBalanceChangesListAllChartDataSorted} loading={$vaultBalanceChangesList.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
   </div>
 
   <div class="space-y-12">
     <div class="w-full">
       <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
 
-      <AppTable listStore={vaultListBalanceChanges} emptyMessage="No deposits or withdrawals found" rowHoverable={false}>
+      <AppTable listStore={vaultBalanceChangesList} emptyMessage="No deposits or withdrawals found" rowHoverable={false}>
         <svelte:fragment slot="head">
           <TableHeadCell>Date</TableHeadCell>
           <TableHeadCell>Sender</TableHeadCell>

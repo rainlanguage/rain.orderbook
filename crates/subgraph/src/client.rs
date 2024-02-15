@@ -14,11 +14,11 @@ use crate::types::{
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
     vault_balance_change::VaultBalanceChange,
-    vault_detail,
-    vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
-    vault_list_balance_changes::{
+    vault_balance_changes_list::{
         VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
     },
+    vault_detail,
+    vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
 };
@@ -168,7 +168,7 @@ impl OrderbookSubgraphClient {
         Ok(order)
     }
 
-    pub async fn vault_list_balance_changes(
+    pub async fn vault_balance_changes_list(
         &self,
         id: cynic::Id,
         pagination_args: PaginationArgs,
@@ -177,7 +177,7 @@ impl OrderbookSubgraphClient {
         let res = self
             .query_paginated(
                 pagination_vars,
-                VaultListBalanceChangesPageQueryClient {
+                VaultBalanceChangesListPageQueryClient {
                     url: self.url.clone(),
                 },
                 VaultBalanceChangesListQueryVariables {
@@ -192,8 +192,8 @@ impl OrderbookSubgraphClient {
         Ok(res)
     }
 
-    /// Fetch all pages of vault_list_balance_changes query
-    pub async fn vault_list_balance_changes_all(
+    /// Fetch all pages of vault_balance_changes_list query
+    pub async fn vault_balance_changes_list_all(
         &self,
         id: cynic::Id,
     ) -> Result<Vec<VaultBalanceChange>, OrderbookSubgraphClientError> {
@@ -202,7 +202,7 @@ impl OrderbookSubgraphClient {
 
         loop {
             let page_data = self
-                .vault_list_balance_changes(
+                .vault_balance_changes_list(
                     id.clone(),
                     PaginationArgs {
                         page,
@@ -328,14 +328,14 @@ impl OrderbookSubgraphClient {
     }
 }
 
-pub struct VaultListBalanceChangesPageQueryClient {
+pub struct VaultBalanceChangesListPageQueryClient {
     url: Url,
 }
 
-impl CynicClient for VaultListBalanceChangesPageQueryClient {}
+impl CynicClient for VaultBalanceChangesListPageQueryClient {}
 
 impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables<'a>>
-    for VaultListBalanceChangesPageQueryClient
+    for VaultBalanceChangesListPageQueryClient
 {
     async fn query_page(
         &self,

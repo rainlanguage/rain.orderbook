@@ -2,7 +2,7 @@ use std::num::ParseIntError;
 
 use super::{
     order_clears_list, order_takes_list, orders_list, vault_balance_change::VaultBalanceChange,
-    vault_list_balance_changes, vaults_list,
+    vault_balance_changes_list, vaults_list,
 };
 use crate::utils::format_bigint_timestamp_display;
 use crate::{csv::TryIntoCsv, utils::FormatTimestampDisplayError};
@@ -118,13 +118,13 @@ impl TryIntoCsv<OrderFlattened> for Vec<OrderFlattened> {}
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VaultBalanceChangeFlattened {
     pub id: String,
-    pub timestamp: vault_list_balance_changes::BigInt,
+    pub timestamp: vault_balance_changes_list::BigInt,
     pub timestamp_display: String,
-    pub sender: vault_list_balance_changes::Bytes,
-    pub amount: vault_list_balance_changes::BigDecimal,
+    pub sender: vault_balance_changes_list::Bytes,
+    pub amount: vault_balance_changes_list::BigDecimal,
     pub amount_display_signed: String,
     pub change_type_display: String,
-    pub balance: vault_list_balance_changes::BigDecimal,
+    pub balance: vault_balance_changes_list::BigDecimal,
 }
 
 impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {
