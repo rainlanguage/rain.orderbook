@@ -6,8 +6,8 @@ import { validatedStringStore } from '$lib/storesGeneric/settingStore';
 import { cachedWritableInt } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains'
-import { setChainIdFromRpc } from '$lib/utils/chain';
-import { setForkBlockNumberFromRpc } from '$lib/utils/forkBlockNumber';
+import { getChainIdFromRpc } from '$lib/utils/chain';
+import { getForkBlockNumberFromRpc } from '$lib/utils/forkBlockNumber';
 
 const BLANK_WALLET_ADDRESS = '';
 
@@ -28,9 +28,18 @@ export const walletAddressMatchesOrBlank = derived(walletAddress, $walletAddress
   return (otherAddress: string) => $walletAddress.value === otherAddress || $walletAddress.value === BLANK_WALLET_ADDRESS;
 });
 
-rpcUrl.subscribe(value => {
+rpcUrl.subscribe(async value => {
   if(value.isValid) {
-    setChainIdFromRpc();
-    setForkBlockNumberFromRpc();
+    try {
+      const res: number = await getChainIdFromRpc();
+      chainId.set(res);
+    // eslint-disable-next-line no-empty
+    } catch {};
+
+    try {
+      const res: number = await getForkBlockNumberFromRpc();
+      forkBlockNumber.set(res);
+    // eslint-disable-next-line no-empty
+    } catch {};
   }
 });
