@@ -44,7 +44,11 @@ pub struct OrderbookSubgraphClient {
     url: Url,
 }
 
-impl CynicClient for OrderbookSubgraphClient {}
+impl CynicClient for OrderbookSubgraphClient {
+    fn get_base_url(&self) -> Url {
+        self.url.clone()
+    }
+}
 impl PaginationClient for OrderbookSubgraphClient {}
 
 impl OrderbookSubgraphClient {
@@ -57,9 +61,7 @@ impl OrderbookSubgraphClient {
         pagination_args: PaginationArgs,
     ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
-        let data = self
-            .query::<OrdersListQuery, OrdersListQueryVariables>(
-                self.url.clone(),
+        let data = self.query::<OrdersListQuery, OrdersListQueryVariables>(
                 OrdersListQueryVariables {
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
@@ -101,7 +103,6 @@ impl OrderbookSubgraphClient {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
             .query::<VaultsListQuery, VaultsListQueryVariables>(
-                self.url.clone(),
                 VaultsListQueryVariables {
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
@@ -142,7 +143,6 @@ impl OrderbookSubgraphClient {
     ) -> Result<vault_detail::TokenVault, OrderbookSubgraphClientError> {
         let data = self
             .query::<VaultDetailQuery, VaultDetailQueryVariables>(
-                self.url.clone(),
                 VaultDetailQueryVariables { id: &id },
             )
             .await?;
@@ -159,7 +159,6 @@ impl OrderbookSubgraphClient {
     ) -> Result<order_detail::Order, OrderbookSubgraphClientError> {
         let data = self
             .query::<OrderDetailQuery, OrderDetailQueryVariables>(
-                self.url.clone(),
                 OrderDetailQueryVariables { id: &id },
             )
             .await?;
@@ -227,7 +226,6 @@ impl OrderbookSubgraphClient {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
             .query::<OrderClearsListQuery, OrderClearsListQueryVariables>(
-                self.url.clone(),
                 OrderClearsListQueryVariables {
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
@@ -270,7 +268,6 @@ impl OrderbookSubgraphClient {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
             .query::<OrderTakesListQuery, OrderTakesListQueryVariables>(
-                self.url.clone(),
                 OrderTakesListQueryVariables {
                     id: &order_id,
                     first: pagination_variables.first,
@@ -316,7 +313,6 @@ impl OrderbookSubgraphClient {
     ) -> Result<order_take_detail::TakeOrderEntity, OrderbookSubgraphClientError> {
         let data = self
             .query::<OrderTakeDetailQuery, OrderTakeDetailQueryVariables>(
-                self.url.clone(),
                 OrderTakeDetailQueryVariables { id: &id },
             )
             .await?;
@@ -332,7 +328,11 @@ pub struct VaultBalanceChangesListPageQueryClient {
     url: Url,
 }
 
-impl CynicClient for VaultBalanceChangesListPageQueryClient {}
+impl CynicClient for VaultBalanceChangesListPageQueryClient {
+    fn get_base_url(&self) -> Url {
+        self.url.clone()
+    }
+}
 
 impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables<'a>>
     for VaultBalanceChangesListPageQueryClient
@@ -343,7 +343,6 @@ impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariabl
     ) -> Result<Vec<VaultBalanceChange>, CynicClientError> {
         let list = self
             .query::<VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables>(
-                self.url.clone(),
                 variables,
             )
             .await
