@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 2024-02-15-test-mac-build
 
 jobs:
   publish-tauri:
@@ -15,8 +16,8 @@ jobs:
       matrix:
         platform: [
           macos-12,
-          macos-14,
-          ubuntu-20.04
+          # macos-14,
+          # ubuntu-20.04
           # Someone who cares can make windows work.
           # windows-latest
         ]
