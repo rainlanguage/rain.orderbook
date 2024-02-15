@@ -7,13 +7,10 @@
     orderbookAddress,
     walletAddress,
     walletDerivationIndex,
-    isRpcUrlValid,
-    isSubgraphUrlValid,
-    isOrderbookAddressValid,
-    isSettingsDefinedAndValid,
-    forkBlockNumber,
+    allRequiredSettingsValid,
+    activeChain,
+    forkBlockNumber
   } from '$lib/stores/settings';
-  import { activeChain } from '$lib/stores/chain';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
@@ -23,7 +20,7 @@
 
 <div class="flex w-full justify-center">
   <div class="max-w-screen-lg">
-    {#if !$isSettingsDefinedAndValid}
+    {#if !$allRequiredSettingsValid}
       <Alert color="red" class="m-8 text-lg">
         Please fill in all the settings to use the Orderbook.
       </Alert>
@@ -31,8 +28,8 @@
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">RPC URL</Label>
-      <Input label="RPC URL" name="rpcUrl" required bind:value={$rpcUrl} />
-      {#if !$isRpcUrlValid && $rpcUrl.length > 0}
+      <Input label="RPC URL" name="rpcUrl" required bind:value={$rpcUrl.value} />
+      {#if !$rpcUrl.isValid && $rpcUrl.value.length > 0}
         <Helper class="mt-2 text-sm" color="red">Invalid URL</Helper>
       {/if}
       <Helper class="mt-2 text-sm">
@@ -47,7 +44,7 @@
       </Helper>
     </div>
 
-    {#if $isRpcUrlValid && $activeChain}
+    {#if $rpcUrl.isValid && $activeChain}
       <div class="mb-8">
         <Label class="bold mb-2 block text-xl">Chain</Label>
         <Input label="RPC URL" name="chainId" required bind:value={$activeChain.name} disabled />
@@ -57,8 +54,8 @@
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">Subgraph URL</Label>
-      <Input label="Subgraph URL" name="subgraphUrl" required bind:value={$subgraphUrl} />
-      {#if !$isSubgraphUrlValid && $subgraphUrl.length > 0}
+      <Input label="Subgraph URL" name="subgraphUrl" required bind:value={$subgraphUrl.value} />
+      {#if !$subgraphUrl.isValid && $subgraphUrl.value.length > 0}
         <Helper class="mt-2 text-sm" color="red">Invalid URL</Helper>
       {/if}
       <Helper class="mt-2 text-sm">
@@ -69,8 +66,8 @@
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">Orderbook Address</Label>
-      <Input label="Subgraph URL" name="orderbookAddress" required bind:value={$orderbookAddress} />
-      {#if !$isOrderbookAddressValid && $orderbookAddress.length > 0}
+      <Input label="Subgraph URL" name="orderbookAddress" required bind:value={$orderbookAddress.value} />
+      {#if !$orderbookAddress.isValid && $orderbookAddress.value.length > 0}
         <Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
       {/if}
       <Helper class="mt-2 text-sm">
@@ -83,15 +80,15 @@
       <Label class="bold mb-2 block text-xl">Ledger Wallet</Label>
       <InputLedgerWallet
         bind:derivationIndex={$walletDerivationIndex}
-        bind:walletAddress={$walletAddress}
+        bind:walletAddress={$walletAddress.value}
       />
     </div>
 
     <div class="mb-8">
-      <Label class="bold mb-2 block text-xl">Fork Block Number</Label>
+      <Label class="bold mb-2 block text-xl">Parser Fork Block Number</Label>
       <InputBlockNumber bind:value={$forkBlockNumber} required={false} />
       <Helper class="mt-2 text-sm">
-        The block number to fork when calling the Rainlang Parser contract. Defaults to the latest block.
+        The block number to fork for parsing rainlang on the Add Order page. Automatically set to the latest block on app launch.
       </Helper>
     </div>
   </div>

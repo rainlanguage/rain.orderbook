@@ -35,7 +35,7 @@
       const res: string = await invoke('get_address_from_ledger', {
         derivationIndex,
         chainId: 137,
-        rpcUrl: get(rpcUrl),
+        rpcUrl: get(rpcUrl).value,
       });
       walletAddress = res;
     } catch (error) {

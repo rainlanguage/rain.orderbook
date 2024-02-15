@@ -6,7 +6,8 @@
     CloseCircleSolid,
     ExclamationCircleSolid,
   } from 'flowbite-svelte-icons';
-  import { formatBlockExplorerTxUrl, activeChainHasBlockExplorer } from '$lib/stores/chain';
+  import { formatBlockExplorerTransactionUrl } from '$lib/utils/transaction';
+  import { activeChainHasBlockExplorer } from '$lib/stores/settings';
 
   export let transactionStatusNotice: TransactionStatusNotice;
 </script>
@@ -44,7 +45,7 @@
           <Button
             size="xs"
             color="light"
-            href={formatBlockExplorerTxUrl(transactionStatusNotice.status.payload)}
+            href={formatBlockExplorerTransactionUrl(transactionStatusNotice.status.payload)}
             target="_blank"
           >
             View on Block Explorer
