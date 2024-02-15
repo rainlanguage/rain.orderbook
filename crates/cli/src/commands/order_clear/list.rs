@@ -24,21 +24,32 @@ pub struct CliOrderClearListArgs {
 impl Execute for CliOrderClearListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-        let order_clears = subgraph_args
-            .to_subgraph_client()
-            .await?
-            .order_clears_list(pagination_args)
-            .await?;
-        let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
-            .into_iter()
-            .map(|o| o.try_into())
-            .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
 
         if self.pagination_args.csv {
+            let order_clears = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .order_clears_list_all()
+                .await?;
+            let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
+
             let csv_text = order_clears_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
+            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let order_clears = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .order_clears_list(pagination_args)
+                .await?;
+            let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
+
             let table = build_table(order_clears_flattened)?;
             info!("\n{}", table);
         }

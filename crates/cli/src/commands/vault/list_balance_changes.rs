@@ -27,22 +27,34 @@ pub struct CliVaultListBalanceChanges {
 impl Execute for CliVaultListBalanceChanges {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-        let vault_balance_changes = subgraph_args
-            .to_subgraph_client()
-            .await?
-            .vault_list_balance_changes(self.vault_id.clone().into(), pagination_args)
-            .await?;
-        let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
-            vault_balance_changes
-                .into_iter()
-                .map(|o| o.try_into())
-                .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
 
         if self.pagination_args.csv {
+            let vault_balance_changes = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .vault_list_balance_changes_all(self.vault_id.clone().into())
+                .await?;
+            let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
+                vault_balance_changes
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
+
             let csv_text = vault_balance_changes_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
+            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let vault_balance_changes = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .vault_list_balance_changes(self.vault_id.clone().into(), pagination_args)
+                .await?;
+            let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
+                vault_balance_changes
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
+
             let table = build_table(vault_balance_changes_flattened)?;
             info!("\n{}", table);
         }
