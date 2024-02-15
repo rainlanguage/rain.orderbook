@@ -13,7 +13,7 @@
   } from '$lib/stores/settings';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
+  import InputIntegerUnsigned from '$lib/components/InputIntegerUnsigned.svelte';
 </script>
 
 <PageHeader title="Settings" />
@@ -86,7 +86,7 @@
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">Parser Fork Block Number</Label>
-      <InputBlockNumber bind:value={$forkBlockNumber} required={false} />
+      <InputIntegerUnsigned bind:value={$forkBlockNumber} required={false} />
       <Helper class="mt-2 text-sm">
         The block number to fork for parsing rainlang on the Add Order page. Automatically set to the latest block on app launch.
       </Helper>

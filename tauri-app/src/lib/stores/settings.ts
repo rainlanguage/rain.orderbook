@@ -7,6 +7,7 @@ import { cachedWritableInt } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains'
 import { setChainIdFromRpc } from '$lib/utils/chain';
+import { setForkBlockNumberFromRpc } from '$lib/utils/forkBlockNumber';
 
 const BLANK_WALLET_ADDRESS = '';
 
@@ -30,5 +31,6 @@ export const walletAddressMatchesOrBlank = derived(walletAddress, $walletAddress
 rpcUrl.subscribe(value => {
   if(value.isValid) {
     setChainIdFromRpc();
+    setForkBlockNumberFromRpc();
   }
 });
