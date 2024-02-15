@@ -27,21 +27,32 @@ pub struct CliOrderTakesListArgs {
 impl Execute for CliOrderTakesListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-        let order_takes = subgraph_args
-            .to_subgraph_client()
-            .await?
-            .order_takes_list(self.order_id.clone().into(), pagination_args)
-            .await?;
-        let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
-            .into_iter()
-            .map(|o| o.try_into())
-            .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
 
         if self.pagination_args.csv {
+            let order_takes = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .order_takes_list_all(self.order_id.clone().into())
+                .await?;
+            let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
+    
             let csv_text = order_takes_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
+            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let order_takes = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .order_takes_list(self.order_id.clone().into(), pagination_args)
+                .await?;
+            let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
+    
             let table = build_table(order_takes_flattened)?;
             info!("\n{}", table);
         }
