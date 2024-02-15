@@ -17,7 +17,7 @@ pub enum CynicClientError {
 
 pub trait CynicClient {
     fn get_base_url(&self) -> Url;
-    
+
     async fn query<R: QueryFragment + QueryBuilder<V> + for<'a> Deserialize<'a>, V: Serialize>(
         &self,
         variables: V,

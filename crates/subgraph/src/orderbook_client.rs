@@ -1,7 +1,5 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
-use crate::pagination::{
-    PageQueryVariables, PaginationArgs, PaginationClient, PaginationClientError,
-};
+use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
 use crate::types::{
     order_clears_list,
     order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
@@ -14,16 +12,14 @@ use crate::types::{
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
     vault_balance_change::VaultBalanceChange,
+    vault_balance_changes_list::VaultBalanceChangesListQueryVariables,
     vault_detail,
     vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
-    vault_balance_changes_list::{
-        VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
-    },
     vaults_list,
     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
 };
-use crate::PageQueryClient;
-use chrono::NaiveDateTime;
+use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
+
 use cynic::Id;
 use reqwest::Url;
 use thiserror::Error;
@@ -62,9 +58,9 @@ impl OrderbookSubgraphClient {
         id: Id,
     ) -> Result<order_detail::Order, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrderDetailQuery, OrderDetailQueryVariables>(
-                OrderDetailQueryVariables { id: &id },
-            )
+            .query::<OrderDetailQuery, OrderDetailQueryVariables>(OrderDetailQueryVariables {
+                id: &id,
+            })
             .await?;
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -77,12 +73,11 @@ impl OrderbookSubgraphClient {
         pagination_args: PaginationArgs,
     ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
-        let data = self.query::<OrdersListQuery, OrdersListQueryVariables>(
-                OrdersListQueryVariables {
-                    first: pagination_variables.first,
-                    skip: pagination_variables.skip,
-                },
-            )
+        let data = self
+            .query::<OrdersListQuery, OrdersListQueryVariables>(OrdersListQueryVariables {
+                first: pagination_variables.first,
+                skip: pagination_variables.skip,
+            })
             .await?;
 
         Ok(data.orders)
@@ -183,9 +178,9 @@ impl OrderbookSubgraphClient {
         id: Id,
     ) -> Result<vault_detail::TokenVault, OrderbookSubgraphClientError> {
         let data = self
-            .query::<VaultDetailQuery, VaultDetailQueryVariables>(
-                VaultDetailQueryVariables { id: &id },
-            )
+            .query::<VaultDetailQuery, VaultDetailQueryVariables>(VaultDetailQueryVariables {
+                id: &id,
+            })
             .await?;
         let vault = data
             .token_vault
@@ -201,12 +196,10 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<VaultsListQuery, VaultsListQueryVariables>(
-                VaultsListQueryVariables {
-                    first: pagination_variables.first,
-                    skip: pagination_variables.skip,
-                },
-            )
+            .query::<VaultsListQuery, VaultsListQueryVariables>(VaultsListQueryVariables {
+                first: pagination_variables.first,
+                skip: pagination_variables.skip,
+            })
             .await?;
 
         Ok(data.token_vaults)
@@ -246,9 +239,7 @@ impl OrderbookSubgraphClient {
         let res = self
             .query_paginated(
                 pagination_vars,
-                VaultBalanceChangesListPageQueryClient {
-                    url: self.url.clone(),
-                },
+                VaultBalanceChangesListPageQueryClient::new(self.url.clone()),
                 VaultBalanceChangesListQueryVariables {
                     id: &id,
                     skip: Some(0),
@@ -329,73 +320,5 @@ impl OrderbookSubgraphClient {
             }
         }
         Ok(all_pages_merged)
-    }
-}
-
-pub struct VaultBalanceChangesListPageQueryClient {
-    url: Url,
-}
-
-impl CynicClient for VaultBalanceChangesListPageQueryClient {
-    fn get_base_url(&self) -> Url {
-        self.url.clone()
-    }
-}
-
-impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables<'a>>
-    for VaultBalanceChangesListPageQueryClient
-{
-    async fn query_page(
-        &self,
-        variables: VaultBalanceChangesListQueryVariables<'a>,
-    ) -> Result<Vec<VaultBalanceChange>, CynicClientError> {
-        let list = self
-            .query::<VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables>(
-                variables,
-            )
-            .await
-            .map(|data| {
-                let mut merged: Vec<VaultBalanceChange> = vec![];
-                merged.extend(
-                    data.vault_deposits
-                        .into_iter()
-                        .map(VaultBalanceChange::Deposit)
-                        .collect::<Vec<VaultBalanceChange>>(),
-                );
-                merged.extend(
-                    data.vault_withdraws
-                        .into_iter()
-                        .map(VaultBalanceChange::Withdraw)
-                        .collect::<Vec<VaultBalanceChange>>(),
-                );
-
-                merged
-            })?;
-
-        Ok(list)
-    }
-
-    fn sort_results(results: Vec<VaultBalanceChange>) -> Vec<VaultBalanceChange> {
-        let mut sorted_results = results.clone();
-        sorted_results.sort_by_key(|r| {
-            let timestamp = match r {
-                VaultBalanceChange::Deposit(v) => v.timestamp.clone().0,
-                VaultBalanceChange::Withdraw(v) => v.timestamp.clone().0,
-            };
-
-            NaiveDateTime::from_timestamp_opt(timestamp.parse::<i64>().unwrap_or(0), 0)
-        });
-
-        sorted_results
-    }
-}
-
-impl<'a> PageQueryVariables for VaultBalanceChangesListQueryVariables<'a> {
-    fn with_pagination(&self, skip: Option<i32>, first: Option<i32>) -> Self {
-        Self {
-            skip,
-            first,
-            id: self.id,
-        }
     }
 }
