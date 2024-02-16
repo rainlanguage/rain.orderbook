@@ -19,7 +19,7 @@
 
   let isSubmitting = false;
 
-  $: order = $orderDetail[$page.params.id];
+  $: order = $orderDetail.data[$page.params.id];
 
   async function remove() {
     isSubmitting = true;
@@ -53,7 +53,7 @@
   </svelte:fragment>
 </PageHeader>
 
-<PageContentDetail item={order} emptyMessage="Order not found">
+<PageContentDetail isFetching={$orderDetail.isFetching} isEmpty={order === undefined} emptyMessage="Order not found">
   <svelte:fragment slot="card">
     <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
     <div class="mt-4">

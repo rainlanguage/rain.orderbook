@@ -29,14 +29,7 @@
   let showWithdrawModal = false;
 
   vaultDetail.refetch($page.params.id);
-  $: vault = $vaultDetail[$page.params.id];
-
-  function toggleDepositModal() {
-    showDepositModal = !showDepositModal;
-  }
-  function toggleWithdrawModal() {
-    showWithdrawModal = !showWithdrawModal;
-  }
+  $: vault = $vaultDetail.data[$page.params.id];
 
   const vaultBalanceChangesList = useVaultBalanceChangesList($page.params.id);
   vaultBalanceChangesList.fetchAll(1);
@@ -53,13 +46,13 @@
 <PageHeader title="Vault">
   <svelte:fragment slot="actions">
     {#if vault && $walletAddressMatchesOrBlank(vault.owner.id)}
-      <Button color="green" size="xs" on:click={toggleDepositModal}>Deposit</Button>
-      <Button color="blue" size="xs" on:click={toggleWithdrawModal}>Withdraw</Button>
+      <Button color="green" size="xs" on:click={() => (showDepositModal = !showDepositModal)}>Deposit</Button>
+      <Button color="blue" size="xs" on:click={() => (showWithdrawModal = !showWithdrawModal)}>Withdraw</Button>
     {/if}
   </svelte:fragment>
 </PageHeader>
 
-<PageContentDetail item={vault} emptyMessage="Vault not found">
+<PageContentDetail isFetching={$vaultDetail.isFetching} isEmpty={vault === undefined} emptyMessage="Vault not found">
   <svelte:fragment slot="card">
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
