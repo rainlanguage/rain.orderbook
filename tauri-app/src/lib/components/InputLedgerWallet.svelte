@@ -7,7 +7,6 @@
   import { invoke } from '@tauri-apps/api';
   import { isAddress } from 'viem';
   import { toasts } from '$lib/stores/toasts';
-  import { ToastMessageType } from '$lib/typeshare/toast';
 
   const maskOptions = {
     mask: Number,
