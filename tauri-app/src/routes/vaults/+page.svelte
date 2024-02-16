@@ -77,10 +77,9 @@
           <DropdownItem on:click={(e) => {e.stopPropagation(); withdrawModalVault=item; showWithdrawModal = true;}}>Withdraw</DropdownItem>
         </Dropdown>
       {/if}
-
-    <ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
-    <ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />
   </svelte:fragment>
 </AppTable>
 
+<ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
+<ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />
 <ModalVaultDepositGeneric bind:open={showDepositGenericModal} />
