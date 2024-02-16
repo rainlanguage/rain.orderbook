@@ -12,11 +12,11 @@
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
-  import { isSettingsDefinedAndValid } from '$lib/stores/settings';
+  import { allRequiredSettingsValid } from '$lib/stores/settings';
   import ButtonDarkMode from './ButtonDarkMode.svelte';
   import { CashSolid } from 'flowbite-svelte-icons';
 
-  $: nonActiveClass = $isSettingsDefinedAndValid
+  $: nonActiveClass = $allRequiredSettingsValid
     ? 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white hover:bg-green-100 dark:hover:bg-green-700'
     : 'flex items-center p-2 text-base font-normal text-green-900 rounded-lg dark:text-white/25';
 </script>

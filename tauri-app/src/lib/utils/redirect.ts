@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation';
-import { isSettingsDefined } from '$lib/stores/settings';
+import { allRequiredSettingsValid } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 
 export function redirectIfSettingsNotDefined() {
-  if(!get(isSettingsDefined)) goto('/settings');
+  if(!get(allRequiredSettingsValid)) goto('/settings');
 }

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api';
 import { ErrorCode, type Problem, TextDocumentItem, Position, Hover, CompletionItem } from "codemirror-rainlang";
-import { forkBlockNumber, rpcUrl } from '$lib/stores/settings';
+import { rpcUrl, forkBlockNumber } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 
 /**
@@ -8,7 +8,7 @@ import { get } from 'svelte/store';
  */
 export async function problemsCallback(textDocument: TextDocumentItem): Promise<Problem[]> {
   try {
-    return await invoke('call_lsp_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber) });
+    return await invoke('call_lsp_problems', { textDocument, rpcUrl: get(rpcUrl).value, blockNumber: get(forkBlockNumber) });
   }
   catch (err) {
     return [{
