@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
   import {
+    Spinner,
     Table,
     TableBody,
     TableBodyRow,
@@ -22,7 +23,11 @@
   listStore.fetchFirst();
 </script>
 
-{#if $listStore.currentPage.length === 0}
+{#if $listStore.isFetchingFirst}
+  <div class="w-full h-64 flex justify-center items-center">
+    <Spinner class="h-16 w-16" color="white" />
+  </div>
+{:else if $listStore.currentPage.length === 0}
   <div class="text-center text-gray-900 dark:text-white">{emptyMessage}</div>
 {:else}
   <Table divClass="cursor-pointer" hoverable={rowHoverable}>
