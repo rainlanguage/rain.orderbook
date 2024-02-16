@@ -47,7 +47,7 @@
     "@fontsource/dm-sans": "^5.0.18",
     "@imask/svelte": "^7.3.0",
     "@tauri-apps/api": "^1.5.3",
-    "codemirror-rainlang": "github:rainlanguage/rainlang-codemirror#05ac2c9876825ca8fb5421f99b7b8a4e617caccb",
+    "codemirror-rainlang": "github:rainlanguage/rainlang-codemirror#8612849ec0e1cf6e1fdbf905f68bd7d899ef5cb2",
     "dayjs": "^1.11.10",
     "lightweight-charts": "^4.1.3",
     "lodash": "^4.17.21",
