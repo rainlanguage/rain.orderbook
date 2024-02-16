@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Card, Heading, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+  import { Heading, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
@@ -15,6 +15,7 @@
   import { sortBy } from 'lodash';
   import { useOrderTakesList } from '$lib/stores/orderTakesList';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
+  import PageContentDetail from '$lib/components/PageContentDetail.svelte';
 
   let isSubmitting = false;
 
@@ -52,67 +53,65 @@
   </svelte:fragment>
 </PageHeader>
 
-{#if order === undefined}
-  <div class="text-center text-gray-900 dark:text-white">Order not found</div>
-{:else}
-  <div class="w-full flex justify-center items-stretch flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
-    <Card class="space-y-8 grow-0 w-full relative" size="md">
-      <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
-      <div class="mt-4">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Order ID
-        </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          <Hash type={HashType.Identifier} shorten={false} value={order.id} />
-        </p>
-      </div>
+<PageContentDetail item={order} emptyMessage="Order not found">
+  <svelte:fragment slot="card">
+    <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
+    <div class="mt-4">
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Order ID
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        <Hash type={HashType.Identifier} shorten={false} value={order.id} />
+      </p>
+    </div>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Owner Address
-        </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
-        </p>
-      </div>
+    <div class="mt-8">
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Owner Address
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
+      </p>
+    </div>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Created At
-        </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
-        </p>
-      </div>
+    <div class="mt-8">
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Created At
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
+      </p>
+    </div>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Input Vaults
-        </h5>
-        <div class="flex flex-wrap space-x-2 space-y-2">
-          {#each (order.valid_inputs || []) as t}
-            <ButtonVaultLink tokenVault={t.token_vault} />
-          {/each}
-        </div>
+    <div class="mt-8">
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Input Vaults
+      </h5>
+      <div class="flex flex-wrap space-x-2 space-y-2">
+        {#each (order.valid_inputs || []) as t}
+          <ButtonVaultLink tokenVault={t.token_vault} />
+        {/each}
       </div>
+    </div>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Output Vaults
-        </h5>
-        <div class="flex flex-wrap space-x-2 space-y-2">
-          {#each (order.valid_outputs || []) as t}
-            <ButtonVaultLink tokenVault={t.token_vault} />
-          {/each}
-        </div>
+    <div class="mt-8">
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Output Vaults
+      </h5>
+      <div class="flex flex-wrap space-x-2 space-y-2">
+        {#each (order.valid_outputs || []) as t}
+          <ButtonVaultLink tokenVault={t.token_vault} />
+        {/each}
       </div>
-    </Card>
+    </div>
+  </svelte:fragment>
+
+  <svelte:fragment slot="chart">
     <LightweightChartLine title="Takes" data={orderTakesListChartDataSorted} loading={$orderTakesList.isFetchingAll} emptyMessage="No takes found" />
-  </div>
+  </svelte:fragment>
 
-  <div class="space-y-12">
-    <div class="w-full">
-      <Heading tag="h4" class="mb-2">Takes</Heading>
+  <svelte:fragment slot="below">
+    <Heading tag="h4" class="mb-2">Takes</Heading>
 
       <AppTable listStore={orderTakesList} emptyMessage="No takes found" rowHoverable={false}>
         <svelte:fragment slot="head">
@@ -145,7 +144,5 @@
           </TableBodyCell>
         </svelte:fragment>
       </AppTable>
-    </div>
-  </div>
-{/if}
-
+  </svelte:fragment>
+</PageContentDetail>
