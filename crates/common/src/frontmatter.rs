@@ -14,6 +14,37 @@ pub enum FrontmatterError {
     FrontmatterFieldMissing(String),
     #[error("Frontmatter empty")]
     FrontmatterEmpty,
+    #[error("Scenario Parsing Error: {0}")]
+    ScenarioParsingError(#[from] ScenarioParsingError),
+}
+
+#[derive(Error, Debug)]
+pub enum ScenarioParsingError {
+    #[error("No scenarios")]
+    NoScenarios,
+    #[error("No name")]
+    NoName,
+    #[error("Invalid runs - must be an integer")]
+    InvalidRuns,
+    #[error("No runs specified")]
+    NoRuns,
+    #[error("No rebinds")]
+    NoRebinds,
+    #[error("No entrypoint")]
+    NoEntrypoint,
+}
+
+#[derive(Clone, Debug)]
+pub struct MontecarloScenario {
+    pub name: String,
+    pub runs: u64,
+    pub binds: Vec<String>,
+    pub fuzz_binds: Vec<String>,
+}
+
+pub struct Scenario {
+    pub name: String,
+    pub binds: Vec<String>,
 }
 
 /// Parse dotrain frontmatter to extract deployer, valid-inputs and valid-outputs
@@ -128,6 +159,44 @@ pub fn try_parse_frontmatter_io(
             })
         })
         .collect::<Result<Vec<IO>, FrontmatterError>>()
+}
+
+pub fn parse_scenarios(frontmatter: &str) -> Result<Vec<RunnerScenario>, FrontmatterError> {
+    let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter)
+        .map_err(FrontmatterError::FrontmatterInvalidYaml)?;
+    let frontmatter_yaml = frontmatter_yaml_vec
+        .first()
+        .ok_or(FrontmatterError::EmptyFrontmatter)?;
+    let scenarios_yaml = frontmatter_yaml["scenarios"]
+        .as_vec()
+        .ok_or(FrontmatterError::EmptyFrontmatter)?;
+
+    let mut scenarios: Vec<RunnerScenario> = Vec::new();
+
+    for scenario_yaml in scenarios_yaml {
+        let name = scenario_yaml["name"]
+            .as_str()
+            .ok_or(ScenarioParsingError::NoName)?
+            .to_string();
+        let runs = scenario_yaml["runs"]
+            .as_str()
+            .ok_or(ScenarioParsingError::NoRuns)?
+            .parse()
+            .map_err(|_| ScenarioParsingError::InvalidRuns)?;
+        let binds = scenario_yaml["bind"]
+            .as_vec()
+            .map(|binds| {
+                binds
+                    .iter()
+                    .filter_map(|binding| binding.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .ok_or(ScenarioParsingError::NoRebinds)?;
+
+        scenarios.push(RunnerScenario { name, runs, binds });
+    }
+
+    Ok(scenarios)
 }
 
 #[cfg(test)]

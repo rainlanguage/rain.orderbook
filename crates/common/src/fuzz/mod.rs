@@ -1,5 +1,5 @@
 use crate::{
-    dotrain_add_order_lsp::LANG_SERVICES,
+    add_order::ORDERBOOK_ORDER_ENTRYPOINTS,
     frontmatter::{try_parse_frontmatter, FrontmatterError},
 };
 use dotrain::{error::ComposeError, RainDocument, Rebind};
@@ -11,20 +11,11 @@ use rain_interpreter_eval::{
     fork::{ForkCallError, ForkedEvm, NewForkedEvm},
     trace::RainEvalResult,
 };
-use strict_yaml_rust::StrictYamlLoader;
 use thiserror::Error;
-
-#[derive(Clone, Debug)]
-pub struct RunnerScenario {
-    pub name: String,
-    pub entrypoint: String,
-    pub runs: u64,
-    pub rebinds: Vec<String>,
-}
 
 pub struct FuzzRunner {
     pub forked_evm: ForkedEvm,
-    pub document: RainDocument,
+    pub dotrain: String,
     pub rng: TestRng,
 }
 
@@ -46,82 +37,15 @@ pub enum FuzzRunnerError {
     ComposeError(#[from] ComposeError),
     #[error("Front Matter: {0}")]
     FrontmatterError(#[from] FrontmatterError),
-    #[error("Scenario Parsing Error: {0}")]
-    ScenarioParsingError(#[from] ScenarioParsingError),
-}
-
-#[derive(Error, Debug)]
-pub enum ScenarioParsingError {
-    #[error("No scenarios")]
-    NoScenarios,
-    #[error("No name")]
-    NoName,
-    #[error("Invalid runs - must be an integer")]
-    InvalidRuns,
-    #[error("No runs specified")]
-    NoRuns,
-    #[error("No rebinds")]
-    NoRebinds,
-    #[error("No entrypoint")]
-    NoEntrypoint,
 }
 
 impl FuzzRunner {
     pub async fn new(fork_cfg: NewForkedEvm, dotrain: &str, seed: Option<[u8; 32]>) -> Self {
         Self {
             forked_evm: ForkedEvm::new(fork_cfg).await,
-            document: RainDocument::create(dotrain.into(), None, None, None),
+            dotrain: dotrain.into(),
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
         }
-    }
-
-    pub fn parse_scenarios(&self) -> Result<Vec<RunnerScenario>, FuzzRunnerError> {
-        let frontmatter = self.document.front_matter();
-        let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter)
-            .map_err(FrontmatterError::FrontmatterInvalidYaml)?;
-        let frontmatter_yaml = frontmatter_yaml_vec
-            .first()
-            .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
-
-        let scenarios_yaml = frontmatter_yaml["scenarios"]
-            .as_vec()
-            .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
-
-        let mut scenarios: Vec<RunnerScenario> = Vec::new();
-
-        for scenario_yaml in scenarios_yaml {
-            let name = scenario_yaml["name"]
-                .as_str()
-                .ok_or(ScenarioParsingError::NoName)?
-                .to_string();
-            let entrypoint = scenario_yaml["entrypoint"]
-                .as_str()
-                .ok_or(ScenarioParsingError::NoName)?
-                .to_string();
-            let runs = scenario_yaml["runs"]
-                .as_str()
-                .ok_or(ScenarioParsingError::NoRuns)?
-                .parse()
-                .map_err(|_| ScenarioParsingError::InvalidRuns)?;
-            let rebinds = scenario_yaml["bind"]
-                .as_vec()
-                .map(|rebinds| {
-                    rebinds
-                        .iter()
-                        .filter_map(|binding| binding.as_str().map(|s| s.to_string()))
-                        .collect()
-                })
-                .ok_or(ScenarioParsingError::NoRebinds)?;
-
-            scenarios.push(RunnerScenario {
-                name,
-                entrypoint,
-                runs,
-                rebinds,
-            });
-        }
-
-        Ok(scenarios)
     }
 
     pub async fn run_scenario(
@@ -131,28 +55,27 @@ impl FuzzRunner {
         let mut runs: Vec<RainEvalResult> = Vec::new();
 
         let (deployer, _valid_inputs, _valid_outputs, rebinds) =
-            try_parse_frontmatter(self.document.front_matter())?;
+            try_parse_frontmatter(&self.dotrain)?;
 
         let rebinds = rebinds.unwrap_or_default();
 
         for _ in 0..scenario.runs {
             let mut rebinds = rebinds.clone();
+
             // for each scenario.rebinds, add a random value
-            for rebind in &scenario.rebinds {
+            for rebind in &scenario.binds {
                 let mut val: [u8; 32] = [0; 32];
                 self.rng.fill_bytes(&mut val);
                 let hex = format!("0x{}", alloy_primitives::hex::encode(val));
                 rebinds.push(Rebind(rebind.to_string(), hex));
             }
 
-            let document = RainDocument::create(
-                self.document.text().into(),
-                Some(LANG_SERVICES.meta_store()),
+            let rainlang_string = RainDocument::compose_text(
+                &*self.dotrain.clone(),
+                &ORDERBOOK_ORDER_ENTRYPOINTS,
                 None,
                 Some(rebinds),
-            );
-
-            let rainlang_string = document.compose(&[&scenario.entrypoint])?;
+            )?;
 
             let args = ForkEvalArgs {
                 rainlang_string,
@@ -172,6 +95,9 @@ impl FuzzRunner {
     }
 
     pub async fn run_all_scenarios(&mut self) -> Result<Vec<FuzzResult>, FuzzRunnerError> {
+        let frontmatter = RainDocument::get_front_matter(&self.dotrain.as_str())
+            .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
+
         let scenarios = self.parse_scenarios()?;
         let mut results: Vec<FuzzResult> = Vec::new();
 
@@ -187,6 +113,9 @@ impl FuzzRunner {
         &mut self,
         name: &str,
     ) -> Result<FuzzResult, FuzzRunnerError> {
+        let frontmatter = RainDocument::get_front_matter(&self.dotrain.as_str())
+            .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
+
         let scenarios = self.parse_scenarios()?;
         let scenario = scenarios
             .iter()
@@ -221,8 +150,6 @@ orderbook:
         - token: 0x5555555555555555555555555555555555555555
           decimals: 8
           vault-id: 0x5678 
-bind:
-    - some-binding: 12345
 scenarios:
     - name: scenario 1
       entrypoint: main
@@ -264,3 +191,54 @@ _: 999;
         println!("{:#?}", single_scenario);
     }
 }
+
+// tokens:
+//   dai:
+//     address: 0x...
+//     decimals: 18
+//   usdt:
+//     address: 0x...
+//     decimals: 6
+//   usdc:
+//     address: 0x...
+//     decimals: 6
+
+// orders:
+//   usdt+dai:
+//     deployer: 0x...
+//     valid-inputs:
+//       - token: dai
+//         vault-id: 0x...
+//       - token: usdt
+//         vault-id: 0x...
+//     valid-outputs:
+//       - token: dai
+//         vault-id: 0x...
+//       - token: usddt
+//         vault-id: 0x...
+//   usdt+usdc+dai:
+//     deployer: 0x...
+//     valid-inputs:
+//       - token: dai
+//         vault-id: 0x...
+//       - token: usdt
+//         vault-id: 0x...
+//       - token: usdc
+//         vault-id: 0x...
+//     valid-outputs:
+//       - token: dai
+//         vault-id: 0x...
+//       - token: usddt
+//         vault-id: 0x...
+//       - token: usdcc
+//         vault-id: 0x...
+
+// scenarios:
+//   main:
+//     bind:
+//       - some-binding: 12345
+//   test:
+//     runs: 100
+//     bind:
+//       - to-be-fuzzed
+//       - some-binding
