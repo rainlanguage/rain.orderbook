@@ -37,11 +37,11 @@
 <div class="flex justify-center w-full">
   <div class="w-full max-w-screen-xl mb-4">
     <div class="flex justify-between items-end w-full pr-2">
-      <h5 class="w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      <h5 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white min-w-48 grow-0">
         Order Dotrain
       </h5>
       {#if $dotrainFile.path}
-        <div class="w-full text-sm tracking-tight text-gray-900 dark:text-white text-right">{$dotrainFile.path}</div>
+        <div class="text-sm tracking-tight text-gray-900 dark:text-white text-right overflow-hidden overflow-ellipsis flex-3 grow-1">{$dotrainFile.path}</div>
       {/if}
     </div>
 
