@@ -6,6 +6,7 @@ use crate::types::vault_balance_changes_list::{
 };
 use chrono::NaiveDateTime;
 use reqwest::Url;
+use std::cmp::Reverse;
 
 pub struct VaultBalanceChangesListPageQueryClient {
     pub url: Url,
@@ -54,6 +55,7 @@ impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariabl
         Ok(list)
     }
 
+    /// Sort by timestamp, descending
     fn sort_results(results: Vec<VaultBalanceChange>) -> Vec<VaultBalanceChange> {
         let mut sorted_results = results.clone();
         sorted_results.sort_by_key(|r| {
@@ -62,7 +64,10 @@ impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariabl
                 VaultBalanceChange::Withdraw(v) => v.timestamp.clone().0,
             };
 
-            NaiveDateTime::from_timestamp_opt(timestamp.parse::<i64>().unwrap_or(0), 0)
+            Reverse(NaiveDateTime::from_timestamp_opt(
+                timestamp.parse::<i64>().unwrap_or(0),
+                0,
+            ))
         });
 
         sorted_results
