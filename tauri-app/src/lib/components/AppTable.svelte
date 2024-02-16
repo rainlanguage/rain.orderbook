@@ -24,8 +24,8 @@
 </script>
 
 {#if $listStore.isFetchingFirst}
-  <div class="w-full h-64 flex justify-center items-center">
-    <Spinner class="h-16 w-16" color="white" />
+  <div class="w-full h-16 flex justify-center items-center">
+    <Spinner class="h-8 w-8" color="white" />
   </div>
 {:else if $listStore.currentPage.length === 0}
   <div class="text-center text-gray-900 dark:text-white">{emptyMessage}</div>
