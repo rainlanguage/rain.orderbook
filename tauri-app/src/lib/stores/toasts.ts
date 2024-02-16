@@ -9,7 +9,9 @@ export type ToastData = ToastPayload & { timestamp: Date; id: string };
 
 export type ToastDataStore = { [id: string]: ToastData };
 
-function useToastsStore(autohideMs = 5000) {
+const AUTO_HIDE_TOAST_DELAY = 5000;
+
+function useToastsStore() {
   const toasts = writable<ToastDataStore>({});
 
   listen<ToastPayload>('toast', (event) => add(event.payload));
@@ -22,12 +24,19 @@ function useToastsStore(autohideMs = 5000) {
       return val;
     });
 
+    // Only auto hide non-error toasts
+    if(payload.message_type !== ToastMessageType.Error) {
+      deleteAfterDelay(id);
+    }
+  }
+
+  function deleteAfterDelay(id: string, delayMs: number = AUTO_HIDE_TOAST_DELAY) {
     setTimeout(() => {
       toasts.update((val) => {
         delete val[id];
         return val;
       });
-    }, autohideMs);
+    }, delayMs);
   }
 
   function error(text: string, payload: ToastPayload | object = {}) {
