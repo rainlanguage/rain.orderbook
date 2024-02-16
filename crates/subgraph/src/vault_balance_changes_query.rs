@@ -64,7 +64,10 @@ impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariabl
                 VaultBalanceChange::Withdraw(v) => v.timestamp.clone().0,
             };
 
-            Reverse(NaiveDateTime::from_timestamp_opt(timestamp.parse::<i64>().unwrap_or(0), 0))
+            Reverse(NaiveDateTime::from_timestamp_opt(
+                timestamp.parse::<i64>().unwrap_or(0),
+                0,
+            ))
         });
 
         sorted_results
