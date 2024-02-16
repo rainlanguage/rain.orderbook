@@ -39,10 +39,7 @@
       });
       walletAddress = res;
     } catch (error) {
-      toasts.add({
-        message_type: ToastMessageType.Error,
-        text: `Ledger error: ${error}`,
-      });
+      toasts.error(`Ledger error: ${error}`);
     }
     isFetchingFromLedger = false;
   }
