@@ -44,9 +44,10 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "Rain Orderbook",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay"
       }
     ]
   }
