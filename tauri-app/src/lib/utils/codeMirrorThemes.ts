@@ -10,7 +10,7 @@ export const themes = {
 			foreground: '#001080',
 			caret: '#000000',
 			selection: '#add6ff',
-			lineHighlight: '#dadada',
+			lineHighlight: '#77777740',
 			gutterBackground: '#eeeeee',
 			gutterForeground: '#237893'
 		},
@@ -102,7 +102,23 @@ export const themes = {
 			{
 				tag: tags.attributeName,
 				color: '#eb3d36'
-			}
+			},
+			{
+				tag: tags.attributeValue,
+				color: '#444444'
+			},
+			{
+				tag: tags.content,
+				color: '#a31515'
+			},
+			{
+				tag: [tags.propertyName, tags.definition(tags.propertyName)],
+				color: '#0469ff'
+			},
+			{
+				tag: tags.labelName,
+				color: '#4fc4ff'
+			},
 		]
 	}),
 
@@ -113,14 +129,14 @@ export const themes = {
 			background: '#1e1e1e',
 			foreground: '#d4d4d4',
 			caret: '#d4d4d4',
-			selection: '#5A7590',
-			lineHighlight: '#3c3c41',
+			selection: '#ffffff',
+			lineHighlight: '#99999940',
 			gutterBackground: '#282828',
 			gutterForeground: '#858585'
 		},
 		styles: [
 			{
-				tag: tags.comment,
+				tag: [tags.comment, tags.lineComment],
 				color: '#6c9e57'
 			},
 			{
@@ -205,8 +221,24 @@ export const themes = {
 			},
 			{
 				tag: tags.attributeName,
-				color: '#a0e1ff'
-			}
+				color: '#ffffff'
+			},
+			{
+				tag: tags.attributeValue,
+				color: '#ffffff'
+			},
+			{
+				tag: tags.content,
+				color: '#ce9178'
+			},
+			{
+				tag: [tags.propertyName, tags.definition(tags.propertyName)],
+				color: '#608FC2'
+			},
+			{
+				tag: tags.labelName,
+				color: '#4fc4ff'
+			},
 		]
 	})
 };
