@@ -40,6 +40,6 @@ export async function saveFile(contents: string, path: string) {
   await writeTextFile(path, contents);
 }
 
-export const loadDotrainFile = () => loadFile('Dotrain Orderbook Order', 'order.rain');
+export const loadDotrainFile = () => loadFile('Rain Orderbook Order', 'rain');
 
-export const saveDotrainFileAs = (contents: string) => saveFileAs(contents, 'Dotrain Orderbook Order', 'order.rain');
+export const saveDotrainFileAs = (contents: string) => saveFileAs(contents, 'Rain Orderbook Order', 'rain');
