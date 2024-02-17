@@ -22,7 +22,7 @@
   }
 </script>
 
-<button type="button" {id} class="inline-block flex justify-start items-center space-x-2" on:click={copy}>
+<button type="button" {id} class="inline-block flex justify-start items-center space-x-2 text-left" on:click={copy}>
   {#if type === HashType.Wallet }
     <WalletOutline size="sm" />
   {:else if type === HashType.Identifier }
