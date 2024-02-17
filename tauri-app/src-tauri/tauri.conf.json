@@ -23,6 +23,9 @@
       "fs": {
         "readFile": true,
         "writeFile": true
+      },
+      "window": {
+        "startDragging": true
       }
     },
     "bundle": {
