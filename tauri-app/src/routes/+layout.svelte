@@ -11,7 +11,7 @@
 </script>
 
 <!-- This is where the window is draggable on mac OS without a title bar -->
-<div class="absolute w-full h-24 top-0" data-tauri-drag-region></div>
+<div class="absolute w-full h-16 top-0 z-50" data-tauri-drag-region></div>
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
   <Sidebar />
