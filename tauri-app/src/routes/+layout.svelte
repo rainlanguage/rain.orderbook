@@ -8,10 +8,10 @@
   import AppToast from '$lib/components/AppToast.svelte';
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
+  import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
 </script>
 
-<!-- On this div the window is draggable on mac OS (i.e. without a title bar) -->
-<div class="absolute w-full h-8 top-0 z-50" data-tauri-drag-region></div>
+<WindowDraggableArea />
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
   <Sidebar />
