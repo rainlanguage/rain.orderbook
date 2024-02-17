@@ -34,7 +34,7 @@ impl TryInto<OrderV2> for order_detail::Order {
                     Ok(IO {
                         token: v.token_vault.token.id.into_inner().parse::<Address>()?,
                         decimals: v.token_vault.token.decimals.try_into()?,
-                        vaultId: U256::from_str_radix(v.token_vault.vault_id.0.as_str(), 16)?,
+                        vaultId: U256::from_str_radix(v.token_vault.vault_id.0.as_str(), 10)?
                     })
                 })
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
@@ -46,7 +46,7 @@ impl TryInto<OrderV2> for order_detail::Order {
                     Ok(IO {
                         token: v.token_vault.token.id.into_inner().parse::<Address>()?,
                         decimals: v.token_vault.token.decimals.try_into()?,
-                        vaultId: U256::from_str_radix(v.token_vault.vault_id.0.as_str(), 16)?,
+                        vaultId: U256::from_str_radix(v.token_vault.vault_id.0.as_str(), 10)?
                     })
                 })
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
