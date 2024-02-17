@@ -1,3 +1,4 @@
+use crate::frontmatter::scenarios::{Scenario, ScenarioParsingError};
 use crate::{
     add_order::ORDERBOOK_ORDER_ENTRYPOINTS,
     frontmatter::{try_parse_frontmatter, FrontmatterError},
@@ -29,6 +30,10 @@ pub struct FuzzResult {
 pub enum FuzzRunnerError {
     #[error("Scenario not found")]
     ScenarioNotFound(String),
+    #[error("{0} is not a montecarlo scenario")]
+    NotMontecarlo(String),
+    #[error(transparent)]
+    ScenarioParsingError(#[from] ScenarioParsingError),
     #[error(transparent)]
     ForkCallError(#[from] ForkCallError),
     #[error("Empty Front Matter")]
@@ -50,8 +55,13 @@ impl FuzzRunner {
 
     pub async fn run_scenario(
         &mut self,
-        scenario: RunnerScenario,
+        scenario: Scenario,
     ) -> Result<FuzzResult, FuzzRunnerError> {
+        // if this isn't a montecarlo scenario, return an error
+        let scenario = match scenario {
+            Scenario::Montecarlo(scenario) => scenario,
+            _ => return Err(FuzzRunnerError::NotMontecarlo(scenario.name().into())),
+        };
         let mut runs: Vec<RainEvalResult> = Vec::new();
 
         let (deployer, _valid_inputs, _valid_outputs, rebinds) =
@@ -62,8 +72,8 @@ impl FuzzRunner {
         for _ in 0..scenario.runs {
             let mut rebinds = rebinds.clone();
 
-            // for each scenario.rebinds, add a random value
-            for rebind in &scenario.binds {
+            // for each scenario.fuzz_binds, add a random value
+            for rebind in &scenario.fuzz_binds {
                 let mut val: [u8; 32] = [0; 32];
                 self.rng.fill_bytes(&mut val);
                 let hex = format!("0x{}", alloy_primitives::hex::encode(val));
@@ -98,7 +108,7 @@ impl FuzzRunner {
         let frontmatter = RainDocument::get_front_matter(&self.dotrain.as_str())
             .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
 
-        let scenarios = self.parse_scenarios()?;
+        let scenarios = Scenario::parse_scenarios(frontmatter)?;
         let mut results: Vec<FuzzResult> = Vec::new();
 
         for scenario in scenarios {
@@ -116,10 +126,10 @@ impl FuzzRunner {
         let frontmatter = RainDocument::get_front_matter(&self.dotrain.as_str())
             .ok_or(FuzzRunnerError::EmptyFrontmatter)?;
 
-        let scenarios = self.parse_scenarios()?;
+        let scenarios = Scenario::parse_scenarios(frontmatter)?;
         let scenario = scenarios
             .iter()
-            .find(|s| s.name == name)
+            .find(|s| s.name() == name)
             .ok_or(FuzzRunnerError::ScenarioNotFound(name.into()))?;
 
         self.run_scenario(scenario.clone()).await
@@ -151,15 +161,13 @@ orderbook:
           decimals: 8
           vault-id: 0x5678 
 scenarios:
-    - name: scenario 1
-      entrypoint: main
-      runs: 3
-      bind:
+    scenario 1:
+        runs: 3
+        bind:
         - to-be-fuzzed
-    - name: scenario 2
-      entrypoint: other
-      runs: 3
-      bind:
+    scenario 2:
+        runs: 3
+        bind:
         - some-binding
 ---
 #some-binding 3
@@ -191,54 +199,3 @@ _: 999;
         println!("{:#?}", single_scenario);
     }
 }
-
-// tokens:
-//   dai:
-//     address: 0x...
-//     decimals: 18
-//   usdt:
-//     address: 0x...
-//     decimals: 6
-//   usdc:
-//     address: 0x...
-//     decimals: 6
-
-// orders:
-//   usdt+dai:
-//     deployer: 0x...
-//     valid-inputs:
-//       - token: dai
-//         vault-id: 0x...
-//       - token: usdt
-//         vault-id: 0x...
-//     valid-outputs:
-//       - token: dai
-//         vault-id: 0x...
-//       - token: usddt
-//         vault-id: 0x...
-//   usdt+usdc+dai:
-//     deployer: 0x...
-//     valid-inputs:
-//       - token: dai
-//         vault-id: 0x...
-//       - token: usdt
-//         vault-id: 0x...
-//       - token: usdc
-//         vault-id: 0x...
-//     valid-outputs:
-//       - token: dai
-//         vault-id: 0x...
-//       - token: usddt
-//         vault-id: 0x...
-//       - token: usdcc
-//         vault-id: 0x...
-
-// scenarios:
-//   main:
-//     bind:
-//       - some-binding: 12345
-//   test:
-//     runs: 100
-//     bind:
-//       - to-be-fuzzed
-//       - some-binding
