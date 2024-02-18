@@ -131,7 +131,7 @@ impl AddOrderArgs {
             .await?;
         let meta = self.try_generate_meta(rainlang)?;
 
-        let call = addOrderCall {
+        Ok(addOrderCall {
             config: OrderConfigV2 {
                 validInputs: valid_inputs,
                 validOutputs: valid_outputs,
@@ -142,10 +142,7 @@ impl AddOrderArgs {
                 },
                 meta,
             },
-        };
-
-        println!("addOrder\n{:?}", call);
-        Ok(call)
+        })
     }
 
     pub async fn execute<S: Fn(WriteTransactionStatus<addOrderCall>)>(
