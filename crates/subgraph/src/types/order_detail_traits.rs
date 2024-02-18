@@ -1,9 +1,9 @@
 use crate::types::order_detail;
+use crate::utils::base10_str_to_u256;
 use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address};
 use rain_orderbook_bindings::IOrderBookV3::{EvaluableV2, OrderV2, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
-use crate::utils::base10_str_to_u256;
 
 #[derive(Error, Debug)]
 pub enum OrderDetailError {
