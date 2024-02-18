@@ -1,7 +1,7 @@
 use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::{meta::TryDecodeRainlangSource, subgraph::SubgraphArgs};
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -22,6 +22,11 @@ impl Execute for CliOrderDetailArgs {
             .order_detail(self.order_id.clone().into())
             .await?;
         info!("{:#?}", order);
+
+        if let Some(meta) = order.meta {
+            let order_rain = meta.try_decode_rainlangsource()?;
+            info!("Order Rain: \n{:#?}", order_rain);
+        }
 
         Ok(())
     }
