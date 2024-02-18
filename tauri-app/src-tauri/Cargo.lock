@@ -6594,6 +6594,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "typeshare",
  "url",
 ]
 

@@ -16,10 +16,12 @@
   import { useOrderTakesList } from '$lib/stores/orderTakesList';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
+  import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
 
   let isSubmitting = false;
 
-  $: order = $orderDetail.data[$page.params.id];
+  $: order = $orderDetail.data[$page.params.id]?.order;
+  $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
 
   async function remove() {
     isSubmitting = true;
@@ -111,38 +113,50 @@
   </svelte:fragment>
 
   <svelte:fragment slot="below">
+    <Heading tag="h4" class="mb-2">Rain</Heading>
+
+    {#if orderRainlang}
+      <div class="mb-8">
+        <CodeMirrorDotrain disabled={true} value={orderRainlang} />
+      </div>
+    {:else}
+    <div class="w-full tracking-tight text-gray-900 dark:text-white">
+      Rain source not included in order meta
+    </div>
+    {/if}
+
     <Heading tag="h4" class="mb-2">Takes</Heading>
 
-      <AppTable listStore={orderTakesList} emptyMessage="No takes found" rowHoverable={false}>
-        <svelte:fragment slot="head">
-          <TableHeadCell>Date</TableHeadCell>
-          <TableHeadCell>Sender</TableHeadCell>
-          <TableHeadCell>Transaction Hash</TableHeadCell>
-          <TableHeadCell>Input</TableHeadCell>
-          <TableHeadCell>Output</TableHeadCell>
-          <TableHeadCell>IO Ratio</TableHeadCell>
-        </svelte:fragment>
+    <AppTable listStore={orderTakesList} emptyMessage="No takes found" rowHoverable={false}>
+      <svelte:fragment slot="head">
+        <TableHeadCell>Date</TableHeadCell>
+        <TableHeadCell>Sender</TableHeadCell>
+        <TableHeadCell>Transaction Hash</TableHeadCell>
+        <TableHeadCell>Input</TableHeadCell>
+        <TableHeadCell>Output</TableHeadCell>
+        <TableHeadCell>IO Ratio</TableHeadCell>
+      </svelte:fragment>
 
-        <svelte:fragment slot="bodyRow" let:item>
-          <TableBodyCell tdClass="px-4 py-2">
-            {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
-          </TableBodyCell>
-          <TableBodyCell tdClass="break-all py-2 min-w-32">
-            <Hash type={HashType.Wallet} value={item.sender.id} />
-          </TableBodyCell>
-          <TableBodyCell tdClass="break-all py-2 min-w-32">
-            <Hash type={HashType.Transaction} value={item.transaction.id} />
-          </TableBodyCell>
-          <TableBodyCell tdClass="break-all py-2">
-            {item.input_display} {item.input_token.symbol}
-          </TableBodyCell>
-          <TableBodyCell tdClass="break-all py-2">
-            {item.output_display} {item.output_token.symbol}
-          </TableBodyCell>
-          <TableBodyCell tdClass="break-all py-2">
-            {item.ioratio}  {item.input_token.symbol}/{item.output_token.symbol}
-          </TableBodyCell>
-        </svelte:fragment>
-      </AppTable>
+      <svelte:fragment slot="bodyRow" let:item>
+        <TableBodyCell tdClass="px-4 py-2">
+          {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+        </TableBodyCell>
+        <TableBodyCell tdClass="break-all py-2 min-w-32">
+          <Hash type={HashType.Wallet} value={item.sender.id} />
+        </TableBodyCell>
+        <TableBodyCell tdClass="break-all py-2 min-w-32">
+          <Hash type={HashType.Transaction} value={item.transaction.id} />
+        </TableBodyCell>
+        <TableBodyCell tdClass="break-all py-2">
+          {item.input_display} {item.input_token.symbol}
+        </TableBodyCell>
+        <TableBodyCell tdClass="break-all py-2">
+          {item.output_display} {item.output_token.symbol}
+        </TableBodyCell>
+        <TableBodyCell tdClass="break-all py-2">
+          {item.ioratio}  {item.input_token.symbol}/{item.output_token.symbol}
+        </TableBodyCell>
+      </svelte:fragment>
+    </AppTable>
   </svelte:fragment>
 </PageContentDetail>
