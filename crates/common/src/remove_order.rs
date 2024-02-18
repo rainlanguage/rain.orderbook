@@ -53,7 +53,6 @@ impl RemoveOrderArgs {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let remove_order_call: removeOrderCall = self.try_into()?;
-        println!("removeOrder\n{:?}", remove_order_call);
         let params = transaction_args
             .try_into_write_contract_parameters(
                 remove_order_call,
