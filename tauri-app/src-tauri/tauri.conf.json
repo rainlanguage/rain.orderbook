@@ -23,6 +23,12 @@
       "fs": {
         "readFile": true,
         "writeFile": true
+      },
+      "window": {
+        "startDragging": true
+      },
+      "os": {
+        "all": true
       }
     },
     "bundle": {
@@ -44,9 +50,10 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "Rain Orderbook",
-        "width": 800,
-        "height": 600
+        "width": 1200,
+        "height": 700,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay"
       }
     ]
   }

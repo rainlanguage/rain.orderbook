@@ -8,7 +8,10 @@
   import AppToast from '$lib/components/AppToast.svelte';
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
+  import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
 </script>
+
+<WindowDraggableArea />
 
 <div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
   <Sidebar />
