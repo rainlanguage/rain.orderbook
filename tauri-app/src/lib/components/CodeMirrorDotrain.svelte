@@ -6,6 +6,7 @@
 
 	export let value: string;
 	export let disabled = false;
+	export let styles = {};
 
 	const callbacks: RawLanguageServicesCallbacks = {
 		hover: hoverCallback,
@@ -25,7 +26,7 @@
 	styles={{
 		"&": {
 			width: "100%",
-			minHeight: "400px",
 		},
+		...styles
 	}}
 />

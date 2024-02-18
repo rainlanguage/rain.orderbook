@@ -46,7 +46,7 @@
     </div>
 
     <Card size="xl" class="w-full mb-4 mt-0">
-      <CodeMirrorDotrain bind:value={$dotrainFile.text} disabled={isSubmitting} />
+      <CodeMirrorDotrain bind:value={$dotrainFile.text} disabled={isSubmitting} styles={{"&": {minHeight: "400px"}}} />
     </Card>
 
 
