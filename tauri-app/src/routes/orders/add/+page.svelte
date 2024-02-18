@@ -9,7 +9,7 @@
 
   let isSubmitting = false;
 
-  const dotrainFile = textFileStore('dotrain', 'rain');
+  const dotrainFile = textFileStore('Rain', 'rain');
 
   async function execute() {
     isSubmitting = true;
@@ -29,7 +29,7 @@
       <ButtonLoading size="xs" loading={$dotrainFile.isSaving} color="green" on:click={dotrainFile.saveFile}>Save</ButtonLoading>
     {/if}
     <ButtonLoading size="xs" loading={$dotrainFile.isSavingAs} color="green" on:click={dotrainFile.saveFileAs}>Save As</ButtonLoading>
-    <ButtonLoading size="xs" loading={$dotrainFile.isLoading} color="blue" on:click={dotrainFile.loadFile}>Load Dotrain File</ButtonLoading>
+    <ButtonLoading size="xs" loading={$dotrainFile.isLoading} color="blue" on:click={dotrainFile.loadFile}>Load File</ButtonLoading>
   </svelte:fragment>
 </PageHeader>
 
@@ -38,7 +38,7 @@
   <div class="w-full max-w-screen-xl mb-4">
     <div class="flex justify-between items-end w-full pr-2">
       <h5 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white min-w-48 grow-0">
-        Order Dotrain
+        Order Rain
       </h5>
       {#if $dotrainFile.path}
         <div class="text-sm tracking-tight text-gray-900 dark:text-white text-right overflow-hidden overflow-ellipsis flex-3 grow-1">{$dotrainFile.path}</div>
