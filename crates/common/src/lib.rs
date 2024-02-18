@@ -9,6 +9,7 @@ pub mod rainlang;
 pub mod remove_order;
 pub mod subgraph;
 pub mod transaction;
+pub mod types;
 pub mod withdraw;
 
 pub use dotrain;
