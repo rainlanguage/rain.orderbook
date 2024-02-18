@@ -33,7 +33,7 @@
   }
 
   const orderTakesList = useOrderTakesList($page.params.id);
-  orderTakesList.fetchAll(1);
+  orderTakesList.fetchAll(0);
 
   $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
       value: parseFloat(d.ioratio),
