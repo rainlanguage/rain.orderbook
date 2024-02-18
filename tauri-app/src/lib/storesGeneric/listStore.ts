@@ -25,11 +25,10 @@ export interface ListStoreData<T> {
   isFetching: boolean;
   isFetchingAll: boolean,
   isExporting: boolean;
+  isFetchingFirst: boolean;
 }
 
-export interface AllPages<T> {
-  [pageIndex: number]: Array<T>;
-}
+export type AllPages<T> = Array<Array<T>>;
 
 
 const cachedWritablePages = <T>(key: string) => cachedWritableStore<AllPages<T>>(key, [], (value) => JSON.stringify(value), (value) => JSON.parse(value));
@@ -49,7 +48,8 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
     currentPage: $page($pageIndex),
     isFetching: $isFetching,
     isFetchingAll: $isFetchingAll,
-    isExporting: $isExporting
+    isExporting: $isExporting,
+    isFetchingFirst: $isFetching && $allPages.length === 0
   }));
 
   async function fetchPage(page: number = 1) {
