@@ -3,58 +3,18 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { loadDotrainFile, saveDotrainFileAs, saveFile as saveDotrainFile } from '$lib/utils/file';
-  import { toasts } from '$lib/stores/toasts';
+  import { textFileStore } from '$lib/storesGeneric/textFileStore';
   import { orderAdd } from '$lib/utils/orderAdd';
   import { Card } from 'flowbite-svelte';
 
-  let dotrain: string = '';
-  let path: string;
-  let isOpening = false;
-  let isSavingAs = false;
-  let isSaving = false;
   let isSubmitting = false;
 
-  $: isEmpty = dotrain.length === 0;
-
-  async function openFile() {
-    isOpening = true;
-    try {
-      [dotrain, path] = await loadDotrainFile();
-    } catch(e) {
-      toasts.error(e as string);
-    }
-    isOpening = false;
-  }
-
-  async function saveFileAs() {
-    isSavingAs = true;
-    try {
-      path = await saveDotrainFileAs(dotrain);
-      toasts.success(`Saved to ${path}`, {break_text: true});
-    } catch(e) {
-      toasts.error(e as string);
-    }
-    isSavingAs = false;
-  }
-
-  async function saveFile() {
-    if(!path) return;
-
-    isSaving = true;
-    try {
-      await saveDotrainFile(dotrain, path);
-      toasts.success(`Saved to ${path}`, {break_text: true});
-    } catch(e) {
-      toasts.error(e as string);
-    }
-    isSaving = false;
-  }
+  const dotrainFile = textFileStore('Rain', 'rain');
 
   async function execute() {
     isSubmitting = true;
     try {
-      await orderAdd(dotrain);
+      await orderAdd($dotrainFile.text);
       // eslint-disable-next-line no-empty
     } catch (e) {}
     isSubmitting = false;
@@ -65,28 +25,33 @@
 
 <PageHeader title="Add Order">
   <svelte:fragment slot="actions">
-    {#if path}
-      <ButtonLoading size="xs" loading={isSaving} color="green" on:click={saveFile}>Save</ButtonLoading>
+    {#if $dotrainFile.path}
+      <ButtonLoading size="xs" loading={$dotrainFile.isSaving} color="green" on:click={dotrainFile.saveFile}>Save</ButtonLoading>
     {/if}
-    <ButtonLoading size="xs" loading={isSavingAs} color="green" on:click={saveFileAs}>Save As</ButtonLoading>
-    <ButtonLoading size="xs" loading={isOpening} color="blue" on:click={openFile}>Load Dotrain File</ButtonLoading>
+    <ButtonLoading size="xs" loading={$dotrainFile.isSavingAs} color="green" on:click={dotrainFile.saveFileAs}>Save As</ButtonLoading>
+    <ButtonLoading size="xs" loading={$dotrainFile.isLoading} color="blue" on:click={dotrainFile.loadFile}>Load File</ButtonLoading>
   </svelte:fragment>
 </PageHeader>
 
 
 <div class="flex justify-center w-full">
   <div class="w-full max-w-screen-xl mb-4">
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Order Dotrain
-    </h5>
+    <div class="flex justify-between items-end w-full pr-2">
+      <h5 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white min-w-48 grow-0">
+        Order Rain
+      </h5>
+      {#if $dotrainFile.path}
+        <div class="text-sm tracking-tight text-gray-900 dark:text-white text-right overflow-hidden overflow-ellipsis flex-3 grow-1">{$dotrainFile.path}</div>
+      {/if}
+    </div>
 
-    <Card size="xl" class="w-full mb-4">
-      <CodeMirrorDotrain bind:value={dotrain} disabled={isSubmitting} />
+    <Card size="xl" class="w-full mb-4 mt-0">
+      <CodeMirrorDotrain bind:value={$dotrainFile.text} disabled={isSubmitting} />
     </Card>
 
 
     <div class="flex justify-end">
-      <ButtonLoading color="green" size="xl" loading={isSubmitting} disabled={isEmpty} on:click={execute}>Add Order</ButtonLoading>
+      <ButtonLoading color="green" size="xl" loading={isSubmitting} disabled={$dotrainFile.isEmpty} on:click={execute}>Add Order</ButtonLoading>
     </div>
   </div>
 </div>
