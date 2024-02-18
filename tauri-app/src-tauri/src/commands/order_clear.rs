@@ -1,8 +1,10 @@
 use crate::error::CommandResult;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::{
+    types::OrderClearFlattened, subgraph::SubgraphArgs,
+    csv::TryIntoCsv, utils::timestamp::FormatTimestampDisplayError
+};
 use rain_orderbook_subgraph_client::{
-    types::{flattened::{OrderClearFlattened, TryIntoFlattenedError}, order_clears_list},
-    TryIntoCsv,
+    types::order_clears_list,
     PaginationArgs,
 };
 use std::path::PathBuf;
@@ -34,7 +36,7 @@ pub async fn order_clears_list_write_csv(
     let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
             .into_iter()
             .map(|o| o.try_into())
-            .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
+            .collect::<Result<Vec<OrderClearFlattened>, FormatTimestampDisplayError>>()?;
     let csv_text = order_clears_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 

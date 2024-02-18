@@ -2,9 +2,10 @@ use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClie
 use alloy_primitives::ruint::FromUintError;
 use rain_orderbook_common::{
     add_order::AddOrderArgsError, error::ForkParseError, meta::TryDecodeRainlangSourceError,
+    utils::timestamp::FormatTimestampDisplayError, csv::TryIntoCsvError,
 };
 use rain_orderbook_subgraph_client::{
-    types::flattened::TryIntoFlattenedError, OrderbookSubgraphClientError, TryIntoCsvError,
+ OrderbookSubgraphClientError
 };
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
@@ -37,7 +38,7 @@ pub enum CommandError {
     AddOrderArgsError(#[from] AddOrderArgsError),
 
     #[error(transparent)]
-    TryIntoFlattenedError(#[from] TryIntoFlattenedError),
+    TryIntoFlattenedError(#[from] FormatTimestampDisplayError),
 
     #[error(transparent)]
     IOError(#[from] std::io::Error),

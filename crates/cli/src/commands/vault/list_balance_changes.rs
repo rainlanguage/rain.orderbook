@@ -5,11 +5,11 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::{TryIntoFlattenedError, VaultBalanceChangeFlattened},
-    PaginationArgs, TryIntoCsv,
+use rain_orderbook_common::{
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::VaultBalanceChangeFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -38,7 +38,7 @@ impl Execute for CliVaultBalanceChangesList {
                 vault_balance_changes
                     .into_iter()
                     .map(|o| o.try_into())
-                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
 
             let csv_text = vault_balance_changes_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -53,7 +53,7 @@ impl Execute for CliVaultBalanceChangesList {
                 vault_balance_changes
                     .into_iter()
                     .map(|o| o.try_into())
-                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
 
             let table = build_table(vault_balance_changes_flattened)?;
             info!("\n{}", table);

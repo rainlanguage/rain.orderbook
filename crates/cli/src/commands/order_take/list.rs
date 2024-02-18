@@ -5,13 +5,12 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::{OrderTakeFlattened, TryIntoFlattenedError},
-    PaginationArgs, TryIntoCsv,
+use rain_orderbook_common::{
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderTakeFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
-
 #[derive(Args, Clone)]
 pub struct CliOrderTakesListArgs {
     #[arg(short = 'i', long, help = "ID of the Order")]
@@ -37,7 +36,7 @@ impl Execute for CliOrderTakesListArgs {
             let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
+                .collect::<Result<Vec<OrderTakeFlattened>, FormatTimestampDisplayError>>()?;
 
             let csv_text = order_takes_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -51,7 +50,7 @@ impl Execute for CliOrderTakesListArgs {
             let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderTakeFlattened>, TryIntoFlattenedError>>()?;
+                .collect::<Result<Vec<OrderTakeFlattened>, FormatTimestampDisplayError>>()?;
 
             let table = build_table(order_takes_flattened)?;
             info!("\n{}", table);
