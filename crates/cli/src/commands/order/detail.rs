@@ -1,9 +1,7 @@
 use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_common::{
-    subgraph::SubgraphArgs, types::OrderDetailExtended,
-};
+use rain_orderbook_common::{subgraph::SubgraphArgs, types::OrderDetailExtended};
 use tracing::info;
 
 #[derive(Args, Clone)]

@@ -22,7 +22,7 @@ impl TryFrom<order_detail::Order> for OrderDetailExtended {
 
         Ok(Self {
             order: val,
-            rainlang: rainlang,
+            rainlang,
         })
     }
 }
