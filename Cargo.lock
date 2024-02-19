@@ -4748,6 +4748,8 @@ dependencies = [
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
+ "chrono",
+ "csv",
  "dotrain",
  "dotrain-lsp",
  "forker",
@@ -4776,7 +4778,6 @@ version = "0.0.1"
 dependencies = [
  "alloy-primitives 0.5.4",
  "chrono",
- "csv",
  "cynic",
  "cynic-codegen",
  "insta",

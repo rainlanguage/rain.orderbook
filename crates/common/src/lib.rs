@@ -1,4 +1,5 @@
 pub mod add_order;
+pub mod csv;
 pub mod deposit;
 pub mod dotrain_add_order_lsp;
 pub mod error;
@@ -10,6 +11,7 @@ pub mod remove_order;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
+pub mod utils;
 pub mod withdraw;
 
 pub use dotrain;

@@ -5,11 +5,11 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::{OrderClearFlattened, TryIntoFlattenedError},
-    PaginationArgs, TryIntoCsv,
+use rain_orderbook_common::{
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderClearFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -34,7 +34,7 @@ impl Execute for CliOrderClearListArgs {
             let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
+                .collect::<Result<Vec<OrderClearFlattened>, FormatTimestampDisplayError>>()?;
 
             let csv_text = order_clears_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -48,7 +48,7 @@ impl Execute for CliOrderClearListArgs {
             let order_clears_flattened: Vec<OrderClearFlattened> = order_clears
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderClearFlattened>, TryIntoFlattenedError>>()?;
+                .collect::<Result<Vec<OrderClearFlattened>, FormatTimestampDisplayError>>()?;
 
             let table = build_table(order_clears_flattened)?;
             info!("\n{}", table);

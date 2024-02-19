@@ -5,11 +5,11 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::{OrderFlattened, TryIntoFlattenedError},
-    PaginationArgs, TryIntoCsv,
+use rain_orderbook_common::{
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -35,7 +35,7 @@ impl Execute for CliOrderListArgs {
                 orders
                     .into_iter()
                     .map(|o| o.try_into())
-                    .collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
+                    .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
 
             let csv_text = orders_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -50,7 +50,7 @@ impl Execute for CliOrderListArgs {
                 orders
                     .into_iter()
                     .map(|o| o.try_into())
-                    .collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
+                    .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
 
             let table = build_table(orders_flattened)?;
             info!("\n{}", table);

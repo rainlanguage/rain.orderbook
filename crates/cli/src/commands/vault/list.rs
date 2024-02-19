@@ -5,10 +5,8 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::TokenVaultFlattened, PaginationArgs, TryIntoCsv,
-};
+use rain_orderbook_common::{csv::TryIntoCsv, subgraph::SubgraphArgs, types::TokenVaultFlattened};
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
