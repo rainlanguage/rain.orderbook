@@ -105,14 +105,11 @@ impl TryFrom<StrictYaml> for OrderbookSettings {
 }
 
 #[typeshare]
-#[derive(Serialize, Deserialize, Debug, Clone, Builder)]
-#[derive(Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Builder, Default)]
 pub struct OrderbookAppSettings {
     pub chains: Vec<ChainSettings>,
     pub orderbooks: Vec<OrderbookSettings>,
 }
-
-
 
 /// Parse string of settings yaml into OrderbookAppSettings
 /// Text MUST be strict yaml of the following structure
