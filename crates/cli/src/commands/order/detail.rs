@@ -1,7 +1,7 @@
 use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::{subgraph::SubgraphArgs, types::OrderDetailExtended};
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -21,7 +21,8 @@ impl Execute for CliOrderDetailArgs {
             .await?
             .order_detail(self.order_id.clone().into())
             .await?;
-        info!("{:#?}", order);
+        let order_extended: OrderDetailExtended = order.try_into()?;
+        info!("{:#?}", order_extended);
 
         Ok(())
     }

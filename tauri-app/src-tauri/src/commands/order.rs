@@ -2,12 +2,12 @@ use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, remove_order::RemoveOrderArgs, subgraph::SubgraphArgs,
-    transaction::TransactionArgs,
+    transaction::TransactionArgs, types::OrderDetailExtended,
 };
 use rain_orderbook_subgraph_client::{
     types::{
         flattened::{OrderFlattened, TryIntoFlattenedError},
-        order_detail, orders_list,
+        orders_list,
     },
     PaginationArgs, TryIntoCsv,
 };
@@ -49,14 +49,15 @@ pub async fn orders_list_write_csv(
 pub async fn order_detail(
     id: String,
     subgraph_args: SubgraphArgs,
-) -> CommandResult<order_detail::Order> {
+) -> CommandResult<OrderDetailExtended> {
     let order = subgraph_args
         .to_subgraph_client()
         .await?
         .order_detail(id.into())
         .await?;
+    let order_extended: OrderDetailExtended = order.try_into()?;
 
-    Ok(order)
+    Ok(order_extended)
 }
 
 #[tauri::command]

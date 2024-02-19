@@ -33,6 +33,7 @@ rain_interpreter_parser = { workspace = true }
 serde_bytes = { workspace = true }
 forker = { workspace = true }
 tokio = { workspace = true }
+typeshare = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
