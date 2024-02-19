@@ -2279,12 +2279,11 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.4"
-source = "git+https://github.com/rainlanguage/dotrain.git?rev=d31564805c0463bbd59f902a4b699d7bb4085c5b#d31564805c0463bbd59f902a4b699d7bb4085c5b"
+version = "6.0.1-alpha.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7649d39a901ae6731bf2f91cbd3c2619fecee8215c4c57766ec63c1247842a28"
 dependencies = [
- "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
- "alloy-sol-types 0.5.4",
  "anyhow",
  "async-recursion",
  "futures",
@@ -2293,18 +2292,17 @@ dependencies = [
  "once_cell",
  "rain-metadata 0.0.2-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex",
- "revm",
  "serde",
  "serde_bytes",
  "serde_json",
  "serde_repr",
- "topo_sort",
 ]
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.4"
-source = "git+https://github.com/rainlanguage/dotrain.git?rev=d31564805c0463bbd59f902a4b699d7bb4085c5b#d31564805c0463bbd59f902a4b699d7bb4085c5b"
+version = "6.0.1-alpha.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb3f3c0e08bb4dc5429d036fb24fd755de916ea4cc84e8f4db65e27f875f02fc"
 dependencies = [
  "alloy-primitives 0.5.4",
  "anyhow",
@@ -8988,12 +8986,6 @@ dependencies = [
  "toml_datetime",
  "winnow",
 ]
-
-[[package]]
-name = "topo_sort"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "156552d3c80df430aaac98c605a4e0eb7da8d06029cce2d40b4a6b095a34b37e"
 
 [[package]]
 name = "tower"
