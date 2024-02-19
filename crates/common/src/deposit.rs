@@ -1,5 +1,4 @@
-use crate::error::WritableTransactionExecuteError;
-use crate::transaction::TransactionArgs;
+use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};

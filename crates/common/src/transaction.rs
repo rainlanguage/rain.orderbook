@@ -2,7 +2,7 @@ use alloy_ethers_typecast::{
     client::{LedgerClient, LedgerClientError},
     gas_fee_middleware::GasFeeSpeed,
     transaction::{
-        ReadableClientError, ReadableClientHttp, WriteContractParameters,
+        ReadableClientError, ReadableClientHttp, WritableClientError, WriteContractParameters,
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
 };
@@ -10,6 +10,18 @@ use alloy_primitives::{ruint::FromUintError, Address, U256};
 use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum WritableTransactionExecuteError {
+    #[error(transparent)]
+    WritableClient(#[from] WritableClientError),
+    #[error(transparent)]
+    TransactionArgs(#[from] TransactionArgsError),
+    #[error(transparent)]
+    LedgerClient(#[from] LedgerClientError),
+    #[error("Invalid input args: {0}")]
+    InvalidArgs(String),
+}
 
 #[derive(Error, Debug)]
 pub enum TransactionArgsError {

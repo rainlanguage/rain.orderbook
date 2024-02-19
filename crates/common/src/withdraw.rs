@@ -1,4 +1,4 @@
-use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
+use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
