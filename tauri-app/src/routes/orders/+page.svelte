@@ -8,11 +8,7 @@
   redirectIfSettingsNotDefined();
 </script>
 
-<PageHeader title="Orders">
-  <svelte:fragment slot="actions">
-    <!-- <Button color="green" href="/orders/add">Add Order</Button> -->
-  </svelte:fragment>
-</PageHeader>
+<PageHeader title="Orders"></PageHeader>
 
 <div class="flex w-full justify-end py-4">
   <Button color="green" href="/orders/add">Add Order</Button>

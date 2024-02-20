@@ -61,7 +61,7 @@
     <TableBodyCell tdClass="break-word p-2">
       {item.valid_outputs?.map((t) => t.token.symbol)}
     </TableBodyCell>
-    <TableBodyCell tdClass="px-0">
+    <TableBodyCell tdClass="px-0 text-right">
       {#if $walletAddressMatchesOrBlank(item.owner.id) && item.order_active}
         <Button
           color="alternative"

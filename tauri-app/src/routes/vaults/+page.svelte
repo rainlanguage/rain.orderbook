@@ -75,7 +75,7 @@
         </div>
       {/if}
     </TableBodyCell>
-    <TableBodyCell tdClass="px-0">
+    <TableBodyCell tdClass="px-0 text-right">
       {#if $walletAddressMatchesOrBlank(item.owner.id)}
         <Button
           color="alternative"
