@@ -43,6 +43,7 @@ csv = "1.3.0"
 forker = { git = "https://github.com/rainlanguage/forker", rev = "0649c401d8ec489b13bf7bc4a8a05f0950b4b5e0" }
 revm-inspectors = "=0.1.0"
 insta = { version = "1.34.0" }
+derive_builder = "0.20.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
@@ -55,6 +56,9 @@ path = "crates/cli"
 
 [workspace.dependencies.rain_orderbook_subgraph_client]
 path = "crates/subgraph"
+
+[workspace.dependencies.rain_orderbook_app_settings]
+path = "crates/settings"
 
 [patch.crates-io]
 revm-inspectors = { git = "https://github.com/paradigmxyz/evm-inspectors" }
