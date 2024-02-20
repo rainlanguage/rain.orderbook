@@ -1,11 +1,5 @@
-use crate::{frontmatter::FrontmatterError, transaction::TransactionArgsError};
 use alloy_dyn_abi::JsonAbiExt;
-use alloy_ethers_typecast::{
-    client::LedgerClientError,
-    transaction::{ReadableClientError, WritableClientError},
-};
 use alloy_json_abi::Error as AlloyError;
-use forker::ForkedEvm;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde_json::Value;
@@ -21,16 +15,22 @@ pub const SELECTOR_REGISTRY_URL: &str = "https://api.openchain.xyz/signature-dat
 pub static SELECTORS: Lazy<Mutex<HashMap<[u8; 4], AlloyError>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-#[derive(Error, Debug)]
-pub enum WritableTransactionExecuteError {
-    #[error(transparent)]
-    WritableClient(#[from] WritableClientError),
-    #[error(transparent)]
-    TransactionArgs(#[from] TransactionArgsError),
-    #[error(transparent)]
-    LedgerClient(#[from] LedgerClientError),
-    #[error("Invalid input args: {0}")]
-    InvalidArgs(String),
+#[derive(Debug, Error)]
+pub enum AbiDecodeFailedError {
+    #[error("Reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("InvalidSelectorHash error: {0}")]
+    InvalidSelectorHash(#[from] std::array::TryFromSliceError),
+    #[error("Selectors Cache Poisoned")]
+    SelectorsCachePoisoned,
+    #[error("Empty error type")]
+    Empty,
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>> for AbiDecodeFailedError {
+    fn from(_value: PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>) -> Self {
+        Self::SelectorsCachePoisoned
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -65,10 +65,11 @@ impl std::fmt::Display for AbiDecodedErrorType {
 }
 
 /// decodes an error returned from calling a contract by searching its selector in registry
-pub async fn abi_decode_error(
+pub async fn decode_abi_error(
     error_data: &[u8],
-) -> Result<AbiDecodedErrorType, AbiDecodeFailedErrors> {
-    let (hash_bytes, args_data) = error_data.split_at(4);
+) -> Result<AbiDecodedErrorType, AbiDecodeFailedError> {
+    let hash_bytes = error_data.get(0..4).ok_or(AbiDecodeFailedError::Empty)?;
+    let args_data = error_data.get(4..).unwrap_or(&[]);
     let selector_hash = alloy_primitives::hex::encode_prefixed(hash_bytes);
     let selector_hash_bytes: [u8; 4] = hash_bytes.try_into()?;
 
@@ -126,81 +127,13 @@ pub async fn abi_decode_error(
     }
 }
 
-#[derive(Debug, Error)]
-pub enum AbiDecodeFailedErrors {
-    #[error("Reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
-    #[error("InvalidSelectorHash error: {0}")]
-    InvalidSelectorHash(#[from] std::array::TryFromSliceError),
-    #[error("Selectors Cache Poisoned")]
-    SelectorsCachePoisoned,
-}
-
-impl<'a> From<PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>> for AbiDecodeFailedErrors {
-    fn from(_value: PoisonError<MutexGuard<'a, HashMap<[u8; 4], AlloyError>>>) -> Self {
-        Self::SelectorsCachePoisoned
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum ForkCallError {
-    #[error("{0}")]
-    EVMError(String),
-    #[error("AbiDecodeFailed error: {0}")]
-    AbiDecodeFailed(AbiDecodeFailedErrors),
-    #[error("Fork Cache Poisoned")]
-    ForkCachePoisoned,
-    #[error("Missing expected cache key {0}")]
-    ForkCacheKeyMissing(String),
-    #[error(transparent)]
-    ReadableClientError(#[from] ReadableClientError),
-}
-
-impl From<AbiDecodeFailedErrors> for ForkCallError {
-    fn from(value: AbiDecodeFailedErrors) -> Self {
-        Self::AbiDecodeFailed(value)
-    }
-}
-
-impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError {
-    fn from(_value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
-        Self::ForkCachePoisoned
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum ForkParseError {
-    #[error("Fork Cache Poisoned")]
-    ForkCachePoisoned,
-    #[error(transparent)]
-    ForkCallFailed(#[from] ForkCallError),
-    #[error("{0}")]
-    AbiDecodedError(AbiDecodedErrorType),
-    #[error("Front Matter: {0}")]
-    FrontmatterError(#[from] FrontmatterError),
-    #[error(transparent)]
-    ReadableClientError(#[from] ReadableClientError),
-}
-
-impl From<AbiDecodedErrorType> for ForkParseError {
-    fn from(value: AbiDecodedErrorType) -> Self {
-        Self::AbiDecodedError(value)
-    }
-}
-
-impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkParseError {
-    fn from(_value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
-        Self::ForkCachePoisoned
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn test_error_decoder() {
-        let res = abi_decode_error(&[26, 198, 105, 8])
+        let res = decode_abi_error(&[26, 198, 105, 8])
             .await
             .expect("failed to get error selector");
         assert_eq!(

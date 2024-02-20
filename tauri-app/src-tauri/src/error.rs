@@ -1,7 +1,7 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
 use rain_orderbook_common::{
-    add_order::AddOrderArgsError, error::ForkParseError, meta::TryDecodeRainlangSourceError,
+    add_order::AddOrderArgsError, rainlang::ForkParseError, meta::TryDecodeRainlangSourceError,
     utils::timestamp::FormatTimestampDisplayError, csv::TryIntoCsvError,
 };
 use rain_orderbook_subgraph_client::{

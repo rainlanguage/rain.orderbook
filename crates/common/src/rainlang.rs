@@ -1,12 +1,45 @@
-use crate::error::ForkParseError;
-use crate::forked_evm_cache::FORKED_EVM_CACHE;
-use crate::frontmatter::try_parse_frontmatter;
-use alloy_ethers_typecast::transaction::ReadableClientHttp;
+use std::collections::HashMap;
+use std::sync::{MutexGuard, PoisonError};
+
+use crate::abi_error::AbiDecodedErrorType;
+use crate::forked_evm_cache::{ForkCallError, FORKED_EVM_CACHE};
+use crate::frontmatter::{try_parse_frontmatter, FrontmatterError};
+use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use alloy_primitives::{bytes::Bytes, Address, FixedBytes};
 use alloy_sol_types::SolCall;
+use forker::ForkedEvm;
 use rain_interpreter_bindings::DeployerISP::iParserCall;
 use rain_interpreter_bindings::IExpressionDeployerV3::deployExpression2Call;
 use rain_interpreter_bindings::IParserV1::parseCall;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ForkParseError {
+    #[error("Fork Cache Poisoned")]
+    ForkCachePoisoned,
+    #[error(transparent)]
+    ForkCallFailed(#[from] ForkCallError),
+    #[error("Fork Call Reverted: {0}")]
+    ForkCallReverted(AbiDecodedErrorType),
+    #[error("Front Matter: {0}")]
+    FrontmatterError(#[from] FrontmatterError),
+    #[error(transparent)]
+    ReadableClientError(#[from] ReadableClientError),
+    #[error("Failed to read Parser address from deployer")]
+    ReadParserAddressFailed,
+}
+
+impl From<AbiDecodedErrorType> for ForkParseError {
+    fn from(value: AbiDecodedErrorType) -> Self {
+        Self::ForkCallReverted(value)
+    }
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkParseError {
+    fn from(_value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
+        Self::ForkCachePoisoned
+    }
+}
 
 /// Arbitrary address used to call from
 const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
@@ -39,8 +72,11 @@ pub async fn parse_rainlang_on_fork(
     let calldata = iParserCall {}.abi_encode();
     let response = FORKED_EVM_CACHE
         .call(cache_key.clone(), SENDER_ADDRESS, deployer, &calldata)
-        .await??;
-    let parser_address = Address::from_word(FixedBytes::from_slice(response.as_ref()));
+        .await?;
+    let parser_address = Address::from_word(
+        FixedBytes::try_from(response.as_ref())
+            .map_err(|_| ForkParseError::ReadParserAddressFailed)?,
+    );
 
     // Call parser contract: parseCall
     let calldata = parseCall {
@@ -49,14 +85,14 @@ pub async fn parse_rainlang_on_fork(
     .abi_encode();
     let expression_config = FORKED_EVM_CACHE
         .call(cache_key.clone(), SENDER_ADDRESS, parser_address, &calldata)
-        .await??;
+        .await?;
 
     // Call deployer: deployExpression2Call
     let mut calldata = deployExpression2Call::SELECTOR.to_vec();
     calldata.extend_from_slice(&expression_config);
     FORKED_EVM_CACHE
         .call(cache_key, SENDER_ADDRESS, deployer, &calldata)
-        .await??;
+        .await?;
     let expression_config_bytes = expression_config;
 
     Ok(expression_config_bytes)
