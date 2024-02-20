@@ -1,11 +1,40 @@
-use super::error::ForkCallError;
-use super::error::{abi_decode_error, AbiDecodedErrorType};
+use crate::abi_error::{decode_abi_error, AbiDecodeFailedError, AbiDecodedErrorType};
+use alloy_ethers_typecast::transaction::ReadableClientError;
 use alloy_primitives::{bytes::Bytes, Address};
 use forker::ForkedEvm;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, MutexGuard, PoisonError};
+use thiserror::Error;
 use tokio::sync::Mutex;
+
+#[derive(Debug, Error)]
+pub enum ForkCallError {
+    #[error("{0}")]
+    CallError(String),
+    #[error("{0}")]
+    CallReverted(AbiDecodedErrorType),
+    #[error("AbiDecodeFailed error: {0}")]
+    AbiDecodeFailed(AbiDecodeFailedError),
+    #[error("Fork Cache Poisoned")]
+    ForkCachePoisoned,
+    #[error("Missing expected cache key {0}")]
+    ForkCacheKeyMissing(String),
+    #[error(transparent)]
+    ReadableClientError(#[from] ReadableClientError),
+}
+
+impl From<AbiDecodeFailedError> for ForkCallError {
+    fn from(value: AbiDecodeFailedError) -> Self {
+        Self::AbiDecodeFailed(value)
+    }
+}
+
+impl<'a> From<PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>> for ForkCallError {
+    fn from(_value: PoisonError<MutexGuard<'a, HashMap<String, ForkedEvm>>>) -> Self {
+        Self::ForkCachePoisoned
+    }
+}
 
 pub static FORKED_EVM_CACHE: Lazy<ForkedEvmCache> = Lazy::new(ForkedEvmCache::new);
 
@@ -59,7 +88,7 @@ impl ForkedEvmCache {
         sender: Address,
         address: Address,
         calldata: &[u8],
-    ) -> Result<Result<Bytes, AbiDecodedErrorType>, ForkCallError> {
+    ) -> Result<Bytes, ForkCallError> {
         // call contract on evm fork
         let mut cache = self.cache.lock().await;
         let forked_evm = cache
@@ -67,13 +96,15 @@ impl ForkedEvmCache {
             .ok_or(ForkCallError::ForkCacheKeyMissing(cache_key.clone()))?;
         let result = forked_evm
             .call(sender.as_slice(), address.as_slice(), calldata)
-            .map_err(|e| ForkCallError::EVMError(e.to_string()))?;
+            .map_err(|e| ForkCallError::CallError(e.to_string()))?;
 
         if result.reverted {
             // decode result bytes to error selectors if it was a revert
-            Ok(Err(abi_decode_error(&result.result).await?))
+            Err(ForkCallError::CallReverted(
+                decode_abi_error(&result.result).await?,
+            ))
         } else {
-            Ok(Ok(Bytes::from(result.result)))
+            Ok(Bytes::from(result.result))
         }
     }
 }
@@ -109,14 +140,14 @@ mod tests {
             .unwrap();
         let result = FORKED_EVM_CACHE
             .call(cache_key, FROM_ADDRESS, parser_address, &calldata)
-            .await
-            .expect("test failed!");
-        let expected = Err(AbiDecodedErrorType::Known {
+            .await;
+        let expected = AbiDecodedErrorType::Known {
             name: "MissingFinalSemi".to_owned(),
             args: vec!["Uint(0x000000000000000000000000000000000000000000000000000000000000000d_U256, 256)".to_owned()],
             sig: "MissingFinalSemi(uint256)".to_owned(),
-        });
-        assert_eq!(result, expected);
+        };
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), expected.to_string());
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -137,7 +168,6 @@ mod tests {
         let expression_config = FORKED_EVM_CACHE
             .call(cache_key, FROM_ADDRESS, parser_address, &calldata)
             .await
-            .unwrap()
             .unwrap();
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
@@ -153,9 +183,8 @@ mod tests {
             .unwrap();
         let result = FORKED_EVM_CACHE
             .call(cache_key, FROM_ADDRESS, deployer_address, &calldata)
-            .await
-            .expect("test failed!");
-        let expected = Err(AbiDecodedErrorType::Known {
+            .await;
+        let expected = AbiDecodedErrorType::Known {
             name: "BadOpInputsLength".to_owned(),
             args: vec![
                 "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned(), 
@@ -163,8 +192,9 @@ mod tests {
                 "Uint(0x0000000000000000000000000000000000000000000000000000000000000001_U256, 256)".to_owned()
             ],
             sig: "BadOpInputsLength(uint256,uint256,uint256)".to_owned(),
-        });
-        assert_eq!(result, expected);
+        };
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), expected.to_string());
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -183,7 +213,6 @@ mod tests {
         let expression_config = FORKED_EVM_CACHE
             .call(cache_key, FROM_ADDRESS, parser_address, &calldata)
             .await
-            .unwrap()
             .unwrap();
 
         let mut calldata = decode(DEPLOY_EXPRESSION_2_SELECTOR).unwrap();
@@ -200,13 +229,12 @@ mod tests {
         let result = FORKED_EVM_CACHE
             .call(cache_key, FROM_ADDRESS, deployer_address, &calldata)
             .await
-            .expect("test failed");
-        let expected = Ok(
-            Bytes::from(
-                alloy_primitives::hex::decode(
-                    "0x000000000000000000000000f22cda7695125487993110d706f3b001c8d106400000000000000000000000008a326d777bc34ea563bd21854b436d458112185b00000000000000000000000064c9b10e815a089698521b10be95c8c9c2ed0b3c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020001000000000000000000000000000000000000000000000000000000000000").unwrap()
-                )
-            );
+            .unwrap();
+        let expected = Bytes::from(
+            alloy_primitives::hex::decode(
+                "0x000000000000000000000000f22cda7695125487993110d706f3b001c8d106400000000000000000000000008a326d777bc34ea563bd21854b436d458112185b00000000000000000000000064c9b10e815a089698521b10be95c8c9c2ed0b3c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020001000000000000000000000000000000000000000000000000000000000000"
+            ).unwrap()
+        );
         assert_eq!(result, expected);
     }
 }
