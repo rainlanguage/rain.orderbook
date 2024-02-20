@@ -1,12 +1,6 @@
 <script lang="ts">
   import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
-  import {
-    Button,
-    Dropdown,
-    DropdownItem,
-    TableBodyCell,
-    TableHeadCell,
-  } from 'flowbite-svelte';
+  import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { vaultsList } from '$lib/stores/vaultsList';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -31,52 +25,89 @@
 </script>
 
 <PageHeader title="Vaults">
-  <svelte:fragment slot="actions">
-    <Button color="green" size="xs" on:click={() => (showDepositGenericModal = true)}>Deposit</Button>
-  </svelte:fragment>
+  <svelte:fragment slot="actions"></svelte:fragment>
 </PageHeader>
 
-<AppTable listStore={vaultsList} emptyMessage="No Vaults Found" on:clickRow={(e) => { goto(`/vaults/${e.detail.item.id}`); }}>
+<div class="flex w-full justify-end py-4">
+  <Button color="green" on:click={() => (showDepositGenericModal = true)}
+    >Deposit into new vault</Button
+  >
+</div>
+
+<AppTable
+  listStore={vaultsList}
+  emptyMessage="No Vaults Found"
+  on:clickRow={(e) => {
+    goto(`/vaults/${e.detail.item.id}`);
+  }}
+>
   <svelte:fragment slot="head">
-    <TableHeadCell>Vault ID</TableHeadCell>
-    <TableHeadCell>Owner</TableHeadCell>
-    <TableHeadCell>Token</TableHeadCell>
-    <TableHeadCell>Balance</TableHeadCell>
-    <TableHeadCell>Orders</TableHeadCell>
-    <TableHeadCell></TableHeadCell>
+    <TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
+    <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
+    <TableHeadCell padding="px-2 py-4">Token</TableHeadCell>
+    <TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
+    <TableHeadCell padding="px-3 py-4">Orders</TableHeadCell>
+    <TableHeadCell padding="px-4 py-4"></TableHeadCell>
   </svelte:fragment>
 
   <svelte:fragment slot="bodyRow" let:item>
-      <TableBodyCell tdClass="break-all px-4 py-2">{bigintStringToHex(item.vault_id)}</TableBodyCell>
-      <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell>
-      <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
-      <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {item.balance_display}
-        {item.token.symbol}
-      </TableBodyCell>
-      <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {#if item.orders}
-          <div class="flex flex-wrap justify-start items-end">
-            {#each item.orders.slice(0, 3) as order}
-              <Button class="px-1 py-0 mt-1 mr-1" color="alternative" on:click={() => goto(`/orders/${order.id}`)}><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button>
-            {/each}
-            {#if item.orders.length > 3}...{/if}
-          </div>
-        {/if}
-      </TableBodyCell>
-      <TableBodyCell tdClass="px-0">
-        {#if $walletAddressMatchesOrBlank(item.owner.id)}
-          <Button color="alternative" outline={false} id={`vault-menu-${item.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
-            <DotsVerticalOutline class="dark:text-white"/>
-          </Button>
-        {/if}
-      </TableBodyCell>
-      {#if $walletAddressMatchesOrBlank(item.owner.id)}
-        <Dropdown placement="bottom-end" triggeredBy={`#vault-menu-${item.id}`}>
-          <DropdownItem on:click={(e) => {e.stopPropagation(); depositModalVault=item; showDepositModal = true;}}>Deposit</DropdownItem>
-          <DropdownItem on:click={(e) => {e.stopPropagation(); withdrawModalVault=item; showWithdrawModal = true;}}>Withdraw</DropdownItem>
-        </Dropdown>
+    <TableBodyCell tdClass="break-all px-4 py-4">{bigintStringToHex(item.vault_id)}</TableBodyCell>
+    <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"
+      ><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell
+    >
+    <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
+    <TableBodyCell tdClass="break-all p-2 min-w-48">
+      {item.balance_display}
+      {item.token.symbol}
+    </TableBodyCell>
+    <TableBodyCell tdClass="break-all p-2 min-w-48">
+      {#if item.orders}
+        <div class="flex flex-wrap items-end justify-start">
+          {#each item.orders.slice(0, 3) as order}
+            <Button
+              class="mr-1 mt-1 px-1 py-0"
+              color="alternative"
+              on:click={() => goto(`/orders/${order.id}`)}
+              ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
+            >
+          {/each}
+          {#if item.orders.length > 3}...{/if}
+        </div>
       {/if}
+    </TableBodyCell>
+    <TableBodyCell tdClass="px-0 text-right">
+      {#if $walletAddressMatchesOrBlank(item.owner.id)}
+        <Button
+          color="alternative"
+          outline={false}
+          id={`vault-menu-${item.id}`}
+          class="mr-2 border-none px-2"
+          on:click={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <DotsVerticalOutline class="dark:text-white" />
+        </Button>
+      {/if}
+    </TableBodyCell>
+    {#if $walletAddressMatchesOrBlank(item.owner.id)}
+      <Dropdown placement="bottom-end" triggeredBy={`#vault-menu-${item.id}`}>
+        <DropdownItem
+          on:click={(e) => {
+            e.stopPropagation();
+            depositModalVault = item;
+            showDepositModal = true;
+          }}>Deposit</DropdownItem
+        >
+        <DropdownItem
+          on:click={(e) => {
+            e.stopPropagation();
+            withdrawModalVault = item;
+            showWithdrawModal = true;
+          }}>Withdraw</DropdownItem
+        >
+      </Dropdown>
+    {/if}
   </svelte:fragment>
 </AppTable>
 

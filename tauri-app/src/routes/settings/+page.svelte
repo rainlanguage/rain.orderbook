@@ -9,7 +9,7 @@
     walletDerivationIndex,
     allRequiredSettingsValid,
     activeChain,
-    forkBlockNumber
+    forkBlockNumber,
   } from '$lib/stores/settings';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -21,7 +21,7 @@
 <div class="flex w-full justify-center">
   <div class="max-w-screen-lg">
     {#if !$allRequiredSettingsValid}
-      <Alert color="red" class="m-8 text-lg">
+      <Alert color="red" class="my-8 text-lg">
         Please fill in all the settings to use the Orderbook.
       </Alert>
     {/if}
@@ -66,7 +66,12 @@
 
     <div class="mb-8">
       <Label class="bold mb-2 block text-xl">Orderbook Address</Label>
-      <Input label="Subgraph URL" name="orderbookAddress" required bind:value={$orderbookAddress.value} />
+      <Input
+        label="Subgraph URL"
+        name="orderbookAddress"
+        required
+        bind:value={$orderbookAddress.value}
+      />
       {#if !$orderbookAddress.isValid && $orderbookAddress.value.length > 0}
         <Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
       {/if}
@@ -88,7 +93,8 @@
       <Label class="bold mb-2 block text-xl">Parser Fork Block Number</Label>
       <InputBlockNumber bind:value={$forkBlockNumber} required={false} />
       <Helper class="mt-2 text-sm">
-        The block number to fork for parsing rainlang on the Add Order page. Automatically set to the latest block on app launch.
+        The block number to fork for parsing rainlang on the Add Order page. Automatically set to
+        the latest block on app launch.
       </Helper>
     </div>
   </div>
