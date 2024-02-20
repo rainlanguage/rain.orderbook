@@ -27,7 +27,6 @@
       >
     </Breadcrumb>
   </div>
-  <!-- <h1 class="flex-0 text-4xl font-bold text-gray-900 dark:text-white">{title}</h1> -->
   <div class="flex-1">
     <div class="flex justify-end space-x-2">
       <slot name="actions" />
