@@ -13,10 +13,10 @@
 
 <WindowDraggableArea />
 
-<div class="flex min-h-screen w-full justify-start bg-white p-2 dark:bg-gray-600">
+<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-600">
   <Sidebar />
 
-  <main class="ml-52 h-full w-full grow overflow-x-auto p-8">
+  <main class="ml-64 h-full w-full grow overflow-x-auto p-4">
     <slot />
   </main>
 
@@ -25,9 +25,9 @@
       <TransactionStatusNotice {transactionStatusNotice} />
     {/each}
     {#each $toastsList as toast}
-    <div class="flex justify-end">
-      <AppToast {toast} />
-    </div>
+      <div class="flex justify-end">
+        <AppToast {toast} />
+      </div>
     {/each}
   </div>
 </div>

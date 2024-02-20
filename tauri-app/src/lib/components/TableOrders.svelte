@@ -21,15 +21,21 @@
   export let ordersList: ListStore<Order>;
 </script>
 
-<AppTable listStore={ordersList} emptyMessage="No Orders Found" on:clickRow={(e) => { goto(`/orders/${e.detail.item.id}`); }}>
+<AppTable
+  listStore={ordersList}
+  emptyMessage="No Orders Found"
+  on:clickRow={(e) => {
+    goto(`/orders/${e.detail.item.id}`);
+  }}
+>
   <svelte:fragment slot="head">
-    <TableHeadCell>Active</TableHeadCell>
-    <TableHeadCell>Order ID</TableHeadCell>
-    <TableHeadCell>Owner</TableHeadCell>
-    <TableHeadCell>Created At</TableHeadCell>
-    <TableHeadCell>Input Token(s)</TableHeadCell>
-    <TableHeadCell>Output Token(s)</TableHeadCell>
-    <TableHeadCell></TableHeadCell>
+    <TableHeadCell padding="px-4 py-4">Active</TableHeadCell>
+    <TableHeadCell padding="px-4 py-4">Order ID</TableHeadCell>
+    <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
+    <TableHeadCell padding="px-4 py-4">Created At</TableHeadCell>
+    <TableHeadCell padding="px-2 py-4">Input Token(s)</TableHeadCell>
+    <TableHeadCell padding="px-2 py-4">Output Token(s)</TableHeadCell>
+    <TableHeadCell padding="px-4 py-4"></TableHeadCell>
   </svelte:fragment>
 
   <svelte:fragment slot="bodyRow" let:item>
@@ -40,8 +46,12 @@
         <Badge color="yellow">Inactive</Badge>
       {/if}
     </TableBodyCell>
-    <TableBodyCell tdClass="break-all px-4 py-2"><Hash type={HashType.Identifier} value={item.id} /></TableBodyCell>
-    <TableBodyCell tdClass="break-all px-4 py-2"><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell>
+    <TableBodyCell tdClass="break-all px-4 py-4"
+      ><Hash type={HashType.Identifier} value={item.id} /></TableBodyCell
+    >
+    <TableBodyCell tdClass="break-all px-4 py-2"
+      ><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell
+    >
     <TableBodyCell tdClass="break-word px-4 py-2">
       {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
     </TableBodyCell>
@@ -53,14 +63,27 @@
     </TableBodyCell>
     <TableBodyCell tdClass="px-0">
       {#if $walletAddressMatchesOrBlank(item.owner.id) && item.order_active}
-        <Button color="alternative" outline={false} id={`order-menu-${item.id}`} class="border-none px-2 mr-2" on:click={(e)=> {e.stopPropagation();}}>
-          <DotsVerticalOutline class="dark:text-white"/>
+        <Button
+          color="alternative"
+          outline={false}
+          id={`order-menu-${item.id}`}
+          class="mr-2 border-none px-2"
+          on:click={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <DotsVerticalOutline class="dark:text-white" />
         </Button>
       {/if}
     </TableBodyCell>
     {#if $walletAddressMatchesOrBlank(item.owner.id) && item.order_active}
       <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
-        <DropdownItem on:click={(e) => {e.stopPropagation(); orderRemove(item.id);}}>Remove</DropdownItem>
+        <DropdownItem
+          on:click={(e) => {
+            e.stopPropagation();
+            orderRemove(item.id);
+          }}>Remove</DropdownItem
+        >
       </Dropdown>
     {/if}
   </svelte:fragment>
