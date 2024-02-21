@@ -1,4 +1,4 @@
-use crate::commands::{Order, OrderClear, OrderTake, Vault};
+use crate::commands::{Order, OrderTake, Vault};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
