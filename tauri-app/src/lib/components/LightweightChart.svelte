@@ -112,9 +112,6 @@
         <div class="mb-2 text-xl">{title}</div>
       {/if}
 
-      <!-- {#if data.length === 0 && !loading}
-        <div>{emptyMessage}</div>
-      {/if} -->
     </div>
 
     <div>
