@@ -1,10 +1,13 @@
 <script lang="ts" generics="T extends keyof SeriesOptionsMap, D, O">
   // eslint-disable-next-line no-undef
   type ISeriesApiType = ISeriesApi<
+    // eslint-disable-next-line no-undef
     T,
     Time,
     WhitespaceData<Time>,
+    // eslint-disable-next-line no-undef
     O,
+    // eslint-disable-next-line no-undef
     DeepPartial<O & SeriesOptionsCommon>
   >;
 
@@ -21,6 +24,7 @@
     type DeepPartial,
     type SeriesOptionsCommon,
     type BarPrice,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     type SeriesOptionsMap,
   } from 'lightweight-charts';
   import { onDestroy, onMount } from 'svelte';

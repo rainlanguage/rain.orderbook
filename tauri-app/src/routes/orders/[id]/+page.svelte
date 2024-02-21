@@ -1,6 +1,6 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
-  import { Heading, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
+  import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
