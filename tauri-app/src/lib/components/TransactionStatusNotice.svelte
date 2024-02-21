@@ -12,7 +12,7 @@
   export let transactionStatusNotice: TransactionStatusNotice;
 </script>
 
-<Toast class="mt-2 w-full !max-w-none" dismissable={false}>
+<Toast class="mt-2 w-full !max-w-none">
   {#if transactionStatusNotice.series_position}
     <div class="text-lg font-bold text-gray-900 dark:text-white">
       Transaction {transactionStatusNotice.series_position.position} of
