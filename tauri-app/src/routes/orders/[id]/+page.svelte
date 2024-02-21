@@ -1,6 +1,6 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
-  import { Heading, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
+  import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
@@ -17,7 +17,7 @@
   import { useOrderTakesList } from '$lib/stores/orderTakesList';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
-  import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
+  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
 
   let isSubmitting = false;
 
@@ -117,7 +117,7 @@
       <TabItem open title="Rainlang source">
         {#if orderRainlang}
           <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-            <CodeMirrorDotrain disabled={true} value={orderRainlang} />
+            <CodeMirrorRainlang disabled={true} value={orderRainlang} />
           </div>
         {:else}
           <div class="w-full tracking-tight text-gray-900 dark:text-white">

@@ -21,8 +21,6 @@
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import {
     ArrowDownOutline,
-    ArrowDownSolid,
-    ArrowUpDownSolid,
     ArrowUpOutline,
   } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
