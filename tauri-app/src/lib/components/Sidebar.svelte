@@ -13,7 +13,6 @@
   import { page } from '$app/stores';
   import { allRequiredSettingsValid } from '$lib/stores/settings';
   import ButtonDarkMode from './ButtonDarkMode.svelte';
-  import { CashSolid } from 'flowbite-svelte-icons';
 
   $: nonActiveClass = $allRequiredSettingsValid
     ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -21,9 +20,7 @@
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
-  <SidebarWrapper
-    divClass="overflow-y-auto py-11 px-3 rounded bg-gray-100 dark:bg-gray-800 min-h-screen"
-  >
+  <SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
     <SidebarGroup>
       <SidebarBrand
         site={{
@@ -45,11 +42,6 @@
       <SidebarItem label="Vaults" href="/vaults" {nonActiveClass}>
         <svelte:fragment slot="icon">
           <WalletSolid class="h-5 w-5" />
-        </svelte:fragment>
-      </SidebarItem>
-      <SidebarItem label="Order Clears" href="/order-clears" {nonActiveClass}>
-        <svelte:fragment slot="icon">
-          <CashSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>

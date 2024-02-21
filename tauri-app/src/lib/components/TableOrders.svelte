@@ -29,10 +29,10 @@
   }}
 >
   <svelte:fragment slot="head">
-    <TableHeadCell padding="px-4 py-4">Active</TableHeadCell>
-    <TableHeadCell padding="px-4 py-4">Order ID</TableHeadCell>
-    <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
-    <TableHeadCell padding="px-4 py-4">Created At</TableHeadCell>
+    <TableHeadCell padding="p-4">Active</TableHeadCell>
+    <TableHeadCell padding="p-4">Order ID</TableHeadCell>
+    <TableHeadCell padding="p-4">Owner</TableHeadCell>
+    <TableHeadCell padding="p-4">Created At</TableHeadCell>
     <TableHeadCell padding="px-2 py-4">Input Token(s)</TableHeadCell>
     <TableHeadCell padding="px-2 py-4">Output Token(s)</TableHeadCell>
     <TableHeadCell padding="px-4 py-4"></TableHeadCell>

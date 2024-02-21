@@ -1,8 +1,6 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
 use crate::types::{
-    order_clears_list,
-    order_clears_list::{OrderClearsListQuery, OrderClearsListQueryVariables},
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
     order_take_detail,
@@ -269,48 +267,6 @@ impl OrderbookSubgraphClient {
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
                 )
-                .await?;
-            if page_data.is_empty() {
-                break;
-            } else {
-                all_pages_merged.extend(page_data);
-                page += 1
-            }
-        }
-        Ok(all_pages_merged)
-    }
-
-    /// Fetch all order clears, paginated
-    pub async fn order_clears_list(
-        &self,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<order_clears_list::OrderClear>, OrderbookSubgraphClientError> {
-        let pagination_variables = Self::parse_pagination_args(pagination_args);
-        let data = self
-            .query::<OrderClearsListQuery, OrderClearsListQueryVariables>(
-                OrderClearsListQueryVariables {
-                    first: pagination_variables.first,
-                    skip: pagination_variables.skip,
-                },
-            )
-            .await?;
-
-        Ok(data.order_clears)
-    }
-
-    /// Fetch all pages of order_clears_list query
-    pub async fn order_clears_list_all(
-        &self,
-    ) -> Result<Vec<order_clears_list::OrderClear>, OrderbookSubgraphClientError> {
-        let mut all_pages_merged = vec![];
-        let mut page = 1;
-
-        loop {
-            let page_data = self
-                .order_clears_list(PaginationArgs {
-                    page,
-                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
-                })
                 .await?;
             if page_data.is_empty() {
                 break;
