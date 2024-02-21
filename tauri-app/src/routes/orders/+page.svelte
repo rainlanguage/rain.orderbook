@@ -10,7 +10,8 @@
 
 <PageHeader title="Orders"></PageHeader>
 
-<div class="flex w-full justify-end py-4">
+<div class="flex w-full justify-between py-4">
+  <div class="text-3xl font-medium dark:text-white">Orders</div>
   <Button color="green" href="/orders/add">Add Order</Button>
 </div>
 

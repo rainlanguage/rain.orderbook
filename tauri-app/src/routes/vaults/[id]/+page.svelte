@@ -25,6 +25,7 @@
     ArrowUpDownSolid,
     ArrowUpOutline,
   } from 'flowbite-svelte-icons';
+  import CardProperty from '$lib/components/CardProperty.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -41,7 +42,7 @@
         ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
         : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
     time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-    color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green',
+    color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
   }));
 
   $: vaultBalanceChangesListAllChartDataSorted = sortBy(
@@ -73,60 +74,47 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="card">
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Vault ID
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vault_id)}
-      </p>
-    </div>
+    <CardProperty>
+      <svelte:fragment slot="key">Vault ID</svelte:fragment>
+      <svelte:fragment slot="value">{bigintStringToHex(vault.vault_id)}</svelte:fragment>
+    </CardProperty>
 
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Owner Address
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        <Hash type={HashType.Wallet} shorten={false} value={vault.owner.id} />
-      </p>
-    </div>
+    <CardProperty>
+      <svelte:fragment slot="key">Owner Address</svelte:fragment>
+      <svelte:fragment slot="value">
+        <Hash type={HashType.Wallet} value={vault.owner.id} />
+      </svelte:fragment>
+    </CardProperty>
 
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Token
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.token.name}
-      </p>
-    </div>
+    <CardProperty>
+      <svelte:fragment slot="key">Token address</svelte:fragment>
+      <svelte:fragment slot="value">
+        <Hash value={vault.token.id} />
+      </svelte:fragment>
+    </CardProperty>
 
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Balance
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.balance_display}
-        {vault.token.symbol}
-      </p>
-    </div>
+    <CardProperty>
+      <svelte:fragment slot="key">Balance</svelte:fragment>
+      <svelte:fragment slot="value">{vault.balance_display} {vault.token.symbol}</svelte:fragment>
+    </CardProperty>
 
-    {#if vault.orders && vault.orders.length > 0}
-      <div>
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Orders
-        </h5>
-        <p class="flex flex-wrap justify-start">
-          {#each vault.orders as order}
-            <Button
-              class="mr-1 mt-1 px-1 py-0"
-              color="alternative"
-              on:click={() => goto(`/orders/${order.id}`)}
-              ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
-            >
-          {/each}
-        </p>
-      </div>
-    {/if}
+    <CardProperty>
+      <svelte:fragment slot="key">Orders</svelte:fragment>
+      <svelte:fragment slot="value">
+        {#if vault.orders && vault.orders.length > 0}
+          <p class="flex flex-wrap justify-start">
+            {#each vault.orders as order}
+              <Button
+                class="mr-1 mt-1 px-1 py-0"
+                color="alternative"
+                on:click={() => goto(`/orders/${order.id}`)}
+                ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
+              >
+            {/each}
+          </p>
+        {/if}
+      </svelte:fragment>
+    </CardProperty>
   </svelte:fragment>
 
   <svelte:fragment slot="chart">
@@ -140,7 +128,7 @@
   </svelte:fragment>
 
   <svelte:fragment slot="below">
-    <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
+    <Heading tag="h5" class="mb-4 mt-6 font-normal">Deposits & Withdrawals</Heading>
 
     <AppTable
       listStore={vaultBalanceChangesList}

@@ -12,7 +12,7 @@
     <slot name="top" />
   </div>
   <div class="grid grid-cols-3 gap-4">
-    <div class="col-span-1">
+    <div class="col-span-1 flex flex-col gap-y-6">
       <slot name="card" />
     </div>
     <div class="col-span-2 min-h-[500px]">

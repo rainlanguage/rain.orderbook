@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { Heading, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
@@ -65,46 +66,38 @@
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="card">
-    <div class="col-span-1">
-      <div class="flex flex-col gap-y-6">
-        <div>
-          <h5 class="text-md mb-1 w-full tracking-tight text-gray-400 dark:text-gray-400">Owner</h5>
-          <p class="font-regular break-all leading-tight text-gray-800 dark:text-white">
-            <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
-          </p>
-        </div>
+    <div class="flex flex-col gap-y-6">
+      <CardProperty>
+        <svelte:fragment slot="key">Owner</svelte:fragment>
+        <svelte:fragment slot="value">
+          <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
+        </svelte:fragment>
+      </CardProperty>
 
-        <div>
-          <h5 class="text-md mb-1 w-full tracking-tight text-gray-400 dark:text-gray-400">
-            Created
-          </h5>
-          <p class="font-regular break-all leading-tight text-gray-800 dark:text-white">
-            {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
-          </p>
-        </div>
+      <CardProperty>
+        <svelte:fragment slot="key">Created</svelte:fragment>
+        <svelte:fragment slot="value">
+          {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
+        </svelte:fragment>
+      </CardProperty>
 
-        <div>
-          <h5 class="text-md mb-1 w-full tracking-tight text-gray-400 dark:text-gray-400">
-            Input vaults
-          </h5>
-          <div class="flex flex-col gap-y-2 dark:text-white">
-            {#each order.valid_inputs || [] as t}
-              <ButtonVaultLink tokenVault={t.token_vault} />
-            {/each}
-          </div>
-        </div>
+      <CardProperty>
+        <svelte:fragment slot="key">Input vaults</svelte:fragment>
+        <svelte:fragment slot="value">
+          {#each order.valid_inputs || [] as t}
+            <ButtonVaultLink tokenVault={t.token_vault} />
+          {/each}
+        </svelte:fragment>
+      </CardProperty>
 
-        <div>
-          <h5 class="text-md mb-1 w-full tracking-tight text-gray-400 dark:text-gray-400">
-            Output vaults
-          </h5>
-          <div class="flex flex-col gap-y-2 dark:text-white">
-            {#each order.valid_outputs || [] as t}
-              <ButtonVaultLink tokenVault={t.token_vault} />
-            {/each}
-          </div>
-        </div>
-      </div>
+      <CardProperty>
+        <svelte:fragment slot="key">Output vaults</svelte:fragment>
+        <svelte:fragment slot="value">
+          {#each order.valid_outputs || [] as t}
+            <ButtonVaultLink tokenVault={t.token_vault} />
+          {/each}
+        </svelte:fragment>
+      </CardProperty>
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
