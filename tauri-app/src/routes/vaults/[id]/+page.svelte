@@ -136,11 +136,11 @@
       rowHoverable={false}
     >
       <svelte:fragment slot="head">
-        <TableHeadCell>Date</TableHeadCell>
-        <TableHeadCell>Sender</TableHeadCell>
-        <TableHeadCell>Transaction Hash</TableHeadCell>
-        <TableHeadCell>Balance Change</TableHeadCell>
-        <TableHeadCell>Type</TableHeadCell>
+        <TableHeadCell padding="p-4">Date</TableHeadCell>
+        <TableHeadCell padding="p-0">Sender</TableHeadCell>
+        <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
+        <TableHeadCell padding="p-0">Balance Change</TableHeadCell>
+        <TableHeadCell padding="p--">Type</TableHeadCell>
       </svelte:fragment>
 
       <svelte:fragment slot="bodyRow" let:item>
@@ -153,11 +153,11 @@
         <TableBodyCell tdClass="break-all py-2 min-w-48">
           <Hash type={HashType.Transaction} value={item.content.transaction.id} />
         </TableBodyCell>
-        <TableBodyCell tdClass="break-word p-2 text-right">
+        <TableBodyCell tdClass="break-word p-0 text-left">
           {item.type === VaultBalanceChangeType.Withdraw ? '-' : ''}{item.content.amount_display}
           {item.content.token_vault.token.symbol}
         </TableBodyCell>
-        <TableBodyCell tdClass="break-word p-2 text-right">
+        <TableBodyCell tdClass="break-word p-0 text-left">
           {item.type}
         </TableBodyCell>
       </svelte:fragment>
