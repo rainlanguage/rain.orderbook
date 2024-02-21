@@ -1,24 +1,29 @@
 <script lang="ts" generics="T">
-  import { Card, Spinner } from "flowbite-svelte";
+  import { Spinner } from 'flowbite-svelte';
 
   // eslint-disable-next-line no-undef
   export let isEmpty = false;
   export let isFetching = false;
-  export let emptyMessage = "Not found";
+  export let emptyMessage = 'Not found';
 </script>
 
 {#if !isEmpty}
-  <div class="w-full flex justify-center items-stretch flex-wrap space-x-0 lg:flex-nowrap lg:space-x-4 mb-8 space-y-8 lg:space-y-0">
-    <Card class="space-y-8 grow-0 w-full relative" size="md">
-      <slot name="card"></slot>
-    </Card>
-    <slot name="chart"></slot>
+  <div class="mb-6 flex items-end justify-between">
+    <slot name="top" />
+  </div>
+  <div class="grid grid-cols-3 gap-4">
+    <div class="col-span-1">
+      <slot name="card" />
+    </div>
+    <div class="col-span-2 min-h-[500px]">
+      <slot name="chart" />
+    </div>
   </div>
   <div class="w-full">
-    <slot name="below"></slot>
+    <slot name="below" />
   </div>
 {:else if isFetching}
-  <div class="w-full h-16 flex justify-center items-center">
+  <div class="flex h-16 w-full items-center justify-center">
     <Spinner class="h-8 w-8" color="white" />
   </div>
 {:else}

@@ -1,10 +1,5 @@
 <script lang="ts">
-  import {
-    Heading,
-    Button,
-    TableHeadCell,
-    TableBodyCell,
-  } from 'flowbite-svelte';
+  import { Heading, Button, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
@@ -24,6 +19,12 @@
   import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
   import { bigintToFloat } from '$lib/utils/number';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
+  import {
+    ArrowDownOutline,
+    ArrowDownSolid,
+    ArrowUpDownSolid,
+    ArrowUpOutline,
+  } from 'flowbite-svelte-icons';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -35,24 +36,42 @@
   vaultBalanceChangesList.fetchAll(1);
 
   $: vaultBalanceChangesListAllChartData = $vaultBalanceChangesList.all.map((d) => ({
-      value: d.type === VaultBalanceChangeType.Withdraw ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals) :  bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
-      time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-      color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green'
+    value:
+      d.type === VaultBalanceChangeType.Withdraw
+        ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
+        : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
+    time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
+    color: d.type === VaultBalanceChangeType.Withdraw ? 'blue' : 'green',
   }));
 
-  $: vaultBalanceChangesListAllChartDataSorted = sortBy(vaultBalanceChangesListAllChartData, (d) => d.time);
+  $: vaultBalanceChangesListAllChartDataSorted = sortBy(
+    vaultBalanceChangesListAllChartData,
+    (d) => d.time,
+  );
 </script>
 
-<PageHeader title="Vault">
-  <svelte:fragment slot="actions">
-    {#if vault && $walletAddressMatchesOrBlank(vault.owner.id)}
-      <Button color="green" size="xs" on:click={() => (showDepositModal = !showDepositModal)}>Deposit</Button>
-      <Button color="blue" size="xs" on:click={() => (showWithdrawModal = !showWithdrawModal)}>Withdraw</Button>
-    {/if}
-  </svelte:fragment>
-</PageHeader>
+<PageHeader title="Vault" />
 
-<PageContentDetail isFetching={$vaultDetail.isFetching} isEmpty={vault === undefined} emptyMessage="Vault not found">
+<PageContentDetail
+  isFetching={$vaultDetail.isFetching}
+  isEmpty={vault === undefined}
+  emptyMessage="Vault not found"
+>
+  <svelte:fragment slot="top">
+    <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
+      {vault.token.name}
+    </div>
+    <div>
+      {#if vault && $walletAddressMatchesOrBlank(vault.owner.id)}
+        <Button color="dark" on:click={() => (showDepositModal = !showDepositModal)}
+          ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
+        >
+        <Button color="dark" on:click={() => (showWithdrawModal = !showWithdrawModal)}
+          ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
+        >
+      {/if}
+    </div>
+  </svelte:fragment>
   <svelte:fragment slot="card">
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -98,7 +117,12 @@
         </h5>
         <p class="flex flex-wrap justify-start">
           {#each vault.orders as order}
-            <Button class="px-1 py-0 mt-1 mr-1" color="alternative" on:click={() => goto(`/orders/${order.id}`)}><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button>
+            <Button
+              class="mr-1 mt-1 px-1 py-0"
+              color="alternative"
+              on:click={() => goto(`/orders/${order.id}`)}
+              ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
+            >
           {/each}
         </p>
       </div>
@@ -106,13 +130,23 @@
   </svelte:fragment>
 
   <svelte:fragment slot="chart">
-    <LightweightChartHistogram title="Deposits & Withdrawals" priceSymbol={vault.token.symbol} data={vaultBalanceChangesListAllChartDataSorted} loading={$vaultBalanceChangesList.isFetchingAll} emptyMessage="No deposits or withdrawals found" />
+    <LightweightChartHistogram
+      title="Deposits & Withdrawals"
+      priceSymbol={vault.token.symbol}
+      data={vaultBalanceChangesListAllChartDataSorted}
+      loading={$vaultBalanceChangesList.isFetchingAll}
+      emptyMessage="No deposits or withdrawals found"
+    />
   </svelte:fragment>
 
   <svelte:fragment slot="below">
     <Heading tag="h4" class="mb-2">Deposits & Withdrawals</Heading>
 
-    <AppTable listStore={vaultBalanceChangesList} emptyMessage="No deposits or withdrawals found" rowHoverable={false}>
+    <AppTable
+      listStore={vaultBalanceChangesList}
+      emptyMessage="No deposits or withdrawals found"
+      rowHoverable={false}
+    >
       <svelte:fragment slot="head">
         <TableHeadCell>Date</TableHeadCell>
         <TableHeadCell>Sender</TableHeadCell>
@@ -132,7 +166,8 @@
           <Hash type={HashType.Transaction} value={item.content.transaction.id} />
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-2 text-right">
-          {item.type === VaultBalanceChangeType.Withdraw ? '-' : ''}{item.content.amount_display} {item.content.token_vault.token.symbol}
+          {item.type === VaultBalanceChangeType.Withdraw ? '-' : ''}{item.content.amount_display}
+          {item.content.token_vault.token.symbol}
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-2 text-right">
           {item.type}
