@@ -6,7 +6,6 @@
     SidebarWrapper,
     SidebarBrand,
   } from 'flowbite-svelte';
-  import HomeSolid from 'flowbite-svelte-icons/HomeSolid.svelte';
   import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
@@ -35,19 +34,14 @@
       ></SidebarBrand>
     </SidebarGroup>
     <SidebarGroup border>
-      <SidebarItem label="Dashboard" href="/" {nonActiveClass}>
+      <SidebarItem label="Orders" href="/orders" {nonActiveClass}>
         <svelte:fragment slot="icon">
-          <HomeSolid class="h-5 w-5" />
+          <ReceiptSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
       <SidebarItem label="Vaults" href="/vaults" {nonActiveClass}>
         <svelte:fragment slot="icon">
           <WalletSolid class="h-5 w-5" />
-        </svelte:fragment>
-      </SidebarItem>
-      <SidebarItem label="Orders" href="/orders" {nonActiveClass}>
-        <svelte:fragment slot="icon">
-          <ReceiptSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>

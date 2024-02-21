@@ -12,6 +12,9 @@
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
+  import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
+
+  redirectIfSettingsNotDefined();
 </script>
 
 <WindowDraggableArea />
