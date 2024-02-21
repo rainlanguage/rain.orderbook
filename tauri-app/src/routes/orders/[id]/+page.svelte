@@ -16,7 +16,7 @@
   import { useOrderTakesList } from '$lib/stores/orderTakesList';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
-  import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
+  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
 
   let isSubmitting = false;
 
@@ -117,7 +117,7 @@
 
     {#if orderRainlang}
       <div class="mb-8">
-        <CodeMirrorDotrain disabled={true} value={orderRainlang} />
+        <CodeMirrorRainlang disabled={true} value={orderRainlang} />
       </div>
     {:else}
     <div class="w-full tracking-tight text-gray-900 dark:text-white">
