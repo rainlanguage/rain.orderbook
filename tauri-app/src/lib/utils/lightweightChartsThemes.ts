@@ -4,21 +4,21 @@ export const themes = {
   dark: {
     layout: {
       textColor: 'white',
-      background: { type: ColorType.Solid, color: "#1F2937" },
+      background: { type: ColorType.Solid, color: "transparent" },
     },
     grid: {
-      vertLines: { color: '#444' },
-      horzLines: { color: '#444' },
+      vertLines: { color: '#484848' },
+      horzLines: { color: '#484848' },
     },
   },
   light: {
     layout: {
       textColor: 'black',
-      background: { type: ColorType.Solid, color: 'white' },
+      background: { type: ColorType.Solid, color: 'transparent' },
     },
     grid: {
-      vertLines: { color: '#9ca3af' },
-      horzLines: { color: '#9ca3af' },
+      vertLines: { color: '#ECECEC' },
+      horzLines: { color: '#ECECEC' },
     },
   }
 }

@@ -22,9 +22,7 @@
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
-  <SidebarWrapper
-    divClass="overflow-y-auto py-11 px-3 rounded bg-gray-100 dark:bg-gray-800 min-h-screen"
-  >
+  <SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
     <SidebarGroup>
       <SidebarBrand
         site={{

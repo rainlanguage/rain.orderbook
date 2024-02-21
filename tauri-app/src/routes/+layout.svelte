@@ -1,6 +1,9 @@
 <script>
   import '../app.pcss';
+  import '@fontsource/dm-sans/200.css';
+  import '@fontsource/dm-sans/300.css';
   import '@fontsource/dm-sans/400.css';
+  import '@fontsource/dm-sans/500.css';
   import '@fontsource/dm-sans/600.css';
   import '@fontsource/dm-sans/800.css';
   import Sidebar from '$lib/components/Sidebar.svelte';
@@ -13,10 +16,10 @@
 
 <WindowDraggableArea />
 
-<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-600">
+<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
   <Sidebar />
 
-  <main class="ml-64 h-full w-full grow overflow-x-auto p-4">
+  <main class="ml-64 h-full w-full grow overflow-x-auto p-8">
     <slot />
   </main>
 
