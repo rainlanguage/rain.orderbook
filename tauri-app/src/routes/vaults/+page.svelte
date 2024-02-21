@@ -28,7 +28,9 @@
   <svelte:fragment slot="actions"></svelte:fragment>
 </PageHeader>
 
-<div class="flex w-full justify-end py-4">
+<div class="flex w-full justify-between py-4">
+  <div class="text-3xl font-medium dark:text-white">Vaults</div>
+
   <Button color="green" on:click={() => (showDepositGenericModal = true)}
     >Deposit into new vault</Button
   >
