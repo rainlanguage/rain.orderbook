@@ -1,4 +1,4 @@
-name: 'publish'
+name: "publish"
 
 # This will trigger the action on each push to the `release` branch.
 on:
@@ -14,12 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-          macos-13,
-          macos-14,
-          ubuntu-22.04
-          # Someone who cares can make windows work.
-          # windows-latest
-        ]
+            macos-13,
+            macos-14,
+            ubuntu-22.04,
+            # Someone who cares can make windows work.
+            # windows-latest
+          ]
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -57,8 +57,14 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tauriScript: 'nix develop .#tauri-shell --command cargo tauri'
+          tauriScript: "nix develop .#tauri-shell --command cargo tauri"
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
-          releaseName: 'App v__VERSION__-${{ github.sha }}'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseName: "App v__VERSION__-${{ github.sha }}"
+          releaseBody: "See the assets to download this version and install."
