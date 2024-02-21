@@ -126,7 +126,7 @@
         {/if}
       </TabItem>
       <TabItem title="Trades">
-        <AppTable listStore={orderTakesList} emptyMessage="No takes found" rowHoverable={false}>
+        <AppTable listStore={orderTakesList} emptyMessage="No trades found" rowHoverable={false}>
           <svelte:fragment slot="head">
             <TableHeadCell padding="p-4">Date</TableHeadCell>
             <TableHeadCell padding="p-0">Sender</TableHeadCell>
