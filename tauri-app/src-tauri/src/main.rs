@@ -10,7 +10,6 @@ use commands::chain::{get_chainid, get_block_number};
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv};
-use commands::order_clear::{order_clears_list, order_clears_list_write_csv};
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
 use commands::vault::{
     vault_deposit, vault_detail, vault_balance_changes_list, vault_balance_changes_list_write_csv,
@@ -45,8 +44,6 @@ fn run_tauri_app() {
             order_detail,
             order_add,
             order_remove,
-            order_clears_list,
-            order_clears_list_write_csv,
             order_takes_list,
             order_takes_list_write_csv,
             get_address_from_ledger,

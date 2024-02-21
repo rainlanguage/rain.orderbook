@@ -1,4 +1,3 @@
-pub mod order_clears_list;
 pub mod order_detail;
 pub mod order_detail_traits;
 pub mod order_take_detail;

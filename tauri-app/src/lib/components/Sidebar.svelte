@@ -14,7 +14,6 @@
   import { page } from '$app/stores';
   import { allRequiredSettingsValid } from '$lib/stores/settings';
   import ButtonDarkMode from './ButtonDarkMode.svelte';
-  import { CashSolid } from 'flowbite-svelte-icons';
 
   $: nonActiveClass = $allRequiredSettingsValid
     ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -49,11 +48,6 @@
       <SidebarItem label="Orders" href="/orders" {nonActiveClass}>
         <svelte:fragment slot="icon">
           <ReceiptSolid class="h-5 w-5" />
-        </svelte:fragment>
-      </SidebarItem>
-      <SidebarItem label="Order Clears" href="/order-clears" {nonActiveClass}>
-        <svelte:fragment slot="icon">
-          <CashSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>
