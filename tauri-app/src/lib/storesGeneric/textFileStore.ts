@@ -12,7 +12,7 @@ interface TextFileData {
   isEmpty: boolean;
 }
 
-export function textFileStore(name: string, extension: string, defaultText: string = "") {
+export function textFileStore(name: string, extensions: string[], defaultText: string = "") {
   const text = writable<string>(defaultText);
   const path = writable<string | undefined>();
   const isLoading = writable(false);
@@ -31,7 +31,7 @@ export function textFileStore(name: string, extension: string, defaultText: stri
   const defaultDialogOptions = {
     filters: [{
       name,
-      extensions: [extension]
+      extensions
     }]
   }
 

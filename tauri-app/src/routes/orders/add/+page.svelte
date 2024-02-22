@@ -8,7 +8,7 @@
 
   let isSubmitting = false;
 
-  const dotrainFile = textFileStore('Rain', 'rain');
+  const dotrainFile = textFileStore('Rain', ['rain']);
 
   async function execute() {
     isSubmitting = true;
