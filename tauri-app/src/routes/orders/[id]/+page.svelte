@@ -17,11 +17,16 @@
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+    import type { UTCTimestamp } from 'lightweight-charts';
 
   let isSubmitting = false;
+  let orderTakesListChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
+
+  const orderTakesList = useOrderTakesList($page.params.id);
 
   $: order = $orderDetail.data[$page.params.id]?.order;
   $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
+  $: $orderTakesList.all, orderTakesListChartData = prepareChartData();
 
   async function remove() {
     isSubmitting = true;
@@ -32,17 +37,21 @@
     isSubmitting = false;
   }
 
-  const orderTakesList = useOrderTakesList($page.params.id);
-  orderTakesList.fetchAll(0);
+  function prepareChartData() {
+    const transformedData = $orderTakesList.all.map((d) => ({
+      value: parseFloat(d.ioratio),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+      color: '#4E4AF6',
+    }));
 
-  $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
-    value: parseFloat(d.ioratio),
-    time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-    color: '#4E4AF6',
-  }));
-  $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
+    return sortBy(
+      transformedData,
+      (d) => d.time
+    );
+  }
 
   orderDetail.refetch($page.params.id);
+  orderTakesList.fetchAll(0);
 </script>
 
 <PageHeader title="Order" />
@@ -102,7 +111,7 @@
   <svelte:fragment slot="chart">
     <LightweightChartLine
       title="Trades"
-      data={orderTakesListChartDataSorted}
+      data={orderTakesListChartData}
       loading={$orderTakesList.isFetchingAll}
       emptyMessage="No trades found"
     />

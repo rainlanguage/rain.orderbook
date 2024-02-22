@@ -51,7 +51,7 @@
   $: $vaultBalanceChangesList.all, vaultBalanceChangesChartData = prepareChartData();
 
   vaultDetail.refetch($page.params.id);
-  vaultBalanceChangesList.fetchAll(1);
+  vaultBalanceChangesList.fetchAll(0);
 </script>
 
 <PageHeader title="Vault" />
