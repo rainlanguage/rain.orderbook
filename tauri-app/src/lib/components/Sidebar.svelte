@@ -11,7 +11,9 @@
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
-  import ButtonDarkMode from './ButtonDarkMode.svelte';
+  import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
+  import DropdownActiveChainSettings from '$lib/components/DropdownActiveChainSettings.svelte';
+  import DropdownActiveOrderbookSettings from '$lib/components/DropdownActiveOrderbookSettings.svelte';
 
   export let hasRequiredSettings = false;
 
@@ -45,6 +47,10 @@
           <WalletSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
+    </SidebarGroup>
+    <SidebarGroup border>
+      <DropdownActiveChainSettings />
+      <DropdownActiveOrderbookSettings />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">
