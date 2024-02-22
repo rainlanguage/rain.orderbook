@@ -7,13 +7,13 @@ import { listStore } from '$lib/storesGeneric/listStore';
 import type { TakeOrderEntity } from '$lib/typeshare/orderTakesList';
 import { asyncDerived } from '@square/svelte-store';
 
-export const ordersList = asyncDerived(subgraphUrl, async ($subgraphUrl) => {
-  await subgraphUrl.load();
+export const ordersList = asyncDerived(subgraphUrl, async () => {
+  const url = await subgraphUrl.load();
 
   return listStore<Order>(
-    `${subgraphUrl}.ordersList`,
-    (page) => invoke("orders_list", {subgraphArgs: { url: $subgraphUrl }, paginationArgs: { page: page+1, page_size: 10 } }),
-    (path) => invoke("orders_list_write_csv", { path, subgraphArgs: { url: $subgraphUrl } })
+    `${url}.ordersList`,
+    (page) => invoke("orders_list", {subgraphArgs: { url }, paginationArgs: { page: page+1, page_size: 10 } }),
+    (path) => invoke("orders_list_write_csv", { path, subgraphArgs: { url } })
   );
 });
 

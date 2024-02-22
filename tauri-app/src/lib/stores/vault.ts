@@ -6,13 +6,13 @@ import { detailStore } from '$lib/storesGeneric/detailStore';
 import type { TokenVault } from '$lib/typeshare/vaultsList';
 import { asyncDerived } from '@square/svelte-store';
 
-export const vaultsList = asyncDerived(subgraphUrl, async ($subgraphUrl) => {
-  await subgraphUrl.load();
+export const vaultsList = asyncDerived(subgraphUrl, async () => {
+  const url = await subgraphUrl.load();
 
   return listStore<TokenVault>(
-    `${$subgraphUrl}.vaultsList`,
-    (page) => invoke("vaults_list", {subgraphArgs: { url: $subgraphUrl }, paginationArgs: { page: page+1, page_size: 10 } }),
-    (path) => invoke("vaults_list_write_csv", {path, subgraphArgs: { url: $subgraphUrl }}),
+    `${url}.vaultsList`,
+    (page) => invoke("vaults_list", {subgraphArgs: { url }, paginationArgs: { page: page+1, page_size: 10 } }),
+    (path) => invoke("vaults_list_write_csv", {path, subgraphArgs: { url }}),
   );
 });
 
