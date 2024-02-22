@@ -5,7 +5,7 @@ import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import { invoke } from '@tauri-apps/api';
 import { type AppSettings, type ChainSettings } from '$lib/typeshare/appSettings';
-import { getChainIdFromRpc } from '$lib/services/chain';
+import { getBlockNumberFromRpc, getChainIdFromRpc } from '$lib/services/chain';
 
 interface ChainSettingsExtended extends ChainSettings {
   chain_id: number,
@@ -15,6 +15,7 @@ interface AppSettingsExtended {
   chains: Array<ChainSettingsExtended>;
 }
 
+// general
 export const settingsText = cachedWritableStore<string>('settings', "", (s) => s, (s) => s);
 export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'yaml'], get(settingsText));
 export const settings = asyncDerived(settingsText, async ($settingsText): Promise<AppSettingsExtended> => {
@@ -29,6 +30,7 @@ export const settings = asyncDerived(settingsText, async ($settingsText): Promis
   return { chains };
 });
 
+// chain
 export const activeChainSettingsIndex = cachedWritableInt("settings.activeChainIndex", 0);
 export const activeChainSettings = derived([settings, activeChainSettingsIndex], ([$settingsData, $activeChainSettingsIndex]) => $settingsData?.chains[$activeChainSettingsIndex]);
 export const rpcUrl = derived(activeChainSettings, ($activeChainSettings) => $activeChainSettings?.rpc_url);
@@ -36,8 +38,10 @@ export const chainId = derived(activeChainSettings, ($activeChainSettings) => $a
 export const activeChain = derived(chainId, ($activeChainId) => find(Object.values(chains), (c) => c.id === $activeChainId));
 export const activeChainHasBlockExplorer = derived(activeChain, ($activeChain) => {
   return $activeChain && $activeChain.blockExplorers?.default !== undefined;
-})
+});
+export const activeChainLatestBlockNumber = derived(activeChainSettings, ($activeChainSettings) => getBlockNumberFromRpc($activeChainSettings.rpc_url));
 
+// orderbook
 export const activeOrderbookSettingsIndex = cachedWritableInt("settings.activeOrderbookIndex", 0);
 export const activeOrderbookSettings =  derived([activeChainSettings, activeOrderbookSettingsIndex], ([$activeChainSettings, $activeOrderbookSettingsIndex]) => $activeChainSettings?.orderbooks[$activeOrderbookSettingsIndex]);
 export const subgraphUrl = derived(activeOrderbookSettings, ($activeOrderbookSettings) => $activeOrderbookSettings?.subgraph_url);

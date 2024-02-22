@@ -47,7 +47,7 @@
 </FileTextarea>
 
 <div>
-  <Label class="bold mb-2 block text-xl">Ledger Wallet</Label>
+  <Label class="mb-2">Ledger Wallet</Label>
   <InputLedgerWallet
     bind:derivationIndex={$walletDerivationIndex}
     bind:walletAddress={$walletAddress.value}
