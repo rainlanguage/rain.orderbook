@@ -15,9 +15,9 @@
   <ChevronDownSolid class="w-3 h-3 mx-2 text-black dark:text-white" />
 </Button>
 
-<Dropdown class="w-72 p-0" bind:open>
+<Dropdown class="py-0 w-72" bind:open>
   {#each options as option, index}
-    <Radio bind:group={value} value={index} class="w-full p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
+    <Radio bind:group={value} value={index} class="w-full p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
       <div class="ml-2">
         <slot name="option" {option} {index}></slot>
       </div>
