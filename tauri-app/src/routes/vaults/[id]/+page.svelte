@@ -23,29 +23,35 @@
     ArrowUpOutline,
   } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
+  import type { UTCTimestamp } from 'lightweight-charts';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
 
-  vaultDetail.refetch($page.params.id);
-  $: vault = $vaultDetail.data[$page.params.id];
-
+  let vaultBalanceChangesChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
   const vaultBalanceChangesList = useVaultBalanceChangesList($page.params.id);
+
+  function prepareChartData() {
+    const transformedData = $vaultBalanceChangesList.all.map((d) => ({
+      value:
+        d.type === VaultBalanceChangeType.Withdraw
+          ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
+          : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
+      color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
+    }));
+
+    return sortBy(
+      transformedData,
+      (d) => d.time
+    );
+  }
+
+  $: vault = $vaultDetail.data[$page.params.id];
+  $: $vaultBalanceChangesList.all, vaultBalanceChangesChartData = prepareChartData();
+
+  vaultDetail.refetch($page.params.id);
   vaultBalanceChangesList.fetchAll(1);
-
-  $: vaultBalanceChangesListAllChartData = $vaultBalanceChangesList.all.map((d) => ({
-    value:
-      d.type === VaultBalanceChangeType.Withdraw
-        ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
-        : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
-    time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-    color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
-  }));
-
-  $: vaultBalanceChangesListAllChartDataSorted = sortBy(
-    vaultBalanceChangesListAllChartData,
-    (d) => d.time,
-  );
 </script>
 
 <PageHeader title="Vault" />
@@ -118,7 +124,7 @@
     <LightweightChartHistogram
       title="Deposits & Withdrawals"
       priceSymbol={vault.token.symbol}
-      data={vaultBalanceChangesListAllChartDataSorted}
+      data={vaultBalanceChangesChartData}
       loading={$vaultBalanceChangesList.isFetchingAll}
       emptyMessage="No deposits or withdrawals found"
     />
