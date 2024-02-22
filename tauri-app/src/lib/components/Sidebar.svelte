@@ -13,11 +13,11 @@
   import { page } from '$app/stores';
   import ButtonDarkMode from './ButtonDarkMode.svelte';
 
-  export let onlySettingsAllowed = false;
+  export let hasRequiredSettings = false;
 
-  $: nonActiveClass = onlySettingsAllowed
-    ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
-    : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 ';
+  $: nonActiveClass = !hasRequiredSettings
+    ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 '
+    : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600';
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">

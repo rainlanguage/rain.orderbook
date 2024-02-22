@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, } from 'flowbite-svelte';
+  import { Alert, Label, } from 'flowbite-svelte';
   import {
     hasRequiredSettings,
     settingsText,
@@ -9,6 +9,8 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { settingsFile }from '$lib/stores/settings';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
+  import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
+  import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
 
   function apply() {
     settingsText.set($settingsFile.text);
@@ -26,6 +28,14 @@
     </Alert>
   {/if}
 {/await}
+
+<div class="mb-8">
+  <Label class="bold mb-2 block text-xl">Ledger Wallet</Label>
+  <InputLedgerWallet
+    bind:derivationIndex={$walletDerivationIndex}
+    bind:walletAddress={$walletAddress.value}
+  />
+</div>
 
 <FileTextarea textFile={settingsFile} title="New Order">
   <svelte:fragment slot="textarea">

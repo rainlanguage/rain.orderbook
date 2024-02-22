@@ -7,6 +7,7 @@ use rain_orderbook_common::{
 use rain_orderbook_subgraph_client::{
  OrderbookSubgraphClientError
 };
+use rain_orderbook_app_settings::AppSettingsParseError;
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
@@ -45,6 +46,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
+
+    #[error(transparent)]
+    AppSettingsParseError(#[from] AppSettingsParseError)
 }
 
 impl Serialize for CommandError {
