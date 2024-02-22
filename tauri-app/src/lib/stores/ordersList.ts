@@ -6,6 +6,6 @@ import { listStore } from '$lib/storesGeneric/listStore';
 
 export const ordersList = listStore<Order>(
   'ordersList',
-  (page) => invoke("orders_list", {subgraphArgs: { url: get(subgraphUrl).value}, paginationArgs: { page: page+1, page_size: 10 } }),
-  (path) => invoke("orders_list_write_csv", { path, subgraphArgs: { url: get(subgraphUrl).value } })
+  (page) => invoke("orders_list", {subgraphArgs: { url: get(subgraphUrl)}, paginationArgs: { page: page+1, page_size: 10 } }),
+  (path) => invoke("orders_list_write_csv", { path, subgraphArgs: { url: get(subgraphUrl) } })
 );

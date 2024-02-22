@@ -1,5 +1,4 @@
 import { asyncDerived, derived, get } from '@square/svelte-store';
-import every from 'lodash/every';
 import { cachedWritableInt, cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
