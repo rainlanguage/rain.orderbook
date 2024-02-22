@@ -4,7 +4,7 @@
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
-  import { orderAdd } from '$lib/utils/orderAdd';
+  import { orderAdd } from '$lib/services/orderAdd';
 
   let isSubmitting = false;
 

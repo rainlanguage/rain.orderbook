@@ -9,13 +9,13 @@
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
-  import { orderRemove } from '$lib/utils/orderRemove';
+  import { orderRemove } from '$lib/services/orderRemove';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import type { ListStore } from '$lib/storesGeneric/listStore';
   import type { Order } from '$lib/typeshare/ordersList';
   import Hash from './Hash.svelte';
-  import { HashType } from '$lib/utils/hash';
+  import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
 
   export let ordersList: ListStore<Order>;

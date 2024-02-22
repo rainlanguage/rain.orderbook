@@ -11,7 +11,7 @@
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
   import type { TokenVault } from '$lib/typeshare/vaultsList';
   import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/utils/hash';
+  import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
   import AppTable from '$lib/components/AppTable.svelte';
 

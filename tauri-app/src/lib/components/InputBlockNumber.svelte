@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
-  import { getForkBlockNumberFromRpc } from '$lib/utils/forkBlockNumber';
+  import { getForkBlockNumberFromRpc } from '$lib/services/forkBlockNumber';
   import { Button, Spinner } from 'flowbite-svelte';
 
   export let value: number = 0;
