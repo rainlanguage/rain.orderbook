@@ -3,7 +3,7 @@
   import { vaultDetail } from '$lib/stores/vaultDetail';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';

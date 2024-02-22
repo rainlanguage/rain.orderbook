@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
   import { ordersList } from '$lib/stores/ordersList';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import {
@@ -14,12 +13,10 @@
   import { goto } from '$app/navigation';
   import { orderRemove } from '$lib/services/order';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
-
-  redirectIfSettingsNotDefined();
 </script>
 
 <PageHeader title="Orders"></PageHeader>

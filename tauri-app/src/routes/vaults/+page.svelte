@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
   import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { vaultsList } from '$lib/stores/vaultsList';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
@@ -20,8 +19,6 @@
   let showDepositGenericModal = false;
   let depositModalVault: TokenVault;
   let withdrawModalVault: TokenVault;
-
-  redirectIfSettingsNotDefined();
 </script>
 
 <PageHeader title="Vaults">

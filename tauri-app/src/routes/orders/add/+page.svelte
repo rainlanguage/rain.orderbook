@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
@@ -19,8 +18,6 @@
     } catch (e) {}
     isSubmitting = false;
   }
-
-  redirectIfSettingsNotDefined();
 </script>
 
 <PageHeader title="Add Order">

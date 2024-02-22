@@ -2,7 +2,7 @@
   import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail } from '$lib/stores/orderDetail';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
