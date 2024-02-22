@@ -18,6 +18,7 @@
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { colorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
 
@@ -39,7 +40,7 @@
   $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
     value: parseFloat(d.ioratio),
     time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-    color: '#4E4AF6',
+    color: $colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
   }));
   $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
 
