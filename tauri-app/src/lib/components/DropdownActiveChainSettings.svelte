@@ -6,9 +6,9 @@
 </script>
 
 <Label>Chain</Label>
-{#await settings.load()}
+{#if $settings === undefined || $settings.chains.length === 0}
   <SkeletonRow />
-{:then}
+{:else}
   <DropdownRadio options={$settings.chains || []} bind:value={$activeChainSettingsIndex}>
     <svelte:fragment slot="content" let:selected>
       {selected.label ? selected.label : selected.rpc_url}
@@ -27,4 +27,4 @@
       {/if}
     </svelte:fragment>
   </DropdownRadio>
-{/await}
+{/if}

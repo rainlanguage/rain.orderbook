@@ -6,10 +6,10 @@
 </script>
 
 <Label>Orderbook</Label>
-{#await activeChainSettings.load()}
+{#if $activeChainSettings === undefined || $activeChainSettings.orderbooks.length === 0}
   <SkeletonRow />
-{:then}
-  <DropdownRadio options={$activeChainSettings.orderbooks || []} bind:value={$activeOrderbookSettingsIndex}>
+{:else}
+  <DropdownRadio options={$activeChainSettings?.orderbooks || []} bind:value={$activeOrderbookSettingsIndex}>
     <svelte:fragment slot="content" let:selected>
       {selected.label ? selected.label : selected.address}
     </svelte:fragment>
@@ -27,4 +27,4 @@
       {/if}
     </svelte:fragment>
   </DropdownRadio>
-{/await}
+{/if}
