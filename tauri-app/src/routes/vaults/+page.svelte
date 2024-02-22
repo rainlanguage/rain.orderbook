@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
-  import { vaultsList } from '$lib/stores/vaultsList';
+  import { vaultsList } from '$lib/stores/vault';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';

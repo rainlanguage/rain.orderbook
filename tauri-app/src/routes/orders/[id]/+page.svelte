@@ -1,7 +1,7 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
-  import { orderDetail } from '$lib/stores/orderDetail';
+  import { orderDetail, useOrderTakesList } from '$lib/stores/order';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
@@ -14,7 +14,6 @@
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { sortBy } from 'lodash';
-  import { useOrderTakesList } from '$lib/stores/orderTakesList';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';

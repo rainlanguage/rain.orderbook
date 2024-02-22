@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ordersList } from '$lib/stores/ordersList';
+  import { ordersList } from '$lib/stores/order';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import {
     Button,

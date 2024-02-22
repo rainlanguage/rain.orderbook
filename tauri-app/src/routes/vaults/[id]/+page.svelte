@@ -1,13 +1,12 @@
 <script lang="ts">
   import { Heading, Button, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
-  import { vaultDetail } from '$lib/stores/vaultDetail';
+  import { vaultDetail, useVaultBalanceChangesList } from '$lib/stores/vault';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
-  import { useVaultBalanceChangesList } from '$lib/stores/vaultBalanceChangesList';
   import { bigintStringToHex } from '$lib/utils/hex';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
