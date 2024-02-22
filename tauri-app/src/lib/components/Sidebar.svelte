@@ -37,12 +37,12 @@
       ></SidebarBrand>
     </SidebarGroup>
     <SidebarGroup border>
-      <SidebarItem label="Orders" href="/orders" {nonActiveClass}>
+      <SidebarItem label="Orders" href={hasRequiredSettings ? "/orders" : undefined} {nonActiveClass}>
         <svelte:fragment slot="icon">
           <ReceiptSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
-      <SidebarItem label="Vaults" href="/vaults" {nonActiveClass}>
+      <SidebarItem label="Vaults" href={hasRequiredSettings ? "/vaults" : undefined} {nonActiveClass}>
         <svelte:fragment slot="icon">
           <WalletSolid class="h-5 w-5" />
         </svelte:fragment>
