@@ -12,8 +12,8 @@ interface TextFileData {
   isEmpty: boolean;
 }
 
-export function textFileStore(name: string, extension: string) {
-  const text = writable<string>("");
+export function textFileStore(name: string, extension: string, defaultText: string = "") {
+  const text = writable<string>(defaultText);
   const path = writable<string | undefined>();
   const isLoading = writable(false);
   const isSaving = writable(false);
