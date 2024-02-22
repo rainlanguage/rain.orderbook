@@ -13,8 +13,7 @@
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
   import { goto } from '$app/navigation';
-  import { hasRequiredSettings, rpcUrl } from '$lib/stores/settings';
-  import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
+  import { hasRequiredSettings } from '$lib/stores/settings';
 
   $: $hasRequiredSettings, redirectIfMissingSettings();
 
@@ -23,13 +22,7 @@
     if(!hasRequiredSettingsVal) goto('/settings');
   }
 
-  async function fetchForkBlockNumber() {
-    await rpcUrl.load();
-    forkBlockNumber.fetch();
-  }
-
   redirectIfMissingSettings();
-  fetchForkBlockNumber();
 </script>
 
 <WindowDraggableArea />
