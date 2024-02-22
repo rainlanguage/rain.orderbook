@@ -46,7 +46,7 @@
   </svelte:fragment>
 </FileTextarea>
 
-<div>
+<div class="my-8">
   <Label class="mb-2">Ledger Wallet</Label>
   <InputLedgerWallet
     bind:derivationIndex={$walletDerivationIndex}

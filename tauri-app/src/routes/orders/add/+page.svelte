@@ -44,7 +44,7 @@
     </svelte:fragment>
 </FileTextarea>
 
-<div class="mb-8">
+<div class="my-8">
   <Label class="mb-2">Parse at Block Number</Label>
   <InputBlockNumber bind:value={$forkBlockNumber.value} isFetching={$forkBlockNumber.isFetching} on:clickGetLatest={forkBlockNumber.fetch} required={false} />
   <Helper class="mt-2 text-sm">
