@@ -29,14 +29,6 @@
   {/if}
 {/await}
 
-<div class="mb-8">
-  <Label class="bold mb-2 block text-xl">Ledger Wallet</Label>
-  <InputLedgerWallet
-    bind:derivationIndex={$walletDerivationIndex}
-    bind:walletAddress={$walletAddress.value}
-  />
-</div>
-
 <FileTextarea textFile={settingsFile} title="Settings">
   <svelte:fragment slot="textarea">
     <CodeMirrorYaml
@@ -49,7 +41,15 @@
     <ButtonLoading
       color="green"
       disabled={$settingsFile.isEmpty}
-      on:click={apply}>Apply Yaml Settings</ButtonLoading
+      on:click={apply}>Apply Settings</ButtonLoading
     >
   </svelte:fragment>
 </FileTextarea>
+
+<div>
+  <Label class="bold mb-2 block text-xl">Ledger Wallet</Label>
+  <InputLedgerWallet
+    bind:derivationIndex={$walletDerivationIndex}
+    bind:walletAddress={$walletAddress.value}
+  />
+</div>
