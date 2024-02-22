@@ -20,9 +20,7 @@
   }
 </script>
 
-<PageHeader title="Add Order">
-  <svelte:fragment slot="actions"></svelte:fragment>
-</PageHeader>
+<PageHeader title="Add Order" />
 
 <div class="flex w-full justify-center">
   <FileTextarea textFile={dotrainFile} title="New Order">

@@ -19,7 +19,7 @@
   import AppTable from '$lib/components/AppTable.svelte';
 </script>
 
-<PageHeader title="Orders"></PageHeader>
+<PageHeader title="Orders" />
 
 <div class="flex w-full justify-between py-4">
   <div class="text-3xl font-medium dark:text-white">Orders</div>

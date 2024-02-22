@@ -21,9 +21,7 @@
   let withdrawModalVault: TokenVault;
 </script>
 
-<PageHeader title="Vaults">
-  <svelte:fragment slot="actions"></svelte:fragment>
-</PageHeader>
+<PageHeader title="Vaults" />
 
 <div class="flex w-full justify-between py-4">
   <div class="text-3xl font-medium dark:text-white">Vaults</div>
