@@ -37,7 +37,7 @@
   />
 </div>
 
-<FileTextarea textFile={settingsFile} title="New Order">
+<FileTextarea textFile={settingsFile} title="Settings">
   <svelte:fragment slot="textarea">
     <CodeMirrorYaml
         bind:value={$settingsFile.text}
