@@ -7,7 +7,7 @@
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import { orderRemove } from '$lib/services/orderRemove';
+  import { orderRemove } from '$lib/services/order';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
   import Hash from '$lib/components/Hash.svelte';

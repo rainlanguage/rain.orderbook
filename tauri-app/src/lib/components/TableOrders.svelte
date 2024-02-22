@@ -9,7 +9,7 @@
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { goto } from '$app/navigation';
-  import { orderRemove } from '$lib/services/orderRemove';
+  import { orderRemove } from '$lib/services/order';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
   import type { ListStore } from '$lib/storesGeneric/listStore';

@@ -2,11 +2,9 @@
   import { Button, Input, Helper, Spinner } from 'flowbite-svelte';
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
-  import { rpcUrl } from '$lib/stores/settings';
-  import { get } from 'svelte/store';
-  import { invoke } from '@tauri-apps/api';
   import { isAddress } from 'viem';
   import { toasts } from '$lib/stores/toasts';
+  import { getAddressFromLedger } from '$lib/services/wallet';
 
   const maskOptions = {
     mask: Number,
@@ -28,14 +26,10 @@
     derivationIndex = parseInt(detail.unmaskedValue);
   }
 
-  async function getAddressFromLedger() {
+  async function getAddress() {
     isFetchingFromLedger = true;
     try {
-      const res: string = await invoke('get_address_from_ledger', {
-        derivationIndex,
-        chainId: 137,
-        rpcUrl: get(rpcUrl).value,
-      });
+      const res: string = await getAddressFromLedger(derivationIndex);
       walletAddress = res;
     } catch (error) {
       toasts.error(`Ledger error: ${error}`);
@@ -59,7 +53,7 @@
           class="px-2 py-1"
           size="xs"
           pill
-          on:click={getAddressFromLedger}
+          on:click={getAddress}
           disabled={isFetchingFromLedger}
         >
           {#if isFetchingFromLedger}

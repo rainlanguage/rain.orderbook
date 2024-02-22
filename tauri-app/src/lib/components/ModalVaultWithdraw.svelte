@@ -3,7 +3,7 @@
   import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
   import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
    import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultWithdraw } from '$lib/services/vaultWithdraw';
+  import { vaultWithdraw } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
 

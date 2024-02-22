@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Modal, Label } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultDeposit } from '$lib/services/vaultDeposit';
+  import { vaultDeposit } from '$lib/services/vault';
   import InputToken from '$lib/components/InputToken.svelte';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
