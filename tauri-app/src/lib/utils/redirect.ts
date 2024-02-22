@@ -1,7 +1,8 @@
 import { goto } from '$app/navigation';
-import { allRequiredSettingsValid } from '$lib/stores/settings';
-import { get } from 'svelte/store';
+import { hasRequiredSettings } from '$lib/stores/settings';
 
-export function redirectIfSettingsNotDefined() {
-  if(!get(allRequiredSettingsValid)) goto('/settings');
+export async function redirectIfMissingRequiredSettings() {
+  const hasRequiredSettingsVal = await hasRequiredSettings.load();
+
+  if(!hasRequiredSettingsVal) goto('/settings');
 }
