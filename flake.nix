@@ -60,6 +60,58 @@
               cd tauri-app && npm i && npm run test
             '';
           };
+
+          ob-tauri-before-build = rainix.mkTask.${system} {
+            name = "ob-tauri-before-build";
+            body = ''
+              set -euxo pipefail
+
+              npm i && npm run build
+
+              rm -rf lib
+              mkdir -p lib
+
+              cp ${pkgs.libiconv}/lib/libcharset.1.dylib lib/libcharset.1.dylib
+              chmod +w lib/libcharset.1.dylib
+              install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
+              otool -L lib/libcharset.1.dylib
+
+              cp ${pkgs.libiconv}/lib/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
+              chmod +w lib/libiconv-nocharset.dylib
+              install_name_tool -id @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
+              otool -L lib/libiconv-nocharset.dylib
+
+              cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
+              chmod +w lib/libiconv.dylib
+              install_name_tool -id @executable_path/../Frameworks/libiconv.dylib lib/libiconv.dylib
+              install_name_tool -change ${pkgs.libiconv}/lib/libiconv-nocharset.dylib @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv.dylib
+              install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.dylib
+              otool -L lib/libiconv.dylib
+
+              cp ${pkgs.gettext}/lib/libintl.8.dylib lib/libintl.8.dylib
+              chmod +w lib/libintl.8.dylib
+              install_name_tool -id @executable_path/../Frameworks/libintl.8.dylib lib/libintl.8.dylib
+              install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib lib/libintl.8.dylib
+              otool -L lib/libintl.8.dylib
+            '';
+          };
+
+          ob-tauri-before-bundle = rainix.mkTask.${system} {
+            name = "ob-tauri-before-bundle";
+            body = ''
+              set -euxo pipefail
+
+              install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/demo
+              install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/demo
+
+              otool -L src-tauri/target/release/demo
+              grep_exit_code=0
+              otool -L src-tauri/target/release/demo | grep -q /nix/store || grep_exit_code=$?
+              if [ $grep_exit_code -eq 0 ]; then
+                exit 1
+              fi
+            '';
+          };
         } // rainix.packages.${system};
 
         devShells.default = rainix.devShells.${system}.default;
@@ -67,6 +119,8 @@
           packages = [
             packages.ob-tauri-prelude
             packages.ob-tauri-test
+            packages.ob-tauri-before-build
+            packages.ob-tauri-before-bundle
           ];
           inputsFrom = [ rainix.devShells.${system}.tauri-shell ];
         };
