@@ -1,8 +1,8 @@
 {
   "build": {
     "beforeDevCommand": "npm i && npm run dev",
-    "beforeBuildCommand": "nix develop ..#tauri-shell --command ob-tauri-before-build",
-    "beforeBundleCommand": "nix develop ..#tauri-shell --command ob-tauri-before-bundle",
+    "beforeBuildCommand": "nix develop .#tauri-shell --command ob-tauri-before-build",
+    "beforeBundleCommand": "nix develop .#tauri-shell --command ob-tauri-before-bundle",
     "devPath": "http://localhost:1420",
     "distDir": "../build"
   },

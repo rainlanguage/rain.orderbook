@@ -66,6 +66,8 @@
             body = ''
               set -euxo pipefail
 
+              cd tauri-app
+
               npm i && npm run build
 
               rm -rf lib
@@ -100,6 +102,8 @@
             name = "ob-tauri-before-bundle";
             body = ''
               set -euxo pipefail
+
+              cd tauri-app
 
               install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/demo
               install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/demo
