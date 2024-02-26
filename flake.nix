@@ -71,7 +71,7 @@
               rm -rf lib
               mkdir -p lib
 
-              if ${if pkgs.stdenv.isDarwin then "1" else "0" }; then
+              if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
                 cp ${pkgs.libiconv}/lib/libcharset.1.dylib lib/libcharset.1.dylib
                 chmod +w lib/libcharset.1.dylib
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
