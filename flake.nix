@@ -129,7 +129,7 @@
             packages.ob-tauri-before-bundle
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
-          buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs;
+          buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
 
