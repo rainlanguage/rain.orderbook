@@ -127,7 +127,7 @@
             packages.ob-tauri-test
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
-          ] ++ rainix.devShells.${system}.tauri-shell.packages;
+          ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs;
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
