@@ -71,7 +71,7 @@
               rm -rf lib
               mkdir -p lib
 
-              if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
+              if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then;
                 cp ${pkgs.libiconv}/lib/libcharset.1.dylib lib/libcharset.1.dylib
                 chmod +w lib/libcharset.1.dylib
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
@@ -105,15 +105,17 @@
 
               ls src-tauri/target/release
 
-              install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Rain\ Orderbook
-              install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Rain\ Orderbook
+              if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then;
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Rain\ Orderbook
+                install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Rain\ Orderbook
 
-              otool -L src-tauri/target/release/Rain\ Orderbook
-              grep_exit_code=0
-              otool -L src-tauri/target/release/Rain\ Orderbook | grep -q /nix/store || grep_exit_code=$?
-              if [ $grep_exit_code -eq 0 ]; then
-                exit 1
-              fi
+                otool -L src-tauri/target/release/Rain\ Orderbook
+                grep_exit_code=0
+                otool -L src-tauri/target/release/Rain\ Orderbook | grep -q /nix/store || grep_exit_code=$?
+                if [ $grep_exit_code -eq 0 ]; then;
+                  exit 1
+                fi;
+              fi;
             '';
           };
         } // rainix.packages.${system};
