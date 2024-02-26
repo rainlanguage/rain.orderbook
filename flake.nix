@@ -71,28 +71,30 @@
               rm -rf lib
               mkdir -p lib
 
-              cp ${pkgs.libiconv}/lib/libcharset.1.dylib lib/libcharset.1.dylib
-              chmod +w lib/libcharset.1.dylib
-              install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
-              otool -L lib/libcharset.1.dylib
+              if ${pkgs.stdenv.isDarwin}; then
+                cp ${pkgs.libiconv}/lib/libcharset.1.dylib lib/libcharset.1.dylib
+                chmod +w lib/libcharset.1.dylib
+                install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
+                otool -L lib/libcharset.1.dylib
 
-              cp ${pkgs.libiconv}/lib/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
-              chmod +w lib/libiconv-nocharset.dylib
-              install_name_tool -id @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
-              otool -L lib/libiconv-nocharset.dylib
+                cp ${pkgs.libiconv}/lib/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
+                chmod +w lib/libiconv-nocharset.dylib
+                install_name_tool -id @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
+                otool -L lib/libiconv-nocharset.dylib
 
-              cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
-              chmod +w lib/libiconv.dylib
-              install_name_tool -id @executable_path/../Frameworks/libiconv.dylib lib/libiconv.dylib
-              install_name_tool -change ${pkgs.libiconv}/lib/libiconv-nocharset.dylib @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv.dylib
-              install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.dylib
-              otool -L lib/libiconv.dylib
+                cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
+                chmod +w lib/libiconv.dylib
+                install_name_tool -id @executable_path/../Frameworks/libiconv.dylib lib/libiconv.dylib
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv-nocharset.dylib @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv.dylib
+                install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.dylib
+                otool -L lib/libiconv.dylib
 
-              cp ${pkgs.gettext}/lib/libintl.8.dylib lib/libintl.8.dylib
-              chmod +w lib/libintl.8.dylib
-              install_name_tool -id @executable_path/../Frameworks/libintl.8.dylib lib/libintl.8.dylib
-              install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib lib/libintl.8.dylib
-              otool -L lib/libintl.8.dylib
+                cp ${pkgs.gettext}/lib/libintl.8.dylib lib/libintl.8.dylib
+                chmod +w lib/libintl.8.dylib
+                install_name_tool -id @executable_path/../Frameworks/libintl.8.dylib lib/libintl.8.dylib
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib lib/libintl.8.dylib
+                otool -L lib/libintl.8.dylib
+              fi;
             '';
           };
 
