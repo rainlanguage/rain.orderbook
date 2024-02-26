@@ -129,6 +129,7 @@
             packages.ob-tauri-before-bundle
           ];
           inputsFrom = [ rainix.devShells.${system}.tauri-shell ];
+          shellHook = rain.devShells.${system}.tauri-shell.shellHook;
         };
 
       }
