@@ -49,7 +49,7 @@ jobs:
       - run: nix develop --command i9r-prelude
         working-directory: lib/rain.interpreter
 
-      - run: nix develop .#tauri-shell --keep PKG_CONFIG_PATH --command ob-tauri-prelude
+      - run: nix develop .#tauri-shell --command ob-tauri-prelude
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -61,7 +61,7 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tauriScript: "nix develop .#tauri-shell --keep PKG_CONFIG_PATH --command cargo tauri"
+          tauriScript: "nix develop .#tauri-shell --command cargo tauri"
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
