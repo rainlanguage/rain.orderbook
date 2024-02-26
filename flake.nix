@@ -66,8 +66,6 @@
             body = ''
               set -euxo pipefail
 
-              cd tauri-app
-
               npm i && npm run build
 
               rm -rf lib
@@ -102,8 +100,6 @@
             name = "ob-tauri-before-bundle";
             body = ''
               set -euxo pipefail
-
-              cd tauri-app
 
               ls src-tauri/target/release
 
