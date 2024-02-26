@@ -30,7 +30,7 @@ impl OrderString {
         deployers: &HashMap<String, Arc<Deployer>>,
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
-    ) -> Result<Arc<Order>, ParseOrderStringError> {
+    ) -> Result<Order, ParseOrderStringError> {
         let network_ref = networks
             .get(&self.network)
             .ok_or(ParseOrderStringError::NetworkNotFoundError(
@@ -88,12 +88,12 @@ impl OrderString {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Arc::new(Order {
+        Ok(Order {
             inputs,
             outputs,
             network: network_ref,
             deployer: deployer_ref,
             orderbook: orderbook_ref,
-        }))
+        })
     }
 }

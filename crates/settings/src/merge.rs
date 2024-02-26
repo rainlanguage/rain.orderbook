@@ -1,5 +1,4 @@
 use crate::*;
-use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -35,110 +34,92 @@ pub enum MergeError {
 impl ConfigString {
     pub fn merge(&mut self, other: ConfigString) -> Result<(), MergeError> {
         // Networks
-        if let Some(other_networks) = other.networks {
-            let networks = self.networks.get_or_insert_with(HashMap::new);
-            for (key, value) in other_networks {
-                if networks.contains_key(&key) {
-                    return Err(MergeError::NetworkCollision(key));
-                } else {
-                    networks.insert(key, value);
-                }
+        let networks = &mut self.networks;
+        for (key, value) in other.networks {
+            if networks.contains_key(&key) {
+                return Err(MergeError::NetworkCollision(key));
+            } else {
+                networks.insert(key, value);
             }
         }
 
         // Subgraphs
-        if let Some(other_subgraphs) = other.subgraphs {
-            let subgraphs = self.subgraphs.get_or_insert_with(HashMap::new);
-            for (key, value) in other_subgraphs {
-                if subgraphs.contains_key(&key) {
-                    return Err(MergeError::SubgraphCollision(key));
-                } else {
-                    subgraphs.insert(key, value);
-                }
+        let subgraphs = &mut self.subgraphs;
+        for (key, value) in other.subgraphs {
+            if subgraphs.contains_key(&key) {
+                return Err(MergeError::SubgraphCollision(key));
+            } else {
+                subgraphs.insert(key, value);
             }
         }
 
         // Orderbooks
-        if let Some(other_orderbooks) = other.orderbooks {
-            let orderbooks = self.orderbooks.get_or_insert_with(HashMap::new);
-            for (key, value) in other_orderbooks {
-                if orderbooks.contains_key(&key) {
-                    return Err(MergeError::OrderbookCollision(key));
-                } else {
-                    orderbooks.insert(key, value);
-                }
+        let orderbooks = &mut self.orderbooks;
+        for (key, value) in other.orderbooks {
+            if orderbooks.contains_key(&key) {
+                return Err(MergeError::OrderbookCollision(key));
+            } else {
+                orderbooks.insert(key, value);
             }
         }
 
         // Vaults
-        if let Some(other_vaults) = other.vaults {
-            let vaults = self.vaults.get_or_insert_with(HashMap::new);
-            for (key, value) in other_vaults {
-                if vaults.contains_key(&key) {
-                    return Err(MergeError::VaultCollision(key));
-                } else {
-                    vaults.insert(key, value);
-                }
+        let vaults = &mut self.vaults;
+        for (key, value) in other.vaults {
+            if vaults.contains_key(&key) {
+                return Err(MergeError::VaultCollision(key));
+            } else {
+                vaults.insert(key, value);
             }
         }
 
         // Tokens
-        if let Some(other_tokens) = other.tokens {
-            let tokens = self.tokens.get_or_insert_with(HashMap::new);
-            for (key, value) in other_tokens {
-                if tokens.contains_key(&key) {
-                    return Err(MergeError::TokenCollision(key));
-                } else {
-                    tokens.insert(key, value);
-                }
+        let tokens = &mut self.tokens;
+        for (key, value) in other.tokens {
+            if tokens.contains_key(&key) {
+                return Err(MergeError::TokenCollision(key));
+            } else {
+                tokens.insert(key, value);
             }
         }
 
         // Deployers
-        if let Some(other_deployers) = other.deployers {
-            let deployers = self.deployers.get_or_insert_with(HashMap::new);
-            for (key, value) in other_deployers {
-                if deployers.contains_key(&key) {
-                    return Err(MergeError::DeployerCollision(key));
-                } else {
-                    deployers.insert(key, value);
-                }
+        let deployers = &mut self.deployers;
+        for (key, value) in other.deployers {
+            if deployers.contains_key(&key) {
+                return Err(MergeError::DeployerCollision(key));
+            } else {
+                deployers.insert(key, value);
             }
         }
 
         // Orders
-        if let Some(other_orders) = other.orders {
-            let orders = self.orders.get_or_insert_with(HashMap::new);
-            for (key, value) in other_orders {
-                if orders.contains_key(&key) {
-                    return Err(MergeError::OrderCollision(key));
-                } else {
-                    orders.insert(key, value);
-                }
+        let orders = &mut self.orders;
+        for (key, value) in other.orders {
+            if orders.contains_key(&key) {
+                return Err(MergeError::OrderCollision(key));
+            } else {
+                orders.insert(key, value);
             }
         }
 
         // Scenarios
-        if let Some(other_scenarios) = other.scenarios {
-            let scenarios = self.scenarios.get_or_insert_with(HashMap::new);
-            for (key, value) in other_scenarios {
-                if scenarios.contains_key(&key) {
-                    return Err(MergeError::ScenarioCollision(key));
-                } else {
-                    scenarios.insert(key, value);
-                }
+        let scenarios = &mut self.scenarios;
+        for (key, value) in other.scenarios {
+            if scenarios.contains_key(&key) {
+                return Err(MergeError::ScenarioCollision(key));
+            } else {
+                scenarios.insert(key, value);
             }
         }
 
         // Charts
-        if let Some(other_charts) = other.charts {
-            let charts = self.charts.get_or_insert_with(HashMap::new);
-            for (key, value) in other_charts {
-                if charts.contains_key(&key) {
-                    return Err(MergeError::ChartCollision(key));
-                } else {
-                    charts.insert(key, value);
-                }
+        let charts = &mut self.charts;
+        for (key, value) in other.charts {
+            if charts.contains_key(&key) {
+                return Err(MergeError::ChartCollision(key));
+            } else {
+                charts.insert(key, value);
             }
         }
 
@@ -149,30 +130,31 @@ impl ConfigString {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     #[test]
     fn test_successful_merge() {
         let mut config = ConfigString {
-            subgraphs: Some(HashMap::new()),
-            orderbooks: Some(HashMap::new()),
-            vaults: Some(HashMap::new()),
-            tokens: Some(HashMap::new()),
-            deployers: Some(HashMap::new()),
-            orders: Some(HashMap::new()),
-            scenarios: Some(HashMap::new()),
-            charts: Some(HashMap::new()),
-            networks: Some(HashMap::new()),
+            subgraphs: HashMap::new(),
+            orderbooks: HashMap::new(),
+            vaults: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
         };
 
         let other = ConfigString {
-            subgraphs: Some(HashMap::new()),
-            orderbooks: Some(HashMap::new()),
-            vaults: Some(HashMap::new()),
-            tokens: Some(HashMap::new()),
-            deployers: Some(HashMap::new()),
-            orders: Some(HashMap::new()),
-            scenarios: Some(HashMap::new()),
-            charts: Some(HashMap::new()),
-            networks: Some(HashMap::new()),
+            subgraphs: HashMap::new(),
+            orderbooks: HashMap::new(),
+            vaults: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -181,40 +163,36 @@ mod tests {
     #[test]
     fn test_unsuccessful_merge() {
         let mut config = ConfigString {
-            subgraphs: Some(HashMap::new()),
-            orderbooks: Some(HashMap::new()),
-            vaults: Some(HashMap::new()),
-            tokens: Some(HashMap::new()),
-            deployers: Some(HashMap::new()),
-            orders: Some(HashMap::new()),
-            scenarios: Some(HashMap::new()),
-            charts: Some(HashMap::new()),
-            networks: Some(HashMap::new()),
+            subgraphs: HashMap::new(),
+            orderbooks: HashMap::new(),
+            vaults: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
         };
 
         let mut other = ConfigString {
-            subgraphs: Some(HashMap::new()),
-            orderbooks: Some(HashMap::new()),
-            vaults: Some(HashMap::new()),
-            tokens: Some(HashMap::new()),
-            deployers: Some(HashMap::new()),
-            orders: Some(HashMap::new()),
-            scenarios: Some(HashMap::new()),
-            charts: Some(HashMap::new()),
-            networks: Some(HashMap::new()),
+            subgraphs: HashMap::new(),
+            orderbooks: HashMap::new(),
+            vaults: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
         };
 
         // Add a collision to cause an unsuccessful merge
         config
             .subgraphs
-            .as_mut()
-            .unwrap()
             .insert("subgraph1".to_string(), "value1".to_string());
 
         other
             .subgraphs
-            .as_mut()
-            .unwrap()
             .insert("subgraph1".to_string(), "value1".to_string());
 
         assert_eq!(

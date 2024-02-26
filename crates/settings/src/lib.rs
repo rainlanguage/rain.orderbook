@@ -22,7 +22,6 @@ pub(crate) use string_structs::*;
 pub(crate) use token::*;
 
 // pub use parse::*;
-pub use config::*;
 
 #[macro_use]
 extern crate derive_builder;

@@ -23,7 +23,7 @@ impl DeployerString {
         self,
         name: String,
         networks: &HashMap<String, Arc<Network>>,
-    ) -> Result<Arc<Deployer>, ParseDeployerStringError> {
+    ) -> Result<Deployer, ParseDeployerStringError> {
         let network_ref = match self.network {
             Some(network_name) => networks
                 .get(&network_name)
@@ -37,13 +37,13 @@ impl DeployerString {
                 .map(Arc::clone)?,
         };
 
-        Ok(Arc::new(Deployer {
+        Ok(Deployer {
             address: self
                 .address
                 .parse()
                 .map_err(ParseDeployerStringError::AddressParseError)?,
             network: Some(network_ref),
             label: self.label,
-        }))
+        })
     }
 }

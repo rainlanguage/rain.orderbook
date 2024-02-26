@@ -3,15 +3,15 @@ use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConfigString {
-    pub networks: Option<HashMap<String, NetworkString>>,
-    pub subgraphs: Option<HashMap<String, String>>,
-    pub orderbooks: Option<HashMap<String, OrderbookString>>,
-    pub vaults: Option<HashMap<String, String>>,
-    pub tokens: Option<HashMap<String, TokenString>>,
-    pub deployers: Option<HashMap<String, DeployerString>>,
-    pub orders: Option<HashMap<String, OrderString>>,
-    pub scenarios: Option<HashMap<String, ScenarioString>>,
-    pub charts: Option<HashMap<String, ChartString>>,
+    pub networks: HashMap<String, NetworkString>,
+    pub subgraphs: HashMap<String, String>,
+    pub orderbooks: HashMap<String, OrderbookString>,
+    pub vaults: HashMap<String, String>,
+    pub tokens: HashMap<String, TokenString>,
+    pub deployers: HashMap<String, DeployerString>,
+    pub orders: HashMap<String, OrderString>,
+    pub scenarios: HashMap<String, ScenarioString>,
+    pub charts: HashMap<String, ChartString>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -176,7 +176,6 @@ scenarios:
             subScenario2:
                 bindings:
                     key4: value4
-
 charts:
     mainChart:
         scenario: mainScenario
@@ -197,28 +196,23 @@ charts:
 
         // Asserting a few values to verify successful parsing
         assert_eq!(
-            config.clone().networks.unwrap().get("mainnet").unwrap().rpc,
+            config.clone().networks.get("mainnet").unwrap().rpc,
             "https://mainnet.node".to_string()
         );
         assert_eq!(
-            config.networks.unwrap().get("mainnet").unwrap().label,
+            config.networks.get("mainnet").unwrap().label,
             Some("Mainnet".into())
         );
         assert_eq!(
-            config.subgraphs.unwrap().get("mainnet"),
+            config.subgraphs.get("mainnet"),
             Some(&"https://mainnet.subgraph".to_string())
         );
         assert_eq!(
-            config
-                .orderbooks
-                .unwrap()
-                .get("mainnetOrderbook")
-                .unwrap()
-                .address,
+            config.orderbooks.get("mainnetOrderbook").unwrap().address,
             "0x123".to_string()
         );
         assert_eq!(
-            config.tokens.unwrap().get("eth").unwrap().decimals,
+            config.tokens.get("eth").unwrap().decimals,
             Some("18".to_string())
         );
     }

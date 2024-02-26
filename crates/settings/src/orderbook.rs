@@ -24,12 +24,12 @@ pub enum ParseOrderbookStringError {
 }
 
 impl OrderbookString {
-    fn try_into_orderbook(
+    pub fn try_into_orderbook(
         self,
         name: String,
         networks: &HashMap<String, Arc<Network>>,
         subgraphs: &HashMap<String, Arc<Subgraph>>,
-    ) -> Result<Arc<Orderbook>, ParseOrderbookStringError> {
+    ) -> Result<Orderbook, ParseOrderbookStringError> {
         let network_ref = match self.network {
             Some(network_name) => networks
                 .get(&network_name)
@@ -60,7 +60,7 @@ impl OrderbookString {
                 .map(Arc::clone)?,
         };
 
-        Ok(Arc::new(Orderbook {
+        Ok(Orderbook {
             address: self
                 .address
                 .parse()
@@ -68,6 +68,6 @@ impl OrderbookString {
             network: network_ref,
             subgraph: subgraph_ref,
             label: self.label,
-        }))
+        })
     }
 }

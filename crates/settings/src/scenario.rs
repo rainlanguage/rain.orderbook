@@ -13,12 +13,6 @@ pub struct Scenario {
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseScenarioStringError {
-    #[error("Failed to parse deployer")]
-    DeployerParseError(ParseDeployerStringError),
-    #[error("Network not found: {0}")]
-    NetworkNotFoundError(String),
-    #[error("Failed to parse orderbook")]
-    OrderbookParseError(ParseOrderbookStringError),
     #[error("Failed to parse runs")]
     RunsParseError(ParseIntError),
     #[error("Parent binding shadowed by child: {0}")]
@@ -31,11 +25,12 @@ pub enum ParseScenarioStringError {
     ParentOrderbookShadowedError(String),
 }
 
+// Shadowing is disallowed for networks, deployers, orderbooks and specific bindings.
+// If a child specifies one that is already set by the parent, this is an error.
+//
 // Nested scenarios within the ScenarioString struct are flattened out into a
 // hashmap of scenarios, where the key is the path such as foo.bar.baz.
 // Every level of the scenario path inherits its parents bindings recursively.
-// Shadowing is disallowed for networks, deployers, orderbooks and specific bindings.
-// If a child specifies one that is already set by the parent, this is an error.
 impl ScenarioString {
     pub fn try_into_scenarios(
         &self,
@@ -106,6 +101,7 @@ impl ScenarioString {
             bindings.insert(k.to_string(), v.to_string());
         }
 
+        // create and add the parent scenario for this level
         let parent_scenario = Arc::new(Scenario {
             bindings: bindings.clone(),
             runs: self
@@ -122,6 +118,7 @@ impl ScenarioString {
 
         scenarios.insert(name.clone(), parent_scenario);
 
+        // recursively add child scenarios
         if let Some(scenarios_map) = &self.scenarios {
             for (child_name, child_scenario) in scenarios_map {
                 let child_scenarios = child_scenario.try_into_scenarios(

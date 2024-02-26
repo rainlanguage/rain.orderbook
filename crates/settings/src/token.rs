@@ -26,7 +26,7 @@ impl TokenString {
     pub fn try_into_token(
         self,
         networks: &HashMap<String, Arc<Network>>,
-    ) -> Result<Arc<Token>, ParseTokenStringError> {
+    ) -> Result<Token, ParseTokenStringError> {
         let network_ref = networks
             .get(&self.network)
             .ok_or(ParseTokenStringError::NetworkNotFoundError(
@@ -34,7 +34,7 @@ impl TokenString {
             ))
             .map(Arc::clone)?;
 
-        Ok(Arc::new(Token {
+        Ok(Token {
             network: network_ref,
             address: self
                 .address
@@ -50,6 +50,6 @@ impl TokenString {
                 .transpose()?,
             label: self.label,
             symbol: self.symbol,
-        }))
+        })
     }
 }
