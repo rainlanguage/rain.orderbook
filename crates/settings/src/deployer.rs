@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_try_into_deployer_success() {
         let address = Address::repeat_byte(0x01); // Generate a random address for testing
-        let network_name = "testnet";
+        let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
         let deployer_string = DeployerString {
             address: address.to_string(),
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn test_try_into_deployer_no_network_specified() {
         let address = Address::repeat_byte(0x01);
-        let network_name = "defaultnet";
+        let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
         let deployer_string = DeployerString {
             address: address.to_string(),

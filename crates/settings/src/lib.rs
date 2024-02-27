@@ -1,11 +1,11 @@
-pub mod merge;
-// pub mod parse;
 pub mod chart;
 pub mod config;
 pub mod deployer;
+pub mod merge;
 pub mod network;
 pub mod order;
 pub mod orderbook;
+pub mod parse;
 pub mod scenario;
 pub mod string_structs;
 pub mod token;
@@ -23,7 +23,7 @@ pub(crate) use token::*;
 #[cfg(test)]
 mod test;
 
-// pub use parse::*;
+pub use parse::*;
 
 #[macro_use]
 extern crate derive_builder;

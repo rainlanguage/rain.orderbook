@@ -72,7 +72,7 @@ mod token_tests {
         let networks = setup_networks();
         let token_string = TokenString {
             network: "TestNetwork".to_string(),
-            address: "0x1234".to_string(),
+            address: Address::repeat_byte(0x01).to_string(),
             decimals: Some("18".to_string()),
             label: Some("TestToken".to_string()),
             symbol: Some("TTK".to_string()),
@@ -87,7 +87,7 @@ mod token_tests {
             Arc::as_ptr(&token.network),
             Arc::as_ptr(networks.get("TestNetwork").unwrap())
         );
-        assert_eq!(token.address, "0x1234".parse::<Address>().unwrap());
+        assert_eq!(token.address, Address::repeat_byte(0x01));
         assert_eq!(token.decimals, Some(18));
         assert_eq!(token.label, Some("TestToken".to_string()));
         assert_eq!(token.symbol, Some("TTK".to_string()));
@@ -98,7 +98,7 @@ mod token_tests {
         let networks = setup_networks();
         let token_string = TokenString {
             network: "TestNetwork".to_string(),
-            address: "0x1234".to_string(),
+            address: Address::repeat_byte(0x01).to_string(),
             decimals: None,
             label: None,
             symbol: None,
@@ -113,7 +113,7 @@ mod token_tests {
             Arc::as_ptr(&token.network),
             Arc::as_ptr(networks.get("TestNetwork").unwrap())
         );
-        assert_eq!(token.address, "0x1234".parse::<Address>().unwrap());
+        assert_eq!(token.address, Address::repeat_byte(0x01));
         assert_eq!(token.decimals, None);
         assert_eq!(token.label, None);
         assert_eq!(token.symbol, None);
@@ -164,7 +164,7 @@ mod token_tests {
         let networks = setup_networks();
         let token_string = TokenString {
             network: "TestNetwork".to_string(),
-            address: "0x1234".to_string(),
+            address: Address::repeat_byte(0x03).to_string(),
             decimals: Some("invalid".to_string()),
             label: None,
             symbol: None,
