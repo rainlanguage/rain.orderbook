@@ -71,3 +71,116 @@ impl OrderbookString {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test::*;
+    use alloy_primitives::Address;
+
+    fn setup() -> (
+        HashMap<String, Arc<Network>>,
+        HashMap<String, Arc<Subgraph>>,
+    ) {
+        let network = mock_network();
+        let subgraph = mock_subgraph();
+
+        let mut networks = HashMap::new();
+        networks.insert("TestNetwork".to_string(), network);
+
+        let mut subgraphs = HashMap::new();
+        subgraphs.insert("TestSubgraph".to_string(), subgraph);
+
+        (networks, subgraphs)
+    }
+
+    #[test]
+    fn test_orderbook_creation_success() {
+        let (networks, subgraphs) = setup();
+        let address = "0x1234567890123456789012345678901234567890";
+        let orderbook_string = OrderbookString {
+            address: address.to_string(),
+            network: Some("TestNetwork".to_string()),
+            subgraph: Some("TestSubgraph".to_string()),
+            label: Some("TestLabel".to_string()),
+        };
+
+        let orderbook =
+            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
+
+        assert!(orderbook.is_ok());
+        let orderbook = orderbook.unwrap();
+
+        assert_eq!(orderbook.address, address.parse::<Address>().unwrap());
+        assert_eq!(
+            Arc::as_ptr(&orderbook.network),
+            Arc::as_ptr(networks.get("TestNetwork").unwrap())
+        );
+        assert_eq!(
+            Arc::as_ptr(&orderbook.subgraph),
+            Arc::as_ptr(subgraphs.get("TestSubgraph").unwrap())
+        );
+        assert_eq!(orderbook.label, Some("TestLabel".to_string()));
+    }
+
+    #[test]
+    fn test_orderbook_creation_with_missing_network() {
+        let (networks, subgraphs) = setup();
+        let orderbook_string = OrderbookString {
+            address: "1234".to_string(),
+            network: Some("NonExistingNetwork".to_string()),
+            subgraph: Some("TestSubgraph".to_string()),
+            label: None,
+        };
+
+        let result =
+            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParseOrderbookStringError::NetworkNotFoundError("NonExistingNetwork".to_string())
+        );
+    }
+
+    #[test]
+    fn test_orderbook_creation_with_missing_subgraph() {
+        let (networks, subgraphs) = setup();
+        let orderbook_string = OrderbookString {
+            address: "1234".to_string(),
+            network: Some("TestNetwork".to_string()),
+            subgraph: Some("NonExistingSubgraph".to_string()),
+            label: None,
+        };
+
+        let result =
+            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParseOrderbookStringError::SubgraphNotFoundError("NonExistingSubgraph".to_string())
+        );
+    }
+
+    #[test]
+    fn test_orderbook_creation_with_invalid_address() {
+        let (networks, subgraphs) = setup();
+        let invalid_address = "InvalidAddress";
+        let orderbook_string = OrderbookString {
+            address: invalid_address.to_string(),
+            network: Some("TestNetwork".to_string()),
+            subgraph: Some("TestSubgraph".to_string()),
+            label: None,
+        };
+
+        let result =
+            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            ParseOrderbookStringError::AddressParseError(_) => (),
+            _ => panic!("Expected AddressParseError"),
+        }
+    }
+}

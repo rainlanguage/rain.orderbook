@@ -68,3 +68,149 @@ impl ChartString {
         }))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    fn create_scenario(name: &str, runs: Option<u64>) -> (String, Arc<Scenario>) {
+        let scenario = Scenario {
+            bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
+            runs,
+            network: None,
+            deployer: None,
+            orderbook: None,
+        };
+        (name.to_string(), Arc::new(scenario))
+    }
+
+    fn create_plot(name: &str) -> (String, PlotString) {
+        (
+            name.to_string(),
+            PlotString {
+                plot_type: "line".to_string(),
+                data: DataPointsString {
+                    x: "time".to_string(),
+                    y: "value".to_string(),
+                },
+            },
+        )
+    }
+
+    #[test]
+    fn test_success_explicit_scenario_name() {
+        let (scenario_name, scenario) = create_scenario("scenario1", 100.into());
+        let mut scenarios = HashMap::new();
+        scenarios.insert(scenario_name.clone(), scenario);
+
+        let mut plots = HashMap::new();
+        let (plot_name, plot) = create_plot("plot1");
+        plots.insert(plot_name, plot);
+
+        let chart_string = ChartString {
+            scenario: Some(scenario_name),
+            plots,
+        };
+
+        let chart = chart_string
+            .try_into_chart("chart1".to_string(), &scenarios)
+            .unwrap();
+        assert_eq!(
+            Arc::ptr_eq(&chart.scenario, scenarios.get("scenario1").unwrap()),
+            true
+        );
+        assert!(chart.plots.contains_key("plot1"));
+    }
+
+    #[test]
+    fn test_success_using_chart_name() {
+        let (chart_name, scenario) = create_scenario("chart2", 100.into());
+        let mut scenarios = HashMap::new();
+        scenarios.insert(chart_name.clone(), scenario);
+
+        let mut plots = HashMap::new();
+        let (plot_name, plot) = create_plot("plot1");
+        plots.insert(plot_name, plot);
+
+        let chart_string = ChartString {
+            scenario: None,
+            plots,
+        };
+
+        let chart = chart_string
+            .try_into_chart(chart_name.clone(), &scenarios)
+            .unwrap();
+        assert_eq!(
+            Arc::ptr_eq(&chart.scenario, scenarios.get(&chart_name).unwrap()),
+            true
+        );
+        assert!(chart.plots.contains_key("plot1"));
+    }
+
+    #[test]
+    fn test_scenario_not_found_error() {
+        let scenarios = HashMap::<String, Arc<Scenario>>::new(); // No scenarios added
+
+        let mut plots = HashMap::new();
+        let (plot_name, plot) = create_plot("plot1");
+        plots.insert(plot_name, plot);
+
+        let chart_string = ChartString {
+            scenario: Some("nonexistent_scenario".to_string()),
+            plots,
+        };
+
+        let result = chart_string.try_into_chart("chart3".to_string(), &scenarios);
+        assert!(matches!(
+            result,
+            Err(ParseChartStringError::ScenarioNotFoundError(_))
+        ));
+    }
+
+    #[test]
+    fn test_no_scenario_matching_chart_name() {
+        let scenarios = HashMap::<String, Arc<Scenario>>::new(); // No scenarios added
+
+        let chart_string = ChartString {
+            scenario: None,
+            plots: HashMap::new(),
+        };
+
+        let result = chart_string.try_into_chart("chart4".to_string(), &scenarios);
+        assert!(matches!(
+            result,
+            Err(ParseChartStringError::ScenarioNotFoundError(_))
+        ));
+    }
+
+    #[test]
+    fn test_multiple_plots() {
+        let (scenario_name, scenario) = create_scenario("scenario5", 200.into());
+        let mut scenarios = HashMap::new();
+        scenarios.insert(scenario_name.clone(), scenario);
+
+        let mut plots = HashMap::new();
+        let (plot_name, plot) = create_plot("plot1");
+        plots.insert(plot_name, plot);
+
+        let (plot_name, plot) = create_plot("plot2");
+        plots.insert(plot_name, plot);
+
+        let chart_string = ChartString {
+            scenario: Some(scenario_name),
+            plots,
+        };
+
+        let chart = chart_string
+            .try_into_chart("chart5".to_string(), &scenarios)
+            .unwrap();
+        assert_eq!(
+            Arc::ptr_eq(&chart.scenario, scenarios.get("scenario5").unwrap()),
+            true
+        );
+        assert_eq!(chart.plots.len(), 2);
+        assert!(chart.plots.contains_key("plot1") && chart.plots.contains_key("plot2"));
+    }
+}

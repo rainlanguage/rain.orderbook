@@ -48,3 +48,84 @@ impl TryFrom<NetworkString> for Network {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use url::Url;
+
+    #[test]
+    fn test_try_from_network_string_success() {
+        let network_string = NetworkString {
+            rpc: "http://127.0.0.1:8545".into(),
+            chain_id: "1".into(),
+            network_id: Some("1".into()),
+            label: Some("Local Testnet".into()),
+            currency: Some("ETH".into()),
+        };
+
+        let result = Network::try_from(network_string);
+        assert!(result.is_ok());
+        let network = result.unwrap();
+
+        assert_eq!(network.rpc, Url::parse("http://127.0.0.1:8545").unwrap());
+        assert_eq!(network.chain_id, 1);
+        assert_eq!(network.network_id, Some(1));
+        assert_eq!(network.label, Some("Local Testnet".into()));
+        assert_eq!(network.currency, Some("ETH".into()));
+    }
+
+    #[test]
+    fn test_try_from_network_string_rpc_parse_error() {
+        let invalid_rpc = "invalid_url"; // Intentionally invalid URL
+        let network_string = NetworkString {
+            rpc: invalid_rpc.into(),
+            chain_id: "1".into(),
+            network_id: Some("1".into()),
+            label: None,
+            currency: None,
+        };
+
+        let result = Network::try_from(network_string);
+        assert!(matches!(
+            result,
+            Err(ParseNetworkStringError::RpcParseError(_))
+        ));
+    }
+
+    #[test]
+    fn test_try_from_network_string_chain_id_parse_error() {
+        let invalid_chain_id = "abc"; // Intentionally invalid number format
+        let network_string = NetworkString {
+            rpc: "http://127.0.0.1:8545".into(),
+            chain_id: invalid_chain_id.into(),
+            network_id: Some("1".into()),
+            label: None,
+            currency: None,
+        };
+
+        let result = Network::try_from(network_string);
+        assert!(matches!(
+            result,
+            Err(ParseNetworkStringError::ChainIdParseError(_))
+        ));
+    }
+
+    #[test]
+    fn test_try_from_network_string_network_id_parse_error() {
+        let invalid_network_id = "abc"; // Intentionally invalid number format
+        let network_string = NetworkString {
+            rpc: "http://127.0.0.1:8545".into(),
+            chain_id: "1".into(),
+            network_id: Some(invalid_network_id.into()),
+            label: None,
+            currency: None,
+        };
+
+        let result = Network::try_from(network_string);
+        assert!(matches!(
+            result,
+            Err(ParseNetworkStringError::NetworkIdParseError(_))
+        ));
+    }
+}
