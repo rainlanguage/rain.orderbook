@@ -35,8 +35,8 @@ chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = "6.0.1-alpha.8"
-dotrain-lsp = "6.0.1-alpha.8"
+dotrain = "6.0.1-alpha.10"
+dotrain-lsp = "6.0.1-alpha.10"
 rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
