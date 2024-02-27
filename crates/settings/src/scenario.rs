@@ -25,6 +25,14 @@ pub enum ParseScenarioStringError {
     ParentOrderbookShadowedError(String),
 }
 
+#[derive(Default)]
+pub struct ScenarioParent {
+    bindings: Option<HashMap<String, String>>,
+    network: Option<Arc<Network>>,
+    deployer: Option<Arc<Deployer>>,
+    orderbook: Option<Arc<Orderbook>>,
+}
+
 // Shadowing is disallowed for networks, deployers, orderbooks and specific bindings.
 // If a child specifies one that is already set by the parent, this is an error.
 //
@@ -35,10 +43,7 @@ impl ScenarioString {
     pub fn try_into_scenarios(
         &self,
         name: String,
-        parent_bindings: Option<&HashMap<String, String>>,
-        parent_network: Option<&Arc<Network>>,
-        parent_deployer: Option<&Arc<Deployer>>,
-        parent_orderbook: Option<&Arc<Orderbook>>,
+        parent: &ScenarioParent,
         networks: &HashMap<String, Arc<Network>>,
         deployers: &HashMap<String, Arc<Deployer>>,
         orderbooks: &HashMap<String, Arc<Orderbook>>,
@@ -53,7 +58,7 @@ impl ScenarioString {
                 })
             })
             .transpose()?
-            .or_else(|| parent_network);
+            .or(parent.network.as_ref());
 
         // Handling Deployer
         let deployer_ref = self
@@ -65,7 +70,7 @@ impl ScenarioString {
                 })
             })
             .transpose()?
-            .or_else(|| parent_deployer);
+            .or(parent.deployer.as_ref());
 
         // Handling Orderbook
         let orderbook_ref = self
@@ -77,12 +82,15 @@ impl ScenarioString {
                 })
             })
             .transpose()?
-            .or_else(|| parent_orderbook);
+            .or(parent.orderbook.as_ref());
 
         // Merge bindings and check for shadowing
-        let mut bindings = parent_bindings.map_or_else(HashMap::new, |pb| pb.clone());
+        let mut bindings = parent
+            .bindings
+            .as_ref()
+            .map_or_else(HashMap::new, |pb| pb.clone());
         for (k, v) in &self.bindings {
-            if let Some(parent_value) = parent_bindings.and_then(|pb| pb.get(k)) {
+            if let Some(parent_value) = parent.bindings.as_ref().and_then(|pb| pb.get(k)) {
                 if parent_value != v {
                     return Err(ParseScenarioStringError::ParentBindingShadowedError(
                         k.to_string(),
@@ -114,10 +122,12 @@ impl ScenarioString {
             for (child_name, child_scenario) in scenarios_map {
                 let child_scenarios = child_scenario.try_into_scenarios(
                     format!("{}.{}", name, child_name),
-                    Some(&bindings),
-                    network_ref,
-                    deployer_ref,
-                    orderbook_ref,
+                    &ScenarioParent {
+                        bindings: Some(bindings.clone()),
+                        network: network_ref.cloned(),
+                        deployer: deployer_ref.cloned(),
+                        orderbook: orderbook_ref.cloned(),
+                    },
                     networks,
                     deployers,
                     orderbooks,
@@ -139,10 +149,14 @@ mod tests {
 
     #[test]
     fn test_scenario_shadowing_error_in_bindings() {
-        let parent_bindings = {
-            let mut bindings = HashMap::new();
-            bindings.insert("shared_key".to_string(), "parent_value".to_string());
-            bindings
+        let parent_bindings =
+            HashMap::from([("shared_key".to_string(), "parent_value".to_string())]);
+
+        let parent_scenario = ScenarioParent {
+            bindings: Some(parent_bindings),
+            network: None,
+            deployer: None,
+            orderbook: None,
         };
 
         let mut child_bindings = HashMap::new();
@@ -159,13 +173,10 @@ mod tests {
 
         let result = child_scenario.try_into_scenarios(
             "child".to_string(),
-            Some(&parent_bindings),
-            None,            // Assuming no parent network for simplification
-            None,            // Assuming no parent deployer for simplification
-            None,            // Assuming no parent orderbook for simplification
-            &HashMap::new(), // Empty networks for simplification
-            &HashMap::new(), // Empty deployers for simplification
-            &HashMap::new(), // Empty orderbooks for simplification
+            &parent_scenario, // Assuming no parent orderbook for simplification
+            &HashMap::new(),  // Empty networks for simplification
+            &HashMap::new(),  // Empty deployers for simplification
+            &HashMap::new(),  // Empty orderbooks for simplification
         );
 
         assert!(result.is_err());
@@ -216,10 +227,7 @@ mod tests {
         // Convert root scenario
         let root_result = root_scenario.try_into_scenarios(
             "root".to_string(),
-            None,
-            None,
-            None,
-            None,
+            &ScenarioParent::default(),
             &networks,
             &HashMap::new(),
             &HashMap::new(),
@@ -231,10 +239,12 @@ mod tests {
         // Convert child scenario with the root's network context
         let child_result = child_scenario.try_into_scenarios(
             "child".to_string(),
-            Some(&root_converted.bindings),
-            Some(&root_converted.network.as_ref().unwrap()),
-            None,
-            None,
+            &ScenarioParent {
+                bindings: Some(root_converted.bindings.clone()),
+                network: Some(root_converted.network.as_ref().unwrap().clone()),
+                deployer: None,
+                orderbook: None,
+            },
             &networks,
             &HashMap::new(),
             &HashMap::new(),

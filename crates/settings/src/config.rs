@@ -129,10 +129,7 @@ impl TryFrom<ConfigString> for Config {
         for (name, scenario_string) in item.scenarios {
             let scenario_map = scenario_string.try_into_scenarios(
                 name.clone(),
-                None,
-                None,
-                None,
-                None,
+                &ScenarioParent::default(),
                 &networks,
                 &deployers,
                 &orderbooks,

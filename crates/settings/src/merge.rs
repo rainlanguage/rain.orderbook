@@ -1,3 +1,4 @@
+#![allow(clippy::map_entry)]
 use crate::*;
 use thiserror::Error;
 
