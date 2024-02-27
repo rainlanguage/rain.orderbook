@@ -22,18 +22,30 @@ impl From<CliSubgraphArgs> for SubgraphArgs {
 
 #[derive(Args, Clone)]
 pub struct CliPaginationArgs {
-    #[arg(short, long, help = "Page number to query", default_value = "1")]
+    #[arg(
+        short,
+        long,
+        help = "Page number to query",
+        default_value = "1",
+        conflicts_with("csv")
+    )]
     pub page: u16,
 
     #[arg(
         short = 'l',
         long,
         help = "Number of items per page",
-        default_value = "25"
+        default_value = "25",
+        conflicts_with("csv")
     )]
     pub page_size: u16,
 
-    #[arg(long, help = "Output results in CSV format")]
+    #[arg(
+        long,
+        help = "Output all items in CSV format (not paginated)",
+        conflicts_with("page"),
+        conflicts_with("page_size")
+    )]
     pub csv: bool,
 }
 

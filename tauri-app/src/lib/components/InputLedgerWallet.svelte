@@ -2,12 +2,9 @@
   import { Button, Input, Helper, Spinner } from 'flowbite-svelte';
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
-  import { rpcUrl } from '$lib/stores/settings';
-  import { get } from 'svelte/store';
-  import { invoke } from '@tauri-apps/api';
   import { isAddress } from 'viem';
   import { toasts } from '$lib/stores/toasts';
-  import { ToastMessageType } from '$lib/typeshare/toast';
+  import { getAddressFromLedger } from '$lib/services/wallet';
 
   const maskOptions = {
     mask: Number,
@@ -29,20 +26,13 @@
     derivationIndex = parseInt(detail.unmaskedValue);
   }
 
-  async function getAddressFromLedger() {
+  async function getAddress() {
     isFetchingFromLedger = true;
     try {
-      const res: string = await invoke('get_address_from_ledger', {
-        derivationIndex,
-        chainId: 137,
-        rpcUrl: get(rpcUrl),
-      });
+      const res: string = await getAddressFromLedger(derivationIndex);
       walletAddress = res;
     } catch (error) {
-      toasts.add({
-        message_type: ToastMessageType.Error,
-        text: `Ledger error: ${error}`,
-      });
+      toasts.error(`Ledger error: ${error}`);
     }
     isFetchingFromLedger = false;
   }
@@ -63,7 +53,7 @@
           class="px-2 py-1"
           size="xs"
           pill
-          on:click={getAddressFromLedger}
+          on:click={getAddress}
           disabled={isFetchingFromLedger}
         >
           {#if isFetchingFromLedger}
@@ -80,6 +70,7 @@
   </div>
   <div class="w-32 grow-0 break-all">
     <input
+      type="text"
       class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-32 rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
       value={derivationIndexInput}
       use:imask={maskOptions}

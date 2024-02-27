@@ -1,0 +1,44 @@
+query OrderTakesListQuery($id: ID!, $skip: Int = 0, $first: Int = 25) {
+  takeOrderEntities(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first, where: {
+    order_: {
+      id: $id
+    }
+  }) {
+    id
+    transaction {
+      id
+    }
+    sender {
+      id
+    }
+    timestamp
+    order {
+      id
+    }
+    IORatio
+    input
+    inputDisplay
+    inputToken {
+      id
+      name
+      symbol
+      decimals
+    }
+    inputIOIndex
+    output
+    outputDisplay
+    outputToken {
+      id
+      name
+      symbol
+      decimals
+    }
+    outputIOIndex
+    context {
+      callingContext
+      calculationsContext
+      vaultInputsContext
+      vaultOutputsContext
+    }
+  }
+}

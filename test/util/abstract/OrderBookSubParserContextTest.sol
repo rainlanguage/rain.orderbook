@@ -3,7 +3,7 @@ pragma solidity =0.8.19;
 
 import {StackAllocationMismatch} from "rain.interpreter/error/ErrIntegrity.sol";
 import {DEPLOYER_META_PATH} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OpTest} from "rain.interpreter/../test/util/abstract/OpTest.sol";
+import {OpTest} from "rain.interpreter/../test/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {LibOrderBookSubParserContextFixture} from "test/util/fixture/LibOrderBookSubParserContextFixture.sol";

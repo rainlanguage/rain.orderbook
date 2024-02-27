@@ -1,12 +1,13 @@
 {
   "build": {
     "beforeDevCommand": "npm i && npm run dev",
-    "beforeBuildCommand": "npm i && npm run build",
+    "beforeBuildCommand": "nix develop .#tauri-shell --command ob-tauri-before-build",
+    "beforeBundleCommand": "nix develop .#tauri-shell --command ob-tauri-before-bundle",
     "devPath": "http://localhost:1420",
     "distDir": "../build"
   },
   "package": {
-    "productName": "rain-orderbook-tauri-app",
+    "productName": "Rain Orderbook",
     "version": "0.0.0"
   },
   "tauri": {
@@ -23,12 +24,18 @@
       "fs": {
         "readFile": true,
         "writeFile": true
+      },
+      "window": {
+        "startDragging": true
+      },
+      "os": {
+        "all": true
       }
     },
     "bundle": {
       "active": true,
       "targets": ["deb", "nsis", "msi", "app", "dmg", "updater"],
-      "identifier": "com.rainlanguage.orderbook.tauri-app",
+      "identifier": "com.rainlanguage.orderbook",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -37,7 +44,13 @@
         "icons/icon.ico"
       ],
       "macOS": {
-        "signingIdentity": "-"
+        "minimumSystemVersion": "10.15",
+        "frameworks": [
+          "../lib/libintl.8.dylib",
+          "../lib/libiconv.dylib",
+          "../lib/libcharset.1.dylib",
+          "../lib/libiconv-nocharset.dylib"
+        ]
       }
     },
     "security": {
@@ -47,9 +60,10 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "Rain Orderbook",
-        "width": 800,
-        "height": 600
+        "width": 1200,
+        "height": 700,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay"
       }
     ]
   }

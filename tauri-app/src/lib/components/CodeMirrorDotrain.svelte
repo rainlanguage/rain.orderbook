@@ -1,11 +1,12 @@
 <script lang="ts">
 	import CodeMirror from 'svelte-codemirror-editor';
-	import { completionCallback, hoverCallback, problemsCallback } from '../utils/langServices';
+	import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
 	import { RawRainlangExtension, type RawLanguageServicesCallbacks } from 'codemirror-rainlang';
 	import { codeMirrorTheme } from '$lib/stores/darkMode';
 
 	export let value: string;
 	export let disabled = false;
+	export let styles = {};
 
 	const callbacks: RawLanguageServicesCallbacks = {
 		hover: hoverCallback,
@@ -25,7 +26,7 @@
 	styles={{
 		"&": {
 			width: "100%",
-			minHeight: "400px",
 		},
+		...styles
 	}}
 />

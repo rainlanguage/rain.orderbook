@@ -4,47 +4,52 @@ import { save } from '@tauri-apps/api/dialog';
 import dayjs from 'dayjs';
 import { ToastMessageType } from '$lib/typeshare/toast';
 import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
+import { flatten } from 'lodash';
 
 type Unsubscriber = () => void;
 
-export interface PaginatedCachedStore<T> {
-    subscribe: ( subscriber: Subscriber<Page<T>>, invalidate?: Invalidator<Page<T>>) => Unsubscriber,
+export interface ListStore<T> {
+    subscribe: ( subscriber: Subscriber<ListStoreData<T>>, invalidate?: Invalidator<ListStoreData<T>>) => Unsubscriber,
     fetchPage: (page?: number) => Promise<void>;
     fetchFirst: () => Promise<void>;
     fetchPrev: () => Promise<void>;
     fetchNext: () => Promise<void>;
+    fetchAll: (firstPage?: number) => Promise<void>;
     exportCsv: () => void;
 }
 
-export interface Page<T> {
+export interface ListStoreData<T> {
+  all: T[],
   index: number;
   currentPage: T[];
-  page: (page: number) => T[];
   isFetching: boolean;
+  isFetchingAll: boolean,
   isExporting: boolean;
+  isFetchingFirst: boolean;
 }
 
-export interface AllPages<T> {
-  [pageIndex: number]: Array<T>
-}
+export type AllPages<T> = Array<Array<T>>;
 
 
 const cachedWritablePages = <T>(key: string) => cachedWritableStore<AllPages<T>>(key, [], (value) => JSON.stringify(value), (value) => JSON.parse(value));
 
 export function listStore<T>(key: string, fetchPageHandler: (page: number) => Promise<Array<T>>, writeCsvHandler:  (path: string) => Promise<void>) {
   const allPages = cachedWritablePages<T>(key);
-  const pageIndex = writable(1);
+  const pageIndex = writable(0);
   const isFetching = writable(false);
+  const isFetchingAll = writable(false);
   const isExporting = writable(false);
 
   const page = derived(allPages, $allPages => (page: number) => $allPages[page] || []);
 
-  const { subscribe } = derived([page, pageIndex, isFetching, isExporting], ([$page, $pageIndex, $isFetching, $isExporting]) => ({
+  const { subscribe } = derived([allPages, page, pageIndex, isFetching, isFetchingAll, isExporting], ([$allPages, $page, $pageIndex, $isFetching, $isFetchingAll, $isExporting]) => ({
+    all: flatten<T>(Object.values($allPages) as T[]) || [],
     index: $pageIndex,
     currentPage: $page($pageIndex),
-    page: $page,
     isFetching: $isFetching,
-    isExporting: $isExporting
+    isFetchingAll: $isFetchingAll,
+    isExporting: $isExporting,
+    isFetchingFirst: $isFetching && $allPages.length === 0
   }));
 
   async function fetchPage(page: number = 1) {
@@ -60,7 +65,7 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
   }
 
   async function swrvPage(newPage: number, displayError: boolean = false) {
-    if(newPage <= 0) return;
+    if(newPage < 0) return;
     if(get(isFetching)) return;
 
     isFetching.set(true);
@@ -69,7 +74,6 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
       try {
         await promise;
         pageIndex.set(newPage);
-      // eslint-disable-next-line no-empty
       } catch(e) {
         if(displayError) {
           toasts.error((e as Error).message);
@@ -81,9 +85,27 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
     isFetching.set(false);
   }
 
+  async function fetchAll(firstPage=0) {
+    if(get(isFetchingAll)) return;
+
+    let newPage = firstPage;
+    let hasMorePages = true;
+
+    isFetchingAll.set(true);
+    while(hasMorePages) {
+      try {
+        await fetchPage(newPage);
+        newPage += 1;
+      } catch(e) {
+        hasMorePages = false;
+      }
+    }
+    isFetchingAll.set(false);
+  }
+
   const fetchPrev = () => swrvPage(get(pageIndex) - 1, true);
   const fetchNext = () => swrvPage(get(pageIndex) + 1, true);
-  const fetchFirst = () => swrvPage(1);
+  const fetchFirst = () => swrvPage(0);
 
 
   async function exportCsv() {
@@ -113,6 +135,7 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
     fetchPage,
     fetchPrev,
     fetchNext,
+    fetchAll,
     exportCsv,
-  } as PaginatedCachedStore<T>;
+  } as ListStore<T>;
 }

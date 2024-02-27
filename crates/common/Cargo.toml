@@ -35,6 +35,9 @@ serde_bytes = { workspace = true }
 forker = { workspace = true }
 tokio = { workspace = true }
 proptest = { workspace = true }
+typeshare = { workspace = true }
+csv = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
