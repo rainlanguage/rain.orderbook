@@ -1,7 +1,8 @@
 {
   "build": {
     "beforeDevCommand": "npm i && npm run dev",
-    "beforeBuildCommand": "npm i && npm run build",
+    "beforeBuildCommand": "nix develop .#tauri-shell --command ob-tauri-before-build",
+    "beforeBundleCommand": "nix develop .#tauri-shell --command ob-tauri-before-bundle",
     "devPath": "http://localhost:1420",
     "distDir": "../build"
   },
@@ -41,7 +42,16 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "macOS": {
+        "minimumSystemVersion": "10.15",
+        "frameworks": [
+          "../lib/libintl.8.dylib",
+          "../lib/libiconv.dylib",
+          "../lib/libcharset.1.dylib",
+          "../lib/libiconv-nocharset.dylib"
+        ]
+      }
     },
     "security": {
       "csp": null

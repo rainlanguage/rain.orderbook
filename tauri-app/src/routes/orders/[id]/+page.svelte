@@ -17,7 +17,8 @@
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-    import type { UTCTimestamp } from 'lightweight-charts';
+  import type { UTCTimestamp } from 'lightweight-charts';
+  import { colorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
   let orderTakesListChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
@@ -49,6 +50,13 @@
       (d) => d.time
     );
   }
+
+  $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
+    value: parseFloat(d.ioratio),
+    time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+    color: $colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
+  }));
+  $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
 
   orderDetail.refetch($page.params.id);
   orderTakesList.fetchAll(0);

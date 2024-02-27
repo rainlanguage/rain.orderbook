@@ -2,7 +2,4 @@
   import LightweightChart from './LightweightChart.svelte';
 </script>
 
-<LightweightChart
-  createSeries={(chart) => chart.addLineSeries({ lineWidth: '0.5' })}
-  {...$$props}
-/>
+<LightweightChart createSeries={(chart) => chart.addLineSeries({ lineWidth: 1 })} {...$$props} />
