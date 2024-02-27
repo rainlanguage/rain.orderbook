@@ -1,13 +1,12 @@
 <script lang="ts">
   import { Heading, Button, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
-  import { vaultDetail } from '$lib/stores/vaultDetail';
+  import { vaultDetail, useVaultBalanceChangesList } from '$lib/stores/vault';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
-  import { useVaultBalanceChangesList } from '$lib/stores/vaultBalanceChangesList';
   import { bigintStringToHex } from '$lib/utils/hex';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
@@ -24,29 +23,35 @@
     ArrowUpOutline,
   } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
+  import type { UTCTimestamp } from 'lightweight-charts';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
 
-  vaultDetail.refetch($page.params.id);
-  $: vault = $vaultDetail.data[$page.params.id];
-
+  let vaultBalanceChangesChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
   const vaultBalanceChangesList = useVaultBalanceChangesList($page.params.id);
-  vaultBalanceChangesList.fetchAll(1);
 
-  $: vaultBalanceChangesListAllChartData = $vaultBalanceChangesList.all.map((d) => ({
-    value:
-      d.type === VaultBalanceChangeType.Withdraw
-        ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
-        : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
-    time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-    color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
-  }));
+  function prepareChartData() {
+    const transformedData = $vaultBalanceChangesList.all.map((d) => ({
+      value:
+        d.type === VaultBalanceChangeType.Withdraw
+          ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
+          : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
+      color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
+    }));
 
-  $: vaultBalanceChangesListAllChartDataSorted = sortBy(
-    vaultBalanceChangesListAllChartData,
-    (d) => d.time,
-  );
+    return sortBy(
+      transformedData,
+      (d) => d.time
+    );
+  }
+
+  $: vault = $vaultDetail.data[$page.params.id];
+  $: $vaultBalanceChangesList.all, vaultBalanceChangesChartData = prepareChartData();
+
+  vaultDetail.refetch($page.params.id);
+  vaultBalanceChangesList.fetchAll(0);
 </script>
 
 <PageHeader title="Vault" />
@@ -119,7 +124,7 @@
     <LightweightChartHistogram
       title="Deposits & Withdrawals"
       priceSymbol={vault.token.symbol}
-      data={vaultBalanceChangesListAllChartDataSorted}
+      data={vaultBalanceChangesChartData}
       loading={$vaultBalanceChangesList.isFetchingAll}
       emptyMessage="No deposits or withdrawals found"
     />

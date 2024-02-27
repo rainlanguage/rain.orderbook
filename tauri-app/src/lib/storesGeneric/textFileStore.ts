@@ -1,7 +1,7 @@
 import { toasts } from '$lib/stores/toasts';
 import { open, save } from '@tauri-apps/api/dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
-import { derived, get, writable } from "svelte/store";
+import { derived, get, writable, type Invalidator, type Subscriber } from "svelte/store";
 
 interface TextFileData {
   text: string;
@@ -12,8 +12,18 @@ interface TextFileData {
   isEmpty: boolean;
 }
 
-export function textFileStore(name: string, extension: string) {
-  const text = writable<string>("");
+type Unsubscriber = () => void;
+
+export interface TextFileStore {
+    subscribe: ( subscriber: Subscriber<TextFileData>, invalidate?: Invalidator<TextFileData>) => Unsubscriber,
+    set: (v: TextFileData) => void,
+    loadFile: () => Promise<void>,
+    saveFile: () => Promise<void>,
+    saveFileAs: () => Promise<void>,
+}
+
+export function textFileStore(name: string, extensions: string[], defaultText: string = "") {
+  const text = writable<string>(defaultText);
   const path = writable<string | undefined>();
   const isLoading = writable(false);
   const isSaving = writable(false);
@@ -31,7 +41,7 @@ export function textFileStore(name: string, extension: string) {
   const defaultDialogOptions = {
     filters: [{
       name,
-      extensions: [extension]
+      extensions
     }]
   }
 

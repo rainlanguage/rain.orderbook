@@ -11,12 +11,15 @@
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
-  import { allRequiredSettingsValid } from '$lib/stores/settings';
-  import ButtonDarkMode from './ButtonDarkMode.svelte';
+  import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
+  import DropdownActiveChainSettings from '$lib/components/DropdownActiveChainSettings.svelte';
+  import DropdownActiveOrderbookSettings from '$lib/components/DropdownActiveOrderbookSettings.svelte';
 
-  $: nonActiveClass = $allRequiredSettingsValid
-    ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
-    : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 ';
+  export let hasRequiredSettings = false;
+
+  $: nonActiveClass = !hasRequiredSettings
+    ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 '
+    : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600';
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
@@ -34,16 +37,20 @@
       ></SidebarBrand>
     </SidebarGroup>
     <SidebarGroup border>
-      <SidebarItem label="Orders" href="/orders" {nonActiveClass}>
+      <SidebarItem label="Orders" href={hasRequiredSettings ? "/orders" : undefined} {nonActiveClass}>
         <svelte:fragment slot="icon">
           <ReceiptSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
-      <SidebarItem label="Vaults" href="/vaults" {nonActiveClass}>
+      <SidebarItem label="Vaults" href={hasRequiredSettings ? "/vaults" : undefined} {nonActiveClass}>
         <svelte:fragment slot="icon">
           <WalletSolid class="h-5 w-5" />
         </svelte:fragment>
       </SidebarItem>
+    </SidebarGroup>
+    <SidebarGroup border>
+      <DropdownActiveChainSettings />
+      <DropdownActiveOrderbookSettings />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">

@@ -12,15 +12,23 @@
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
-  import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
+  import { goto } from '$app/navigation';
+  import { hasRequiredSettings } from '$lib/stores/settings';
 
-  redirectIfSettingsNotDefined();
+  $: $hasRequiredSettings, redirectIfMissingSettings();
+
+  async function redirectIfMissingSettings() {
+    const hasRequiredSettingsVal = await hasRequiredSettings.load();
+    if(!hasRequiredSettingsVal) goto('/settings');
+  }
+
+  redirectIfMissingSettings();
 </script>
 
 <WindowDraggableArea />
 
 <div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
-  <Sidebar />
+  <Sidebar hasRequiredSettings={$hasRequiredSettings} />
 
   <main class="ml-64 h-full w-full grow overflow-x-auto p-8">
     <slot />
