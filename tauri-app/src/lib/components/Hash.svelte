@@ -2,7 +2,7 @@
   import { toasts } from "$lib/stores/toasts";
   import { Tooltip } from 'flowbite-svelte';
   import { WalletOutline, FingerprintOutline, ClipboardListOutline } from "flowbite-svelte-icons";
-  import { HashType } from "$lib/utils/hash";
+  import { HashType } from "$lib/types/hash";
 
   export let value: string;
   export let type: HashType | undefined = undefined;

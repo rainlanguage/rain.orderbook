@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CodeMirror from 'svelte-codemirror-editor';
-	import { completionCallback, hoverCallback, problemsCallback } from '../utils/langServices';
+	import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
 	import { RawRainlangExtension, type RawLanguageServicesCallbacks } from 'codemirror-rainlang';
 	import { codeMirrorTheme } from '$lib/stores/darkMode';
 

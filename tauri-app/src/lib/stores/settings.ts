@@ -6,8 +6,8 @@ import { validatedStringStore } from '$lib/storesGeneric/settingStore';
 import { cachedWritableInt } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains'
-import { getChainIdFromRpc } from '$lib/utils/chain';
-import { getForkBlockNumberFromRpc } from '$lib/utils/forkBlockNumber';
+import { getChainIdFromRpc } from '$lib/services/chain';
+import { getForkBlockNumberFromRpc } from '$lib/services/forkBlockNumber';
 
 const BLANK_WALLET_ADDRESS = '';
 

@@ -10,7 +10,7 @@
   import { useVaultBalanceChangesList } from '$lib/stores/vaultBalanceChangesList';
   import { bigintStringToHex } from '$lib/utils/hex';
   import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/utils/hash';
+  import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { goto } from '$app/navigation';
   import LightweightChartHistogram from '$lib/components/LightweightChartHistogram.svelte';
