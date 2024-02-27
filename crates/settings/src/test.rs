@@ -38,7 +38,7 @@ pub fn mock_token(name: &str) -> Arc<Token> {
         label: Some(name.into()),
         address: Address::repeat_byte(0x05),
         symbol: Some("TKN".into()),
-        decimals: Some(18.into()),
+        decimals: Some(18),
         network: mock_network(),
     })
 }

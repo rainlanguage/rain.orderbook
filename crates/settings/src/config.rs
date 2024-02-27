@@ -226,12 +226,12 @@ mod tests {
         let charts = HashMap::new();
 
         let config_string = ConfigString {
-            networks: networks,
-            subgraphs: subgraphs,
-            orderbooks: orderbooks,
-            vaults: vaults,
-            tokens: tokens,
-            deployers: deployers,
+            networks,
+            subgraphs,
+            orderbooks,
+            vaults,
+            tokens,
+            deployers,
             orders,
             scenarios,
             charts,
@@ -346,14 +346,14 @@ mod tests {
 
         // Construct ConfigString with the above scenarios
         let config_string = ConfigString {
-            networks: networks,
+            networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
             orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
             vaults: HashMap::new(),    // Assuming no vaults for simplification
             tokens: HashMap::new(),    // Assuming no tokens for simplification
             deployers: HashMap::new(), // Assuming no deployers for simplification
             orders: HashMap::new(),    // Assuming no orders for simplification
-            scenarios: scenarios,
+            scenarios,
             charts: HashMap::new(), // Assuming no charts for simplification
         };
 

@@ -117,10 +117,10 @@ mod tests {
         let chart = chart_string
             .try_into_chart("chart1".to_string(), &scenarios)
             .unwrap();
-        assert_eq!(
-            Arc::ptr_eq(&chart.scenario, scenarios.get("scenario1").unwrap()),
-            true
-        );
+        assert!(Arc::ptr_eq(
+            &chart.scenario,
+            scenarios.get("scenario1").unwrap()
+        ));
         assert!(chart.plots.contains_key("plot1"));
     }
 
@@ -142,10 +142,10 @@ mod tests {
         let chart = chart_string
             .try_into_chart(chart_name.clone(), &scenarios)
             .unwrap();
-        assert_eq!(
-            Arc::ptr_eq(&chart.scenario, scenarios.get(&chart_name).unwrap()),
-            true
-        );
+        assert!(Arc::ptr_eq(
+            &chart.scenario,
+            scenarios.get(&chart_name).unwrap()
+        ));
         assert!(chart.plots.contains_key("plot1"));
     }
 
@@ -206,10 +206,10 @@ mod tests {
         let chart = chart_string
             .try_into_chart("chart5".to_string(), &scenarios)
             .unwrap();
-        assert_eq!(
-            Arc::ptr_eq(&chart.scenario, scenarios.get("scenario5").unwrap()),
-            true
-        );
+        assert!(Arc::ptr_eq(
+            &chart.scenario,
+            scenarios.get("scenario5").unwrap()
+        ));
         assert_eq!(chart.plots.len(), 2);
         assert!(chart.plots.contains_key("plot1") && chart.plots.contains_key("plot2"));
     }
