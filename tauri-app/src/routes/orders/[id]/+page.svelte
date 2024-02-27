@@ -119,7 +119,7 @@
   <svelte:fragment slot="chart">
     <LightweightChartLine
       title="Trades"
-      data={orderTakesListChartData}
+      data={orderTakesListChartDataSorted}
       loading={$orderTakesList.isFetchingAll}
       emptyMessage="No trades found"
     />
