@@ -2310,9 +2310,9 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.8"
+version = "6.0.1-alpha.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7649d39a901ae6731bf2f91cbd3c2619fecee8215c4c57766ec63c1247842a28"
+checksum = "08708f5a322925647d011431a93bc015cccfaa42b267d6ce1167f77a7dd44952"
 dependencies = [
  "alloy-primitives 0.5.4",
  "anyhow",
@@ -2331,9 +2331,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.8"
+version = "6.0.1-alpha.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb3f3c0e08bb4dc5429d036fb24fd755de916ea4cc84e8f4db65e27f875f02fc"
+checksum = "61e80ac27d6e5683915149bbc025554e01ef0f031d79132242ac126aaef6acdd"
 dependencies = [
  "alloy-primitives 0.5.4",
  "anyhow",
@@ -6626,13 +6626,16 @@ dependencies = [
  "csv",
  "dotrain",
  "dotrain-lsp",
+ "futures",
  "k256",
  "once_cell",
+ "proptest",
  "rain-interpreter-eval",
  "rain-metadata 0.0.2-alpha.2",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
+ "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "reqwest",
