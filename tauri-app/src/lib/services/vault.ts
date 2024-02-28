@@ -1,6 +1,7 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, walletDerivationIndex, chainId } from '$lib/stores/settings';
+import { rpcUrl, orderbookAddress, chainId } from '$lib/stores/settings';
+import { walletDerivationIndex } from '$lib/stores/wallets';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
   await invoke("vault_deposit", {
@@ -10,8 +11,8 @@ export async function vaultDeposit(vaultId: bigint, token: string, amount: bigin
       amount: amount.toString(),
     },
     transactionArgs: {
-      rpc_url: get(rpcUrl).value,
-      orderbook_address: get(orderbookAddress).value,
+      rpc_url: get(rpcUrl),
+      orderbook_address: get(orderbookAddress),
       derivation_index: get(walletDerivationIndex),
       chain_id: get(chainId),
     }
@@ -26,10 +27,10 @@ export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount
       target_amount: targetAmount.toString(),
     },
     transactionArgs: {
-      rpc_url: get(rpcUrl).value,
-      orderbook_address: get(orderbookAddress).value,
+      rpc_url: get(rpcUrl),
+      orderbook_address: get(orderbookAddress),
       derivation_index: get(walletDerivationIndex),
-      chain_id: get(chainId),
+      chain_id: get(chainId)
     }
   });
 }

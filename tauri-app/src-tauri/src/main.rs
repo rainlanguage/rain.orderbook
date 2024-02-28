@@ -16,6 +16,7 @@ use commands::vault::{
     vault_withdraw, vaults_list, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
+use commands::settings::parse_settings;
 
 fn main() {
     if std::env::consts::OS == "linux" {
@@ -52,7 +53,8 @@ fn run_tauri_app() {
             parse_dotrain,
             call_lsp_completion,
             call_lsp_hover,
-            call_lsp_problems
+            call_lsp_problems,
+            parse_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

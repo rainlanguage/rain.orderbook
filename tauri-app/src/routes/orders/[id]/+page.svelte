@@ -1,8 +1,8 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
-  import { orderDetail } from '$lib/stores/orderDetail';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
+  import { orderDetail, useOrderTakesList } from '$lib/stores/order';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
@@ -14,16 +14,20 @@
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import { sortBy } from 'lodash';
-  import { useOrderTakesList } from '$lib/stores/orderTakesList';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import type { UTCTimestamp } from 'lightweight-charts';
   import { colorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
+  let orderTakesListChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
+
+  const orderTakesList = useOrderTakesList($page.params.id);
 
   $: order = $orderDetail.data[$page.params.id]?.order;
   $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
+  $: $orderTakesList.all, orderTakesListChartData = prepareChartData();
 
   async function remove() {
     isSubmitting = true;
@@ -34,8 +38,18 @@
     isSubmitting = false;
   }
 
-  const orderTakesList = useOrderTakesList($page.params.id);
-  orderTakesList.fetchAll(0);
+  function prepareChartData() {
+    const transformedData = $orderTakesList.all.map((d) => ({
+      value: parseFloat(d.ioratio),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+      color: '#4E4AF6',
+    }));
+
+    return sortBy(
+      transformedData,
+      (d) => d.time
+    );
+  }
 
   $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
     value: parseFloat(d.ioratio),
@@ -45,6 +59,7 @@
   $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
 
   orderDetail.refetch($page.params.id);
+  orderTakesList.fetchAll(0);
 </script>
 
 <PageHeader title="Order" />
@@ -104,7 +119,7 @@
   <svelte:fragment slot="chart">
     <LightweightChartLine
       title="Trades"
-      data={orderTakesListChartDataSorted}
+      data={orderTakesListChartData}
       loading={$orderTakesList.isFetchingAll}
       emptyMessage="No trades found"
     />

@@ -13,6 +13,7 @@ derive_builder = { workspace = true }
 url = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
+serde_yaml = { workspace = true }
 strict-yaml-rust = { workspace = true }
 alloy-primitives = { workspace = true }
 typeshare = { workspace = true }
