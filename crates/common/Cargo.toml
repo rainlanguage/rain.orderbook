@@ -40,6 +40,7 @@ typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
 k256 = "=0.13.1"
+alloy-genesis = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
