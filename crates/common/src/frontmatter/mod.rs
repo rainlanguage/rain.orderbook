@@ -1,6 +1,3 @@
-pub mod scenarios;
-pub use scenarios::*;
-
 use alloy_primitives::{Address, U256};
 use dotrain::Rebind;
 use rain_orderbook_bindings::IOrderBookV3::IO;
@@ -17,8 +14,6 @@ pub enum FrontmatterError {
     FrontmatterFieldMissing(String),
     #[error("Frontmatter empty")]
     FrontmatterEmpty,
-    #[error("Scenario Parsing Error: {0}")]
-    ScenarioParsingError(#[from] ScenarioParsingError),
 }
 
 /// Parse dotrain frontmatter to extract deployer, valid-inputs and valid-outputs
