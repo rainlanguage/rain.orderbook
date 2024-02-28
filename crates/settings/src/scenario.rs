@@ -47,16 +47,22 @@ impl ScenarioString {
         deployers: &HashMap<String, Arc<Deployer>>,
         orderbooks: &HashMap<String, Arc<Orderbook>>,
     ) -> Result<HashMap<String, Arc<Scenario>>, ParseScenarioStringError> {
-        // Try to resolve the deployer by the specified name or fall back to the scenario name
+        // Determine the resolved name for the deployer, preferring the explicit deployer name if provided.
         let resolved_name = self.deployer.as_ref().unwrap_or(&name);
-        let deployer_ref = deployers
-            .get(resolved_name)
-            .ok_or_else(|| ParseScenarioStringError::DeployerNotFound(resolved_name.clone()))?;
 
-        // Perform shadowing check if there's a parent
-        // Check if the parent scenario has a deployer and if it's different from the resolved deployer
-        if let Some(parent_deployer_name) = &parent.deployer {
-            if parent_deployer_name.label != Some(resolved_name.to_string()) {
+        // Attempt to find the deployer using the resolved name.
+        let resolved_deployer = deployers.get(resolved_name);
+
+        // If no deployer is found using the resolved name, fall back to the parent's deployer, if any.
+        let deployer_ref = resolved_deployer.or(parent.deployer.as_ref());
+
+        // If no deployer could be resolved and there's no parent deployer, return an error.
+        let deployer_ref =
+            deployer_ref.ok_or_else(|| ParseScenarioStringError::DeployerNotFound(name.clone()))?;
+
+        // Check for non-matching override: if both the current and parent deployers are present and different, it's an error.
+        if let (deployer, Some(parent_deployer)) = (deployer_ref, parent.deployer.as_ref()) {
+            if deployer.label != parent_deployer.label {
                 return Err(ParseScenarioStringError::ParentDeployerShadowedError(
                     resolved_name.clone(),
                 ));
@@ -133,8 +139,120 @@ impl ScenarioString {
 #[cfg(test)]
 
 mod tests {
+    use crate::test::mock_deployer;
+
     use super::*;
     use std::collections::HashMap;
+
+    #[test]
+    fn test_scenarios_conversion_with_nesting() {
+        // Initialize networks as in the previous example
+        let mut networks = HashMap::new();
+        networks.insert(
+            "mainnet".to_string(),
+            NetworkString {
+                rpc: "https://mainnet.node".to_string(),
+                chain_id: "1".to_string(),
+                label: Some("Ethereum Mainnet".to_string()),
+                network_id: Some("1".to_string()),
+                currency: Some("ETH".to_string()),
+            },
+        );
+
+        // Define a deployer
+        let mut deployers = HashMap::new();
+        deployers.insert(
+            "mainnet".to_string(),
+            DeployerString {
+                address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01".to_string(),
+                network: None,
+                label: Some("Mainnet Deployer".to_string()),
+            },
+        );
+
+        // Define nested scenarios
+        let mut nested_scenario2 = HashMap::new();
+        nested_scenario2.insert(
+            "nested_scenario2".to_string(),
+            ScenarioString {
+                bindings: HashMap::new(), // Assuming no bindings for simplification
+                runs: Some("2".to_string()),
+                deployer: None,
+                orderbook: None,
+                scenarios: None, // No further nesting
+            },
+        );
+
+        let mut nested_scenario1 = HashMap::new();
+        nested_scenario1.insert(
+            "nested_scenario1".to_string(),
+            ScenarioString {
+                bindings: HashMap::new(), // Assuming no bindings for simplification
+                runs: Some("5".to_string()),
+                deployer: None,
+                orderbook: None,
+                scenarios: Some(nested_scenario2), // Include nested_scenario2
+            },
+        );
+
+        // Define root scenario with nested_scenario1
+        let mut scenarios = HashMap::new();
+        scenarios.insert(
+            "root_scenario".to_string(),
+            ScenarioString {
+                bindings: HashMap::new(), // Assuming no bindings for simplification
+                runs: Some("10".to_string()),
+                deployer: Some("mainnet".to_string()),
+                orderbook: None,
+                scenarios: Some(nested_scenario1), // Include nested_scenario1
+            },
+        );
+
+        // Construct ConfigString with the above scenarios
+        let config_string = ConfigString {
+            networks,
+            subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
+            orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
+            vaults: HashMap::new(),    // Assuming no vaults for simplification
+            tokens: HashMap::new(),    // Assuming no tokens for simplification
+            deployers,
+            orders: HashMap::new(), // Assuming no orders for simplification
+            scenarios,
+            charts: HashMap::new(), // Assuming no charts for simplification
+        };
+
+        // Perform the conversion
+        let config_result = Config::try_from(config_string);
+        println!("{:?}", config_result);
+        assert!(config_result.is_ok());
+
+        let config = config_result.unwrap();
+
+        // Verify the root scenario
+        assert!(config.scenarios.contains_key("root_scenario"));
+        let root_scenario = config.scenarios.get("root_scenario").unwrap();
+        assert_eq!(root_scenario.runs, Some(10));
+
+        // Verify the first level of nested scenarios
+        assert!(config
+            .scenarios
+            .contains_key("root_scenario.nested_scenario1"));
+        let nested_scenario1 = config
+            .scenarios
+            .get("root_scenario.nested_scenario1")
+            .unwrap();
+        assert_eq!(nested_scenario1.runs, Some(5));
+
+        // Verify the second level of nested scenarios
+        assert!(config
+            .scenarios
+            .contains_key("root_scenario.nested_scenario1.nested_scenario2"));
+        let nested_scenario2 = config
+            .scenarios
+            .get("root_scenario.nested_scenario1.nested_scenario2")
+            .unwrap();
+        assert_eq!(nested_scenario2.runs, Some(2));
+    }
 
     #[test]
     fn test_scenario_shadowing_error_in_bindings() {
@@ -143,7 +261,7 @@ mod tests {
 
         let parent_scenario = ScenarioParent {
             bindings: Some(parent_bindings),
-            deployer: None,
+            deployer: Some(mock_deployer()),
             orderbook: None,
         };
 
@@ -160,10 +278,12 @@ mod tests {
 
         let result = child_scenario.try_into_scenarios(
             "child".to_string(),
-            &parent_scenario, // Assuming no parent orderbook for simplification
-            &HashMap::new(),  // Empty deployers for simplification
-            &HashMap::new(),  // Empty orderbooks for simplification
+            &parent_scenario,
+            &HashMap::new(), // Empty deployers for simplification
+            &HashMap::new(), // Empty orderbooks for simplification
         );
+
+        println!("{:?}", result);
 
         assert!(result.is_err());
         match result.err().unwrap() {
@@ -172,54 +292,5 @@ mod tests {
             }
             _ => panic!("Expected ParentBindingShadowedError"),
         }
-    }
-
-    #[test]
-    fn test_scenario_network_inheritance() {
-        let root_scenario_bindings = HashMap::new();
-
-        let root_scenario = ScenarioString {
-            bindings: root_scenario_bindings,
-            runs: Some("10".to_string()),
-            deployer: None,
-            orderbook: None,
-            scenarios: None,
-        };
-
-        let child_scenario_bindings = HashMap::new();
-
-        let child_scenario = ScenarioString {
-            bindings: child_scenario_bindings,
-            runs: Some("5".to_string()),
-            deployer: None,
-            orderbook: None,
-            scenarios: None,
-        };
-
-        // Convert root scenario
-        let root_result = root_scenario.try_into_scenarios(
-            "root".to_string(),
-            &ScenarioParent::default(),
-            &HashMap::new(),
-            &HashMap::new(),
-        );
-        assert!(root_result.is_ok());
-        let root_scenarios = root_result.unwrap();
-        let root_converted = root_scenarios.get("root").unwrap();
-
-        // Convert child scenario with the root's network context
-        let child_result = child_scenario.try_into_scenarios(
-            "child".to_string(),
-            &ScenarioParent {
-                bindings: Some(root_converted.bindings.clone()),
-                deployer: None,
-                orderbook: None,
-            },
-            &HashMap::new(),
-            &HashMap::new(),
-        );
-        assert!(child_result.is_ok());
-        let child_scenarios = child_result.unwrap();
-        let child_converted = child_scenarios.get("child").unwrap();
     }
 }

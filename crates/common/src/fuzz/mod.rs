@@ -116,7 +116,7 @@ impl FuzzRunner {
             final_bindings.extend(scenario_bindings.clone());
 
             let rainlang_string = RainDocument::compose_text(
-                &*self.dotrain.clone(),
+                &self.dotrain.clone(),
                 &ORDERBOOK_ORDER_ENTRYPOINTS,
                 None,
                 Some(final_bindings),
@@ -125,7 +125,7 @@ impl FuzzRunner {
             let args = ForkEvalArgs {
                 rainlang_string,
                 source_index: 0,
-                deployer: deployer.address.clone(),
+                deployer: deployer.address,
                 namespace: FullyQualifiedNamespace::default(),
                 context: vec![],
             };
