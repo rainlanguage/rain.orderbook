@@ -19,7 +19,7 @@
 
   async function redirectIfMissingSettings() {
     const hasRequiredSettingsVal = await hasRequiredSettings.load();
-    if(!hasRequiredSettingsVal) goto('/settings');
+    if (!hasRequiredSettingsVal) goto('/settings');
   }
 
   redirectIfMissingSettings();
@@ -44,4 +44,7 @@
       </div>
     {/each}
   </div>
+</div>
+<div class="bg-primary-400 fixed bottom-0 left-64 right-0 p-2 text-center text-white">
+  The Rain Orderbook app is still early alpha - have fun but use at your own risk!
 </div>
