@@ -6,8 +6,7 @@ use thiserror::Error;
 pub struct Scenario {
     pub bindings: HashMap<String, String>,
     pub runs: Option<u64>,
-    pub network: Option<Arc<Network>>,
-    pub deployer: Option<Arc<Deployer>>,
+    pub deployer: Arc<Deployer>,
     pub orderbook: Option<Arc<Orderbook>>,
 }
 
@@ -17,23 +16,24 @@ pub enum ParseScenarioStringError {
     RunsParseError(ParseIntError),
     #[error("Parent binding shadowed by child: {0}")]
     ParentBindingShadowedError(String),
-    #[error("Parent network shadowed by child: {0}")]
-    ParentNetworkShadowedError(String),
     #[error("Parent deployer shadowed by child: {0}")]
     ParentDeployerShadowedError(String),
+    #[error("Deployer not found: {0}")]
+    DeployerNotFound(String),
     #[error("Parent orderbook shadowed by child: {0}")]
     ParentOrderbookShadowedError(String),
+    #[error("Orderbook not found: {0}")]
+    OrderbookNotFound(String),
 }
 
 #[derive(Default)]
 pub struct ScenarioParent {
     bindings: Option<HashMap<String, String>>,
-    network: Option<Arc<Network>>,
     deployer: Option<Arc<Deployer>>,
     orderbook: Option<Arc<Orderbook>>,
 }
 
-// Shadowing is disallowed for networks, deployers, orderbooks and specific bindings.
+// Shadowing is disallowed for deployers, orderbooks and specific bindings.
 // If a child specifies one that is already set by the parent, this is an error.
 //
 // Nested scenarios within the ScenarioString struct are flattened out into a
@@ -44,45 +44,37 @@ impl ScenarioString {
         &self,
         name: String,
         parent: &ScenarioParent,
-        networks: &HashMap<String, Arc<Network>>,
         deployers: &HashMap<String, Arc<Deployer>>,
         orderbooks: &HashMap<String, Arc<Orderbook>>,
     ) -> Result<HashMap<String, Arc<Scenario>>, ParseScenarioStringError> {
-        // Handling Network
-        let network_ref = self
-            .network
-            .as_ref()
-            .map(|network_name| {
-                networks.get(network_name).ok_or_else(|| {
-                    ParseScenarioStringError::ParentNetworkShadowedError(name.clone())
-                })
-            })
-            .transpose()?
-            .or(parent.network.as_ref());
+        // Try to resolve the deployer by the specified name or fall back to the scenario name
+        let resolved_name = self.deployer.as_ref().unwrap_or(&name);
+        let deployer_ref = deployers
+            .get(resolved_name)
+            .ok_or_else(|| ParseScenarioStringError::DeployerNotFound(resolved_name.clone()))?;
 
-        // Handling Deployer
-        let deployer_ref = self
-            .deployer
-            .as_ref()
-            .map(|deployer_name| {
-                deployers.get(deployer_name).ok_or_else(|| {
-                    ParseScenarioStringError::ParentDeployerShadowedError(name.clone())
-                })
-            })
-            .transpose()?
-            .or(parent.deployer.as_ref());
+        // Perform shadowing check if there's a parent
+        // Check if the parent scenario has a deployer and if it's different from the resolved deployer
+        if let Some(parent_deployer_name) = &parent.deployer {
+            if parent_deployer_name.label != Some(resolved_name.to_string()) {
+                return Err(ParseScenarioStringError::ParentDeployerShadowedError(
+                    resolved_name.clone(),
+                ));
+            }
+        }
 
-        // Handling Orderbook
-        let orderbook_ref = self
-            .orderbook
-            .as_ref()
-            .map(|orderbook_name| {
-                orderbooks.get(orderbook_name).ok_or_else(|| {
-                    ParseScenarioStringError::ParentOrderbookShadowedError(name.clone())
-                })
-            })
-            .transpose()?
-            .or(parent.orderbook.as_ref());
+        // Try to resolve the orderbook by the specified name or fall back to the scenario name
+        let resolved_name = self.orderbook.as_ref().unwrap_or(&name);
+        let orderbook_ref = orderbooks.get(resolved_name);
+
+        // Perform shadowing check if we resolved an orderbook and there's also a parent
+        if let Some(parent_orderbook_name) = &parent.orderbook {
+            if parent_orderbook_name.label != Some(resolved_name.to_string()) {
+                return Err(ParseScenarioStringError::ParentOrderbookShadowedError(
+                    resolved_name.clone(),
+                ));
+            }
+        }
 
         // Merge bindings and check for shadowing
         let mut bindings = parent
@@ -109,8 +101,7 @@ impl ScenarioString {
                 .map(|s| s.parse::<u64>())
                 .transpose()
                 .map_err(ParseScenarioStringError::RunsParseError)?,
-            network: network_ref.cloned(),
-            deployer: deployer_ref.cloned(),
+            deployer: deployer_ref.clone(),
             orderbook: orderbook_ref.cloned(),
         });
 
@@ -124,11 +115,9 @@ impl ScenarioString {
                     format!("{}.{}", name, child_name),
                     &ScenarioParent {
                         bindings: Some(bindings.clone()),
-                        network: network_ref.cloned(),
-                        deployer: deployer_ref.cloned(),
+                        deployer: Some(deployer_ref.clone()),
                         orderbook: orderbook_ref.cloned(),
                     },
-                    networks,
                     deployers,
                     orderbooks,
                 )?;
@@ -154,7 +143,6 @@ mod tests {
 
         let parent_scenario = ScenarioParent {
             bindings: Some(parent_bindings),
-            network: None,
             deployer: None,
             orderbook: None,
         };
@@ -165,7 +153,6 @@ mod tests {
         let child_scenario = ScenarioString {
             bindings: child_bindings,
             runs: None,
-            network: None,
             deployer: None,
             orderbook: None,
             scenarios: None,
@@ -174,7 +161,6 @@ mod tests {
         let result = child_scenario.try_into_scenarios(
             "child".to_string(),
             &parent_scenario, // Assuming no parent orderbook for simplification
-            &HashMap::new(),  // Empty networks for simplification
             &HashMap::new(),  // Empty deployers for simplification
             &HashMap::new(),  // Empty orderbooks for simplification
         );
@@ -195,7 +181,6 @@ mod tests {
         let root_scenario = ScenarioString {
             bindings: root_scenario_bindings,
             runs: Some("10".to_string()),
-            network: Some("mainnet".to_string()),
             deployer: None,
             orderbook: None,
             scenarios: None,
@@ -206,29 +191,15 @@ mod tests {
         let child_scenario = ScenarioString {
             bindings: child_scenario_bindings,
             runs: Some("5".to_string()),
-            network: None, // Intentionally left None to test inheritance
             deployer: None,
             orderbook: None,
             scenarios: None,
         };
 
-        let mut networks = HashMap::new();
-        networks.insert(
-            "mainnet".to_string(),
-            Arc::new(Network {
-                rpc: "https://mainnet.node".parse().unwrap(),
-                chain_id: 1,
-                label: Some("Ethereum Mainnet".to_string()),
-                network_id: Some(1),
-                currency: Some("ETH".to_string()),
-            }),
-        );
-
         // Convert root scenario
         let root_result = root_scenario.try_into_scenarios(
             "root".to_string(),
             &ScenarioParent::default(),
-            &networks,
             &HashMap::new(),
             &HashMap::new(),
         );
@@ -241,19 +212,14 @@ mod tests {
             "child".to_string(),
             &ScenarioParent {
                 bindings: Some(root_converted.bindings.clone()),
-                network: Some(root_converted.network.as_ref().unwrap().clone()),
                 deployer: None,
                 orderbook: None,
             },
-            &networks,
             &HashMap::new(),
             &HashMap::new(),
         );
         assert!(child_result.is_ok());
         let child_scenarios = child_result.unwrap();
         let child_converted = child_scenarios.get("child").unwrap();
-
-        // Verify child inherited network from root
-        assert_eq!(child_converted.network, root_converted.network);
     }
 }

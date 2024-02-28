@@ -130,7 +130,6 @@ impl TryFrom<ConfigString> for Config {
             let scenario_map = scenario_string.try_into_scenarios(
                 name.clone(),
                 &ScenarioParent::default(),
-                &networks,
                 &deployers,
                 &orderbooks,
             )?;
@@ -310,7 +309,6 @@ mod tests {
             ScenarioString {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some("2".to_string()),
-                network: None, // Inherits from parent if None
                 deployer: None,
                 orderbook: None,
                 scenarios: None, // No further nesting
@@ -323,7 +321,6 @@ mod tests {
             ScenarioString {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some("5".to_string()),
-                network: None, // Inherits from parent if None
                 deployer: None,
                 orderbook: None,
                 scenarios: Some(nested_scenario2), // Include nested_scenario2
@@ -337,7 +334,6 @@ mod tests {
             ScenarioString {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some("10".to_string()),
-                network: Some("mainnet".to_string()),
                 deployer: None,
                 orderbook: None,
                 scenarios: Some(nested_scenario1), // Include nested_scenario1
@@ -367,7 +363,6 @@ mod tests {
         assert!(config.scenarios.contains_key("root_scenario"));
         let root_scenario = config.scenarios.get("root_scenario").unwrap();
         assert_eq!(root_scenario.runs, Some(10));
-        assert!(root_scenario.network.is_some());
 
         // Verify the first level of nested scenarios
         assert!(config

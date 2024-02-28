@@ -4582,14 +4582,18 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 name = "rain-interpreter-eval"
 version = "0.1.0"
 dependencies = [
+ "alloy-dyn-abi 0.5.4",
+ "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "foundry-evm",
+ "once_cell",
  "rain_interpreter_bindings",
+ "reqwest",
  "revm",
+ "serde",
+ "serde_json",
  "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -4752,6 +4756,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "forker",
+ "futures",
  "once_cell",
  "proptest",
  "rain-interpreter-eval",
@@ -4759,12 +4764,14 @@ dependencies = [
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
+ "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "reqwest",
  "serde",
  "serde_bytes",
  "serde_json",
+ "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
  "tokio",
