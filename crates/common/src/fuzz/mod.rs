@@ -175,7 +175,7 @@ b: fuzzed;
 #handle-io
 :;
     "#;
-        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
+        let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigString>(frontmatter).unwrap();
         let config = settings
             .try_into()
@@ -185,7 +185,7 @@ b: fuzzed;
         let mut runner = FuzzRunner::new(dotrain, config, None).await;
 
         let single_scenario = runner
-            .run_scenario("mumbai".into())
+            .run_scenario("mumbai")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();

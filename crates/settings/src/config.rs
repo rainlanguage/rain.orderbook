@@ -21,7 +21,7 @@ pub struct Config {
 pub type Subgraph = Url;
 pub type Vault = U256;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum ParseConfigStringError {
     #[error(transparent)]
     ParseNetworkStringError(#[from] ParseNetworkStringError),
@@ -41,6 +41,8 @@ pub enum ParseConfigStringError {
     VaultParseError(alloy_primitives::ruint::ParseError),
     #[error("Failed to parse subgraph {}", 0)]
     SubgraphParseError(url::ParseError),
+    #[error(transparent)]
+    YamlDeserializerError(#[from] serde_yaml::Error),
 }
 
 impl TryFrom<ConfigString> for Config {
@@ -151,6 +153,20 @@ impl TryFrom<ConfigString> for Config {
         };
 
         Ok(config)
+    }
+}
+
+impl TryFrom<String> for Config {
+    type Error = ParseConfigStringError;
+    fn try_from(val: String) -> Result<Config, Self::Error> {
+        std::convert::TryInto::<ConfigString>::try_into(val)?.try_into()
+    }
+}
+
+impl TryFrom<&str> for Config {
+    type Error = ParseConfigStringError;
+    fn try_from(val: &str) -> Result<Config, Self::Error> {
+        std::convert::TryInto::<ConfigString>::try_into(val)?.try_into()
     }
 }
 
