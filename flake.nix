@@ -112,7 +112,7 @@
                 otool -L src-tauri/target/release/Rain\ Orderbook
                 grep_exit_code=0
                 otool -L src-tauri/target/release/Rain\ Orderbook | grep -q /nix/store || grep_exit_code=$?
-                if [ $grep_exit_code -eq 0 ]; then;
+                if [ $grep_exit_code -eq 0 ]; then
                   exit 1
                 fi
               fi
