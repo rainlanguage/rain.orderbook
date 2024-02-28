@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Debug, PartialEq)]
 pub struct Deployer {
     pub address: Address,
-    pub network: Option<Arc<Network>>,
+    pub network: Arc<Network>,
     pub label: Option<String>,
 }
 
@@ -42,7 +42,7 @@ impl DeployerString {
                 .address
                 .parse()
                 .map_err(ParseDeployerStringError::AddressParseError)?,
-            network: Some(network_ref),
+            network: network_ref,
             label: self.label,
         })
     }
@@ -81,7 +81,7 @@ mod tests {
         let deployer = result.unwrap();
         assert_eq!(deployer.address, address);
         assert_eq!(
-            deployer.network.unwrap().as_ref().label,
+            deployer.network.as_ref().label,
             Some(network_name.to_string())
         );
         assert_eq!(deployer.label, Some("Test Deployer".to_string()));
@@ -139,7 +139,7 @@ mod tests {
         assert!(result.is_ok());
         let deployer = result.unwrap();
         assert_eq!(
-            deployer.network.unwrap().as_ref().label,
+            deployer.network.as_ref().label,
             Some(network_name.to_string())
         );
     }

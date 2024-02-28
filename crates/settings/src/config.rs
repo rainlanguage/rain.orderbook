@@ -130,7 +130,6 @@ impl TryFrom<ConfigString> for Config {
             let scenario_map = scenario_string.try_into_scenarios(
                 name.clone(),
                 &ScenarioParent::default(),
-                &networks,
                 &deployers,
                 &orderbooks,
             )?;
@@ -286,107 +285,5 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
-    }
-
-    #[test]
-    fn test_scenarios_conversion_with_nesting() {
-        // Initialize networks as in the previous example
-        let mut networks = HashMap::new();
-        networks.insert(
-            "mainnet".to_string(),
-            NetworkString {
-                rpc: "https://mainnet.node".to_string(),
-                chain_id: "1".to_string(),
-                label: Some("Ethereum Mainnet".to_string()),
-                network_id: Some("1".to_string()),
-                currency: Some("ETH".to_string()),
-            },
-        );
-
-        // Define nested scenarios
-        let mut nested_scenario2 = HashMap::new();
-        nested_scenario2.insert(
-            "nested_scenario2".to_string(),
-            ScenarioString {
-                bindings: HashMap::new(), // Assuming no bindings for simplification
-                runs: Some("2".to_string()),
-                network: None, // Inherits from parent if None
-                deployer: None,
-                orderbook: None,
-                scenarios: None, // No further nesting
-            },
-        );
-
-        let mut nested_scenario1 = HashMap::new();
-        nested_scenario1.insert(
-            "nested_scenario1".to_string(),
-            ScenarioString {
-                bindings: HashMap::new(), // Assuming no bindings for simplification
-                runs: Some("5".to_string()),
-                network: None, // Inherits from parent if None
-                deployer: None,
-                orderbook: None,
-                scenarios: Some(nested_scenario2), // Include nested_scenario2
-            },
-        );
-
-        // Define root scenario with nested_scenario1
-        let mut scenarios = HashMap::new();
-        scenarios.insert(
-            "root_scenario".to_string(),
-            ScenarioString {
-                bindings: HashMap::new(), // Assuming no bindings for simplification
-                runs: Some("10".to_string()),
-                network: Some("mainnet".to_string()),
-                deployer: None,
-                orderbook: None,
-                scenarios: Some(nested_scenario1), // Include nested_scenario1
-            },
-        );
-
-        // Construct ConfigString with the above scenarios
-        let config_string = ConfigString {
-            networks,
-            subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
-            orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
-            vaults: HashMap::new(),    // Assuming no vaults for simplification
-            tokens: HashMap::new(),    // Assuming no tokens for simplification
-            deployers: HashMap::new(), // Assuming no deployers for simplification
-            orders: HashMap::new(),    // Assuming no orders for simplification
-            scenarios,
-            charts: HashMap::new(), // Assuming no charts for simplification
-        };
-
-        // Perform the conversion
-        let config_result = Config::try_from(config_string);
-        assert!(config_result.is_ok());
-
-        let config = config_result.unwrap();
-
-        // Verify the root scenario
-        assert!(config.scenarios.contains_key("root_scenario"));
-        let root_scenario = config.scenarios.get("root_scenario").unwrap();
-        assert_eq!(root_scenario.runs, Some(10));
-        assert!(root_scenario.network.is_some());
-
-        // Verify the first level of nested scenarios
-        assert!(config
-            .scenarios
-            .contains_key("root_scenario.nested_scenario1"));
-        let nested_scenario1 = config
-            .scenarios
-            .get("root_scenario.nested_scenario1")
-            .unwrap();
-        assert_eq!(nested_scenario1.runs, Some(5));
-
-        // Verify the second level of nested scenarios
-        assert!(config
-            .scenarios
-            .contains_key("root_scenario.nested_scenario1.nested_scenario2"));
-        let nested_scenario2 = config
-            .scenarios
-            .get("root_scenario.nested_scenario1.nested_scenario2")
-            .unwrap();
-        assert_eq!(nested_scenario2.runs, Some(2));
     }
 }

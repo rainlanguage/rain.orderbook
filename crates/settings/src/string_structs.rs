@@ -3,14 +3,23 @@ use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConfigString {
+    #[serde(default)]
     pub networks: HashMap<String, NetworkString>,
+    #[serde(default)]
     pub subgraphs: HashMap<String, String>,
+    #[serde(default)]
     pub orderbooks: HashMap<String, OrderbookString>,
+    #[serde(default)]
     pub vaults: HashMap<String, String>,
+    #[serde(default)]
     pub tokens: HashMap<String, TokenString>,
+    #[serde(default)]
     pub deployers: HashMap<String, DeployerString>,
+    #[serde(default)]
     pub orders: HashMap<String, OrderString>,
+    #[serde(default)]
     pub scenarios: HashMap<String, ScenarioString>,
+    #[serde(default)]
     pub charts: HashMap<String, ChartString>,
 }
 
@@ -58,9 +67,9 @@ pub struct OrderString {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScenarioString {
+    #[serde(default)]
     pub bindings: HashMap<String, String>,
     pub runs: Option<String>,
-    pub network: Option<String>,
     pub deployer: Option<String>,
     pub orderbook: Option<String>,
     pub scenarios: Option<HashMap<String, ScenarioString>>,
