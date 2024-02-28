@@ -1,13 +1,11 @@
 use crate::error::CommandResult;
 use rain_orderbook_common::{
-    types::OrderTakeFlattened, utils::timestamp::FormatTimestampDisplayError,
-    subgraph::SubgraphArgs, csv::TryIntoCsv,
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderTakeFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
-use rain_orderbook_subgraph_client::{
-    types::order_takes_list, PaginationArgs,
-};
-use std::path::PathBuf;
+use rain_orderbook_subgraph_client::{types::order_takes_list, PaginationArgs};
 use std::fs;
+use std::path::PathBuf;
 
 #[tauri::command]
 pub async fn order_takes_list(
@@ -35,9 +33,9 @@ pub async fn order_takes_list_write_csv(
         .order_takes_list_all(order_id.clone().into())
         .await?;
     let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
-            .into_iter()
-            .map(|o| o.try_into())
-            .collect::<Result<Vec<OrderTakeFlattened>, FormatTimestampDisplayError>>()?;
+        .into_iter()
+        .map(|o| o.try_into())
+        .collect::<Result<Vec<OrderTakeFlattened>, FormatTimestampDisplayError>>()?;
     let csv_text = order_takes_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 
