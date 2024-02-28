@@ -1846,9 +1846,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.8"
+version = "6.0.1-alpha.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7649d39a901ae6731bf2f91cbd3c2619fecee8215c4c57766ec63c1247842a28"
+checksum = "08708f5a322925647d011431a93bc015cccfaa42b267d6ce1167f77a7dd44952"
 dependencies = [
  "alloy-primitives 0.5.4",
  "anyhow",
@@ -1867,9 +1867,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.8"
+version = "6.0.1-alpha.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb3f3c0e08bb4dc5429d036fb24fd755de916ea4cc84e8f4db65e27f875f02fc"
+checksum = "61e80ac27d6e5683915149bbc025554e01ef0f031d79132242ac126aaef6acdd"
 dependencies = [
  "alloy-primitives 0.5.4",
  "anyhow",
@@ -2468,18 +2468,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
-name = "forker"
-version = "0.0.0"
-source = "git+https://github.com/rainlanguage/forker?rev=886743d71ce23091d858bf3ae4596d7ab05e04f2#886743d71ce23091d858bf3ae4596d7ab05e04f2"
-dependencies = [
- "ethers",
- "eyre",
- "foundry-evm",
- "k256",
- "revm",
-]
-
-[[package]]
 name = "form_urlencoded"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2601,9 +2589,9 @@ dependencies = [
 
 [[package]]
 name = "foundry-compilers"
-version = "0.3.6"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba64504d49ebda9141869b2ba23db2d685ae4cf17bcddf5e61f0e4bc515ebb25"
+checksum = "d1b77c95e79bff02ddaa38426fc6809a3a438dce0e6a2eb212dac97da7c157b4"
 dependencies = [
  "alloy-json-abi 0.6.2",
  "alloy-primitives 0.6.2",
@@ -4755,10 +4743,11 @@ dependencies = [
  "csv",
  "dotrain",
  "dotrain-lsp",
- "forker",
  "futures",
  "once_cell",
  "proptest",
+ "k256",
+ "once_cell",
  "rain-interpreter-eval",
  "rain-metadata 0.0.2-alpha.2",
  "rain_interpreter_bindings",
@@ -7161,4 +7150,4 @@ dependencies = [
 [[patch.unused]]
 name = "revm-inspectors"
 version = "0.1.0"
-source = "git+https://github.com/paradigmxyz/evm-inspectors#b63ec734f89424dc4872a7cc18173c035889df80"
+source = "git+https://github.com/paradigmxyz/evm-inspectors#e90052361276aebcdc67cb24d8e2c4d907b6d299"
