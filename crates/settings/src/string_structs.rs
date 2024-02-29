@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use typeshare::typeshare;
 
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ConfigString {
     #[serde(default)]
     pub networks: HashMap<String, NetworkString>,
@@ -25,7 +23,6 @@ pub struct ConfigString {
     pub charts: HashMap<String, ChartString>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkString {
     pub rpc: String,
@@ -35,7 +32,6 @@ pub struct NetworkString {
     pub currency: Option<String>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OrderbookString {
     pub address: String,
@@ -44,7 +40,6 @@ pub struct OrderbookString {
     pub label: Option<String>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TokenString {
     pub network: String,
@@ -54,7 +49,6 @@ pub struct TokenString {
     pub symbol: Option<String>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeployerString {
     pub address: String,
@@ -62,7 +56,6 @@ pub struct DeployerString {
     pub label: Option<String>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OrderString {
     pub inputs: Vec<String>,
@@ -72,7 +65,6 @@ pub struct OrderString {
     pub orderbook: Option<String>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScenarioString {
     #[serde(default)]
@@ -83,21 +75,18 @@ pub struct ScenarioString {
     pub scenarios: Option<HashMap<String, ScenarioString>>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChartString {
     pub scenario: Option<String>,
     pub plots: HashMap<String, PlotString>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlotString {
     pub data: DataPointsString,
     pub plot_type: String,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DataPointsString {
     pub x: String,

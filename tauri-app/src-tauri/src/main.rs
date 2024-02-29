@@ -11,7 +11,7 @@ use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv};
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
-use commands::settings::parse_settings;
+use commands::settings::{parse_settings, parse_settings2};
 use commands::vault::{
     vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit, vault_detail,
     vault_withdraw, vaults_list, vaults_list_write_csv,
@@ -55,6 +55,7 @@ fn run_tauri_app() {
             call_lsp_hover,
             call_lsp_problems,
             parse_settings,
+            parse_settings2,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

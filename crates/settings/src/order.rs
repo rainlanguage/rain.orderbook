@@ -1,13 +1,21 @@
 use crate::*;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
+    #[typeshare(typescript(type = "Token[]"))]
     pub inputs: Vec<Arc<Token>>,
+    #[typeshare(typescript(type = "Token[]"))]
     pub outputs: Vec<Arc<Token>>,
+    #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
+    #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Option<Arc<Deployer>>,
+    #[typeshare(typescript(type = "Orderbook"))]
     pub orderbook: Option<Arc<Orderbook>>,
 }
 

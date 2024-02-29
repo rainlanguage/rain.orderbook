@@ -1,20 +1,32 @@
 use crate::*;
 use alloy_primitives::U256;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
+use typeshare::typeshare;
 use url::Url;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
+    #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
     pub subgraphs: HashMap<String, Arc<Subgraph>>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
     pub vaults: HashMap<String, Arc<Vault>>,
+    #[typeshare(typescript(type = "Record<string, Orderbook>"))]
     pub orderbooks: HashMap<String, Arc<Orderbook>>,
+    #[typeshare(typescript(type = "Record<string, Token>"))]
     pub tokens: HashMap<String, Arc<Token>>,
+    #[typeshare(typescript(type = "Record<string, Deployer>"))]
     pub deployers: HashMap<String, Arc<Deployer>>,
+    #[typeshare(typescript(type = "Record<string, Order>"))]
     pub orders: HashMap<String, Arc<Order>>,
+    #[typeshare(typescript(type = "Record<string, Scenario>"))]
     pub scenarios: HashMap<String, Arc<Scenario>>,
+    #[typeshare(typescript(type = "Record<string, Chart>"))]
     pub charts: HashMap<String, Arc<Chart>>,
 }
 
