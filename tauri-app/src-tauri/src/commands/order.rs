@@ -1,14 +1,16 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv, remove_order::RemoveOrderArgs,
-    subgraph::SubgraphArgs, transaction::TransactionArgs, types::OrderDetailExtended,
-    types::OrderFlattened, utils::timestamp::FormatTimestampDisplayError,
+    add_order::AddOrderArgs, remove_order::RemoveOrderArgs, subgraph::SubgraphArgs,
+    transaction::TransactionArgs, types::OrderDetailExtended, types::OrderFlattened,
+    csv::TryIntoCsv, utils::timestamp::FormatTimestampDisplayError,
 };
-use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
-use std::fs;
+use rain_orderbook_subgraph_client::{
+    types::orders_list, PaginationArgs,
+};
 use std::path::PathBuf;
 use tauri::AppHandle;
+use std::fs;
 
 #[tauri::command]
 pub async fn orders_list(
@@ -33,10 +35,7 @@ pub async fn orders_list_write_csv(
         .await?
         .orders_list_all()
         .await?;
-    let orders_flattened: Vec<OrderFlattened> = orders
-        .into_iter()
-        .map(|o| o.try_into())
-        .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
+    let orders_flattened: Vec<OrderFlattened> = orders.into_iter().map(|o| o.try_into()).collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
     let csv_text = orders_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 

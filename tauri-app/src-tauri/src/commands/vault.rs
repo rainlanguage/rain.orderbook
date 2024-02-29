@@ -1,21 +1,21 @@
 use crate::error::CommandResult;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
 use rain_orderbook_common::{
-    csv::TryIntoCsv,
-    deposit::DepositArgs,
-    subgraph::SubgraphArgs,
-    transaction::TransactionArgs,
+    deposit::DepositArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
+    withdraw::WithdrawArgs, csv::TryIntoCsv,
     types::{TokenVaultFlattened, VaultBalanceChangeFlattened},
     utils::timestamp::FormatTimestampDisplayError,
-    withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
+    types::{
+        vault_balance_change::VaultBalanceChange,
+        vault_detail, vaults_list,
+    },
     PaginationArgs,
 };
-use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
+use std::fs;
 
 #[tauri::command]
 pub async fn vaults_list(
@@ -72,10 +72,7 @@ pub async fn vault_balance_changes_list_write_csv(
         .await?
         .vault_balance_changes_list_all(id.into())
         .await?;
-    let data_flattened: Vec<VaultBalanceChangeFlattened> =
-        data.into_iter()
-            .map(|o| o.try_into())
-            .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
+    let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.try_into()).collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
     let csv_text = data_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 

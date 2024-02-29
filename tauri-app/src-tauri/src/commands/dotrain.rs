@@ -9,5 +9,8 @@ pub async fn parse_dotrain(
     rpc_url: &str,
     block_number: u64,
 ) -> CommandResult<Bytes> {
-    Ok(parse_rainlang_on_fork(frontmatter, rainlang, rpc_url, Some(block_number)).await?)
+    Ok(
+        parse_rainlang_on_fork(frontmatter, rainlang, rpc_url, Some(block_number))
+            .await?
+    )
 }
