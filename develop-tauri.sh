@@ -12,8 +12,10 @@ nix develop --command i9r-prelude
 popd
 
 # Run commands in tauri-app
+pushd tauri-app
 nix develop .#tauri-shell --command cargo build --verbose
 nix develop .#tauri-shell --command ob-tauri-prelude
 nix develop .#tauri-shell --command ob-tauri-test
 # Use tauri dev instead of tauri build
 nix develop .#tauri-shell --command cargo tauri dev --verbose
+popd
