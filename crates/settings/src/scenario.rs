@@ -1,12 +1,18 @@
 use crate::*;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, num::ParseIntError, sync::Arc};
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Scenario {
     pub bindings: HashMap<String, String>,
+    #[typeshare(skip)]
     pub runs: Option<u64>,
+    #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
+    #[typeshare(typescript(type = "Orderbook"))]
     pub orderbook: Option<Arc<Orderbook>>,
 }
 
