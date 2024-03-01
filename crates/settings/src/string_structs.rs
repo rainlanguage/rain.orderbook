@@ -79,7 +79,6 @@ pub struct ScenarioString {
     pub bindings: HashMap<String, String>,
     pub runs: Option<String>,
     pub deployer: Option<String>,
-    pub orderbook: Option<String>,
     pub scenarios: Option<HashMap<String, ScenarioString>>,
 }
 
@@ -198,7 +197,6 @@ scenarios:
         runs: 100
         network: mainnet
         deployer: mainDeployer
-        orderbook: mainnetOrderbook
         scenarios:
             subScenario1:
                 bindings:
