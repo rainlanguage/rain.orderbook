@@ -8,7 +8,7 @@ use typeshare::typeshare;
 use url::Url;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,

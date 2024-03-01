@@ -6,7 +6,7 @@ use typeshare::typeshare;
 use url::{ParseError, Url};
 
 #[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Network {
     #[typeshare(typescript(type = "string"))]
     pub rpc: Url,

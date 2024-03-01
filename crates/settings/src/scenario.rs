@@ -5,7 +5,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Scenario {
     pub bindings: HashMap<String, String>,
     #[typeshare(skip)]

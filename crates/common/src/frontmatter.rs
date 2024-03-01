@@ -1,22 +1,25 @@
 use alloy_primitives::{Address, U256};
 use dotrain::Rebind;
-use rain_orderbook_app_settings::{merge::MergeError, string_structs::Config};
+use rain_orderbook_app_settings::{
+    config::{Config, ParseConfigStringError},
+    merge::MergeError,
+};
 use rain_orderbook_bindings::IOrderBookV3::IO;
 use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum FrontmatterError {
-    #[error("frontmatter is not valid strict yaml: {0}")]
-    FrontmatterInvalidYaml(#[from] ScanError),
-    #[error("Invalid Field: {0}")]
-    FrontmatterFieldInvalid(String),
-    #[error("Missing Field: {0}")]
-    FrontmatterFieldMissing(String),
-    #[error("Frontmatter empty")]
-    FrontmatterEmpty,
+    // #[error("frontmatter is not valid strict yaml: {0}")]
+    // FrontmatterInvalidYaml(#[from] ScanError),
+    // #[error("Invalid Field: {0}")]
+    // FrontmatterFieldInvalid(String),
+    // #[error("Missing Field: {0}")]
+    // FrontmatterFieldMissing(String),
+    // #[error("Frontmatter empty")]
+    // FrontmatterEmpty,
     #[error(transparent)]
-    SerdeYamlError(#[from] serde_yaml::Error),
+    ParseConfigError(#[from] ParseConfigStringError),
     #[error(transparent)]
     MergeError(#[from] MergeError),
 }

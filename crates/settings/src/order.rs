@@ -5,7 +5,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Order {
     #[typeshare(typescript(type = "Token[]"))]
     pub inputs: Vec<Arc<Token>>,

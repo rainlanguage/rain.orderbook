@@ -6,7 +6,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Token {
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
