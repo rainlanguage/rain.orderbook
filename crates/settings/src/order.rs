@@ -29,6 +29,8 @@ pub enum ParseOrderStringError {
     TokenParseError(ParseTokenStringError),
     #[error("Network not found: {0}")]
     NetworkNotFoundError(String),
+    #[error("Network does not match")]
+    NetworkNotMatch,
 }
 
 impl OrderString {
@@ -70,31 +72,35 @@ impl OrderString {
             })
             .transpose()?;
 
-        let inputs = self
-            .inputs
-            .into_iter()
-            .map(|input| {
-                tokens
-                    .get(&input)
-                    .ok_or(ParseOrderStringError::TokenParseError(
-                        ParseTokenStringError::NetworkNotFoundError(input.clone()),
-                    ))
-                    .map(Arc::clone)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut inputs = vec![];
+        for input in self.inputs {
+            if let Some(token) = tokens.get(&input) {
+                if token.network == network_ref {
+                    inputs.push(token.clone());
+                } else {
+                    return Err(ParseOrderStringError::NetworkNotMatch);
+                }
+            } else {
+                return Err(ParseOrderStringError::TokenParseError(
+                    ParseTokenStringError::NetworkNotFoundError(input.clone()),
+                ));
+            }
+        }
 
-        let outputs = self
-            .outputs
-            .into_iter()
-            .map(|output| {
-                tokens
-                    .get(&output)
-                    .ok_or(ParseOrderStringError::TokenParseError(
-                        ParseTokenStringError::NetworkNotFoundError(output.clone()),
-                    ))
-                    .map(Arc::clone)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut outputs = vec![];
+        for output in self.outputs {
+            if let Some(token) = tokens.get(&output) {
+                if token.network == network_ref {
+                    outputs.push(token.clone());
+                } else {
+                    return Err(ParseOrderStringError::NetworkNotMatch);
+                }
+            } else {
+                return Err(ParseOrderStringError::TokenParseError(
+                    ParseTokenStringError::NetworkNotFoundError(output.clone()),
+                ));
+            }
+        }
 
         Ok(Order {
             inputs,
