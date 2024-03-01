@@ -225,6 +225,7 @@ mod tests {
             orders: HashMap::new(), // Assuming no orders for simplification
             scenarios,
             charts: HashMap::new(), // Assuming no charts for simplification
+            deployments: HashMap::new(),
         };
 
         // Perform the conversion

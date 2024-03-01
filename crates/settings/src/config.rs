@@ -8,7 +8,7 @@ use typeshare::typeshare;
 use url::Url;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Config {
     #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
@@ -28,6 +28,8 @@ pub struct Config {
     pub scenarios: HashMap<String, Arc<Scenario>>,
     #[typeshare(typescript(type = "Record<string, Chart>"))]
     pub charts: HashMap<String, Arc<Chart>>,
+    #[typeshare(typescript(type = "Record<string, Deployment>"))]
+    pub deployments: HashMap<String, Arc<Deployment>>,
 }
 
 pub type Subgraph = Url;
@@ -49,6 +51,8 @@ pub enum ParseConfigStringError {
     ParseScenarioStringError(#[from] ParseScenarioStringError),
     #[error(transparent)]
     ParseChartStringError(#[from] ParseChartStringError),
+    #[error(transparent)]
+    ParseDeploymentStringError(#[from] ParseDeploymentStringError),
     #[error("Failed to parse vault {}", 0)]
     VaultParseError(alloy_primitives::ruint::ParseError),
     #[error("Failed to parse subgraph {}", 0)]
@@ -152,6 +156,17 @@ impl TryFrom<ConfigString> for Config {
             scenarios.extend(scenario_map);
         }
 
+        let deployments = item
+            .deployments
+            .into_iter()
+            .map(|(name, deployment)| {
+                Ok((
+                    name,
+                    Arc::new(deployment.try_into_deployment(&scenarios, &orders)?),
+                ))
+            })
+            .collect::<Result<HashMap<String, Arc<Deployment>>, ParseConfigStringError>>()?;
+
         let config = Config {
             networks,
             subgraphs,
@@ -162,6 +177,7 @@ impl TryFrom<ConfigString> for Config {
             orders,
             scenarios,
             charts: HashMap::new(),
+            deployments,
         };
 
         Ok(config)
@@ -251,6 +267,7 @@ mod tests {
         let orders = HashMap::new();
         let scenarios = HashMap::new();
         let charts = HashMap::new();
+        let deployments = HashMap::new();
 
         let config_string = ConfigString {
             networks,
@@ -262,6 +279,7 @@ mod tests {
             orders,
             scenarios,
             charts,
+            deployments,
         };
 
         let config_result = Config::try_from(config_string);

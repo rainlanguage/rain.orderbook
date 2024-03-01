@@ -21,6 +21,8 @@ pub struct ConfigString {
     pub scenarios: HashMap<String, ScenarioString>,
     #[serde(default)]
     pub charts: HashMap<String, ChartString>,
+    #[serde(default)]
+    pub deployments: HashMap<String, DeploymentString>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -54,6 +56,12 @@ pub struct DeployerString {
     pub address: String,
     pub network: Option<String>,
     pub label: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeploymentString {
+    pub scenario: String,
+    pub order: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -121,12 +129,12 @@ networks:
         label: Mainnet
         network_id: 1
         currency: ETH
-testnet:
-    rpc: https://testnet.node
-    chain_id: 2
-    label: Testnet
-    network_id: 2
-    currency: ETH
+    testnet:
+        rpc: https://testnet.node
+        chain_id: 2
+        label: Testnet
+        network_id: 2
+        currency: ETH
 
 subgraphs:
     mainnet: https://mainnet.subgraph
@@ -212,7 +220,13 @@ charts:
                     x: dataX2
                     y: dataY2
                 plot_type: bar
-              "#;
+deployments:
+    first-deployment:
+        scenario: mainScenario
+        order: bytETH
+    second-deployment:
+        scenario: mainScenario
+        order: buyETH"#;
 
         let config: ConfigString = yaml_data.try_into().unwrap();
 

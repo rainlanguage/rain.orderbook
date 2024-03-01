@@ -1,6 +1,7 @@
 pub mod chart;
 pub mod config;
 pub mod deployer;
+pub mod deployment;
 pub mod merge;
 pub mod network;
 pub mod order;
@@ -13,6 +14,7 @@ pub mod token;
 pub(crate) use chart::*;
 pub(crate) use config::*;
 pub(crate) use deployer::*;
+pub(crate) use deployment::*;
 pub(crate) use network::*;
 pub(crate) use order::*;
 pub(crate) use orderbook::*;
