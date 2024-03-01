@@ -5,7 +5,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Config {
     pub networks: HashMap<String, Arc<Network>>,
     pub subgraphs: HashMap<String, Arc<Subgraph>>,

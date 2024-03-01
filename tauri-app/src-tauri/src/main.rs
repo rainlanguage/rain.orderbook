@@ -9,6 +9,7 @@ mod commands;
 use commands::chain::{get_block_number, get_chainid};
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
+use commands::fuzz::fuzz;
 use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv};
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
 use commands::settings::parse_settings;
@@ -55,6 +56,7 @@ fn run_tauri_app() {
             call_lsp_hover,
             call_lsp_problems,
             parse_settings,
+            fuzz
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
