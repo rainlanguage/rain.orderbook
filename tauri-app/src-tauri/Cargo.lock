@@ -341,6 +341,7 @@ dependencies = [
  "alloy-transport",
  "bimap",
  "futures",
+ "serde",
  "serde_json",
  "tokio",
  "tower",

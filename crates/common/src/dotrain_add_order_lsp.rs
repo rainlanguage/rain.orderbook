@@ -24,7 +24,7 @@ pub struct DotrainAddOrderLsp {
 }
 
 impl DotrainAddOrderLsp {
-    pub fn new(text_document: TextDocumentItem) -> Self {
+    pub fn new(text_document: TextDocumentItem, config: &Config) -> Self {
         let frontmatter = RainDocument::get_front_matter(&text_document.text);
         let rebinds = frontmatter.and_then(try_parse_frontmatter_rebinds);
 
