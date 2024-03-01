@@ -87,7 +87,6 @@ mod tests {
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
             runs,
             deployer: mock_deployer(),
-            orderbook: None,
         };
         (name.to_string(), Arc::new(scenario))
     }

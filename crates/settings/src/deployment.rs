@@ -79,7 +79,7 @@ mod tests {
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
-            orderbook: None,
+            // orderbook: None,
         };
         let order = Order {
             inputs: vec![],
@@ -107,7 +107,7 @@ mod tests {
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
-            orderbook: None,
+            // orderbook: None,
         };
         let order = Order {
             inputs: vec![],

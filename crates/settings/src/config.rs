@@ -149,7 +149,6 @@ impl TryFrom<ConfigString> for Config {
                 name.clone(),
                 &ScenarioParent::default(),
                 &deployers,
-                &orderbooks,
             )?;
 
             // Merge the scenarios
