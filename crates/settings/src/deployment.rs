@@ -19,6 +19,8 @@ pub enum ParseDeploymentStringError {
     ScenarioNotFoundError(String),
     #[error("Order not found: {0}")]
     OrderNotFoundError(String),
+    #[error("Scenario and Order do not match")]
+    NoMatch,
 }
 
 impl DeploymentString {
@@ -40,6 +42,13 @@ impl DeploymentString {
                 self.order.clone(),
             ))
             .map(Arc::clone)?;
+
+        // check validity
+        if let Some(deployer) = &order.deployer {
+            if deployer != &scenario.deployer {
+                return Err(ParseDeploymentStringError::NoMatch);
+            }
+        };
 
         Ok(Deployment { scenario, order })
     }
