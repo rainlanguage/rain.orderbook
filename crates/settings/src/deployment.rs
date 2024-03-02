@@ -38,7 +38,7 @@ impl DeploymentString {
 
         let order = orders
             .get(&self.order)
-            .ok_or(ParseDeploymentStringError::ScenarioNotFoundError(
+            .ok_or(ParseDeploymentStringError::OrderNotFoundError(
                 self.order.clone(),
             ))
             .map(Arc::clone)?;
