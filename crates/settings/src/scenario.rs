@@ -194,7 +194,6 @@ mod tests {
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
             orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
-            vaults: HashMap::new(),    // Assuming no vaults for simplification
             tokens: HashMap::new(),    // Assuming no tokens for simplification
             deployers,
             orders: HashMap::new(), // Assuming no orders for simplification
