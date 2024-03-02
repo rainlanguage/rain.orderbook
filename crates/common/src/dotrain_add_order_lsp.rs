@@ -60,7 +60,7 @@ pub async fn problems(
     rpc_url: &str,
     block_number: Option<u64>,
     bindings: HashMap<String, String>,
-    deployer: Address,
+    deployer: Option<Address>,
 ) -> Vec<Problem> {
     let mut rebinds = None;
     if !bindings.is_empty() {
@@ -90,17 +90,25 @@ pub async fn problems(
             },
         };
 
-        parse_rainlang_on_fork(&rainlang, rpc_url, block_number, deployer)
-            .await
-            .map_or_else(
-                |e| {
-                    vec![Problem {
-                        msg: e.to_string(),
-                        position: [0, 0],
-                        code: ErrorCode::NativeParserError,
-                    }]
-                },
-                |_| vec![],
-            )
+        if let Some(deployer_add) = deployer {
+            parse_rainlang_on_fork(&rainlang, rpc_url, block_number, deployer_add)
+                .await
+                .map_or_else(
+                    |e| {
+                        vec![Problem {
+                            msg: e.to_string(),
+                            position: [0, 0],
+                            code: ErrorCode::NativeParserError,
+                        }]
+                    },
+                    |_| vec![],
+                )
+        } else {
+            vec![Problem {
+                msg: "undefined deployer address".to_owned(),
+                position: [0, 0],
+                code: ErrorCode::NativeParserError,
+            }]
+        }
     }
 }
