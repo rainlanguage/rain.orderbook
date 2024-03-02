@@ -71,6 +71,8 @@ impl ChartString {
 
 #[cfg(test)]
 mod tests {
+    use self::test::mock_deployer;
+
     use super::*;
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -79,8 +81,7 @@ mod tests {
         let scenario = Scenario {
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
             runs,
-            network: None,
-            deployer: None,
+            deployer: mock_deployer(),
             orderbook: None,
         };
         (name.to_string(), Arc::new(scenario))

@@ -17,7 +17,7 @@ pub fn mock_network() -> Arc<Network> {
 pub fn mock_deployer() -> Arc<Deployer> {
     Arc::new(Deployer {
         address: Address::repeat_byte(0x03),
-        network: Some(mock_network()),
+        network: mock_network(),
         label: Some("Deployer1".into()),
     })
 }
