@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainprotocol/rainix/a182ea9ec2f8deaae04fd381d1ffd0eae19cb2dc";
+    rainix.url = "github:rainprotocol/rainix/c0ec270110349723cc26dbceb8f56d5c8d5ce8b7";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -94,7 +94,7 @@
                 install_name_tool -id @executable_path/../Frameworks/libintl.8.dylib lib/libintl.8.dylib
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib lib/libintl.8.dylib
                 otool -L lib/libintl.8.dylib
-              fi;
+              fi
             '';
           };
 
@@ -112,10 +112,10 @@
                 otool -L src-tauri/target/release/Rain\ Orderbook
                 grep_exit_code=0
                 otool -L src-tauri/target/release/Rain\ Orderbook | grep -q /nix/store || grep_exit_code=$?
-                if [ $grep_exit_code -eq 0 ]; then;
+                if [ $grep_exit_code -eq 0 ]; then
                   exit 1
-                fi;
-              fi;
+                fi
+              fi
             '';
           };
         } // rainix.packages.${system};
