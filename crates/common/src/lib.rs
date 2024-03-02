@@ -5,6 +5,7 @@ pub mod deposit;
 pub mod dotrain_add_order_lsp;
 pub mod forked_evm_cache;
 pub mod frontmatter;
+pub mod fuzz;
 pub mod meta;
 pub mod rainlang;
 pub mod remove_order;
@@ -13,7 +14,6 @@ pub mod transaction;
 pub mod types;
 pub mod utils;
 pub mod withdraw;
-pub mod fuzz;
 
 pub use dotrain;
 pub use dotrain_lsp;
