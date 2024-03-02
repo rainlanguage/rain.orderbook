@@ -15,7 +15,7 @@ pub struct OrderIO {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Order {
     #[typeshare(typescript(type = "OrderIO[]"))]
     pub inputs: Vec<OrderIO>,

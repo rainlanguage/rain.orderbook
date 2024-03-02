@@ -6,7 +6,7 @@ use typeshare::typeshare;
 use crate::*;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Chart {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
@@ -14,14 +14,14 @@ pub struct Chart {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Plot {
     pub data: DataPoints,
     pub plot_type: String,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DataPoints {
     pub x: String,
     pub y: String,

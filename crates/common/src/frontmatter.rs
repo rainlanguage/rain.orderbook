@@ -1,153 +1,40 @@
-use alloy_primitives::{Address, U256};
-use dotrain::Rebind;
+use dotrain::RainDocument;
 use rain_orderbook_app_settings::{
     config::{Config, ParseConfigStringError},
     merge::MergeError,
 };
-use rain_orderbook_bindings::IOrderBookV3::IO;
-use strict_yaml_rust::{scanner::ScanError, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum FrontmatterError {
-    // #[error("frontmatter is not valid strict yaml: {0}")]
-    // FrontmatterInvalidYaml(#[from] ScanError),
-    // #[error("Invalid Field: {0}")]
-    // FrontmatterFieldInvalid(String),
-    // #[error("Missing Field: {0}")]
-    // FrontmatterFieldMissing(String),
-    // #[error("Frontmatter empty")]
-    // FrontmatterEmpty,
     #[error(transparent)]
     ParseConfigError(#[from] ParseConfigStringError),
     #[error(transparent)]
     MergeError(#[from] MergeError),
 }
 
-/// Parse dotrain frontmatter to extract deployer, valid-inputs and valid-outputs
-#[allow(clippy::type_complexity)]
+/// Parse dotrain frontmatter to extract Config
 pub fn try_parse_frontmatter(frontmatter: &str) -> Result<Config, FrontmatterError> {
     if frontmatter.is_empty() {
         return Ok(Config::default());
     }
     Ok(frontmatter.try_into()?)
-    // // Parse dotrain document frontmatter
-    // let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter)
-    //     .map_err(FrontmatterError::FrontmatterInvalidYaml)?;
-    // let frontmatter_yaml = frontmatter_yaml_vec
-    //     .first()
-    //     .ok_or(FrontmatterError::FrontmatterEmpty)?;
-
-    // let deployer = frontmatter_yaml["orderbook"]["order"]["deployer"]
-    //     .as_str()
-    //     .ok_or(FrontmatterError::FrontmatterFieldMissing(
-    //         "orderbook.order.deployer".into(),
-    //     ))?
-    //     .parse::<Address>()
-    //     .map_err(|_| {
-    //         FrontmatterError::FrontmatterFieldInvalid("orderbook.order.deployer".into())
-    //     })?;
-
-    // let valid_inputs: Vec<IO> = try_parse_frontmatter_io(
-    //     frontmatter_yaml["orderbook"]["order"]["valid-inputs"].clone(),
-    //     "valid-inputs",
-    // )?;
-    // let valid_outputs: Vec<IO> = try_parse_frontmatter_io(
-    //     frontmatter_yaml["orderbook"]["order"]["valid-outputs"].clone(),
-    //     "valid-outputs",
-    // )?;
-
-    // let rebinds = get_rebinds_from_yaml(frontmatter_yaml);
-
-    // Ok((deployer, valid_inputs, valid_outputs, rebinds))
 }
 
-pub fn get_merged_frontmatter(
-    frontmatter: &str,
-    top_config: &Config,
+/// Parse dotrain frontmatter and merges it with top Config if given
+pub fn get_merged_config(
+    dotrain: &str,
+    top_config: Option<&Config>,
 ) -> Result<Config, FrontmatterError> {
+    let frontmatter = RainDocument::get_front_matter(dotrain).unwrap_or("");
     let mut frontmatter_config = try_parse_frontmatter(frontmatter)?;
-    frontmatter_config.merge(top_config.clone())?;
-    Ok(frontmatter_config)
+    if let Some(v) = top_config {
+        frontmatter_config.merge(v.clone())?;
+        Ok(frontmatter_config)
+    } else {
+        Ok(frontmatter_config)
+    }
 }
-
-// /// parses a yaml text and tries to get rebindings from it
-// pub fn try_parse_frontmatter_rebinds(frontmatter: &str) -> Option<Vec<Rebind>> {
-//     let frontmatter_yaml_vec = StrictYamlLoader::load_from_str(frontmatter).ok()?;
-//     let frontmatter_yaml = frontmatter_yaml_vec.first()?;
-
-//     get_rebinds_from_yaml(frontmatter_yaml)
-// }
-
-// /// gets rebindings from a parsed yaml
-// pub fn get_rebinds_from_yaml(frontmatter_yaml: &StrictYaml) -> Option<Vec<Rebind>> {
-//     let mut rebinds = vec![];
-//     let items = frontmatter_yaml["bind"].as_vec()?;
-//     for item in items {
-//         for (key, value) in item.as_hash()? {
-//             rebinds.push(Rebind(key.as_str()?.to_owned(), value.as_str()?.to_owned()))
-//         }
-//     }
-//     Some(rebinds)
-// }
-
-// /// Parse an Io array from from frontmatter field (i.e. valid-inputs or valid-outputs)
-// pub fn try_parse_frontmatter_io(
-//     io_yamls: StrictYaml,
-//     io_field_name: &str,
-// ) -> Result<Vec<IO>, FrontmatterError> {
-//     io_yamls
-//         .into_vec()
-//         .ok_or(FrontmatterError::FrontmatterFieldMissing(format!(
-//             "orderbook.order.{}",
-//             io_field_name
-//         )))?
-//         .into_iter()
-//         .map(|io_yaml| -> Result<IO, FrontmatterError> {
-//             Ok(IO {
-//                 token: io_yaml["token"]
-//                     .as_str()
-//                     .ok_or(FrontmatterError::FrontmatterFieldMissing(format!(
-//                         "orderbook.order.{}.token",
-//                         io_field_name
-//                     )))?
-//                     .parse::<Address>()
-//                     .map_err(|_| {
-//                         FrontmatterError::FrontmatterFieldInvalid(format!(
-//                             "orderbook.order.{}.token",
-//                             io_field_name
-//                         ))
-//                     })?,
-//                 decimals: io_yaml["decimals"]
-//                     .as_str()
-//                     .ok_or(FrontmatterError::FrontmatterFieldMissing(format!(
-//                         "orderbook.order.{}.decimals",
-//                         io_field_name
-//                     )))?
-//                     .parse::<u8>()
-//                     .map_err(|_| {
-//                         FrontmatterError::FrontmatterFieldInvalid(format!(
-//                             "orderbook.order.{}.decimals",
-//                             io_field_name
-//                         ))
-//                     })?,
-//                 vaultId: io_yaml["vault-id"]
-//                     .as_str()
-//                     .ok_or(FrontmatterError::FrontmatterFieldMissing(format!(
-//                         "orderbook.order.{}.vault-id",
-//                         io_field_name
-//                     )))?
-//                     .parse::<U256>()
-//                     .map_err(|_| {
-//                         FrontmatterError::FrontmatterFieldInvalid(format!(
-//                             "orderbook.order.{}.vault-id",
-//                             io_field_name
-//                         ))
-//                     })?,
-//             })
-//         })
-//         .collect::<Result<Vec<IO>, FrontmatterError>>()
-// }
 
 // #[cfg(test)]
 // mod tests {
