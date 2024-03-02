@@ -186,7 +186,7 @@ orders:
             - token: eth
               vault_id: 2
             - token: dai
-              vault-id: 0x1
+              vault_id: 0x1
         outputs:
             - token: dai
               vault_id: 3
