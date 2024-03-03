@@ -1,14 +1,18 @@
 use crate::error::CommandResult;
-use std::collections::HashMap;
 use alloy_primitives::Address;
 use rain_orderbook_common::{
     dotrain::types::ast::Problem,
     dotrain_add_order_lsp::{completion, hover, problems},
     dotrain_lsp::lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
 };
+use std::collections::HashMap;
 
 #[tauri::command]
-pub fn call_lsp_hover(text_document: TextDocumentItem, position: Position, bindings: HashMap<String, String>) -> Option<Hover> {
+pub fn call_lsp_hover(
+    text_document: TextDocumentItem,
+    position: Position,
+    bindings: HashMap<String, String>,
+) -> Option<Hover> {
     hover(&text_document, position, bindings)
 }
 
