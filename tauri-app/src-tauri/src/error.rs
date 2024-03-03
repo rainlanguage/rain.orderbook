@@ -1,6 +1,6 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
-use rain_orderbook_app_settings::{config::ParseConfigStringError, AppSettingsParseError};
+use rain_orderbook_app_settings::ParseConfigStringError;
 use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, frontmatter::FrontmatterError, meta::TryDecodeRainlangSourceError, rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError
 };
@@ -43,9 +43,6 @@ pub enum CommandError {
 
     #[error(transparent)]
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
-
-    #[error(transparent)]
-    AppSettingsParseError(#[from] AppSettingsParseError),
 
     #[error(transparent)]
     ConfigParseError(#[from] ParseConfigStringError),
