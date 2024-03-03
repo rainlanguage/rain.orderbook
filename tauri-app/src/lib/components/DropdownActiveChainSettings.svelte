@@ -1,28 +1,28 @@
 <script lang="ts">
   import { Helper, Label } from 'flowbite-svelte';
-  import { settings, activeChainSettingsIndex } from '$lib/stores/settings';
+  import { activeNetworkIndex, networks } from '$lib/stores/settings';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import SkeletonRow from '$lib/components/SkeletonRow.svelte';
 </script>
 
 <Label>Chain</Label>
-{#if $settings === undefined || $settings.chains.length === 0}
+{#if $networks === undefined || $networks.length === 0}
   <SkeletonRow />
 {:else}
-  <DropdownRadio options={$settings.chains || []} bind:value={$activeChainSettingsIndex}>
+  <DropdownRadio options={$networks || []} bind:value={$activeNetworkIndex}>
     <svelte:fragment slot="content" let:selected>
-      {selected.label ? selected.label : selected.rpc_url}
+      {selected[1].label ? selected[1].label : selected[0]}
     </svelte:fragment>
 
     <svelte:fragment slot="option" let:option>
-      {#if option.label}
+      {#if option[1].label}
         <div class="w-full overflow-hidden overflow-ellipsis">
-          <div class="text-md mb-2 break-word">{option.label}</div>
-          <Helper class="text-xs overflow-hidden overflow-ellipsis break-all">{option.rpc_url}</Helper>
+          <div class="text-md mb-2 break-word">{option[1].label}</div>
+          <Helper class="text-xs overflow-hidden overflow-ellipsis break-all">{option[1].rpc}</Helper>
         </div>
       {:else}
         <div class="w-full text-xs overflow-hidden overflow-ellipsis break-all">
-          {option.rpc_url}
+          {option[0]}
         </div>
       {/if}
     </svelte:fragment>

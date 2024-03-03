@@ -16,11 +16,9 @@ config_content = config_content.replace(`export interface Network {
 config_content = config_content.replace(`export interface Scenario {
 	bindings: Record<string, string>;
 	deployer: Deployer;
-	orderbook?: Orderbook;
 }`, `export interface Scenario {
 	bindings: Record<string, string>;
   runs?: number;
 	deployer: Deployer;
-	orderbook?: Orderbook;
 }`);
 fs.writeFileSync("./tauri-app/src/lib/typeshare/config.ts", config_content);

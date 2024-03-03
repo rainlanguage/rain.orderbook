@@ -8,30 +8,22 @@
   import { Helper, Label } from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
-  import { invoke } from '@tauri-apps/api';
-
-  import { activeChainSettingsIndex } from '$lib/stores/settings';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import SkeletonRow from '$lib/components/SkeletonRow.svelte';
-
-  import {
-    settings,
-    settingsText,
-  } from '$lib/stores/settings';
+  import { deployments, activeDeploymentIndex } from '$lib/stores/settings';
+  import { RawRainlangExtension, type RawLanguageServicesCallbacks } from 'codemirror-rainlang';
+  import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
 
   let isSubmitting = false;
 
-  $: dotrainFile = textFileStore('Rain', ['rain']);
-  $: topConfig = $settings.chains;
-  let config = topConfig;
-  $: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    invoke("merge_config", {dotrain: $dotrainFile.text, topConfig}).then(v => config = v as any);
-  };
+  const dotrainFile = textFileStore('Rain', ['rain']);
 
-  $: order = config[0];
-  $: scenario = config[1];
-
+  const callbacks: RawLanguageServicesCallbacks = {
+		hover: hoverCallback,
+		completion: completionCallback,
+		diagnostics: problemsCallback
+	}
+  let ext = new RawRainlangExtension(callbacks);
 
   async function execute() {
     isSubmitting = true;
@@ -51,6 +43,7 @@
           bind:value={$dotrainFile.text}
           disabled={isSubmitting}
           styles={{ '&': { minHeight: '400px' } }}
+          rainlangExtension={ext}
         />
     </svelte:fragment>
 
@@ -63,26 +56,19 @@
       >
     </svelte:fragment>
 
-    <Label>Order</Label>
-    {#if $settings === undefined || $settings.chains.length === 0}
+    <Label>Deployment</Label>
+    {#if $deployments === undefined || $deployments.length === 0}
       <SkeletonRow />
     {:else}
-      <DropdownRadio options={$settings.chains || []} bind:value={$activeChainSettingsIndex}>
+      <DropdownRadio options={$deployments?.map(v => v[0]) || []} bind:value={$activeDeploymentIndex}>
         <svelte:fragment slot="content" let:selected>
-          {selected.label ? selected.label : selected.rpc_url}
+          {selected}
         </svelte:fragment>
 
         <svelte:fragment slot="option" let:option>
-          {#if option.label}
-            <div class="w-full overflow-hidden overflow-ellipsis">
-              <div class="text-md mb-2 break-word">{option.label}</div>
-              <Helper class="text-xs overflow-hidden overflow-ellipsis break-all">{option.rpc_url}</Helper>
-            </div>
-          {:else}
-            <div class="w-full text-xs overflow-hidden overflow-ellipsis break-all">
-              {option.rpc_url}
-            </div>
-          {/if}
+          <div class="w-full text-xs overflow-hidden overflow-ellipsis break-all">
+            {option}
+          </div>
         </svelte:fragment>
       </DropdownRadio>
     {/if}
