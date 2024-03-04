@@ -1,8 +1,8 @@
+/** eslint-disable no-console */
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { textFileStore } from '$lib/storesGeneric/textFileStore';
   import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Helper, Label } from 'flowbite-svelte';
@@ -10,13 +10,11 @@
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import SkeletonRow from '$lib/components/SkeletonRow.svelte';
-  import { deployments, activeDeploymentIndex } from '$lib/stores/settings';
+  import { deployments, activeDeploymentIndex, dotrainFile } from '$lib/stores/settings';
   import { RawRainlangExtension, type RawLanguageServicesCallbacks } from 'codemirror-rainlang';
   import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
 
   let isSubmitting = false;
-
-  const dotrainFile = textFileStore('Rain', ['rain']);
 
   const callbacks: RawLanguageServicesCallbacks = {
 		hover: hoverCallback,
@@ -56,22 +54,24 @@
       >
     </svelte:fragment>
 
-    <Label>Deployment</Label>
-    {#if $deployments === undefined || $deployments.length === 0}
-      <SkeletonRow />
-    {:else}
-      <DropdownRadio options={$deployments?.map(v => v[0]) || []} bind:value={$activeDeploymentIndex}>
-        <svelte:fragment slot="content" let:selected>
-          {selected}
-        </svelte:fragment>
+    <svelte:fragment slot="deployment">
+      <Label>Deployment</Label>
+      {#if $deployments === undefined || $deployments.length === 0}
+        <SkeletonRow />
+      {:else}
+        <DropdownRadio options={$deployments?.map(v => v[0]) || []} bind:value={$activeDeploymentIndex}>
+          <svelte:fragment slot="content" let:selected>
+            {selected}
+          </svelte:fragment>
 
-        <svelte:fragment slot="option" let:option>
-          <div class="w-full text-xs overflow-hidden overflow-ellipsis break-all">
-            {option}
-          </div>
-        </svelte:fragment>
-      </DropdownRadio>
-    {/if}
+          <svelte:fragment slot="option" let:option>
+            <div class="w-full text-xs overflow-hidden overflow-ellipsis break-all">
+              {option}
+            </div>
+          </svelte:fragment>
+        </DropdownRadio>
+      {/if}
+    </svelte:fragment>
 </FileTextarea>
 
 <div class="my-8">

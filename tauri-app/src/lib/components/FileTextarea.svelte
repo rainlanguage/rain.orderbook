@@ -44,5 +44,9 @@
 </div>
 
 <div class="flex justify-end">
+  <slot name="deployment" />
+</div>
+
+<div class="flex justify-end">
   <slot name="submit" />
 </div>

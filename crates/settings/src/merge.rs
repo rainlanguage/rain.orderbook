@@ -27,6 +27,9 @@ pub enum MergeError {
 
     #[error("There is already a chart called {0}")]
     ChartCollision(String),
+
+    #[error("There is already a deployment called {0}")]
+    DeploymentCollision(String),
 }
 
 impl ConfigString {
@@ -101,6 +104,15 @@ impl ConfigString {
                 return Err(MergeError::ChartCollision(key));
             }
             charts.insert(key, value);
+        }
+
+        // Deployments
+        let deployments = &mut self.deployments;
+        for (key, value) in other.deployments {
+            if deployments.contains_key(&key) {
+                return Err(MergeError::DeploymentCollision(key));
+            }
+            deployments.insert(key, value);
         }
 
         Ok(())
@@ -179,6 +191,15 @@ impl Config {
                 return Err(MergeError::ChartCollision(key));
             }
             charts.insert(key, value.clone());
+        }
+
+        // Deployments
+        let deployments = &mut self.deployments;
+        for (key, value) in other.deployments {
+            if deployments.contains_key(&key) {
+                return Err(MergeError::DeploymentCollision(key));
+            }
+            deployments.insert(key, value);
         }
 
         Ok(())

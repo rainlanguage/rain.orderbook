@@ -225,7 +225,7 @@ charts:
 deployments:
     first-deployment:
         scenario: mainScenario
-        order: bytETH
+        order: sellETH
     second-deployment:
         scenario: mainScenario
         order: buyETH"#;

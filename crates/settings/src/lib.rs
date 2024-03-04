@@ -24,6 +24,3 @@ pub(crate) use token::*;
 mod test;
 
 pub use config::*;
-
-#[macro_use]
-extern crate derive_builder;
