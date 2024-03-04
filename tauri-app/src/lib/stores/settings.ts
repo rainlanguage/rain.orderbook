@@ -63,7 +63,7 @@ export const activeOrderbook =  derived([orderbooks, activeOrderbookIndex], ([$o
 export const subgraphUrl = derived(activeOrderbook, ($activeOrderbookSettings) => $activeOrderbookSettings?.[1].subgraph);
 export const orderbookAddress = derived(activeOrderbook, ($activeOrderbookSettings) => $activeOrderbookSettings?.[1].address);
 
-export const hasRequiredSettings = derived([activeNetwork, activeOrderbook], ([$activeChainSettings, $activeOrderbookSettings]) => true || ($activeChainSettings !== undefined && $activeOrderbookSettings !== undefined));
+export const hasRequiredSettings = derived([activeNetwork, activeOrderbook], ([$activeChainSettings, $activeOrderbookSettings]) => $activeChainSettings !== undefined && $activeOrderbookSettings !== undefined);
 
 // deployments
 export const deployments = derived([settings, activeNetwork, activeOrderbook], ([$settingsData, $activeNetwork, $activeOrderbook]) => Object.entries($settingsData.deployments).filter(v => {
