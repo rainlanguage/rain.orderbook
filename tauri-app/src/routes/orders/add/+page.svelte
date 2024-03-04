@@ -31,6 +31,9 @@
     } catch (e) {}
     isSubmitting = false;
   }
+
+  // @TODO - set dotrain text store to empty string on-destroy
+
 </script>
 
 <PageHeader title="Add Order" />
