@@ -142,7 +142,7 @@ impl AddOrderArgs {
     }
 
     /// returns the frontmatter config merged with top config
-    pub fn get_config(&self, top_config: Option<&Config>) -> Result<Config, FrontmatterError> {
+    pub fn get_config(&self, top_config: Option<&str>) -> Result<Config, FrontmatterError> {
         get_merged_config(&self.dotrain, top_config)
     }
 
