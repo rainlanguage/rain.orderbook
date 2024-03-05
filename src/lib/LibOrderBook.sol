@@ -6,7 +6,7 @@ import {
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
-} from "rain.interpreter/lib/caller/LibContext.sol";
+} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 
 /// @dev Orderbook context is actually fairly complex. The calling context column
 /// is populated before calculate order, but the remaining columns are only
