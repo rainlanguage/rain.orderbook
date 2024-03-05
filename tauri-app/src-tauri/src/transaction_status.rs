@@ -4,12 +4,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager};
-use typeshare::typeshare;
+use tsify::Tsify;
 use uuid::Uuid;
+use wasm_bindgen::prelude::*;
 
-#[typeshare]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Tsify)]
 #[serde(tag = "type", content = "payload")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum TransactionStatus {
     Initialized,
     PendingPrepare,
@@ -34,15 +35,15 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
 
 /// Position and Total number in a 'series' of transactions
 /// i.e. position: 1, total: 2 would be represent "Transaction 1 of 2"
-#[typeshare]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SeriesPosition {
     pub position: u8,
     pub total: u8,
 }
 
-#[typeshare]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TransactionStatusNotice {
     pub id: Uuid,
     pub status: TransactionStatus,

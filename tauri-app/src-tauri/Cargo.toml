@@ -19,7 +19,6 @@ rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "846dae9034c79f3935a0021635c9a6ee2d91f13e" }
 alloy-primitives = "0.5.4"
-typeshare = "1.0.1"
 alloy-json-abi = "0.5.4"
 alloy-sol-types = { version = "0.5.4", features = ["json"] }
 reqwest = { version = "0.11.22", features = ["json"] }
@@ -28,6 +27,8 @@ uuid = { version = "1.7.0", features = ["serde"] }
 serde_bytes = "0.11.14"
 thiserror = "1.0.56"
 url = "2.5.0"
+tsify = "0.4.5"
+wasm-bindgen = { version = "0.2" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

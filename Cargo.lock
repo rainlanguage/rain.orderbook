@@ -4570,17 +4570,11 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 name = "rain-interpreter-eval"
 version = "0.1.0"
 dependencies = [
- "alloy-dyn-abi 0.5.4",
- "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
  "alloy-sol-types 0.5.4",
  "foundry-evm",
- "once_cell",
  "rain_interpreter_bindings",
- "reqwest",
  "revm",
- "serde",
- "serde_json",
  "thiserror",
 ]
 
