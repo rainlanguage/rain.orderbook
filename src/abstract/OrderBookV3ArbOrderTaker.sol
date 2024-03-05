@@ -59,7 +59,7 @@ abstract contract OrderBookV3ArbOrderTaker is
     IOrderBookV3 public sOrderBook;
     EncodedDispatch public sI9rDispatch;
     IInterpreterV2 public sI9r;
-    IInterpreterStoreV1 public sI9rStore;
+    IInterpreterStoreV2 public sI9rStore;
 
     constructor() {
         _disableInitializers();

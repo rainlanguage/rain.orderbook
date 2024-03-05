@@ -111,7 +111,7 @@ abstract contract OrderBookV3FlashBorrower is
     /// The interpreter that will eval access control to `arb`.
     IInterpreterV2 public sI9r;
     /// The associated store for the interpreter.
-    IInterpreterStoreV1 public sI9rStore;
+    IInterpreterStoreV2 public sI9rStore;
 
     constructor() {
         // Arb contracts are expected to be cloned proxies so allowing

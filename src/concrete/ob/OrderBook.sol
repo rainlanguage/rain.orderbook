@@ -246,7 +246,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         if (config.validOutputs.length == 0) {
             revert OrderNoOutputs();
         }
-        (IInterpreterV2 interpreter, IInterpreterStoreV1 store, address expression, bytes memory io) = config
+        (IInterpreterV2 interpreter, IInterpreterStoreV2 store, address expression, bytes memory io) = config
             .evaluableConfig
             .deployer
             .deployExpression2(config.evaluableConfig.bytecode, config.evaluableConfig.constants);
