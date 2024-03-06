@@ -9,19 +9,19 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Initializable} from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
-import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
-import {SourceIndexV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
+import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
-import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
-import {LibNamespace} from "rain.interpreter/lib/ns/LibNamespace.sol";
+import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
+import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV3, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
 import {IOrderBookV3ArbOrderTaker, IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
-import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
+import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV2} from "../interface/unstable/IOrderBookV3.sol";
 import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
-import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
-import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
+import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
@@ -59,7 +59,7 @@ abstract contract OrderBookV3ArbOrderTaker is
     IOrderBookV3 public sOrderBook;
     EncodedDispatch public sI9rDispatch;
     IInterpreterV2 public sI9r;
-    IInterpreterStoreV1 public sI9rStore;
+    IInterpreterStoreV2 public sI9rStore;
 
     constructor() {
         _disableInitializers();
