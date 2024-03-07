@@ -38,6 +38,7 @@ proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
+serde_yaml = { workspace = true }
 k256 = "=0.13.1"
 
 [dev-dependencies]
