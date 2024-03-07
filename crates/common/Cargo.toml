@@ -33,14 +33,12 @@ rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
 rain-interpreter-eval = { workspace = true }
 serde_bytes = { workspace = true }
-serde_yaml = { workspace = true }
-forker = { workspace = true }
 tokio = { workspace = true }
 proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
-futures = { workspace = true }
+k256 = "=0.13.1"
 
 [dev-dependencies]
 tokio = { workspace = true }
