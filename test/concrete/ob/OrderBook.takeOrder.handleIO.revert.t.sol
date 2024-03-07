@@ -11,8 +11,8 @@ import {
     OrderConfigV2,
     TakeOrdersConfigV2
 } from "src/interface/unstable/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
+import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
