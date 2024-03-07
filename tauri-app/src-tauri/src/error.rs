@@ -1,13 +1,11 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
-use rain_orderbook_common::{
-    add_order::AddOrderArgsError, rainlang::ForkParseError, meta::TryDecodeRainlangSourceError,
-    utils::timestamp::FormatTimestampDisplayError, csv::TryIntoCsvError,
-};
-use rain_orderbook_subgraph_client::{
- OrderbookSubgraphClientError
-};
 use rain_orderbook_app_settings::AppSettingsParseError;
+use rain_orderbook_common::{
+    add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
+    rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
+};
+use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
@@ -48,7 +46,7 @@ pub enum CommandError {
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
 
     #[error(transparent)]
-    AppSettingsParseError(#[from] AppSettingsParseError)
+    AppSettingsParseError(#[from] AppSettingsParseError),
 }
 
 impl Serialize for CommandError {

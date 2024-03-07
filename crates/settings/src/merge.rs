@@ -39,9 +39,8 @@ impl ConfigString {
         for (key, value) in other.networks {
             if networks.contains_key(&key) {
                 return Err(MergeError::NetworkCollision(key));
-            } else {
-                networks.insert(key, value);
             }
+            networks.insert(key, value);
         }
 
         // Subgraphs
@@ -49,9 +48,8 @@ impl ConfigString {
         for (key, value) in other.subgraphs {
             if subgraphs.contains_key(&key) {
                 return Err(MergeError::SubgraphCollision(key));
-            } else {
-                subgraphs.insert(key, value);
             }
+            subgraphs.insert(key, value);
         }
 
         // Orderbooks
@@ -59,9 +57,8 @@ impl ConfigString {
         for (key, value) in other.orderbooks {
             if orderbooks.contains_key(&key) {
                 return Err(MergeError::OrderbookCollision(key));
-            } else {
-                orderbooks.insert(key, value);
             }
+            orderbooks.insert(key, value);
         }
 
         // Vaults
@@ -69,9 +66,8 @@ impl ConfigString {
         for (key, value) in other.vaults {
             if vaults.contains_key(&key) {
                 return Err(MergeError::VaultCollision(key));
-            } else {
-                vaults.insert(key, value);
             }
+            vaults.insert(key, value);
         }
 
         // Tokens
@@ -79,9 +75,8 @@ impl ConfigString {
         for (key, value) in other.tokens {
             if tokens.contains_key(&key) {
                 return Err(MergeError::TokenCollision(key));
-            } else {
-                tokens.insert(key, value);
             }
+            tokens.insert(key, value);
         }
 
         // Deployers
@@ -89,9 +84,8 @@ impl ConfigString {
         for (key, value) in other.deployers {
             if deployers.contains_key(&key) {
                 return Err(MergeError::DeployerCollision(key));
-            } else {
-                deployers.insert(key, value);
             }
+            deployers.insert(key, value);
         }
 
         // Orders
@@ -99,9 +93,8 @@ impl ConfigString {
         for (key, value) in other.orders {
             if orders.contains_key(&key) {
                 return Err(MergeError::OrderCollision(key));
-            } else {
-                orders.insert(key, value);
             }
+            orders.insert(key, value);
         }
 
         // Scenarios
@@ -109,9 +102,8 @@ impl ConfigString {
         for (key, value) in other.scenarios {
             if scenarios.contains_key(&key) {
                 return Err(MergeError::ScenarioCollision(key));
-            } else {
-                scenarios.insert(key, value);
             }
+            scenarios.insert(key, value);
         }
 
         // Charts
@@ -119,9 +111,95 @@ impl ConfigString {
         for (key, value) in other.charts {
             if charts.contains_key(&key) {
                 return Err(MergeError::ChartCollision(key));
-            } else {
-                charts.insert(key, value);
             }
+            charts.insert(key, value);
+        }
+
+        Ok(())
+    }
+}
+
+impl Config {
+    pub fn merge(&mut self, other: Config) -> Result<(), MergeError> {
+        // Networks
+        let networks = &mut self.networks;
+        for (key, value) in other.networks {
+            if networks.contains_key(&key) {
+                return Err(MergeError::NetworkCollision(key));
+            }
+            networks.insert(key, value.clone());
+        }
+
+        // Subgraphs
+        let subgraphs = &mut self.subgraphs;
+        for (key, value) in other.subgraphs {
+            if subgraphs.contains_key(&key) {
+                return Err(MergeError::SubgraphCollision(key));
+            }
+            subgraphs.insert(key, value.clone());
+        }
+
+        // Orderbooks
+        let orderbooks = &mut self.orderbooks;
+        for (key, value) in other.orderbooks {
+            if orderbooks.contains_key(&key) {
+                return Err(MergeError::OrderbookCollision(key));
+            }
+            orderbooks.insert(key, value.clone());
+        }
+
+        // Vaults
+        let vaults = &mut self.vaults;
+        for (key, value) in other.vaults {
+            if vaults.contains_key(&key) {
+                return Err(MergeError::VaultCollision(key));
+            }
+            vaults.insert(key, value.clone());
+        }
+
+        // Tokens
+        let tokens = &mut self.tokens;
+        for (key, value) in other.tokens {
+            if tokens.contains_key(&key) {
+                return Err(MergeError::TokenCollision(key));
+            }
+            tokens.insert(key, value.clone());
+        }
+
+        // Deployers
+        let deployers = &mut self.deployers;
+        for (key, value) in other.deployers {
+            if deployers.contains_key(&key) {
+                return Err(MergeError::DeployerCollision(key));
+            }
+            deployers.insert(key, value.clone());
+        }
+
+        // Orders
+        let orders = &mut self.orders;
+        for (key, value) in other.orders {
+            if orders.contains_key(&key) {
+                return Err(MergeError::OrderCollision(key));
+            }
+            orders.insert(key, value.clone());
+        }
+
+        // Scenarios
+        let scenarios = &mut self.scenarios;
+        for (key, value) in other.scenarios {
+            if scenarios.contains_key(&key) {
+                return Err(MergeError::ScenarioCollision(key));
+            }
+            scenarios.insert(key, value.clone());
+        }
+
+        // Charts
+        let charts = &mut self.charts;
+        for (key, value) in other.charts {
+            if charts.contains_key(&key) {
+                return Err(MergeError::ChartCollision(key));
+            }
+            charts.insert(key, value.clone());
         }
 
         Ok(())
@@ -144,6 +222,7 @@ mod tests {
             scenarios: HashMap::new(),
             charts: HashMap::new(),
             networks: HashMap::new(),
+            deployments: HashMap::new(),
         };
 
         let other = ConfigString {
@@ -156,6 +235,7 @@ mod tests {
             scenarios: HashMap::new(),
             charts: HashMap::new(),
             networks: HashMap::new(),
+            deployments: HashMap::new(),
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -173,6 +253,7 @@ mod tests {
             scenarios: HashMap::new(),
             charts: HashMap::new(),
             networks: HashMap::new(),
+            deployments: HashMap::new(),
         };
 
         let mut other = ConfigString {
@@ -185,6 +266,7 @@ mod tests {
             scenarios: HashMap::new(),
             charts: HashMap::new(),
             networks: HashMap::new(),
+            deployments: HashMap::new(),
         };
 
         // Add a collision to cause an unsuccessful merge

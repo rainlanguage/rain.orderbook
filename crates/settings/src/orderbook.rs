@@ -1,14 +1,20 @@
 use crate::*;
 use alloy_primitives::hex::FromHexError;
 use alloy_primitives::Address;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug, PartialEq)]
+#[typeshare]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Orderbook {
+    #[typeshare(typescript(type = "string"))]
     pub address: Address,
+    #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
+    #[typeshare(typescript(type = "string"))]
     pub subgraph: Arc<Subgraph>,
     pub label: Option<String>,
 }
