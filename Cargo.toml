@@ -20,7 +20,7 @@ once_cell = "1.17.1"
 reqwest = { version = "0.11.17", features = ["json"] }
 rust-bigint = "1.2.0"
 serde = "1.0.160"
-
+futures = "0.3.17"
 serde_bytes = "0.11.9"
 serde_json = "1.0.112"
 serde_yaml = "0.9.32"
@@ -44,6 +44,8 @@ rain_interpreter_parser = { path = "lib/rain.interpreter/crates/parser" }
 rain-interpreter-eval = { path = "lib/rain.interpreter/crates/eval" }
 csv = "1.3.0"
 insta = { version = "1.34.0" }
+proptest = "1.4.0"
+
 derive_builder = "0.20.0"
 
 [workspace.dependencies.rain_orderbook_bindings]

@@ -3,6 +3,7 @@ pub mod csv;
 pub mod deposit;
 pub mod dotrain_add_order_lsp;
 pub mod frontmatter;
+pub mod fuzz;
 pub mod meta;
 pub mod rainlang;
 pub mod remove_order;
