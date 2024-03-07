@@ -11,16 +11,16 @@ import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointD
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter/lib/caller/LibEncodedDispatch.sol";
-import {LibContext} from "rain.interpreter/lib/caller/LibContext.sol";
-import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
-import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
+import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
+import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
-import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
-import {EvaluableV2} from "rain.interpreter/lib/caller/LibEvaluable.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
-import {LibNamespace} from "rain.interpreter/lib/ns/LibNamespace.sol";
+import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {EvaluableV2} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
+import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
 
@@ -246,7 +246,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         if (config.validOutputs.length == 0) {
             revert OrderNoOutputs();
         }
-        (IInterpreterV2 interpreter, IInterpreterStoreV1 store, address expression, bytes memory io) = config
+        (IInterpreterV2 interpreter, IInterpreterStoreV2 store, address expression, bytes memory io) = config
             .evaluableConfig
             .deployer
             .deployExpression2(config.evaluableConfig.bytecode, config.evaluableConfig.constants);
