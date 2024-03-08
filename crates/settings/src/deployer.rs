@@ -1,11 +1,16 @@
 use crate::*;
 use alloy_primitives::Address;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug, PartialEq)]
+#[typeshare]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Deployer {
+    #[typeshare(typescript(type = "string"))]
     pub address: Address,
+    #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
     pub label: Option<String>,
 }

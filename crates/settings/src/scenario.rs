@@ -1,13 +1,17 @@
 use crate::*;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, num::ParseIntError, sync::Arc};
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Scenario {
     pub bindings: HashMap<String, String>,
+    #[typeshare(skip)]
     pub runs: Option<u64>,
+    #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
-    pub orderbook: Option<Arc<Orderbook>>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -22,15 +26,12 @@ pub enum ParseScenarioStringError {
     DeployerNotFound(String),
     #[error("Parent orderbook shadowed by child: {0}")]
     ParentOrderbookShadowedError(String),
-    #[error("Orderbook not found: {0}")]
-    OrderbookNotFound(String),
 }
 
 #[derive(Default)]
 pub struct ScenarioParent {
     bindings: Option<HashMap<String, String>>,
     deployer: Option<Arc<Deployer>>,
-    orderbook: Option<Arc<Orderbook>>,
 }
 
 // Shadowing is disallowed for deployers, orderbooks and specific bindings.
@@ -45,7 +46,6 @@ impl ScenarioString {
         name: String,
         parent: &ScenarioParent,
         deployers: &HashMap<String, Arc<Deployer>>,
-        orderbooks: &HashMap<String, Arc<Orderbook>>,
     ) -> Result<HashMap<String, Arc<Scenario>>, ParseScenarioStringError> {
         // Determine the resolved name for the deployer, preferring the explicit deployer name if provided.
         let resolved_name = self.deployer.as_ref().unwrap_or(&name);
@@ -64,19 +64,6 @@ impl ScenarioString {
         if let (deployer, Some(parent_deployer)) = (deployer_ref, parent.deployer.as_ref()) {
             if deployer.label != parent_deployer.label {
                 return Err(ParseScenarioStringError::ParentDeployerShadowedError(
-                    resolved_name.clone(),
-                ));
-            }
-        }
-
-        // Try to resolve the orderbook by the specified name or fall back to the scenario name
-        let resolved_name = self.orderbook.as_ref().unwrap_or(&name);
-        let orderbook_ref = orderbooks.get(resolved_name);
-
-        // Perform shadowing check if we resolved an orderbook and there's also a parent
-        if let Some(parent_orderbook_name) = &parent.orderbook {
-            if parent_orderbook_name.label != Some(resolved_name.to_string()) {
-                return Err(ParseScenarioStringError::ParentOrderbookShadowedError(
                     resolved_name.clone(),
                 ));
             }
@@ -108,7 +95,6 @@ impl ScenarioString {
                 .transpose()
                 .map_err(ParseScenarioStringError::RunsParseError)?,
             deployer: deployer_ref.clone(),
-            orderbook: orderbook_ref.cloned(),
         });
 
         let mut scenarios = HashMap::new();
@@ -122,10 +108,8 @@ impl ScenarioString {
                     &ScenarioParent {
                         bindings: Some(bindings.clone()),
                         deployer: Some(deployer_ref.clone()),
-                        orderbook: orderbook_ref.cloned(),
                     },
                     deployers,
-                    orderbooks,
                 )?;
 
                 scenarios.extend(child_scenarios);
@@ -178,7 +162,6 @@ mod tests {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some("2".to_string()),
                 deployer: None,
-                orderbook: None,
                 scenarios: None, // No further nesting
             },
         );
@@ -190,7 +173,6 @@ mod tests {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some("5".to_string()),
                 deployer: None,
-                orderbook: None,
                 scenarios: Some(nested_scenario2), // Include nested_scenario2
             },
         );
@@ -203,7 +185,6 @@ mod tests {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some("10".to_string()),
                 deployer: Some("mainnet".to_string()),
-                orderbook: None,
                 scenarios: Some(nested_scenario1), // Include nested_scenario1
             },
         );
@@ -219,6 +200,7 @@ mod tests {
             orders: HashMap::new(), // Assuming no orders for simplification
             scenarios,
             charts: HashMap::new(), // Assuming no charts for simplification
+            deployments: HashMap::new(),
         };
 
         // Perform the conversion
@@ -262,7 +244,6 @@ mod tests {
         let parent_scenario = ScenarioParent {
             bindings: Some(parent_bindings),
             deployer: Some(mock_deployer()),
-            orderbook: None,
         };
 
         let mut child_bindings = HashMap::new();
@@ -272,7 +253,6 @@ mod tests {
             bindings: child_bindings,
             runs: None,
             deployer: None,
-            orderbook: None,
             scenarios: None,
         };
 
@@ -280,7 +260,6 @@ mod tests {
             "child".to_string(),
             &parent_scenario,
             &HashMap::new(), // Empty deployers for simplification
-            &HashMap::new(), // Empty orderbooks for simplification
         );
 
         println!("{:?}", result);

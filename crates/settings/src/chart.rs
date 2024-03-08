@@ -1,22 +1,27 @@
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
-
 use thiserror::Error;
+use typeshare::typeshare;
 
 use crate::*;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Chart {
+    #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
     pub plots: HashMap<String, Plot>,
 }
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Plot {
     pub data: DataPoints,
     pub plot_type: String,
 }
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DataPoints {
     pub x: String,
     pub y: String,
@@ -82,7 +87,6 @@ mod tests {
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
             runs,
             deployer: mock_deployer(),
-            orderbook: None,
         };
         (name.to_string(), Arc::new(scenario))
     }

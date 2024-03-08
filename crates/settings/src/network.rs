@@ -1,14 +1,19 @@
-use std::num::ParseIntError;
-
 use crate::string_structs::*;
+use serde::{Deserialize, Serialize};
+use std::num::ParseIntError;
 use thiserror::Error;
+use typeshare::typeshare;
 use url::{ParseError, Url};
 
-#[derive(Debug, PartialEq)]
+#[typeshare]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Network {
+    #[typeshare(typescript(type = "string"))]
     pub rpc: Url,
+    #[typeshare(skip)]
     pub chain_id: u64,
     pub label: Option<String>,
+    #[typeshare(skip)]
     pub network_id: Option<u64>,
     pub currency: Option<String>,
 }

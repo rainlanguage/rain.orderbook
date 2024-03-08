@@ -1,13 +1,21 @@
 use crate::*;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
+    #[typeshare(typescript(type = "Token[]"))]
     pub inputs: Vec<Arc<Token>>,
+    #[typeshare(typescript(type = "Token[]"))]
     pub outputs: Vec<Arc<Token>>,
+    #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
+    #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Option<Arc<Deployer>>,
+    #[typeshare(typescript(type = "Orderbook"))]
     pub orderbook: Option<Arc<Orderbook>>,
 }
 
@@ -21,6 +29,8 @@ pub enum ParseOrderStringError {
     TokenParseError(ParseTokenStringError),
     #[error("Network not found: {0}")]
     NetworkNotFoundError(String),
+    #[error("Network does not match")]
+    NetworkNotMatch,
 }
 
 impl OrderString {
@@ -71,7 +81,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::TokenParseError(
                         ParseTokenStringError::NetworkNotFoundError(input.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network_ref {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -84,7 +100,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::TokenParseError(
                         ParseTokenStringError::NetworkNotFoundError(output.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network_ref {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .collect::<Result<Vec<_>, _>>()?;
 

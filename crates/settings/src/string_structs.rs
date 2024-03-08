@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ConfigString {
     #[serde(default)]
     pub networks: HashMap<String, NetworkString>,
@@ -21,6 +21,8 @@ pub struct ConfigString {
     pub scenarios: HashMap<String, ScenarioString>,
     #[serde(default)]
     pub charts: HashMap<String, ChartString>,
+    #[serde(default)]
+    pub deployments: HashMap<String, DeploymentString>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -57,6 +59,12 @@ pub struct DeployerString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeploymentString {
+    pub scenario: String,
+    pub order: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OrderString {
     pub inputs: Vec<String>,
     pub outputs: Vec<String>,
@@ -71,7 +79,6 @@ pub struct ScenarioString {
     pub bindings: HashMap<String, String>,
     pub runs: Option<String>,
     pub deployer: Option<String>,
-    pub orderbook: Option<String>,
     pub scenarios: Option<HashMap<String, ScenarioString>>,
 }
 
@@ -93,10 +100,23 @@ pub struct DataPointsString {
     pub y: String,
 }
 
+impl TryFrom<String> for ConfigString {
+    type Error = serde_yaml::Error;
+    fn try_from(val: String) -> Result<ConfigString, Self::Error> {
+        serde_yaml::from_str(&val)
+    }
+}
+
+impl TryFrom<&str> for ConfigString {
+    type Error = serde_yaml::Error;
+    fn try_from(val: &str) -> Result<ConfigString, Self::Error> {
+        serde_yaml::from_str(val)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_yaml;
 
     #[test]
     fn parse_yaml_into_configstrings() {
@@ -108,12 +128,12 @@ networks:
         label: Mainnet
         network_id: 1
         currency: ETH
-testnet:
-    rpc: https://testnet.node
-    chain_id: 2
-    label: Testnet
-    network_id: 2
-    currency: ETH
+    testnet:
+        rpc: https://testnet.node
+        chain_id: 2
+        label: Testnet
+        network_id: 2
+        currency: ETH
 
 subgraphs:
     mainnet: https://mainnet.subgraph
@@ -177,7 +197,6 @@ scenarios:
         runs: 100
         network: mainnet
         deployer: mainDeployer
-        orderbook: mainnetOrderbook
         scenarios:
             subScenario1:
                 bindings:
@@ -199,9 +218,15 @@ charts:
                     x: dataX2
                     y: dataY2
                 plot_type: bar
-              "#;
+deployments:
+    first-deployment:
+        scenario: mainScenario
+        order: bytETH
+    second-deployment:
+        scenario: mainScenario
+        order: buyETH"#;
 
-        let config: ConfigString = serde_yaml::from_str(yaml_data).unwrap();
+        let config: ConfigString = yaml_data.try_into().unwrap();
 
         // Asserting a few values to verify successful parsing
         assert_eq!(

@@ -1,11 +1,16 @@
 use crate::*;
 use alloy_primitives::{hex::FromHexError, Address};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+use typeshare::typeshare;
 
-#[derive(Debug, PartialEq)]
+#[typeshare]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Token {
+    #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
+    #[typeshare(typescript(type = "string"))]
     pub address: Address,
     pub decimals: Option<u8>,
     pub label: Option<String>,
