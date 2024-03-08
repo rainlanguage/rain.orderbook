@@ -68,7 +68,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::DeployerParseError(
                         ParseDeployerStringError::NetworkNotFoundError(deployer_name.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network_ref {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .transpose()?;
 
@@ -80,7 +86,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::OrderbookParseError(
                         ParseOrderbookStringError::NetworkNotFoundError(orderbook_name.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network_ref {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .transpose()?;
 
