@@ -35,8 +35,8 @@ chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = { git = "https://github.com/rainlanguage/dotrain", rev = "f2f7f88577715c3f13ed042a46dd5ee7c5ff853e" }
-dotrain-lsp = { git = "https://github.com/rainlanguage/dotrain", rev = "f2f7f88577715c3f13ed042a46dd5ee7c5ff853e" }
+dotrain = { git = "https://github.com/rainlanguage/dotrain", rev = "67e75eab6eb7c4cc6df2613671c0ff034ec7a43d" }
+dotrain-lsp = { git = "https://github.com/rainlanguage/dotrain", rev = "67e75eab6eb7c4cc6df2613671c0ff034ec7a43d" }
 rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
