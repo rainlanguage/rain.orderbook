@@ -89,13 +89,16 @@ impl OrderString {
             .into_iter()
             .map(|input| {
                 tokens
-                    .get(&input)
+                    .get(&input.token)
                     .ok_or(ParseOrderStringError::TokenParseError(
-                        ParseTokenStringError::NetworkNotFoundError(input.clone()),
+                        ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
                     ))
                     .map(|v| {
                         if v.network == network_ref {
-                            Ok(v.clone())
+                            Ok(OrderIO {
+                                token: v.clone(),
+                                vault_id: input.vault_id.parse::<U256>()?,
+                            })
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
                         }
@@ -108,13 +111,16 @@ impl OrderString {
             .into_iter()
             .map(|output| {
                 tokens
-                    .get(&output)
+                    .get(&output.token)
                     .ok_or(ParseOrderStringError::TokenParseError(
-                        ParseTokenStringError::NetworkNotFoundError(output.clone()),
+                        ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
                     ))
                     .map(|v| {
                         if v.network == network_ref {
-                            Ok(v.clone())
+                            Ok(OrderIO {
+                                token: v.clone(),
+                                vault_id: output.vault_id.parse::<U256>()?,
+                            })
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
                         }
