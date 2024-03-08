@@ -53,14 +53,14 @@ impl OrderString {
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
     ) -> Result<Order, ParseOrderStringError> {
-        let network_ref = networks
+        let network = networks
             .get(&self.network)
             .ok_or(ParseOrderStringError::NetworkNotFoundError(
                 self.network.clone(),
             ))
             .map(Arc::clone)?;
 
-        let deployer_ref = self
+        let deployer = self
             .deployer
             .map(|deployer_name| {
                 deployers
@@ -69,7 +69,7 @@ impl OrderString {
                         ParseDeployerStringError::NetworkNotFoundError(deployer_name.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network_ref {
+                        if v.network == network {
                             Ok(v.clone())
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
@@ -78,7 +78,7 @@ impl OrderString {
             })
             .transpose()?;
 
-        let orderbook_ref = self
+        let orderbook = self
             .orderbook
             .map(|orderbook_name| {
                 orderbooks
@@ -87,7 +87,7 @@ impl OrderString {
                         ParseOrderbookStringError::NetworkNotFoundError(orderbook_name.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network_ref {
+                        if v.network == network {
                             Ok(v.clone())
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
@@ -106,7 +106,7 @@ impl OrderString {
                         ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network_ref {
+                        if v.network == network {
                             Ok(OrderIO {
                                 token: v.clone(),
                                 vault_id: input.vault_id.parse::<U256>()?,
@@ -128,7 +128,7 @@ impl OrderString {
                         ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network_ref {
+                        if v.network == network {
                             Ok(OrderIO {
                                 token: v.clone(),
                                 vault_id: output.vault_id.parse::<U256>()?,
@@ -143,9 +143,9 @@ impl OrderString {
         Ok(Order {
             inputs,
             outputs,
-            network: network_ref,
-            deployer: deployer_ref,
-            orderbook: orderbook_ref,
+            network,
+            deployer,
+            orderbook,
         })
     }
 }
