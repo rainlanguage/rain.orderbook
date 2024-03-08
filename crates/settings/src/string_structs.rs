@@ -72,7 +72,7 @@ pub struct IOString {
 pub struct OrderString {
     pub inputs: Vec<IOString>,
     pub outputs: Vec<IOString>,
-    pub network: String,
+    pub network: Option<String>,
     pub deployer: Option<String>,
     pub orderbook: Option<String>,
 }

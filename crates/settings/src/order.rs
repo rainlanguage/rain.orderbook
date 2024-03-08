@@ -53,12 +53,18 @@ impl OrderString {
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
     ) -> Result<Order, ParseOrderStringError> {
-        let network = networks
-            .get(&self.network)
-            .ok_or(ParseOrderStringError::NetworkNotFoundError(
-                self.network.clone(),
-            ))
-            .map(Arc::clone)?;
+        let mut network = if let Some(network_name) = self.network {
+            Some(
+                networks
+                    .get(&network_name)
+                    .ok_or(ParseOrderStringError::NetworkNotFoundError(
+                        network_name.clone(),
+                    ))
+                    .map(Arc::clone)?,
+            )
+        } else {
+            None
+        };
 
         let deployer = self
             .deployer
@@ -69,10 +75,15 @@ impl OrderString {
                         ParseDeployerStringError::NetworkNotFoundError(deployer_name.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
-                            Ok(v.clone())
+                        if let Some(n) = network.clone() {
+                            if v.network == n {
+                                Ok(v.clone())
+                            } else {
+                                Err(ParseOrderStringError::NetworkNotMatch)
+                            }
                         } else {
-                            Err(ParseOrderStringError::NetworkNotMatch)
+                            network = Some(v.network.clone());
+                            Ok(v.clone())
                         }
                     })?
             })
@@ -87,10 +98,15 @@ impl OrderString {
                         ParseOrderbookStringError::NetworkNotFoundError(orderbook_name.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
-                            Ok(v.clone())
+                        if let Some(n) = network.clone() {
+                            if v.network == n {
+                                Ok(v.clone())
+                            } else {
+                                Err(ParseOrderStringError::NetworkNotMatch)
+                            }
                         } else {
-                            Err(ParseOrderStringError::NetworkNotMatch)
+                            network = Some(v.network.clone());
+                            Ok(v.clone())
                         }
                     })?
             })
@@ -106,13 +122,21 @@ impl OrderString {
                         ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
+                        if let Some(n) = network.clone() {
+                            if v.network == n {
+                                Ok(OrderIO {
+                                    token: v.clone(),
+                                    vault_id: input.vault_id.parse::<U256>()?,
+                                })
+                            } else {
+                                Err(ParseOrderStringError::NetworkNotMatch)
+                            }
+                        } else {
+                            network = Some(v.network.clone());
                             Ok(OrderIO {
                                 token: v.clone(),
                                 vault_id: input.vault_id.parse::<U256>()?,
                             })
-                        } else {
-                            Err(ParseOrderStringError::NetworkNotMatch)
                         }
                     })?
             })
@@ -128,13 +152,21 @@ impl OrderString {
                         ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
+                        if let Some(n) = network.clone() {
+                            if v.network == n {
+                                Ok(OrderIO {
+                                    token: v.clone(),
+                                    vault_id: output.vault_id.parse::<U256>()?,
+                                })
+                            } else {
+                                Err(ParseOrderStringError::NetworkNotMatch)
+                            }
+                        } else {
+                            network = Some(v.network.clone());
                             Ok(OrderIO {
                                 token: v.clone(),
                                 vault_id: output.vault_id.parse::<U256>()?,
                             })
-                        } else {
-                            Err(ParseOrderStringError::NetworkNotMatch)
                         }
                     })?
             })
@@ -143,7 +175,7 @@ impl OrderString {
         Ok(Order {
             inputs,
             outputs,
-            network,
+            network: network.ok_or(ParseOrderStringError::NetworkNotFoundError(String::new()))?,
             deployer,
             orderbook,
         })
@@ -176,7 +208,7 @@ mod tests {
         tokens.insert("Token2".to_string(), token_output.clone());
 
         let order_string = OrderString {
-            network: "Local Testnet".to_string(),
+            network: Some("Local Testnet".to_string()),
             deployer: Some("Deployer1".to_string()),
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOString {
@@ -219,7 +251,7 @@ mod tests {
         let networks = HashMap::new(); // Empty network map
 
         let order_string = OrderString {
-            network: "Nonexistent Network".to_string(),
+            network: Some("Nonexistent Network".to_string()),
             deployer: None,
             orderbook: None,
             inputs: vec![],
@@ -244,7 +276,7 @@ mod tests {
         let deployers = HashMap::new(); // Empty deployer map
 
         let order_string = OrderString {
-            network: "Local Testnet".to_string(),
+            network: Some("Local Testnet".to_string()),
             deployer: Some("Nonexistent Deployer".to_string()),
             orderbook: None,
             inputs: vec![],
@@ -265,7 +297,7 @@ mod tests {
         let orderbooks = HashMap::new(); // Empty orderbook map
 
         let order_string = OrderString {
-            network: "Local Testnet".to_string(),
+            network: Some("Local Testnet".to_string()),
             deployer: None,
             orderbook: Some("Nonexistent Orderbook".to_string()),
             inputs: vec![],
@@ -286,7 +318,7 @@ mod tests {
         let tokens = HashMap::new(); // Empty token map
 
         let order_string = OrderString {
-            network: "Local Testnet".to_string(),
+            network: Some("Local Testnet".to_string()),
             deployer: None,
             orderbook: None,
             inputs: vec![IOString {
