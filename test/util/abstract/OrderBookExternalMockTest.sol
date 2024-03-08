@@ -4,14 +4,14 @@ pragma solidity =0.8.19;
 import {Test} from "lib/forge-std/src/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
-import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
 import {IMetaV1} from "rain.metadata/lib/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
+import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IOrderBookV3, OrderConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
@@ -30,7 +30,7 @@ import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 /// Implements IOrderBookV3 so that it has access to all the relevant events.
 abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
     IInterpreterV2 immutable iInterpreter;
-    IInterpreterStoreV1 immutable iStore;
+    IInterpreterStoreV2 immutable iStore;
     IExpressionDeployerV3 immutable iDeployer;
     IOrderBookV3 immutable iOrderbook;
     IERC20 immutable iToken0;
@@ -40,7 +40,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
         vm.pauseGasMetering();
         iInterpreter = IInterpreterV2(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
-        iStore = IInterpreterStoreV1(address(uint160(uint256(keccak256("store.rain.test")))));
+        iStore = IInterpreterStoreV2(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
         iDeployer = IExpressionDeployerV3(address(uint160(uint256(keccak256("deployer.rain.test")))));
         // All non-mocked calls will revert.
