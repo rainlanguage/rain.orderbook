@@ -1,27 +1,41 @@
 use crate::*;
 use alloy_primitives::U256;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
+use typeshare::typeshare;
 use url::Url;
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
+    #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
     pub subgraphs: HashMap<String, Arc<Subgraph>>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
     pub vaults: HashMap<String, Arc<Vault>>,
+    #[typeshare(typescript(type = "Record<string, Orderbook>"))]
     pub orderbooks: HashMap<String, Arc<Orderbook>>,
+    #[typeshare(typescript(type = "Record<string, Token>"))]
     pub tokens: HashMap<String, Arc<Token>>,
+    #[typeshare(typescript(type = "Record<string, Deployer>"))]
     pub deployers: HashMap<String, Arc<Deployer>>,
+    #[typeshare(typescript(type = "Record<string, Order>"))]
     pub orders: HashMap<String, Arc<Order>>,
+    #[typeshare(typescript(type = "Record<string, Scenario>"))]
     pub scenarios: HashMap<String, Arc<Scenario>>,
+    #[typeshare(typescript(type = "Record<string, Chart>"))]
     pub charts: HashMap<String, Arc<Chart>>,
+    #[typeshare(typescript(type = "Record<string, Deployment>"))]
+    pub deployments: HashMap<String, Arc<Deployment>>,
 }
 
 pub type Subgraph = Url;
 pub type Vault = U256;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum ParseConfigStringError {
     #[error(transparent)]
     ParseNetworkStringError(#[from] ParseNetworkStringError),
@@ -37,10 +51,14 @@ pub enum ParseConfigStringError {
     ParseScenarioStringError(#[from] ParseScenarioStringError),
     #[error(transparent)]
     ParseChartStringError(#[from] ParseChartStringError),
+    #[error(transparent)]
+    ParseDeploymentStringError(#[from] ParseDeploymentStringError),
     #[error("Failed to parse vault {}", 0)]
     VaultParseError(alloy_primitives::ruint::ParseError),
     #[error("Failed to parse subgraph {}", 0)]
     SubgraphParseError(url::ParseError),
+    #[error(transparent)]
+    YamlDeserializerError(#[from] serde_yaml::Error),
 }
 
 impl TryFrom<ConfigString> for Config {
@@ -131,12 +149,22 @@ impl TryFrom<ConfigString> for Config {
                 name.clone(),
                 &ScenarioParent::default(),
                 &deployers,
-                &orderbooks,
             )?;
 
             // Merge the scenarios
             scenarios.extend(scenario_map);
         }
+
+        let deployments = item
+            .deployments
+            .into_iter()
+            .map(|(name, deployment)| {
+                Ok((
+                    name,
+                    Arc::new(deployment.try_into_deployment(&scenarios, &orders)?),
+                ))
+            })
+            .collect::<Result<HashMap<String, Arc<Deployment>>, ParseConfigStringError>>()?;
 
         let config = Config {
             networks,
@@ -148,9 +176,24 @@ impl TryFrom<ConfigString> for Config {
             orders,
             scenarios,
             charts: HashMap::new(),
+            deployments,
         };
 
         Ok(config)
+    }
+}
+
+impl TryFrom<String> for Config {
+    type Error = ParseConfigStringError;
+    fn try_from(val: String) -> Result<Config, Self::Error> {
+        std::convert::TryInto::<ConfigString>::try_into(val)?.try_into()
+    }
+}
+
+impl TryFrom<&str> for Config {
+    type Error = ParseConfigStringError;
+    fn try_from(val: &str) -> Result<Config, Self::Error> {
+        std::convert::TryInto::<ConfigString>::try_into(val)?.try_into()
     }
 }
 
@@ -223,6 +266,7 @@ mod tests {
         let orders = HashMap::new();
         let scenarios = HashMap::new();
         let charts = HashMap::new();
+        let deployments = HashMap::new();
 
         let config_string = ConfigString {
             networks,
@@ -234,6 +278,7 @@ mod tests {
             orders,
             scenarios,
             charts,
+            deployments,
         };
 
         let config_result = Config::try_from(config_string);

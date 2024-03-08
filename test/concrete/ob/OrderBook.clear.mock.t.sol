@@ -7,8 +7,8 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {OrderConfigV2, OrderV2, IO, ClearConfig} from "src/interface/unstable/IOrderBookV3.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
-import {IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
+import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookClearTest

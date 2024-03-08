@@ -1,9 +1,9 @@
+use crate::error::CommandResult;
 use rain_orderbook_common::{
     dotrain::types::ast::Problem,
-    dotrain_lsp::lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
     dotrain_add_order_lsp::DotrainAddOrderLsp,
+    dotrain_lsp::lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
 };
-use crate::error::CommandResult;
 
 #[tauri::command]
 pub fn call_lsp_hover(text_document: TextDocumentItem, position: Position) -> Option<Hover> {
@@ -24,5 +24,7 @@ pub async fn call_lsp_problems(
     rpc_url: &str,
     block_number: Option<u64>,
 ) -> CommandResult<Vec<Problem>> {
-    Ok(DotrainAddOrderLsp::new(text_document).problems(rpc_url, block_number).await)
+    Ok(DotrainAddOrderLsp::new(text_document)
+        .problems(rpc_url, block_number)
+        .await)
 }

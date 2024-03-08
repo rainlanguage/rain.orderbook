@@ -11,12 +11,14 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 [dependencies]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
+rain_orderbook_app_settings = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 alloy-sol-types = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 once_cell = { workspace = true }
@@ -30,12 +32,14 @@ rain-metadata = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
+rain-interpreter-eval = { workspace = true }
 serde_bytes = { workspace = true }
-forker = { workspace = true }
 tokio = { workspace = true }
+proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
+k256 = "=0.13.1"
 
 [dev-dependencies]
 tokio = { workspace = true }
