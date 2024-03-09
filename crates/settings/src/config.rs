@@ -116,7 +116,7 @@ impl TryFrom<ConfigString> for Config {
             .map(|(name, order)| {
                 Ok((
                     name,
-                    Arc::new(order.try_into_order(&networks, &deployers, &orderbooks, &tokens)?),
+                    Arc::new(order.try_into_order(&deployers, &orderbooks, &tokens)?),
                 ))
             })
             .collect::<Result<HashMap<String, Arc<Order>>, ParseConfigStringError>>()?;

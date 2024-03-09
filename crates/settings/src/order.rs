@@ -48,23 +48,11 @@ pub enum ParseOrderStringError {
 impl OrderString {
     pub fn try_into_order(
         self,
-        networks: &HashMap<String, Arc<Network>>,
         deployers: &HashMap<String, Arc<Deployer>>,
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
     ) -> Result<Order, ParseOrderStringError> {
-        let mut network = if let Some(network_name) = self.network {
-            Some(
-                networks
-                    .get(&network_name)
-                    .ok_or(ParseOrderStringError::NetworkNotFoundError(
-                        network_name.clone(),
-                    ))
-                    .map(Arc::clone)?,
-            )
-        } else {
-            None
-        };
+        let mut network = None;
 
         let deployer = self
             .deployer
@@ -208,7 +196,6 @@ mod tests {
         tokens.insert("Token2".to_string(), token_output.clone());
 
         let order_string = OrderString {
-            network: Some("Local Testnet".to_string()),
             deployer: Some("Deployer1".to_string()),
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOString {
@@ -221,7 +208,7 @@ mod tests {
             }],
         };
 
-        let result = order_string.try_into_order(&networks, &deployers, &orderbooks, &tokens);
+        let result = order_string.try_into_order(&deployers, &orderbooks, &tokens);
         assert!(result.is_ok());
         let order = result.unwrap();
 
@@ -248,22 +235,14 @@ mod tests {
 
     #[test]
     fn test_try_into_order_network_not_found_error() {
-        let networks = HashMap::new(); // Empty network map
-
         let order_string = OrderString {
-            network: Some("Nonexistent Network".to_string()),
             deployer: None,
             orderbook: None,
             inputs: vec![],
             outputs: vec![],
         };
 
-        let result = order_string.try_into_order(
-            &networks,
-            &HashMap::new(),
-            &HashMap::new(),
-            &HashMap::new(),
-        );
+        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &HashMap::new());
         assert!(matches!(
             result,
             Err(ParseOrderStringError::NetworkNotFoundError(_))
@@ -272,19 +251,16 @@ mod tests {
 
     #[test]
     fn test_try_into_order_deployer_not_found_error() {
-        let networks = HashMap::from([("Local Testnet".to_string(), mock_network())]);
         let deployers = HashMap::new(); // Empty deployer map
 
         let order_string = OrderString {
-            network: Some("Local Testnet".to_string()),
             deployer: Some("Nonexistent Deployer".to_string()),
             orderbook: None,
             inputs: vec![],
             outputs: vec![],
         };
 
-        let result =
-            order_string.try_into_order(&networks, &deployers, &HashMap::new(), &HashMap::new());
+        let result = order_string.try_into_order(&deployers, &HashMap::new(), &HashMap::new());
         assert!(matches!(
             result,
             Err(ParseOrderStringError::DeployerParseError(_))
@@ -293,19 +269,16 @@ mod tests {
 
     #[test]
     fn test_try_into_order_orderbook_not_found_error() {
-        let networks = HashMap::from([("Local Testnet".to_string(), mock_network())]);
         let orderbooks = HashMap::new(); // Empty orderbook map
 
         let order_string = OrderString {
-            network: Some("Local Testnet".to_string()),
             deployer: None,
             orderbook: Some("Nonexistent Orderbook".to_string()),
             inputs: vec![],
             outputs: vec![],
         };
 
-        let result =
-            order_string.try_into_order(&networks, &HashMap::new(), &orderbooks, &HashMap::new());
+        let result = order_string.try_into_order(&HashMap::new(), &orderbooks, &HashMap::new());
         assert!(matches!(
             result,
             Err(ParseOrderStringError::OrderbookParseError(_))
@@ -314,11 +287,9 @@ mod tests {
 
     #[test]
     fn test_try_into_order_token_not_found_error() {
-        let networks = HashMap::from([("Local Testnet".to_string(), mock_network())]);
         let tokens = HashMap::new(); // Empty token map
 
         let order_string = OrderString {
-            network: Some("Local Testnet".to_string()),
             deployer: None,
             orderbook: None,
             inputs: vec![IOString {
@@ -328,8 +299,7 @@ mod tests {
             outputs: vec![],
         };
 
-        let result =
-            order_string.try_into_order(&networks, &HashMap::new(), &HashMap::new(), &tokens);
+        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &tokens);
         assert!(matches!(
             result,
             Err(ParseOrderStringError::TokenParseError(_))

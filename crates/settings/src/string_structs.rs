@@ -72,7 +72,6 @@ pub struct IOString {
 pub struct OrderString {
     pub inputs: Vec<IOString>,
     pub outputs: Vec<IOString>,
-    pub network: Option<String>,
     pub deployer: Option<String>,
     pub orderbook: Option<String>,
 }
@@ -189,7 +188,6 @@ orders:
         outputs:
             - token: dai
               vault_id: 3
-        network: mainnet
         deployer: mainDeployer
         orderbook: mainnetOrderbook
 
