@@ -23,14 +23,9 @@
               # Generate Typescript types from rust types
               mkdir -p tauri-app/src/lib/typeshare;
 
-              typeshare crates/subgraph/src/types/vault_balance_changes_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
-              typeshare crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=/tmp/vaultBalanceChange.ts;
-              cat /tmp/vaultBalanceChange.ts >> tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
-
-              typeshare crates/subgraph/src/types/order_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
-              typeshare crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=/tmp/orderDetailExtended.ts
-              cat /tmp/orderDetailExtended.ts >> tauri-app/src/lib/typeshare/orderDetail.ts;
-
+              typeshare crates/subgraph/src/types/vault_balance_changes_list.rs  crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
+              typeshare crates/subgraph/src/types/order_detail.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
+              
               typeshare crates/subgraph/src/types/vault_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultDetail.ts;
               typeshare crates/subgraph/src/types/vaults_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultsList.ts;
               typeshare crates/subgraph/src/types/orders_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/ordersList.ts;
