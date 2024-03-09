@@ -63,8 +63,8 @@ impl OrderString {
                         ParseDeployerStringError::NetworkNotFoundError(deployer_name.clone()),
                     ))
                     .map(|v| {
-                        if let Some(n) = network.clone() {
-                            if v.network == n {
+                        if let Some(n) = &network {
+                            if v.network == *n {
                                 Ok(v.clone())
                             } else {
                                 Err(ParseOrderStringError::NetworkNotMatch)
@@ -86,8 +86,8 @@ impl OrderString {
                         ParseOrderbookStringError::NetworkNotFoundError(orderbook_name.clone()),
                     ))
                     .map(|v| {
-                        if let Some(n) = network.clone() {
-                            if v.network == n {
+                        if let Some(n) = &network {
+                            if v.network == *n {
                                 Ok(v.clone())
                             } else {
                                 Err(ParseOrderStringError::NetworkNotMatch)
@@ -110,8 +110,8 @@ impl OrderString {
                         ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
                     ))
                     .map(|v| {
-                        if let Some(n) = network.clone() {
-                            if v.network == n {
+                        if let Some(n) = &network {
+                            if v.network == *n {
                                 Ok(OrderIO {
                                     token: v.clone(),
                                     vault_id: input.vault_id.parse::<U256>()?,
@@ -140,8 +140,8 @@ impl OrderString {
                         ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
                     ))
                     .map(|v| {
-                        if let Some(n) = network.clone() {
-                            if v.network == n {
+                        if let Some(n) = &network {
+                            if v.network == *n {
                                 Ok(OrderIO {
                                     token: v.clone(),
                                     vault_id: output.vault_id.parse::<U256>()?,
