@@ -5,7 +5,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Deployment {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
@@ -79,7 +79,6 @@ mod tests {
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
-            orderbook: None,
         };
         let order = Order {
             inputs: vec![],
@@ -107,7 +106,6 @@ mod tests {
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
-            orderbook: None,
         };
         let order = Order {
             inputs: vec![],
