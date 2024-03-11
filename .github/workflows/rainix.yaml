@@ -48,5 +48,5 @@ jobs:
         env:
           ETH_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-          DEPLOY_VERIFIER: 'etherscan'
+          DEPLOY_VERIFIER: ''
         run: nix develop --command ${{ matrix.task }}
