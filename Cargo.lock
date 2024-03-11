@@ -1841,7 +1841,7 @@ dependencies = [
 [[package]]
 name = "dotrain"
 version = "6.0.1-alpha.10"
-source = "git+https://github.com/rainlanguage/dotrain?rev=67e75eab6eb7c4cc6df2613671c0ff034ec7a43d#67e75eab6eb7c4cc6df2613671c0ff034ec7a43d"
+source = "git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af#b813542cb1c9a2399664a606761f3a3db7b842af"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -1861,7 +1861,7 @@ dependencies = [
 [[package]]
 name = "dotrain-lsp"
 version = "6.0.1-alpha.10"
-source = "git+https://github.com/rainlanguage/dotrain?rev=67e75eab6eb7c4cc6df2613671c0ff034ec7a43d#67e75eab6eb7c4cc6df2613671c0ff034ec7a43d"
+source = "git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af#b813542cb1c9a2399664a606761f3a3db7b842af"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
