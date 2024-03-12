@@ -1,6 +1,8 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
-use rain_orderbook_app_settings::ParseConfigStringError;
+use rain_orderbook_app_settings::config::ParseConfigStringError;
+use rain_orderbook_app_settings::merge::MergeError;
+use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, frontmatter::FrontmatterError,
     meta::TryDecodeRainlangSourceError, rainlang::ForkParseError,
@@ -47,10 +49,19 @@ pub enum CommandError {
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
 
     #[error(transparent)]
-    ConfigParseError(#[from] ParseConfigStringError),
+    FrontmatterError(#[from] FrontmatterError),
 
     #[error(transparent)]
-    FrontmatterError(#[from] FrontmatterError),
+    FuzzRunnerError(#[from] FuzzRunnerError),
+
+    #[error(transparent)]
+    MergeError(#[from] MergeError),
+
+    #[error(transparent)]
+    ParseConfigStringError(#[from] ParseConfigStringError),
+
+    #[error(transparent)]
+    ParseConfigYamlError(#[from] serde_yaml::Error),
 }
 
 impl Serialize for CommandError {

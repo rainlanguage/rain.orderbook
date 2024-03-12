@@ -6,8 +6,8 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {
     OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2, IO, OrderConfigV2
 } from "src/interface/unstable/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
+import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.

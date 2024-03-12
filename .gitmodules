@@ -19,9 +19,6 @@
 [submodule "lib/rain.solmem"]
 	path = lib/rain.solmem
 	url = https://github.com/rainprotocol/rain.solmem
-[submodule "lib/rain.interpreter"]
-	path = lib/rain.interpreter
-	url = https://github.com/rainlanguage/rain.interpreter
 [submodule "lib/rain.factory"]
 	path = lib/rain.factory
 	url = https://github.com/rainprotocol/rain.factory
@@ -34,3 +31,9 @@
 [submodule "subgraph/rain.subgraph.docker"]
 	path = subgraph/rain.subgraph.docker
 	url = https://github.com/rainlanguage/rain.subgraph.docker.git
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainlanguage/rain.interpreter
+[submodule "lib/rain.interpreter.interface"]
+	path = lib/rain.interpreter.interface
+	url = https://github.com/rainlanguage/rain.interpreter.interface

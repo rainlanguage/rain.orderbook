@@ -7,6 +7,7 @@ use typeshare::typeshare;
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Scenario {
+    pub name: String,
     pub bindings: HashMap<String, String>,
     #[typeshare(skip)]
     pub runs: Option<u64>,
@@ -87,6 +88,7 @@ impl ScenarioString {
 
         // Create and add the parent scenario for this level
         let parent_scenario = Arc::new(Scenario {
+            name: name.clone(),
             bindings: bindings.clone(),
             runs: self
                 .runs

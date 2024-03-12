@@ -53,14 +53,14 @@ impl OrderString {
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
     ) -> Result<Order, ParseOrderStringError> {
-        let network_ref = networks
+        let network = networks
             .get(&self.network)
             .ok_or(ParseOrderStringError::NetworkNotFoundError(
                 self.network.clone(),
             ))
             .map(Arc::clone)?;
 
-        let deployer_ref = self
+        let deployer = self
             .deployer
             .map(|deployer_name| {
                 deployers
@@ -68,11 +68,17 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::DeployerParseError(
                         ParseDeployerStringError::NetworkNotFoundError(deployer_name.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .transpose()?;
 
-        let orderbook_ref = self
+        let orderbook = self
             .orderbook
             .map(|orderbook_name| {
                 orderbooks
@@ -80,52 +86,66 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::OrderbookParseError(
                         ParseOrderbookStringError::NetworkNotFoundError(orderbook_name.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .transpose()?;
 
-        let mut inputs = vec![];
-        for input in self.inputs {
-            if let Some(token) = tokens.get(&input.token) {
-                if token.network == network_ref {
-                    inputs.push(OrderIO {
-                        token: token.clone(),
-                        vault_id: input.vault_id.parse::<U256>()?,
-                    });
-                } else {
-                    return Err(ParseOrderStringError::NetworkNotMatch);
-                }
-            } else {
-                return Err(ParseOrderStringError::TokenParseError(
-                    ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
-                ));
-            }
-        }
+        let inputs = self
+            .inputs
+            .into_iter()
+            .map(|input| {
+                tokens
+                    .get(&input.token)
+                    .ok_or(ParseOrderStringError::TokenParseError(
+                        ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
+                    ))
+                    .map(|v| {
+                        if v.network == network {
+                            Ok(OrderIO {
+                                token: v.clone(),
+                                vault_id: input.vault_id.parse::<U256>()?,
+                            })
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let mut outputs = vec![];
-        for output in self.outputs {
-            if let Some(token) = tokens.get(&output.token) {
-                if token.network == network_ref {
-                    outputs.push(OrderIO {
-                        token: token.clone(),
-                        vault_id: output.vault_id.parse::<U256>()?,
-                    });
-                } else {
-                    return Err(ParseOrderStringError::NetworkNotMatch);
-                }
-            } else {
-                return Err(ParseOrderStringError::TokenParseError(
-                    ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
-                ));
-            }
-        }
+        let outputs = self
+            .outputs
+            .into_iter()
+            .map(|output| {
+                tokens
+                    .get(&output.token)
+                    .ok_or(ParseOrderStringError::TokenParseError(
+                        ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
+                    ))
+                    .map(|v| {
+                        if v.network == network {
+                            Ok(OrderIO {
+                                token: v.clone(),
+                                vault_id: output.vault_id.parse::<U256>()?,
+                            })
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Order {
             inputs,
             outputs,
-            network: network_ref,
-            deployer: deployer_ref,
-            orderbook: orderbook_ref,
+            network,
+            deployer,
+            orderbook,
         })
     }
 }
