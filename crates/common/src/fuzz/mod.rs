@@ -48,7 +48,8 @@ pub struct FuzzRunner {
 pub struct PlotData {
     pub name: String,
     pub plot_type: String,
-    pub data: Vec<(U256, U256)>,
+    #[typeshare(serialized_as = "Vec<Vec<String>>")]
+    pub data: Vec<Vec<U256>>,
 }
 
 #[typeshare]
@@ -202,7 +203,12 @@ impl FuzzRunner {
                 x_result
                     .and_then(|x| {
                         y_result.map(|y| {
-                            let merged_data = x.into_iter().zip(y.into_iter()).collect::<Vec<_>>();
+                            // Map each pair (x, y) into a Vec<U256>
+                            let merged_data = x
+                                .into_iter()
+                                .zip(y.into_iter())
+                                .map(|(x_val, y_val)| vec![x_val, y_val])
+                                .collect::<Vec<Vec<U256>>>();
                             PlotData {
                                 plot_type: plot.plot_type,
                                 name,

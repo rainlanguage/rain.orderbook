@@ -9,15 +9,16 @@ use serde_yaml::*;
 #[tauri::command]
 pub async fn make_charts(dotrain: &str, settings: Option<&str>) -> CommandResult<Vec<ChartData>> {
     let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-    let frontmatter_config = serde_yaml::from_str::<ConfigString>(frontmatter).unwrap();
+    let mut config = serde_yaml::from_str::<ConfigString>(frontmatter)?;
     let settings = settings.map(|s| serde_yaml::from_str::<ConfigString>(s));
-    let final_config = match settings {
-        Some(Ok(s)) => s.config.merge(frontmatter_config),
-        _ => frontmatter_config,
+    match settings {
+        Some(Ok(s)) => config.merge(s)?,
+        _ => (),
     };
 
+    let final_config: Config = config.try_into()?;
     let mut fuzzer = FuzzRunner::new(dotrain, final_config, None).await;
 
-    let chart_data = fuzzer.make_chart_datas().await?;
+    let chart_data = fuzzer.build_chart_datas().await?;
     Ok(chart_data)
 }

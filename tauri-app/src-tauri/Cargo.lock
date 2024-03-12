@@ -6627,7 +6627,6 @@ dependencies = [
  "csv",
  "dotrain",
  "dotrain-lsp",
- "futures",
  "k256",
  "once_cell",
  "proptest",

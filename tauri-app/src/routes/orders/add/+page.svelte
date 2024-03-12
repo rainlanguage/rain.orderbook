@@ -1,20 +1,21 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
   import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button } from 'flowbite-svelte';
+  import { Helper, Label, Button, Spinner } from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
-  // import ObservableChart from '$lib/components/ObservableChart.svelte';
   import { makeChartData } from '$lib/services/chart';
     import { settingsText } from '$lib/stores/settings';
+    import type { ChartData } from '$lib/typeshare/fuzz';
+    import Charts from '$lib/components/Charts.svelte';
 
   let isSubmitting = false;
-  let result = writable();
+  let isCharting = false;
+  let chartData: ChartData[];
 
   const dotrainFile = textFileStore('Rain', ['rain']);
 
@@ -28,10 +29,12 @@
   }
 
   async function chart() {
-    $result = await makeChartData($dotrainFile.text, $settingsText);
+    isCharting = true;
+    chartData = await makeChartData($dotrainFile.text, $settingsText);
+    isCharting = false;
   }
 
-  $: console.log($result)
+  $: console.log(chartData)
 </script>
 
 <PageHeader title="Add Order" />
@@ -55,10 +58,6 @@
     </svelte:fragment>
 </FileTextarea>
 
-<Button on:click={chart}>Fuzz it baby</Button>
-
-<!-- <ObservableChart rawData={$result} /> -->
-
 <div class="my-8">
   <Label class="mb-2">Parse at Block Number</Label>
   <InputBlockNumber bind:value={$forkBlockNumber.value} isFetching={$forkBlockNumber.isFetching} on:clickGetLatest={forkBlockNumber.fetch} required={false} />
@@ -67,3 +66,6 @@
     the latest block on app launch.
   </Helper>
 </div>
+
+<Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
+<Charts {chartData} />
