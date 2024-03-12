@@ -10,8 +10,6 @@ pub struct ConfigString {
     #[serde(default)]
     pub orderbooks: HashMap<String, OrderbookString>,
     #[serde(default)]
-    pub vaults: HashMap<String, String>,
-    #[serde(default)]
     pub tokens: HashMap<String, TokenString>,
     #[serde(default)]
     pub deployers: HashMap<String, DeployerString>,
@@ -65,9 +63,15 @@ pub struct DeploymentString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct IOString {
+    pub token: String,
+    pub vault_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OrderString {
-    pub inputs: Vec<String>,
-    pub outputs: Vec<String>,
+    pub inputs: Vec<IOString>,
+    pub outputs: Vec<IOString>,
     pub network: String,
     pub deployer: Option<String>,
     pub orderbook: Option<String>,
@@ -151,10 +155,6 @@ orderbooks:
         subgraph: testnet
         label: Testnet Orderbook
 
-vaults:
-    mainVault: 0x789
-    testVault: 0xabc
-
 tokens:
     eth:
         network: mainnet
@@ -182,9 +182,13 @@ deployers:
 orders:
     buyETH:
         inputs:
-        - eth
+            - token: eth
+              vault_id: 2
+            - token: dai
+              vault_id: 0x1
         outputs:
-        - dai
+            - token: dai
+              vault_id: 3
         network: mainnet
         deployer: mainDeployer
         orderbook: mainnetOrderbook

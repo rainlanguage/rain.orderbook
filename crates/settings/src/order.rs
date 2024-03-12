@@ -1,16 +1,26 @@
 use crate::*;
+use alloy_primitives::U256;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct OrderIO {
+    #[typeshare(typescript(type = "Token"))]
+    pub token: Arc<Token>,
+    #[typeshare(typescript(type = "string"))]
+    pub vault_id: U256,
+}
+
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
-    #[typeshare(typescript(type = "Token[]"))]
-    pub inputs: Vec<Arc<Token>>,
-    #[typeshare(typescript(type = "Token[]"))]
-    pub outputs: Vec<Arc<Token>>,
+    #[typeshare(typescript(type = "OrderIO[]"))]
+    pub inputs: Vec<OrderIO>,
+    #[typeshare(typescript(type = "OrderIO[]"))]
+    pub outputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
     #[typeshare(typescript(type = "Deployer"))]
@@ -31,6 +41,8 @@ pub enum ParseOrderStringError {
     NetworkNotFoundError(String),
     #[error("Network does not match")]
     NetworkNotMatch,
+    #[error("Failed to parse vault {}", 0)]
+    VaultParseError(#[from] alloy_primitives::ruint::ParseError),
 }
 
 impl OrderString {
@@ -41,14 +53,14 @@ impl OrderString {
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
     ) -> Result<Order, ParseOrderStringError> {
-        let network_ref = networks
+        let network = networks
             .get(&self.network)
             .ok_or(ParseOrderStringError::NetworkNotFoundError(
                 self.network.clone(),
             ))
             .map(Arc::clone)?;
 
-        let deployer_ref = self
+        let deployer = self
             .deployer
             .map(|deployer_name| {
                 deployers
@@ -56,11 +68,17 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::DeployerParseError(
                         ParseDeployerStringError::NetworkNotFoundError(deployer_name.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .transpose()?;
 
-        let orderbook_ref = self
+        let orderbook = self
             .orderbook
             .map(|orderbook_name| {
                 orderbooks
@@ -68,7 +86,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::OrderbookParseError(
                         ParseOrderbookStringError::NetworkNotFoundError(orderbook_name.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .transpose()?;
 
@@ -77,13 +101,16 @@ impl OrderString {
             .into_iter()
             .map(|input| {
                 tokens
-                    .get(&input)
+                    .get(&input.token)
                     .ok_or(ParseOrderStringError::TokenParseError(
-                        ParseTokenStringError::NetworkNotFoundError(input.clone()),
+                        ParseTokenStringError::NetworkNotFoundError(input.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network_ref {
-                            Ok(v.clone())
+                        if v.network == network {
+                            Ok(OrderIO {
+                                token: v.clone(),
+                                vault_id: input.vault_id.parse::<U256>()?,
+                            })
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
                         }
@@ -96,13 +123,16 @@ impl OrderString {
             .into_iter()
             .map(|output| {
                 tokens
-                    .get(&output)
+                    .get(&output.token)
                     .ok_or(ParseOrderStringError::TokenParseError(
-                        ParseTokenStringError::NetworkNotFoundError(output.clone()),
+                        ParseTokenStringError::NetworkNotFoundError(output.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network_ref {
-                            Ok(v.clone())
+                        if v.network == network {
+                            Ok(OrderIO {
+                                token: v.clone(),
+                                vault_id: output.vault_id.parse::<U256>()?,
+                            })
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
                         }
@@ -113,9 +143,9 @@ impl OrderString {
         Ok(Order {
             inputs,
             outputs,
-            network: network_ref,
-            deployer: deployer_ref,
-            orderbook: orderbook_ref,
+            network,
+            deployer,
+            orderbook,
         })
     }
 }
@@ -149,8 +179,14 @@ mod tests {
             network: "Local Testnet".to_string(),
             deployer: Some("Deployer1".to_string()),
             orderbook: Some("Orderbook1".to_string()),
-            inputs: vec!["Token1".to_string()],
-            outputs: vec!["Token2".to_string()],
+            inputs: vec![IOString {
+                token: "Token1".to_string(),
+                vault_id: "1".to_string(),
+            }],
+            outputs: vec![IOString {
+                token: "Token2".to_string(),
+                vault_id: "2".to_string(),
+            }],
         };
 
         let result = order_string.try_into_order(&networks, &deployers, &orderbooks, &tokens);
@@ -160,8 +196,22 @@ mod tests {
         assert_eq!(order.network, networks["Local Testnet"]);
         assert_eq!(order.deployer, Some(deployers["Deployer1"].clone()));
         assert_eq!(order.orderbook, Some(orderbooks["Orderbook1"].clone()));
-        assert_eq!(order.inputs, vec![token_input]);
-        assert_eq!(order.outputs, vec![token_output]);
+        assert_eq!(
+            order
+                .inputs
+                .iter()
+                .map(|v| v.token.clone())
+                .collect::<Vec<_>>(),
+            vec![token_input]
+        );
+        assert_eq!(
+            order
+                .outputs
+                .iter()
+                .map(|v| v.token.clone())
+                .collect::<Vec<_>>(),
+            vec![token_output]
+        );
     }
 
     #[test]
@@ -239,7 +289,10 @@ mod tests {
             network: "Local Testnet".to_string(),
             deployer: None,
             orderbook: None,
-            inputs: vec!["Nonexistent Token".to_string()],
+            inputs: vec![IOString {
+                token: "Nonexistent Token".to_string(),
+                vault_id: "1".to_string(),
+            }],
             outputs: vec![],
         };
 

@@ -13,9 +13,6 @@ pub enum MergeError {
     #[error("There is already an orderbook called {0}")]
     OrderbookCollision(String),
 
-    #[error("There is already a vault called {0}")]
-    VaultCollision(String),
-
     #[error("There is already a token called {0}")]
     TokenCollision(String),
 
@@ -59,15 +56,6 @@ impl ConfigString {
                 return Err(MergeError::OrderbookCollision(key));
             }
             orderbooks.insert(key, value);
-        }
-
-        // Vaults
-        let vaults = &mut self.vaults;
-        for (key, value) in other.vaults {
-            if vaults.contains_key(&key) {
-                return Err(MergeError::VaultCollision(key));
-            }
-            vaults.insert(key, value);
         }
 
         // Tokens
@@ -148,15 +136,6 @@ impl Config {
             orderbooks.insert(key, value.clone());
         }
 
-        // Vaults
-        let vaults = &mut self.vaults;
-        for (key, value) in other.vaults {
-            if vaults.contains_key(&key) {
-                return Err(MergeError::VaultCollision(key));
-            }
-            vaults.insert(key, value.clone());
-        }
-
         // Tokens
         let tokens = &mut self.tokens;
         for (key, value) in other.tokens {
@@ -215,7 +194,6 @@ mod tests {
         let mut config = ConfigString {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
-            vaults: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
             orders: HashMap::new(),
@@ -228,7 +206,6 @@ mod tests {
         let other = ConfigString {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
-            vaults: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
             orders: HashMap::new(),
@@ -246,7 +223,6 @@ mod tests {
         let mut config = ConfigString {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
-            vaults: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
             orders: HashMap::new(),
@@ -259,7 +235,6 @@ mod tests {
         let mut other = ConfigString {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
-            vaults: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
             orders: HashMap::new(),
