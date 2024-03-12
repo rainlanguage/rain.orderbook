@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainprotocol/rainix/c0ec270110349723cc26dbceb8f56d5c8d5ce8b7";
+    rainix.url = "github:rainprotocol/rainix";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -23,13 +23,8 @@
               # Generate Typescript types from rust types
               mkdir -p tauri-app/src/lib/typeshare;
 
-              typeshare crates/subgraph/src/types/vault_balance_changes_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
-              typeshare crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=/tmp/vaultBalanceChange.ts;
-              cat /tmp/vaultBalanceChange.ts >> tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
-
-              typeshare crates/subgraph/src/types/order_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
-              typeshare crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=/tmp/orderDetailExtended.ts
-              cat /tmp/orderDetailExtended.ts >> tauri-app/src/lib/typeshare/orderDetail.ts;
+              typeshare crates/subgraph/src/types/vault_balance_changes_list.rs  crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
+              typeshare crates/subgraph/src/types/order_detail.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
 
               typeshare crates/subgraph/src/types/vault_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultDetail.ts;
               typeshare crates/subgraph/src/types/vaults_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultsList.ts;
@@ -37,14 +32,16 @@
               typeshare crates/subgraph/src/types/order_takes_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakesList.ts;
               typeshare crates/subgraph/src/types/order_take_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakeDetail.ts;
 
+              typeshare crates/common/src/fuzz/mod.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/fuzz.ts;
+
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare crates/settings/src/config.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              typeshare crates/settings/src/config.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/deployment.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
 
               node tauri-app/src/scripts/typeshareFix.cjs
-              
+
               # Fix linting of generated types
               cd tauri-app && npm i && npm run lint
             '';

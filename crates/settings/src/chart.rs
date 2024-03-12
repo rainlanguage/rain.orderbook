@@ -38,7 +38,7 @@ impl ChartString {
         self,
         name: String,
         scenarios: &HashMap<String, Arc<Scenario>>,
-    ) -> Result<Arc<Chart>, ParseChartStringError> {
+    ) -> Result<Chart, ParseChartStringError> {
         let scenario_ref = match self.scenario {
             Some(scenario_name) => scenarios
                 .get(&scenario_name)
@@ -52,7 +52,7 @@ impl ChartString {
                 .map(Arc::clone)?,
         };
 
-        Ok(Arc::new(Chart {
+        Ok(Chart {
             scenario: scenario_ref,
             plots: self
                 .plots
@@ -70,7 +70,7 @@ impl ChartString {
                     ))
                 })
                 .collect::<Result<HashMap<String, Plot>, ParseChartStringError>>()?,
-        }))
+        })
     }
 }
 
@@ -84,6 +84,7 @@ mod tests {
 
     fn create_scenario(name: &str, runs: Option<u64>) -> (String, Arc<Scenario>) {
         let scenario = Scenario {
+            name: name.into(),
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
             runs,
             deployer: mock_deployer(),

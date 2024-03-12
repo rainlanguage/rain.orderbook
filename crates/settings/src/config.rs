@@ -147,6 +147,17 @@ impl TryFrom<ConfigString> for Config {
             })
             .collect::<Result<HashMap<String, Arc<Deployment>>, ParseConfigStringError>>()?;
 
+        let charts = item
+            .charts
+            .into_iter()
+            .map(|(name, chart)| {
+                Ok((
+                    name.clone(),
+                    Arc::new(chart.try_into_chart(name, &scenarios)?),
+                ))
+            })
+            .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigStringError>>()?;
+
         let config = Config {
             networks,
             subgraphs,
@@ -155,7 +166,7 @@ impl TryFrom<ConfigString> for Config {
             deployers,
             orders,
             scenarios,
-            charts: HashMap::new(),
+            charts,
             deployments,
         };
 

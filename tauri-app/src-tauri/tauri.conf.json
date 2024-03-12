@@ -44,7 +44,7 @@
         "icons/icon.ico"
       ],
       "macOS": {
-        "minimumSystemVersion": "10.15",
+        "minimumSystemVersion": "11",
         "frameworks": [
           "../lib/libintl.8.dylib",
           "../lib/libiconv.dylib",

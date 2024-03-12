@@ -47,6 +47,7 @@
     "@codemirror/lang-yaml": "^6.0.0",
     "@fontsource/dm-sans": "^5.0.18",
     "@imask/svelte": "^7.3.0",
+    "@observablehq/plot": "^0.6.13",
     "@square/svelte-store": "^1.0.18",
     "@tauri-apps/api": "^1.5.3",
     "codemirror-rainlang": "^3.0.1",
