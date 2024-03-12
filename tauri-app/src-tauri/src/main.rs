@@ -7,6 +7,7 @@ pub mod transaction_status;
 
 mod commands;
 use commands::chain::{get_block_number, get_chainid};
+use commands::charts::make_charts;
 use commands::config::{get_config, parse_config};
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
@@ -56,6 +57,7 @@ fn run_tauri_app() {
             call_lsp_problems,
             parse_config,
             get_config,
+            make_charts
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
