@@ -56,6 +56,6 @@
 </div>
 
 <div class="my-8">
-  <Label class="mb-2">Ledger Wallet</Label>
+  <Label class="mb-2">Wallet Connect</Label>
   <WalletConnect/>
 </div>
