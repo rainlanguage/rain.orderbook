@@ -9,8 +9,9 @@
   import { Helper, Label, Button } from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
-  import ObservableChart from '$lib/components/ObservableChart.svelte';
-  import { fuzz } from '$lib/services/fuzz';
+  // import ObservableChart from '$lib/components/ObservableChart.svelte';
+  import { makeChartData } from '$lib/services/chart';
+    import { settingsText } from '$lib/stores/settings';
 
   let isSubmitting = false;
   let result = writable();
@@ -26,9 +27,11 @@
     isSubmitting = false;
   }
 
-  async function fuzzIt() {
-    $result = await fuzz("mumbai", $dotrainFile.text, "");
+  async function chart() {
+    $result = await makeChartData($dotrainFile.text, $settingsText);
   }
+
+  $: console.log($result)
 </script>
 
 <PageHeader title="Add Order" />
@@ -52,9 +55,9 @@
     </svelte:fragment>
 </FileTextarea>
 
-<Button on:click={fuzzIt}>Fuzz it baby</Button>
+<Button on:click={chart}>Fuzz it baby</Button>
 
-<ObservableChart rawData={$result} />
+<!-- <ObservableChart rawData={$result} /> -->
 
 <div class="my-8">
   <Label class="mb-2">Parse at Block Number</Label>

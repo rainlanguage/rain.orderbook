@@ -1,7 +1,7 @@
 pub mod chain;
+pub mod charts;
 pub mod dotrain;
 pub mod dotrain_add_order_lsp;
-pub mod fuzz;
 pub mod order;
 pub mod order_take;
 pub mod settings;

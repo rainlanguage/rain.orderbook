@@ -56,7 +56,7 @@ fn run_tauri_app() {
             call_lsp_hover,
             call_lsp_problems,
             parse_settings,
-            fuzz
+            make_charts
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
