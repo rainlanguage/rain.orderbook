@@ -1,4 +1,4 @@
-use chrono::{Local, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Local};
 use std::num::ParseIntError;
 use thiserror::Error;
 
@@ -19,11 +19,10 @@ pub fn format_bigint_timestamp_display(
 }
 
 pub fn format_timestamp_display(timestamp: i64) -> Result<String, FormatTimestampDisplayError> {
-    let timestamp_naive = NaiveDateTime::from_timestamp_opt(timestamp, 0)
+    let timestamp_naive = DateTime::from_timestamp(timestamp, 0)
         .ok_or(FormatTimestampDisplayError::InvalidTimestamp(timestamp))?;
 
-    let timestamp_display = Utc
-        .from_utc_datetime(&timestamp_naive)
+    let timestamp_display = timestamp_naive
         .with_timezone(&Local)
         .format("%Y-%m-%d %I:%M:%S %p")
         .to_string();

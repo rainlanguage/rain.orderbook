@@ -9,11 +9,11 @@ license = "CAL-1.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "846dae9034c79f3935a0021635c9a6ee2d91f13e" }
-alloy-sol-types = { version = "0.5.4" }
-alloy-primitives = "0.5.4"
-alloy-json-abi = "0.5.4"
-alloy-dyn-abi = "0.5.4"
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "a6bcb86b9b61a56d2440d33313f024297ce737bb" }
+alloy-sol-types = "0.6.3"
+alloy-primitives = "0.6.3"
+alloy-json-abi = "0.6.3"
+alloy-dyn-abi = "0.6.3"
 anyhow = "1.0.70"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
 once_cell = "1.17.1"
@@ -35,8 +35,8 @@ chrono = "0.4.31"
 typeshare = "1.0.1"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = "6.0.1-alpha.10"
-dotrain-lsp = "6.0.1-alpha.10"
+dotrain = { git = "https://github.com/rainlanguage/dotrain", rev = "b813542cb1c9a2399664a606761f3a3db7b842af" }
+dotrain-lsp = { git = "https://github.com/rainlanguage/dotrain", rev = "b813542cb1c9a2399664a606761f3a3db7b842af" }
 rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }
@@ -45,7 +45,7 @@ rain-interpreter-eval = { path = "lib/rain.interpreter/crates/eval" }
 csv = "1.3.0"
 insta = { version = "1.34.0" }
 proptest = "1.4.0"
-
+k256 = "=0.13.1"
 derive_builder = "0.20.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
@@ -62,19 +62,3 @@ path = "crates/subgraph"
 
 [workspace.dependencies.rain_orderbook_app_settings]
 path = "crates/settings"
-
-[patch.crates-io]
-revm-inspectors = { git = "https://github.com/paradigmxyz/evm-inspectors" }
-ethers = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-core = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-contract = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-contract-abigen = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-providers = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-signers = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-middleware = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-ethers-solc = { git = "https://github.com/gakonst/ethers-rs", rev = "f0e5b194f09c533feb10d1a686ddb9e5946ec107" }
-
-revm = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }
-revm-primitives = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }
-revm-interpreter = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }
-revm-precompile = { git = "https://github.com/bluealloy/revm", branch = "reth_freeze" }

@@ -29,6 +29,8 @@ pub enum ParseOrderStringError {
     TokenParseError(ParseTokenStringError),
     #[error("Network not found: {0}")]
     NetworkNotFoundError(String),
+    #[error("Network does not match")]
+    NetworkNotMatch,
 }
 
 impl OrderString {
@@ -79,7 +81,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::TokenParseError(
                         ParseTokenStringError::NetworkNotFoundError(input.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network_ref {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -92,7 +100,13 @@ impl OrderString {
                     .ok_or(ParseOrderStringError::TokenParseError(
                         ParseTokenStringError::NetworkNotFoundError(output.clone()),
                     ))
-                    .map(Arc::clone)
+                    .map(|v| {
+                        if v.network == network_ref {
+                            Ok(v.clone())
+                        } else {
+                            Err(ParseOrderStringError::NetworkNotMatch)
+                        }
+                    })?
             })
             .collect::<Result<Vec<_>, _>>()?;
 
