@@ -181,7 +181,7 @@ impl FuzzRunner {
         }
 
         Ok(FuzzResult {
-            scenario: scenario.name.clone().into(),
+            scenario: scenario.name.clone(),
             runs,
         })
     }
@@ -197,8 +197,8 @@ impl FuzzRunner {
             .plots
             .into_iter()
             .map(|(name, plot)| {
-                let x_result = res.collect_data_by_path(&*plot.data.x);
-                let y_result = res.collect_data_by_path(&*plot.data.y);
+                let x_result = res.collect_data_by_path(&plot.data.x);
+                let y_result = res.collect_data_by_path(&plot.data.y);
 
                 x_result
                     .and_then(|x| {
