@@ -28,6 +28,9 @@ uuid = { version = "1.7.0", features = ["serde"] }
 serde_bytes = "0.11.14"
 thiserror = "1.0.56"
 url = "2.5.0"
+k256 = "=0.13.1"
+serde_yaml = "0.9.32"
+dotrain = "6.0.1-alpha.10"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

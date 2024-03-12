@@ -4,7 +4,7 @@ use crate::types::vault_balance_change::VaultBalanceChange;
 use crate::types::vault_balance_changes_list::{
     VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
 };
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use reqwest::Url;
 use std::cmp::Reverse;
 
@@ -64,7 +64,7 @@ impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariabl
                 VaultBalanceChange::Withdraw(v) => v.timestamp.clone().0,
             };
 
-            Reverse(NaiveDateTime::from_timestamp_opt(
+            Reverse(DateTime::from_timestamp(
                 timestamp.parse::<i64>().unwrap_or(0),
                 0,
             ))

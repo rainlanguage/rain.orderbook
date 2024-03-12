@@ -1,4 +1,5 @@
 pub mod chain;
+pub mod charts;
 pub mod dotrain;
 pub mod dotrain_add_order_lsp;
 pub mod order;
