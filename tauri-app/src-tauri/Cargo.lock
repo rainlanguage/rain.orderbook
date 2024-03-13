@@ -8453,7 +8453,6 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "chrono",
  "dotrain 6.0.1-alpha.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "k256",
  "rain_orderbook_app_settings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
