@@ -21,9 +21,9 @@ pub struct Chart {
 impl Execute for Chart {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
-        let frontmatter = RainDocument::get_front_matter(&*dotrain).unwrap();
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config = serde_yaml::from_str::<ConfigString>(frontmatter)?.try_into()?;
-        let mut fuzzer = FuzzRunner::new(&*dotrain, config, None).await;
+        let mut fuzzer = FuzzRunner::new(&dotrain, config, None).await;
         let chart_data = fuzzer.build_chart_datas().await?;
 
         info!("{:#?}", chart_data);
