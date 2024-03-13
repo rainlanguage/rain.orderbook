@@ -6,6 +6,7 @@ import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import { invoke } from '@tauri-apps/api';
 import { type Config } from '$lib/typeshare/config';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
+import { toasts } from './toasts';
 
 const emptyConfig = {
   deployments: {},
@@ -31,8 +32,7 @@ export const settings = asyncDerived([settingsText, dotrainFile], async ([$setti
     const config: Config = await invoke("get_config", {dotrain: text, settingText: $settingsText});
     return config;
   } catch(e) {
-    // eslint-disable-next-line no-console
-    console.log(e);
+    toasts.error(e as string);
     return emptyConfig;
   }
 }, { initial: emptyConfig });
