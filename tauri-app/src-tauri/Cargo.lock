@@ -2246,7 +2246,28 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 [[package]]
 name = "dotrain"
 version = "6.0.1-alpha.10"
-source = "git+https://github.com/rainlanguage/dotrain?rev=67e75eab6eb7c4cc6df2613671c0ff034ec7a43d#67e75eab6eb7c4cc6df2613671c0ff034ec7a43d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08708f5a322925647d011431a93bc015cccfaa42b267d6ce1167f77a7dd44952"
+dependencies = [
+ "alloy-primitives 0.5.4",
+ "anyhow",
+ "async-recursion",
+ "futures",
+ "getrandom 0.2.12",
+ "magic_string",
+ "once_cell",
+ "rain-metadata 0.0.2-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "serde_repr",
+]
+
+[[package]]
+name = "dotrain"
+version = "6.0.1-alpha.10"
+source = "git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af#b813542cb1c9a2399664a606761f3a3db7b842af"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -2266,11 +2287,11 @@ dependencies = [
 [[package]]
 name = "dotrain-lsp"
 version = "6.0.1-alpha.10"
-source = "git+https://github.com/rainlanguage/dotrain?rev=67e75eab6eb7c4cc6df2613671c0ff034ec7a43d#67e75eab6eb7c4cc6df2613671c0ff034ec7a43d"
+source = "git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af#b813542cb1c9a2399664a606761f3a3db7b842af"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
- "dotrain",
+ "dotrain 6.0.1-alpha.10 (git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af)",
  "lsp-types",
  "once_cell",
  "regex",
@@ -6451,9 +6472,8 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "chrono",
  "csv",
- "dotrain",
+ "dotrain 6.0.1-alpha.10 (git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af)",
  "dotrain-lsp",
- "k256",
  "once_cell",
  "proptest",
  "rain-interpreter-eval",
@@ -8432,7 +8452,7 @@ dependencies = [
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "chrono",
- "dotrain",
+ "dotrain 6.0.1-alpha.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "k256",
  "rain_orderbook_app_settings",
  "rain_orderbook_common",
