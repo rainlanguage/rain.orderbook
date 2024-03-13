@@ -5,11 +5,17 @@
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
   import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label } from 'flowbite-svelte';
+  import { Helper, Label, Button, Spinner } from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
+  import { makeChartData } from '$lib/services/chart';
+    import { settingsText } from '$lib/stores/settings';
+    import type { ChartData } from '$lib/typeshare/fuzz';
+    import Charts from '$lib/components/Charts.svelte';
 
   let isSubmitting = false;
+  let isCharting = false;
+  let chartData: ChartData[];
 
   const dotrainFile = textFileStore('Rain', ['rain']);
 
@@ -21,6 +27,14 @@
     } catch (e) {}
     isSubmitting = false;
   }
+
+  async function chart() {
+    isCharting = true;
+    chartData = await makeChartData($dotrainFile.text, $settingsText);
+    isCharting = false;
+  }
+
+  $: console.log(chartData)
 </script>
 
 <PageHeader title="Add Order" />
@@ -52,3 +66,6 @@
     the latest block on app launch.
   </Helper>
 </div>
+
+<Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
+<Charts {chartData} />
