@@ -6,6 +6,7 @@ import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import { invoke } from '@tauri-apps/api';
 import { type Config } from '$lib/typeshare/config';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
+import { toasts } from './toasts';
 
 const emptyConfig = {
   deployments: {},
@@ -28,11 +29,10 @@ export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'ya
 export const settings = asyncDerived([settingsText, dotrainFile], async ([$settingsText, $dotrainFile]): Promise<Config> => {
   const text = $dotrainFile?.text !== undefined ? $dotrainFile.text : "";
   try {
-    const config: Config = await invoke("get_config", {dotrain: text, settingText: $settingsText});
+    const config: Config = await invoke("merge_parse_configs", {dotrain: text, settingText: $settingsText});
     return config;
   } catch(e) {
-    // eslint-disable-next-line no-console
-    console.log(e);
+    toasts.error(e as string);
     return emptyConfig;
   }
 }, { initial: emptyConfig });

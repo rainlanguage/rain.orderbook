@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "kebab-case")]
 pub struct ConfigString {
     #[serde(default)]
     pub networks: HashMap<String, NetworkString>,
@@ -24,6 +25,7 @@ pub struct ConfigString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct NetworkString {
     pub rpc: String,
     pub chain_id: String,
@@ -33,6 +35,7 @@ pub struct NetworkString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct OrderbookString {
     pub address: String,
     pub network: Option<String>,
@@ -41,6 +44,7 @@ pub struct OrderbookString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct TokenString {
     pub network: String,
     pub address: String,
@@ -50,6 +54,7 @@ pub struct TokenString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct DeployerString {
     pub address: String,
     pub network: Option<String>,
@@ -57,18 +62,21 @@ pub struct DeployerString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct DeploymentString {
     pub scenario: String,
     pub order: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct IOString {
     pub token: String,
     pub vault_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct OrderString {
     pub inputs: Vec<IOString>,
     pub outputs: Vec<IOString>,
@@ -78,6 +86,7 @@ pub struct OrderString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct ScenarioString {
     #[serde(default)]
     pub bindings: HashMap<String, String>,
@@ -87,18 +96,21 @@ pub struct ScenarioString {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct ChartString {
     pub scenario: Option<String>,
     pub plots: HashMap<String, PlotString>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct PlotString {
     pub data: DataPointsString,
     pub plot_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct DataPointsString {
     pub x: String,
     pub y: String,

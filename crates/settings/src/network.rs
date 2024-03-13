@@ -7,6 +7,7 @@ use url::{ParseError, Url};
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct Network {
     #[typeshare(typescript(type = "string"))]
     pub rpc: Url,

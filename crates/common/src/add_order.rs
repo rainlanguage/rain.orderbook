@@ -1,6 +1,6 @@
 use crate::{
     dotrain_add_order_lsp::LANG_SERVICES,
-    frontmatter::{get_merged_config, FrontmatterError},
+    frontmatter::{merge_parse_configs, FrontmatterError},
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{
@@ -50,26 +50,8 @@ pub enum AddOrderArgsError {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
-    /// Text of a dotrain file describing an addOrder call
-    /// Text MUST have strict yaml frontmatter of the following structure
-    ///
-    /// ```yaml
-    /// orderbook:
-    ///     order:
-    ///         deployer: 0x1111111111111111111111111111111111111111
-    ///         valid-inputs:
-    ///             - address: 0x2222222222222222222222222222222222222222
-    ///               decimals: 18
-    ///               vault-id: 0x1234
-    ///         valid-outputs:
-    ///             - address: 0x5555555555555555555555555555555555555555
-    ///               decimals: 8
-    ///               vault-id: 0x5678
-    /// ```
-    ///
-    /// Text MUST have valid dotrain body succeding frontmatter.
-    /// The dotrain body must contain two entrypoints: `calulate-io` and `handle-io`.
     pub dotrain: String,
     pub inputs: Vec<IO>,
     pub outputs: Vec<IO>,
@@ -142,8 +124,11 @@ impl AddOrderArgs {
     }
 
     /// returns the frontmatter config merged with top config
-    pub fn get_config(&self, top_config: Option<&str>) -> Result<Config, FrontmatterError> {
-        get_merged_config(&self.dotrain, top_config)
+    pub fn merge_parse_configs(
+        &self,
+        top_config: Option<&str>,
+    ) -> Result<Config, FrontmatterError> {
+        merge_parse_configs(&self.dotrain, top_config)
     }
 
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants

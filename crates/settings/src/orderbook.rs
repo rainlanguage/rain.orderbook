@@ -9,6 +9,7 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct Orderbook {
     #[typeshare(typescript(type = "string"))]
     pub address: Address,

@@ -1,15 +1,10 @@
 use crate::error::CommandResult;
 use rain_orderbook_app_settings::config::Config;
-use rain_orderbook_common::frontmatter::get_merged_config;
+use rain_orderbook_common::frontmatter::merge_parse_configs as merge_parse_configs_inner;
 
 #[tauri::command]
-pub fn parse_config(text: String) -> CommandResult<Config> {
-    Ok(text.try_into()?)
-}
-
-#[tauri::command]
-pub fn get_config(dotrain: String, setting_text: String) -> CommandResult<Config> {
-    Ok(get_merged_config(
+pub fn merge_parse_configs(dotrain: String, setting_text: String) -> CommandResult<Config> {
+    Ok(merge_parse_configs_inner(
         dotrain.as_str(),
         Some(setting_text.as_str()),
     )?)

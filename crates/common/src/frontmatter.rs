@@ -14,16 +14,8 @@ pub enum FrontmatterError {
     MergeError(#[from] MergeError),
 }
 
-/// Parse dotrain frontmatter to extract Config
-pub fn try_parse_frontmatter(frontmatter: &str) -> Result<Config, FrontmatterError> {
-    if frontmatter.is_empty() {
-        return Ok(Config::default());
-    }
-    Ok(frontmatter.try_into()?)
-}
-
 /// Parse dotrain frontmatter and merges it with top Config if given
-pub fn get_merged_config(
+pub fn merge_parse_configs(
     dotrain: &str,
     top_config: Option<&str>,
 ) -> Result<Config, FrontmatterError> {

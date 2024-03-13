@@ -7,6 +7,7 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct OrderIO {
     #[typeshare(typescript(type = "Token"))]
     pub token: Arc<Token>,
@@ -16,6 +17,7 @@ pub struct OrderIO {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Order {
     #[typeshare(typescript(type = "OrderIO[]"))]
     pub inputs: Vec<OrderIO>,
