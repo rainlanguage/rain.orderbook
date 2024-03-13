@@ -94,6 +94,11 @@
                 install_name_tool -id @executable_path/../Frameworks/libintl.8.dylib lib/libintl.8.dylib
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib lib/libintl.8.dylib
                 otool -L lib/libintl.8.dylib
+
+                cp ${pkgs.libusb}/lib/libusb-1.0.0.dylib lib/libusb-1.0.0.dylib
+                chmod +w lib/libusb-1.0.0.dylib
+                install_name_tool -id @executable_path/../Frameworks/libusb-1.0.0.dylib lib/libusb-1.0.0.dylib
+                otool -L lib/libusb-1.0.0.dylib
               fi
             '';
           };
@@ -108,6 +113,7 @@
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Rain\ Orderbook
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Rain\ Orderbook
+                install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Rain\ Orderbook
 
                 otool -L src-tauri/target/release/Rain\ Orderbook
                 grep_exit_code=0
