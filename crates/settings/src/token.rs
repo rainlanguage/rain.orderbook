@@ -7,6 +7,7 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct Token {
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,

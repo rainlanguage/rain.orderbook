@@ -6,6 +6,7 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Scenario {
     pub name: String,
     pub bindings: HashMap<String, String>,

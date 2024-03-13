@@ -7,6 +7,7 @@ use crate::*;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Chart {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
@@ -15,6 +16,7 @@ pub struct Chart {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Plot {
     pub data: DataPoints,
     pub plot_type: String,
@@ -22,6 +24,7 @@ pub struct Plot {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct DataPoints {
     pub x: String,
     pub y: String,
