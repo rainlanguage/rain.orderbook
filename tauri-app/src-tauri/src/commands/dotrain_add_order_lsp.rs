@@ -2,7 +2,7 @@ use crate::error::CommandResult;
 use alloy_primitives::Address;
 use rain_orderbook_common::{
     dotrain::types::ast::Problem,
-    dotrain_add_order_lsp::{completion, hover, problems},
+    dotrain_add_order_lsp::DotrainAddOrderLsp,
     dotrain_lsp::lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
 };
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ pub fn call_lsp_hover(
     position: Position,
     bindings: HashMap<String, String>,
 ) -> Option<Hover> {
-    hover(&text_document, position, bindings)
+    DotrainAddOrderLsp::new(text_document, bindings).hover(position)
 }
 
 #[tauri::command]
@@ -22,7 +22,7 @@ pub fn call_lsp_completion(
     position: Position,
     bindings: HashMap<String, String>,
 ) -> Option<Vec<CompletionItem>> {
-    completion(&text_document, position, bindings)
+    DotrainAddOrderLsp::new(text_document, bindings).completion(position)
 }
 
 #[tauri::command]
@@ -33,5 +33,7 @@ pub async fn call_lsp_problems(
     bindings: HashMap<String, String>,
     deployer: Option<Address>,
 ) -> CommandResult<Vec<Problem>> {
-    Ok(problems(&text_document, rpc_url, block_number, bindings, deployer).await)
+    Ok(
+        DotrainAddOrderLsp::new(text_document, bindings).problems(rpc_url, block_number, deployer).await
+    )
 }
