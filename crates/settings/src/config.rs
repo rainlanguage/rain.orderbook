@@ -14,8 +14,6 @@ pub struct Config {
     pub networks: HashMap<String, Arc<Network>>,
     #[typeshare(typescript(type = "Record<string, string>"))]
     pub subgraphs: HashMap<String, Arc<Subgraph>>,
-    #[typeshare(typescript(type = "Record<string, string>"))]
-    pub vaults: HashMap<String, Arc<Vault>>,
     #[typeshare(typescript(type = "Record<string, Orderbook>"))]
     pub orderbooks: HashMap<String, Arc<Orderbook>>,
     #[typeshare(typescript(type = "Record<string, Token>"))]
@@ -53,8 +51,6 @@ pub enum ParseConfigStringError {
     ParseChartStringError(#[from] ParseChartStringError),
     #[error(transparent)]
     ParseDeploymentStringError(#[from] ParseDeploymentStringError),
-    #[error("Failed to parse vault {}", 0)]
-    VaultParseError(alloy_primitives::ruint::ParseError),
     #[error("Failed to parse subgraph {}", 0)]
     SubgraphParseError(url::ParseError),
     #[error(transparent)]
@@ -85,21 +81,6 @@ impl TryFrom<ConfigString> for Config {
                 ))
             })
             .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigStringError>>()?;
-
-        let vaults = item
-            .vaults
-            .into_iter()
-            .map(|(name, vault)| {
-                Ok((
-                    name,
-                    Arc::new(
-                        vault
-                            .parse::<U256>()
-                            .map_err(ParseConfigStringError::VaultParseError)?,
-                    ),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<Vault>>, ParseConfigStringError>>()?;
 
         let orderbooks = item
             .orderbooks
@@ -180,7 +161,6 @@ impl TryFrom<ConfigString> for Config {
         let config = Config {
             networks,
             subgraphs,
-            vaults,
             orderbooks,
             tokens,
             deployers,
@@ -246,12 +226,6 @@ mod tests {
             },
         );
 
-        let mut vaults = HashMap::new();
-        vaults.insert(
-            "mainVault".to_string(),
-            "0x4567890123456789012345678901234567890123".to_string(),
-        );
-
         let mut tokens = HashMap::new();
         tokens.insert(
             "ETH".to_string(),
@@ -283,7 +257,6 @@ mod tests {
             networks,
             subgraphs,
             orderbooks,
-            vaults,
             tokens,
             deployers,
             orders,
