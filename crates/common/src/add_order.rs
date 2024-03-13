@@ -1,6 +1,6 @@
 use crate::{
     dotrain_add_order_lsp::LANG_SERVICES,
-    frontmatter::{get_merged_config, FrontmatterError},
+    frontmatter::{merge_parse_configs, FrontmatterError},
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{
@@ -142,8 +142,11 @@ impl AddOrderArgs {
     }
 
     /// returns the frontmatter config merged with top config
-    pub fn get_config(&self, top_config: Option<&str>) -> Result<Config, FrontmatterError> {
-        get_merged_config(&self.dotrain, top_config)
+    pub fn merge_parse_configs(
+        &self,
+        top_config: Option<&str>,
+    ) -> Result<Config, FrontmatterError> {
+        merge_parse_configs(&self.dotrain, top_config)
     }
 
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants

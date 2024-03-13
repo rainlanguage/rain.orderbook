@@ -4,7 +4,7 @@ use crate::{
 use anyhow::{anyhow, Result};
 use clap::Args;
 use rain_orderbook_common::add_order::AddOrderArgs;
-use rain_orderbook_common::frontmatter::get_merged_config;
+use rain_orderbook_common::frontmatter::merge_parse_configs;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
 use std::ops::Deref;
@@ -30,7 +30,7 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config = get_merged_config(text.as_str(), None)?;
+        let config = merge_parse_configs(text.as_str(), None)?;
         if let Some(config_deployment) = config.deployments.get(&self.deployment) {
             Ok(
                 AddOrderArgs::new_from_deployment(&text, config_deployment.deref().to_owned())

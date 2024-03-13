@@ -29,7 +29,7 @@ export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'ya
 export const settings = asyncDerived([settingsText, dotrainFile], async ([$settingsText, $dotrainFile]): Promise<Config> => {
   const text = $dotrainFile?.text !== undefined ? $dotrainFile.text : "";
   try {
-    const config: Config = await invoke("get_config", {dotrain: text, settingText: $settingsText});
+    const config: Config = await invoke("merge_parse_configs", {dotrain: text, settingText: $settingsText});
     return config;
   } catch(e) {
     toasts.error(e as string);
