@@ -32,7 +32,7 @@
 
   $: $dotrainFile.text, updateMergedConfig();
   $: deployments = (mergedConfigString !== undefined && mergedConfigString?.deployments !== undefined && mergedConfigString?.orders !== undefined) ?
-    pickBy(mergedConfigString.deployments, (d) => mergedConfigString?.orders?.[d.order].network === $activeNetworkRef) : {};
+    pickBy(mergedConfigString.deployments, (d) => mergedConfigString?.orders?.[d.order]?.network === $activeNetworkRef) : {};
   $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
 
