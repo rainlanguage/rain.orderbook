@@ -16,11 +16,12 @@ pub enum FrontmatterError {
 
 /// Parse dotrain frontmatter and merges it with top Config if given
 pub fn merge_parse_configs(
-    dotrain: &str,
-    top_config: Option<&str>,
+    dotrain: String,
+    top_config: Option<String>,
 ) -> Result<Config, FrontmatterError> {
-    let frontmatter = RainDocument::get_front_matter(dotrain).unwrap_or("");
+    let frontmatter = RainDocument::get_front_matter(dotrain.as_str()).unwrap_or("");
     let mut frontmatter_str_config: ConfigString = frontmatter
+        .to_string()
         .try_into()
         .map_err(ParseConfigStringError::YamlDeserializerError)?;
     if let Some(v) = top_config {

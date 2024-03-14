@@ -30,12 +30,13 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config = merge_parse_configs(text.as_str(), None)?;
+        let config = merge_parse_configs(text.clone(), None)?;
         if let Some(config_deployment) = config.deployments.get(&self.deployment) {
-            Ok(
-                AddOrderArgs::new_from_deployment(&text, config_deployment.deref().to_owned())
-                    .await?,
+            Ok(AddOrderArgs::new_from_deployment(
+                text.clone(),
+                config_deployment.deref().to_owned(),
             )
+            .await?)
         } else {
             Err(anyhow!("specified deployment is undefined!"))
         }

@@ -60,9 +60,9 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    /// create a new  instance from Deployemnt
+    /// create a new  instance from Deployment
     pub async fn new_from_deployment(
-        dotrain: &str,
+        dotrain: String,
         deployment: Deployment,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let mut inputs = vec![];
@@ -126,9 +126,9 @@ impl AddOrderArgs {
     /// returns the frontmatter config merged with top config
     pub fn merge_parse_configs(
         &self,
-        top_config: Option<&str>,
+        top_config: Option<String>,
     ) -> Result<Config, FrontmatterError> {
-        merge_parse_configs(&self.dotrain, top_config)
+        merge_parse_configs(self.dotrain.clone(), top_config)
     }
 
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants

@@ -43,10 +43,7 @@ impl DeployerString {
         };
 
         Ok(Deployer {
-            address: self
-                .address
-                .parse()
-                .map_err(ParseDeployerStringError::AddressParseError)?,
+            address: self.address,
             network: network_ref,
             label: self.label,
         })
@@ -76,7 +73,7 @@ mod tests {
         let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
         let deployer_string = DeployerString {
-            address: address.to_string(),
+            address: address,
             network: Some(network_name.to_string()),
             label: Some("Test Deployer".to_string()),
         };
@@ -93,30 +90,12 @@ mod tests {
     }
 
     #[test]
-    fn test_try_into_deployer_address_parse_error() {
-        let invalid_address = "zzz"; // Intentionally invalid address format
-        let network_name = "testnet";
-        let networks = HashMap::from([(network_name.to_string(), mock_network())]);
-        let deployer_string = DeployerString {
-            address: invalid_address.into(),
-            network: Some(network_name.to_string()),
-            label: Some("Invalid Deployer".to_string()),
-        };
-
-        let result = deployer_string.try_into_deployer(network_name.to_string(), &networks);
-        assert!(matches!(
-            result,
-            Err(ParseDeployerStringError::AddressParseError(_))
-        ));
-    }
-
-    #[test]
     fn test_try_into_deployer_network_not_found_error() {
         let address = Address::repeat_byte(0x01);
         let invalid_network_name = "unknownnet";
         let networks = HashMap::new(); // Empty networks map
         let deployer_string = DeployerString {
-            address: address.to_string(),
+            address,
             network: Some(invalid_network_name.to_string()),
             label: None,
         };
@@ -134,7 +113,7 @@ mod tests {
         let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
         let deployer_string = DeployerString {
-            address: address.to_string(),
+            address,
             network: None, // No network specified
             label: None,
         };

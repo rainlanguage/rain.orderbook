@@ -42,18 +42,8 @@ impl TokenString {
 
         Ok(Token {
             network: network_ref,
-            address: self
-                .address
-                .parse()
-                .map_err(ParseTokenStringError::AddressParseError)?,
-            decimals: self
-                .decimals
-                .map(|decimals| {
-                    decimals
-                        .parse()
-                        .map_err(ParseTokenStringError::DecimalsParseError)
-                })
-                .transpose()?,
+            address: self.address,
+            decimals: self.decimals,
             label: self.label,
             symbol: self.symbol,
         })
@@ -78,8 +68,8 @@ mod token_tests {
         let networks = setup_networks();
         let token_string = TokenString {
             network: "TestNetwork".to_string(),
-            address: Address::repeat_byte(0x01).to_string(),
-            decimals: Some("18".to_string()),
+            address: Address::repeat_byte(0x01),
+            decimals: Some(18),
             label: Some("TestToken".to_string()),
             symbol: Some("TTK".to_string()),
         };
@@ -104,7 +94,7 @@ mod token_tests {
         let networks = setup_networks();
         let token_string = TokenString {
             network: "TestNetwork".to_string(),
-            address: Address::repeat_byte(0x01).to_string(),
+            address: Address::repeat_byte(0x01),
             decimals: None,
             label: None,
             symbol: None,
@@ -130,7 +120,7 @@ mod token_tests {
         let networks = setup_networks();
         let token_string = TokenString {
             network: "InvalidNetwork".to_string(),
-            address: "0x1234".to_string(),
+            address: Address::repeat_byte(0x01),
             decimals: None,
             label: None,
             symbol: None,
@@ -143,45 +133,5 @@ mod token_tests {
             token.unwrap_err(),
             ParseTokenStringError::NetworkNotFoundError("InvalidNetwork".to_string())
         );
-    }
-
-    #[test]
-    fn test_token_creation_failure_due_to_invalid_address() {
-        let networks = setup_networks();
-        let token_string = TokenString {
-            network: "TestNetwork".to_string(),
-            address: "invalid".to_string(),
-            decimals: None,
-            label: None,
-            symbol: None,
-        };
-
-        let token = token_string.try_into_token(&networks);
-
-        assert!(token.is_err());
-        match token.unwrap_err() {
-            ParseTokenStringError::AddressParseError(_) => (),
-            _ => panic!("Expected AddressParseError"),
-        }
-    }
-
-    #[test]
-    fn test_token_creation_failure_due_to_invalid_decimals() {
-        let networks = setup_networks();
-        let token_string = TokenString {
-            network: "TestNetwork".to_string(),
-            address: Address::repeat_byte(0x03).to_string(),
-            decimals: Some("invalid".to_string()),
-            label: None,
-            symbol: None,
-        };
-
-        let token = token_string.try_into_token(&networks);
-
-        assert!(token.is_err());
-        match token.unwrap_err() {
-            ParseTokenStringError::DecimalsParseError(_) => (),
-            _ => panic!("Expected DecimalsParseError"),
-        }
     }
 }

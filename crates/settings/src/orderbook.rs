@@ -68,10 +68,7 @@ impl OrderbookString {
         };
 
         Ok(Orderbook {
-            address: self
-                .address
-                .parse()
-                .map_err(ParseOrderbookStringError::AddressParseError)?,
+            address: self.address,
             network: network_ref,
             subgraph: subgraph_ref,
             label: self.label,
@@ -104,9 +101,11 @@ mod tests {
     #[test]
     fn test_orderbook_creation_success() {
         let (networks, subgraphs) = setup();
-        let address = "0x1234567890123456789012345678901234567890";
+        let address = "0x1234567890123456789012345678901234567890"
+            .parse::<Address>()
+            .unwrap();
         let orderbook_string = OrderbookString {
-            address: address.to_string(),
+            address,
             network: Some("TestNetwork".to_string()),
             subgraph: Some("TestSubgraph".to_string()),
             label: Some("TestLabel".to_string()),
@@ -118,7 +117,7 @@ mod tests {
         assert!(orderbook.is_ok());
         let orderbook = orderbook.unwrap();
 
-        assert_eq!(orderbook.address, address.parse::<Address>().unwrap());
+        assert_eq!(orderbook.address, address);
         assert_eq!(
             Arc::as_ptr(&orderbook.network),
             Arc::as_ptr(networks.get("TestNetwork").unwrap())
@@ -134,7 +133,7 @@ mod tests {
     fn test_orderbook_creation_with_missing_network() {
         let (networks, subgraphs) = setup();
         let orderbook_string = OrderbookString {
-            address: "1234".to_string(),
+            address: Address::random(),
             network: Some("NonExistingNetwork".to_string()),
             subgraph: Some("TestSubgraph".to_string()),
             label: None,
@@ -154,7 +153,7 @@ mod tests {
     fn test_orderbook_creation_with_missing_subgraph() {
         let (networks, subgraphs) = setup();
         let orderbook_string = OrderbookString {
-            address: "1234".to_string(),
+            address: Address::random(),
             network: Some("TestNetwork".to_string()),
             subgraph: Some("NonExistingSubgraph".to_string()),
             label: None,
@@ -168,26 +167,5 @@ mod tests {
             result.unwrap_err(),
             ParseOrderbookStringError::SubgraphNotFoundError("NonExistingSubgraph".to_string())
         );
-    }
-
-    #[test]
-    fn test_orderbook_creation_with_invalid_address() {
-        let (networks, subgraphs) = setup();
-        let invalid_address = "InvalidAddress";
-        let orderbook_string = OrderbookString {
-            address: invalid_address.to_string(),
-            network: Some("TestNetwork".to_string()),
-            subgraph: Some("TestSubgraph".to_string()),
-            label: None,
-        };
-
-        let result =
-            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
-
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            ParseOrderbookStringError::AddressParseError(_) => (),
-            _ => panic!("Expected AddressParseError"),
-        }
     }
 }

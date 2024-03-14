@@ -111,7 +111,7 @@ impl OrderString {
                         if v.network == network {
                             Ok(OrderIO {
                                 token: v.clone(),
-                                vault_id: input.vault_id.parse::<U256>()?,
+                                vault_id: input.vault_id,
                             })
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
@@ -133,7 +133,7 @@ impl OrderString {
                         if v.network == network {
                             Ok(OrderIO {
                                 token: v.clone(),
-                                vault_id: output.vault_id.parse::<U256>()?,
+                                vault_id: output.vault_id,
                             })
                         } else {
                             Err(ParseOrderStringError::NetworkNotMatch)
@@ -183,11 +183,11 @@ mod tests {
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOString {
                 token: "Token1".to_string(),
-                vault_id: "1".to_string(),
+                vault_id: U256::from(1),
             }],
             outputs: vec![IOString {
                 token: "Token2".to_string(),
-                vault_id: "2".to_string(),
+                vault_id: U256::from(2),
             }],
         };
 
@@ -293,7 +293,7 @@ mod tests {
             orderbook: None,
             inputs: vec![IOString {
                 token: "Nonexistent Token".to_string(),
-                vault_id: "1".to_string(),
+                vault_id: U256::from(1),
             }],
             outputs: vec![],
         };

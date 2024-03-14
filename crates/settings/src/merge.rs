@@ -208,6 +208,8 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+    use url::Url;
+
     use super::*;
     use std::collections::HashMap;
     #[test]
@@ -266,13 +268,15 @@ mod tests {
         };
 
         // Add a collision to cause an unsuccessful merge
-        config
-            .subgraphs
-            .insert("subgraph1".to_string(), "value1".to_string());
+        config.subgraphs.insert(
+            "subgraph1".to_string(),
+            Url::parse("https://myurl").unwrap(),
+        );
 
-        other
-            .subgraphs
-            .insert("subgraph1".to_string(), "value1".to_string());
+        other.subgraphs.insert(
+            "subgraph1".to_string(),
+            Url::parse("https://myurl").unwrap(),
+        );
 
         assert_eq!(
             config.merge(other),
