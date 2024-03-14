@@ -10,8 +10,14 @@
   <SkeletonRow />
 {:else}
 <DropdownRadio options={$activeNetworkOrderbooks} bind:value={$activeOrderbookRef}>
-  <svelte:fragment slot="content" let:selected>
-    {selected ? selected : "Select an orderbook"}
+  <svelte:fragment slot="content" let:selectedOption let:selectedRef>
+    {#if selectedRef === undefined}
+    <span>Select an orderbook</span>
+  {:else if selectedOption?.label}
+    <span>{selectedOption.label}</span>
+  {:else}
+    <span>{selectedRef}</span>
+  {/if}
   </svelte:fragment>
 
     <svelte:fragment slot="option" let:option let:ref>

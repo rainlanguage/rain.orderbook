@@ -11,7 +11,7 @@
 </script>
 
 <Button color="alternative" class="w-full pl-2 pr-0 text-left flex justify-between overflow-hidden overflow-ellipsis">
-  <div class="flex-grow overflow-hidden"><slot name="content" selected={value}></slot></div>
+  <div class="flex-grow overflow-hidden"><slot name="content" selectedRef={value} selectedOption={value !== undefined ? options[value] : undefined}></slot></div>
   <ChevronDownSolid class="w-3 h-3 mx-2 text-black dark:text-white" />
 </Button>
 
