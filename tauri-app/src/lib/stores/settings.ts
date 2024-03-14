@@ -65,13 +65,17 @@ export const deployments = derived([settings, activeNetworkRef, activeOrderbookR
 export const activeDeploymentRef = cachedWritableStringOptional("settings.activeDeploymentRef");
 export const activeDeployment = derived([deployments, activeDeploymentRef], ([$deployments, $activeDeploymentRef]) => ($activeDeploymentRef !== undefined && $deployments !== undefined) ? $deployments[$activeDeploymentRef] : undefined);
 
-// When networks data updated, reset active chain
+// When networks / orderbooks settings updated, reset active network / orderbooks
 settings.subscribe(async ($settings) => {
   await settings.load();
   const $activeNetworkRef = get(activeNetworkRef);
-  if($activeNetworkRef === undefined) return;
+  const $activeOrderbookRef = get(activeOrderbookRef);
 
-  if(!$settings.networks || !Object.keys($settings.networks).includes($activeNetworkRef)) {
+  if(!$settings.networks || $activeNetworkRef === undefined || !Object.keys($settings.networks).includes($activeNetworkRef)) {
+    resetActiveNetworkRef();
+  }
+
+  if(!$settings.orderbooks || $activeOrderbookRef === undefined || !Object.keys($settings.orderbooks).includes($activeOrderbookRef)) {
     resetActiveOrderbookRef();
   }
 });
@@ -101,5 +105,17 @@ function resetActiveOrderbookRef() {
     activeOrderbookRef.set($activeNetworkOrderbookRefs[0]);
   } else {
     activeOrderbookRef.set(undefined);
+  }
+}
+
+
+// reset active orderbook to first available, otherwise undefined
+function resetActiveNetworkRef() {
+  const $networks = get(settings).networks;
+
+  if($networks !== undefined && Object.keys($networks).length > 0) {
+    activeNetworkRef.set(Object.keys($networks)[0]);
+  } else {
+    activeNetworkRef.set(undefined);
   }
 }
