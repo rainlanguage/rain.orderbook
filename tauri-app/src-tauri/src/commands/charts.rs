@@ -2,9 +2,7 @@ use crate::error::CommandResult;
 use rain_orderbook_common::fuzz::*;
 use rain_orderbook_app_settings::string_structs::*;
 use rain_orderbook_app_settings::config::*;
-use alloy_primitives::U256;
-use dotrain::{error::ComposeError, RainDocument, Rebind};
-use serde_yaml::*;
+use dotrain::RainDocument;
 
 #[tauri::command]
 pub async fn make_charts(dotrain: &str, settings: Option<&str>) -> CommandResult<Vec<ChartData>> {
