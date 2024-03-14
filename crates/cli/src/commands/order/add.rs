@@ -21,7 +21,7 @@ pub struct CliOrderAddArgs {
     )]
     dotrain_file: PathBuf,
 
-    #[arg(short, long, help = "Deployment key to select from frontmatter")]
+    #[arg(short = 'e', long, help = "Deployment key to select from frontmatter")]
     deployment: String,
 
     #[clap(flatten)]
