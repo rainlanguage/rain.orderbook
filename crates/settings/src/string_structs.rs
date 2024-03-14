@@ -190,12 +190,12 @@ subgraphs:
 
 orderbooks:
     mainnetOrderbook:
-        address: 0x123
+        address: 0xabc0000000000000000000000000000000000001
         network: mainnet
         subgraph: mainnet
         label: Mainnet Orderbook
     testnetOrderbook:
-        address: 0x456
+        address: 0xabc0000000000000000000000000000000000002
         network: testnet
         subgraph: testnet
         label: Testnet Orderbook
@@ -203,24 +203,24 @@ orderbooks:
 tokens:
     eth:
         network: mainnet
-        address: 0xdef
+        address: 0xabc0000000000000000000000000000000000003
         decimals: 18
         label: Ethereum
         symbol: ETH
     dai:
         network: mainnet
-        address: 0xghi
+        address: 0xabc0000000000000000000000000000000000004
         decimals: 18
         label: Dai
         symbol: DAI
 
 deployers:
     mainDeployer:
-        address: 0xjkl
+        address: 0xabc0000000000000000000000000000000000005
         network: mainnet
         label: Main Deployer
     testDeployer:
-        address: 0xmnop
+        address: 0xabc0000000000000000000000000000000000006
         network: testnet
         label: Test Deployer
 
@@ -228,12 +228,12 @@ orders:
     buyETH:
         inputs:
             - token: eth
-              vault_id: 2
+              vault-id: 2
             - token: dai
-              vault_id: 0x1
+              vault-id: 0x1
         outputs:
             - token: dai
-              vault_id: 3
+              vault-id: 3
         network: mainnet
         deployer: mainDeployer
         orderbook: mainnetOrderbook
@@ -261,12 +261,12 @@ charts:
                 data:
                     x: dataX
                     y: dataY
-                plot_type: line
+                plot-type: line
             plot2:
                 data:
                     x: dataX2
                     y: dataY2
-                plot_type: bar
+                plot-type: bar
 deployments:
     first-deployment:
         scenario: mainScenario
@@ -293,7 +293,9 @@ deployments:
         );
         assert_eq!(
             config.orderbooks.get("mainnetOrderbook").unwrap().address,
-            "0x123".parse::<Address>().unwrap()
+            "0xabc0000000000000000000000000000000000001"
+                .parse::<Address>()
+                .unwrap()
         );
         assert_eq!(config.tokens.get("eth").unwrap().decimals, Some(18));
     }
