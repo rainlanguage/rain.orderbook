@@ -20,6 +20,7 @@
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigString } from '$lib/typeshare/configString';
+  import DropdownProperty from '$lib/components/DropdownProperty.svelte';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -102,9 +103,11 @@
                 <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
               </svelte:fragment>
 
-              <svelte:fragment slot="option" let:ref>
-                <div class="w-full text-xs overflow-hidden overflow-ellipsis break-all">
-                  {ref}
+              <svelte:fragment slot="option" let:ref let:option>
+                <div class="w-full overflow-hidden overflow-ellipsis">
+                  <div class="text-md mb-2 break-word">{ref}</div>
+                  <DropdownProperty key="Scenario" value={option.scenario} />
+                  <DropdownProperty key="Order" value={option.order} />
                 </div>
               </svelte:fragment>
             </DropdownRadio>
