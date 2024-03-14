@@ -11,10 +11,10 @@ use url::{ParseError, Url};
 pub struct Network {
     #[typeshare(typescript(type = "string"))]
     pub rpc: Url,
-    #[typeshare(skip)]
+    #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
     pub label: Option<String>,
-    #[typeshare(skip)]
+    #[typeshare(typescript(type = "number"))]
     pub network_id: Option<u64>,
     pub currency: Option<String>,
 }

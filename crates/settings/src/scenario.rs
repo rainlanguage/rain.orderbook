@@ -10,7 +10,7 @@ use typeshare::typeshare;
 pub struct Scenario {
     pub name: String,
     pub bindings: HashMap<String, String>,
-    #[typeshare(skip)]
+    #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
