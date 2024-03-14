@@ -7,7 +7,7 @@
   import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
-  import { RawRainlangExtension } from 'codemirror-rainlang';
+  import { ErrorCode, RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
@@ -30,15 +30,32 @@
   let mergedConfigString: ConfigString | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
 
-  $: $dotrainFile.text, updateMergedConfig();
   $: deployments = (mergedConfigString !== undefined && mergedConfigString?.deployments !== undefined && mergedConfigString?.orders !== undefined) ?
     pickBy(mergedConfigString.deployments, (d) => mergedConfigString?.orders?.[d.order]?.network === $activeNetworkRef) : {};
   $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
+  $: $dotrainFile.text, updateMergedConfig();
 
   $: rainlangExtension = new RawRainlangExtension({
     hover: (text, position) => hoverCallback.apply(null, [text, position, bindings]),
-    diagnostics: (text) => problemsCallback.apply(null, [text, bindings, deployment?.scenario.deployer.address]),
+    diagnostics: async (text) => {
+      // get problems with merging settings config with frontmatter
+      const allProblems: Problem[] = [];
+      try {
+        await mergeDotrainConfigWithSettings($dotrainFile.text);
+      } catch(e) {
+        allProblems.push({
+          msg: typeof e === "string" ? e : e instanceof Error ? e.message : "something went wrong!",
+          position: [0, 0],
+          code: ErrorCode.InvalidRainDocument
+        } as Problem);
+      }
+
+      // get problems with dotrain
+      const problems = await problemsCallback.apply(null, [text, bindings, deployment?.scenario.deployer.address]);
+
+      return [...allProblems, ...problems] as Problem[];
+    },
     completion: (text, position) => completionCallback.apply(null, [text, position, bindings]),
   });
 
@@ -52,9 +69,8 @@
     try {
       mergedConfigString = await mergeDotrainConfigWithSettings($dotrainFile.text);
       mergedConfig = await convertConfigstringToConfig(mergedConfigString);
-    } catch(e) {
-      toasts.error(e as string);
-    }
+      // eslint-disable-next-line no-empty
+    } catch(e) {}
   }
 
   async function execute() {
