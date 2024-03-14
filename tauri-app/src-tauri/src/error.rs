@@ -4,9 +4,8 @@ use rain_orderbook_app_settings::config::ParseConfigStringError;
 use rain_orderbook_app_settings::merge::MergeError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::{
-    add_order::AddOrderArgsError, csv::TryIntoCsvError, frontmatter::FrontmatterError,
-    meta::TryDecodeRainlangSourceError, rainlang::ForkParseError,
-    utils::timestamp::FormatTimestampDisplayError,
+    add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
+    rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
 };
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{ser::Serializer, Serialize};
@@ -47,9 +46,6 @@ pub enum CommandError {
 
     #[error(transparent)]
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
-
-    #[error(transparent)]
-    FrontmatterError(#[from] FrontmatterError),
 
     #[error(transparent)]
     FuzzRunnerError(#[from] FuzzRunnerError),

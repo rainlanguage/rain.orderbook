@@ -1,6 +1,5 @@
 use crate::{
     dotrain_add_order_lsp::LANG_SERVICES,
-    frontmatter::{merge_parse_configs, FrontmatterError},
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{
@@ -15,7 +14,7 @@ use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
-use rain_orderbook_app_settings::{config::Config, deployment::Deployment};
+use rain_orderbook_app_settings::deployment::Deployment;
 use rain_orderbook_bindings::{
     IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO},
     ERC20::decimalsCall,
@@ -121,14 +120,6 @@ impl AddOrderArgs {
             deployer: deployment.scenario.deployer.address,
             bindings: deployment.scenario.bindings.to_owned(),
         })
-    }
-
-    /// returns the frontmatter config merged with top config
-    pub fn merge_parse_configs(
-        &self,
-        top_config: Option<String>,
-    ) -> Result<Config, FrontmatterError> {
-        merge_parse_configs(self.dotrain.clone(), top_config)
     }
 
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants

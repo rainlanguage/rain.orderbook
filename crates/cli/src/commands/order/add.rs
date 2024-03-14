@@ -3,8 +3,9 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::Args;
+use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
-use rain_orderbook_common::frontmatter::merge_parse_configs;
+use rain_orderbook_common::frontmatter::parse_frontmatter;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
 use std::ops::Deref;
@@ -30,16 +31,16 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config = merge_parse_configs(text.clone(), None)?;
-        if let Some(config_deployment) = config.deployments.get(&self.deployment) {
-            Ok(AddOrderArgs::new_from_deployment(
-                text.clone(),
-                config_deployment.deref().to_owned(),
-            )
-            .await?)
-        } else {
-            Err(anyhow!("specified deployment is undefined!"))
-        }
+        let config: Config = parse_frontmatter(text.clone())?.try_into()?;
+        let config_deployment = config
+            .deployments
+            .get(&self.deployment)
+            .ok_or(anyhow!("specified deployment is undefined!"))?;
+
+        Ok(
+            AddOrderArgs::new_from_deployment(text.clone(), config_deployment.deref().clone())
+                .await?,
+        )
     }
 }
 
