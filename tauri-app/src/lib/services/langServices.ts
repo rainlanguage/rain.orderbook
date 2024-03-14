@@ -3,15 +3,13 @@ import { ErrorCode, type Problem, TextDocumentItem, Position, Hover, CompletionI
 import { rpcUrl } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
-import type { Deployer } from '$lib/typeshare/config';
-
 
 /**
  * Provides problems callback by invoking related tauri command
  */
-export async function problemsCallback(textDocument: TextDocumentItem, bindings: Record<string, string>, deployer: Deployer | undefined): Promise<Problem[]> {
+export async function problemsCallback(textDocument: TextDocumentItem, bindings: Record<string, string>, deployerAddress: string | undefined): Promise<Problem[]> {
   try {
-    return await invoke('call_lsp_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber).value, bindings, deployer});
+    return await invoke('call_lsp_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber).value, bindings, deployer: deployerAddress });
   }
   catch (err) {
     return [{

@@ -4,7 +4,7 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button, Spinner } from 'flowbite-svelte';
+  import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import { RawRainlangExtension } from 'codemirror-rainlang';
@@ -37,7 +37,7 @@
 
   $: rainlangExtension = new RawRainlangExtension({
     hover: (text, position) => hoverCallback.apply(null, [text, position, bindings]),
-    diagnostics: (text) => problemsCallback.apply(null, [text, bindings, deployment?.order.deployer]),
+    diagnostics: (text) => problemsCallback.apply(null, [text, bindings, deployment?.scenario.deployer.address]),
     completion: (text, position) => completionCallback.apply(null, [text, position, bindings]),
   });
 
