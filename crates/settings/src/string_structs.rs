@@ -173,15 +173,15 @@ mod tests {
 networks:
     mainnet:
         rpc: https://mainnet.node
-        chain_id: 1
+        chain-id: 1
         label: Mainnet
-        network_id: 1
+        network-id: 1
         currency: ETH
     testnet:
         rpc: https://testnet.node
-        chain_id: 2
+        chain-id: 2
         label: Testnet
-        network_id: 2
+        network-id: 2
         currency: ETH
 
 subgraphs:
