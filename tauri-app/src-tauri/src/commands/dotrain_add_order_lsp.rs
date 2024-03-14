@@ -33,7 +33,7 @@ pub async fn call_lsp_problems(
     bindings: HashMap<String, String>,
     deployer: Option<Address>,
 ) -> CommandResult<Vec<Problem>> {
-    Ok(
-        DotrainAddOrderLsp::new(text_document, bindings).problems(rpc_url, block_number, deployer).await
-    )
+    Ok(DotrainAddOrderLsp::new(text_document, bindings)
+        .problems(rpc_url, block_number, deployer)
+        .await)
 }

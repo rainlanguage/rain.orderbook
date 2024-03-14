@@ -73,7 +73,7 @@ mod tests {
         let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
         let deployer_string = DeployerString {
-            address: address,
+            address,
             network: Some(network_name.to_string()),
             label: Some("Test Deployer".to_string()),
         };
