@@ -10,7 +10,7 @@
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import SkeletonRow from '$lib/components/SkeletonRow.svelte';
-  import { deployments, activeDeploymentIndex, dotrainFile } from '$lib/stores/settings';
+  import { deployments, activeDeploymentRef, dotrainFile } from '$lib/stores/settings';
   import { RawRainlangExtension, type RawLanguageServicesCallbacks } from 'codemirror-rainlang';
   import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
@@ -70,10 +70,10 @@
 
     <svelte:fragment slot="deployment">
       <Label>Deployment</Label>
-      {#if $deployments === undefined || $deployments.length === 0}
+      {#if $deployments === undefined || Object.keys($deployments).length === 0}
         <SkeletonRow />
       {:else}
-        <DropdownRadio options={$deployments?.map(v => v[0]) || []} bind:value={$activeDeploymentIndex}>
+        <DropdownRadio options={$deployments} bind:value={$activeDeploymentRef}>
           <svelte:fragment slot="content" let:selected>
             {selected}
           </svelte:fragment>

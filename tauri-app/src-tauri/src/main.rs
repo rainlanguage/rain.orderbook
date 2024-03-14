@@ -8,7 +8,7 @@ pub mod transaction_status;
 mod commands;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::make_charts;
-use commands::config::merge_parse_configs;
+use commands::config::parse_config;
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv};
@@ -55,7 +55,7 @@ fn run_tauri_app() {
             call_lsp_completion,
             call_lsp_hover,
             call_lsp_problems,
-            merge_parse_configs,
+            parse_config,
             make_charts
         ])
         .run(tauri::generate_context!())

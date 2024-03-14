@@ -1,12 +1,13 @@
 import { asyncDerived, derived, get } from '@square/svelte-store';
-import { cachedWritableInt, cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
+import { cachedWritableStore, cachedWritableStringOptional } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import { invoke } from '@tauri-apps/api';
-import { type Config } from '$lib/typeshare/config';
+import { type ConfigString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
+import { pickBy } from 'lodash';
 
 const emptyConfig = {
   deployments: {},
@@ -18,7 +19,7 @@ const emptyConfig = {
   deployers: {},
   scenarios: {},
   charts: {}
-};
+} as ConfigString;
 
 // dotrain text store
 export const dotrainFile = textFileStore('Rain', ['rain']);
@@ -26,10 +27,9 @@ export const dotrainFile = textFileStore('Rain', ['rain']);
 // general
 export const settingsText = cachedWritableStore<string>('settings', "", (s) => s, (s) => s);
 export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'yaml'], get(settingsText));
-export const settings = asyncDerived([settingsText, dotrainFile], async ([$settingsText, $dotrainFile]): Promise<Config> => {
-  const text = $dotrainFile?.text !== undefined ? $dotrainFile.text : "";
+export const settings = asyncDerived([settingsText, dotrainFile], async ([$settingsText]): Promise<ConfigString> => {
   try {
-    const config: Config = await invoke("merge_parse_configs", {dotrain: text, settingText: $settingsText});
+    const config: ConfigString = await invoke("parse_config", {text: $settingsText});
     return config;
   } catch(e) {
     toasts.error(e as string);
@@ -38,63 +38,57 @@ export const settings = asyncDerived([settingsText, dotrainFile], async ([$setti
 }, { initial: emptyConfig });
 
 // networks
-export const networks = derived(settings, ($settingsData) => Object.entries($settingsData?.networks));
-export const activeNetworkIndex = cachedWritableInt("settings.activeNetworkIndex", 0);
-export const activeNetwork = derived([networks, activeNetworkIndex], ([$networks, $activeNetworkIndex]) => $networks?.[$activeNetworkIndex]);
-export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.[1].rpc);
-export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.[1].chain_id);
+export const activeNetworkRef = cachedWritableStringOptional("settings.activeNetworkRef");
+export const activeNetwork = asyncDerived([settings, activeNetworkRef], async ([$settings, $activeNetworkRef]) => {
+  await settings.load();
+  console.log('settings is ', $settings);
+  return ($activeNetworkRef !== undefined && $settings.networks !== undefined) ? $settings.networks[$activeNetworkRef] : undefined;
+});
+export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpc);
+export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.['chain-id']);
 export const activeChain = derived(chainId, ($activeChainId) => find(Object.values(chains), (c) => c.id === $activeChainId));
 export const activeChainHasBlockExplorer = derived(activeChain, ($activeChain) => {
   return $activeChain && $activeChain?.blockExplorers?.default !== undefined;
 });
-export const activeChainLatestBlockNumber = derived(activeNetwork, ($activeNetwork) => getBlockNumberFromRpc($activeNetwork?.[1].rpc));
+export const activeChainLatestBlockNumber = derived(activeNetwork, ($activeNetwork) => $activeNetwork !== undefined ? getBlockNumberFromRpc($activeNetwork.rpc) : 0);
 
 // orderbook
-export const orderbooks = derived([settings, activeNetwork], ([$settingsData, $activeNetwork]) => Object.entries($settingsData.orderbooks).filter(v =>
-  // filter orderbooks based on active netowkr
-  v[1].network.rpc === $activeNetwork?.[1].rpc
-  && v[1].network.chain_id === $activeNetwork?.[1].chain_id
-  && v[1].network.label === $activeNetwork?.[1].label
-  && v[1].network.network_id === $activeNetwork?.[1].network_id
-  && v[1].network.currency === $activeNetwork?.[1].currency
-));
-export const activeOrderbookIndex = cachedWritableInt("settings.activeOrderbookIndex", 0);
-export const activeOrderbook =  derived([orderbooks, activeOrderbookIndex], ([$orderbooks, $activeOrderbookIndex]) => $orderbooks?.[$activeOrderbookIndex]);
-export const subgraphUrl = derived(activeOrderbook, ($activeOrderbookSettings) => $activeOrderbookSettings?.[1].subgraph);
-export const orderbookAddress = derived(activeOrderbook, ($activeOrderbookSettings) => $activeOrderbookSettings?.[1].address);
+export const activeOrderbookRef = cachedWritableStringOptional("settings.activeOrderbookRef");
+export const activeNetworkOrderbooks = derived([settings, activeNetworkRef], ([$settings, $activeNetworkRef]) => $settings?.orderbooks ? pickBy($settings.orderbooks, (orderbook) => orderbook.network === $activeNetworkRef) as Record<OrderbookRef, OrderbookString> : {} as Record<OrderbookRef, OrderbookString>);
+export const activeOrderbook =  derived([settings, activeOrderbookRef], ([$settings, $activeOrderbookRef]) => ($settings?.orderbooks !== undefined && $activeOrderbookRef !== undefined) ? $settings.orderbooks[$activeOrderbookRef] : undefined);
+export const subgraphUrl = derived(activeOrderbook, ($activeOrderbook) => $activeOrderbook?.subgraph);
+export const orderbookAddress = derived(activeOrderbook, ($activeOrderbook) => $activeOrderbook?.address);
 
-export const hasRequiredSettings = derived([activeNetwork, activeOrderbook], ([$activeChainSettings, $activeOrderbookSettings]) => $activeChainSettings !== undefined && $activeOrderbookSettings !== undefined);
+export const hasRequiredSettings = derived([activeNetworkRef, activeOrderbookRef], ([$activeNetworkRef, $activeOrderbookRef]) => $activeNetworkRef !== undefined && $activeOrderbookRef !== undefined);
 
 // deployments
-export const deployments = derived([settings, activeNetwork, activeOrderbook], ([$settingsData, $activeNetwork, $activeOrderbook]) => Object.entries($settingsData.deployments).filter(v => {
-  return v[1].order.network.rpc === $activeNetwork?.[1].rpc
-    && v[1].order.network.chain_id === $activeNetwork?.[1].chain_id
-    && v[1].order.network.label === $activeNetwork?.[1].label
-    && v[1].order.network.network_id === $activeNetwork?.[1].network_id
-    && v[1].order.network.currency === $activeNetwork?.[1].currency
-    && (
-      v[1].order.orderbook !== undefined
-        ? (
-          v[1].order.orderbook.address === $activeOrderbook?.[1].address
-          && v[1].order.orderbook.subgraph === $activeOrderbook?.[1].subgraph
-          && v[1].order.orderbook.label === $activeOrderbook?.[1].label
-        )
-        : true
-    )
-})
-);
-export const activeDeploymentIndex = cachedWritableInt("settings.activeDeploymentIndex", 0);
-export const activeDeployment = derived([deployments, activeDeploymentIndex], ([$deployments, $activeDeploymentIndex]) => $deployments?.[$activeDeploymentIndex]);
+export const deployments = derived([settings, activeNetworkRef, activeOrderbookRef], ([$settings, $activeNetworkRef, $activeOrderbookRef]) => pickBy($settings.deployments, (v) => $settings.orders?.[v.order].network === $activeNetworkRef && $settings.orders?.[v.order].orderbook === $activeOrderbookRef));
+export const activeDeploymentRef = cachedWritableStringOptional("settings.activeDeploymentRef");
+export const activeDeployment = derived([deployments, activeDeploymentRef], ([$deployments, $activeDeploymentRef]) => ($activeDeploymentRef !== undefined && $deployments !== undefined) ? $deployments[$activeDeploymentRef] : undefined);
 
-// // When networks data updated, reset active chain
-// networks.subscribe((val) => {
-//   if(val && val.length < get(activeNetworkIndex)) {
-//     activeNetworkIndex.set(0);
-//   }
-// });
+// When networks data updated, reset active chain
+settings.subscribe(async ($settings) => {
+  await settings.load();
+  const $activeNetworkRef = get(activeNetworkRef);
+  if($activeNetworkRef === undefined) return;
 
-// // When active network updated, reset active orderbook and deployment
-// activeNetwork.subscribe(async ()  => {
-//   activeOrderbookIndex.set(0);
-//   activeDeploymentIndex.set(0);
-// });
+  if(!$settings.networks || !Object.keys($settings.networks).includes($activeNetworkRef)) {
+    activeNetworkRef.set(undefined);
+  }
+});
+
+// When active network is updated to undefined, reset active orderbook
+activeNetworkRef.subscribe(($activeNetworkRef)  => {
+  if($activeNetworkRef === undefined) {
+    activeOrderbookRef.set(undefined);
+  }
+});
+
+// When active network is updated to not include active orderbook, reset active orderbook
+activeNetworkOrderbooks.subscribe(async ($activeNetworkOrderbooks) => {
+  const $activeOrderbookRef = get(activeOrderbookRef);
+
+  if($activeOrderbookRef !== undefined && !Object.keys($activeNetworkOrderbooks).includes($activeOrderbookRef)) {
+    activeOrderbookRef.set(undefined);
+  }
+});

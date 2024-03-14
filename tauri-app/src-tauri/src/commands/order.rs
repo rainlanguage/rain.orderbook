@@ -62,7 +62,7 @@ pub async fn order_detail(
 #[tauri::command]
 pub async fn order_add(
     app_handle: AppHandle,
-    dotrain: &str,
+    dotrain: String,
     deployment: Deployment,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
