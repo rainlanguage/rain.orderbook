@@ -6453,7 +6453,7 @@ dependencies = [
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
- "typeshare",
+ "typeshare 1.0.1 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
  "url",
 ]
 
@@ -6498,7 +6498,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "typeshare",
+ "typeshare 1.0.1 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
  "url",
 ]
 
@@ -6514,7 +6514,7 @@ dependencies = [
  "reqwest",
  "serde",
  "thiserror",
- "typeshare",
+ "typeshare 1.0.1 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
 ]
 
 [[package]]
@@ -8464,7 +8464,7 @@ dependencies = [
  "tauri-build",
  "tauri-cli",
  "thiserror",
- "typeshare",
+ "typeshare 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url",
  "uuid 1.7.0",
 ]
@@ -9225,7 +9225,18 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
- "typeshare-annotation",
+ "typeshare-annotation 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "typeshare"
+version = "1.0.1"
+source = "git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "typeshare-annotation 1.0.2 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
 ]
 
 [[package]]
@@ -9233,6 +9244,15 @@ name = "typeshare-annotation"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc670d0e358428857cc3b4bf504c691e572fccaec9542ff09212d3f13d74b7a9"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "typeshare-annotation"
+version = "1.0.2"
+source = "git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
 dependencies = [
  "quote",
  "syn 1.0.109",

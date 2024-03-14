@@ -6726,8 +6726,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 [[package]]
 name = "typeshare"
 version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f44d1a2f454cb35fbe05b218c410792697e76bd868f48d3a418f2cd1a7d527d6"
+source = "git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
 dependencies = [
  "chrono",
  "serde",
@@ -6738,8 +6737,7 @@ dependencies = [
 [[package]]
 name = "typeshare-annotation"
 version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc670d0e358428857cc3b4bf504c691e572fccaec9542ff09212d3f13d74b7a9"
+source = "git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
 dependencies = [
  "quote",
  "syn 1.0.109",
