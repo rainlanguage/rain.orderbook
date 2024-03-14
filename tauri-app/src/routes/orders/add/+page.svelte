@@ -7,7 +7,7 @@
   import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
-  import { ErrorCode, RawRainlangExtension, type Problem } from 'codemirror-rainlang';
+  import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
@@ -15,7 +15,7 @@
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
   import { pickBy } from 'lodash';
-  import { convertConfigstringToConfig, mergeDotrainConfigWithSettings } from '$lib/services/config';
+  import { convertConfigstringToConfig, mergeDotrainConfigWithSettings, mergeDotrainConfigWithSettingsProblems } from '$lib/services/config';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
@@ -40,21 +40,12 @@
     hover: (text, position) => hoverCallback.apply(null, [text, position, bindings]),
     diagnostics: async (text) => {
       // get problems with merging settings config with frontmatter
-      const allProblems: Problem[] = [];
-      try {
-        await mergeDotrainConfigWithSettings($dotrainFile.text);
-      } catch(e) {
-        allProblems.push({
-          msg: typeof e === "string" ? e : e instanceof Error ? e.message : "something went wrong!",
-          position: [0, 0],
-          code: ErrorCode.InvalidRainDocument
-        } as Problem);
-      }
+      const configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
 
       // get problems with dotrain
       const problems = await problemsCallback.apply(null, [text, bindings, deployment?.scenario.deployer.address]);
 
-      return [...allProblems, ...problems] as Problem[];
+      return [...configProblems, ...problems] as Problem[];
     },
     completion: (text, position) => completionCallback.apply(null, [text, position, bindings]),
   });

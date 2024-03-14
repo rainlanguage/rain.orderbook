@@ -3,11 +3,11 @@ import { cachedWritableStore, cachedWritableStringOptional } from '$lib/storesGe
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { invoke } from '@tauri-apps/api';
 import { type ConfigString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';
+import { parseConfigString } from '$lib/services/config';
 
 const emptyConfig = {
   deployments: {},
@@ -26,7 +26,7 @@ export const settingsText = cachedWritableStore<string>('settings', "", (s) => s
 export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'yaml'], get(settingsText));
 export const settings = asyncDerived(settingsText, async ($settingsText): Promise<ConfigString> => {
   try {
-    const config: ConfigString = await invoke("parse_configstring", {text: $settingsText});
+    const config: ConfigString = await parseConfigString($settingsText);
     return config;
   } catch(e) {
     toasts.error(e as string);
