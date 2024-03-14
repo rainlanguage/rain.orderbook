@@ -41,7 +41,6 @@ export const settings = asyncDerived([settingsText, dotrainFile], async ([$setti
 export const activeNetworkRef = cachedWritableStringOptional("settings.activeNetworkRef");
 export const activeNetwork = asyncDerived([settings, activeNetworkRef], async ([$settings, $activeNetworkRef]) => {
   await settings.load();
-  console.log('settings is ', $settings);
   return ($activeNetworkRef !== undefined && $settings.networks !== undefined) ? $settings.networks[$activeNetworkRef] : undefined;
 });
 export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpc);
@@ -73,14 +72,14 @@ settings.subscribe(async ($settings) => {
   if($activeNetworkRef === undefined) return;
 
   if(!$settings.networks || !Object.keys($settings.networks).includes($activeNetworkRef)) {
-    activeNetworkRef.set(undefined);
+    resetActiveOrderbookRef();
   }
 });
 
 // When active network is updated to undefined, reset active orderbook
 activeNetworkRef.subscribe(($activeNetworkRef)  => {
   if($activeNetworkRef === undefined) {
-    activeOrderbookRef.set(undefined);
+    resetActiveOrderbookRef();
   }
 });
 
@@ -89,6 +88,18 @@ activeNetworkOrderbooks.subscribe(async ($activeNetworkOrderbooks) => {
   const $activeOrderbookRef = get(activeOrderbookRef);
 
   if($activeOrderbookRef !== undefined && !Object.keys($activeNetworkOrderbooks).includes($activeOrderbookRef)) {
-    activeOrderbookRef.set(undefined);
+    resetActiveOrderbookRef();
   }
 });
+
+// reset active orderbook to first available, otherwise undefined
+function resetActiveOrderbookRef() {
+  const $activeNetworkOrderbooks = get(activeNetworkOrderbooks);
+  const $activeNetworkOrderbookRefs = Object.keys($activeNetworkOrderbooks);
+
+  if($activeNetworkOrderbookRefs.length > 0) {
+    activeOrderbookRef.set($activeNetworkOrderbookRefs[0]);
+  } else {
+    activeOrderbookRef.set(undefined);
+  }
+}
