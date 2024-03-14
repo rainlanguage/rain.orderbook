@@ -8,7 +8,7 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-typeshare
+src/lib/typeshare
 
 # for shared libs
 /lib
