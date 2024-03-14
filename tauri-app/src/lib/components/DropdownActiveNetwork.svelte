@@ -5,7 +5,7 @@
   import SkeletonRow from '$lib/components/SkeletonRow.svelte';
 </script>
 
-<Label>Chain</Label>
+<Label>Network</Label>
 {#if $settings?.networks === undefined || Object.keys($settings?.networks).length === 0}
   <SkeletonRow />
 {:else}
