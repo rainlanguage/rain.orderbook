@@ -1,7 +1,7 @@
 use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use clap::Args;
-use rain_orderbook_app_settings::string_structs::ConfigString;
+use rain_orderbook_app_settings::{string_structs::ConfigString, Config};
 use rain_orderbook_common::dotrain::RainDocument;
 use rain_orderbook_common::fuzz::FuzzRunner;
 use std::fs::read_to_string;
