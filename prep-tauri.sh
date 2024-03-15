@@ -11,7 +11,7 @@ nix develop -i --command rainix-rs-prelude
 nix develop -i --command i9r-prelude
 cd -
 
-nix develop .#tauri-shell --command ob-tauri-prelude
+nix develop -i .#tauri-shell --command ob-tauri-prelude
 nix develop -i .#tauri-shell --command ob-tauri-test
 
 # Run commands in tauri-app
