@@ -1,6 +1,7 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use alloy_primitives::U256;
 use dotrain::{error::ComposeError, RainDocument, Rebind};
+use futures::TryFutureExt;
 use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
 use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
@@ -75,6 +76,8 @@ pub enum FuzzRunnerError {
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
     TraceSearchError(#[from] TraceSearchError),
+    #[error(transparent)]
+    JoinError(#[from] tokio::task::JoinError),
 }
 
 impl FuzzRunner {
@@ -161,6 +164,7 @@ impl FuzzRunner {
             let dotrain = Arc::clone(&dotrain);
 
             let mut final_bindings: Vec<Rebind> = vec![];
+
             // for each scenario.fuzz_binds, add a random value
             for elided_binding in elided_binding_keys.as_slice() {
                 let mut val: [u8; 32] = [0; 32];
@@ -177,8 +181,7 @@ impl FuzzRunner {
                     &ORDERBOOK_ORDER_ENTRYPOINTS,
                     None,
                     Some(final_bindings),
-                )
-                .unwrap();
+                )?;
 
                 let args = ForkEvalArgs {
                     rainlang_string,
@@ -188,7 +191,10 @@ impl FuzzRunner {
                     context: vec![],
                     decode_errors: false,
                 };
-                fork_clone.fork_eval(args).await.unwrap()
+                fork_clone
+                    .fork_eval(args)
+                    .map_err(FuzzRunnerError::ForkCallError)
+                    .await
             });
             handles.push(handle);
         }
@@ -196,7 +202,7 @@ impl FuzzRunner {
         let mut runs: Vec<RainEvalResult> = Vec::new();
 
         for handle in handles {
-            let res = handle.await.unwrap();
+            let res = handle.await??;
             runs.push(res.into());
         }
 
