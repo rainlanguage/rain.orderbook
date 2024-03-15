@@ -13,21 +13,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: .
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: .
+      - run: ./prep-tauri.sh
 
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command i9r-prelude
-        working-directory: lib/rain.interpreter
-
-      - run: nix develop .#tauri-shell --command cargo build --verbose
-        working-directory: ./tauri-app
-      - run: nix develop .#tauri-shell --command ob-tauri-prelude
-      - run: nix develop .#tauri-shell --command ob-tauri-test
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
