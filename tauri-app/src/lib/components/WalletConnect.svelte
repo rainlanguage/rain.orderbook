@@ -25,9 +25,9 @@
     })
     a = modal.subscribeEvents(v => {
       console.log(v)
-      // if (v.data.event === "MODAL_CLOSE" && v.data.properties.connected) {
-      //   account = $wagmiConfig ? getAccount($wagmiConfig) : undefined;
-      // }
+      if (v.data.event === "MODAL_CLOSE" && v.data.properties.connected) {
+        account = $wagmiConfig ? getAccount($wagmiConfig) : undefined;
+      }
       if (v.data.event === "DISCONNECT_SUCCESS") {
         disconnect($wagmiConfig)
       }
