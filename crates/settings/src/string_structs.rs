@@ -163,13 +163,6 @@ impl TryFrom<String> for ConfigString {
     }
 }
 
-impl TryFrom<&str> for ConfigString {
-    type Error = serde_yaml::Error;
-    fn try_from(val: &str) -> Result<ConfigString, Self::Error> {
-        serde_yaml::from_str(val)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
