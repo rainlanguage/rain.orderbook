@@ -281,7 +281,7 @@ deployers:
 networks:
     mumbai:
         rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-        chain_id: 80001
+        chain-id: 80001
 scenarios:
     mumbai:
         runs: 500
@@ -329,7 +329,7 @@ b: fuzzed;
     networks:
         mumbai:
             rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-            chain_id: 80001
+            chain-id: 80001
     scenarios:
         mumbai:
             runs: 500
@@ -346,12 +346,12 @@ b: fuzzed;
                     data:
                         x: 0.0
                         y: 0.1
-                    plot_type: line
+                    plot-type: line
                 plot2:
                     data:
                         x: 0.0
                         y: 0.2
-                    plot_type: bar
+                    plot-type: bar
     ---
     #bound !bind it
     #fuzzed !fuzz it

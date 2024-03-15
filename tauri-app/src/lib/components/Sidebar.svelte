@@ -12,8 +12,8 @@
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
-  import DropdownActiveChainSettings from '$lib/components/DropdownActiveChainSettings.svelte';
-  import DropdownActiveOrderbookSettings from '$lib/components/DropdownActiveOrderbookSettings.svelte';
+  import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
+  import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
 
   export let hasRequiredSettings = false;
 
@@ -49,8 +49,8 @@
       </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border>
-      <DropdownActiveChainSettings />
-      <DropdownActiveOrderbookSettings />
+      <DropdownActiveNetwork />
+      <DropdownActiveOrderbook />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">

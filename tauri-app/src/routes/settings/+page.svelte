@@ -5,7 +5,7 @@
     settingsText,
   } from '$lib/stores/settings';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import CodeMirrorYaml from '$lib/components/CodeMirrorYaml.svelte';
+  import CodeMirrorConfigString from '$lib/components/CodeMirrorConfigString.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { settingsFile }from '$lib/stores/settings';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
@@ -31,7 +31,7 @@
 
 <FileTextarea textFile={settingsFile} title="Settings">
   <svelte:fragment slot="textarea">
-    <CodeMirrorYaml
+    <CodeMirrorConfigString
         bind:value={$settingsFile.text}
         styles={{ '&': { minHeight: '400px' } }}
       />

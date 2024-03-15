@@ -21,7 +21,12 @@
               set -euxo pipefail
 
               # Generate Typescript types from rust types
-              mkdir -p tauri-app/src/lib/typeshare;
+              mkdir -p tauri-app/src/lib/typeshare
+              
+              mkdir /tmp/cargo
+              export CARGO_HOME=/tmp/cargo/         
+              cargo install --git https://github.com/1Password/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
+              export PATH=$PATH:$CARGO_HOME/bin
 
               typeshare crates/subgraph/src/types/vault_balance_changes_list.rs  crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
               typeshare crates/subgraph/src/types/order_detail.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
@@ -35,18 +40,16 @@
               typeshare crates/common/src/fuzz/mod.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/fuzz.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare crates/settings/src/config.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/deployment.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              typeshare crates/settings/src/config.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              typeshare crates/settings/src/string_structs.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/configString.ts;
 
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
-
-              node tauri-app/src/scripts/typeshareFix.cjs
 
               # Fix linting of generated types
               cd tauri-app && npm i && npm run lint
             '';
             additionalBuildInputs = [
-              pkgs.typeshare
               pkgs.wasm-bindgen-cli
               rainix.rust-toolchain.${system}
               rainix.rust-build-inputs.${system}

@@ -27,6 +27,9 @@ pub enum MergeError {
 
     #[error("There is already a chart called {0}")]
     ChartCollision(String),
+
+    #[error("There is already a deployment called {0}")]
+    DeploymentCollision(String),
 }
 
 impl ConfigString {
@@ -101,6 +104,15 @@ impl ConfigString {
                 return Err(MergeError::ChartCollision(key));
             }
             charts.insert(key, value);
+        }
+
+        // Deployments
+        let deployments = &mut self.deployments;
+        for (key, value) in other.deployments {
+            if deployments.contains_key(&key) {
+                return Err(MergeError::DeploymentCollision(key));
+            }
+            deployments.insert(key, value);
         }
 
         Ok(())
@@ -181,12 +193,23 @@ impl Config {
             charts.insert(key, value.clone());
         }
 
+        // Deployments
+        let deployments = &mut self.deployments;
+        for (key, value) in other.deployments {
+            if deployments.contains_key(&key) {
+                return Err(MergeError::DeploymentCollision(key));
+            }
+            deployments.insert(key, value);
+        }
+
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use url::Url;
+
     use super::*;
     use std::collections::HashMap;
     #[test]
@@ -245,13 +268,15 @@ mod tests {
         };
 
         // Add a collision to cause an unsuccessful merge
-        config
-            .subgraphs
-            .insert("subgraph1".to_string(), "value1".to_string());
+        config.subgraphs.insert(
+            "subgraph1".to_string(),
+            Url::parse("https://myurl").unwrap(),
+        );
 
-        other
-            .subgraphs
-            .insert("subgraph1".to_string(), "value1".to_string());
+        other.subgraphs.insert(
+            "subgraph1".to_string(),
+            Url::parse("https://myurl").unwrap(),
+        );
 
         assert_eq!(
             config.merge(other),
