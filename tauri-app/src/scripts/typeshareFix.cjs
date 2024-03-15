@@ -8,9 +8,9 @@ config_content = config_content.replace(`export interface Network {
 	currency?: string;
 }`, `export interface Network {
 	rpc: string;
-  chain_id: number;
+  "chain-id": number;
 	label?: string;
-  network_id?: number;
+  "network-id"?: number;
 	currency?: string;
 }`);
 config_content = config_content.replace(`export interface Scenario {

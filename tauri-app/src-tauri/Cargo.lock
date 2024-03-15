@@ -2293,7 +2293,7 @@ checksum = "61e80ac27d6e5683915149bbc025554e01ef0f031d79132242ac126aaef6acdd"
 dependencies = [
  "alloy-primitives 0.5.4",
  "anyhow",
- "dotrain 6.0.1-alpha.10 (git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af)",
+ "dotrain",
  "lsp-types",
  "once_cell",
  "regex",
@@ -6479,7 +6479,7 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "chrono",
  "csv",
- "dotrain 6.0.1-alpha.10 (git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af)",
+ "dotrain",
  "dotrain-lsp",
  "once_cell",
  "proptest",

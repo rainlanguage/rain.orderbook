@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigString {
     #[serde(default)]
@@ -24,7 +24,7 @@ pub struct ConfigString {
     pub deployments: HashMap<String, DeploymentString>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct NetworkString {
     pub rpc: String,
@@ -34,7 +34,7 @@ pub struct NetworkString {
     pub currency: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderbookString {
     pub address: String,
@@ -43,7 +43,7 @@ pub struct OrderbookString {
     pub label: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct TokenString {
     pub network: String,
@@ -53,7 +53,7 @@ pub struct TokenString {
     pub symbol: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeployerString {
     pub address: String,
@@ -61,21 +61,21 @@ pub struct DeployerString {
     pub label: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeploymentString {
     pub scenario: String,
     pub order: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct IOString {
     pub token: String,
     pub vault_id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderString {
     pub inputs: Vec<IOString>,
@@ -85,7 +85,7 @@ pub struct OrderString {
     pub orderbook: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ScenarioString {
     #[serde(default)]
@@ -95,21 +95,21 @@ pub struct ScenarioString {
     pub scenarios: Option<HashMap<String, ScenarioString>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ChartString {
     pub scenario: Option<String>,
     pub plots: HashMap<String, PlotString>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct PlotString {
     pub data: DataPointsString,
     pub plot_type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DataPointsString {
     pub x: String,
@@ -140,15 +140,15 @@ mod tests {
 networks:
     mainnet:
         rpc: https://mainnet.node
-        chain_id: 1
+        chain-id: 1
         label: Mainnet
-        network_id: 1
+        network-id: 1
         currency: ETH
     testnet:
         rpc: https://testnet.node
-        chain_id: 2
+        chain-id: 2
         label: Testnet
-        network_id: 2
+        network-id: 2
         currency: ETH
 
 subgraphs:
@@ -195,12 +195,12 @@ orders:
     buyETH:
         inputs:
             - token: eth
-              vault_id: 2
+              vault-id: 2
             - token: dai
-              vault_id: 0x1
+              vault-id: 0x1
         outputs:
             - token: dai
-              vault_id: 3
+              vault-id: 3
         network: mainnet
         deployer: mainDeployer
         orderbook: mainnetOrderbook
@@ -228,12 +228,12 @@ charts:
                 data:
                     x: dataX
                     y: dataY
-                plot_type: line
+                plot-type: line
             plot2:
                 data:
                     x: dataX2
                     y: dataY2
-                plot_type: bar
+                plot-type: bar
 deployments:
     first-deployment:
         scenario: mainScenario
@@ -265,5 +265,9 @@ deployments:
             config.tokens.get("eth").unwrap().decimals,
             Some("18".to_string())
         );
+
+        let yaml_data = "";
+        let config: ConfigString = yaml_data.try_into().unwrap();
+        assert_eq!(config, ConfigString::default());
     }
 }

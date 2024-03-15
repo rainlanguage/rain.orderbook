@@ -1,4 +1,5 @@
-import { asyncDerived, derived, get } from '@square/svelte-store';
+/* eslint-disable no-console */
+import { asyncDerived, derived, get, writable } from '@square/svelte-store';
 import { cachedWritableInt, cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
@@ -7,6 +8,9 @@ import { invoke } from '@tauri-apps/api';
 import { type Config } from '$lib/typeshare/config';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
+import { http, disconnect, createConfig, getAccount, type Config as WagmiConfig } from '@wagmi/core';
+import type { Transport } from 'viem';
+import { walletConnect } from '@wagmi/connectors'
 
 const emptyConfig = {
   deployments: {},
@@ -42,7 +46,7 @@ export const networks = derived(settings, ($settingsData) => Object.entries($set
 export const activeNetworkIndex = cachedWritableInt("settings.activeNetworkIndex", 0);
 export const activeNetwork = derived([networks, activeNetworkIndex], ([$networks, $activeNetworkIndex]) => $networks?.[$activeNetworkIndex]);
 export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.[1].rpc);
-export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.[1].chain_id);
+export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.[1]["chain-id"]);
 export const activeChain = derived(chainId, ($activeChainId) => find(Object.values(chains), (c) => c.id === $activeChainId));
 export const activeChainHasBlockExplorer = derived(activeChain, ($activeChain) => {
   return $activeChain && $activeChain?.blockExplorers?.default !== undefined;
@@ -53,9 +57,9 @@ export const activeChainLatestBlockNumber = derived(activeNetwork, ($activeNetwo
 export const orderbooks = derived([settings, activeNetwork], ([$settingsData, $activeNetwork]) => Object.entries($settingsData.orderbooks).filter(v =>
   // filter orderbooks based on active netowkr
   v[1].network.rpc === $activeNetwork?.[1].rpc
-  && v[1].network.chain_id === $activeNetwork?.[1].chain_id
+  && v[1].network["chain-id"] === $activeNetwork?.[1]["chain-id"]
   && v[1].network.label === $activeNetwork?.[1].label
-  && v[1].network.network_id === $activeNetwork?.[1].network_id
+  && v[1].network["network-id"] === $activeNetwork?.[1]["network-id"]
   && v[1].network.currency === $activeNetwork?.[1].currency
 ));
 export const activeOrderbookIndex = cachedWritableInt("settings.activeOrderbookIndex", 0);
@@ -68,9 +72,9 @@ export const hasRequiredSettings = derived([activeNetwork, activeOrderbook], ([$
 // deployments
 export const deployments = derived([settings, activeNetwork, activeOrderbook], ([$settingsData, $activeNetwork, $activeOrderbook]) => Object.entries($settingsData.deployments).filter(v => {
   return v[1].order.network.rpc === $activeNetwork?.[1].rpc
-    && v[1].order.network.chain_id === $activeNetwork?.[1].chain_id
+    && v[1].order.network["chain-id"] === $activeNetwork?.[1]["chain-id"]
     && v[1].order.network.label === $activeNetwork?.[1].label
-    && v[1].order.network.network_id === $activeNetwork?.[1].network_id
+    && v[1].order.network["network-id"] === $activeNetwork?.[1]["network-id"]
     && v[1].order.network.currency === $activeNetwork?.[1].currency
     && (
       v[1].order.orderbook !== undefined
@@ -98,3 +102,94 @@ export const activeDeployment = derived([deployments, activeDeploymentIndex], ([
 //   activeOrderbookIndex.set(0);
 //   activeDeploymentIndex.set(0);
 // });
+
+// wagmi config
+const projectId = "634cfe0b2781e2ac78219ca4cb23c13f"
+const metadata = {
+  name: 'rain-ob',
+  description: "some desc",
+  url: 'https://rainlang.xyz', // origin must match your domain & subdomain
+  icons: ['https://avatars.githubusercontent.com/u/37784886']
+}
+// const defaultWagmiConfig = createConfig({
+//   chains: [chains.mainnet],
+//   transports: {
+//     [chains.mainnet.id]: http(chains.mainnet.rpcUrls.default.http[0])
+//   },
+//   connectors: [
+//     walletConnect({ projectId, metadata, showQrModal: false }),
+//   ],
+// }) as WagmiConfig<[chains.Chain, ...chains.Chain[]], Record<number, Transport>>;
+
+// export const wagmiConfig = derived([networks], ([$networks]) => {
+//   if ($networks.length === 0) {
+//     return;
+//   }
+//   // eslint-disable-next-line no-console
+//   console.log("uuuuu1", $networks);
+//   const viemchains: chains.Chain[] = [];
+//   const transports: Record<number, Transport> = {};
+//   for (const [, network] of $networks) {
+//     const result = find(Object.values(chains), (c) => c.id === network["chain-id"]);
+//     if (result) {
+//       viemchains.push(result);
+//       transports[result.id] = http(network.rpc);
+//     }
+//   }
+//   // eslint-disable-next-line no-console
+//   console.log("uuuuu2");
+//   const config = createConfig({
+//     chains: viemchains as [chains.Chain, ...chains.Chain[]],
+//     transports,
+//     connectors: [
+//       walletConnect({ projectId, metadata, showQrModal: false }),
+//     ],
+//   });
+//   // eslint-disable-next-line no-console
+//   console.log("uuuuu3");
+//   // const x = reconnect(config);
+//   // await switchChain(config, { chainId: $activeNetwork[1]["chain-id"] });
+//   return config;
+// });
+
+// // switch the chain for the wagmi config whenever active network changes
+// // activeNetwork.subscribe(async (v) => {
+// //   if (v) {
+// //     const x = await switchChain(get(wagmiConfig), { chainId: v[1]["chain-id"] });
+// //     // eslint-disable-next-line no-console
+// //     console.log("wwwwww ", x);
+// //   }
+// // })
+
+export const wagmiConfig = writable<WagmiConfig>();
+
+// subscribe to networks and instantiate wagmi config store from it
+activeNetwork.subscribe(async (network) => {
+  const config = get(wagmiConfig);
+  if (config && getAccount(config)?.isConnected) {
+    try {
+      await disconnect(config)
+    } catch(e) {
+      toasts.error(e as string)
+    }
+  }
+  if (network) {
+    const chain = find(Object.values(chains), (c) => c.id === network[1]["chain-id"]);
+    if (chain) {
+      wagmiConfig.set(
+        createConfig({
+          chains: [chain],
+          transports: {
+            [chain.id]: http(network[1].rpc),
+          } as Record<number, Transport>,
+          connectors: [
+            walletConnect({ projectId, metadata, showQrModal: false }),
+          ],
+        })
+      )
+    }
+    else {
+      toasts.error("unsupported chain")
+    }
+  }
+})

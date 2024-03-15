@@ -14,8 +14,10 @@ popd
 # Run commands in tauri-app
 pushd tauri-app
 nix develop .#tauri-shell --command cargo build --verbose
+popd
 nix develop .#tauri-shell --command ob-tauri-prelude
 nix develop .#tauri-shell --command ob-tauri-test
 # Use tauri dev instead of tauri build
+pushd tauri-app
 nix develop .#tauri-shell --command cargo tauri dev --verbose
 popd
