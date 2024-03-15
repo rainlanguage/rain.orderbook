@@ -1,5 +1,7 @@
 use crate::error::CommandResult;
+use crate::toast::toast_error;
 use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
+use alloy_primitives::Bytes;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     deposit::DepositArgs,
@@ -138,6 +140,38 @@ pub async fn vault_deposit(
 }
 
 #[tauri::command]
+pub async fn vault_deposit_approve_calldata(
+    app_handle: AppHandle,
+    deposit_args: DepositArgs,
+    transaction_args: TransactionArgs,
+) -> CommandResult<Bytes> {
+    let calldata = deposit_args
+        .get_approve_calldata(transaction_args)
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
+    Ok(Bytes::from(calldata))
+}
+
+#[tauri::command]
+pub async fn vault_deposit_calldata(
+    app_handle: AppHandle,
+    deposit_args: DepositArgs,
+) -> CommandResult<Bytes> {
+    let calldata = deposit_args
+        .get_deposit_calldata()
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
+
+    Ok(Bytes::from(calldata))
+}
+
+#[tauri::command]
 pub async fn vault_withdraw(
     app_handle: AppHandle,
     withdraw_args: WithdrawArgs,
@@ -155,4 +189,20 @@ pub async fn vault_withdraw(
         });
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn vault_withdraw_calldata(
+    app_handle: AppHandle,
+    withdraw_args: WithdrawArgs,
+) -> CommandResult<Bytes> {
+    let calldata = withdraw_args
+        .get_withdraw_calldata()
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
+
+    Ok(Bytes::from(calldata))
 }

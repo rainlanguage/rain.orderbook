@@ -1,6 +1,7 @@
 use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
+use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::{IOrderBookV3::depositCall, IERC20::approveCall};
 use serde::{Deserialize, Serialize};
 
@@ -50,6 +51,14 @@ impl DepositArgs {
         Ok(())
     }
 
+    pub async fn get_approve_calldata(
+        &self,
+        transaction_args: TransactionArgs,
+    ) -> Result<Vec<u8>, WritableTransactionExecuteError> {
+        let approve_call = self.into_approve_call(transaction_args.orderbook_address);
+        Ok(approve_call.abi_encode())
+    }
+
     /// Execute OrderbookV3 deposit call
     pub async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
         &self,
@@ -68,6 +77,11 @@ impl DepositArgs {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_deposit_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
+        let deposit_call: depositCall = self.clone().into();
+        Ok(deposit_call.abi_encode())
     }
 }
 

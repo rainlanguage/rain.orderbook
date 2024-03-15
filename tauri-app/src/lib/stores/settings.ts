@@ -1,13 +1,14 @@
-import { asyncDerived, derived, get } from '@square/svelte-store';
+import { asyncDerived, derived, get, writable } from '@square/svelte-store';
 import { cachedWritableStore, cachedWritableStringOptional } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { type ConfigString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
+import { type ConfigString, type NetworkString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';
 import { parseConfigString } from '$lib/services/config';
+import { createWeb3Modal, defaultConfig } from '@web3modal/ethers5'
 
 const emptyConfig = {
   deployments: {},
@@ -109,5 +110,85 @@ function resetActiveNetworkRef() {
     activeNetworkRef.set(Object.keys($networks)[0]);
   } else {
     activeNetworkRef.set(undefined);
+  }
+}
+
+const projectId = "634cfe0b2781e2ac78219ca4cb23c13f"
+const metadata = {
+  name: 'rain-ob',
+  description: "some desc",
+  url: 'https://rainlang.xyz', // origin must match your domain & subdomain
+  icons: ['https://avatars.githubusercontent.com/u/37784886']
+}
+export const ethersConfig = defaultConfig({
+  metadata,
+  enableEIP6963: false,
+  enableInjected: false,
+  enableCoinbase: false,
+});
+
+export const walletconnectModal = writable<ReturnType<typeof createWeb3Modal> | undefined>();
+export const account = writable<string | undefined>(undefined);
+export const isConnected = writable<boolean>(false);
+let eventUnsubscribe: (() => void) | undefined;
+
+// subscribe to networks and instantiate wagmi config store from it
+activeNetwork.subscribe(async network => {
+  if (eventUnsubscribe) eventUnsubscribe();
+  const oldModal = get(walletconnectModal)
+  if (oldModal !== undefined) {
+    try {
+      await oldModal.disconnect()
+    } catch(e) {
+      // eslint-disable-next-line no-console
+      console.log(e)
+    }
+  }
+  if (network === undefined) {
+    walletconnectModal.set(undefined)
+  }
+  else {
+    const chain = find(Object.values(chains), (c) => c.id === network["chain-id"]);
+    walletconnectModal.set(
+      createWeb3Modal({
+        ethersConfig,
+        chains: [getNetwork(network, chain)],
+        projectId,
+        enableAnalytics: true, // Optional - defaults to your Cloud configuration
+        enableOnramp: true, // Optional - false as default
+        allWallets: "HIDE",
+        includeWalletIds: [
+          "e7c4d26541a7fd84dbdfa9922d3ad21e936e13a7a0e44385d44f006139e44d3b" // walletconnect
+        ],
+      })
+    )
+    const modal = get(walletconnectModal);
+    eventUnsubscribe = modal?.subscribeEvents(v => {
+      if (v.data.event === "MODAL_CLOSE") {
+        account.set(modal.getAddress());
+        isConnected.set(modal.getIsConnected());
+      }
+    })
+  }
+})
+
+function getNetwork(network: NetworkString, chain?: chains.Chain) {
+  if (chain) {
+    return {
+      chainId: chain.id,
+      name: chain.name,
+      currency: chain.nativeCurrency.symbol,
+      explorerUrl: chain.blockExplorers?.default.url ?? "",
+      rpcUrl: network.rpc
+    }
+  }
+  else {
+    return {
+      chainId: network['chain-id'],
+      name: network['network-id']?.toString() ?? `network with chain id: ${network['chain-id']}`,
+      currency: network.currency ?? "eth",
+      explorerUrl: "",
+      rpcUrl: network.rpc
+    }
   }
 }

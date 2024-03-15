@@ -11,6 +11,7 @@
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
+  import WalletConnect from '$lib/components/WalletConnect.svelte';
 
   function apply() {
     settingsText.set($settingsFile.text);
@@ -52,4 +53,9 @@
     bind:derivationIndex={$walletDerivationIndex}
     bind:walletAddress={$walletAddress.value}
   />
+</div>
+
+<div class="my-8">
+  <Label class="mb-2">Wallet Connect</Label>
+  <WalletConnect/>
 </div>
