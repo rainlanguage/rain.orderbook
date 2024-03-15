@@ -71,8 +71,9 @@ pub async fn parse_rainlang_on_fork(
     let parse_args = ForkParseArgs {
         rainlang_string: rainlang.to_owned(),
         deployer,
+        decode_errors: true,
     };
     let result = forker.fork_parse(parse_args).await?;
 
-    Ok(result.0.raw.result.0)
+    Ok(result.raw.result.0)
 }

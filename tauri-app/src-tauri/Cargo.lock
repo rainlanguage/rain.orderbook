@@ -6479,6 +6479,7 @@ dependencies = [
  "csv",
  "dotrain",
  "dotrain-lsp",
+ "futures",
  "once_cell",
  "proptest",
  "rain-interpreter-eval",
