@@ -21,9 +21,12 @@
               set -euxo pipefail
 
               # Generate Typescript types from rust types
-              mkdir -p tauri-app/src/lib/typeshare;
-
+              mkdir -p tauri-app/src/lib/typeshare
+              
+              mkdir /tmp/cargo
+              export CARGO_HOME=/tmp/cargo/         
               cargo install --git https://github.com/1Password/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
+              export PATH=$PATH:$CARGO_HOME/bin
 
               typeshare crates/subgraph/src/types/vault_balance_changes_list.rs  crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
               typeshare crates/subgraph/src/types/order_detail.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
