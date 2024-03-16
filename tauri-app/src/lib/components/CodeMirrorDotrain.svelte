@@ -25,3 +25,9 @@
 	}}
 	on:ready={(e) => { openLintPanel(e.detail); }}
 />
+
+<style>
+	:global(.ͼ1 .cm-panel.cm-panel-lint ul [aria-selected]) {
+		background-color: inherit;
+	}
+</style>
