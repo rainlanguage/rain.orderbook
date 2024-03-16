@@ -139,15 +139,13 @@ let eventUnsubscribe: (() => void) | undefined;
 // subscribe to networks and instantiate wagmi config store from it
 activeNetwork.subscribe(async network => {
   if (eventUnsubscribe) eventUnsubscribe();
+  account.set(undefined);
+  isConnected.set(false);
   const oldModal = get(walletconnectModal)
   if (oldModal !== undefined) {
     try {
-      account.set(undefined);
-      isConnected.set(false);
       await oldModal.disconnect()
     } catch(e) {
-      account.set(undefined);
-      isConnected.set(false);
       walletconnectModal.set(undefined)
       // eslint-disable-next-line no-console
       console.log(e)
@@ -155,8 +153,6 @@ activeNetwork.subscribe(async network => {
   }
   if (network === undefined) {
     walletconnectModal.set(undefined);
-    account.set(undefined);
-    isConnected.set(false);
   }
   else {
     const chain = find(Object.values(chains), (c) => c.id === network["chain-id"]);
