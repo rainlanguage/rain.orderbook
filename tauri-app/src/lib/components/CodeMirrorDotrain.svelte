@@ -2,6 +2,7 @@
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { RawRainlangExtension } from 'codemirror-rainlang';
 	import { codeMirrorTheme } from '$lib/stores/darkMode';
+	import { openLintPanel } from '@codemirror/lint';
 
 	export let value: string;
 	export let disabled = false;
@@ -20,6 +21,7 @@
 		"&": {
 			width: "100%",
 		},
-		...styles
+		...styles,
 	}}
+	on:ready={(e) => { openLintPanel(e.detail); }}
 />

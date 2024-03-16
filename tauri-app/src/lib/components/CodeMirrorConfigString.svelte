@@ -4,6 +4,7 @@
 	import { yaml } from '@codemirror/lang-yaml';
 	import { parseConfigStringProblems } from '$lib/services/config';
 	import { RawRainlangExtension } from 'codemirror-rainlang';
+	import { openLintPanel } from '@codemirror/lint';
 
 	export let value: string;
 	export let disabled = false;
@@ -28,6 +29,7 @@
 		"&": {
 			width: "100%",
 		},
-		...styles
+		...styles,
 	}}
+	on:ready={(e) => { openLintPanel(e.detail); }}
 />
