@@ -6,7 +6,7 @@
   import IconInfo from '$lib/components/IconInfo.svelte';
   import CloseSolid from 'flowbite-svelte-icons/CloseSolid.svelte';
   import type { ToastData } from '$lib/stores/toasts';
-    import { ToastMessageType } from '$lib/typeshare/toast';
+  import { ToastMessageType } from '$lib/typeshare/toast';
 
   export let toast: ToastData;
   let toastColor: "none" | "gray" | "red" | "yellow" | "green" | "indigo" | "purple" | "blue" | "primary" | "orange" | undefined;
@@ -19,7 +19,7 @@
       return 'red';
     } else if (toast.message_type === ToastMessageType.Warning) {
       return 'yellow';
-    } else {
+    } else if (toast.message_type === ToastMessageType.Info) {
       return 'info';
     }
   };
@@ -31,13 +31,13 @@
         <CloseSolid slot="close-button" class="h-3 w-3 top-2 right-2 absolute hover:opacity-50" on:click={(e) => close(e)}/>
       </svelte:fragment>
 
-      {#if toast.message_type === 'Success'}
+      {#if toast.message_type === ToastMessageType.Success}
         <IconSuccess />
-      {:else if toast.message_type === 'Error'}
+      {:else if toast.message_type === ToastMessageType.Error}
         <IconError />
-      {:else if toast.message_type === 'Warning'}
+      {:else if toast.message_type === ToastMessageType.Warning}
         <IconWarning />
-      {:else}
+        {:else if toast.message_type === ToastMessageType.Info}
         <IconInfo />
       {/if}
 
