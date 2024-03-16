@@ -31,3 +31,25 @@ export async function orderRemove(id: string) {
     }
   });
 }
+
+export async function orderAddCalldata(dotrain: string, deployment: Deployment) {
+  return await invoke("order_add_calldata", {
+    dotrain,
+    deployment,
+    transactionArgs: {
+      rpc_url: get(rpcUrl),
+      orderbook_address: get(orderbookAddress),
+      derivation_index: get(walletDerivationIndex),
+      chain_id: get(chainId),
+    },
+  });
+}
+
+export async function orderRemoveCalldata(id: string) {
+  return await invoke("order_remove_calldata", {
+    id,
+    subgraphArgs: {
+      url: get(subgraphUrl)
+    }
+  });
+}

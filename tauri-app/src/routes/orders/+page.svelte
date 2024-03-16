@@ -1,6 +1,15 @@
 <script lang="ts">
   import { ordersList } from '$lib/stores/order';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import { DotsVerticalOutline } from 'flowbite-svelte-icons';
+  import { goto } from '$app/navigation';
+  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
+  import Hash from '$lib/components/Hash.svelte';
+  import { HashType } from '$lib/types/hash';
+  import AppTable from '$lib/components/AppTable.svelte';
+  import { subgraphUrl } from '$lib/stores/settings';
+  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
   import {
     Button,
     TableBodyCell,
@@ -10,16 +19,6 @@
     DropdownItem,
     Spinner,
   } from 'flowbite-svelte';
-  import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-  import { goto } from '$app/navigation';
-  // import { orderRemove } from '$lib/services/order';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
-  import AppTable from '$lib/components/AppTable.svelte';
-  import { subgraphUrl } from '$lib/stores/settings';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
 
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;
@@ -100,7 +99,6 @@
               e.stopPropagation();
               id = item.id;
               openOrderRemoveModal = true;
-              // orderRemove(item.id);
             }}>Remove</DropdownItem
           >
         </Dropdown>

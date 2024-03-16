@@ -113,13 +113,17 @@ function resetActiveNetworkRef() {
   }
 }
 
+// @TODO set rain project id from env
 const projectId = "634cfe0b2781e2ac78219ca4cb23c13f"
+
+// @TODO set correct values for fields
 const metadata = {
-  name: 'rain-ob',
+  name: "Rain Orderbook",
   description: "some desc",
-  url: 'https://rainlang.xyz', // origin must match your domain & subdomain
-  icons: ['https://avatars.githubusercontent.com/u/37784886']
+  url: "https://rainlang.xyz", // origin must match your domain & subdomain
+  icons: ["https://avatars.githubusercontent.com/u/37784886"]
 }
+
 export const ethersConfig = defaultConfig({
   metadata,
   enableEIP6963: false,
@@ -138,8 +142,13 @@ activeNetwork.subscribe(async network => {
   const oldModal = get(walletconnectModal)
   if (oldModal !== undefined) {
     try {
+      account.set(undefined);
+      isConnected.set(false);
       await oldModal.disconnect()
     } catch(e) {
+      account.set(undefined);
+      isConnected.set(false);
+      walletconnectModal.set(undefined)
       // eslint-disable-next-line no-console
       console.log(e)
     }

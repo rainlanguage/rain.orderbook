@@ -2,7 +2,6 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  // import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
@@ -65,17 +64,6 @@
       // eslint-disable-next-line no-empty
     } catch(e) {}
   }
-
-  // async function execute() {
-  //   isSubmitting = true;
-  //   try {
-  //     if(!deployment) throw Error("Select a deployment to add order");
-
-  //     await orderAdd($dotrainFile.text, deployment);
-  //     // eslint-disable-next-line no-empty
-  //   } catch (e) {}
-  //   isSubmitting = false;
-  // }
 
   async function chart() {
     isCharting = true;

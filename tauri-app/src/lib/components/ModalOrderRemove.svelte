@@ -3,8 +3,10 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { walletconnectModal, account } from '$lib/stores/settings';
-  import { orderRemove } from '$lib/services/order';
+  import { walletconnectModal, account, orderbookAddress } from '$lib/stores/settings';
+  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { get } from '@square/svelte-store';
 
   export let open = false;
   export let id: string;
@@ -13,14 +15,21 @@
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
-  $: label = $account
-    ? `${$account.slice(0, 5)}...${$account.slice(-1 * 5)}`
+  $: walletconnectLabel = $account
+    ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
     : "CONNECT"
+
+  function reset() {
+    open = false;
+    selectedLedger = false;
+    selectedWalletconnect = false;
+  }
 
   async function executeLedger() {
     isSubmitting = true;
     try {
       await orderRemove(id);
+      reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
     isSubmitting = false;
@@ -28,14 +37,17 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      await orderRemove(id);
+      const calldata = await orderRemoveCalldata(id) as Uint8Array;
+      const tx = await ethersExecute(calldata, get(orderbookAddress)!)
+      await tx?.wait(1);
+      reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
     isSubmitting = false;
   }
 </script>
 
-<Modal title="Remove Order" bind:open outsideclose size="sm">
+<Modal title="Remove Order" bind:open outsideclose size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect}
     <div class="mb-6">
       <ButtonLoading on:click={() => selectedLedger = true} disabled={false} loading={isSubmitting}>
@@ -63,7 +75,7 @@
       pill
       on:click={() => $walletconnectModal?.open()}
     >
-    {label}
+    {walletconnectLabel}
     </Button>
     <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
       Remove Order

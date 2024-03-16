@@ -1,13 +1,15 @@
 <script lang="ts">
   import { Button, Modal, Label } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultDeposit } from '$lib/services/vault';
+  import { vaultDeposit, vaultDepositApproveCalldata, vaultDepositCalldata } from '$lib/services/vault';
   import InputToken from '$lib/components/InputToken.svelte';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { walletconnectModal, account } from '$lib/stores/settings';
+  import { walletconnectModal, account, orderbookAddress } from '$lib/stores/settings';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { get } from '@square/svelte-store';
 
   export let open = false;
   let vaultId: bigint = 0n;
@@ -19,8 +21,8 @@
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
-  $: label = $account
-    ? `${$account.slice(0, 5)}...${$account.slice(-1 * 5)}`
+  $: walletconnectLabel = $account
+    ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
     : "CONNECT"
 
   function reset() {
@@ -30,12 +32,15 @@
     amount = 0n;
     isSubmitting = false;
     open = false;
+    selectWallet = false;
+    selectedLedger = false;
+    selectedWalletconnect = false;
   }
 
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await await vaultDeposit(vaultId, tokenAddress, amount);
+      await vaultDeposit(vaultId, tokenAddress, amount);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -45,7 +50,14 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      await await vaultDeposit(vaultId, tokenAddress, amount);
+      const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount) as Uint8Array;
+      const approveTx = await ethersExecute(approveCalldata, tokenAddress)
+      await approveTx?.wait(1);
+
+      const depositCalldata = await vaultDepositCalldata(vaultId, tokenAddress, amount) as Uint8Array;
+      const depositTx = await ethersExecute(depositCalldata, get(orderbookAddress)!)
+      await depositTx?.wait(1);
+
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -113,7 +125,7 @@
         pill
         on:click={() => $walletconnectModal?.open()}
       >
-      {label}
+      {walletconnectLabel}
       </Button>
       <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
         Deposit

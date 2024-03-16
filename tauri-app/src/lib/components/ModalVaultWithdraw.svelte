@@ -3,12 +3,14 @@
   import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
   import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultWithdraw } from '$lib/services/vault';
+  import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { account, walletconnectModal } from '$lib/stores/settings';
+  import { account, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { get } from '@square/svelte-store';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -19,8 +21,8 @@
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
-  $: label = $account
-    ? `${$account.slice(0, 5)}...${$account.slice(-1 * 5)}`
+  $: walletconnectLabel = $account
+    ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
     : "CONNECT"
 
   $: amountGTBalance = vault !== undefined && amount > vault.balance;
@@ -28,6 +30,9 @@
   function reset() {
     amount = 0n;
     open = false;
+    selectWallet = false;
+    selectedLedger = false;
+    selectedWalletconnect = false;
   }
 
   async function executeLedger() {
@@ -43,7 +48,9 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vault_id, vault.token.id, amount);
+      const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
+      const tx = await ethersExecute(calldata, get(orderbookAddress)!)
+      await tx?.wait(1);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -149,7 +156,7 @@
         pill
         on:click={() => $walletconnectModal?.open()}
       >
-      {label}
+      {walletconnectLabel}
       </Button>
       <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
         Withdraw
