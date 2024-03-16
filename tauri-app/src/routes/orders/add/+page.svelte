@@ -4,7 +4,7 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
+  import { Helper, Label, Button, Spinner, Modal} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
@@ -21,6 +21,7 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigString } from '$lib/typeshare/configString';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
+  import ModalAddOrder from '$lib/components/ModalAddOrder.svelte';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -29,6 +30,7 @@
   let deploymentRef: string | undefined = undefined;
   let mergedConfigString: ConfigString | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
+  let openAddOrderModal = false;
 
   $: deployments = (mergedConfigString !== undefined && mergedConfigString?.deployments !== undefined && mergedConfigString?.orders !== undefined) ?
     pickBy(mergedConfigString.deployments, (d) => mergedConfigString?.orders?.[d.order]?.network === $activeNetworkRef) : {};
@@ -128,7 +130,7 @@
         color="green"
         loading={isSubmitting}
         disabled={$dotrainFile.isEmpty}
-        on:click={execute}>Add Order</ButtonLoading
+        on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
       >
     </svelte:fragment>
 </FileTextarea>
@@ -144,3 +146,4 @@
 
 <Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
 <Charts {chartData} />
+<ModalAddOrder bind:open={openAddOrderModal} dotrainText={$dotrainFile.text} deployment={deployment}/>

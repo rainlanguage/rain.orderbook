@@ -6,11 +6,21 @@
   import { vaultDeposit } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+    import InputLedgerWallet from './InputLedgerWallet.svelte';
+    import { account, walletconnectModal } from '$lib/stores/settings';
+    import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
   let amount: bigint;
   let isSubmitting = false;
+  let selectWallet = false;
+  let selectedLedger = false;
+  let selectedWalletconnect = false;
+
+  $: label = $account
+    ? `${$account.slice(0, 5)}...${$account.slice(-1 * 5)}`
+    : "CONNECT"
 
   function reset() {
     amount = 0n;
@@ -30,64 +40,98 @@
 </script>
 
 <Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Vault ID
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {bigintStringToHex(vault.vault_id)}
-    </p>
-  </div>
+  {#if !selectWallet}
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Vault ID
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {bigintStringToHex(vault.vault_id)}
+      </p>
+    </div>
 
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Token
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.token.name}
-    </p>
-  </div>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Token
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {vault.token.name}
+      </p>
+    </div>
 
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Owner
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.owner.id}
-    </p>
-  </div>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Owner
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {vault.owner.id}
+      </p>
+    </div>
 
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Balance
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.balance_display}
-    </p>
-  </div>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Balance
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {vault.balance_display}
+      </p>
+    </div>
 
-  <div class="mb-6">
-    <Label
-      for="amount"
-      class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
-    >
-      Amount
-    </Label>
-    <ButtonGroup class="w-full">
-      <InputTokenAmount
-        bind:value={amount}
-        symbol={vault.token.symbol}
-        decimals={vault.token.decimals}
-      />
-    </ButtonGroup>
-  </div>
-
-  <svelte:fragment slot="footer">
+    <div class="mb-6">
+      <Label
+        for="amount"
+        class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
+      >
+        Amount
+      </Label>
+      <ButtonGroup class="w-full">
+        <InputTokenAmount
+          bind:value={amount}
+          symbol={vault.token.symbol}
+          decimals={vault.token.decimals}
+        />
+      </ButtonGroup>
+    </div>
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <ButtonLoading on:click={execute} disabled={!amount || amount === 0n || isSubmitting} loading={isSubmitting}>
-        Submit Deposit
+      <ButtonLoading on:click={() => selectWallet = true} disabled={!amount || amount === 0n || isSubmitting} loading={isSubmitting}>
+        Proceed
       </ButtonLoading>
     </div>
-  </svelte:fragment>
+  {:else}
+    {#if !selectedLedger && !selectedWalletconnect}
+      <Button color="alternative" on:click={() => selectWallet = false}>Back</Button>
+      <div class="mb-6">
+        <ButtonLoading on:click={() => selectedLedger = true} disabled={false} loading={isSubmitting}>
+          Ledger Wallet
+        </ButtonLoading>
+        <ButtonLoading on:click={() => selectedWalletconnect = true} disabled={false} loading={isSubmitting}>
+          WalletConnect
+        </ButtonLoading>
+      </div>
+    {:else if selectedLedger}
+      <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
+      <InputLedgerWallet
+        bind:derivationIndex={$walletDerivationIndex}
+        bind:walletAddress={$walletAddress.value}
+      />
+      <ButtonLoading on:click={execute} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
+        Deposit
+      </ButtonLoading>
+    {:else if selectedWalletconnect}
+      <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
+      <Button
+        color="blue"
+        class="px-2 py-1"
+        size="xs"
+        pill
+        on:click={() => $walletconnectModal?.open()}
+      >
+      {label}
+      </Button>
+      <ButtonLoading on:click={execute} disabled={isSubmitting || !$account} loading={isSubmitting}>
+        Deposit
+      </ButtonLoading>
+    {/if}
+  {/if}
 </Modal>
