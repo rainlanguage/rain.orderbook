@@ -119,24 +119,19 @@
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset}>Cancel</Button>
 
-      <ButtonLoading
+      <Button
         on:click={() => selectWallet = true}
         disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
-        loading={isSubmitting}
       >
         Proceed
-      </ButtonLoading>
+      </Button>
     </div>
   {:else}
     {#if !selectedLedger && !selectedWalletconnect}
       <Button color="alternative" on:click={() => selectWallet = false}>Back</Button>
       <div class="mb-6">
-        <ButtonLoading on:click={() => selectedLedger = true} disabled={false} loading={isSubmitting}>
-          Ledger Wallet
-        </ButtonLoading>
-        <ButtonLoading on:click={() => selectedWalletconnect = true} disabled={false} loading={isSubmitting}>
-          WalletConnect
-        </ButtonLoading>
+        <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
+        <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
       </div>
     {:else if selectedLedger}
       <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>

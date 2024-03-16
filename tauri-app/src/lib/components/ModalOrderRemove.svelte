@@ -50,12 +50,8 @@
 <Modal title="Remove Order" bind:open outsideclose size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect}
     <div class="mb-6">
-      <ButtonLoading on:click={() => selectedLedger = true} disabled={false} loading={isSubmitting}>
-        Ledger Wallet
-      </ButtonLoading>
-      <ButtonLoading on:click={() => selectedWalletconnect = true} disabled={false} loading={isSubmitting}>
-        WalletConnect
-      </ButtonLoading>
+      <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
+      <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
     </div>
   {:else if selectedLedger}
     <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
