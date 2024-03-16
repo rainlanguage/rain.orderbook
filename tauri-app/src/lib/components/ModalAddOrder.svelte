@@ -44,7 +44,7 @@
 
       const calldata = await orderAddCalldata(dotrainText, deployment) as Uint8Array;
       const tx = await ethersExecute(calldata, get(orderbookAddress)!)
-      await tx?.wait(1);
+      await tx.wait(1);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}

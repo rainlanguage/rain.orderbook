@@ -48,11 +48,11 @@
     try {
       const approveCalldata = await vaultDepositApproveCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
       const approveTx = await ethersExecute(approveCalldata, vault.token.id)
-      await approveTx?.wait(1);
+      await approveTx.wait(1);
 
       const depositCalldata = await vaultDepositCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
       const depositTx = await ethersExecute(depositCalldata, get(orderbookAddress)!)
-      await depositTx?.wait(1);
+      await depositTx.wait(1);
 
       reset();
       // eslint-disable-next-line no-empty

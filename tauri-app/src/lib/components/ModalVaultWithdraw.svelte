@@ -50,7 +50,7 @@
     try {
       const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
       const tx = await ethersExecute(calldata, get(orderbookAddress)!)
-      await tx?.wait(1);
+      await tx.wait(1);
       reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
