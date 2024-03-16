@@ -21,7 +21,7 @@ pub struct Orderbook {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseOrderbookStringError {
+pub enum ParseOrderbookConfigSourceError {
     #[error("Failed to parse address")]
     AddressParseError(FromHexError),
     #[error("Network not found: {0}")]
@@ -30,23 +30,23 @@ pub enum ParseOrderbookStringError {
     SubgraphNotFoundError(String),
 }
 
-impl OrderbookString {
+impl OrderbookConfigSource {
     pub fn try_into_orderbook(
         self,
         name: String,
         networks: &HashMap<String, Arc<Network>>,
         subgraphs: &HashMap<String, Arc<Subgraph>>,
-    ) -> Result<Orderbook, ParseOrderbookStringError> {
+    ) -> Result<Orderbook, ParseOrderbookConfigSourceError> {
         let network_ref = match self.network {
             Some(network_name) => networks
                 .get(&network_name)
-                .ok_or(ParseOrderbookStringError::NetworkNotFoundError(
+                .ok_or(ParseOrderbookConfigSourceError::NetworkNotFoundError(
                     network_name.clone(),
                 ))
                 .map(Arc::clone)?,
             None => networks
                 .get(&name)
-                .ok_or(ParseOrderbookStringError::NetworkNotFoundError(
+                .ok_or(ParseOrderbookConfigSourceError::NetworkNotFoundError(
                     name.clone(),
                 ))
                 .map(Arc::clone)?,
@@ -55,13 +55,13 @@ impl OrderbookString {
         let subgraph_ref = match self.subgraph {
             Some(subgraph_name) => subgraphs
                 .get(&subgraph_name)
-                .ok_or(ParseOrderbookStringError::SubgraphNotFoundError(
+                .ok_or(ParseOrderbookConfigSourceError::SubgraphNotFoundError(
                     subgraph_name.clone(),
                 ))
                 .map(Arc::clone)?,
             None => subgraphs
                 .get(&name)
-                .ok_or(ParseOrderbookStringError::SubgraphNotFoundError(
+                .ok_or(ParseOrderbookConfigSourceError::SubgraphNotFoundError(
                     name.clone(),
                 ))
                 .map(Arc::clone)?,
@@ -104,7 +104,7 @@ mod tests {
         let address = "0x1234567890123456789012345678901234567890"
             .parse::<Address>()
             .unwrap();
-        let orderbook_string = OrderbookString {
+        let orderbook_string = OrderbookConfigSource {
             address,
             network: Some("TestNetwork".to_string()),
             subgraph: Some("TestSubgraph".to_string()),
@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn test_orderbook_creation_with_missing_network() {
         let (networks, subgraphs) = setup();
-        let orderbook_string = OrderbookString {
+        let orderbook_string = OrderbookConfigSource {
             address: Address::random(),
             network: Some("NonExistingNetwork".to_string()),
             subgraph: Some("TestSubgraph".to_string()),
@@ -145,14 +145,14 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            ParseOrderbookStringError::NetworkNotFoundError("NonExistingNetwork".to_string())
+            ParseOrderbookConfigSourceError::NetworkNotFoundError("NonExistingNetwork".to_string())
         );
     }
 
     #[test]
     fn test_orderbook_creation_with_missing_subgraph() {
         let (networks, subgraphs) = setup();
-        let orderbook_string = OrderbookString {
+        let orderbook_string = OrderbookConfigSource {
             address: Address::random(),
             network: Some("TestNetwork".to_string()),
             subgraph: Some("NonExistingSubgraph".to_string()),
@@ -165,7 +165,9 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            ParseOrderbookStringError::SubgraphNotFoundError("NonExistingSubgraph".to_string())
+            ParseOrderbookConfigSourceError::SubgraphNotFoundError(
+                "NonExistingSubgraph".to_string()
+            )
         );
     }
 }

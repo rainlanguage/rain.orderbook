@@ -1,6 +1,6 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
-use rain_orderbook_app_settings::config::ParseConfigStringError;
+use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::merge::MergeError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::{
@@ -54,7 +54,7 @@ pub enum CommandError {
     MergeError(#[from] MergeError),
 
     #[error(transparent)]
-    ParseConfigStringError(#[from] ParseConfigStringError),
+    ParseConfigSourceError(#[from] ParseConfigSourceError),
 
     #[error(transparent)]
     ParseConfigYamlError(#[from] serde_yaml::Error),

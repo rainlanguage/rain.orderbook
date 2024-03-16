@@ -2,7 +2,7 @@
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { codeMirrorTheme } from '$lib/stores/darkMode';
 	import { yaml } from '@codemirror/lang-yaml';
-	import { parseConfigStringProblems } from '$lib/services/config';
+	import { parseConfigSourceProblems } from '$lib/services/config';
 	import { RawRainlangExtension } from 'codemirror-rainlang';
 	import { openLintPanel } from '@codemirror/lint';
 
@@ -13,7 +13,7 @@
  	const configStringExtension = new RawRainlangExtension({
 		hover: async () => null,
 		completion: async () => null,
-		diagnostics: async (textDocument) => parseConfigStringProblems(textDocument.text),
+		diagnostics: async (textDocument) => parseConfigSourceProblems(textDocument.text),
 	});
 </script>
 

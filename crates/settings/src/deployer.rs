@@ -16,29 +16,31 @@ pub struct Deployer {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseDeployerStringError {
+pub enum ParseDeployerConfigSourceError {
     #[error("Failed to parse address")]
     AddressParseError(alloy_primitives::hex::FromHexError),
     #[error("Network not found: {0}")]
     NetworkNotFoundError(String),
 }
 
-impl DeployerString {
+impl DeployerConfigSource {
     pub fn try_into_deployer(
         self,
         name: String,
         networks: &HashMap<String, Arc<Network>>,
-    ) -> Result<Deployer, ParseDeployerStringError> {
+    ) -> Result<Deployer, ParseDeployerConfigSourceError> {
         let network_ref = match self.network {
             Some(network_name) => networks
                 .get(&network_name)
-                .ok_or(ParseDeployerStringError::NetworkNotFoundError(
+                .ok_or(ParseDeployerConfigSourceError::NetworkNotFoundError(
                     network_name.clone(),
                 ))
                 .map(Arc::clone)?,
             None => networks
                 .get(&name)
-                .ok_or(ParseDeployerStringError::NetworkNotFoundError(name.clone()))
+                .ok_or(ParseDeployerConfigSourceError::NetworkNotFoundError(
+                    name.clone(),
+                ))
                 .map(Arc::clone)?,
         };
 
@@ -72,7 +74,7 @@ mod tests {
         let address = Address::repeat_byte(0x01); // Generate a random address for testing
         let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
-        let deployer_string = DeployerString {
+        let deployer_string = DeployerConfigSource {
             address,
             network: Some(network_name.to_string()),
             label: Some("Test Deployer".to_string()),
@@ -94,7 +96,7 @@ mod tests {
         let address = Address::repeat_byte(0x01);
         let invalid_network_name = "unknownnet";
         let networks = HashMap::new(); // Empty networks map
-        let deployer_string = DeployerString {
+        let deployer_string = DeployerConfigSource {
             address,
             network: Some(invalid_network_name.to_string()),
             label: None,
@@ -103,7 +105,7 @@ mod tests {
         let result = deployer_string.try_into_deployer(invalid_network_name.to_string(), &networks);
         assert!(matches!(
             result,
-            Err(ParseDeployerStringError::NetworkNotFoundError(_))
+            Err(ParseDeployerConfigSourceError::NetworkNotFoundError(_))
         ));
     }
 
@@ -112,7 +114,7 @@ mod tests {
         let address = Address::repeat_byte(0x01);
         let network_name = "Local Testnet";
         let networks = HashMap::from([(network_name.to_string(), mock_network())]);
-        let deployer_string = DeployerString {
+        let deployer_string = DeployerConfigSource {
             address,
             network: None, // No network specified
             label: None,

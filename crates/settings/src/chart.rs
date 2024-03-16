@@ -31,27 +31,29 @@ pub struct DataPoints {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseChartStringError {
+pub enum ParseChartConfigSourceError {
     #[error("Scenario not found: {0}")]
     ScenarioNotFoundError(String),
 }
 
-impl ChartString {
+impl ChartConfigSource {
     pub fn try_into_chart(
         self,
         name: String,
         scenarios: &HashMap<String, Arc<Scenario>>,
-    ) -> Result<Chart, ParseChartStringError> {
+    ) -> Result<Chart, ParseChartConfigSourceError> {
         let scenario_ref = match self.scenario {
             Some(scenario_name) => scenarios
                 .get(&scenario_name)
-                .ok_or(ParseChartStringError::ScenarioNotFoundError(
+                .ok_or(ParseChartConfigSourceError::ScenarioNotFoundError(
                     scenario_name.clone(),
                 ))
                 .map(Arc::clone)?,
             None => scenarios
                 .get(&name)
-                .ok_or(ParseChartStringError::ScenarioNotFoundError(name.clone()))
+                .ok_or(ParseChartConfigSourceError::ScenarioNotFoundError(
+                    name.clone(),
+                ))
                 .map(Arc::clone)?,
         };
 
@@ -72,7 +74,7 @@ impl ChartString {
                         },
                     ))
                 })
-                .collect::<Result<HashMap<String, Plot>, ParseChartStringError>>()?,
+                .collect::<Result<HashMap<String, Plot>, ParseChartConfigSourceError>>()?,
         })
     }
 }
@@ -118,7 +120,7 @@ mod tests {
         let (plot_name, plot) = create_plot("plot1");
         plots.insert(plot_name, plot);
 
-        let chart_string = ChartString {
+        let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
             plots,
         };
@@ -143,7 +145,7 @@ mod tests {
         let (plot_name, plot) = create_plot("plot1");
         plots.insert(plot_name, plot);
 
-        let chart_string = ChartString {
+        let chart_string = ChartConfigSource {
             scenario: None,
             plots,
         };
@@ -166,7 +168,7 @@ mod tests {
         let (plot_name, plot) = create_plot("plot1");
         plots.insert(plot_name, plot);
 
-        let chart_string = ChartString {
+        let chart_string = ChartConfigSource {
             scenario: Some("nonexistent_scenario".to_string()),
             plots,
         };
@@ -174,7 +176,7 @@ mod tests {
         let result = chart_string.try_into_chart("chart3".to_string(), &scenarios);
         assert!(matches!(
             result,
-            Err(ParseChartStringError::ScenarioNotFoundError(_))
+            Err(ParseChartConfigSourceError::ScenarioNotFoundError(_))
         ));
     }
 
@@ -182,7 +184,7 @@ mod tests {
     fn test_no_scenario_matching_chart_name() {
         let scenarios = HashMap::<String, Arc<Scenario>>::new(); // No scenarios added
 
-        let chart_string = ChartString {
+        let chart_string = ChartConfigSource {
             scenario: None,
             plots: HashMap::new(),
         };
@@ -190,7 +192,7 @@ mod tests {
         let result = chart_string.try_into_chart("chart4".to_string(), &scenarios);
         assert!(matches!(
             result,
-            Err(ParseChartStringError::ScenarioNotFoundError(_))
+            Err(ParseChartConfigSourceError::ScenarioNotFoundError(_))
         ));
     }
 
@@ -207,7 +209,7 @@ mod tests {
         let (plot_name, plot) = create_plot("plot2");
         plots.insert(plot_name, plot);
 
-        let chart_string = ChartString {
+        let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
             plots,
         };

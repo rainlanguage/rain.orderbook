@@ -1,4 +1,4 @@
-use crate::string_structs::*;
+use crate::config_source::*;
 use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
 use thiserror::Error;
@@ -20,7 +20,7 @@ pub struct Network {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseNetworkStringError {
+pub enum ParseNetworkConfigSourceError {
     #[error("Failed to parse rpc: {}", 0)]
     RpcParseError(ParseError),
     #[error("Failed to parse chain_id: {}", 0)]
@@ -29,10 +29,10 @@ pub enum ParseNetworkStringError {
     NetworkIdParseError(ParseIntError),
 }
 
-impl TryFrom<NetworkString> for Network {
-    type Error = ParseNetworkStringError;
+impl TryFrom<NetworkConfigSource> for Network {
+    type Error = ParseNetworkConfigSourceError;
 
-    fn try_from(item: NetworkString) -> Result<Self, Self::Error> {
+    fn try_from(item: NetworkConfigSource) -> Result<Self, Self::Error> {
         Ok(Network {
             rpc: item.rpc,
             chain_id: item.chain_id,
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn test_try_from_network_string_success() {
-        let network_string = NetworkString {
+        let network_string = NetworkConfigSource {
             rpc: Url::parse("http://127.0.0.1:8545").unwrap(),
             chain_id: 1,
             network_id: Some(1),

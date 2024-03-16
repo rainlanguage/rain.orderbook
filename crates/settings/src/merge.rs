@@ -32,8 +32,8 @@ pub enum MergeError {
     DeploymentCollision(String),
 }
 
-impl ConfigString {
-    pub fn merge(&mut self, other: ConfigString) -> Result<(), MergeError> {
+impl ConfigSource {
+    pub fn merge(&mut self, other: ConfigSource) -> Result<(), MergeError> {
         // Networks
         let networks = &mut self.networks;
         for (key, value) in other.networks {
@@ -214,7 +214,7 @@ mod tests {
     use std::collections::HashMap;
     #[test]
     fn test_successful_merge() {
-        let mut config = ConfigString {
+        let mut config = ConfigSource {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
@@ -226,7 +226,7 @@ mod tests {
             deployments: HashMap::new(),
         };
 
-        let other = ConfigString {
+        let other = ConfigSource {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_unsuccessful_merge() {
-        let mut config = ConfigString {
+        let mut config = ConfigSource {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
@@ -255,7 +255,7 @@ mod tests {
             deployments: HashMap::new(),
         };
 
-        let mut other = ConfigString {
+        let mut other = ConfigSource {
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
