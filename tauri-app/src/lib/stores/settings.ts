@@ -121,7 +121,10 @@ const metadata = {
   name: "Rain Orderbook",
   description: "some desc",
   url: "https://rainlang.xyz", // origin must match your domain & subdomain
-  icons: ["https://avatars.githubusercontent.com/u/37784886"]
+  icons: [
+    "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg", // rain logo
+    "https://avatars.githubusercontent.com/u/37784886", // walletconnect logo
+  ]
 }
 
 const ethersConfig = defaultConfig({

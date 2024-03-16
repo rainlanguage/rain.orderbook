@@ -6,24 +6,28 @@
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { account, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
-  import IwalletconnectAccountgerWallet from './InputLedgerWallet.svelte';
+  import { walletconnectAccount, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
+  import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { get } from '@square/svelte-store';
 
   export let open = false;
-  export let vault: TokenVaultDetail | TokenVaultListItem;walletconnectAccount let amountGTBalance: boolean;
+  export let vault: TokenVaultDetail | TokenVaultListItem;
+  let amount: bigint = 0n;
+  let amountGTBalance: boolean;
   let isSubmitting = false;
   let selectWallet = false;
   let selectedLedger = false;
-walletconnectAccount $: walletconnectLabel = $account
-    ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
+  let selectedWalletconnect = false;
+
+  $: walletconnectLabel = $walletconnectAccount
+    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : "CONNECT"
 
   $: amountGTBalance = vault !== undefined && amount > vault.balance;
 
-  fuwalletconnectAccountreset() {
+  function reset() {
     amount = 0n;
     open = false;
     selectWallet = false;
@@ -119,7 +123,7 @@ walletconnectAccount $: walletconnectLabel = $account
         on:click={() => selectWallet = true}
         disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
       >
-        ProceedwalletconnectAccount
+        Proceed
       </Button>
     </div>
   {:else}
@@ -149,7 +153,7 @@ walletconnectAccount $: walletconnectLabel = $account
       >
       {walletconnectLabel}
       </Button>
-      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
+      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
         Withdraw
       </ButtonLoading>
     {/if}
