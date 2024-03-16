@@ -17,7 +17,15 @@
     ? `${$account.slice(0, 5)}...${$account.slice(-1 * 5)}`
     : "CONNECT"
 
-  async function execute() {
+  async function executeLedger() {
+    isSubmitting = true;
+    try {
+      await orderRemove(id);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+  async function executeWalletconnect() {
     isSubmitting = true;
     try {
       await orderRemove(id);
@@ -43,7 +51,7 @@
       bind:derivationIndex={$walletDerivationIndex}
       bind:walletAddress={$walletAddress.value}
     />
-    <ButtonLoading on:click={execute} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
+    <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
       Remove Order
     </ButtonLoading>
   {:else if selectedWalletconnect}
@@ -57,7 +65,7 @@
     >
     {label}
     </Button>
-    <ButtonLoading on:click={execute} disabled={isSubmitting || !$account} loading={isSubmitting}>
+    <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
       Remove Order
     </ButtonLoading>
   {/if}

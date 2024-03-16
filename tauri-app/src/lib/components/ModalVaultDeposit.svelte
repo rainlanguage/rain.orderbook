@@ -28,7 +28,17 @@
     open = false;
   }
 
-  async function execute() {
+  async function executeLedger() {
+    isSubmitting = true;
+    try {
+      await vaultDeposit(vault.vault_id, vault.token.id, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+
+  async function executeWalletconnect() {
     isSubmitting = true;
     try {
       await vaultDeposit(vault.vault_id, vault.token.id, amount);
@@ -115,7 +125,7 @@
         bind:derivationIndex={$walletDerivationIndex}
         bind:walletAddress={$walletAddress.value}
       />
-      <ButtonLoading on:click={execute} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
+      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
         Deposit
       </ButtonLoading>
     {:else if selectedWalletconnect}
@@ -129,7 +139,7 @@
       >
       {label}
       </Button>
-      <ButtonLoading on:click={execute} disabled={isSubmitting || !$account} loading={isSubmitting}>
+      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
         Deposit
       </ButtonLoading>
     {/if}

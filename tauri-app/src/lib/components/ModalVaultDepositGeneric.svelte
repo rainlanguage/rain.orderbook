@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Modal, Label } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  // import { vaultDeposit } from '$lib/services/vault';
+  import { vaultDeposit } from '$lib/services/vault';
   import InputToken from '$lib/components/InputToken.svelte';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
@@ -32,15 +32,23 @@
     open = false;
   }
 
-  async function execute() {
+  async function executeLedger() {
     isSubmitting = true;
-    // eslint-disable-next-line no-console
-    console.log("yo")
-    // try {
-    //   await vaultDeposit(vaultId, tokenAddress, amount);
-    //   reset();
-    //   // eslint-disable-next-line no-empty
-    // } catch (e) {}
+    try {
+      await await vaultDeposit(vaultId, tokenAddress, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      await await vaultDeposit(vaultId, tokenAddress, amount);
+      reset();
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
     isSubmitting = false;
   }
 </script>
@@ -93,7 +101,7 @@
         bind:derivationIndex={$walletDerivationIndex}
         bind:walletAddress={$walletAddress.value}
       />
-      <ButtonLoading on:click={execute} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
+      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
         Deposit
       </ButtonLoading>
     {:else if selectedWalletconnect}
@@ -107,7 +115,7 @@
       >
       {label}
       </Button>
-      <ButtonLoading on:click={execute} disabled={isSubmitting || !$account} loading={isSubmitting}>
+      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
         Deposit
       </ButtonLoading>
     {/if}
