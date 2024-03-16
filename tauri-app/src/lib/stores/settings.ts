@@ -183,7 +183,7 @@ function getNetwork(network: NetworkString, chain?: chains.Chain) {
   return {
     chainId: chain?.id ?? network['chain-id'],
     name: chain?.name ?? `network with chain id: ${network['chain-id']}`,
-    currency: chain?.nativeCurrency.symbol ?? "eth",
+    currency: chain?.nativeCurrency.symbol ?? network.currency ?? "eth",
     explorerUrl: chain?.blockExplorers?.default.url ?? "",
     rpcUrl: network.rpc
   }
