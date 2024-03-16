@@ -6,7 +6,6 @@
   import { walletconnectModal, walletconnectAccount, orderbookAddress } from '$lib/stores/settings';
   import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
-  import { get } from '@square/svelte-store';
 
   export let open = false;
   export let id: string;
@@ -38,7 +37,7 @@
     isSubmitting = true;
     try {
       const calldata = await orderRemoveCalldata(id) as Uint8Array;
-      const tx = await ethersExecute(calldata, get(orderbookAddress)!)
+      const tx = await ethersExecute(calldata, $orderbookAddress!)
       await tx.wait(1);
       reset();
       // eslint-disable-next-line no-empty

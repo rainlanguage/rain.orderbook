@@ -7,7 +7,6 @@
   import type { Deployment } from '$lib/typeshare/config';
   import { orderAdd, orderAddCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
-  import { get } from '@square/svelte-store';
 
   export let open = false;
   export let dotrainText: string;
@@ -41,9 +40,10 @@
     isSubmitting = true;
     try {
       if(!deployment) throw Error("Select a deployment to add order");
+      if (!$orderbookAddress) throw Error("Select an orderbook to add order");
 
       const calldata = await orderAddCalldata(dotrainText, deployment) as Uint8Array;
-      const tx = await ethersExecute(calldata, get(orderbookAddress)!)
+      const tx = await ethersExecute(calldata, $orderbookAddress)
       await tx.wait(1);
       reset();
       // eslint-disable-next-line no-empty

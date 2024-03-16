@@ -10,7 +10,6 @@
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
-  import { get } from '@square/svelte-store';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -49,7 +48,7 @@
     isSubmitting = true;
     try {
       const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
-      const tx = await ethersExecute(calldata, get(orderbookAddress)!)
+      const tx = await ethersExecute(calldata, $orderbookAddress!)
       await tx.wait(1);
       reset();
       // eslint-disable-next-line no-empty

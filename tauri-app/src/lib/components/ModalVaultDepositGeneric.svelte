@@ -8,8 +8,7 @@
   import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletconnectModal, walletconnectAccount, orderbookAddress } from '$lib/stores/settings';
-  import { ethersExecute } from '$lib/services/ethersTx';
-  import { get } from '@square/svelte-store';
+  import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
 
   export let open = false;
   let vaultId: bigint = 0n;
@@ -49,13 +48,17 @@
 
   async function executeWalletconnect() {
     isSubmitting = true;
+    if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
     try {
-      const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount) as Uint8Array;
-      const approveTx = await ethersExecute(approveCalldata, tokenAddress)
-      await approveTx.wait(1);
+      const allowance = await checkAllowance(amount, tokenAddress, $orderbookAddress);
+      if (!allowance) {
+        const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount) as Uint8Array;
+        const approveTx = await ethersExecute(approveCalldata, tokenAddress)
+        await approveTx.wait(1);
+      }
 
       const depositCalldata = await vaultDepositCalldata(vaultId, tokenAddress, amount) as Uint8Array;
-      const depositTx = await ethersExecute(depositCalldata, get(orderbookAddress)!)
+      const depositTx = await ethersExecute(depositCalldata, $orderbookAddress)
       await depositTx.wait(1);
 
       reset();
