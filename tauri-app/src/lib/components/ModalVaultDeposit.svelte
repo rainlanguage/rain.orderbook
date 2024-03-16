@@ -7,7 +7,7 @@
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { account, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
+  import { walletconnectAccount, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { get } from '@square/svelte-store';
@@ -20,8 +20,8 @@
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
-  $: walletconnectLabel = $account
-    ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
+  $: walletconnectLabel = $walletconnectAccount
+    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : "CONNECT"
 
   function reset() {
@@ -147,7 +147,7 @@
       >
       {walletconnectLabel}
       </Button>
-      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
+      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
         Deposit
       </ButtonLoading>
     {/if}

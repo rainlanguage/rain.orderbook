@@ -1,11 +1,11 @@
-import { account, isConnected, walletconnectModal } from "$lib/stores/settings";
+import { walletconnectAccount, walletconnectIsConnected, walletconnectModal } from "$lib/stores/settings";
 import { toasts } from "$lib/stores/toasts";
 import { get } from "@square/svelte-store";
 import { ethers } from "ethers";
 
 export async function ethersExecute(calldata: Uint8Array, to: string): Promise<ethers.providers.TransactionResponse> {
   const walletProvider = get(walletconnectModal)?.getWalletProvider();
-  if (!walletProvider || !get(isConnected) || !get(account)) {
+  if (!walletProvider || !get(walletconnectIsConnected) || !get(walletconnectAccount)) {
     toasts.error("user not connected");
     return Promise.reject("user not connected");
   }

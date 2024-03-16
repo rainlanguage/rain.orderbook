@@ -124,7 +124,7 @@ const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886"]
 }
 
-export const ethersConfig = defaultConfig({
+const ethersConfig = defaultConfig({
   metadata,
   enableEIP6963: false,
   enableInjected: false,
@@ -132,15 +132,15 @@ export const ethersConfig = defaultConfig({
 });
 
 export const walletconnectModal = writable<ReturnType<typeof createWeb3Modal> | undefined>();
-export const account = writable<string | undefined>(undefined);
-export const isConnected = writable<boolean>(false);
+export const walletconnectAccount = writable<string | undefined>(undefined);
+export const walletconnectIsConnected = writable<boolean>(false);
 let eventUnsubscribe: (() => void) | undefined;
 
 // subscribe to networks and instantiate wagmi config store from it
 activeNetwork.subscribe(async network => {
   if (eventUnsubscribe) eventUnsubscribe();
-  account.set(undefined);
-  isConnected.set(false);
+  walletconnectAccount.set(undefined);
+  walletconnectIsConnected.set(false);
   const oldModal = get(walletconnectModal)
   if (oldModal !== undefined) {
     try {
@@ -172,8 +172,8 @@ activeNetwork.subscribe(async network => {
     const modal = get(walletconnectModal);
     eventUnsubscribe = modal?.subscribeEvents(v => {
       if (v.data.event === "MODAL_CLOSE") {
-        account.set(modal.getAddress());
-        isConnected.set(modal.getIsConnected());
+        walletconnectAccount.set(modal.getAddress());
+        walletconnectIsConnected.set(modal.getIsConnected());
       }
     })
   }
@@ -181,7 +181,7 @@ activeNetwork.subscribe(async network => {
 
 function getNetwork(network: NetworkString, chain?: chains.Chain) {
   return {
-    chainId: chain?.id ?? network['chain-id'],
+    chainId: network['chain-id'],
     name: chain?.name ?? `network with chain id: ${network['chain-id']}`,
     currency: chain?.nativeCurrency.symbol ?? network.currency ?? "eth",
     explorerUrl: chain?.blockExplorers?.default.url ?? "",

@@ -3,7 +3,7 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { walletconnectModal, account, orderbookAddress } from '$lib/stores/settings';
+  import { walletconnectModal, walletconnectAccount, orderbookAddress } from '$lib/stores/settings';
   import type { Deployment } from '$lib/typeshare/config';
   import { orderAdd, orderAddCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -16,8 +16,8 @@
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
-  $: walletconnectLabel = $account
-    ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
+  $: walletconnectLabel = $walletconnectAccount
+    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : "CONNECT"
 
   function reset() {
@@ -78,7 +78,7 @@
     >
     {walletconnectLabel}
     </Button>
-    <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$account} loading={isSubmitting}>
+    <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
       Add Order
     </ButtonLoading>
   {/if}

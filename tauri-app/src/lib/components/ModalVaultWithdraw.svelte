@@ -7,27 +7,23 @@
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { account, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
-  import InputLedgerWallet from './InputLedgerWallet.svelte';
+  import IwalletconnectAccountgerWallet from './InputLedgerWallet.svelte';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { get } from '@square/svelte-store';
 
   export let open = false;
-  export let vault: TokenVaultDetail | TokenVaultListItem;
-  let amount: bigint = 0n;
-  let amountGTBalance: boolean;
+  export let vault: TokenVaultDetail | TokenVaultListItem;walletconnectAccount let amountGTBalance: boolean;
   let isSubmitting = false;
   let selectWallet = false;
   let selectedLedger = false;
-  let selectedWalletconnect = false;
-
-  $: walletconnectLabel = $account
+walletconnectAccount $: walletconnectLabel = $account
     ? `${$account.slice(0, 5)}...${$account.slice(-5)}`
     : "CONNECT"
 
   $: amountGTBalance = vault !== undefined && amount > vault.balance;
 
-  function reset() {
+  fuwalletconnectAccountreset() {
     amount = 0n;
     open = false;
     selectWallet = false;
@@ -123,7 +119,7 @@
         on:click={() => selectWallet = true}
         disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
       >
-        Proceed
+        ProceedwalletconnectAccount
       </Button>
     </div>
   {:else}
