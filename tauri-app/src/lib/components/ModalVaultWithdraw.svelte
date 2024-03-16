@@ -2,13 +2,13 @@
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
   import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
   import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
-   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
+  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-    import { account, walletconnectModal } from '$lib/stores/settings';
-    import InputLedgerWallet from './InputLedgerWallet.svelte';
-    import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
+  import { account, walletconnectModal } from '$lib/stores/settings';
+  import InputLedgerWallet from './InputLedgerWallet.svelte';
+  import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;

@@ -27,7 +27,7 @@
   }
 </script>
 
-<Modal title="Deposit to Vault" bind:open outsideclose size="sm">
+<Modal title="Remove Order" bind:open outsideclose size="sm">
   {#if !selectedLedger && !selectedWalletconnect}
     <div class="mb-6">
       <ButtonLoading on:click={() => selectedLedger = true} disabled={false} loading={isSubmitting}>
@@ -44,7 +44,7 @@
       bind:walletAddress={$walletAddress.value}
     />
     <ButtonLoading on:click={execute} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
-      Add Order
+      Remove Order
     </ButtonLoading>
   {:else if selectedWalletconnect}
     <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
@@ -58,7 +58,7 @@
     {label}
     </Button>
     <ButtonLoading on:click={execute} disabled={isSubmitting || !$account} loading={isSubmitting}>
-      Add Order
+      Remove Order
     </ButtonLoading>
   {/if}
 </Modal>
