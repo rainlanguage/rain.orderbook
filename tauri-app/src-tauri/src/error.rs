@@ -2,7 +2,6 @@ use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClie
 use alloy_primitives::ruint::FromUintError;
 use rain_orderbook_app_settings::config::ParseConfigStringError;
 use rain_orderbook_app_settings::merge::MergeError;
-use rain_orderbook_app_settings::AppSettingsParseError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
@@ -47,9 +46,6 @@ pub enum CommandError {
 
     #[error(transparent)]
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
-
-    #[error(transparent)]
-    AppSettingsParseError(#[from] AppSettingsParseError),
 
     #[error(transparent)]
     FuzzRunnerError(#[from] FuzzRunnerError),

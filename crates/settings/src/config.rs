@@ -8,7 +8,8 @@ use typeshare::typeshare;
 use url::Url;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
@@ -70,16 +71,7 @@ impl TryFrom<ConfigString> for Config {
         let subgraphs = item
             .subgraphs
             .into_iter()
-            .map(|(name, subgraph)| {
-                Ok((
-                    name,
-                    Arc::new(
-                        subgraph
-                            .parse()
-                            .map_err(ParseConfigStringError::SubgraphParseError)?,
-                    ),
-                ))
-            })
+            .map(|(name, subgraph)| Ok((name, Arc::new(subgraph))))
             .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigStringError>>()?;
 
         let orderbooks = item
@@ -181,13 +173,6 @@ impl TryFrom<String> for Config {
     }
 }
 
-impl TryFrom<&str> for Config {
-    type Error = ParseConfigStringError;
-    fn try_from(val: &str) -> Result<Config, Self::Error> {
-        std::convert::TryInto::<ConfigString>::try_into(val)?.try_into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,10 +186,10 @@ mod tests {
         networks.insert(
             "mainnet".to_string(),
             NetworkString {
-                rpc: "https://mainnet.node".to_string(),
-                chain_id: "1".to_string(),
+                rpc: Url::parse("https://mainnet.node").unwrap(),
+                chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
-                network_id: Some("1".to_string()),
+                network_id: Some(1),
                 currency: Some("ETH".to_string()),
             },
         );
@@ -212,14 +197,16 @@ mod tests {
         let mut subgraphs = HashMap::new();
         subgraphs.insert(
             "mainnet".to_string(),
-            "https://mainnet.subgraph".to_string(),
+            Url::parse("https://mainnet.subgraph").unwrap(),
         );
 
         let mut orderbooks = HashMap::new();
         orderbooks.insert(
             "mainnetOrderbook".to_string(),
             OrderbookString {
-                address: "0x1234567890123456789012345678901234567890".to_string(),
+                address: "0x1234567890123456789012345678901234567890"
+                    .parse::<Address>()
+                    .unwrap(),
                 network: Some("mainnet".to_string()),
                 subgraph: Some("mainnet".to_string()),
                 label: Some("Mainnet Orderbook".to_string()),
@@ -231,8 +218,10 @@ mod tests {
             "ETH".to_string(),
             TokenString {
                 network: "mainnet".to_string(),
-                address: "0x7890123456789012345678901234567890123456".to_string(),
-                decimals: Some("18".to_string()),
+                address: "0x7890123456789012345678901234567890123456"
+                    .parse::<Address>()
+                    .unwrap(),
+                decimals: Some(18),
                 label: Some("Ethereum".to_string()),
                 symbol: Some("ETH".to_string()),
             },
@@ -242,7 +231,9 @@ mod tests {
         deployers.insert(
             "mainDeployer".to_string(),
             DeployerString {
-                address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01".to_string(),
+                address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01"
+                    .parse::<Address>()
+                    .unwrap(),
                 network: Some("mainnet".to_string()),
                 label: Some("Mainnet Deployer".to_string()),
             },

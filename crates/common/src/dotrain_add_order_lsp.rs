@@ -1,16 +1,17 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-use crate::frontmatter::try_parse_frontmatter_rebinds;
 use crate::rainlang::parse_rainlang_on_fork;
+use alloy_primitives::Address;
 use dotrain::{
     error::{ComposeError, ErrorCode},
     types::ast::Problem,
-    RainDocument, Rebind,
+    Rebind,
 };
 use dotrain_lsp::{
     lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
     RainLanguageServices,
 };
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
 /// static lang services instance
 /// meta store instance can be taken from this for shared access to a unfied meta store across
@@ -19,18 +20,24 @@ pub static LANG_SERVICES: Lazy<RainLanguageServices> = Lazy::new(RainLanguageSer
 
 pub struct DotrainAddOrderLsp {
     text_document: TextDocumentItem,
-    frontmatter: String,
     rebinds: Option<Vec<Rebind>>,
 }
 
 impl DotrainAddOrderLsp {
-    pub fn new(text_document: TextDocumentItem) -> Self {
-        let frontmatter = RainDocument::get_front_matter(&text_document.text);
-        let rebinds = frontmatter.and_then(try_parse_frontmatter_rebinds);
+    pub fn new(text_document: TextDocumentItem, bindings: HashMap<String, String>) -> Self {
+        let rebinds = if !bindings.is_empty() {
+            Some(
+                bindings
+                    .iter()
+                    .map(|(key, value)| Rebind(key.clone(), value.clone()))
+                    .collect(),
+            )
+        } else {
+            None
+        };
 
         Self {
             text_document: text_document.clone(),
-            frontmatter: frontmatter.unwrap_or("").to_string(),
             rebinds,
         }
     }
@@ -46,7 +53,12 @@ impl DotrainAddOrderLsp {
     }
 
     /// get problems for a given text document item
-    pub async fn problems(&self, rpc_url: &str, block_number: Option<u64>) -> Vec<Problem> {
+    pub async fn problems(
+        &self,
+        rpc_url: &str,
+        block_number: Option<u64>,
+        deployer: Option<Address>,
+    ) -> Vec<Problem> {
         let rain_document =
             LANG_SERVICES.new_rain_document(&self.text_document, self.rebinds.clone());
         let all_problems = rain_document.all_problems();
@@ -67,18 +79,26 @@ impl DotrainAddOrderLsp {
                 },
             };
 
-            parse_rainlang_on_fork(&self.frontmatter, &rainlang, rpc_url, block_number)
-                .await
-                .map_or_else(
-                    |e| {
-                        vec![Problem {
-                            msg: e.to_string(),
-                            position: [0, 0],
-                            code: ErrorCode::NativeParserError,
-                        }]
-                    },
-                    |_| vec![],
-                )
+            if let Some(deployer_add) = deployer {
+                parse_rainlang_on_fork(&rainlang, rpc_url, block_number, deployer_add)
+                    .await
+                    .map_or_else(
+                        |e| {
+                            vec![Problem {
+                                msg: e.to_string(),
+                                position: [0, 0],
+                                code: ErrorCode::NativeParserError,
+                            }]
+                        },
+                        |_| vec![],
+                    )
+            } else {
+                vec![Problem {
+                    msg: "undefined deployer address".to_owned(),
+                    position: [0, 0],
+                    code: ErrorCode::NativeParserError,
+                }]
+            }
         }
     }
 }

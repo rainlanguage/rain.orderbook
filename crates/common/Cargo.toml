@@ -39,6 +39,7 @@ proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
+futures = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

@@ -13,11 +13,12 @@
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
   import { goto } from '$app/navigation';
-  import { hasRequiredSettings } from '$lib/stores/settings';
+  import { hasRequiredSettings, settings } from '$lib/stores/settings';
 
   $: $hasRequiredSettings, redirectIfMissingSettings();
 
   async function redirectIfMissingSettings() {
+    await settings.load();
     const hasRequiredSettingsVal = await hasRequiredSettings.load();
     if (!hasRequiredSettingsVal) goto('/settings');
   }

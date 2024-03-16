@@ -2,14 +2,23 @@
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { codeMirrorTheme } from '$lib/stores/darkMode';
 	import { yaml } from '@codemirror/lang-yaml';
+	import { parseConfigStringProblems } from '$lib/services/config';
+	import { RawRainlangExtension } from 'codemirror-rainlang';
 
 	export let value: string;
 	export let disabled = false;
 	export let styles = {};
+
+ 	const configStringExtension = new RawRainlangExtension({
+		hover: async () => null,
+		completion: async () => null,
+		diagnostics: async (textDocument) => parseConfigStringProblems(textDocument.text),
+	});
 </script>
 
 <CodeMirror
 	bind:value
+	extensions={[configStringExtension]}
 	lang={yaml()}
 	theme={$codeMirrorTheme}
 	readonly={disabled}

@@ -1,4 +1,3 @@
-use crate::frontmatter::{try_parse_frontmatter, FrontmatterError};
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use alloy_primitives::{bytes::Bytes, Address};
 use once_cell::sync::Lazy;
@@ -21,8 +20,6 @@ pub enum ForkParseError {
     ForkerError(ForkCallError),
     #[error("Fork Call Reverted: {0}")]
     ForkCallReverted(AbiDecodedErrorType),
-    #[error("Front Matter: {0}")]
-    FrontmatterError(#[from] FrontmatterError),
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
     #[error("Failed to read Parser address from deployer")]
@@ -50,13 +47,11 @@ pub const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
 /// with the deployer parsed from the front matter
 /// returns abi encoded expression config on Ok variant
 pub async fn parse_rainlang_on_fork(
-    frontmatter: &str,
     rainlang: &str,
     rpc_url: &str,
     block_number: Option<u64>,
+    deployer: Address,
 ) -> Result<Bytes, ForkParseError> {
-    let deployer = try_parse_frontmatter(frontmatter)?.0;
-
     // Prepare evm fork
     let block_number_val = match block_number {
         Some(b) => b,
@@ -76,8 +71,9 @@ pub async fn parse_rainlang_on_fork(
     let parse_args = ForkParseArgs {
         rainlang_string: rainlang.to_owned(),
         deployer,
+        decode_errors: true,
     };
     let result = forker.fork_parse(parse_args).await?;
 
-    Ok(result.0.raw.result.0)
+    Ok(result.raw.result.0)
 }

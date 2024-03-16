@@ -1,6 +1,7 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use alloy_primitives::U256;
 use dotrain::{error::ComposeError, RainDocument, Rebind};
+use futures::TryFutureExt;
 use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
 use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
@@ -75,6 +76,8 @@ pub enum FuzzRunnerError {
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
     TraceSearchError(#[from] TraceSearchError),
+    #[error(transparent)]
+    JoinError(#[from] tokio::task::JoinError),
 }
 
 impl FuzzRunner {
@@ -140,16 +143,26 @@ impl FuzzRunner {
         );
 
         // search the name space hash map for NamespaceItems that are elided and make a vec of the keys
-        let elided_binding_keys = rain_document
-            .namespace()
-            .iter()
-            .filter(|(_, v)| v.is_elided_binding())
-            .map(|(k, _)| k.clone())
-            .collect::<Vec<String>>();
+        let elided_binding_keys = Arc::new(
+            rain_document
+                .namespace()
+                .iter()
+                .filter(|(_, v)| v.is_elided_binding())
+                .map(|(k, _)| k.clone())
+                .collect::<Vec<String>>(),
+        );
 
-        let mut runs: Vec<RainEvalResult> = Vec::new();
+        let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
+        let dotrain = Arc::new(self.dotrain.clone());
+        let mut handles = vec![];
 
         for _ in 0..no_of_runs {
+            let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
+            let elided_binding_keys = Arc::clone(&elided_binding_keys);
+            let deployer = Arc::clone(&deployer);
+            let scenario_bindings = scenario_bindings.clone();
+            let dotrain = Arc::clone(&dotrain);
+
             let mut final_bindings: Vec<Rebind> = vec![];
 
             // for each scenario.fuzz_binds, add a random value
@@ -160,24 +173,37 @@ impl FuzzRunner {
                 final_bindings.push(Rebind(elided_binding.to_string(), hex));
             }
 
-            final_bindings.extend(scenario_bindings.clone());
+            let handle = tokio::spawn(async move {
+                final_bindings.extend(scenario_bindings.clone());
 
-            let rainlang_string = RainDocument::compose_text(
-                &self.dotrain.clone(),
-                &ORDERBOOK_ORDER_ENTRYPOINTS,
-                None,
-                Some(final_bindings),
-            )?;
+                let rainlang_string = RainDocument::compose_text(
+                    &dotrain,
+                    &ORDERBOOK_ORDER_ENTRYPOINTS,
+                    None,
+                    Some(final_bindings),
+                )?;
 
-            let args = ForkEvalArgs {
-                rainlang_string,
-                source_index: 0,
-                deployer: deployer.address,
-                namespace: FullyQualifiedNamespace::default(),
-                context: vec![],
-            };
-            let result = self.forker.fork_eval(args).await?;
-            runs.push(result.into());
+                let args = ForkEvalArgs {
+                    rainlang_string,
+                    source_index: 0,
+                    deployer: deployer.address,
+                    namespace: FullyQualifiedNamespace::default(),
+                    context: vec![],
+                    decode_errors: false,
+                };
+                fork_clone
+                    .fork_eval(args)
+                    .map_err(FuzzRunnerError::ForkCallError)
+                    .await
+            });
+            handles.push(handle);
+        }
+
+        let mut runs: Vec<RainEvalResult> = Vec::new();
+
+        for handle in handles {
+            let res = handle.await??;
+            runs.push(res.into());
         }
 
         Ok(FuzzResult {
@@ -248,17 +274,17 @@ mod tests {
         let dotrain = r#"
 deployers:
     mumbai:
-        address: 0x0754030e91F316B2d0b992fe7867291E18200A77
+        address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
     some-deployer:
         address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
         network: mumbai
 networks:
     mumbai:
         rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-        chain_id: 80001
+        chain-id: 80001
 scenarios:
     mumbai:
-        runs: 5
+        runs: 500
         bindings:
             bound: 3
     mainnet:
@@ -282,11 +308,13 @@ b: fuzzed;
 
         let mut runner = FuzzRunner::new(dotrain, config, None).await;
 
-        let _ = runner
+        let res = runner
             .run_scenario_by_name("mumbai")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
+
+        println!("{:#?}", res);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -294,17 +322,17 @@ b: fuzzed;
         let dotrain = r#"
     deployers:
         mumbai:
-            address: 0x0754030e91F316B2d0b992fe7867291E18200A77
+            address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
         some-deployer:
             address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
             network: mumbai
     networks:
         mumbai:
             rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-            chain_id: 80001
+            chain-id: 80001
     scenarios:
         mumbai:
-            runs: 5
+            runs: 500
             bindings:
                 bound: 3
         mainnet:
@@ -318,12 +346,12 @@ b: fuzzed;
                     data:
                         x: 0.0
                         y: 0.1
-                    plot_type: line
+                    plot-type: line
                 plot2:
                     data:
                         x: 0.0
                         y: 0.2
-                    plot_type: bar
+                    plot-type: bar
     ---
     #bound !bind it
     #fuzzed !fuzz it

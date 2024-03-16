@@ -5,7 +5,8 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Deployment {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,

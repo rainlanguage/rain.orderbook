@@ -43,6 +43,10 @@
   <slot name="textarea" />
 </div>
 
+<div class="my-4">
+  <slot name="additionalFields" />
+</div>
+
 <div class="flex justify-end">
   <slot name="submit" />
 </div>

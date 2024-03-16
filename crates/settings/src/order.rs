@@ -7,6 +7,7 @@ use typeshare::typeshare;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct OrderIO {
     #[typeshare(typescript(type = "Token"))]
     pub token: Arc<Token>,
@@ -15,7 +16,8 @@ pub struct OrderIO {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Order {
     #[typeshare(typescript(type = "OrderIO[]"))]
     pub inputs: Vec<OrderIO>,
@@ -123,7 +125,7 @@ impl OrderString {
                             network = Some(v.network.clone());
                             Ok(OrderIO {
                                 token: v.clone(),
-                                vault_id: input.vault_id.parse::<U256>()?,
+                                vault_id: input.vault_id,
                             })
                         }
                     })?
@@ -153,7 +155,7 @@ impl OrderString {
                             network = Some(v.network.clone());
                             Ok(OrderIO {
                                 token: v.clone(),
-                                vault_id: output.vault_id.parse::<U256>()?,
+                                vault_id: output.vault_id,
                             })
                         }
                     })?
@@ -200,11 +202,11 @@ mod tests {
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOString {
                 token: "Token1".to_string(),
-                vault_id: "1".to_string(),
+                vault_id: U256::from(1),
             }],
             outputs: vec![IOString {
                 token: "Token2".to_string(),
-                vault_id: "2".to_string(),
+                vault_id: U256::from(2),
             }],
         };
 
@@ -294,7 +296,7 @@ mod tests {
             orderbook: None,
             inputs: vec![IOString {
                 token: "Nonexistent Token".to_string(),
-                vault_id: "1".to_string(),
+                vault_id: U256::from(1),
             }],
             outputs: vec![],
         };

@@ -1,23 +1,27 @@
 use crate::{
     dotrain_add_order_lsp::LANG_SERVICES,
-    frontmatter::{try_parse_frontmatter, FrontmatterError},
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{
-    ReadableClientError, ReadableClientHttp, WritableClientError, WriteTransaction,
-    WriteTransactionStatus,
+    ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
+    WriteTransaction, WriteTransactionStatus,
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
-use dotrain::{error::ComposeError, RainDocument};
+use dotrain::{error::ComposeError, RainDocument, Rebind};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
-use rain_orderbook_bindings::IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2};
+use rain_orderbook_app_settings::deployment::Deployment;
+use rain_orderbook_bindings::{
+    IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO},
+    ERC20::decimalsCall,
+};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use std::collections::HashMap;
 use thiserror::Error;
 
 pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
@@ -26,8 +30,6 @@ pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"
 pub enum AddOrderArgsError {
     #[error("Empty Front Matter")]
     EmptyFrontmatter,
-    #[error("Front Matter: {0}")]
-    FrontmatterError(#[from] FrontmatterError),
     #[error(transparent)]
     DISPairError(#[from] DISPairError),
     #[error(transparent)]
@@ -47,40 +49,88 @@ pub enum AddOrderArgsError {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
-    /// Text of a dotrain file describing an addOrder call
-    /// Text MUST have strict yaml frontmatter of the following structure
-    ///
-    /// ```yaml
-    /// orderbook:
-    ///     order:
-    ///         deployer: 0x1111111111111111111111111111111111111111
-    ///         valid-inputs:
-    ///             - address: 0x2222222222222222222222222222222222222222
-    ///               decimals: 18
-    ///               vault-id: 0x1234
-    ///         valid-outputs:
-    ///             - address: 0x5555555555555555555555555555555555555555
-    ///               decimals: 8
-    ///               vault-id: 0x5678
-    /// ```
-    ///
-    /// Text MUST have valid dotrain body succeding frontmatter.
-    /// The dotrain body must contain two entrypoints: `calulate-io` and `handle-io`.
     pub dotrain: String,
+    pub inputs: Vec<IO>,
+    pub outputs: Vec<IO>,
+    pub deployer: Address,
+    pub bindings: HashMap<String, String>,
 }
 
 impl AddOrderArgs {
+    /// create a new  instance from Deployment
+    pub async fn new_from_deployment(
+        dotrain: String,
+        deployment: Deployment,
+    ) -> Result<AddOrderArgs, AddOrderArgsError> {
+        let mut inputs = vec![];
+        for input in &deployment.order.inputs {
+            if let Some(decimals) = input.token.decimals {
+                inputs.push(IO {
+                    token: input.token.address,
+                    vaultId: input.vault_id,
+                    decimals,
+                });
+            } else {
+                let client = ReadableClientHttp::new_from_url(input.token.network.rpc.to_string())?;
+                let parameters = ReadContractParameters {
+                    address: input.token.address,
+                    call: decimalsCall {},
+                    block_number: None,
+                };
+                let decimals = client.read(parameters).await?._0;
+                inputs.push(IO {
+                    token: input.token.address,
+                    vaultId: input.vault_id,
+                    decimals,
+                });
+            }
+        }
+
+        let mut outputs = vec![];
+        for output in &deployment.order.inputs {
+            if let Some(decimals) = output.token.decimals {
+                outputs.push(IO {
+                    token: output.token.address,
+                    vaultId: output.vault_id,
+                    decimals,
+                });
+            } else {
+                let client =
+                    ReadableClientHttp::new_from_url(output.token.network.rpc.to_string())?;
+                let parameters = ReadContractParameters {
+                    address: output.token.address,
+                    call: decimalsCall {},
+                    block_number: None,
+                };
+                let decimals = client.read(parameters).await?._0;
+                outputs.push(IO {
+                    token: output.token.address,
+                    vaultId: output.vault_id,
+                    decimals,
+                });
+            }
+        }
+
+        Ok(AddOrderArgs {
+            dotrain: dotrain.to_string(),
+            inputs,
+            outputs,
+            deployer: deployment.scenario.deployer.address,
+            bindings: deployment.scenario.bindings.to_owned(),
+        })
+    }
+
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
     async fn try_parse_rainlang(
         &self,
         rpc_url: String,
-        deployer: Address,
         rainlang: String,
     ) -> Result<(Vec<u8>, Vec<U256>), AddOrderArgsError> {
         let client = ReadableClientHttp::new_from_url(rpc_url)
             .map_err(AddOrderArgsError::ReadableClientError)?;
-        let dispair = DISPair::from_deployer(deployer, client.clone())
+        let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
@@ -116,27 +166,29 @@ impl AddOrderArgs {
         // Parse file into dotrain document
         let meta_store = LANG_SERVICES.meta_store();
 
-        let frontmatter = RainDocument::get_front_matter(&self.dotrain)
-            .ok_or(AddOrderArgsError::EmptyFrontmatter)?;
-
-        // Prepare call
-        let (deployer, valid_inputs, valid_outputs, rebinds) = try_parse_frontmatter(frontmatter)?;
+        let mut rebinds = None;
+        if !self.bindings.is_empty() {
+            rebinds = Some(
+                self.bindings
+                    .iter()
+                    .map(|(key, value)| Rebind(key.clone(), value.clone()))
+                    .collect(),
+            );
+        };
 
         let dotrain_doc =
             RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
         let rainlang = dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?;
 
-        let (bytecode, constants) = self
-            .try_parse_rainlang(rpc_url, deployer, rainlang.clone())
-            .await?;
+        let (bytecode, constants) = self.try_parse_rainlang(rpc_url, rainlang.clone()).await?;
         let meta = self.try_generate_meta(rainlang)?;
 
         Ok(addOrderCall {
             config: OrderConfigV2 {
-                validInputs: valid_inputs,
-                validOutputs: valid_outputs,
+                validInputs: self.inputs.clone(),
+                validOutputs: self.outputs.clone(),
                 evaluableConfig: EvaluableConfigV3 {
-                    deployer,
+                    deployer: self.deployer,
                     bytecode,
                     constants,
                 },
@@ -182,7 +234,13 @@ max-amount: 100e18,
 price: 2e18;
 ",
         );
-        let args = AddOrderArgs { dotrain: "".into() };
+        let args = AddOrderArgs {
+            dotrain: "".into(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
+        };
 
         let meta_bytes = args.try_generate_meta(dotrain_body).unwrap();
         assert_eq!(

@@ -1,5 +1,6 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
+use rain_orderbook_app_settings::deployment::Deployment;
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, remove_order::RemoveOrderArgs,
     subgraph::SubgraphArgs, transaction::TransactionArgs, types::OrderDetailExtended,
@@ -61,10 +62,12 @@ pub async fn order_detail(
 #[tauri::command]
 pub async fn order_add(
     app_handle: AppHandle,
-    add_order_args: AddOrderArgs,
+    dotrain: String,
+    deployment: Deployment,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into(), None);
+    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
     add_order_args
         .execute(transaction_args, |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
