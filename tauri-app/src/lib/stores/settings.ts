@@ -119,7 +119,7 @@ const projectId = "634cfe0b2781e2ac78219ca4cb23c13f"
 // @TODO set correct values for fields
 const metadata = {
   name: "Rain Orderbook",
-  description: "some desc",
+  description: "Rain Orderbook is an app to build and deploy token strategies (sell/buy, limit, treasury management and ...) that are written in RainLanguage, make charts for them, watch all the orderbooks orders and easily deposit, withdraw and manage orderbooks vaults.",
   url: "https://rainlang.xyz", // origin must match your domain & subdomain
   icons: [
     "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg", // rain logo
