@@ -2,12 +2,12 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl, orderbookAddress,chainId, subgraphUrl } from '$lib/stores/settings';
 import { walletDerivationIndex } from '$lib/stores/wallets';
+import type { Deployment } from '$lib/typeshare/config';
 
-export async function orderAdd(dotrain: string) {
+export async function orderAdd(dotrain: string, deployment: Deployment) {
   await invoke("order_add", {
-    addOrderArgs: {
-      dotrain,
-    },
+    dotrain,
+    deployment,
     transactionArgs: {
       rpc_url: get(rpcUrl),
       orderbook_address: get(orderbookAddress),

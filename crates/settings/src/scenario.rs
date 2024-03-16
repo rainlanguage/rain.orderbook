@@ -5,11 +5,12 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct Scenario {
     pub name: String,
     pub bindings: HashMap<String, String>,
-    #[typeshare(skip)]
+    #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
@@ -90,12 +91,7 @@ impl ScenarioString {
         let parent_scenario = Arc::new(Scenario {
             name: name.clone(),
             bindings: bindings.clone(),
-            runs: self
-                .runs
-                .as_ref()
-                .map(|s| s.parse::<u64>())
-                .transpose()
-                .map_err(ParseScenarioStringError::RunsParseError)?,
+            runs: self.runs,
             deployer: deployer_ref.clone(),
         });
 
@@ -126,6 +122,8 @@ impl ScenarioString {
 
 mod tests {
     use crate::test::mock_deployer;
+    use alloy_primitives::Address;
+    use url::Url;
 
     use super::*;
     use std::collections::HashMap;
@@ -137,10 +135,10 @@ mod tests {
         networks.insert(
             "mainnet".to_string(),
             NetworkString {
-                rpc: "https://mainnet.node".to_string(),
-                chain_id: "1".to_string(),
+                rpc: Url::parse("https://mainnet.node").unwrap(),
+                chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
-                network_id: Some("1".to_string()),
+                network_id: Some(1),
                 currency: Some("ETH".to_string()),
             },
         );
@@ -150,7 +148,9 @@ mod tests {
         deployers.insert(
             "mainnet".to_string(),
             DeployerString {
-                address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01".to_string(),
+                address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01"
+                    .parse::<Address>()
+                    .unwrap(),
                 network: None,
                 label: Some("Mainnet Deployer".to_string()),
             },
@@ -162,7 +162,7 @@ mod tests {
             "nested_scenario2".to_string(),
             ScenarioString {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
-                runs: Some("2".to_string()),
+                runs: Some(2),
                 deployer: None,
                 scenarios: None, // No further nesting
             },
@@ -173,7 +173,7 @@ mod tests {
             "nested_scenario1".to_string(),
             ScenarioString {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
-                runs: Some("5".to_string()),
+                runs: Some(5),
                 deployer: None,
                 scenarios: Some(nested_scenario2), // Include nested_scenario2
             },
@@ -185,7 +185,7 @@ mod tests {
             "root_scenario".to_string(),
             ScenarioString {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
-                runs: Some("10".to_string()),
+                runs: Some(10),
                 deployer: Some("mainnet".to_string()),
                 scenarios: Some(nested_scenario1), // Include nested_scenario1
             },

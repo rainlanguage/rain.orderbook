@@ -6,14 +6,15 @@ use typeshare::typeshare;
 use url::{ParseError, Url};
 
 #[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct Network {
     #[typeshare(typescript(type = "string"))]
     pub rpc: Url,
-    #[typeshare(skip)]
+    #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
     pub label: Option<String>,
-    #[typeshare(skip)]
+    #[typeshare(typescript(type = "number"))]
     pub network_id: Option<u64>,
     pub currency: Option<String>,
 }
@@ -33,22 +34,10 @@ impl TryFrom<NetworkString> for Network {
 
     fn try_from(item: NetworkString) -> Result<Self, Self::Error> {
         Ok(Network {
-            rpc: item
-                .rpc
-                .parse()
-                .map_err(ParseNetworkStringError::RpcParseError)?,
-            chain_id: item
-                .chain_id
-                .parse()
-                .map_err(ParseNetworkStringError::ChainIdParseError)?,
+            rpc: item.rpc,
+            chain_id: item.chain_id,
             label: item.label,
-            network_id: item
-                .network_id
-                .map(|id| {
-                    id.parse()
-                        .map_err(ParseNetworkStringError::NetworkIdParseError)
-                })
-                .transpose()?,
+            network_id: item.network_id,
             currency: item.currency,
         })
     }
@@ -62,9 +51,9 @@ mod tests {
     #[test]
     fn test_try_from_network_string_success() {
         let network_string = NetworkString {
-            rpc: "http://127.0.0.1:8545".into(),
-            chain_id: "1".into(),
-            network_id: Some("1".into()),
+            rpc: Url::parse("http://127.0.0.1:8545").unwrap(),
+            chain_id: 1,
+            network_id: Some(1),
             label: Some("Local Testnet".into()),
             currency: Some("ETH".into()),
         };
@@ -78,59 +67,5 @@ mod tests {
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.label, Some("Local Testnet".into()));
         assert_eq!(network.currency, Some("ETH".into()));
-    }
-
-    #[test]
-    fn test_try_from_network_string_rpc_parse_error() {
-        let invalid_rpc = "invalid_url"; // Intentionally invalid URL
-        let network_string = NetworkString {
-            rpc: invalid_rpc.into(),
-            chain_id: "1".into(),
-            network_id: Some("1".into()),
-            label: None,
-            currency: None,
-        };
-
-        let result = Network::try_from(network_string);
-        assert!(matches!(
-            result,
-            Err(ParseNetworkStringError::RpcParseError(_))
-        ));
-    }
-
-    #[test]
-    fn test_try_from_network_string_chain_id_parse_error() {
-        let invalid_chain_id = "abc"; // Intentionally invalid number format
-        let network_string = NetworkString {
-            rpc: "http://127.0.0.1:8545".into(),
-            chain_id: invalid_chain_id.into(),
-            network_id: Some("1".into()),
-            label: None,
-            currency: None,
-        };
-
-        let result = Network::try_from(network_string);
-        assert!(matches!(
-            result,
-            Err(ParseNetworkStringError::ChainIdParseError(_))
-        ));
-    }
-
-    #[test]
-    fn test_try_from_network_string_network_id_parse_error() {
-        let invalid_network_id = "abc"; // Intentionally invalid number format
-        let network_string = NetworkString {
-            rpc: "http://127.0.0.1:8545".into(),
-            chain_id: "1".into(),
-            network_id: Some(invalid_network_id.into()),
-            label: None,
-            currency: None,
-        };
-
-        let result = Network::try_from(network_string);
-        assert!(matches!(
-            result,
-            Err(ParseNetworkStringError::NetworkIdParseError(_))
-        ));
     }
 }

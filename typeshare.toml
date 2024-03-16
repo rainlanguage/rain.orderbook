@@ -5,3 +5,5 @@
 "Bytes" = "string"
 "Uuid" = "string"
 "DateTime" = "string"
+"Address" = "string"
+"Url" = "string"

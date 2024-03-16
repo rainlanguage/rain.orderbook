@@ -29,7 +29,7 @@ serde_bytes = "0.11.14"
 thiserror = "1.0.56"
 url = "2.5.0"
 serde_yaml = "0.9.32"
-dotrain = "6.0.1-alpha.10"
+dotrain = { git = "https://github.com/rainlanguage/dotrain", rev = "b813542cb1c9a2399664a606761f3a3db7b842af" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
