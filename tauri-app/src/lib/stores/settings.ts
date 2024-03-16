@@ -154,7 +154,9 @@ activeNetwork.subscribe(async network => {
     }
   }
   if (network === undefined) {
-    walletconnectModal.set(undefined)
+    walletconnectModal.set(undefined);
+    account.set(undefined);
+    isConnected.set(false);
   }
   else {
     const chain = find(Object.values(chains), (c) => c.id === network["chain-id"]);
