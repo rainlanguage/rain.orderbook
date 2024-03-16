@@ -180,22 +180,11 @@ activeNetwork.subscribe(async network => {
 })
 
 function getNetwork(network: NetworkString, chain?: chains.Chain) {
-  if (chain) {
-    return {
-      chainId: chain.id,
-      name: chain.name,
-      currency: chain.nativeCurrency.symbol,
-      explorerUrl: chain.blockExplorers?.default.url ?? "",
-      rpcUrl: network.rpc
-    }
-  }
-  else {
-    return {
-      chainId: network['chain-id'],
-      name: network['network-id']?.toString() ?? `network with chain id: ${network['chain-id']}`,
-      currency: network.currency ?? "eth",
-      explorerUrl: "",
-      rpcUrl: network.rpc
-    }
+  return {
+    chainId: chain?.id ?? network['chain-id'],
+    name: chain?.name ?? `network with chain id: ${network['chain-id']}`,
+    currency: chain?.nativeCurrency.symbol ?? "eth",
+    explorerUrl: chain?.blockExplorers?.default.url ?? "",
+    rpcUrl: network.rpc
   }
 }
