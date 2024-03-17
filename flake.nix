@@ -24,7 +24,7 @@
               mkdir -p tauri-app/src/lib/typeshare
               
               mkdir /tmp/cargo
-              export CARGO_HOME=/tmp/cargo/         
+              export CARGO_HOME=$(mktemp -d)
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
