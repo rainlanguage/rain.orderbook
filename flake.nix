@@ -153,9 +153,7 @@
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
-          nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs ++ [ 
-            pkgs.glib-networking
-          ];
+          nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
 
       }
