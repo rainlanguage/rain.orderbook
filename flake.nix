@@ -70,7 +70,7 @@
               set -euxo pipefail
 
               npm i && npm run build
-
+              echo VITE_PROJECT_ID=''$WALLETCONNECT_PROJECT_ID > .env
               rm -rf lib
               mkdir -p lib
 

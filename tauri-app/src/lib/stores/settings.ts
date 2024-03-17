@@ -113,8 +113,8 @@ function resetActiveNetworkRef() {
   }
 }
 
-// @TODO set rain project id from env
-const projectId = "634cfe0b2781e2ac78219ca4cb23c13f"
+// @TODO set rain project id from env, should figure out the nix part
+const projectId = import.meta.env.VITE_PROJECT_ID
 
 // @TODO set correct values for fields
 const metadata = {
@@ -126,6 +126,8 @@ const metadata = {
     "https://avatars.githubusercontent.com/u/37784886", // walletconnect logo
   ]
 }
+// eslint-disable-next-line no-console
+console.log(import.meta.env.VITE_PROJECT_ID)
 
 const ethersConfig = defaultConfig({
   metadata,
