@@ -69,8 +69,22 @@
             body = ''
               set -euxo pipefail
 
+              # Source .env file if it exists, otherwise create an .env file
+              ENV_FILE=.env
+              if [ -f "$ENV_FILE" ]; then
+                  source $ENV_FILE
+              else 
+                  echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID:-} > $ENV_FILE
+                  source $ENV_FILE
+              fi
+              
+              # Exit if if required env variables are not defined
+              if [ -z "$VITE_WALLETCONNECT_PROJECT_ID" ]; then
+                echo "Cancelling build: VITE_WALLETCONNECT_PROJECT_ID is not defined"
+                exit 1
+              fi
+
               npm i && npm run build
-              echo VITE_WALLET_CONNECT_PROJECT_ID=''$WALLETCONNECT_PROJECT_ID > .env
               rm -rf lib
               mkdir -p lib
 

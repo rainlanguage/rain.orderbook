@@ -114,7 +114,7 @@ function resetActiveNetworkRef() {
 }
 
 // @TODO set rain project id from env, should figure out the nix part
-const projectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
 // @TODO set correct values for fields
 const metadata = {
