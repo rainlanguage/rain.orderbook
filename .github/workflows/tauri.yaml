@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        platform: [
+        os: [
             macos-13,
             macos-14,
             ubuntu-22.04,
