@@ -6,7 +6,8 @@
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { walletconnectAccount, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -24,7 +25,7 @@
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : "CONNECT"
 
-  $: amountGTBalance = vault !== undefined && amount > vault.balance;
+  $: amountGTBalance = vault !== undefined && amount > BigInt(vault.balance);
 
   function reset() {
     amount = 0n;

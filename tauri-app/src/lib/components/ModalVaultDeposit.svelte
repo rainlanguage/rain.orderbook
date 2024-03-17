@@ -7,7 +7,8 @@
   import { bigintStringToHex } from '$lib/utils/hex';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { walletconnectAccount, orderbookAddress, walletconnectModal } from '$lib/stores/settings';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
 

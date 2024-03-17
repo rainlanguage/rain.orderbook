@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from 'flowbite-svelte';
-  import { walletconnectModal, walletconnectAccount } from '$lib/stores/settings';
+  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
 
   $: label = $walletconnectAccount
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`

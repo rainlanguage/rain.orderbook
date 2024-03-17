@@ -1,4 +1,4 @@
-import { walletconnectAccount, walletconnectIsConnected, walletconnectModal } from "$lib/stores/settings";
+import { walletconnectAccount, walletconnectIsConnected, walletconnectModal } from "$lib/stores/walletconnect";
 import { toasts } from "$lib/stores/toasts";
 import { get } from "@square/svelte-store";
 import { BigNumber, ethers } from "ethers";

@@ -1,14 +1,13 @@
-import { asyncDerived, derived, get, writable } from '@square/svelte-store';
+import { asyncDerived, derived, get } from '@square/svelte-store';
 import { cachedWritableStore, cachedWritableStringOptional } from '$lib/storesGeneric/cachedWritableStore';
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { type ConfigString, type NetworkString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
+import { type ConfigString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';
 import { parseConfigString } from '$lib/services/config';
-import { createWeb3Modal, defaultConfig } from '@web3modal/ethers5'
 
 const emptyConfig = {
   deployments: {},
@@ -110,78 +109,5 @@ function resetActiveNetworkRef() {
     activeNetworkRef.set(Object.keys($networks)[0]);
   } else {
     activeNetworkRef.set(undefined);
-  }
-}
-
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
-
-const metadata = {
-  name: "Rain Orderbook",
-  description: "The DEX where all orders are dynamic strategies written in Rain Language.",
-  url: "https://rainlang.xyz",
-  icons: [
-    "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg",
-    "https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg",
-  ]
-}
-
-const ethersConfig = defaultConfig({
-  metadata,
-  enableEIP6963: false,
-  enableInjected: false,
-  enableCoinbase: false,
-});
-
-export const walletconnectModal = writable<ReturnType<typeof createWeb3Modal> | undefined>();
-export const walletconnectAccount = writable<string | undefined>(undefined);
-export const walletconnectIsConnected = writable<boolean>(false);
-let eventUnsubscribe: (() => void) | undefined;
-
-// subscribe to networks and instantiate wagmi config store from it
-activeNetwork.subscribe(async network => {
-  if (eventUnsubscribe) eventUnsubscribe();
-  walletconnectAccount.set(undefined);
-  walletconnectIsConnected.set(false);
-  const oldModal = get(walletconnectModal)
-  if (oldModal !== undefined) {
-    try {
-      await oldModal.disconnect()
-    } catch(e) {
-      walletconnectModal.set(undefined)
-      // eslint-disable-next-line no-console
-      console.log(e)
-    }
-  }
-  if (network === undefined) {
-    walletconnectModal.set(undefined);
-  }
-  else {
-    const chain = find(Object.values(chains), (c) => c.id === network["chain-id"]);
-    walletconnectModal.set(
-      createWeb3Modal({
-        ethersConfig,
-        chains: [getNetwork(network, chain)],
-        projectId,
-        enableOnramp: true,
-        allWallets: "SHOW",
-      })
-    )
-    const modal = get(walletconnectModal);
-    eventUnsubscribe = modal?.subscribeEvents(v => {
-      if (v.data.event === "MODAL_CLOSE") {
-        walletconnectAccount.set(modal.getAddress());
-        walletconnectIsConnected.set(modal.getIsConnected());
-      }
-    })
-  }
-})
-
-function getNetwork(network: NetworkString, chain?: chains.Chain) {
-  return {
-    chainId: network['chain-id'],
-    name: chain?.name ?? `network with chain id: ${network['chain-id']}`,
-    currency: chain?.nativeCurrency.symbol ?? network.currency ?? "eth",
-    explorerUrl: chain?.blockExplorers?.default.url ?? "",
-    rpcUrl: network.rpc
   }
 }

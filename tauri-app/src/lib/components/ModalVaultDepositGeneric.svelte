@@ -7,7 +7,8 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { walletconnectModal, walletconnectAccount, orderbookAddress } from '$lib/stores/settings';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
 
   export let open = false;
