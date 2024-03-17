@@ -113,17 +113,15 @@ function resetActiveNetworkRef() {
   }
 }
 
-// @TODO set rain project id from env, should figure out the nix part
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
-// @TODO set correct values for fields
 const metadata = {
   name: "Rain Orderbook",
-  description: "Rain Orderbook is an app to build and deploy token strategies (sell/buy, limit, treasury management and ...) that are written in RainLanguage, make charts for them, watch all the orderbooks orders and easily deposit, withdraw and manage orderbooks vaults.",
-  url: "https://rainlang.xyz", // origin must match your domain & subdomain
+  description: "The DEX where all orders are dynamic strategies written in Rain Language.",
+  url: "https://rainlang.xyz",
   icons: [
-    "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg", // rain logo
-    "https://avatars.githubusercontent.com/u/37784886", // walletconnect logo
+    "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg",
+    "https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg",
   ]
 }
 
@@ -164,12 +162,8 @@ activeNetwork.subscribe(async network => {
         ethersConfig,
         chains: [getNetwork(network, chain)],
         projectId,
-        enableAnalytics: true, // Optional - defaults to your Cloud configuration
-        enableOnramp: true, // Optional - false as default
+        enableOnramp: true,
         allWallets: "SHOW",
-        // includeWalletIds: [
-        //   "e7c4d26541a7fd84dbdfa9922d3ad21e936e13a7a0e44385d44f006139e44d3b" // walletconnect
-        // ],
       })
     )
     const modal = get(walletconnectModal);
