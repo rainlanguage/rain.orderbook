@@ -70,7 +70,7 @@
     </ButtonLoading>
   {:else if selectedWalletconnect}
     <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
-    <div class="text-lg">Note that WalletConnect is only supported for <b>mobile</b> wallets.</div>
+    <div class="text-lg">Note that only <b>mobile</b> wallets are supported.</div>
     <div class="flex flex-col w-full justify-between space-y-2">
       <Button
         color="blue"
