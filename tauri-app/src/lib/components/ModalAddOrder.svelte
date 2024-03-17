@@ -54,7 +54,7 @@
 
 <Modal title="Add Order" bind:open outsideclose size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect}
-    <div class="mb-6">
+    <div class="flex flex-col w-full justify-between space-y-2">
       <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
       <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
     </div>
@@ -69,17 +69,19 @@
     </ButtonLoading>
   {:else if selectedWalletconnect}
     <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
-    <Button
-      color="blue"
-      class="px-2 py-1"
-      size="xs"
-      pill
-      on:click={() => $walletconnectModal?.open()}
-    >
-    {walletconnectLabel}
-    </Button>
-    <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
-      Add Order
-    </ButtonLoading>
+    <div class="flex flex-col w-full justify-between space-y-2">
+      <Button
+        color="blue"
+        class="px-2 py-1"
+        size="xs"
+        pill
+        on:click={() => $walletconnectModal?.open()}
+      >
+      {walletconnectLabel}
+      </Button>
+      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
+        Add Order
+      </ButtonLoading>
+    </div>
   {/if}
 </Modal>

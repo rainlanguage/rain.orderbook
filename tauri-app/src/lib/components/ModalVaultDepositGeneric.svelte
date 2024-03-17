@@ -91,7 +91,7 @@
       >
         Amount
       </Label>
-      <InputTokenAmount bind:value={amount} decimals={tokenDecimals} />
+      <InputTokenAmount bind:value={amount} bind:decimals={tokenDecimals} />
     </div>
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
@@ -102,7 +102,7 @@
   {:else}
     {#if !selectedLedger && !selectedWalletconnect}
       <Button color="alternative" on:click={() => selectWallet = false}>Back</Button>
-      <div class="mb-6">
+      <div class="flex flex-col w-full justify-between space-y-2">
         <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
         <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
       </div>
@@ -117,18 +117,20 @@
       </ButtonLoading>
     {:else if selectedWalletconnect}
       <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
-      <Button
-        color="blue"
-        class="px-2 py-1"
-        size="xs"
-        pill
-        on:click={() => $walletconnectModal?.open()}
-      >
-      {walletconnectLabel}
-      </Button>
-      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
-        Deposit
-      </ButtonLoading>
+      <div class="flex flex-col w-full justify-between space-y-2">
+        <Button
+          color="blue"
+          class="px-2 py-1"
+          size="xs"
+          pill
+          on:click={() => $walletconnectModal?.open()}
+        >
+        {walletconnectLabel}
+        </Button>
+        <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
+          Deposit
+        </ButtonLoading>
+      </div>
     {/if}
   {/if}
 </Modal>

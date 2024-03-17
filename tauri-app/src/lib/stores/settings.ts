@@ -166,10 +166,10 @@ activeNetwork.subscribe(async network => {
         projectId,
         enableAnalytics: true, // Optional - defaults to your Cloud configuration
         enableOnramp: true, // Optional - false as default
-        allWallets: "HIDE",
-        includeWalletIds: [
-          "e7c4d26541a7fd84dbdfa9922d3ad21e936e13a7a0e44385d44f006139e44d3b" // walletconnect
-        ],
+        allWallets: "SHOW",
+        // includeWalletIds: [
+        //   "e7c4d26541a7fd84dbdfa9922d3ad21e936e13a7a0e44385d44f006139e44d3b" // walletconnect
+        // ],
       })
     )
     const modal = get(walletconnectModal);
