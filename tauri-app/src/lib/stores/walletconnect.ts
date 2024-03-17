@@ -11,7 +11,7 @@ const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const ethersConfig = defaultConfig({
   metadata: {
     name: "Rain Orderbook",
-    description: "The DEX where all orders are dynamic strategies written in Rain Language.",
+    description: "RainDex allows anyone to write, test, deploy and manage token trading strategies written in rainlang, on any EVM network.",
     url: "https://rainlang.xyz",
     icons: [
       "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg",
