@@ -63,7 +63,13 @@
 
       reset();
     } catch (e) {
-      toasts.error("Transaction failed!");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else if (typeof e === "string") toasts.error(e);
+      else toasts.error("Transaction failed!");
     }
     isSubmitting = false;
   }
