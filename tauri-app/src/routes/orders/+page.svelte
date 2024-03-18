@@ -8,8 +8,11 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
-  import { subgraphUrl } from '$lib/stores/settings';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
+  import { orderbookAddress, subgraphUrl } from '$lib/stores/settings';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { toasts } from '$lib/stores/toasts';
   import {
     Button,
     TableBodyCell,
@@ -23,6 +26,35 @@
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;
   let id: string;
+  let isSubmitting = false;
+
+  async function executeLedger() {
+    isSubmitting = true;
+    try {
+      await orderRemove(id);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      const calldata = await orderRemoveCalldata(id) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else toasts.error("Transaction failed!");
+    }
+    isSubmitting = false;
+  }
 </script>
 
 <PageHeader title="Orders" />
@@ -107,4 +139,11 @@
   </AppTable>
 {/if}
 
-<ModalOrderRemove bind:open={openOrderRemoveModal} id={id}/>
+<ModalExecute
+  bind:open={openOrderRemoveModal}
+  title="Remove Order"
+  execButtonLabel="Remove Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>

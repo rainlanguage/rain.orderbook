@@ -3,16 +3,16 @@
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { orderbookAddress } from '$lib/stores/settings';
   import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
-  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
-  import { ethersExecute } from '$lib/services/ethersTx';
-  import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
-  export let id: string;
+  export let title: string;
+  export let execButtonLabel: string;
+  export let executeLedger: () => Promise<void>;
+  export let executeWalletconnect: () => Promise<void>;
+  export let isSubmitting = false;
+  export let onBack: (() => void) | undefined = undefined;
 
-  let isSubmitting = false;
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
@@ -27,41 +27,14 @@
       selectedWalletconnect = false;
     }
   }
-
-  async function executeLedger() {
-    isSubmitting = true;
-    try {
-      await orderRemove(id);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
-    isSubmitting = false;
-    reset();
-  }
-  async function executeWalletconnect() {
-    isSubmitting = true;
-    try {
-      const calldata = await orderRemoveCalldata(id) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress!);
-      toasts.success("Transaction sent successfully!");
-      await tx.wait(1);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === "object" && (e as any)?.reason) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      }
-      else toasts.error("Transaction failed!");
-    }
-    isSubmitting = false;
-    reset();
-  }
 </script>
 
-<Modal title="Remove Order" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
+<Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect}
-  <div class="flex flex-col w-full justify-between space-y-2">
+    {#if onBack}
+      <Button color="alternative" on:click={() => {onBack?.(); reset();}}>Back</Button>
+    {/if}
+    <div class="flex flex-col w-full justify-between space-y-2">
       <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
       <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
     </div>
@@ -71,8 +44,8 @@
       bind:derivationIndex={$ledgerWalletDerivationIndex}
       bind:walletAddress={$ledgerWalletAddress.value}
     />
-    <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$ledgerWalletAddress || !$ledgerWalletDerivationIndex} loading={isSubmitting}>
-      Remove Order
+    <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || !$ledgerWalletDerivationIndex} loading={isSubmitting}>
+      {execButtonLabel}
     </ButtonLoading>
   {:else if selectedWalletconnect}
     <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
@@ -87,8 +60,8 @@
       >
       {walletconnectLabel}
       </Button>
-      <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
-        Remove Order
+      <ButtonLoading on:click={() => executeWalletconnect().finally(() => reset())} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
+        {execButtonLabel}
       </ButtonLoading>
     </div>
   {/if}

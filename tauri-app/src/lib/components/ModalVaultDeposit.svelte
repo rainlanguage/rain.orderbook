@@ -5,33 +5,22 @@
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultDeposit, vaultDepositApproveCalldata, vaultDepositCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { orderbookAddress } from '$lib/stores/settings';
-  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
-  import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
+  import ModalExecute from './ModalExecute.svelte';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
-  let selectedLedger = false;
-  let selectedWalletconnect = false;
-
-  $: walletconnectLabel = $walletconnectAccount
-    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
-    : "CONNECT"
 
   function reset() {
     open = false;
     if (!isSubmitting) {
       amount = 0n;
       selectWallet = false;
-      selectedLedger = false;
-      selectedWalletconnect = false;
     }
   }
 
@@ -79,8 +68,8 @@
   }
 </script>
 
-<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
-  {#if !selectWallet}
+{#if !selectWallet}
+  <Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
         Vault ID
@@ -134,43 +123,19 @@
     </div>
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={() => selectWallet = true} disabled={!amount || amount === 0n || isSubmitting}>
+      <Button on:click={() => {selectWallet = true; open = false;}} disabled={!amount || amount === 0n || isSubmitting}>
         Proceed
       </Button>
     </div>
-  {:else}
-    {#if !selectedLedger && !selectedWalletconnect}
-      <Button color="alternative" on:click={() => selectWallet = false}>Back</Button>
-      <div class="flex flex-col w-full justify-between space-y-2">
-        <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
-        <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
-      </div>
-    {:else if selectedLedger}
-      <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
-      <InputLedgerWallet
-        bind:derivationIndex={$ledgerWalletDerivationIndex}
-        bind:walletAddress={$ledgerWalletAddress.value}
-      />
-      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$ledgerWalletAddress || !$ledgerWalletDerivationIndex} loading={isSubmitting}>
-        Deposit
-      </ButtonLoading>
-    {:else if selectedWalletconnect}
-      <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
-      <div class="text-lg">Note that only <b>mobile</b> wallets are supported.</div>
-      <div class="flex flex-col w-full justify-between space-y-2">
-        <Button
-          color="blue"
-          class="px-2 py-1"
-          size="xs"
-          pill
-          on:click={() => $walletconnectModal?.open()}
-        >
-        {walletconnectLabel}
-        </Button>
-        <ButtonLoading on:click={executeWalletconnect} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
-          Deposit
-        </ButtonLoading>
-      </div>
-    {/if}
-  {/if}
-</Modal>
+  </Modal>
+{/if}
+
+<ModalExecute
+  bind:open={selectWallet}
+  onBack={() => open = true}
+  title="Deposit to Vault"
+  execButtonLabel="Deposit"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>

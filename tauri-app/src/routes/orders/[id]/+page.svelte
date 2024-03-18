@@ -17,10 +17,15 @@
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
   import { colorTheme } from '$lib/stores/darkMode';
-  import ModalOrderRemove from '$lib/components/ModalOrderRemove.svelte';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { toasts } from '$lib/stores/toasts';
 
   let orderTakesListChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
   let openOrderRemoveModal = false;
+  let isSubmitting = false;
 
   const orderTakesList = useOrderTakesList($page.params.id);
 
@@ -50,6 +55,35 @@
 
   orderDetail.refetch($page.params.id);
   orderTakesList.fetchAll(0);
+
+  async function executeLedger() {
+    isSubmitting = true;
+    try {
+      await orderRemove(order.id);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      const calldata = await orderRemoveCalldata(order.id) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else toasts.error("Transaction failed!");
+    }
+    isSubmitting = false;
+  }
 </script>
 
 <PageHeader title="Order" />
@@ -171,4 +205,11 @@
   </svelte:fragment>
 </PageContentDetail>
 
-<ModalOrderRemove bind:open={openOrderRemoveModal} id={order.id}/>
+<ModalExecute
+  bind:open={openOrderRemoveModal}
+  title="Remove Order"
+  execButtonLabel="Remove Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>

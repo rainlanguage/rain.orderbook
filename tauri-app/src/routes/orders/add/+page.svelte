@@ -9,7 +9,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import { settingsText, activeNetworkRef } from '$lib/stores/settings';
+  import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
   import type { ChartData } from '$lib/typeshare/fuzz';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
@@ -20,7 +20,9 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigString } from '$lib/typeshare/configString';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
-  import ModalAddOrder from '$lib/components/ModalAddOrder.svelte';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderAdd, orderAddCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -73,6 +75,41 @@
       toasts.error(e as string);
     }
     isCharting = false;
+  }
+
+  async function executeLedger() {
+    isSubmitting = true;
+    try {
+      if(!deployment) throw Error("Select a deployment to add order");
+
+      await orderAdd($dotrainFile.text, deployment);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      if(!deployment) throw Error("Select a deployment to add order");
+      if (!$orderbookAddress) throw Error("Select an orderbook to add order");
+
+      const calldata = await orderAddCalldata($dotrainFile.text, deployment) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else if (typeof e === "string") toasts.error(e);
+      else if (e instanceof Error) toasts.error(e.message);
+      else toasts.error("Transaction failed!");
+    }
+    isSubmitting = false;
   }
 </script>
 
@@ -134,4 +171,11 @@
 
 <Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
 <Charts {chartData} />
-<ModalAddOrder bind:open={openAddOrderModal} dotrainText={$dotrainFile.text} deployment={deployment}/>
+<ModalExecute
+  bind:open={openAddOrderModal}
+  title="Add Order"
+  execButtonLabel="Add Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>
