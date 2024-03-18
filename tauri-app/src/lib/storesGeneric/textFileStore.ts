@@ -81,7 +81,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
       await writeTextFile(pathValue, get(text));
 
       path.set(pathValue as string);
-      toasts.success(`Saved to ${pathValue}`, {break_text: true});
+      toasts.success(`Saved to ${pathValue}`);
     }
     catch(e) {
       toasts.error(e as string);
@@ -104,7 +104,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
         await writeTextFile(pathValue as string, get(text));
 
         path.set(pathValue as string);
-        toasts.success(`Saved to ${pathValue}`, {break_text: true});
+        toasts.success(`Saved to ${pathValue}`);
       }
 
     } catch(e) {
