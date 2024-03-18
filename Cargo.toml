@@ -32,11 +32,11 @@ comfy-table = "7.1.0"
 cynic-codegen = { version = "3.4.0", features = ["rkyv"] }
 cynic = "3.4.0"
 chrono = "0.4.31"
-typeshare = { git = "https://github.com/1password/typeshare", rev = "556b44aafd5304eedf17206800f69834e3820b7c" }
+typeshare = { git = "https://github.com/tomjw64/typeshare", rev = "556b44aafd5304eedf17206800f69834e3820b7c" }
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = { git = "https://github.com/rainlanguage/dotrain", rev = "b813542cb1c9a2399664a606761f3a3db7b842af" }
-dotrain-lsp = { git = "https://github.com/rainlanguage/dotrain", rev = "b813542cb1c9a2399664a606761f3a3db7b842af" }
+dotrain = "6.0.1-alpha.11"
+dotrain-lsp = "6.0.1-alpha.11"
 rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain_interpreter_bindings = { path = "lib/rain.interpreter/crates/bindings" }
 rain_interpreter_dispair = { path = "lib/rain.interpreter/crates/dispair" }

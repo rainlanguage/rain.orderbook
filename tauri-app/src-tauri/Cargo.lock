@@ -2266,8 +2266,9 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.10"
-source = "git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af#b813542cb1c9a2399664a606761f3a3db7b842af"
+version = "6.0.1-alpha.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "865fd371da8adea10f12eaceed604cad8ad2a25694760d4ab7abf66a77c53d62"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -2286,8 +2287,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.10"
-source = "git+https://github.com/rainlanguage/dotrain?rev=b813542cb1c9a2399664a606761f3a3db7b842af#b813542cb1c9a2399664a606761f3a3db7b842af"
+version = "6.0.1-alpha.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bca18683abcaedb910e5b5a03bae209924dfb0836dbc0c2d5b82ad8d33b1b5a1"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -6453,7 +6455,7 @@ dependencies = [
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
- "typeshare 1.0.1 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
+ "typeshare 1.0.1 (git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
  "url",
 ]
 
@@ -6499,7 +6501,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "typeshare 1.0.1 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
+ "typeshare 1.0.1 (git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
  "url",
 ]
 
@@ -6515,7 +6517,7 @@ dependencies = [
  "reqwest",
  "serde",
  "thiserror",
- "typeshare 1.0.1 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
+ "typeshare 1.0.1 (git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
 ]
 
 [[package]]
@@ -9232,12 +9234,12 @@ dependencies = [
 [[package]]
 name = "typeshare"
 version = "1.0.1"
-source = "git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
+source = "git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
 dependencies = [
  "chrono",
  "serde",
  "serde_json",
- "typeshare-annotation 1.0.2 (git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
+ "typeshare-annotation 1.0.2 (git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c)",
 ]
 
 [[package]]
@@ -9253,7 +9255,7 @@ dependencies = [
 [[package]]
 name = "typeshare-annotation"
 version = "1.0.2"
-source = "git+https://github.com/1password/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
+source = "git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
 dependencies = [
  "quote",
  "syn 1.0.109",
