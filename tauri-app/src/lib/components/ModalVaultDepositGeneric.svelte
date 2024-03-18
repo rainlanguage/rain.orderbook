@@ -12,6 +12,8 @@
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
 
+  // let x: Event;
+  // x.pre
   export let open = false;
   let vaultId: bigint = 0n;
   let tokenAddress: string = '';
@@ -31,11 +33,12 @@
     tokenAddress = '';
     tokenDecimals = 0;
     amount = 0n;
-    isSubmitting = false;
     open = false;
-    selectWallet = false;
-    selectedLedger = false;
-    selectedWalletconnect = false;
+    if (!isSubmitting) {
+      selectWallet = false;
+      selectedLedger = false;
+      selectedWalletconnect = false;
+    }
   }
 
   async function executeLedger() {
@@ -82,7 +85,7 @@
   }
 </script>
 
-<Modal title="Deposit to Vault" bind:open outsideclose size="sm" on:close={reset}>
+<Modal title="Deposit to Vault" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
   {#if !selectWallet}
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">

@@ -23,8 +23,10 @@
 
   function reset() {
     open = false;
-    selectedLedger = false;
-    selectedWalletconnect = false;
+    if (!isSubmitting) {
+      selectedLedger = false;
+      selectedWalletconnect = false;
+    }
   }
 
   async function executeLedger() {
@@ -65,7 +67,7 @@
   }
 </script>
 
-<Modal title="Add Order" bind:open outsideclose size="sm" on:close={reset}>
+<Modal title="Add Order" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect}
     <div class="flex flex-col w-full justify-between space-y-2">
       <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>

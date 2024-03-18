@@ -31,9 +31,11 @@
   function reset() {
     amount = 0n;
     open = false;
-    selectWallet = false;
-    selectedLedger = false;
-    selectedWalletconnect = false;
+    if (!isSubmitting) {
+      selectWallet = false;
+      selectedLedger = false;
+      selectedWalletconnect = false;
+    }
   }
 
   async function executeLedger() {
@@ -68,7 +70,7 @@
   }
 </script>
 
-<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={reset}>
+<Modal title="Withdraw from Vault" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
   {#if !selectWallet}
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">

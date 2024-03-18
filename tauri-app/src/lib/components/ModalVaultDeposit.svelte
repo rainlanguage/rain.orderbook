@@ -27,11 +27,12 @@
 
   function reset() {
     amount = 0n;
-    isSubmitting = false;
     open = false;
-    selectWallet = false;
-    selectedLedger = false;
-    selectedWalletconnect = false;
+    if (!isSubmitting) {
+      selectWallet = false;
+      selectedLedger = false;
+      selectedWalletconnect = false;
+    }
   }
 
   async function executeLedger() {
