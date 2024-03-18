@@ -50,12 +50,15 @@
       await tx.wait(1);
       reset();
     } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (typeof e === "object" && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
       }
       else if (typeof e === "string") toasts.error(e);
+      else if (e instanceof Error) toasts.error(e.message);
       else toasts.error("Transaction failed!");
     }
     isSubmitting = false;

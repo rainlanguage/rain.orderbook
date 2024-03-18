@@ -50,8 +50,8 @@
 
   async function executeWalletconnect() {
     isSubmitting = true;
-    if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
     try {
+      if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
       const allowance = await checkAllowance(amount, tokenAddress, $orderbookAddress);
       if (!allowance) {
         const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount) as Uint8Array;
@@ -67,12 +67,15 @@
 
       reset();
     } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (typeof e === "object" && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
       }
       else if (typeof e === "string") toasts.error(e);
+      else if (e instanceof Error) toasts.error(e.message);
       else toasts.error("Transaction failed!");
     }
     isSubmitting = false;

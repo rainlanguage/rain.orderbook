@@ -44,6 +44,8 @@
       await tx.wait(1);
       reset();
     } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (typeof e === "object" && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
