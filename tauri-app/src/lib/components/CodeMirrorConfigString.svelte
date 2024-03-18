@@ -4,6 +4,7 @@
 	import { yaml } from '@codemirror/lang-yaml';
 	import { parseConfigStringProblems } from '$lib/services/config';
 	import { RawRainlangExtension } from 'codemirror-rainlang';
+	import { openLintPanel } from '@codemirror/lint';
 
 	export let value: string;
 	export let disabled = false;
@@ -30,4 +31,11 @@
 		},
 		...styles
 	}}
+	on:ready={(e) => { openLintPanel(e.detail); }}
 />
+
+<style global>
+	:global(.ͼ1 .cm-panel.cm-panel-lint ul [aria-selected]) {
+		background-color: inherit;
+	}
+</style>

@@ -1,4 +1,4 @@
-name: "publish"
+name: Tauri Publish
 
 # This will trigger the action on each push to the `release` branch.
 on:

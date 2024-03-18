@@ -3,7 +3,16 @@ on: [push]
 
 jobs:
   build-tauri:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [
+            macos-13,
+            macos-14,
+            ubuntu-22.04,
+          ]
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
