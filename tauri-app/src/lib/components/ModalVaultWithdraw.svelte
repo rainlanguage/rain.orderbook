@@ -11,6 +11,7 @@
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
+    import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -49,11 +50,13 @@
     isSubmitting = true;
     try {
       const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress!)
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
       await tx.wait(1);
       reset();
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      toasts.error("Transaction failed!");
+    }
     isSubmitting = false;
   }
 </script>

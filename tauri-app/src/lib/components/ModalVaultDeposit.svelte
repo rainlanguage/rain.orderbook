@@ -11,6 +11,7 @@
   import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
+    import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -50,17 +51,20 @@
       const allowance = await checkAllowance(amount, vault.token.id, $orderbookAddress);
       if (!allowance) {
         const approveCalldata = await vaultDepositApproveCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
-        const approveTx = await ethersExecute(approveCalldata, vault.token.id)
+        const approveTx = await ethersExecute(approveCalldata, vault.token.id);
+        toasts.success("Approve Transaction sent successfully!");
         await approveTx.wait(1);
       }
 
       const depositCalldata = await vaultDepositCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
-      const depositTx = await ethersExecute(depositCalldata, $orderbookAddress)
+      const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
+      toasts.success("Transaction sent successfully!");
       await depositTx.wait(1);
 
       reset();
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      toasts.error("Transaction failed!");
+    }
     isSubmitting = false;
   }
 </script>

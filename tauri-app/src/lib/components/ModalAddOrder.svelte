@@ -8,6 +8,7 @@
   import type { Deployment } from '$lib/typeshare/config';
   import { orderAdd, orderAddCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
+    import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
   export let dotrainText: string;
@@ -44,11 +45,13 @@
       if (!$orderbookAddress) throw Error("Select an orderbook to add order");
 
       const calldata = await orderAddCalldata(dotrainText, deployment) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress)
+      const tx = await ethersExecute(calldata, $orderbookAddress);
+      toasts.success("Transaction sent successfully!");
       await tx.wait(1);
       reset();
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      toasts.error("Transaction failed!");
+    }
     isSubmitting = false;
   }
 </script>

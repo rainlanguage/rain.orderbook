@@ -7,6 +7,7 @@
   import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
+    import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
   export let id: string;
@@ -38,11 +39,13 @@
     isSubmitting = true;
     try {
       const calldata = await orderRemoveCalldata(id) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress!)
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
       await tx.wait(1);
       reset();
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      toasts.error("Transaction failed!");
+    }
     isSubmitting = false;
   }
 </script>
