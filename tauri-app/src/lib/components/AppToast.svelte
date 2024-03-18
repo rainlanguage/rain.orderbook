@@ -1,34 +1,48 @@
 <script lang="ts">
   import { Toast } from 'flowbite-svelte';
-  import CheckCircleSolid from 'flowbite-svelte-icons/CheckCircleSolid.svelte';
-  import CloseCircleSolid from 'flowbite-svelte-icons/CloseCircleSolid.svelte';
-  import ExclamationCircleSolid from 'flowbite-svelte-icons/ExclamationCircleSolid.svelte';
-  import InfoCircleSolid from 'flowbite-svelte-icons/InfoCircleSolid.svelte';
+  import IconSuccess from '$lib/components/IconSuccess.svelte';
+  import IconError from '$lib/components/IconError.svelte';
+  import IconWarning from '$lib/components/IconWarning.svelte';
+  import IconInfo from '$lib/components/IconInfo.svelte';
+  import CloseSolid from 'flowbite-svelte-icons/CloseSolid.svelte';
   import type { ToastData } from '$lib/stores/toasts';
+  import { ToastMessageType } from '$lib/typeshare/toast';
 
   export let toast: ToastData;
+  let toastColor: "none" | "gray" | "red" | "yellow" | "green" | "indigo" | "purple" | "blue" | "primary" | "orange" | undefined;
+  $: toast, getToastColor();
+
+  function getToastColor() {
+    if(toast.message_type === ToastMessageType.Success) {
+      return 'green';
+    } else if (toast.message_type === ToastMessageType.Error) {
+      return 'red';
+    } else if (toast.message_type === ToastMessageType.Warning) {
+      return 'yellow';
+    } else if (toast.message_type === ToastMessageType.Info) {
+      return 'info';
+    }
+  };
 </script>
 
 <div class="mt-2">
-  {#if toast.message_type === 'Success'}
-    <Toast color="green">
-      <CheckCircleSolid slot="icon" class="h-5 w-5" />
-      <span class={toast.break_text ? "break-all" : ''}>{toast.text}</span>
+    <Toast color={toastColor} contentClass="w-full text-sm font-normal flex justify-start space-x-4 items-center pr-8" divClass="w-full max-w-xs p-2 text-gray-500 bg-white shadow dark:text-gray-400 dark:bg-gray-800 gap-3 relative">
+      <svelte:fragment slot="close-button" let:close>
+        <CloseSolid slot="close-button" class="h-3 w-3 top-2 right-2 absolute hover:opacity-50" on:click={(e) => close(e)}/>
+      </svelte:fragment>
+
+      {#if toast.message_type === ToastMessageType.Success}
+        <IconSuccess />
+      {:else if toast.message_type === ToastMessageType.Error}
+        <IconError />
+      {:else if toast.message_type === ToastMessageType.Warning}
+        <IconWarning />
+        {:else if toast.message_type === ToastMessageType.Info}
+        <IconInfo />
+      {/if}
+
+      <div class="overflow-scroll max-h-48">
+        {toast.text}
+      </div>
     </Toast>
-  {:else if toast.message_type === 'Error'}
-    <Toast color="red">
-      <CloseCircleSolid slot="icon" class="h-5 w-5" />
-      <span class={toast.break_text ? "break-all" : ''}>{toast.text}</span>
-    </Toast>
-  {:else if toast.message_type === 'Warning'}
-    <Toast color="yellow">
-      <ExclamationCircleSolid slot="icon" class="h-5 w-5" />
-      <span class={toast.break_text ? "break-all" : ''}>{toast.text}</span>
-    </Toast>
-  {:else}
-    <Toast color="blue">
-      <InfoCircleSolid slot="icon" class="h-5 w-5" />
-      <span class={toast.break_text ? "break-all" : ''}>{toast.text}</span>
-    </Toast>
-  {/if}
 </div>

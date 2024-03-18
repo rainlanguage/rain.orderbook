@@ -16,7 +16,6 @@ pub enum ToastMessageType {
 pub struct ToastPayload {
     pub message_type: ToastMessageType,
     pub text: String,
-    pub break_text: Option<bool>,
 }
 
 impl ToastPayload {
@@ -29,7 +28,6 @@ pub fn toast_error(app_handle: AppHandle, text: String) {
     let toast = ToastPayload {
         message_type: ToastMessageType::Error,
         text,
-        break_text: None,
     };
     toast.emit(app_handle);
 }

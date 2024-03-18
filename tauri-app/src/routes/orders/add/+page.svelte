@@ -70,7 +70,7 @@
     try {
       chartData = await makeChartData($dotrainFile.text, $settingsText);
     } catch(e) {
-      toasts.error(e as string, {break_text: true});
+      toasts.error(e as string);
     }
     isCharting = false;
   }

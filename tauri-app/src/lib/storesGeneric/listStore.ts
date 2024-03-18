@@ -120,7 +120,6 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
         toasts.add({
           message_type: ToastMessageType.Success,
           text: `Exported to CSV at ${path}`,
-          break_text: true
         });
       }
     } catch(e) {
