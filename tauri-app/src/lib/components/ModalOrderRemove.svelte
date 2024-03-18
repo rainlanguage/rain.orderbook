@@ -32,10 +32,10 @@
     isSubmitting = true;
     try {
       await orderRemove(id);
-      reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
     isSubmitting = false;
+    reset();
   }
   async function executeWalletconnect() {
     isSubmitting = true;
@@ -44,7 +44,6 @@
       const tx = await ethersExecute(calldata, $orderbookAddress!);
       toasts.success("Transaction sent successfully!");
       await tx.wait(1);
-      reset();
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(e);
@@ -56,6 +55,7 @@
       else toasts.error("Transaction failed!");
     }
     isSubmitting = false;
+    reset();
   }
 </script>
 

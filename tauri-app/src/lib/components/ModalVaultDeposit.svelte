@@ -26,9 +26,9 @@
     : "CONNECT"
 
   function reset() {
-    amount = 0n;
     open = false;
     if (!isSubmitting) {
+      amount = 0n;
       selectWallet = false;
       selectedLedger = false;
       selectedWalletconnect = false;
@@ -39,10 +39,10 @@
     isSubmitting = true;
     try {
       await vaultDeposit(vault.vault_id, vault.token.id, amount);
-      reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
     isSubmitting = false;
+    reset();
   }
 
   async function executeWalletconnect() {
@@ -62,7 +62,6 @@
       toasts.success("Transaction sent successfully!");
       await depositTx.wait(1);
 
-      reset();
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(e);
@@ -76,6 +75,7 @@
       else toasts.error("Transaction failed!");
     }
     isSubmitting = false;
+    reset();
   }
 </script>
 
