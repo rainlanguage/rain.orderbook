@@ -5,12 +5,12 @@
   import InputToken from '$lib/components/InputToken.svelte';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
+  import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { orderbookAddress } from '$lib/stores/settings';
   import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
-    import { toasts } from '$lib/stores/toasts';
+  import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
   let vaultId: bigint = 0n;
@@ -114,10 +114,10 @@
     {:else if selectedLedger}
       <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
       <InputLedgerWallet
-        bind:derivationIndex={$walletDerivationIndex}
-        bind:walletAddress={$walletAddress.value}
+        bind:derivationIndex={$ledgerWalletDerivationIndex}
+        bind:walletAddress={$ledgerWalletAddress.value}
       />
-      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
+      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$ledgerWalletAddress || !$ledgerWalletDerivationIndex} loading={isSubmitting}>
         Deposit
       </ButtonLoading>
     {:else if selectedWalletconnect}

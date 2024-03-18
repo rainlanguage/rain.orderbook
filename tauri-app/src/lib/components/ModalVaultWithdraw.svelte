@@ -9,9 +9,9 @@
   import { orderbookAddress } from '$lib/stores/settings';
   import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
-  import { walletAddress, walletDerivationIndex } from '$lib/stores/wallets';
+  import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import { ethersExecute } from '$lib/services/ethersTx';
-    import { toasts } from '$lib/stores/toasts';
+  import { toasts } from '$lib/stores/toasts';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -139,10 +139,10 @@
     {:else if selectedLedger}
       <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
       <InputLedgerWallet
-        bind:derivationIndex={$walletDerivationIndex}
-        bind:walletAddress={$walletAddress.value}
+        bind:derivationIndex={$ledgerWalletDerivationIndex}
+        bind:walletAddress={$ledgerWalletAddress.value}
       />
-      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$walletAddress || !$walletDerivationIndex} loading={isSubmitting}>
+      <ButtonLoading on:click={executeLedger} disabled={isSubmitting || !$ledgerWalletAddress || !$ledgerWalletDerivationIndex} loading={isSubmitting}>
         Withdraw
       </ButtonLoading>
     {:else if selectedWalletconnect}

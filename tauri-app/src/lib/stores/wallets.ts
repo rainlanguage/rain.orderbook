@@ -4,10 +4,10 @@ import { derived } from "svelte/store";
 import { isAddress } from "viem";
 import { walletconnectAccount } from "$lib/stores/walletconnect"
 
-export const walletAddress = validatedStringStore("settings.walletAddress", "", isAddress);
-export const walletDerivationIndex = cachedWritableInt("settings.walletDerivationIndex", 0);
+export const ledgerWalletAddress = validatedStringStore("settings.walletAddress", "", isAddress);
+export const ledgerWalletDerivationIndex = cachedWritableInt("settings.walletDerivationIndex", 0);
 export const walletAddressMatchesOrBlank = derived(
-  [walletAddress, walletconnectAccount],
+  [ledgerWalletAddress, walletconnectAccount],
   ([$walletAddress, $walletconnectAccount]) => {
     return (otherAddress: string) => {
       const otherAddressLowercase = otherAddress.toLowerCase();

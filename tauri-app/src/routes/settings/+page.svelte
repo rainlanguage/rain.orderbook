@@ -10,7 +10,7 @@
   import { settingsFile }from '$lib/stores/settings';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
-  import { walletDerivationIndex, walletAddress } from '$lib/stores/wallets';
+  import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
   import WalletConnect from '$lib/components/WalletConnect.svelte';
 
   function apply() {
@@ -50,8 +50,8 @@
 <div class="my-8">
   <Label class="mb-2">Ledger Wallet</Label>
   <InputLedgerWallet
-    bind:derivationIndex={$walletDerivationIndex}
-    bind:walletAddress={$walletAddress.value}
+    bind:derivationIndex={$ledgerWalletDerivationIndex}
+    bind:walletAddress={$ledgerWalletAddress.value}
   />
 </div>
 
