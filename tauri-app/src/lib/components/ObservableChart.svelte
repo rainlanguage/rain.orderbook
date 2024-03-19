@@ -19,8 +19,10 @@ let div: HTMLDivElement;
   $: {
     div?.firstChild?.remove(); // remove old chart, if any
     div?.append(Plot.plot({
+      title: plotData.name,
       y: {grid: true},
       x: {grid: true},
+      marginLeft: 70,
       marks: [
         plotData.plot_type == "line" ?
         Plot.line(data, {x: "0", y: "1", sort: {channel: "x"}}):
@@ -32,6 +34,5 @@ let div: HTMLDivElement;
 </script>
 
 {#if data}
-<div>{plotData.name}</div>
-<div bind:this={div} role="img" class="border p-4"></div>
+<div bind:this={div} role="img" class="border p-4 w-full"></div>
 {/if}
