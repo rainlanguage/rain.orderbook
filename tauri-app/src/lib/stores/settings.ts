@@ -3,11 +3,11 @@ import { cachedWritableStore, cachedWritableStringOptional } from '$lib/storesGe
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { type ConfigString, type OrderbookRef, type OrderbookString } from '$lib/typeshare/configString';
+import { type ConfigSource, type OrderbookRef, type OrderbookConfigSource } from '$lib/typeshare/configString';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';
-import { parseConfigString } from '$lib/services/config';
+import { parseConfigSource } from '$lib/services/config';
 
 const emptyConfig = {
   deployments: {},
@@ -19,14 +19,14 @@ const emptyConfig = {
   deployers: {},
   scenarios: {},
   charts: {}
-} as ConfigString;
+} as ConfigSource;
 
 // general
 export const settingsText = cachedWritableStore<string>('settings', "", (s) => s, (s) => s);
 export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'yaml'], get(settingsText));
-export const settings = asyncDerived(settingsText, async ($settingsText): Promise<ConfigString> => {
+export const settings = asyncDerived(settingsText, async ($settingsText): Promise<ConfigSource> => {
   try {
-    const config: ConfigString = await parseConfigString($settingsText);
+    const config: ConfigSource = await parseConfigSource($settingsText);
     return config;
   } catch(e) {
     toasts.error(e as string);
@@ -50,7 +50,7 @@ export const activeChainLatestBlockNumber = derived(activeNetwork, ($activeNetwo
 
 // orderbook
 export const activeOrderbookRef = cachedWritableStringOptional("settings.activeOrderbookRef");
-export const activeNetworkOrderbooks = derived([settings, activeNetworkRef], ([$settings, $activeNetworkRef]) => $settings?.orderbooks ? pickBy($settings.orderbooks, (orderbook) => orderbook.network === $activeNetworkRef) as Record<OrderbookRef, OrderbookString> : {} as Record<OrderbookRef, OrderbookString>);
+export const activeNetworkOrderbooks = derived([settings, activeNetworkRef], ([$settings, $activeNetworkRef]) => $settings?.orderbooks ? pickBy($settings.orderbooks, (orderbook) => orderbook.network === $activeNetworkRef) as Record<OrderbookRef, OrderbookConfigSource> : {} as Record<OrderbookRef, OrderbookConfigSource>);
 export const activeOrderbook =  derived([settings, activeOrderbookRef], ([$settings, $activeOrderbookRef]) => ($settings?.orderbooks !== undefined && $activeOrderbookRef !== undefined) ? $settings.orderbooks[$activeOrderbookRef] : undefined);
 export const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) => ($settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined) ? $settings.subgraphs[$activeOrderbook.subgraph] : undefined);
 export const orderbookAddress = derived(activeOrderbook, ($activeOrderbook) => $activeOrderbook?.address);

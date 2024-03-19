@@ -17,7 +17,7 @@ pub struct Scenario {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseScenarioStringError {
+pub enum ParseScenarioConfigSourceError {
     #[error("Failed to parse runs")]
     RunsParseError(ParseIntError),
     #[error("Parent binding shadowed by child: {0}")]
@@ -39,16 +39,16 @@ pub struct ScenarioParent {
 // Shadowing is disallowed for deployers, orderbooks and specific bindings.
 // If a child specifies one that is already set by the parent, this is an error.
 //
-// Nested scenarios within the ScenarioString struct are flattened out into a
+// Nested scenarios within the ScenarioConfigSource struct are flattened out into a
 // hashmap of scenarios, where the key is the path such as foo.bar.baz.
 // Every level of the scenario path inherits its parents bindings recursively.
-impl ScenarioString {
+impl ScenarioConfigSource {
     pub fn try_into_scenarios(
         &self,
         name: String,
         parent: &ScenarioParent,
         deployers: &HashMap<String, Arc<Deployer>>,
-    ) -> Result<HashMap<String, Arc<Scenario>>, ParseScenarioStringError> {
+    ) -> Result<HashMap<String, Arc<Scenario>>, ParseScenarioConfigSourceError> {
         // Determine the resolved name for the deployer, preferring the explicit deployer name if provided.
         let resolved_name = self.deployer.as_ref().unwrap_or(&name);
 
@@ -59,13 +59,13 @@ impl ScenarioString {
         let deployer_ref = resolved_deployer.or(parent.deployer.as_ref());
 
         // If no deployer could be resolved and there's no parent deployer, return an error.
-        let deployer_ref =
-            deployer_ref.ok_or_else(|| ParseScenarioStringError::DeployerNotFound(name.clone()))?;
+        let deployer_ref = deployer_ref
+            .ok_or_else(|| ParseScenarioConfigSourceError::DeployerNotFound(name.clone()))?;
 
         // Check for non-matching override: if both the current and parent deployers are present and different, it's an error.
         if let (deployer, Some(parent_deployer)) = (deployer_ref, parent.deployer.as_ref()) {
             if deployer.label != parent_deployer.label {
-                return Err(ParseScenarioStringError::ParentDeployerShadowedError(
+                return Err(ParseScenarioConfigSourceError::ParentDeployerShadowedError(
                     resolved_name.clone(),
                 ));
             }
@@ -79,7 +79,7 @@ impl ScenarioString {
         for (k, v) in &self.bindings {
             if let Some(parent_value) = parent.bindings.as_ref().and_then(|pb| pb.get(k)) {
                 if parent_value != v {
-                    return Err(ParseScenarioStringError::ParentBindingShadowedError(
+                    return Err(ParseScenarioConfigSourceError::ParentBindingShadowedError(
                         k.to_string(),
                     ));
                 }
@@ -134,7 +134,7 @@ mod tests {
         let mut networks = HashMap::new();
         networks.insert(
             "mainnet".to_string(),
-            NetworkString {
+            NetworkConfigSource {
                 rpc: Url::parse("https://mainnet.node").unwrap(),
                 chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
@@ -147,7 +147,7 @@ mod tests {
         let mut deployers = HashMap::new();
         deployers.insert(
             "mainnet".to_string(),
-            DeployerString {
+            DeployerConfigSource {
                 address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01"
                     .parse::<Address>()
                     .unwrap(),
@@ -160,7 +160,7 @@ mod tests {
         let mut nested_scenario2 = HashMap::new();
         nested_scenario2.insert(
             "nested_scenario2".to_string(),
-            ScenarioString {
+            ScenarioConfigSource {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(2),
                 deployer: None,
@@ -171,7 +171,7 @@ mod tests {
         let mut nested_scenario1 = HashMap::new();
         nested_scenario1.insert(
             "nested_scenario1".to_string(),
-            ScenarioString {
+            ScenarioConfigSource {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(5),
                 deployer: None,
@@ -183,7 +183,7 @@ mod tests {
         let mut scenarios = HashMap::new();
         scenarios.insert(
             "root_scenario".to_string(),
-            ScenarioString {
+            ScenarioConfigSource {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(10),
                 deployer: Some("mainnet".to_string()),
@@ -191,8 +191,8 @@ mod tests {
             },
         );
 
-        // Construct ConfigString with the above scenarios
-        let config_string = ConfigString {
+        // Construct ConfigSource with the above scenarios
+        let config_string = ConfigSource {
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
             orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
@@ -250,7 +250,7 @@ mod tests {
         let mut child_bindings = HashMap::new();
         child_bindings.insert("shared_key".to_string(), "child_value".to_string()); // Intentionally shadowing parent binding
 
-        let child_scenario = ScenarioString {
+        let child_scenario = ScenarioConfigSource {
             bindings: child_bindings,
             runs: None,
             deployer: None,
@@ -267,7 +267,7 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            ParseScenarioStringError::ParentBindingShadowedError(key) => {
+            ParseScenarioConfigSourceError::ParentBindingShadowedError(key) => {
                 assert_eq!(key, "shared_key");
             }
             _ => panic!("Expected ParentBindingShadowedError"),
