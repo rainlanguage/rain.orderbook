@@ -19,7 +19,7 @@
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigString } from '$lib/typeshare/configString';
+  import type { ConfigSource } from '$lib/typeshare/configString';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
 
   let isSubmitting = false;
@@ -27,11 +27,11 @@
   let chartData: ChartData[];
   let dotrainFile = textFileStore('Rain', ['rain']);
   let deploymentRef: string | undefined = undefined;
-  let mergedConfigString: ConfigString | undefined = undefined;
+  let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
 
-  $: deployments = (mergedConfigString !== undefined && mergedConfigString?.deployments !== undefined && mergedConfigString?.orders !== undefined) ?
-    pickBy(mergedConfigString.deployments, (d) => mergedConfigString?.orders?.[d.order]?.network === $activeNetworkRef) : {};
+  $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
+    pickBy(mergedConfigSource.deployments, (d) => mergedConfigSource?.orders?.[d.order]?.network === $activeNetworkRef) : {};
   $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
@@ -58,8 +58,8 @@
 
   async function updateMergedConfig() {
     try {
-      mergedConfigString = await mergeDotrainConfigWithSettings($dotrainFile.text);
-      mergedConfig = await convertConfigstringToConfig(mergedConfigString);
+      mergedConfigSource = await mergeDotrainConfigWithSettings($dotrainFile.text);
+      mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
       // eslint-disable-next-line no-empty
     } catch(e) {}
   }
@@ -80,7 +80,7 @@
     try {
       chartData = await makeChartData($dotrainFile.text, $settingsText);
     } catch(e) {
-      toasts.error(e as string, {break_text: true});
+      toasts.error(e as string);
     }
     isCharting = false;
   }

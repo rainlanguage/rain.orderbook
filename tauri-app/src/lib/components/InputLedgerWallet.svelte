@@ -15,7 +15,6 @@
     radix: '.',
   };
 
-  let derivationIndexInput: number = 0;
   export let derivationIndex: number = 0;
   export let walletAddress: string;
   let isFetchingFromLedger: boolean;
@@ -72,7 +71,7 @@
     <input
       type="text"
       class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-32 rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-      value={derivationIndexInput}
+      value={derivationIndex}
       use:imask={maskOptions}
       on:complete={completeDerivationIndex}
     />

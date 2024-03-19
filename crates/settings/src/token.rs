@@ -19,7 +19,7 @@ pub struct Token {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseTokenStringError {
+pub enum ParseTokenConfigSourceError {
     #[error("Failed to parse address")]
     AddressParseError(FromHexError),
     #[error("Failed to parse decimals")]
@@ -28,14 +28,14 @@ pub enum ParseTokenStringError {
     NetworkNotFoundError(String),
 }
 
-impl TokenString {
+impl TokenConfigSource {
     pub fn try_into_token(
         self,
         networks: &HashMap<String, Arc<Network>>,
-    ) -> Result<Token, ParseTokenStringError> {
+    ) -> Result<Token, ParseTokenConfigSourceError> {
         let network_ref = networks
             .get(&self.network)
-            .ok_or(ParseTokenStringError::NetworkNotFoundError(
+            .ok_or(ParseTokenConfigSourceError::NetworkNotFoundError(
                 self.network.clone(),
             ))
             .map(Arc::clone)?;
@@ -66,7 +66,7 @@ mod token_tests {
     #[test]
     fn test_token_creation_success_with_all_fields() {
         let networks = setup_networks();
-        let token_string = TokenString {
+        let token_string = TokenConfigSource {
             network: "TestNetwork".to_string(),
             address: Address::repeat_byte(0x01),
             decimals: Some(18),
@@ -92,7 +92,7 @@ mod token_tests {
     #[test]
     fn test_token_creation_success_with_minimal_fields() {
         let networks = setup_networks();
-        let token_string = TokenString {
+        let token_string = TokenConfigSource {
             network: "TestNetwork".to_string(),
             address: Address::repeat_byte(0x01),
             decimals: None,
@@ -118,7 +118,7 @@ mod token_tests {
     #[test]
     fn test_token_creation_failure_due_to_invalid_network() {
         let networks = setup_networks();
-        let token_string = TokenString {
+        let token_string = TokenConfigSource {
             network: "InvalidNetwork".to_string(),
             address: Address::repeat_byte(0x01),
             decimals: None,
@@ -131,7 +131,7 @@ mod token_tests {
         assert!(token.is_err());
         assert_eq!(
             token.unwrap_err(),
-            ParseTokenStringError::NetworkNotFoundError("InvalidNetwork".to_string())
+            ParseTokenConfigSourceError::NetworkNotFoundError("InvalidNetwork".to_string())
         );
     }
 }

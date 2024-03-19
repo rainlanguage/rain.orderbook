@@ -7,25 +7,25 @@ use url::Url;
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct ConfigString {
+pub struct ConfigSource {
     #[serde(default)]
-    pub networks: HashMap<String, NetworkString>,
+    pub networks: HashMap<String, NetworkConfigSource>,
     #[serde(default)]
     pub subgraphs: HashMap<String, Url>,
     #[serde(default)]
-    pub orderbooks: HashMap<String, OrderbookString>,
+    pub orderbooks: HashMap<String, OrderbookConfigSource>,
     #[serde(default)]
-    pub tokens: HashMap<String, TokenString>,
+    pub tokens: HashMap<String, TokenConfigSource>,
     #[serde(default)]
-    pub deployers: HashMap<String, DeployerString>,
+    pub deployers: HashMap<String, DeployerConfigSource>,
     #[serde(default)]
-    pub orders: HashMap<String, OrderString>,
+    pub orders: HashMap<String, OrderConfigSource>,
     #[serde(default)]
-    pub scenarios: HashMap<String, ScenarioString>,
+    pub scenarios: HashMap<String, ScenarioConfigSource>,
     #[serde(default)]
-    pub charts: HashMap<String, ChartString>,
+    pub charts: HashMap<String, ChartConfigSource>,
     #[serde(default)]
-    pub deployments: HashMap<String, DeploymentString>,
+    pub deployments: HashMap<String, DeploymentConfigSource>,
 }
 
 #[typeshare]
@@ -52,7 +52,7 @@ pub type TokenRef = String;
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct NetworkString {
+pub struct NetworkConfigSource {
     pub rpc: Url,
     #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
@@ -65,7 +65,7 @@ pub struct NetworkString {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct OrderbookString {
+pub struct OrderbookConfigSource {
     pub address: Address,
     pub network: Option<NetworkRef>,
     pub subgraph: Option<SubgraphRef>,
@@ -75,7 +75,7 @@ pub struct OrderbookString {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct TokenString {
+pub struct TokenConfigSource {
     pub network: NetworkRef,
     pub address: Address,
     pub decimals: Option<u8>,
@@ -86,7 +86,7 @@ pub struct TokenString {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct DeployerString {
+pub struct DeployerConfigSource {
     pub address: Address,
     pub network: Option<NetworkRef>,
     pub label: Option<String>,
@@ -95,7 +95,7 @@ pub struct DeployerString {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct DeploymentString {
+pub struct DeploymentConfigSource {
     pub scenario: ScenarioRef,
     pub order: OrderRef,
 }
@@ -112,7 +112,7 @@ pub struct IOString {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct OrderString {
+pub struct OrderConfigSource {
     pub inputs: Vec<IOString>,
     pub outputs: Vec<IOString>,
     pub deployer: Option<DeployerRef>,
@@ -122,19 +122,19 @@ pub struct OrderString {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct ScenarioString {
+pub struct ScenarioConfigSource {
     #[serde(default)]
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
     pub deployer: Option<DeployerRef>,
-    pub scenarios: Option<HashMap<String, ScenarioString>>,
+    pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
 }
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct ChartString {
+pub struct ChartConfigSource {
     pub scenario: Option<ScenarioRef>,
     pub plots: HashMap<String, PlotString>,
 }
@@ -155,9 +155,9 @@ pub struct DataPointsString {
     pub y: String,
 }
 
-impl TryFrom<String> for ConfigString {
+impl TryFrom<String> for ConfigSource {
     type Error = serde_yaml::Error;
-    fn try_from(val: String) -> Result<ConfigString, Self::Error> {
+    fn try_from(val: String) -> Result<ConfigSource, Self::Error> {
         serde_yaml::from_str(&val)
     }
 }
@@ -274,7 +274,7 @@ deployments:
         order: buyETH"#
             .to_string();
 
-        let config: ConfigString = yaml_data.try_into().unwrap();
+        let config: ConfigSource = yaml_data.try_into().unwrap();
 
         // Asserting a few values to verify successful parsing
         assert_eq!(
