@@ -9,36 +9,23 @@ import { toasts } from './toasts';
 import { pickBy } from 'lodash';
 import { parseConfigSource } from '$lib/services/config';
 
-const emptyConfig = {
-  deployments: {},
-  networks: {},
-  orderbooks: {},
-  orders: {},
-  subgraphs: {},
-  tokens: {},
-  deployers: {},
-  scenarios: {},
-  charts: {}
-} as ConfigSource;
-
 // general
 export const settingsText = cachedWritableStore<string>('settings', "", (s) => s, (s) => s);
 export const settingsFile = textFileStore('Orderbook Settings Yaml', ['yml', 'yaml'], get(settingsText));
-export const settings = asyncDerived(settingsText, async ($settingsText): Promise<ConfigSource> => {
+export const settings = asyncDerived(settingsText, async ($settingsText): Promise<ConfigSource | undefined> => {
   try {
     const config: ConfigSource = await parseConfigSource($settingsText);
     return config;
   } catch(e) {
     toasts.error(e as string);
-    return emptyConfig;
   }
-}, { initial: emptyConfig });
+});
 
 // networks
 export const activeNetworkRef = cachedWritableStringOptional("settings.activeNetworkRef");
 export const activeNetwork = asyncDerived([settings, activeNetworkRef], async ([$settings, $activeNetworkRef]) => {
   await settings.load();
-  return ($activeNetworkRef !== undefined && $settings.networks !== undefined) ? $settings.networks[$activeNetworkRef] : undefined;
+  return ($activeNetworkRef !== undefined && $settings?.networks !== undefined) ? $settings.networks[$activeNetworkRef] : undefined;
 });
 export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpc);
 export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.['chain-id']);
@@ -58,16 +45,25 @@ export const orderbookAddress = derived(activeOrderbook, ($activeOrderbook) => $
 export const hasRequiredSettings = derived([activeNetworkRef, activeOrderbookRef], ([$activeNetworkRef, $activeOrderbookRef]) => $activeNetworkRef !== undefined && $activeOrderbookRef !== undefined);
 
 // When networks / orderbooks settings updated, reset active network / orderbook
-settings.subscribe(async ($settings) => {
+settings.subscribe(async () => {
   await settings.load();
   const $activeNetworkRef = get(activeNetworkRef);
   const $activeOrderbookRef = get(activeOrderbookRef);
+  const $settings = get(settings);
 
-  if(!$settings.networks || $activeNetworkRef === undefined || !Object.keys($settings.networks).includes($activeNetworkRef)) {
+  if(
+    $settings?.networks === undefined
+    || $activeNetworkRef === undefined
+    || ($settings?.networks !== undefined && $activeNetworkRef !== undefined && !Object.keys($settings.networks).includes($activeNetworkRef))
+  ) {
     resetActiveNetworkRef();
   }
 
-  if(!$settings.orderbooks || $activeOrderbookRef === undefined || !Object.keys($settings.orderbooks).includes($activeOrderbookRef)) {
+  if(
+    !$settings?.orderbooks === undefined
+    || $activeOrderbookRef === undefined
+    || ($settings?.orderbooks !== undefined && $activeOrderbookRef !== undefined && !Object.keys($settings.orderbooks).includes($activeOrderbookRef))
+  ) {
     resetActiveOrderbookRef();
   }
 });
@@ -102,8 +98,9 @@ function resetActiveOrderbookRef() {
 
 
 // reset active orderbook to first available, otherwise undefined
-function resetActiveNetworkRef() {
-  const $networks = get(settings).networks;
+async function resetActiveNetworkRef() {
+  await settings.load();
+  const $networks = get(settings)?.networks;
 
   if($networks !== undefined && Object.keys($networks).length > 0) {
     activeNetworkRef.set(Object.keys($networks)[0]);
