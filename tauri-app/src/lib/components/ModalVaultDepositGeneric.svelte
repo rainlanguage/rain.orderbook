@@ -11,25 +11,28 @@
   import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   export let open = false;
-  let vaultId: bigint = 0n;
+  let vaultId: bigint | undefined = undefined;
   let tokenAddress: string = '';
-  let tokenDecimals: number = 0;
-  let amount: bigint;
+  let tokenDecimals: number | undefined = undefined;
+  let amount: bigint | undefined = undefined;
   let isSubmitting = false;
   let selectWallet = false;
 
   function reset() {
     open = false;
     if (!isSubmitting) {
-      vaultId = 0n;
+      vaultId = undefined;
       tokenAddress = '';
       tokenDecimals = 0;
-      amount = 0n;
+      amount = undefined;
       selectWallet = false;
     }
   }
 
   async function executeLedger() {
+    if(vaultId === undefined) return;
+    if(amount === undefined) return;
+
     isSubmitting = true;
     try {
       await vaultDeposit(vaultId, tokenAddress, amount);
@@ -40,6 +43,9 @@
   }
 
   async function executeWalletconnect() {
+    if(vaultId === undefined) return;
+    if(amount === undefined) return;
+
     isSubmitting = true;
     try {
       if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
