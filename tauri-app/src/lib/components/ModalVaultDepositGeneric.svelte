@@ -8,6 +8,7 @@
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   export let open = false;
   let vaultId: bigint = 0n;
@@ -56,16 +57,7 @@
       await depositTx.wait(1);
 
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === "object" && (e as any)?.reason) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      }
-      else if (typeof e === "string") toasts.error(e);
-      else if (e instanceof Error) toasts.error(e.message);
-      else toasts.error("Transaction failed!");
+      toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
     reset();
