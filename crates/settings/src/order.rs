@@ -69,7 +69,7 @@ impl OrderConfigSource {
                             if v.network == *n {
                                 Ok(v.clone())
                             } else {
-                                Err(ParseOrderStringError::NetworkNotMatch)
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
                             }
                         } else {
                             network = Some(v.network.clone());
@@ -94,7 +94,7 @@ impl OrderConfigSource {
                             if v.network == *n {
                                 Ok(v.clone())
                             } else {
-                                Err(ParseOrderStringError::NetworkNotMatch)
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
                             }
                         } else {
                             network = Some(v.network.clone());
@@ -118,10 +118,10 @@ impl OrderConfigSource {
                             if v.network == *n {
                                 Ok(OrderIO {
                                     token: v.clone(),
-                                    vault_id: input.vault_id.parse::<U256>()?,
+                                    vault_id: input.vault_id,
                                 })
                             } else {
-                                Err(ParseOrderStringError::NetworkNotMatch)
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
                             }
                         } else {
                             network = Some(v.network.clone());
@@ -148,10 +148,10 @@ impl OrderConfigSource {
                             if v.network == *n {
                                 Ok(OrderIO {
                                     token: v.clone(),
-                                    vault_id: output.vault_id.parse::<U256>()?,
+                                    vault_id: output.vault_id,
                                 })
                             } else {
-                                Err(ParseOrderStringError::NetworkNotMatch)
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
                             }
                         } else {
                             network = Some(v.network.clone());
@@ -167,7 +167,9 @@ impl OrderConfigSource {
         Ok(Order {
             inputs,
             outputs,
-            network: network.ok_or(ParseOrderStringError::NetworkNotFoundError(String::new()))?,
+            network: network.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
+                String::new(),
+            ))?,
             deployer,
             orderbook,
         })
@@ -239,8 +241,6 @@ mod tests {
 
     #[test]
     fn test_try_into_order_network_not_found_error() {
-        let networks = HashMap::new(); // Empty network map
-
         let order_string = OrderConfigSource {
             deployer: None,
             orderbook: None,
