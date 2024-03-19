@@ -49,9 +49,9 @@
     isSubmitting = true;
     try {
       if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
-      const allowance = await checkAllowance(amount, tokenAddress, $orderbookAddress);
-      if (!allowance) {
-        const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount) as Uint8Array;
+      const allowance = await checkAllowance(tokenAddress, $orderbookAddress);
+      if (allowance.lt(amount)) {
+        const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount, allowance.toBigInt()) as Uint8Array;
         const approveTx = await ethersExecute(approveCalldata, tokenAddress);
         toasts.success("Approve Transaction sent successfully!");
         await approveTx.wait(1);

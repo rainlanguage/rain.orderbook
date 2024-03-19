@@ -24,7 +24,7 @@ const abi = [
   "function allowance(address owner, address spender) view returns (uint256)"
 ];
 
-export async function checkAllowance(amount: bigint, tokenAddress: string, spender: string): Promise<boolean> {
+export async function checkAllowance(tokenAddress: string, spender: string): Promise<BigNumber> {
   const walletProvider = get(walletconnectModal)?.getWalletProvider();
   if (!walletProvider) {
     toasts.error("user not connected");
@@ -34,7 +34,6 @@ export async function checkAllowance(amount: bigint, tokenAddress: string, spend
     const ethersProvider = new ethers.providers.Web3Provider(walletProvider);
     const signer = ethersProvider.getSigner();
     const contract = new ethers.Contract(tokenAddress, abi, signer);
-    const allowance = await contract.allowance(await signer.getAddress(), spender) as BigNumber;
-    return allowance.gte(amount);
+    return contract.allowance(await signer.getAddress(), spender) as BigNumber;
   }
 }
