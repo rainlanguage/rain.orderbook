@@ -267,7 +267,7 @@ impl FuzzRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::string_structs::ConfigString;
+    use rain_orderbook_app_settings::config_source::ConfigSource;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
@@ -300,7 +300,7 @@ b: fuzzed;
 :;
     "#;
         let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigString>(frontmatter).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
         let config = settings
             .try_into()
             .map_err(|e| println!("{:?}", e))
@@ -363,7 +363,7 @@ b: fuzzed;
     :;
         "#;
         let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigString>(frontmatter).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
 
         let config = settings
             .try_into()

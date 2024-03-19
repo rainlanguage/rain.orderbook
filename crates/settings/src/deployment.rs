@@ -15,7 +15,7 @@ pub struct Deployment {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseDeploymentStringError {
+pub enum ParseDeploymentConfigSourceError {
     #[error("Scenario not found: {0}")]
     ScenarioNotFoundError(String),
     #[error("Order not found: {0}")]
@@ -24,22 +24,22 @@ pub enum ParseDeploymentStringError {
     NoMatch,
 }
 
-impl DeploymentString {
+impl DeploymentConfigSource {
     pub fn try_into_deployment(
         self,
         scenarios: &HashMap<String, Arc<Scenario>>,
         orders: &HashMap<String, Arc<Order>>,
-    ) -> Result<Deployment, ParseDeploymentStringError> {
+    ) -> Result<Deployment, ParseDeploymentConfigSourceError> {
         let scenario = scenarios
             .get(&self.scenario)
-            .ok_or(ParseDeploymentStringError::ScenarioNotFoundError(
+            .ok_or(ParseDeploymentConfigSourceError::ScenarioNotFoundError(
                 self.scenario.clone(),
             ))
             .map(Arc::clone)?;
 
         let order = orders
             .get(&self.order)
-            .ok_or(ParseDeploymentStringError::OrderNotFoundError(
+            .ok_or(ParseDeploymentConfigSourceError::OrderNotFoundError(
                 self.order.clone(),
             ))
             .map(Arc::clone)?;
@@ -47,7 +47,7 @@ impl DeploymentString {
         // check validity
         if let Some(deployer) = &order.deployer {
             if deployer != &scenario.deployer {
-                return Err(ParseDeploymentStringError::NoMatch);
+                return Err(ParseDeploymentConfigSourceError::NoMatch);
             }
         };
 
@@ -91,7 +91,7 @@ mod tests {
         };
         let orders = HashMap::from([(order_name.to_string(), Arc::new(order))]);
         let scenarios = HashMap::from([(scenario_name.to_string(), Arc::new(scenario))]);
-        let deploment_string = DeploymentString {
+        let deploment_string = DeploymentConfigSource {
             scenario: scenario_name.to_string(),
             order: order_name.to_string(),
         };
@@ -119,14 +119,14 @@ mod tests {
         };
         let orders = HashMap::from([(order_name.to_string(), Arc::new(order))]);
         let scenarios = HashMap::from([(scenario_name.to_string(), Arc::new(scenario))]);
-        let deploment_string = DeploymentString {
+        let deploment_string = DeploymentConfigSource {
             scenario: other_scenario_name.to_string(),
             order: order_name.to_string(),
         };
         let result = deploment_string.try_into_deployment(&scenarios, &orders);
         assert!(matches!(
             result,
-            Err(ParseDeploymentStringError::ScenarioNotFoundError(_))
+            Err(ParseDeploymentConfigSourceError::ScenarioNotFoundError(_))
         ));
     }
 }

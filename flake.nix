@@ -23,7 +23,6 @@
               # Generate Typescript types from rust types
               mkdir -p tauri-app/src/lib/typeshare
               
-              mkdir /tmp/cargo
               export CARGO_HOME=$(mktemp -d)
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
@@ -41,7 +40,7 @@
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               typeshare crates/settings/src/config.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
-              typeshare crates/settings/src/string_structs.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/configString.ts;
+              typeshare crates/settings/src/config_source.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/configString.ts;
 
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;

@@ -2,7 +2,7 @@
   import { Alert, Button, Modal } from 'flowbite-svelte';
   import { hasRequiredSettings, settingsText } from '$lib/stores/settings';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import CodeMirrorConfigString from '$lib/components/CodeMirrorConfigString.svelte';
+  import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { settingsFile }from '$lib/stores/settings';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
@@ -43,7 +43,7 @@
 
 <FileTextarea textFile={settingsFile} title="Settings">
   <svelte:fragment slot="textarea">
-    <CodeMirrorConfigString
+    <CodeMirrorConfigSource
         bind:value={$settingsFile.text}
         styles={{ '&': { minHeight: '400px' } }}
       />

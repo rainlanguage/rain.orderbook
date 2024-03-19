@@ -67,7 +67,7 @@ pub async fn order_add(
     deployment: Deployment,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into(), None);
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into());
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
     add_order_args
         .execute(transaction_args, |status| {
@@ -104,7 +104,7 @@ pub async fn order_remove(
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
 
-    let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into(), None);
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into());
     let _ = remove_order_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);

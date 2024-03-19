@@ -35,44 +35,44 @@ pub type Subgraph = Url;
 pub type Vault = U256;
 
 #[derive(Error, Debug)]
-pub enum ParseConfigStringError {
+pub enum ParseConfigSourceError {
     #[error(transparent)]
-    ParseNetworkStringError(#[from] ParseNetworkStringError),
+    ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
-    ParseOrderbookStringError(#[from] ParseOrderbookStringError),
+    ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
     #[error(transparent)]
-    ParseTokenStringError(#[from] ParseTokenStringError),
+    ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
     #[error(transparent)]
-    ParseOrderStringError(#[from] ParseOrderStringError),
+    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
     #[error(transparent)]
-    ParseDeployerStringError(#[from] ParseDeployerStringError),
+    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
     #[error(transparent)]
-    ParseScenarioStringError(#[from] ParseScenarioStringError),
+    ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
     #[error(transparent)]
-    ParseChartStringError(#[from] ParseChartStringError),
+    ParseChartConfigSourceError(#[from] ParseChartConfigSourceError),
     #[error(transparent)]
-    ParseDeploymentStringError(#[from] ParseDeploymentStringError),
+    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
     #[error("Failed to parse subgraph {}", 0)]
     SubgraphParseError(url::ParseError),
     #[error(transparent)]
     YamlDeserializerError(#[from] serde_yaml::Error),
 }
 
-impl TryFrom<ConfigString> for Config {
-    type Error = ParseConfigStringError;
+impl TryFrom<ConfigSource> for Config {
+    type Error = ParseConfigSourceError;
 
-    fn try_from(item: ConfigString) -> Result<Self, Self::Error> {
+    fn try_from(item: ConfigSource) -> Result<Self, Self::Error> {
         let networks = item
             .networks
             .into_iter()
             .map(|(name, network)| Ok((name, Arc::new(network.try_into()?))))
-            .collect::<Result<HashMap<String, Arc<Network>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Network>>, ParseConfigSourceError>>()?;
 
         let subgraphs = item
             .subgraphs
             .into_iter()
             .map(|(name, subgraph)| Ok((name, Arc::new(subgraph))))
-            .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigSourceError>>()?;
 
         let orderbooks = item
             .orderbooks
@@ -83,13 +83,13 @@ impl TryFrom<ConfigString> for Config {
                     Arc::new(orderbook.try_into_orderbook(name, &networks, &subgraphs)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Orderbook>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Orderbook>>, ParseConfigSourceError>>()?;
 
         let tokens = item
             .tokens
             .into_iter()
             .map(|(name, token)| Ok((name, Arc::new(token.try_into_token(&networks)?))))
-            .collect::<Result<HashMap<String, Arc<Token>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Token>>, ParseConfigSourceError>>()?;
 
         let deployers = item
             .deployers
@@ -100,7 +100,7 @@ impl TryFrom<ConfigString> for Config {
                     Arc::new(deployer.try_into_deployer(name, &networks)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Deployer>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Deployer>>, ParseConfigSourceError>>()?;
 
         let orders = item
             .orders
@@ -111,7 +111,7 @@ impl TryFrom<ConfigString> for Config {
                     Arc::new(order.try_into_order(&networks, &deployers, &orderbooks, &tokens)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Order>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Order>>, ParseConfigSourceError>>()?;
 
         // Initialize an empty HashMap for all scenarios
         let mut scenarios = HashMap::new();
@@ -137,7 +137,7 @@ impl TryFrom<ConfigString> for Config {
                     Arc::new(deployment.try_into_deployment(&scenarios, &orders)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Deployment>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Deployment>>, ParseConfigSourceError>>()?;
 
         let charts = item
             .charts
@@ -148,7 +148,7 @@ impl TryFrom<ConfigString> for Config {
                     Arc::new(chart.try_into_chart(name, &scenarios)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigStringError>>()?;
+            .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
 
         let config = Config {
             networks,
@@ -167,9 +167,9 @@ impl TryFrom<ConfigString> for Config {
 }
 
 impl TryFrom<String> for Config {
-    type Error = ParseConfigStringError;
+    type Error = ParseConfigSourceError;
     fn try_from(val: String) -> Result<Config, Self::Error> {
-        std::convert::TryInto::<ConfigString>::try_into(val)?.try_into()
+        std::convert::TryInto::<ConfigSource>::try_into(val)?.try_into()
     }
 }
 
@@ -185,7 +185,7 @@ mod tests {
         let mut networks = HashMap::new();
         networks.insert(
             "mainnet".to_string(),
-            NetworkString {
+            NetworkConfigSource {
                 rpc: Url::parse("https://mainnet.node").unwrap(),
                 chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
@@ -203,7 +203,7 @@ mod tests {
         let mut orderbooks = HashMap::new();
         orderbooks.insert(
             "mainnetOrderbook".to_string(),
-            OrderbookString {
+            OrderbookConfigSource {
                 address: "0x1234567890123456789012345678901234567890"
                     .parse::<Address>()
                     .unwrap(),
@@ -216,7 +216,7 @@ mod tests {
         let mut tokens = HashMap::new();
         tokens.insert(
             "ETH".to_string(),
-            TokenString {
+            TokenConfigSource {
                 network: "mainnet".to_string(),
                 address: "0x7890123456789012345678901234567890123456"
                     .parse::<Address>()
@@ -230,7 +230,7 @@ mod tests {
         let mut deployers = HashMap::new();
         deployers.insert(
             "mainDeployer".to_string(),
-            DeployerString {
+            DeployerConfigSource {
                 address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01"
                     .parse::<Address>()
                     .unwrap(),
@@ -244,7 +244,7 @@ mod tests {
         let charts = HashMap::new();
         let deployments = HashMap::new();
 
-        let config_string = ConfigString {
+        let config_string = ConfigSource {
             networks,
             subgraphs,
             orderbooks,

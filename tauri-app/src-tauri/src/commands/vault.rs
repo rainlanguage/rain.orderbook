@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use crate::toast::toast_error;
-use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
+use crate::transaction_status::TransactionStatusNoticeRwLock;
 use alloy_primitives::Bytes;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
@@ -105,11 +105,7 @@ pub async fn vault_deposit(
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Approve ERC20 token transfer".into(),
-        Some(SeriesPosition {
-            position: 1,
-            total: 2,
-        }),
+        "Approve ERC20 token transfer".into()
     );
     let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
@@ -121,11 +117,7 @@ pub async fn vault_deposit(
         });
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Deposit tokens into vault".into(),
-        Some(SeriesPosition {
-            position: 2,
-            total: 2,
-        }),
+        "Deposit tokens into vault".into()
     );
     let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
@@ -178,7 +170,7 @@ pub async fn vault_withdraw(
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice =
-        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), None);
+        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into());
     let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
