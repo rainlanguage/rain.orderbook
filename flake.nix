@@ -78,7 +78,7 @@
                   source $ENV_FILE
               fi
               
-              # Exit if if required env variables are not defined
+              # Exit if required env variables are not defined
               if [ -z "$VITE_WALLETCONNECT_PROJECT_ID" ]; then
                 echo "Cancelling build: VITE_WALLETCONNECT_PROJECT_ID is not defined"
                 exit 1
