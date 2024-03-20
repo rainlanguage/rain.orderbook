@@ -21,7 +21,7 @@
   import { colorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
-  type ChartData = { value: number; time: UTCTimestamp; color?: string }[];
+  type ChartData = { value: number; time: UTCTimestamp; color?: string}[];
   let orderTakesListChartData: ChartData = [];
 
   const orderTakesList = useOrderTakesList($page.params.id);
@@ -44,17 +44,20 @@
       value: parseFloat(d.ioratio),
       time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
       color: $colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
+      outputAmount: +d.output_display
     }));
 
     // if we have multiple object in the array with the same timestamp, we need to merge them
-    // we do this by taking the average of the ioratio values for objects that share the same timestamp.
+    // we do this by taking the weighted average of the ioratio values for objects that share the same timestamp.
     const uniqueTimestamps = Array.from(new Set(transformedData.map((d) => d.time)));
     let finalData: ChartData = [];
     uniqueTimestamps.forEach((timestamp) => {
       const objectsWithSameTimestamp = transformedData.filter((d) => d.time === timestamp);
       if (objectsWithSameTimestamp.length > 1) {
-        const ioratioSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.value, 0);
-        const ioratioAverage = ioratioSum / objectsWithSameTimestamp.length;
+        // calculate a weighted average of the ioratio values using the amount of the output token as the weight
+        const ioratioSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.value * d.outputAmount, 0);
+        const outputAmountSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.outputAmount, 0);
+        const ioratioAverage = ioratioSum / outputAmountSum;
         finalData.push({
           value: ioratioAverage,
           time: timestamp,
