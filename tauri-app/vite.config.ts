@@ -4,41 +4,45 @@ import { defineConfig, loadEnv } from 'vite';
 import checker from 'vite-plugin-checker';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadEnv(mode, process.cwd(), '');
+
+  const sentryPlugins = env.VITE_SENTRY_ENVIRONMENT === 'release' ? [
+    sentrySvelteKit({
+      sourceMapsUploadOptions: {
+        org: env.SENTRY_ORG,
+        project: env.SENTRY_PROJECT,
+        authToken: env.SENTRY_AUTH_TOKEN,
+      }
+    })
+  ] : [];
+
   return {
+    plugins: [
+      ...sentryPlugins,
+      sveltekit(),
+      checker({
+      typescript: true,
+      eslint: {
+          lintCommand: 'eslint src',
+        },
+    })],
+
+
+    // prevent vite from obscuring rust errors
+    clearScreen: false,
+
+    // tauri expects a fixed port, fail if that port is not available
+    server: {
+      port: 1420,
+      strictPort: true,
+      watch: {
+        // tell vite to ignore watching `src-tauri`
+        ignored: ["**/src-tauri/**"],
+      },
+    },
+
     build: {
       sourcemap: true
-    },
-    define: {
-      plugins: [
-        sentrySvelteKit({
-          sourceMapsUploadOptions: {
-            org: env.SENTRY_ORG,
-            project: env.SENTRY_PROJECT,
-            authToken: env.SENTRY_AUTH_TOKEN,
-          }
-        }),
-        sveltekit(),
-        checker({
-        typescript: true,
-        eslint: {
-            lintCommand: 'eslint src',
-          },
-      })],
-
-
-      // prevent vite from obscuring rust errors
-      clearScreen: false,
-
-      // tauri expects a fixed port, fail if that port is not available
-      server: {
-        port: 1420,
-        strictPort: true,
-        watch: {
-          // tell vite to ignore watching `src-tauri`
-          ignored: ["**/src-tauri/**"],
-        },
-      },
     },
   }
 });
