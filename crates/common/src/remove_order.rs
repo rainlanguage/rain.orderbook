@@ -4,6 +4,7 @@ use alloy_ethers_typecast::transaction::{
 };
 use alloy_primitives::hex::FromHexError;
 
+use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::IOrderBookV3::removeOrderCall;
 use rain_orderbook_subgraph_client::types::{
     order_detail::Order, order_detail_traits::OrderDetailError,
@@ -65,5 +66,10 @@ impl RemoveOrderArgs {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_rm_order_calldata(self) -> Result<Vec<u8>, RemoveOrderArgsError> {
+        let remove_order_call: removeOrderCall = self.try_into()?;
+        Ok(remove_order_call.abi_encode())
     }
 }

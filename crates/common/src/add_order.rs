@@ -7,6 +7,7 @@ use alloy_ethers_typecast::transaction::{
     WriteTransaction, WriteTransactionStatus,
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
+use alloy_sol_types::SolCall;
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser, ParserError, ParserV1};
@@ -214,6 +215,16 @@ impl AddOrderArgs {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_add_order_calldata(
+        &self,
+        transaction_args: TransactionArgs,
+    ) -> Result<Vec<u8>, AddOrderArgsError> {
+        Ok(self
+            .try_into_call(transaction_args.clone().rpc_url)
+            .await?
+            .abi_encode())
     }
 }
 
