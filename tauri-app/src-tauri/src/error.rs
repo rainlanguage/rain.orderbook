@@ -3,6 +3,8 @@ use alloy_primitives::ruint::FromUintError;
 use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::merge::MergeError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
+use rain_orderbook_common::remove_order::RemoveOrderArgsError;
+use rain_orderbook_common::transaction::WritableTransactionExecuteError;
 use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
     rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
@@ -58,6 +60,12 @@ pub enum CommandError {
 
     #[error(transparent)]
     ParseConfigYamlError(#[from] serde_yaml::Error),
+
+    #[error(transparent)]
+    RemoveOrderArgsError(#[from] RemoveOrderArgsError),
+
+    #[error(transparent)]
+    WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
 }
 
 impl Serialize for CommandError {
