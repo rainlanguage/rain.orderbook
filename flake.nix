@@ -126,6 +126,21 @@
               fi
             '';
           };
+
+          ob-tauri-sentry-version = rainix.mkTask.${system} {
+            name = "ob-tauri-sentry-version";
+            body = ''
+              # Create new 'release' on sentry, associated with the current commit
+              sentry-cli releases new -p $SENTRY_PROJECT $COMMIT_SHA
+              sentry-cli releases set-commits --auto $COMMIT_SHA
+
+              # Set env variable so app connects to sentry configured as the new release
+              echo VITE_SENTRY_RELEASE=$COMMIT_SHA >> .env
+            '';
+            additionalBuildInputs = [
+              pkgs.sentry-cli
+            ]
+          };
         } // rainix.packages.${system};
 
         devShells.default = rainix.devShells.${system}.default;

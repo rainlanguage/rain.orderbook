@@ -7,6 +7,14 @@ on:
       - main
 
 jobs:
+  create-sentry-release:
+    steps:
+      - run: nix develop .#tauri-shell --command ob-tauri-sentry-version
+        env: 
+          - SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+          - SENTRY_ORG=rainlang
+          - SENTRY_PROJECT=rain-orderbook
+          - COMMIT_SHA=${{ github.sha }}
   publish-tauri:
     permissions:
       contents: write

@@ -13,6 +13,7 @@ export function initSentry() {
     replaysOnErrorSampleRate: 1.0,
     enabled: true,
     integrations: [Sentry.replayIntegration()],
+    release: import.meta.env.VITE_SENTRY_RELEASE,
 
     // This is a recommended way to conditionally disable/enable Sentry at runtime
     // See https://github.com/getsentry/sentry-javascript/issues/2039#issuecomment-487490204
