@@ -233,15 +233,15 @@
       "locked": {
         "lastModified": 1710667956,
         "narHash": "sha256-ZsLPwguIh1buBHIQKw8GJxFrGDX1uXwawfPqH0ItjvU=",
-        "owner": "shazow",
+        "owner": "thedavidmeister",
         "repo": "foundry.nix",
         "rev": "b1c8a65025fc55e8225163313c2a2b70f79dee52",
         "type": "github"
       },
       "original": {
-        "owner": "shazow",
+        "owner": "thedavidmeister",
+        "ref": "2024-01-13-unambiguous-versions",
         "repo": "foundry.nix",
-        "rev": "b1c8a65025fc55e8225163313c2a2b70f79dee52",
         "type": "github"
       }
     },
@@ -351,11 +351,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1710615598,
-        "narHash": "sha256-9t+mC2iKWr/x4ZzTLWR9+2mR9Fu8mwbCytgliGHD1xc=",
+        "lastModified": 1710918346,
+        "narHash": "sha256-QK07gho0fEyjiiIbjsOCe2MRAmG6PKZLIW8qwVzekUg=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "bd5f4066db724743d47db0eeb0c5b20c5066035d",
+        "rev": "9a17472b188d281704c695af4b2f516c0c7d20e5",
         "type": "github"
       },
       "original": {
@@ -537,11 +537,11 @@
         "rust-overlay": "rust-overlay_3"
       },
       "locked": {
-        "lastModified": 1710874049,
-        "narHash": "sha256-+FCtkiLAeB28TQTaPg0OxOm1+Nw7RGl+DCBbIl/uB8U=",
+        "lastModified": 1710918645,
+        "narHash": "sha256-EVwr2rhBPRAB+r5Q1ijxep4bJrhXAjne9GszfCpAol4=",
         "owner": "rainprotocol",
         "repo": "rainix",
-        "rev": "9e46395ed5bdd836b37ba9e093339366c0f33283",
+        "rev": "9cdbd877d9fbbc5c744812d11ffb01fb609cd232",
         "type": "github"
       },
       "original": {
@@ -644,11 +644,11 @@
         "nixpkgs": "nixpkgs_11"
       },
       "locked": {
-        "lastModified": 1710555016,
-        "narHash": "sha256-Lbdq3/TH4VrrR7A6FxIYwu5tFOcprYh8Q49Nc9s/i6c=",
+        "lastModified": 1710900660,
+        "narHash": "sha256-PcHmHQvKIOdvAxlqxZ/DPmUMhUUvfp16pRtyW148u/0=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "42baa9e2e4713572d7481f917243b07dffdf54b8",
+        "rev": "549f4db17b5c0c143b1308fcfe9620129c387472",
         "type": "github"
       },
       "original": {
