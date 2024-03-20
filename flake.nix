@@ -166,6 +166,9 @@
 
               # Set sentry environment to 'release'
               echo VITE_SENTRY_ENVIRONMENT=release >> .env
+              
+              # Don't force disable sentry
+              echo VITE_SENTRY_FORCE_DISABLED=false >> .env
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli
