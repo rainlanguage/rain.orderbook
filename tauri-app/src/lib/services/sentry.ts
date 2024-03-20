@@ -3,9 +3,26 @@ import { enableSentry } from '$lib/stores/settings';
 import { get } from "svelte/store";
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 import { handleErrorWithSentry } from '@sentry/sveltekit';
+import { arch, platform, type, version } from '@tauri-apps/api/os';
+import { getTauriVersion } from '@tauri-apps/api/app';
 
-export function initSentry() {
+export async function initSentry() {
   if(import.meta.env.VITE_SENTRY_FORCE_DISABLED === 'true') return;
+
+  // Include system data in sentry issues, as both tags and context (for easy view & search)
+  const context = {
+    Arch: await arch(),
+    OsType: await type(),
+    Platform: await platform(),
+    OsVersion: await version(),
+    TauriVersion: await getTauriVersion(),
+  };
+  Sentry.setTag("Arch", context.Arch);
+  Sentry.setTag("OsType", context.OsType);
+  Sentry.setTag("Platform", context.Platform);
+  Sentry.setTag("OsVersion", context.OsVersion);
+  Sentry.setTag("TauriVersion", context.TauriVersion);
+  Sentry.setContext("System Context", context);
 
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
