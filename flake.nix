@@ -68,12 +68,14 @@
             body = ''
               set -euxo pipefail
 
-              # Source .env file if it exists, otherwise create an .env file
+              # Source .env file if it exists, otherwise create an .env file from .env.example
               ENV_FILE=.env
+              ENV_DEFAULTS_FILE=.env.example
               if [ -f "$ENV_FILE" ]; then
                   source $ENV_FILE
               else 
-                  echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID:-} > $ENV_FILE
+                  cp $ENV_DEFAULTS_FILE $ENV_FILE
+                  echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID:-} >> $ENV_FILE
                   source $ENV_FILE
               fi
               
@@ -82,6 +84,17 @@
                 echo "Cancelling build: VITE_WALLETCONNECT_PROJECT_ID is not defined"
                 exit 1
               fi
+
+              if [ "$VITE_SENTRY_FORCE_DISABLED" != "true" ] && 
+              ( 
+                [ -z "$VITE_SENTRY_DSN" ] || 
+                [ -z "$VITE_SENTRY_ENVIRONMENT" ] || 
+                [ -z "$VITE_SENTRY_RELEASE" ] 
+              ); then
+                echo "Cancelling build: EITHER env variable VITE_SENTRY_FORCE_DISABLED=true OR all env variables VITE_SENTRY_DSN, VITE_SENTRY_ENVIRONMENT and VITE_SENTRY_RELEASE must be defined"
+                exit 1
+              fi
+
 
               npm i && npm run build
               rm -rf lib

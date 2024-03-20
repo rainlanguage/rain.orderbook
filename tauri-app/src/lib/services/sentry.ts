@@ -5,6 +5,8 @@ import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 import { handleErrorWithSentry } from '@sentry/sveltekit';
 
 export function initSentry() {
+  if(import.meta.env.VITE_SENTRY_FORCE_DISABLED === 'true') return;
+
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.VITE_SENTRY_ENVIRONMENT,
