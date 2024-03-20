@@ -6,13 +6,16 @@ import checker from 'vite-plugin-checker';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    // vite config
+    build: {
+      sourcemap: true
+    },
     define: {
       plugins: [
         sentrySvelteKit({
           sourceMapsUploadOptions: {
             org: env.SENTRY_ORG,
             project: env.SENTRY_PROJECT,
+            authToken: env.SENTRY_AUTH_TOKEN,
           }
         }),
         sveltekit(),
@@ -38,4 +41,4 @@ export default defineConfig(({ mode }) => {
       },
     },
   }
-})
+});
