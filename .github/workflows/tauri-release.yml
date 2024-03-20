@@ -8,24 +8,7 @@ on:
       - 2024-03-19-sentry
 
 jobs:
-  before-publish-tauri:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
-      - run: nix develop .#tauri-shell --command sentry-create-release
-        env: 
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: rainlang
-          SENTRY_PROJECT: rain-orderbook
-          COMMIT_SHA: ${{ github.sha }}
   publish-tauri:
-    needs: before-publish-tauri
     permissions:
       contents: write
     strategy:
@@ -53,6 +36,7 @@ jobs:
       - run: nix develop .#tauri-shell --command ob-tauri-before-publish
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_LOG_LEVEL: debug
           SENTRY_ORG: rainlang
           SENTRY_PROJECT: rain-orderbook
           COMMIT_SHA: ${{ github.sha }}
