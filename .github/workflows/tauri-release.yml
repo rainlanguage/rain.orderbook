@@ -11,6 +11,9 @@ jobs:
   before-publish-tauri:
     runs-on: ubuntu-22.04
     steps:
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
       - run: nix develop .#tauri-shell --command sentry-create-release
         env: 
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
