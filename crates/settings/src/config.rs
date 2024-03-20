@@ -29,6 +29,7 @@ pub struct Config {
     pub charts: HashMap<String, Arc<Chart>>,
     #[typeshare(typescript(type = "Record<string, Deployment>"))]
     pub deployments: HashMap<String, Arc<Deployment>>,
+    pub sentry: bool,
 }
 
 pub type Subgraph = Url;
@@ -150,6 +151,7 @@ impl TryFrom<ConfigSource> for Config {
             })
             .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
 
+        let sentry: bool = item.sentry.unwrap_or(false);
         let config = Config {
             networks,
             subgraphs,
@@ -160,6 +162,7 @@ impl TryFrom<ConfigSource> for Config {
             scenarios,
             charts,
             deployments,
+            sentry,
         };
 
         Ok(config)
@@ -243,6 +246,7 @@ mod tests {
         let scenarios = HashMap::new();
         let charts = HashMap::new();
         let deployments = HashMap::new();
+        let sentry = Some(true);
 
         let config_string = ConfigSource {
             networks,
@@ -254,6 +258,7 @@ mod tests {
             scenarios,
             charts,
             deployments,
+            sentry,
         };
 
         let config_result = Config::try_from(config_string);
@@ -305,5 +310,31 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
+
+        // Verify sentry
+        assert_eq!(config.sentry, true);
+    }
+
+    #[test]
+    fn test_sentry_defaults_to_false() {
+        let config_string = ConfigSource {
+            networks: HashMap::new(),
+            subgraphs: HashMap::new(),
+            orderbooks: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            deployments: HashMap::new(),
+            sentry: None,
+        };
+
+        let config_result = Config::try_from(config_string);
+        assert!(config_result.is_ok());
+
+        let config = config_result.unwrap();
+
+        assert_eq!(config.sentry, false);
     }
 }
