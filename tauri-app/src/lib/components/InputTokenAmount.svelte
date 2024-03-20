@@ -20,6 +20,12 @@
     radix: '.',
   };
 
+  $: {
+    if(value !== undefined) {
+      valueRaw = formatUnits(value, decimals);
+    }
+  }
+
   function complete({ detail }: { detail: InputMask }) {
     valueRaw = detail.value;
 

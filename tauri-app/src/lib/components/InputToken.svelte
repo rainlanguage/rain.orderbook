@@ -10,6 +10,12 @@
 
   $: isAddressValid = address && address.length > 0 && isAddress(address);
 
+  $: {
+    if(decimals !== undefined) {
+      decimalsRaw = decimals.toString();
+    }
+  }
+
   const decimalsMaskOptions = {
     mask: Number,
     min: 0,

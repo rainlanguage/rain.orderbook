@@ -7,6 +7,7 @@ use alloy_ethers_typecast::{
     },
 };
 use alloy_primitives::{Address, U256};
+use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::{
     IOrderBookV3::depositCall,
     IERC20::{allowanceCall, approveCall},
@@ -103,6 +104,18 @@ impl DepositArgs {
         Ok(())
     }
 
+    pub async fn get_approve_calldata(
+        &self,
+        transaction_args: TransactionArgs,
+        current_allowance: U256,
+    ) -> Result<Vec<u8>, WritableTransactionExecuteError> {
+        let approve_call = approveCall {
+            spender: transaction_args.orderbook_address,
+            amount: self.amount - current_allowance,
+        };
+        Ok(approve_call.abi_encode())
+    }
+
     /// Execute OrderbookV3 deposit call
     pub async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
         &self,
@@ -121,6 +134,11 @@ impl DepositArgs {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_deposit_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
+        let deposit_call: depositCall = self.clone().into();
+        Ok(deposit_call.abi_encode())
     }
 }
 

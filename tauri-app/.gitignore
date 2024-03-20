@@ -12,3 +12,4 @@ src/lib/typeshare
 
 # for shared libs
 /lib
+.env
