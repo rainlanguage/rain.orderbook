@@ -153,23 +153,15 @@
               fi
             '';
           };
-          
-          sentry-create-release = rainix.mkTask.${system} {
-            name = "sentry-create-release";
-            body = ''
-              # Create new 'release' on sentry, associated with the current commit
-              sentry-cli releases new -p $SENTRY_PROJECT $COMMIT_SHA
-              sentry-cli releases set-commits --auto $COMMIT_SHA
-            '';
-
-            additionalBuildInputs = [
-              pkgs.sentry-cli
-            ];   
-          };
 
           ob-tauri-before-publish = rainix.mkTask.${system} {
             name = "ob-tauri-before-publish";
             body = ''
+              # Idempotently, create new 'release' on sentry for the current commit
+              sentry-cli releases new -p $SENTRY_PROJECT $COMMIT_SHA
+              sentry-cli releases set-commits --auto $COMMIT_SHA
+
+              # Overwrite env variables with release values
               echo SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN >> .env
               echo SENTRY_ORG=$SENTRY_ORG >> .env
               echo SENTRY_PROJECT=$SENTRY_PROJECT >> .env
@@ -188,7 +180,6 @@
             packages.ob-tauri-test
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
-            packages.sentry-create-release
             packages.ob-tauri-before-publish
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
