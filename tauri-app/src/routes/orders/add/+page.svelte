@@ -2,7 +2,6 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { orderAdd } from '$lib/services/order';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
@@ -10,7 +9,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import { settingsText, activeNetworkRef } from '$lib/stores/settings';
+  import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
   import type { ChartData } from '$lib/typeshare/fuzz';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
@@ -21,6 +20,10 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/configString';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderAdd, orderAddCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -29,6 +32,7 @@
   let deploymentRef: string | undefined = undefined;
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
+  let openAddOrderModal = false;
 
   $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
     pickBy(mergedConfigSource.deployments, (d) => mergedConfigSource?.orders?.[d.order]?.network === $activeNetworkRef) : {};
@@ -64,7 +68,17 @@
     } catch(e) {}
   }
 
-  async function execute() {
+  async function chart() {
+    isCharting = true;
+    try {
+      chartData = await makeChartData($dotrainFile.text, $settingsText);
+    } catch(e) {
+      toasts.error(e as string);
+    }
+    isCharting = false;
+  }
+
+  async function executeLedger() {
     isSubmitting = true;
     try {
       if(!deployment) throw Error("Select a deployment to add order");
@@ -74,15 +88,20 @@
     } catch (e) {}
     isSubmitting = false;
   }
-
-  async function chart() {
-    isCharting = true;
+  async function executeWalletconnect() {
+    isSubmitting = true;
     try {
-      chartData = await makeChartData($dotrainFile.text, $settingsText);
-    } catch(e) {
-      toasts.error(e as string);
+      if(!deployment) throw Error("Select a deployment to add order");
+      if (!$orderbookAddress) throw Error("Select an orderbook to add order");
+
+      const calldata = await orderAddCalldata($dotrainFile.text, deployment) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      toasts.error(formatEthersTransactionError(e));
     }
-    isCharting = false;
+    isSubmitting = false;
   }
 </script>
 
@@ -128,7 +147,7 @@
         color="green"
         loading={isSubmitting}
         disabled={$dotrainFile.isEmpty}
-        on:click={execute}>Add Order</ButtonLoading
+        on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
       >
     </svelte:fragment>
 </FileTextarea>
@@ -144,3 +163,11 @@
 
 <Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
 <Charts {chartData} />
+<ModalExecute
+  bind:open={openAddOrderModal}
+  title="Add Order"
+  execButtonLabel="Add Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>
