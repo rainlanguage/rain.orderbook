@@ -16,6 +16,7 @@ jobs:
           - SENTRY_PROJECT=rain-orderbook
           - COMMIT_SHA=${{ github.sha }}
   publish-tauri:
+    needs: create-sentry-release
     permissions:
       contents: write
     strategy:
