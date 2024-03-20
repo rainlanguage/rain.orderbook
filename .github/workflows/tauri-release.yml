@@ -13,10 +13,10 @@ jobs:
     steps:
       - run: nix develop .#tauri-shell --command sentry-create-release
         env: 
-          - SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-          - SENTRY_ORG=rainlang
-          - SENTRY_PROJECT=rain-orderbook
-          - COMMIT_SHA=${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: rainlang
+          SENTRY_PROJECT: rain-orderbook
+          COMMIT_SHA: ${{ github.sha }}
   publish-tauri:
     needs: before-publish-tauri
     permissions:
@@ -44,11 +44,11 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-publish
-        env: 
-          - SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
-          - SENTRY_ORG=rainlang
-          - SENTRY_PROJECT=rain-orderbook
-          - COMMIT_SHA=${{ github.sha }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: rainlang
+          SENTRY_PROJECT: rain-orderbook
+          COMMIT_SHA: ${{ github.sha }}
 
       - run: ./prep-tauri.sh
 
