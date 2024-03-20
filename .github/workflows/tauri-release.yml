@@ -7,16 +7,16 @@ on:
       - main
 
 jobs:
-  create-sentry-release:
+  before-publish-tauri:
     steps:
-      - run: nix develop .#tauri-shell --command ob-tauri-sentry-version
+      - run: nix develop .#tauri-shell --command ob-tauri-before-publish
         env: 
           - SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           - SENTRY_ORG=rainlang
           - SENTRY_PROJECT=rain-orderbook
           - COMMIT_SHA=${{ github.sha }}
   publish-tauri:
-    needs: create-sentry-release
+    needs: before-publish-tauri
     permissions:
       contents: write
     strategy:
