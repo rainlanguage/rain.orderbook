@@ -153,26 +153,30 @@
               fi
             '';
           };
-
-          ob-tauri-before-publish = rainix.mkTask.${system} {
-            name = "ob-tauri-before-publish";
+          
+          sentry-create-release = rainix.mkTask.${system} {
+            name = "sentry-create-release";
             body = ''
               # Create new 'release' on sentry, associated with the current commit
               sentry-cli releases new -p $SENTRY_PROJECT $COMMIT_SHA
               sentry-cli releases set-commits --auto $COMMIT_SHA
-
-              # Set env variable so sentry client is configured as the new release
-              echo VITE_SENTRY_RELEASE=$COMMIT_SHA >> .env
-
-              # Set sentry environment to 'release'
-              echo VITE_SENTRY_ENVIRONMENT=release >> .env
-              
-              # Don't force disable sentry
-              echo VITE_SENTRY_FORCE_DISABLED=false >> .env
             '';
+
             additionalBuildInputs = [
               pkgs.sentry-cli
-            ];                                                                                                                       
+            ];   
+          };
+
+          ob-tauri-before-publish = rainix.mkTask.${system} {
+            name = "ob-tauri-before-publish";
+            body = ''
+              echo SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN >> .env
+              echo SENTRY_ORG=$SENTRY_ORG >> .env
+              echo SENTRY_PROJECT=$SENTRY_PROJECT >> .env
+              echo VITE_SENTRY_RELEASE=$COMMIT_SHA >> .env
+              echo VITE_SENTRY_ENVIRONMENT=release >> .env
+              echo VITE_SENTRY_FORCE_DISABLED=false >> .env
+            '';                                                                                                                    
           };
         
         } // rainix.packages.${system};
@@ -184,6 +188,8 @@
             packages.ob-tauri-test
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
+            packages.sentry-create-release
+            packages.ob-tauri-before-publish
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
