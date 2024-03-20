@@ -35,7 +35,8 @@
   let openAddOrderModal = false;
 
   $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
-    pickBy(mergedConfigSource.deployments, (d) => mergedConfigSource?.orders?.[d.order]?.network === $activeNetworkRef) : {};
+    pickBy(mergedConfigSource.deployments, (d) => mergedConfigSource?.deployers?.[mergedConfigSource?.scenarios?.[d.scenario].deployer || 0].network === $activeNetworkRef
+    ) : {};
   $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
