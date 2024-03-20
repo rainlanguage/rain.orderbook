@@ -2,104 +2,140 @@
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
   import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
   import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
-   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultWithdraw } from '$lib/services/vault';
+  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
+  import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { toasts } from '$lib/stores/toasts';
+  import ModalExecute from './ModalExecute.svelte';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
   let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;
+  let selectWallet = false;
 
-  $: amountGTBalance = vault !== undefined && amount > vault.balance;
+  $: amountGTBalance = vault !== undefined && amount > BigInt(vault.balance);
 
   function reset() {
-    amount = 0n;
     open = false;
+    if (!isSubmitting) {
+      amount = 0n;
+      selectWallet = false;
+    }
   }
 
-  async function execute() {
+  async function executeLedger() {
     isSubmitting = true;
     try {
       await vaultWithdraw(vault.vault_id, vault.token.id, amount);
-      reset();
       // eslint-disable-next-line no-empty
     } catch (e) {}
     isSubmitting = false;
+    reset();
+  }
+
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else toasts.error("Transaction failed!");
+    }
+    isSubmitting = false;
+    reset();
   }
 </script>
 
-<Modal title="Withdraw from Vault" bind:open outsideclose size="sm" on:close={reset}>
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Vault ID
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {bigintStringToHex(vault.vault_id)}
-    </p>
-  </div>
+{#if !selectWallet}
+  <Modal title="Withdraw from Vault" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Vault ID
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {bigintStringToHex(vault.vault_id)}
+      </p>
+    </div>
 
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Token
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.token.name}
-    </p>
-  </div>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Token
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {vault.token.name}
+      </p>
+    </div>
 
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Owner
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.owner.id}
-    </p>
-  </div>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Owner
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {vault.owner.id}
+      </p>
+    </div>
 
-  <div>
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Balance
-    </h5>
-    <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-      {vault.balance_display}
-    </p>
-  </div>
+    <div>
+      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Balance
+      </h5>
+      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+        {vault.balance_display}
+      </p>
+    </div>
 
-  <div class="mb-6">
-    <Label
-      for="amount"
-      class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
-    >
-      Target Amount
-    </Label>
-    <InputTokenAmount
-      bind:value={amount}
-      symbol={vault.token.symbol}
-      decimals={vault.token.decimals}
-      maxValue={vault.balance}
-    />
+    <div class="mb-6">
+      <Label
+        for="amount"
+        class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
+      >
+        Target Amount
+      </Label>
+      <InputTokenAmount
+        bind:value={amount}
+        symbol={vault.token.symbol}
+        decimals={vault.token.decimals}
+        maxValue={vault.balance}
+      />
 
-    <Helper color="red" class="h-6 text-sm">
-      {#if amountGTBalance}
-        Target amount cannot exceed available balance.
-      {/if}
-    </Helper>
-  </div>
-
-  <svelte:fragment slot="footer">
+      <Helper color="red" class="h-6 text-sm">
+        {#if amountGTBalance}
+          Target amount cannot exceed available balance.
+        {/if}
+      </Helper>
+    </div>
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset}>Cancel</Button>
 
-      <ButtonLoading
-        on:click={execute}
+      <Button
+        on:click={() => {selectWallet = true; open = false;}}
         disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
-        loading={isSubmitting}
       >
-        Make Withdrawal
-      </ButtonLoading>
+        Proceed
+      </Button>
     </div>
-  </svelte:fragment>
-</Modal>
+  </Modal>
+{/if}
+
+<ModalExecute
+  bind:open={selectWallet}
+  onBack={() => open = true}
+  title="Withdraw from Vault"
+  execButtonLabel="Withdraw"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>
