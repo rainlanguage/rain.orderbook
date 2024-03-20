@@ -12,3 +12,6 @@ src/lib/typeshare
 
 # for shared libs
 /lib
+
+# Sentry cli Config File
+.sentryclirc
