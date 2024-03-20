@@ -8,7 +8,6 @@ import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';
 import { parseConfigSource } from '$lib/services/config';
-import { applySentryEnable } from '$lib/services/sentry';
 
 // general
 export const settingsText = cachedWritableStore<string>('settings', "", (s) => s, (s) => s);
@@ -68,8 +67,6 @@ settings.subscribe(async () => {
     resetActiveOrderbookRef();
   }
 });
-
-enableSentry.subscribe(applySentryEnable);
 
 // When active network is updated to undefined, reset active orderbook
 activeNetworkRef.subscribe(($activeNetworkRef)  => {

@@ -4,14 +4,23 @@ import { get } from "svelte/store";
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 import { handleErrorWithSentry } from '@sentry/sveltekit';
 
-export async function applySentryEnable() {
-  const $enableSentry = get(enableSentry);
+export function initSentry() {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: import.meta.env.VITE_SENTRY_ENVIRONMENT,
+    tracesSampleRate: 1.0,
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+    enabled: true,
+    integrations: [Sentry.replayIntegration()],
 
-  // Despite its awkwardness, this is a recommended way to conditionally disable/enable Sentry at runtime
-  // See https://github.com/getsentry/sentry-javascript/issues/2039#issuecomment-486674574
-  const sentryOptions = Sentry.getClient()?.getOptions();
-  if(!sentryOptions) return;
-  sentryOptions.enabled = $enableSentry;
+    // This is a recommended way to conditionally disable/enable Sentry at runtime
+    // See https://github.com/getsentry/sentry-javascript/issues/2039#issuecomment-487490204
+    beforeSend(event) {
+      const $enableSentry = get(enableSentry);
+      return $enableSentry ? event : null;
+    },
+  });
 }
 
 export function handleErrorWithSentryIfEnabled<T extends HandleClientError | HandleServerError>(handleError: T) {
