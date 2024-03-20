@@ -50,17 +50,11 @@ pub enum ParseOrderConfigSourceError {
 impl OrderConfigSource {
     pub fn try_into_order(
         self,
-        networks: &HashMap<String, Arc<Network>>,
         deployers: &HashMap<String, Arc<Deployer>>,
         orderbooks: &HashMap<String, Arc<Orderbook>>,
         tokens: &HashMap<String, Arc<Token>>,
     ) -> Result<Order, ParseOrderConfigSourceError> {
-        let network = networks
-            .get(&self.network)
-            .ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
-                self.network.clone(),
-            ))
-            .map(Arc::clone)?;
+        let mut network = None;
 
         let deployer = self
             .deployer
@@ -71,10 +65,15 @@ impl OrderConfigSource {
                         ParseDeployerConfigSourceError::NetworkNotFoundError(deployer_name.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
-                            Ok(v.clone())
+                        if let Some(n) = &network {
+                            if v.network == *n {
+                                Ok(v.clone())
+                            } else {
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
+                            }
                         } else {
-                            Err(ParseOrderConfigSourceError::NetworkNotMatch)
+                            network = Some(v.network.clone());
+                            Ok(v.clone())
                         }
                     })?
             })
@@ -91,10 +90,15 @@ impl OrderConfigSource {
                         ),
                     ))
                     .map(|v| {
-                        if v.network == network {
-                            Ok(v.clone())
+                        if let Some(n) = &network {
+                            if v.network == *n {
+                                Ok(v.clone())
+                            } else {
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
+                            }
                         } else {
-                            Err(ParseOrderConfigSourceError::NetworkNotMatch)
+                            network = Some(v.network.clone());
+                            Ok(v.clone())
                         }
                     })?
             })
@@ -110,13 +114,21 @@ impl OrderConfigSource {
                         ParseTokenConfigSourceError::NetworkNotFoundError(input.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
+                        if let Some(n) = &network {
+                            if v.network == *n {
+                                Ok(OrderIO {
+                                    token: v.clone(),
+                                    vault_id: input.vault_id,
+                                })
+                            } else {
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
+                            }
+                        } else {
+                            network = Some(v.network.clone());
                             Ok(OrderIO {
                                 token: v.clone(),
                                 vault_id: input.vault_id,
                             })
-                        } else {
-                            Err(ParseOrderConfigSourceError::NetworkNotMatch)
                         }
                     })?
             })
@@ -132,13 +144,21 @@ impl OrderConfigSource {
                         ParseTokenConfigSourceError::NetworkNotFoundError(output.token.clone()),
                     ))
                     .map(|v| {
-                        if v.network == network {
+                        if let Some(n) = &network {
+                            if v.network == *n {
+                                Ok(OrderIO {
+                                    token: v.clone(),
+                                    vault_id: output.vault_id,
+                                })
+                            } else {
+                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
+                            }
+                        } else {
+                            network = Some(v.network.clone());
                             Ok(OrderIO {
                                 token: v.clone(),
                                 vault_id: output.vault_id,
                             })
-                        } else {
-                            Err(ParseOrderConfigSourceError::NetworkNotMatch)
                         }
                     })?
             })
@@ -147,7 +167,9 @@ impl OrderConfigSource {
         Ok(Order {
             inputs,
             outputs,
-            network,
+            network: network.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
+                String::new(),
+            ))?,
             deployer,
             orderbook,
         })
@@ -180,7 +202,6 @@ mod tests {
         tokens.insert("Token2".to_string(), token_output.clone());
 
         let order_string = OrderConfigSource {
-            network: "Local Testnet".to_string(),
             deployer: Some("Deployer1".to_string()),
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOString {
@@ -193,7 +214,7 @@ mod tests {
             }],
         };
 
-        let result = order_string.try_into_order(&networks, &deployers, &orderbooks, &tokens);
+        let result = order_string.try_into_order(&deployers, &orderbooks, &tokens);
         assert!(result.is_ok());
         let order = result.unwrap();
 
@@ -220,22 +241,14 @@ mod tests {
 
     #[test]
     fn test_try_into_order_network_not_found_error() {
-        let networks = HashMap::new(); // Empty network map
-
         let order_string = OrderConfigSource {
-            network: "Nonexistent Network".to_string(),
             deployer: None,
             orderbook: None,
             inputs: vec![],
             outputs: vec![],
         };
 
-        let result = order_string.try_into_order(
-            &networks,
-            &HashMap::new(),
-            &HashMap::new(),
-            &HashMap::new(),
-        );
+        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &HashMap::new());
         assert!(matches!(
             result,
             Err(ParseOrderConfigSourceError::NetworkNotFoundError(_))
@@ -244,19 +257,16 @@ mod tests {
 
     #[test]
     fn test_try_into_order_deployer_not_found_error() {
-        let networks = HashMap::from([("Local Testnet".to_string(), mock_network())]);
         let deployers = HashMap::new(); // Empty deployer map
 
         let order_string = OrderConfigSource {
-            network: "Local Testnet".to_string(),
             deployer: Some("Nonexistent Deployer".to_string()),
             orderbook: None,
             inputs: vec![],
             outputs: vec![],
         };
 
-        let result =
-            order_string.try_into_order(&networks, &deployers, &HashMap::new(), &HashMap::new());
+        let result = order_string.try_into_order(&deployers, &HashMap::new(), &HashMap::new());
         assert!(matches!(
             result,
             Err(ParseOrderConfigSourceError::DeployerParseError(_))
@@ -265,19 +275,16 @@ mod tests {
 
     #[test]
     fn test_try_into_order_orderbook_not_found_error() {
-        let networks = HashMap::from([("Local Testnet".to_string(), mock_network())]);
         let orderbooks = HashMap::new(); // Empty orderbook map
 
         let order_string = OrderConfigSource {
-            network: "Local Testnet".to_string(),
             deployer: None,
             orderbook: Some("Nonexistent Orderbook".to_string()),
             inputs: vec![],
             outputs: vec![],
         };
 
-        let result =
-            order_string.try_into_order(&networks, &HashMap::new(), &orderbooks, &HashMap::new());
+        let result = order_string.try_into_order(&HashMap::new(), &orderbooks, &HashMap::new());
         assert!(matches!(
             result,
             Err(ParseOrderConfigSourceError::OrderbookParseError(_))
@@ -286,11 +293,9 @@ mod tests {
 
     #[test]
     fn test_try_into_order_token_not_found_error() {
-        let networks = HashMap::from([("Local Testnet".to_string(), mock_network())]);
         let tokens = HashMap::new(); // Empty token map
 
         let order_string = OrderConfigSource {
-            network: "Local Testnet".to_string(),
             deployer: None,
             orderbook: None,
             inputs: vec![IOString {
@@ -300,8 +305,7 @@ mod tests {
             outputs: vec![],
         };
 
-        let result =
-            order_string.try_into_order(&networks, &HashMap::new(), &HashMap::new(), &tokens);
+        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &tokens);
         assert!(matches!(
             result,
             Err(ParseOrderConfigSourceError::TokenParseError(_))

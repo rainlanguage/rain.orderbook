@@ -1,13 +1,11 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
-  import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
+  import { Button, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail, useOrderTakesList } from '$lib/stores/order';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import { orderRemove } from '$lib/services/order';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
   import Hash from '$lib/components/Hash.svelte';
@@ -19,24 +17,21 @@
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
   import { colorTheme } from '$lib/stores/darkMode';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { toasts } from '$lib/stores/toasts';
 
-  let isSubmitting = false;
   let orderTakesListChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
+  let openOrderRemoveModal = false;
+  let isSubmitting = false;
 
   const orderTakesList = useOrderTakesList($page.params.id);
 
   $: order = $orderDetail.data[$page.params.id]?.order;
   $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
   $: $orderTakesList.all, orderTakesListChartData = prepareChartData();
-
-  async function remove() {
-    isSubmitting = true;
-    try {
-      await orderRemove(order.id);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
-    isSubmitting = false;
-  }
 
   function prepareChartData() {
     const transformedData = $orderTakesList.all.map((d) => ({
@@ -60,6 +55,35 @@
 
   orderDetail.refetch($page.params.id);
   orderTakesList.fetchAll(0);
+
+  async function executeLedger() {
+    isSubmitting = true;
+    try {
+      await orderRemove(order.id);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+    isSubmitting = false;
+  }
+
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      const calldata = await orderRemoveCalldata(order.id) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else toasts.error("Transaction failed!");
+    }
+    isSubmitting = false;
+  }
 </script>
 
 <PageHeader title="Order" />
@@ -78,7 +102,7 @@
       <BadgeActive active={order.order_active} large />
     </div>
     {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-      <ButtonLoading color="dark" on:click={remove} loading={isSubmitting}>Remove</ButtonLoading>
+      <Button color="dark" on:click={() => openOrderRemoveModal = true}>Remove</Button>
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="card">
@@ -180,3 +204,12 @@
     </Tabs>
   </svelte:fragment>
 </PageContentDetail>
+
+<ModalExecute
+  bind:open={openOrderRemoveModal}
+  title="Remove Order"
+  execButtonLabel="Remove Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>

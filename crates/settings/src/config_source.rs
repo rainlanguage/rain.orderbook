@@ -116,7 +116,6 @@ pub struct IOString {
 pub struct OrderConfigSource {
     pub inputs: Vec<IOString>,
     pub outputs: Vec<IOString>,
-    pub network: NetworkRef,
     pub deployer: Option<DeployerRef>,
     pub orderbook: Option<OrderbookRef>,
 }
@@ -235,7 +234,6 @@ orders:
         outputs:
             - token: dai
               vault-id: 3
-        network: mainnet
         deployer: mainDeployer
         orderbook: mainnetOrderbook
 
