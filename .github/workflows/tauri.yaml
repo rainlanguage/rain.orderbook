@@ -25,6 +25,7 @@ jobs:
       - run: ./prep-tauri.sh
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
 
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
