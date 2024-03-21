@@ -29,7 +29,7 @@ pub struct Config {
     pub charts: HashMap<String, Arc<Chart>>,
     #[typeshare(typescript(type = "Record<string, Deployment>"))]
     pub deployments: HashMap<String, Arc<Deployment>>,
-    pub sentry: bool,
+    pub sentry: Option<bool>,
 }
 
 pub type Subgraph = Url;
@@ -151,7 +151,6 @@ impl TryFrom<ConfigSource> for Config {
             })
             .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
 
-        let sentry: bool = item.sentry.unwrap_or(false);
         let config = Config {
             networks,
             subgraphs,
@@ -162,7 +161,7 @@ impl TryFrom<ConfigSource> for Config {
             scenarios,
             charts,
             deployments,
-            sentry,
+            sentry: item.sentry,
         };
 
         Ok(config)
@@ -312,7 +311,7 @@ mod tests {
         );
 
         // Verify sentry
-        assert!(config.sentry);
+        assert!(config.sentry.unwrap());
     }
 
     #[test]
@@ -335,6 +334,6 @@ mod tests {
 
         let config = config_result.unwrap();
 
-        assert!(!config.sentry);
+        assert!(config.sentry.is_none());
     }
 }
