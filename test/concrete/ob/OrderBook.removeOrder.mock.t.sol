@@ -2,7 +2,7 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {OrderConfigV2, OrderV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
