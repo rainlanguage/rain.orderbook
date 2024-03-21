@@ -299,6 +299,6 @@ sentry: true"#
                 .unwrap()
         );
         assert_eq!(config.tokens.get("eth").unwrap().decimals, Some(18));
-        assert_eq!(config.sentry.unwrap(), true);
+        assert!(config.sentry.unwrap());
     }
 }

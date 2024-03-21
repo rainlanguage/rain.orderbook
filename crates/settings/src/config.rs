@@ -312,7 +312,7 @@ mod tests {
         );
 
         // Verify sentry
-        assert_eq!(config.sentry, true);
+        assert!(config.sentry);
     }
 
     #[test]
@@ -335,6 +335,6 @@ mod tests {
 
         let config = config_result.unwrap();
 
-        assert_eq!(config.sentry, false);
+        assert!(!config.sentry);
     }
 }
