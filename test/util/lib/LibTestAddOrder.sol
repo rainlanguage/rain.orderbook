@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {META_MAGIC_NUMBER_V1} from "rain.metadata/lib/LibMeta.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderConfigV2, OrderV2, IO} from "src/interface/unstable/IOrderBookV3.sol";
+import {OrderConfigV2, OrderV2, IO} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
 import {IInterpreterV2, SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";

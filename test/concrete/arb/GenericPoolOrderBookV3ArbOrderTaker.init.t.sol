@@ -5,7 +5,7 @@ import {GenericPoolOrderBookV3ArbOrderTakerTest} from "test/util/abstract/Generi
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 import {OrderBookV3ArbOrderTakerConfigV1} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {EvaluableConfigV3, IExpressionDeployerV3} from "src/interface/unstable/IOrderBookV3.sol";
+import {EvaluableConfigV3, IExpressionDeployerV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {NonZeroBeforeArbInputs} from "src/abstract/OrderBookV3ArbOrderTaker.sol";
 
