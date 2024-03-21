@@ -157,6 +157,10 @@
           ob-tauri-before-publish = rainix.mkTask.${system} {
             name = "ob-tauri-before-publish";
             body = ''
+              # Idempotently, create new 'release' on sentry for the current commit
+              sentry-cli releases new -p ''${SENTRY_PROJECT} ''${COMMIT_SHA}
+              sentry-cli releases set-commits --auto ''${COMMIT_SHA}
+
               # Overwrite env variables with release values
               echo SENTRY_AUTH_TOKEN=''${SENTRY_AUTH_TOKEN} >> .env
               echo SENTRY_ORG=''${SENTRY_ORG} >> .env
@@ -164,10 +168,6 @@
               echo VITE_SENTRY_RELEASE=''${COMMIT_SHA} >> .env
               echo VITE_SENTRY_ENVIRONMENT=release >> .env
               echo VITE_SENTRY_FORCE_DISABLED=false >> .env
-
-              # Idempotently, create new 'release' on sentry for the current commit
-              sentry-cli releases new -p ''${SENTRY_PROJECT} ''${COMMIT_SHA}
-              sentry-cli releases set-commits --auto ''${COMMIT_SHA}
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli

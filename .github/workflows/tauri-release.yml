@@ -34,12 +34,13 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-publish
+        working-directory: ./tauri-app
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_LOG_LEVEL: debug
           SENTRY_ORG: rainlang
           SENTRY_PROJECT: rain-orderbook
           COMMIT_SHA: ${{ github.sha }}
+          SENTRY_LOG_LEVEL: debug
 
       - run: ./prep-tauri.sh
 
