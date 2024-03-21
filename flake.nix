@@ -63,19 +63,47 @@
             '';
           };
 
+          ob-tauri-before-release = rainix.mkTask.${system} {
+            name = "ob-tauri-before-release";
+            body = ''
+              # Idempotently, create new 'release' on sentry for the current commit
+              sentry-cli releases new -p ''${SENTRY_PROJECT} ''${COMMIT_SHA}
+              sentry-cli releases set-commits --auto ''${COMMIT_SHA}
+
+              # Overwrite env variables with release values
+              echo SENTRY_AUTH_TOKEN=''${SENTRY_AUTH_TOKEN} >> .env
+              echo SENTRY_ORG=''${SENTRY_ORG} >> .env
+              echo SENTRY_PROJECT=''${SENTRY_PROJECT} >> .env
+              echo VITE_SENTRY_RELEASE=''${COMMIT_SHA} >> .env
+              echo VITE_SENTRY_ENVIRONMENT=release >> .env
+              echo VITE_SENTRY_FORCE_DISABLED=false >> .env
+            '';
+            additionalBuildInputs = [
+              pkgs.sentry-cli
+            ];
+          };
+
+          ob-tauri-before-build-ci = rainix.mkTask.${system} {
+            name = "ob-tauri-before-build-ci";
+            body = ''
+              # Create env file with working defaults
+              ENV_FILE = ".env"
+              ENV_EXAMPLE_FILE = ".env.example"
+              cp $ENV_EXAMPLE_FILE $ENV_FILE
+
+              # Add walletconnect project id from github action env to .env file
+              echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> $ENV_FILE
+            '';
+          };
+
           ob-tauri-before-build = rainix.mkTask.${system} {
             name = "ob-tauri-before-build";
             body = ''
               set -euxo pipefail
 
-              # Source .env file if it exists, otherwise create an .env file from .env.example
+              # Source .env file if it exists
               ENV_FILE=.env
-              ENV_DEFAULTS_FILE=.env.example
               if [ -f "$ENV_FILE" ]; then
-                  source $ENV_FILE
-              else 
-                  cp $ENV_DEFAULTS_FILE $ENV_FILE
-                  echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID:-} >> $ENV_FILE
                   source $ENV_FILE
               fi
               
@@ -153,26 +181,6 @@
               fi
             '';
           };
-
-          ob-tauri-before-publish = rainix.mkTask.${system} {
-            name = "ob-tauri-before-publish";
-            body = ''
-              # Idempotently, create new 'release' on sentry for the current commit
-              sentry-cli releases new -p ''${SENTRY_PROJECT} ''${COMMIT_SHA}
-              sentry-cli releases set-commits --auto ''${COMMIT_SHA}
-
-              # Overwrite env variables with release values
-              echo SENTRY_AUTH_TOKEN=''${SENTRY_AUTH_TOKEN} >> .env
-              echo SENTRY_ORG=''${SENTRY_ORG} >> .env
-              echo SENTRY_PROJECT=''${SENTRY_PROJECT} >> .env
-              echo VITE_SENTRY_RELEASE=''${COMMIT_SHA} >> .env
-              echo VITE_SENTRY_ENVIRONMENT=release >> .env
-              echo VITE_SENTRY_FORCE_DISABLED=false >> .env
-            '';
-            additionalBuildInputs = [
-              pkgs.sentry-cli
-            ];                                                                                             
-          };
         
         } // rainix.packages.${system};
 
@@ -181,9 +189,10 @@
           packages = [
             packages.ob-tauri-prelude
             packages.ob-tauri-test
+            packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
-            packages.ob-tauri-before-publish
+            packages.ob-tauri-before-release
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
