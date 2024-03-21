@@ -77,6 +77,7 @@
               echo VITE_SENTRY_RELEASE=''${COMMIT_SHA} >> .env
               echo VITE_SENTRY_ENVIRONMENT=release >> .env
               echo VITE_SENTRY_FORCE_DISABLED=false >> .env
+              echo VITE_SENTRY_DSN=''${SENTRY_DSN} >> .env
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli

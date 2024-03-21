@@ -44,6 +44,7 @@ jobs:
         working-directory: ./tauri-app
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_ORG: rainlang
           SENTRY_PROJECT: rain-orderbook
           COMMIT_SHA: ${{ github.sha }}
