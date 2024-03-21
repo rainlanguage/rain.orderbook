@@ -23,6 +23,7 @@
   import { orderbookAddress } from '$lib/stores/settings';
   import { toasts } from '$lib/stores/toasts';
 
+  let openOrderRemoveModal = false;
   let isSubmitting = false;
   type ChartData = { value: number; time: UTCTimestamp; color?: string}[];
   let orderTakesListChartData: ChartData = [];
