@@ -25,7 +25,7 @@ export const themes = {
 			},
 			{
 				tag: [tags.string, tags.special(tags.brace)],
-				color: '#a31515'
+				color: '#b55b00'
 			},
 			{
 				tag: tags.number,
@@ -109,7 +109,7 @@ export const themes = {
 			},
 			{
 				tag: tags.content,
-				color: '#a31515'
+				color: '#b55b00'
 			},
 			{
 				tag: [tags.propertyName, tags.definition(tags.propertyName)],
@@ -118,6 +118,10 @@ export const themes = {
 			{
 				tag: tags.labelName,
 				color: '#4fc4ff'
+			},
+			{
+				tag: tags.deleted,
+				color: '#cc0000'
 			},
 		]
 	}),
@@ -238,6 +242,10 @@ export const themes = {
 			{
 				tag: tags.labelName,
 				color: '#4fc4ff'
+			},
+			{
+				tag: tags.deleted,
+				color: '#c86464'
 			},
 		]
 	})
