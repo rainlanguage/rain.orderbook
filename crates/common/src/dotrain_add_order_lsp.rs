@@ -61,44 +61,56 @@ impl DotrainAddOrderLsp {
     ) -> Vec<Problem> {
         let rain_document =
             LANG_SERVICES.new_rain_document(&self.text_document, self.rebinds.clone());
-        let all_problems = rain_document.all_problems();
-        if !all_problems.is_empty() {
-            all_problems.iter().map(|&v| v.clone()).collect()
+        let mut bindings_problems = rain_document
+            .bindings_problems()
+            .iter()
+            .map(|&v| v.clone())
+            .collect::<Vec<_>>();
+        let top_problems = rain_document.problems();
+        if !top_problems.is_empty() {
+            bindings_problems.extend(top_problems.to_vec());
+            bindings_problems
         } else {
             let rainlang = match rain_document.compose(&ORDERBOOK_ORDER_ENTRYPOINTS) {
                 Ok(v) => v,
                 Err(e) => match e {
                     ComposeError::Reject(msg) => {
-                        return vec![Problem {
+                        bindings_problems.push(Problem {
                             msg,
                             position: [0, 0],
                             code: ErrorCode::NativeParserError,
-                        }]
+                        });
+                        return bindings_problems;
                     }
-                    ComposeError::Problems(problems) => return problems,
+                    ComposeError::Problems(problems) => {
+                        for p in problems {
+                            if bindings_problems.iter().all(|v| p != *v) {
+                                bindings_problems.push(p)
+                            }
+                        }
+                        return bindings_problems;
+                    }
                 },
             };
 
-            if let Some(deployer_add) = deployer {
-                parse_rainlang_on_fork(&rainlang, rpc_url, block_number, deployer_add)
-                    .await
-                    .map_or_else(
-                        |e| {
-                            vec![Problem {
-                                msg: e.to_string(),
-                                position: [0, 0],
-                                code: ErrorCode::NativeParserError,
-                            }]
-                        },
-                        |_| vec![],
-                    )
+            if let Some(deployer_address) = deployer {
+                if let Err(e) =
+                    parse_rainlang_on_fork(&rainlang, rpc_url, block_number, deployer_address).await
+                {
+                    bindings_problems.push(Problem {
+                        msg: e.to_string(),
+                        position: [0, 0],
+                        code: ErrorCode::NativeParserError,
+                    })
+                };
             } else {
-                vec![Problem {
+                bindings_problems.push(Problem {
                     msg: "undefined deployer address".to_owned(),
                     position: [0, 0],
                     code: ErrorCode::NativeParserError,
-                }]
+                });
             }
+            bindings_problems
         }
     }
 }
