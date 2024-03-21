@@ -10,12 +10,19 @@ export async function initSentry() {
   if(import.meta.env.VITE_SENTRY_FORCE_DISABLED === 'true') return;
 
   // Include system data in sentry issues, as both tags and context (for easy view & search)
+  const [Arch, OsType, Platform, OsVersion, TauriVersion] = await Promise.all([
+    arch(),
+    type(),
+    platform(),
+    version(),
+    getTauriVersion()
+  ]);
   const context = {
-    Arch: await arch(),
-    OsType: await type(),
-    Platform: await platform(),
-    OsVersion: await version(),
-    TauriVersion: await getTauriVersion(),
+    Arch,
+    OsType,
+    Platform,
+    OsVersion,
+    TauriVersion,
   };
   Sentry.setTag("Arch", context.Arch);
   Sentry.setTag("OsType", context.OsType);
