@@ -12,9 +12,9 @@
   class="hover:text-primary-600 cursor-pointer"
   on:click={() => goto(`/vaults/${tokenVault.id}`)}
 >
-  <div class="grid grid-cols-2 gap-x-2">
+  <div class="grid grid-cols-2 gap-x-2 break-normal">
     <div>
-      {tokenVault.token.name} <span class="">({tokenVault.token.symbol})</span>
+      {tokenVault.token.name} <span class="break-normal">({tokenVault.token.symbol})</span>
     </div>
     <div>
       <span class="text-gray-500 dark:text-gray-400">ID</span>
