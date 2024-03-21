@@ -143,17 +143,24 @@ pub struct ChartConfigSource {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct PlotString {
-    pub data: DataPointsString,
-    pub plot_type: String,
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub marks: Vec<MarkString>,
 }
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct DataPointsString {
-    pub x: String,
-    pub y: String,
+#[serde(untagged)]
+enum MarkString {
+    // RectY(MarkRectY),
+    // Line(MarkLine),
+    Dot(MarkDot),
 }
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
 
 impl TryFrom<String> for ConfigSource {
     type Error = serde_yaml::Error;
@@ -256,15 +263,50 @@ charts:
         scenario: mainScenario
         plots:
             plot1:
-                data:
-                    x: dataX
-                    y: dataY
-                plot-type: line
+                title: "My plot"
+                subtitle: "My subtitle"
+                marks:
+                    rectY:
+                        binX:
+                            outputs:
+                                y: count
+                            options:
+                                x: 0.1
+                                x-label: my metric
+                                interval: 20
+                    dot:
+                        x: 0.1
+                        y: 0.2
+                        stroke: red
+                    dot: 
+                        hexBin:
+                            outputs:
+                                fill: count
+                            options:
+                                x: 0.1
+                                x-label: my x axis
+                                y: 0.2
+                                y-label: my y axis
+                                binWidth: 10
+                    axisX:
+                        anchor: bottom
+                        label: my x axis
+
             plot2:
-                data:
-                    x: dataX2
-                    y: dataY2
-                plot-type: bar
+                title: "Hexbin"
+                marks:
+                    - mark: dot
+                      options:
+                        transform:
+                            - type: hexbin
+                              outputs:
+                                fill: count
+                              options:
+                                x: 0.1
+                                x-label: my x axis
+                                y: 0.2
+                                y-label: my y axis
+                                binWidth: 10
 deployments:
     first-deployment:
         scenario: mainScenario
