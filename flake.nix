@@ -87,8 +87,8 @@
             name = "ob-tauri-before-build-ci";
             body = ''
               # Create env file with working defaults
-              ENV_FILE = ".env"
-              ENV_EXAMPLE_FILE = ".env.example"
+              ENV_FILE=".env"
+              ENV_EXAMPLE_FILE=".env.example"
               cp $ENV_EXAMPLE_FILE $ENV_FILE
 
               # Add walletconnect project id from github action env to .env file
