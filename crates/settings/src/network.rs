@@ -9,6 +9,7 @@ use url::{ParseError, Url};
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct Network {
+    pub name: String,
     #[typeshare(typescript(type = "string"))]
     pub rpc: Url,
     #[typeshare(typescript(type = "number"))]
@@ -29,16 +30,15 @@ pub enum ParseNetworkConfigSourceError {
     NetworkIdParseError(ParseIntError),
 }
 
-impl TryFrom<NetworkConfigSource> for Network {
-    type Error = ParseNetworkConfigSourceError;
-
-    fn try_from(item: NetworkConfigSource) -> Result<Self, Self::Error> {
+impl NetworkConfigSource {
+    pub fn try_into_network(self, name: String) -> Result<Network, ParseNetworkConfigSourceError> {
         Ok(Network {
-            rpc: item.rpc,
-            chain_id: item.chain_id,
-            label: item.label,
-            network_id: item.network_id,
-            currency: item.currency,
+            name,
+            rpc: self.rpc,
+            chain_id: self.chain_id,
+            label: self.label,
+            network_id: self.network_id,
+            currency: self.currency,
         })
     }
 }
@@ -58,7 +58,7 @@ mod tests {
             currency: Some("ETH".into()),
         };
 
-        let result = Network::try_from(network_string);
+        let result = network_string.try_into_network("local".into());
         assert!(result.is_ok());
         let network = result.unwrap();
 
@@ -67,5 +67,6 @@ mod tests {
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.label, Some("Local Testnet".into()));
         assert_eq!(network.currency, Some("ETH".into()));
+        assert_eq!(network.name, "local");
     }
 }
