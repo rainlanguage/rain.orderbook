@@ -65,4 +65,3 @@ Run the following from the repo root, outside the nix shell, to generate Typescr
 ```bash
 nix run .#ob-tauri-prelude
 ```
-
