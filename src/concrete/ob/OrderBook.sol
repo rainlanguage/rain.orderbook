@@ -34,8 +34,8 @@ import {
     ClearConfig,
     ClearStateChange,
     ZeroMaximumInput
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
-import {IOrderBookV3OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV3OrderTaker.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {IOrderBookV3OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV3OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,

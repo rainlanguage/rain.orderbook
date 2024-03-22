@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
+import "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract FlashLendingMockOrderBook is IOrderBookV3 {
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)

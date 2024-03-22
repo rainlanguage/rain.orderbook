@@ -9,7 +9,7 @@ import {
     TakeOrderConfigV2,
     IO,
     OrderConfigV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
