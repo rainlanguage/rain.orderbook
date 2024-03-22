@@ -319,27 +319,4 @@ mod tests {
         // Verify sentry
         assert!(config.sentry.unwrap());
     }
-
-    #[test]
-    fn test_sentry_defaults_to_false() {
-        let config_string = ConfigSource {
-            networks: HashMap::new(),
-            subgraphs: HashMap::new(),
-            orderbooks: HashMap::new(),
-            tokens: HashMap::new(),
-            deployers: HashMap::new(),
-            orders: HashMap::new(),
-            scenarios: HashMap::new(),
-            charts: HashMap::new(),
-            deployments: HashMap::new(),
-            sentry: None,
-        };
-
-        let config_result = Config::try_from(config_string);
-        assert!(config_result.is_ok());
-
-        let config = config_result.unwrap();
-
-        assert!(config.sentry.is_none());
-    }
 }

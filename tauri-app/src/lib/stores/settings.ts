@@ -20,7 +20,7 @@ export const settings = asyncDerived(settingsText, async ($settingsText): Promis
     toasts.error(e as string);
   }
 });
-export const enableSentry = derived(settings, ($settings) => $settings?.sentry !== undefined ? $settings.sentry : false);
+export const enableSentry = derived(settings, ($settings) => $settings?.sentry !== undefined ? $settings.sentry : true);
 
 // networks
 export const activeNetworkRef = cachedWritableStringOptional("settings.activeNetworkRef");
