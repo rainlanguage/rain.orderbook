@@ -6,7 +6,7 @@ import checker from 'vite-plugin-checker';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
-  const sentryPlugins = env.VITE_SENTRY_ENVIRONMENT === 'release' ? [
+  const sentryPlugins = env.VITE_SENTRY_ENVIRONMENT === 'release' && env.SENTRY_SOURCE_MAPS_ENABLED === 'true' ? [
     sentrySvelteKit({
       sourceMapsUploadOptions: {
         org: env.SENTRY_ORG,
