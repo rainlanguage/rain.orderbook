@@ -59,9 +59,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          NODE_OPTIONS: "--max_old_space_size=4096"
         with:
-          tauriScript: "nix develop -i --keep APPLE_CERTIFICATE --keep APPLE_CERTIFICATE_PASSWORD --keep APPLE_SIGNING_IDENTITY --keep APPLE_ID --keep APPLE_PASSWORD --keep APPLE_TEAM_ID --keep NODE_OPTIONS .#tauri-shell --command cargo tauri"
+          tauriScript: "nix develop -i --keep APPLE_CERTIFICATE --keep APPLE_CERTIFICATE_PASSWORD --keep APPLE_SIGNING_IDENTITY --keep APPLE_ID --keep APPLE_PASSWORD --keep APPLE_TEAM_ID .#tauri-shell --command cargo tauri"
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
