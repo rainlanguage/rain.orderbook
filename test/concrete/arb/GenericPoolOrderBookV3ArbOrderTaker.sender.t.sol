@@ -15,7 +15,7 @@ import {
     IExpressionDeployerV3,
     TakeOrderConfigV2,
     TakeOrdersConfigV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerSenderTest is GenericPoolOrderBookV3ArbOrderTakerTest {
     function testGenericPoolTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
