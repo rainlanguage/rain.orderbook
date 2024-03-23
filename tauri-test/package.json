@@ -1,0 +1,15 @@
+{
+  "name": "tauri-test",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "TAURI_AUTOMATION=true wdio run wdio.conf.js"
+  },
+  "dependencies": {
+    "@wdio/cli": "^7"
+  },
+  "devDependencies": {
+    "@wdio/local-runner": "^7.7.3",
+    "@wdio/mocha-framework": "^7.7.3",
+    "@wdio/spec-reporter": "^7.7.3"
+  }
+}
