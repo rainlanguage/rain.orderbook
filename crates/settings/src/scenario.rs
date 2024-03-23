@@ -202,6 +202,7 @@ mod tests {
             scenarios,
             charts: HashMap::new(), // Assuming no charts for simplification
             deployments: HashMap::new(),
+            sentry: None,
         };
 
         // Perform the conversion

@@ -115,6 +115,14 @@ impl ConfigSource {
             deployments.insert(key, value);
         }
 
+        // Sentry
+        self.sentry = match (self.sentry, other.sentry) {
+            (Some(a), None) => Ok(Some(a)),
+            (None, Some(b)) => Ok(Some(b)),
+            (None, None) => Ok(None),
+            (Some(_), Some(_)) => Err(MergeError::DeploymentCollision("sentry".into())),
+        }?;
+
         Ok(())
     }
 }
@@ -202,6 +210,14 @@ impl Config {
             deployments.insert(key, value);
         }
 
+        // Sentry
+        self.sentry = match (self.sentry, other.sentry) {
+            (Some(a), None) => Ok(Some(a)),
+            (None, Some(b)) => Ok(Some(b)),
+            (None, None) => Ok(None),
+            (Some(_), Some(_)) => Err(MergeError::DeploymentCollision("sentry".into())),
+        }?;
+
         Ok(())
     }
 }
@@ -224,6 +240,7 @@ mod tests {
             charts: HashMap::new(),
             networks: HashMap::new(),
             deployments: HashMap::new(),
+            sentry: None,
         };
 
         let other = ConfigSource {
@@ -236,6 +253,7 @@ mod tests {
             charts: HashMap::new(),
             networks: HashMap::new(),
             deployments: HashMap::new(),
+            sentry: None,
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -253,6 +271,7 @@ mod tests {
             charts: HashMap::new(),
             networks: HashMap::new(),
             deployments: HashMap::new(),
+            sentry: None,
         };
 
         let mut other = ConfigSource {
@@ -265,6 +284,7 @@ mod tests {
             charts: HashMap::new(),
             networks: HashMap::new(),
             deployments: HashMap::new(),
+            sentry: None,
         };
 
         // Add a collision to cause an unsuccessful merge

@@ -9,7 +9,8 @@ node_modules
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 src/lib/typeshare
+.sentryclirc
+.env
 
 # for shared libs
 /lib
-.env

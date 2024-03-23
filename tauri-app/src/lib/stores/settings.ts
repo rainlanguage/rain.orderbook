@@ -20,6 +20,7 @@ export const settings = asyncDerived(settingsText, async ($settingsText): Promis
     toasts.error(e as string);
   }
 });
+export const enableSentry = derived(settings, ($settings) => $settings?.sentry !== undefined ? $settings.sentry : true);
 
 // networks
 export const activeNetworkRef = cachedWritableStringOptional("settings.activeNetworkRef");
@@ -46,10 +47,9 @@ export const hasRequiredSettings = derived([activeNetworkRef, activeOrderbookRef
 
 // When networks / orderbooks settings updated, reset active network / orderbook
 settings.subscribe(async () => {
-  await settings.load();
+  const $settings = await settings.load();
   const $activeNetworkRef = get(activeNetworkRef);
   const $activeOrderbookRef = get(activeOrderbookRef);
-  const $settings = get(settings);
 
   if(
     $settings?.networks === undefined
