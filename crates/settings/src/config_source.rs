@@ -1,3 +1,4 @@
+use crate::Plot;
 use alloy_primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -136,31 +137,8 @@ pub struct ScenarioConfigSource {
 #[serde(rename_all = "kebab-case")]
 pub struct ChartConfigSource {
     pub scenario: Option<ScenarioRef>,
-    pub plots: HashMap<String, PlotString>,
+    pub plots: HashMap<String, Plot>,
 }
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub struct PlotString {
-    pub title: Option<String>,
-    pub subtitle: Option<String>,
-    pub marks: Vec<MarkString>,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
-#[serde(untagged)]
-enum MarkString {
-    // RectY(MarkRectY),
-    // Line(MarkLine),
-    Dot(MarkDot),
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
 
 impl TryFrom<String> for ConfigSource {
     type Error = serde_yaml::Error;

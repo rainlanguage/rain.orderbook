@@ -212,56 +212,56 @@ impl FuzzRunner {
         })
     }
 
-    pub async fn build_chart_data(
-        &mut self,
-        name: String,
-        chart: Chart,
-    ) -> Result<ChartData, FuzzRunnerError> {
-        let res = self.run_scenario(&chart.scenario).await?;
+    // pub async fn build_chart_data(
+    //     &mut self,
+    //     name: String,
+    //     chart: Chart,
+    // ) -> Result<ChartData, FuzzRunnerError> {
+    //     let res = self.run_scenario(&chart.scenario).await?;
 
-        let plot_data_results: Result<Vec<PlotData>, FuzzRunnerError> = chart
-            .plots
-            .into_iter()
-            .map(|(name, plot)| {
-                let x_result = res.collect_data_by_path(&plot.data.x);
-                let y_result = res.collect_data_by_path(&plot.data.y);
+    //     let plot_data_results: Result<Vec<PlotData>, FuzzRunnerError> = chart
+    //         .plots
+    //         .into_iter()
+    //         .map(|plot| {
+    //             let x_result = res.collect_data_by_path(&plot.data.x);
+    //             let y_result = res.collect_data_by_path(&plot.data.y);
 
-                x_result
-                    .and_then(|x| {
-                        y_result.map(|y| {
-                            // Map each pair (x, y) into a Vec<U256>
-                            let merged_data = x
-                                .into_iter()
-                                .zip(y.into_iter())
-                                .map(|(x_val, y_val)| vec![x_val, y_val])
-                                .collect::<Vec<Vec<U256>>>();
-                            PlotData {
-                                plot_type: plot.plot_type,
-                                name,
-                                data: merged_data,
-                            }
-                        })
-                    })
-                    .map_err(|e| e.into())
-            })
-            .collect();
+    //             x_result
+    //                 .and_then(|x| {
+    //                     y_result.map(|y| {
+    //                         // Map each pair (x, y) into a Vec<U256>
+    //                         let merged_data = x
+    //                             .into_iter()
+    //                             .zip(y.into_iter())
+    //                             .map(|(x_val, y_val)| vec![x_val, y_val])
+    //                             .collect::<Vec<Vec<U256>>>();
+    //                         PlotData {
+    //                             plot_type: plot.plot_type,
+    //                             name: plot.title.unwrap_or("".to_string()),
+    //                             data: merged_data,
+    //                         }
+    //                     })
+    //                 })
+    //                 .map_err(|e| e.into())
+    //         })
+    //         .collect();
 
-        let plots = plot_data_results?;
+    //     let plots = plot_data_results?;
 
-        Ok(ChartData { name, plots })
-    }
+    //     Ok(ChartData { name, plots })
+    // }
 
-    pub async fn build_chart_datas(&mut self) -> Result<Vec<ChartData>, FuzzRunnerError> {
-        let charts = self.settings.charts.clone();
-        let mut chart_datas = Vec::new();
+    // pub async fn build_chart_datas(&mut self) -> Result<Vec<ChartData>, FuzzRunnerError> {
+    //     let charts = self.settings.charts.clone();
+    //     let mut chart_datas = Vec::new();
 
-        for (name, chart) in charts {
-            let chart_data = self.build_chart_data(name, chart.deref().clone()).await?;
-            chart_datas.push(chart_data);
-        }
+    //     for (name, chart) in charts {
+    //         let chart_data = self.build_chart_data(name, chart.deref().clone()).await?;
+    //         chart_datas.push(chart_data);
+    //     }
 
-        Ok(chart_datas)
-    }
+    //     Ok(chart_datas)
+    // }
 }
 
 #[cfg(test)]
@@ -317,78 +317,78 @@ b: fuzzed;
         println!("{:#?}", res);
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_build_chart_data() {
-        let dotrain = r#"
-    deployers:
-        mumbai:
-            address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
-        some-deployer:
-            address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
-            network: mumbai
-    networks:
-        mumbai:
-            rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-            chain-id: 80001
-    scenarios:
-        mumbai:
-            runs: 500
-            bindings:
-                bound: 3
-        mainnet:
-            deployer: some-deployer
-            runs: 1
-    charts:
-        mainChart:
-            scenario: mumbai
-            plots:
-                plot1:
-                    data:
-                        x: 0.0
-                        y: 0.1
-                    plot-type: line
-                plot2:
-                    data:
-                        x: 0.0
-                        y: 0.2
-                    plot-type: bar
-    ---
-    #bound !bind it
-    #fuzzed !fuzz it
-    #calculate-io
-    a: bound,
-    b: fuzzed,
-    c: 1;
-    #handle-io
-    :;
-        "#;
-        let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
+    // #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    // async fn test_build_chart_data() {
+    //     let dotrain = r#"
+    // deployers:
+    //     mumbai:
+    //         address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
+    //     some-deployer:
+    //         address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
+    //         network: mumbai
+    // networks:
+    //     mumbai:
+    //         rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
+    //         chain-id: 80001
+    // scenarios:
+    //     mumbai:
+    //         runs: 500
+    //         bindings:
+    //             bound: 3
+    //     mainnet:
+    //         deployer: some-deployer
+    //         runs: 1
+    // charts:
+    //     mainChart:
+    //         scenario: mumbai
+    //         plots:
+    //             plot1:
+    //                 data:
+    //                     x: 0.0
+    //                     y: 0.1
+    //                 plot-type: line
+    //             plot2:
+    //                 data:
+    //                     x: 0.0
+    //                     y: 0.2
+    //                 plot-type: bar
+    // ---
+    // #bound !bind it
+    // #fuzzed !fuzz it
+    // #calculate-io
+    // a: bound,
+    // b: fuzzed,
+    // c: 1;
+    // #handle-io
+    // :;
+    //     "#;
+    //     let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
+    //     let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
 
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
+    //     let config = settings
+    //         .try_into()
+    //         .map_err(|e| println!("{:?}", e))
+    //         .unwrap();
 
-        let mut runner = FuzzRunner::new(dotrain, config, None).await;
+    //     let mut runner = FuzzRunner::new(dotrain, config, None).await;
 
-        let chart_data = runner.build_chart_datas().await.unwrap();
+    //     let chart_data = runner.build_chart_datas().await.unwrap();
 
-        println!("{:#?}", chart_data);
+    //     println!("{:#?}", chart_data);
 
-        assert_eq!(chart_data.len(), 1);
-        assert_eq!(chart_data[0].name, "mainChart");
-        assert_eq!(chart_data[0].plots.len(), 2);
+    //     assert_eq!(chart_data.len(), 1);
+    //     assert_eq!(chart_data[0].name, "mainChart");
+    //     assert_eq!(chart_data[0].plots.len(), 2);
 
-        // Collect plot names from the result
-        let plot_names: Vec<String> = chart_data[0]
-            .plots
-            .iter()
-            .map(|plot| plot.name.clone())
-            .collect();
+    //     // Collect plot names from the result
+    //     let plot_names: Vec<String> = chart_data[0]
+    //         .plots
+    //         .iter()
+    //         .map(|plot| plot.name.clone())
+    //         .collect();
 
-        // Check for the presence of expected plot names
-        assert!(plot_names.contains(&"plot1".to_string()));
-        assert!(plot_names.contains(&"plot2".to_string()));
-    }
+    //     // Check for the presence of expected plot names
+    //     assert!(plot_names.contains(&"plot1".to_string()));
+    //     assert!(plot_names.contains(&"plot2".to_string()));
+    // }
 }

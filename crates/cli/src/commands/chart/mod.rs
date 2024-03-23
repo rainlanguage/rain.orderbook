@@ -25,9 +25,9 @@ impl Execute for Chart {
         let config_string: ConfigSource = frontmatter.to_string().try_into()?;
         let config: Config = config_string.try_into()?;
         let mut fuzzer = FuzzRunner::new(&dotrain, config, None).await;
-        let chart_data = fuzzer.build_chart_datas().await?;
+        // let chart_data = fuzzer.build_chart_datas().await?;
 
-        info!("{:#?}", chart_data);
+        // info!("{:#?}", chart_data);
         Ok(())
     }
 }
