@@ -49,14 +49,13 @@ pub fn mock_plot(name: &str) -> (String, Plot) {
         Plot {
             title: Some("Title".to_string()),
             subtitle: Some("Subtitle".to_string()),
-            marks: vec![Mark::Dot(DotMark {
-                content: DotContent::Options(DotOptions {
-                    r: None,
-                    fill: None,
-                    x: Some("0.1".to_string()),
-                    y: Some("0.2".to_string()),
-                    stroke: Some("black".to_string()),
-                }),
+            marks: vec![Mark::Dot(DotOptions {
+                transform: None,
+                r: None,
+                fill: None,
+                x: Some("0.1".to_string()),
+                y: Some("0.2".to_string()),
+                stroke: Some("black".to_string()),
             })],
         },
     )

@@ -11,33 +11,16 @@ pub struct Plot {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(tag = "type")]
+#[typeshare]
+#[serde(tag = "type", content = "options")]
 #[serde(rename_all = "lowercase")]
 pub enum Mark {
-    Dot(DotMark),
-    Line(LineMark),
-    RectY(RectYMark),
+    Dot(DotOptions),
+    Line(LineOptions),
+    RectY(RectYOptions),
     AxisX(AxisMark),
     AxisY(AxisMark),
 }
-
-// Dot mark
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct DotMark {
-    #[serde(flatten)]
-    pub content: DotContent,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum DotContent {
-    #[serde(rename = "options")]
-    Options(DotOptions),
-    #[serde(rename = "transform")]
-    Transform(Transform),
-}
-
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DotOptions {
@@ -46,23 +29,7 @@ pub struct DotOptions {
     pub r: Option<String>,
     pub fill: Option<String>,
     pub stroke: Option<String>,
-}
-
-// Line mark
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct LineMark {
-    #[serde(flatten)]
-    pub content: LineContent,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum LineContent {
-    #[serde(rename = "options")]
-    Options(LineOptions),
-    #[serde(rename = "transform")]
-    Transform(Transform),
+    pub transform: Option<Transform>,
 }
 
 #[typeshare]
@@ -73,25 +40,10 @@ pub struct LineOptions {
     pub r: Option<String>,
     pub fill: Option<String>,
     pub stroke: Option<String>,
+    pub transform: Option<Transform>,
 }
 
 // RectY mark
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct RectYMark {
-    #[serde(flatten)]
-    pub content: RectYContent,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum RectYContent {
-    #[serde(rename = "options")]
-    Options(RectYOptions),
-    #[serde(rename = "transform")]
-    Transform(Transform),
-}
-
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct RectYOptions {
@@ -99,6 +51,7 @@ pub struct RectYOptions {
     pub x1: Option<String>,
     pub y0: Option<String>,
     pub y1: Option<String>,
+    pub transform: Option<Transform>,
 }
 
 // AxisX mark
@@ -114,7 +67,8 @@ pub struct AxisMark {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
+#[serde(rename_all = "lowercase")]
 pub enum Transform {
     HexBin(HexBinTransform),
     BinX(BinXTransform),
@@ -179,20 +133,22 @@ mod tests {
 title: Title
 subtitle: Subtitle
 marks:
--   type: Dot
+-   type: dot
     options:
         x: "0.1"
         y: "0.2"
         stroke: "black"
--   type: Dot
-    transform:
-        type: "HexBin"
-        outputs:
-            fill: "count"
-        options:
-            x: "0.1"
-            y: "0.2"
-            bin-width: 10"#
+-   type: dot
+    options:
+        transform:
+            type: hexbin
+            content:
+                outputs:    
+                    fill: "count"
+                options:
+                    x: "0.1"
+                    y: "0.2"
+                    bin-width: 10"#
             .to_string();
 
         let plot: Plot = yaml_data.try_into().unwrap();
@@ -203,17 +159,21 @@ marks:
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
                 marks: vec![
-                    Mark::Dot(DotMark {
-                        content: DotContent::Options(DotOptions {
-                            r: None,
-                            fill: None,
-                            x: Some("0.1".to_string()),
-                            y: Some("0.2".to_string()),
-                            stroke: Some("black".to_string()),
-                        }),
-                    }),
-                    Mark::Dot(DotMark {
-                        content: DotContent::Transform(Transform::HexBin(HexBinTransform {
+                    Mark::Dot(DotOptions {
+                        r: None,
+                        fill: None,
+                        x: Some("0.1".to_string()),
+                        y: Some("0.2".to_string()),
+                        stroke: Some("black".to_string()),
+                        transform: None,
+                    },),
+                    Mark::Dot(DotOptions {
+                        r: None,
+                        fill: None,
+                        x: None,
+                        y: None,
+                        stroke: None,
+                        transform: Some(Transform::HexBin(HexBinTransform {
                             outputs: TransformOutputs {
                                 x: None,
                                 y: None,
@@ -227,7 +187,7 @@ marks:
                                 y: Some("0.2".to_string()),
                                 bin_width: Some(10),
                             },
-                        })),
+                        }))
                     })
                 ]
             }
@@ -240,11 +200,12 @@ marks:
 title: Title
 subtitle: Subtitle
 marks:
--   type: Line
-    options:
-        x: "0.1"
-        y: "0.2"
-        stroke: "black""#
+-   type: line
+    content:
+        options:
+            x: "0.1"
+            y: "0.2"
+            stroke: "black""#
             .to_string();
 
         let plot: Plot = yaml_data.try_into().unwrap();
@@ -273,14 +234,16 @@ marks:
 title: Title
 subtitle: Subtitle
 marks:
--   type: RectY
-    transform:
-        type: "BinX"
-        outputs:
-            y: "count"
-        options:
-            x: "0.1"
-            thresholds: 10"#
+-   type: recty
+    content:
+        transform:
+            type: binx
+            content:
+                outputs:
+                    y: "count"
+                options:
+                    x: "0.1"
+                    thresholds: 10"#
             .to_string();
 
         let plot: Plot = yaml_data.try_into().unwrap();

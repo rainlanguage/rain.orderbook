@@ -10,12 +10,21 @@ use rain_interpreter_eval::trace::TraceSearchError;
 use rain_interpreter_eval::{
     error::ForkCallError, eval::ForkEvalArgs, fork::Forker, trace::RainEvalResult,
 };
+use rain_orderbook_app_settings::chart::Chart;
 use rain_orderbook_app_settings::config::*;
 use rain_orderbook_app_settings::scenario::Scenario;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChartData {
+    scenarios_data: HashMap<String, FuzzResultFlat>,
+    charts: HashMap<String, Chart>,
+}
 
 #[derive(Debug)]
 pub struct FuzzResult {
@@ -23,10 +32,12 @@ pub struct FuzzResult {
     pub runs: Vec<RainEvalResult>,
 }
 
-#[derive(Debug)]
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FuzzResultFlat {
     pub scenario: String,
     pub column_names: Vec<String>,
+    #[typeshare(serialized_as = "Vec<Vec<String>>")]
     pub data: Vec<Vec<U256>>,
 }
 
@@ -98,27 +109,12 @@ impl FuzzResult {
     }
 }
 
+#[derive(Clone)]
 pub struct FuzzRunner {
     pub forker: Forker,
     pub dotrain: String,
     pub rng: TestRng,
     pub settings: Config,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PlotData {
-    pub name: String,
-    pub plot_type: String,
-    #[typeshare(serialized_as = "Vec<Vec<String>>")]
-    pub data: Vec<Vec<U256>>,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ChartData {
-    pub name: String,
-    pub plots: Vec<PlotData>,
 }
 
 #[derive(Error, Debug)]
@@ -272,6 +268,32 @@ impl FuzzRunner {
         Ok(FuzzResult {
             scenario: scenario.name.clone(),
             runs,
+        })
+    }
+
+    pub async fn make_chart_data(&self) -> Result<ChartData, FuzzRunnerError> {
+        let charts = self.settings.charts.clone();
+        let mut scenarios_data: HashMap<String, FuzzResultFlat> = HashMap::new();
+
+        for (_, chart) in charts.clone() {
+            let scenario_name = chart.scenario.name.clone();
+            let mut runner = self.clone();
+            scenarios_data.entry(scenario_name.clone()).or_insert(
+                runner
+                    .run_scenario_by_name(&scenario_name)
+                    .await?
+                    .flatten_traces()?,
+            );
+        }
+
+        let charts: HashMap<String, Chart> = charts
+            .iter()
+            .map(|(k, v)| (k.clone(), v.as_ref().clone()))
+            .collect();
+
+        Ok(ChartData {
+            scenarios_data,
+            charts,
         })
     }
 }
