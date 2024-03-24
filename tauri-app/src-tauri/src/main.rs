@@ -11,11 +11,15 @@ use commands::charts::make_charts;
 use commands::config::{convert_configstring_to_config, merge_configstrings, parse_configstring};
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
-use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv, order_add_calldata, order_remove_calldata};
+use commands::order::{
+    compose_to_rainlang, order_add, order_add_calldata, order_detail, order_remove,
+    order_remove_calldata, orders_list, orders_list_write_csv,
+};
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
 use commands::vault::{
-    vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit, vault_detail,
-    vault_withdraw, vaults_list, vaults_list_write_csv, vault_deposit_approve_calldata, vault_deposit_calldata, vault_withdraw_calldata
+    vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
+    vault_deposit_approve_calldata, vault_deposit_calldata, vault_detail, vault_withdraw,
+    vault_withdraw_calldata, vaults_list, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
 
@@ -64,6 +68,7 @@ fn run_tauri_app() {
             vault_deposit_approve_calldata,
             vault_deposit_calldata,
             vault_withdraw_calldata,
+            compose_to_rainlang,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

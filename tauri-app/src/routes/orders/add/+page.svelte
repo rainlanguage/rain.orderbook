@@ -149,6 +149,7 @@
         disabled={$dotrainFile.isEmpty}
         on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
       >
+      <Button disabled={isCharting} on:click={chart}><span class="mr-2">View Generated Rainlang</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
     </svelte:fragment>
 </FileTextarea>
 

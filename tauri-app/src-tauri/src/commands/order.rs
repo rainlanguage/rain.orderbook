@@ -165,3 +165,20 @@ pub async fn order_remove_calldata(
 
     Ok(Bytes::from(calldata))
 }
+
+#[tauri::command]
+pub async fn compose_to_rainlang(
+    app_handle: AppHandle,
+    dotrain: String,
+    deployment: Deployment,
+) -> CommandResult<()> {
+    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
+    add_order_args
+        .compose_to_rainlang()
+        .map_err(|_| {
+            toast_error(app_handle.clone(), "Please resolve issues first!".to_string());
+            e
+        })?;
+
+    Ok(())
+}

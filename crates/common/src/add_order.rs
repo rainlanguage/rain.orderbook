@@ -162,8 +162,8 @@ impl AddOrderArgs {
         Ok(meta_doc_bytes)
     }
 
-    /// Generate an addOrder call from given dotrain
-    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
+    /// Compose to rainlang string
+    pub fn compose_to_rainlang(&self) -> Result<String, AddOrderArgsError> {
         // Parse file into dotrain document
         let meta_store = LANG_SERVICES.meta_store();
 
@@ -176,11 +176,15 @@ impl AddOrderArgs {
                     .collect(),
             );
         };
-
         let dotrain_doc =
             RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
-        let rainlang = dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?;
 
+        Ok(dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?)
+    }
+
+    /// Generate an addOrder call from given dotrain
+    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
+        let rainlang = self.compose_to_rainlang()?;
         let (bytecode, constants) = self.try_parse_rainlang(rpc_url, rainlang.clone()).await?;
         let meta = self.try_generate_meta(rainlang)?;
 
