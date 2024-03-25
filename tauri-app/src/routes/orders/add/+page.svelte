@@ -146,37 +146,37 @@
   </svelte:fragment>
 
   <svelte:fragment slot="additionalFields">
-    <div class="flex justify-end w-full">
-      <div class="w-72">
-        <Label>Deployment</Label>
-        {#if deployments === undefined || Object.keys(deployments).length === 0}
-          <span class="text-gray-500 dark:text-gray-400">No deployments found for the selected network</span>
-        {:else}
-          <DropdownRadio options={deployments} bind:value={deploymentRef}>
-            <svelte:fragment slot="content"  let:selectedRef>
-              <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
-            </svelte:fragment>
+    <div class="flex flex-col gap-y-2">
+      <Label>Select Deployment</Label>
+      {#if deployments === undefined || Object.keys(deployments).length === 0}
+        <span class="text-gray-500 dark:text-gray-400">No deployments found for the selected network</span>
+      {:else}
+        <div class="flex justify-end gap-x-2">
+          <div class="w-full">
+            <DropdownRadio options={deployments} bind:value={deploymentRef}>
+              <svelte:fragment slot="content"  let:selectedRef>
+                <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
+              </svelte:fragment>
 
-            <svelte:fragment slot="option" let:ref let:option>
-              <div class="w-full overflow-hidden overflow-ellipsis">
-                <div class="text-md mb-2 break-word">{ref}</div>
-                <DropdownProperty key="Scenario" value={option.scenario} />
-                <DropdownProperty key="Order" value={option.order} />
-              </div>
-            </svelte:fragment>
-          </DropdownRadio>
-          {/if}
+              <svelte:fragment slot="option" let:ref let:option>
+                <div class="w-full overflow-hidden overflow-ellipsis">
+                  <div class="text-md mb-2 break-word">{ref}</div>
+                  <DropdownProperty key="Scenario" value={option.scenario} />
+                  <DropdownProperty key="Order" value={option.order} />
+                </div>
+              </svelte:fragment>
+            </DropdownRadio>
+          </div>
+          <ButtonLoading
+            class="min-w-fit"
+            color="green"
+            loading={isSubmitting}
+            disabled={$dotrainFile.isEmpty}
+            on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
+          >
         </div>
-      </div>
-  </svelte:fragment>
-
-  <svelte:fragment slot="submit">
-    <ButtonLoading
-      color="green"
-      loading={isSubmitting}
-      disabled={$dotrainFile.isEmpty}
-      on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
-    >
+      {/if}
+    </div>
   </svelte:fragment>
 </FileTextarea>
 
@@ -195,28 +195,31 @@
   defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
 >
   <TabItem open title="Rainlang">
-    {#if scenarios === undefined || Object.keys(scenarios).length === 0}
-      <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
-    {:else}
-      <div class="flex justify-end gap-x-2">
-        <DropdownRadio options={scenarios} bind:value={scenarioRef}>
-          <svelte:fragment slot="content"  let:selectedRef>
-            <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
-          </svelte:fragment>
+    <div class="flex flex-col gap-y-2">
+      <Label>Select Scenario</Label>
+      {#if scenarios === undefined || Object.keys(scenarios).length === 0}
+        <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
+      {:else}
+        <div class="flex justify-end gap-x-2">
+          <DropdownRadio options={scenarios} bind:value={scenarioRef}>
+            <svelte:fragment slot="content"  let:selectedRef>
+              <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
+            </svelte:fragment>
 
-          <svelte:fragment slot="option" let:ref let:option>
-            <div class="w-full overflow-hidden overflow-ellipsis">
-              <div class="text-md mb-2 break-word">{ref}</div>
-              <DropdownProperty key="Scenario" value={option.deployer ?? ""} />
-            </div>
-          </svelte:fragment>
-        </DropdownRadio>
-        <Button on:click={generateRainlangString} class="min-w-fit">Generate Rainlang</Button>
-      </div>
-    {/if}
-    {#if !resetRainlang}
-      <CodeMirrorRainlang bind:value={rainlangText} disabled={true}/>
-    {/if}
+            <svelte:fragment slot="option" let:ref let:option>
+              <div class="w-full overflow-hidden overflow-ellipsis">
+                <div class="text-md mb-2 break-word">{ref}</div>
+                <DropdownProperty key="Scenario" value={option.deployer ?? ""} />
+              </div>
+            </svelte:fragment>
+          </DropdownRadio>
+          <Button on:click={generateRainlangString} class="min-w-fit">Generate Rainlang</Button>
+        </div>
+      {/if}
+      {#if !resetRainlang}
+        <CodeMirrorRainlang bind:value={rainlangText} disabled={true}/>
+      {/if}
+    </div>
   </TabItem>
   <TabItem title="Charts">
     {#if chartData && chartData?.length > 0}
