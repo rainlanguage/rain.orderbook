@@ -6,6 +6,8 @@ import { handleErrorWithSentry } from '@sentry/sveltekit';
 import { arch, platform, type, version } from '@tauri-apps/api/os';
 import { getTauriVersion } from '@tauri-apps/api/app';
 
+// Sentry.SeverityLevel allowed string values as an enum
+// (to avoid spreading magic strings)
 export enum SentrySeverityLevel {
   Fatal = "fatal",
   Error = "error",
