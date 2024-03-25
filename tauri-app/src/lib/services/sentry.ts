@@ -6,8 +6,7 @@ import { handleErrorWithSentry } from '@sentry/sveltekit';
 import { arch, platform, type, version } from '@tauri-apps/api/os';
 import { getTauriVersion } from '@tauri-apps/api/app';
 
-// Sentry.SeverityLevel allowed string values as an enum
-// (to avoid spreading magic strings)
+// Copy of Sentry.SeverityLevel allowed string values as an enum (to avoid spreading magic strings)
 export enum SentrySeverityLevel {
   Fatal = "fatal",
   Error = "error",
@@ -70,7 +69,7 @@ export function handleErrorWithSentryIfEnabled<T extends HandleClientError | Han
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function reportErrorToSentry(e: any, level: Sentry.SeverityLevel = SentrySeverityLevel.Error) {
+export function reportErrorToSentry(e: any, level: SentrySeverityLevel = SentrySeverityLevel.Error) {
   const $enableSentry = get(enableSentry);
 
   if($enableSentry) {
