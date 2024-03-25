@@ -9,7 +9,8 @@
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
-    import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { reportErrorToSentry } from '$lib/services/sentry';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -29,8 +30,9 @@
     isSubmitting = true;
     try {
       await vaultDeposit(vault.vault_id, vault.token.id, amount);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
     reset();
   }
@@ -53,6 +55,7 @@
       await depositTx.wait(1);
 
     } catch (e) {
+      reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
