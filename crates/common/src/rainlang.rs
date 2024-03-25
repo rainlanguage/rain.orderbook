@@ -84,7 +84,7 @@ pub async fn parse_rainlang_on_fork(
     Ok(result.raw.result.0)
 }
 
-/// Compose to rainlang string
+/// Compose to rainlang string by setting elided bindings to zero
 pub fn compose_to_rainlang(
     dotrain: String,
     bindings: HashMap<String, String>,

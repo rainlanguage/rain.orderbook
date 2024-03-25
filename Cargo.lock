@@ -1846,9 +1846,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.11"
+version = "6.0.1-alpha.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "865fd371da8adea10f12eaceed604cad8ad2a25694760d4ab7abf66a77c53d62"
+checksum = "26a685841ac8f4507444b3552ff3a7aedd867e48678bc19ac456190154358ecb"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -1867,9 +1867,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.11"
+version = "6.0.1-alpha.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bca18683abcaedb910e5b5a03bae209924dfb0836dbc0c2d5b82ad8d33b1b5a1"
+checksum = "1b2047a3b281d745d8a1229586df6171c2fdeee27260239d3aa01583ada1e848"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
