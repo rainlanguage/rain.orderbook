@@ -25,6 +25,7 @@
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { promiseTimeout } from '$lib/utils/time';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -48,14 +49,36 @@
     pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer]?.network?.name === $activeNetworkRef) : {};
   $: scenario = (scenarioRef !== undefined && mergedConfig !== undefined) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
-  $: rainlangExtension = new RawRainlangExtension({
+  const rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
-      // get problems with merging settings config with frontmatter
-      const configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
-
-      // get problems with dotrain
-      const problems = await problemsCallback.apply(null, [text, bindings, deployment?.scenario.deployer.address]);
-
+      let configProblems = [];
+      let problems = []
+      try {
+        // get problems with merging settings config with frontmatter
+        configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
+      } catch(e) {
+        configProblems = [
+          {
+            msg: e as string,
+            position: [0, 0],
+            code: 9
+          }
+        ];
+      }
+      try {
+        // get problems with dotrain
+        problems = await promiseTimeout(
+          problemsCallback(text, bindings, deployment?.scenario.deployer.address),
+          3000,
+          "failed to get native parser errors"
+        );
+      } catch(e) {
+        problems = [{
+          msg: e as string,
+          position: [0, 0],
+          code: 9
+        }];
+      }
       return [...configProblems, ...problems] as Problem[];
     },
   });
@@ -138,11 +161,11 @@
 <FileTextarea textFile={dotrainFile} title="New Order">
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
-        bind:value={$dotrainFile.text}
-        disabled={isSubmitting}
-        styles={{ '&': { minHeight: '400px' } }}
-        {rainlangExtension}
-      />
+      bind:value={$dotrainFile.text}
+      disabled={isSubmitting}
+      styles={{ '&': { minHeight: '400px' } }}
+      {rainlangExtension}
+    />
   </svelte:fragment>
 
   <svelte:fragment slot="additionalFields">
