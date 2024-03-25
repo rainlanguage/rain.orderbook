@@ -3,7 +3,7 @@
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button, Spinner} from 'flowbite-svelte';
+  import { Helper, Label, Button, Spinner, Tabs, TabItem} from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
@@ -24,24 +24,29 @@
   import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import ModalViewRainlang from '$lib/components/ModalViewRainlang.svelte';
+  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
 
   let isSubmitting = false;
   let isCharting = false;
   let chartData: ChartData[];
   let dotrainFile = textFileStore('Rain', ['rain']);
   let deploymentRef: string | undefined = undefined;
+  let scenarioRef: string | undefined = undefined;
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-  let openRainlangViewModal = false;
   let rainlangText = "";
+  let resetRainlang = true;
 
   $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
     pickBy(mergedConfigSource.deployments, (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.name === $activeNetworkRef) : {};
   $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
+
+  $: scenarios = (mergedConfigSource !== undefined && mergedConfigSource?.scenarios !== undefined) ?
+    pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer!]?.network?.name === $activeNetworkRef) : {};
+  $: scenario = (scenarioRef !== undefined && mergedConfig !== undefined) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   $: rainlangExtension = new RawRainlangExtension({
     hover: (text, position) => hoverCallback.apply(null, [text, position, bindings]),
@@ -62,6 +67,13 @@
       deploymentRef = Object.keys(deployments)[0];
     }
   }
+  $: {
+    if(scenarioRef === undefined && scenarios !== undefined && Object.keys(scenarios).length > 0) {
+      scenarioRef = Object.keys(scenarios)[0];
+    }
+  }
+
+  $: if ($dotrainFile.text || deployment) resetRainlang = true;
 
   async function updateMergedConfig() {
     try {
@@ -109,14 +121,16 @@
 
   async function generateRainlangString() {
     try {
-      if(!deployment) throw Error("Select a deployment to generate rainlang");
-
-      rainlangText = await orderAddComposeRainlang($dotrainFile.text, deployment);
-      openRainlangViewModal = true;
+      if(!scenario) throw Error("Select a scenario to generate rainlang");
+      rainlangText = await orderAddComposeRainlang($dotrainFile.text, scenario);
+      resetRainlang = false;
       // eslint-disable-next-line no-empty
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.log(e)
+      console.log(e);
+      toasts.error("Please resolve issues first!")
+      rainlangText = "";
+      resetRainlang = true;
     }
   }
 </script>
@@ -124,51 +138,48 @@
 <PageHeader title="Add Order" />
 
 <FileTextarea textFile={dotrainFile} title="New Order">
-    <svelte:fragment slot="textarea">
-      <CodeMirrorDotrain
-          bind:value={$dotrainFile.text}
-          disabled={isSubmitting}
-          styles={{ '&': { minHeight: '400px' } }}
-          {rainlangExtension}
-        />
-    </svelte:fragment>
+  <svelte:fragment slot="textarea">
+    <CodeMirrorDotrain
+        bind:value={$dotrainFile.text}
+        disabled={isSubmitting}
+        styles={{ '&': { minHeight: '400px' } }}
+        {rainlangExtension}
+      />
+  </svelte:fragment>
 
-    <svelte:fragment slot="additionalFields">
-      <div class="flex justify-end w-full">
-        <div class="w-72">
-          <Label>Deployment</Label>
-          {#if deployments === undefined || Object.keys(deployments).length === 0}
-            <span class="text-gray-500 dark:text-gray-400">No deployments found for the selected network</span>
-          {:else}
-            <DropdownRadio options={deployments} bind:value={deploymentRef}>
-              <svelte:fragment slot="content"  let:selectedRef>
-                <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
-              </svelte:fragment>
+  <svelte:fragment slot="additionalFields">
+    <div class="flex justify-end w-full">
+      <div class="w-72">
+        <Label>Deployment</Label>
+        {#if deployments === undefined || Object.keys(deployments).length === 0}
+          <span class="text-gray-500 dark:text-gray-400">No deployments found for the selected network</span>
+        {:else}
+          <DropdownRadio options={deployments} bind:value={deploymentRef}>
+            <svelte:fragment slot="content"  let:selectedRef>
+              <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
+            </svelte:fragment>
 
-              <svelte:fragment slot="option" let:ref let:option>
-                <div class="w-full overflow-hidden overflow-ellipsis">
-                  <div class="text-md mb-2 break-word">{ref}</div>
-                  <DropdownProperty key="Scenario" value={option.scenario} />
-                  <DropdownProperty key="Order" value={option.order} />
-                </div>
-              </svelte:fragment>
-            </DropdownRadio>
-            {/if}
-          </div>
+            <svelte:fragment slot="option" let:ref let:option>
+              <div class="w-full overflow-hidden overflow-ellipsis">
+                <div class="text-md mb-2 break-word">{ref}</div>
+                <DropdownProperty key="Scenario" value={option.scenario} />
+                <DropdownProperty key="Order" value={option.order} />
+              </div>
+            </svelte:fragment>
+          </DropdownRadio>
+          {/if}
         </div>
-    </svelte:fragment>
-
-    <svelte:fragment slot="submit">
-      <div class="flex justify-end gap-x-2">
-        <Button disabled={$dotrainFile.isEmpty} on:click={generateRainlangString}>View Generated Rainlang</Button>
-        <ButtonLoading
-          color="green"
-          loading={isSubmitting}
-          disabled={$dotrainFile.isEmpty}
-          on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
-        >
       </div>
-    </svelte:fragment>
+  </svelte:fragment>
+
+  <svelte:fragment slot="submit">
+    <ButtonLoading
+      color="green"
+      loading={isSubmitting}
+      disabled={$dotrainFile.isEmpty}
+      on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
+    >
+  </svelte:fragment>
 </FileTextarea>
 
 <div class="my-8">
@@ -180,8 +191,41 @@
   </Helper>
 </div>
 
-<Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
-<Charts {chartData} />
+<Tabs>
+  <TabItem open title="Rainlang">
+    {#if resetRainlang}
+      {#if scenarios === undefined || Object.keys(scenarios).length === 0}
+        <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
+      {:else}
+        <div class="grid justify-items-end gap-y-2">
+          <DropdownRadio options={scenarios} bind:value={scenarioRef}>
+            <svelte:fragment slot="content"  let:selectedRef>
+              <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
+            </svelte:fragment>
+
+            <svelte:fragment slot="option" let:ref let:option>
+              <div class="w-full overflow-hidden overflow-ellipsis">
+                <div class="text-md mb-2 break-word">{ref}</div>
+                <DropdownProperty key="Scenario" value={option.deployer ?? ""} />
+              </div>
+            </svelte:fragment>
+          </DropdownRadio>
+          <Button on:click={generateRainlangString}>Generate Rainlang</Button>
+        </div>
+      {/if}
+    {:else}
+      <CodeMirrorRainlang bind:value={rainlangText} disabled={true}/>
+    {/if}
+  </TabItem>
+  <TabItem title="Charts">
+    {#if !chartData || chartData?.length == 0}
+      <Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
+    {:else}
+      <Charts {chartData} />
+    {/if}
+  </TabItem>
+</Tabs>
+
 <ModalExecute
   bind:open={openAddOrderModal}
   title="Add Order"
@@ -189,8 +233,4 @@
   {executeLedger}
   {executeWalletconnect}
   bind:isSubmitting={isSubmitting}
-/>
-<ModalViewRainlang
-  bind:open={openRainlangViewModal}
-  text={rainlangText}
 />

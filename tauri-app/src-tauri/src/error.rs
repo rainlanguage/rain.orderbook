@@ -13,6 +13,7 @@ use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
+use dotrain::error::ComposeError;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -66,6 +67,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
+
+    #[error(transparent)]
+    ComposeError(#[from] ComposeError),
 }
 
 impl Serialize for CommandError {

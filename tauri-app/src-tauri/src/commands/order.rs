@@ -1,11 +1,12 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy_primitives::Bytes;
-use rain_orderbook_app_settings::deployment::Deployment;
+use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, remove_order::RemoveOrderArgs,
     subgraph::SubgraphArgs, transaction::TransactionArgs, types::OrderDetailExtended,
     types::OrderFlattened, utils::timestamp::FormatTimestampDisplayError,
+    rainlang::compose_to_rainlang
 };
 use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
 use std::fs;
@@ -167,18 +168,9 @@ pub async fn order_remove_calldata(
 }
 
 #[tauri::command]
-pub async fn compose_to_rainlang(
-    app_handle: AppHandle,
+pub async fn compose_from_scenario(
     dotrain: String,
-    deployment: Deployment,
+    scenario: Scenario,
 ) -> CommandResult<String> {
-    let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
-    let result = add_order_args
-        .compose_to_rainlang()
-        .map_err(|e| {
-            toast_error(app_handle.clone(), "Please resolve issues first!".to_string());
-            e
-        })?;
-
-    Ok(result)
+    Ok(compose_to_rainlang(dotrain, scenario.bindings)?)
 }

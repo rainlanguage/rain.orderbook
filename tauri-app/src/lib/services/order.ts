@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl, orderbookAddress, chainId, subgraphUrl } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-import type { Deployment } from '$lib/typeshare/config';
+import type { Deployment, Scenario } from '$lib/typeshare/config';
 
 export async function orderAdd(dotrain: string, deployment: Deployment) {
   await invoke("order_add", {
@@ -54,9 +54,9 @@ export async function orderRemoveCalldata(id: string) {
   });
 }
 
-export async function orderAddComposeRainlang(dotrain: string, deployment: Deployment): Promise<string> {
-  return await invoke("compose_to_rainlang", {
+export async function orderAddComposeRainlang(dotrain: string, scenario: Scenario): Promise<string> {
+  return await invoke("compose_from_scenario", {
     dotrain,
-    deployment,
+    scenario,
   });
 }

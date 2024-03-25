@@ -22,19 +22,16 @@ use typeshare::typeshare;
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: Vec<(RainEvalResult, String)>,
+    pub runs: Vec<RainEvalResult>,
 }
 
 impl FuzzResult {
-    pub fn collect_data_by_path(
-        &self,
-        path: &str,
-    ) -> Result<Vec<(U256, String)>, TraceSearchError> {
-        let mut collection: Vec<(U256, String)> = vec![];
+    pub fn collect_data_by_path(&self, path: &str) -> Result<Vec<U256>, TraceSearchError> {
+        let mut collection: Vec<U256> = vec![];
         // loop over the runs and search_trace_by_path for each
-        for (run, rainlang_string) in self.runs.iter() {
+        for run in self.runs.iter() {
             let stack = run.search_trace_by_path(path)?;
-            collection.push((stack, rainlang_string.clone()));
+            collection.push(stack);
         }
         Ok(collection)
     }
@@ -49,18 +46,11 @@ pub struct FuzzRunner {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PlotDataItem {
-    #[typeshare(serialized_as = "Vec<String>")]
-    pub data: Vec<U256>,
-    pub rainlang: String,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlotData {
     pub name: String,
     pub plot_type: String,
-    pub data: Vec<PlotDataItem>,
+    #[typeshare(serialized_as = "Vec<Vec<String>>")]
+    pub data: Vec<Vec<U256>>,
 }
 
 #[typeshare]
@@ -165,7 +155,6 @@ impl FuzzRunner {
         let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
         let dotrain = Arc::new(self.dotrain.clone());
         let mut handles = vec![];
-        let mut rainlangs = std::collections::VecDeque::new();
 
         for _ in 0..no_of_runs {
             let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
@@ -184,16 +173,16 @@ impl FuzzRunner {
                 final_bindings.push(Rebind(elided_binding.to_string(), hex));
             }
 
-            final_bindings.extend(scenario_bindings.clone());
-            let rainlang_string = RainDocument::compose_text(
-                &dotrain,
-                &ORDERBOOK_ORDER_ENTRYPOINTS,
-                None,
-                Some(final_bindings),
-            )?;
-            rainlangs.push_back(rainlang_string.clone());
-
             let handle = tokio::spawn(async move {
+                final_bindings.extend(scenario_bindings.clone());
+
+                let rainlang_string = RainDocument::compose_text(
+                    &dotrain,
+                    &ORDERBOOK_ORDER_ENTRYPOINTS,
+                    None,
+                    Some(final_bindings),
+                )?;
+
                 let args = ForkEvalArgs {
                     rainlang_string,
                     source_index: 0,
@@ -210,11 +199,11 @@ impl FuzzRunner {
             handles.push(handle);
         }
 
-        let mut runs: Vec<(RainEvalResult, String)> = Vec::new();
+        let mut runs: Vec<RainEvalResult> = Vec::new();
 
         for handle in handles {
             let res = handle.await??;
-            runs.push((res.into(), rainlangs.pop_front().unwrap_or("".to_owned())));
+            runs.push(res.into());
         }
 
         Ok(FuzzResult {
@@ -244,11 +233,8 @@ impl FuzzRunner {
                             let merged_data = x
                                 .into_iter()
                                 .zip(y.into_iter())
-                                .map(|(x_val, y_val)| PlotDataItem {
-                                    data: vec![x_val.0, y_val.0],
-                                    rainlang: x_val.1,
-                                })
-                                .collect::<Vec<PlotDataItem>>();
+                                .map(|(x_val, y_val)| vec![x_val, y_val])
+                                .collect::<Vec<Vec<U256>>>();
                             PlotData {
                                 plot_type: plot.plot_type,
                                 name,
