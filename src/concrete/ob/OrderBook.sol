@@ -14,7 +14,11 @@ import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointD
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {
+    SourceIndexV2,
+    StateNamespace,
+    IInterpreterV3
+} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
@@ -206,7 +210,19 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit(address token, bytes calldata vaultId, uint256 amount, EvaluableV3[] calldata post) external nonReentrant {
+    function eval(EvaluableV3[] calldata post) external {
+        LibOrderBook.doPost(
+            StateNamespace.wrap(uint256(uint160(msg.sender)), 0),
+            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+            post
+        );
+    }
+
+    /// @inheritdoc IOrderBookV4
+    function deposit(address token, bytes calldata vaultId, uint256 amount, EvaluableV3[] calldata post)
+        external
+        nonReentrant
+    {
         if (amount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
@@ -226,7 +242,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external nonReentrant {
+    function withdraw(address token, bytes calldata vaultId, uint256 targetAmount, EvaluableV3[] calldata post) external nonReentrant {
         if (targetAmount == 0) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
@@ -241,6 +257,12 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
         }
+
+        LibOrderBook.doPost(
+            StateNamespace.wrap(uint256(uint160(msg.sender))),
+            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+            post
+        );
     }
 
     /// @inheritdoc IOrderBookV4
@@ -283,14 +305,14 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
 
         LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(order.owner))),
+            StateNamespace.wrap(uint256(uint160(msg.sender))),
             LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
             post
         );
     }
 
     /// @inheritdoc IOrderBookV4
-    function removeOrder(OrderV3 calldata order) external nonReentrant returns (bool stateChanged) {
+    function removeOrder(OrderV3 calldata order, EvaluableV3[] calldata post) external nonReentrant returns (bool stateChanged) {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
         }
@@ -300,6 +322,12 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
         }
+
+        LibOrderBook.doPost(
+            StateNamespace.wrap(uint256(uint160(msg.sender))),
+            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+            post
+        );
     }
 
     /// @inheritdoc IOrderBookV4
