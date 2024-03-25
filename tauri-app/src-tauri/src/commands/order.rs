@@ -171,14 +171,14 @@ pub async fn compose_to_rainlang(
     app_handle: AppHandle,
     dotrain: String,
     deployment: Deployment,
-) -> CommandResult<()> {
+) -> CommandResult<String> {
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
-    add_order_args
+    let result = add_order_args
         .compose_to_rainlang()
-        .map_err(|_| {
+        .map_err(|e| {
             toast_error(app_handle.clone(), "Please resolve issues first!".to_string());
             e
         })?;
 
-    Ok(())
+    Ok(result)
 }

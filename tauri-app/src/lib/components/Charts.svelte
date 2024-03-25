@@ -1,6 +1,6 @@
 <script lang="ts">
     import ObservableChart from "$lib/components/ObservableChart.svelte";
-import type { ChartData } from "$lib/typeshare/fuzz";
+    import type { ChartData } from "$lib/typeshare/fuzz";
     export let chartData: ChartData[] = [];
 </script>
 

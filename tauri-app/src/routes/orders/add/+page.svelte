@@ -21,9 +21,10 @@
   import type { ConfigSource } from '$lib/typeshare/configString';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import { orderAdd, orderAddCalldata } from '$lib/services/order';
+  import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import ModalViewRainlang from '$lib/components/ModalViewRainlang.svelte';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -33,6 +34,8 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
+  let openRainlangViewModal = false;
+  let rainlangText = "";
 
   $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
     pickBy(mergedConfigSource.deployments, (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.name === $activeNetworkRef) : {};
@@ -103,6 +106,19 @@
     }
     isSubmitting = false;
   }
+
+  async function generateRainlangString() {
+    try {
+      if(!deployment) throw Error("Select a deployment to generate rainlang");
+
+      rainlangText = await orderAddComposeRainlang($dotrainFile.text, deployment);
+      openRainlangViewModal = true;
+      // eslint-disable-next-line no-empty
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e)
+    }
+  }
 </script>
 
 <PageHeader title="Add Order" />
@@ -143,13 +159,15 @@
     </svelte:fragment>
 
     <svelte:fragment slot="submit">
-      <ButtonLoading
-        color="green"
-        loading={isSubmitting}
-        disabled={$dotrainFile.isEmpty}
-        on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
-      >
-      <Button disabled={isCharting} on:click={chart}><span class="mr-2">View Generated Rainlang</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
+      <div class="flex justify-end gap-x-2">
+        <Button disabled={$dotrainFile.isEmpty} on:click={generateRainlangString}>View Generated Rainlang</Button>
+        <ButtonLoading
+          color="green"
+          loading={isSubmitting}
+          disabled={$dotrainFile.isEmpty}
+          on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
+        >
+      </div>
     </svelte:fragment>
 </FileTextarea>
 
@@ -171,4 +189,8 @@
   {executeLedger}
   {executeWalletconnect}
   bind:isSubmitting={isSubmitting}
+/>
+<ModalViewRainlang
+  bind:open={openRainlangViewModal}
+  text={rainlangText}
 />

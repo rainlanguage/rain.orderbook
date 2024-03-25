@@ -49,11 +49,18 @@ pub struct FuzzRunner {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PlotDataItem {
+    #[typeshare(serialized_as = "Vec<String>")]
+    pub data: Vec<U256>,
+    pub rainlang: String,
+}
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlotData {
     pub name: String,
     pub plot_type: String,
-    #[typeshare(serialized_as = "Vec<Vec<String>>")]
-    pub data: Vec<(Vec<U256>, String)>,
+    pub data: Vec<PlotDataItem>,
 }
 
 #[typeshare]
@@ -237,8 +244,11 @@ impl FuzzRunner {
                             let merged_data = x
                                 .into_iter()
                                 .zip(y.into_iter())
-                                .map(|(x_val, y_val)| (vec![x_val.0, y_val.0], x_val.1))
-                                .collect::<Vec<(Vec<U256>, String)>>();
+                                .map(|(x_val, y_val)| PlotDataItem {
+                                    data: vec![x_val.0, y_val.0],
+                                    rainlang: x_val.1,
+                                })
+                                .collect::<Vec<PlotDataItem>>();
                             PlotData {
                                 plot_type: plot.plot_type,
                                 name,

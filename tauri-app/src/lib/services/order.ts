@@ -53,3 +53,10 @@ export async function orderRemoveCalldata(id: string) {
     }
   });
 }
+
+export async function orderAddComposeRainlang(dotrain: string, deployment: Deployment): Promise<string> {
+  return await invoke("compose_to_rainlang", {
+    dotrain,
+    deployment,
+  });
+}
