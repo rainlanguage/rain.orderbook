@@ -26,7 +26,7 @@ pub enum Mark {
 pub struct DotOptions {
     pub x: Option<String>,
     pub y: Option<String>,
-    pub r: Option<String>,
+    pub r: Option<u64>,
     pub fill: Option<String>,
     pub stroke: Option<String>,
     pub transform: Option<Transform>,
@@ -37,7 +37,7 @@ pub struct DotOptions {
 pub struct LineOptions {
     pub x: Option<String>,
     pub y: Option<String>,
-    pub r: Option<String>,
+    pub r: Option<u64>,
     pub fill: Option<String>,
     pub stroke: Option<String>,
     pub transform: Option<Transform>,
@@ -80,7 +80,7 @@ pub enum Transform {
 pub struct TransformOutputs {
     x: Option<String>,
     y: Option<String>,
-    r: Option<String>,
+    r: Option<u64>,
     z: Option<String>,
     stroke: Option<String>,
     fill: Option<String>,

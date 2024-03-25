@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { DotOptions, FuzzResultFlat, LineOptions, Mark, Plot as PlotT, Transform } from "$lib/typeshare/config";
 import * as Plot from "@observablehq/plot";
-import { hexToBigInt, type Hex, formatUnits, parseUnits } from "viem";
+import { hexToBigInt, type Hex, formatUnits } from "viem";
 
 export let plot: PlotT;
 export let scenarioData: FuzzResultFlat;
@@ -9,8 +9,6 @@ export let scenarioData: FuzzResultFlat;
 type PlotData = { [key: string]: number }
 
 let data: PlotData[];
-
-$: console.log(data);
 
 const transformData = (fuzzResult: FuzzResultFlat): PlotData[] => {
     return fuzzResult.data.map(row => {
@@ -27,18 +25,16 @@ $: data = transformData(scenarioData);
 let div: HTMLDivElement;
 
 const buildMark = (data: PlotData[], markConfig: Mark) => {
-  console.log(markConfig.options);
   switch (markConfig.type) {
     case "line":
             if (markConfig.options.transform == undefined) {
               delete markConfig.options.transform;
-              return Plot.line(data, markConfig.options as Omit<LineOptions, "transform">);
+              return Plot.line(data, {sort: markConfig.options.x, ...markConfig.options} as Omit<LineOptions, "transform">);
               } else {
               return Plot.line(data, buildTransform(markConfig.options.transform))
             }
     case "dot":
             if (markConfig.options.transform == undefined) {
-              delete markConfig.options.transform;
                 return Plot.dot(data, markConfig.options as Omit<DotOptions, "transform">);
               } else {
               return Plot.dot(data, buildTransform(markConfig.options.transform))
@@ -48,6 +44,8 @@ const buildMark = (data: PlotData[], markConfig: Mark) => {
               delete markConfig.options.transform;
               return Plot.rectY(data, markConfig.options as Omit<Plot.RectYOptions, "transform">);
               } else {
+                console.log('rect transform')
+                console.log(markConfig.options.transform)
               return Plot.rectY(data, buildTransform(markConfig.options.transform))
             }
     case "axisx":
@@ -60,9 +58,22 @@ const buildMark = (data: PlotData[], markConfig: Mark) => {
 const buildTransform = (transform: Transform) => {
     switch (transform.type) {
         case "binx":
-            return Plot.binX(transform.content.outputs, transform.content.options);
+            return Plot.binX(deleteNullKeys(transform.content.outputs), deleteNullKeys(transform.content.options));
+        case "hexbin":
+            const options: Plot.HexbinOptions = {
+              binWidth: transform.content.options?.["bin-width"],
+              ...transform.content.options}
+            return Plot.hexbin(deleteNullKeys(transform.content.outputs), deleteNullKeys(options));
     }
 }
+
+const deleteNullKeys = (obj: any) => {
+    Object.keys(obj).forEach(key => {
+        if (obj[key] && typeof obj[key] === 'object') deleteNullKeys(obj[key]);
+        else if (obj[key] == null) delete obj[key];
+    });
+    return obj;
+  }
 
   $: {
     div?.firstChild?.remove(); // remove old chart, if any
