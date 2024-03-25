@@ -90,7 +90,7 @@ impl AddOrderArgs {
         }
 
         let mut outputs = vec![];
-        for output in &deployment.order.inputs {
+        for output in &deployment.order.outputs {
             if let Some(decimals) = output.token.decimals {
                 outputs.push(IO {
                     token: output.token.address,
