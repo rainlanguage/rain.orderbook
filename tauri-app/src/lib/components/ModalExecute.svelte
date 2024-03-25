@@ -44,7 +44,7 @@
       bind:derivationIndex={$ledgerWalletDerivationIndex}
       bind:walletAddress={$ledgerWalletAddress.value}
     />
-    <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || !$ledgerWalletDerivationIndex} loading={isSubmitting}>
+    <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || $ledgerWalletDerivationIndex == undefined || $ledgerWalletDerivationIndex == null} loading={isSubmitting}>
       {execButtonLabel}
     </ButtonLoading>
   {:else if selectedWalletconnect}
