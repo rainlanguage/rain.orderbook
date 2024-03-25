@@ -14,15 +14,14 @@ import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointD
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {EvaluableV2} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
+import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 
 import {
     IOrderBookV4,
@@ -33,7 +32,9 @@ import {
     TakeOrdersConfigV3,
     ClearConfigV2,
     ClearStateChange,
-    ZeroMaximumInput
+    ZeroMaximumInput,
+    SignedContextV1,
+    EvaluableV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IOrderBookV3OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV3OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
@@ -186,11 +187,16 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
+    mapping(address owner => mapping(address token => mapping(bytes vaultId => uint256 balance))) internal
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV4
-    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
+    function vaultBalance(address owner, address token, bytes calldata vaultId)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return sVaultBalances[owner][token][vaultId];
     }
 
@@ -200,7 +206,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit(address token, uint256 vaultId, uint256 amount) external nonReentrant {
+    function deposit(address token, bytes calldata vaultId, uint256 amount, EvaluableV3[] calldata post) external nonReentrant {
         if (amount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
@@ -211,6 +217,12 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         //slither-disable-next-line reentrancy-benign
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         sVaultBalances[msg.sender][token][vaultId] += amount;
+
+        LibOrderBook.doPost(
+            StateNamespace.wrap(uint256(uint160(msg.sender))),
+            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+            post
+        );
     }
 
     /// @inheritdoc IOrderBookV4
@@ -232,24 +244,23 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder(OrderConfigV3 calldata orderConfig) external nonReentrant returns (bool stateChanged) {
-        if (config.validInputs.length == 0) {
+    function addOrder(OrderConfigV3 calldata orderConfig, EvaluableV3[] calldata post)
+        external
+        nonReentrant
+        returns (bool stateChanged)
+    {
+        if (orderConfig.validInputs.length == 0) {
             revert OrderNoInputs();
         }
-        if (config.validOutputs.length == 0) {
+        if (orderConfig.validOutputs.length == 0) {
             revert OrderNoOutputs();
         }
 
         // Merge our view on the sender/owner and handle IO emptiness with the
         // config and deployer's view on the `EvaluableV2` to produce the final
         // order.
-        OrderV3 memory order = OrderV3(
-            msg.sender,
-            orderConfig.evaluable,
-            config.validInputs,
-            config.validOutputs,
-            bytes32(0)
-        );
+        OrderV3 memory order =
+            OrderV3(msg.sender, orderConfig.evaluable, orderConfig.validInputs, orderConfig.validOutputs, bytes32(0));
         bytes32 orderHash = order.hash();
 
         // If the order is not dead we return early without state changes.
@@ -261,15 +272,21 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             // addresses.
             //slither-disable-next-line reentrancy-benign
             sOrders[orderHash] = ORDER_LIVE;
-            emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
+            emit AddOrderV2(order.owner, orderHash, order);
 
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
             if (orderConfig.meta.length > 0) {
                 LibMeta.checkMetaUnhashedV1(orderConfig.meta);
-                emit MetaV1(msg.sender, uint256(orderHash), orderConfig.meta);
+                emit MetaV1(order.owner, uint256(orderHash), orderConfig.meta);
             }
         }
+
+        LibOrderBook.doPost(
+            StateNamespace.wrap(uint256(uint160(order.owner))),
+            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
+            post
+        );
     }
 
     /// @inheritdoc IOrderBookV4
@@ -281,7 +298,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         if (sOrders[orderHash] == ORDER_LIVE) {
             stateChanged = true;
             sOrders[orderHash] = ORDER_DEAD;
-            emit RemoveOrder(msg.sender, order, orderHash);
+            emit RemoveOrderV2(msg.sender, orderHash, order);
         }
     }
 
