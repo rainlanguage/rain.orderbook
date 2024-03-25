@@ -76,7 +76,7 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
         await promise;
         pageIndex.set(newPage);
       } catch(e) {
-        reportErrorToSentry(e);
+        reportErrorToSentry(e, SentrySeverityLevel.Info);
         if(displayError) {
           toasts.error((e as Error).message);
         }
