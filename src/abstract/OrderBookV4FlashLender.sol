@@ -20,11 +20,11 @@ error FlashLenderCallbackFailed(bytes32 result);
 /// to connect external liquidity to live orders via arbitrage.
 uint256 constant FLASH_FEE = 0;
 
-/// @title OrderBookV3FlashLender
+/// @title OrderBookV4FlashLender
 /// @notice Implements `IERC3156FlashLender` for `OrderBook`. Based on the
 /// reference implementation by Alberto Cuesta Cañada found at
 /// https://eips.ethereum.org/EIPS/eip-3156#flash-loan-reference-implementation
-abstract contract OrderBookV3FlashLender is IERC3156FlashLender {
+abstract contract OrderBookV4FlashLender is IERC3156FlashLender {
     using SafeERC20 for IERC20;
 
     /// @inheritdoc IERC3156FlashLender

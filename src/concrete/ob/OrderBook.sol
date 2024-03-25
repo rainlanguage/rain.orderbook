@@ -25,16 +25,16 @@ import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
 
 import {
-    IOrderBookV3,
+    IOrderBookV4,
     NoOrders,
-    OrderV2,
-    OrderConfigV2,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2,
-    ClearConfig,
+    OrderV3,
+    OrderConfigV3,
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3,
+    ClearConfigV2,
     ClearStateChange,
     ZeroMaximumInput
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IOrderBookV3OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV3OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
@@ -47,7 +47,7 @@ import {
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_IO_VAULT_ID
 } from "../../lib/LibOrderBook.sol";
-import {OrderBookV3FlashLender} from "../../abstract/OrderBookV3FlashLender.sol";
+import {OrderBookV4FlashLender} from "../../abstract/OrderBookV4FlashLender.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -145,7 +145,7 @@ uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
 /// @param kvs KVs returned from calculate order entrypoint to pass to the store
 /// before calling handle IO entrypoint.
 struct OrderIOCalculationV2 {
-    OrderV2 order;
+    OrderV3 order;
     uint256 outputIOIndex;
     Output18Amount outputMax;
     //solhint-disable-next-line var-name-mixedcase
@@ -161,10 +161,10 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBookV3FlashLender {
+contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
-    using LibOrder for OrderV2;
+    using LibOrder for OrderV3;
     using LibUint256Array for uint256;
     using Math for uint256;
     using LibFixedPointDecimalScale for uint256;
@@ -189,17 +189,17 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
         sVaultBalances;
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function orderExists(bytes32 orderHash) external view override returns (bool) {
         return sOrders[orderHash] == ORDER_LIVE;
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function deposit(address token, uint256 vaultId, uint256 amount) external nonReentrant {
         if (amount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
@@ -213,7 +213,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         sVaultBalances[msg.sender][token][vaultId] += amount;
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function withdraw(address token, uint256 vaultId, uint256 targetAmount) external nonReentrant {
         if (targetAmount == 0) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
@@ -231,8 +231,8 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
     }
 
-    /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfigV2 calldata config) external nonReentrant returns (bool stateChanged) {
+    /// @inheritdoc IOrderBookV4
+    function addOrder(OrderConfigV3 calldata config) external nonReentrant returns (bool stateChanged) {
         uint256 sourceCount = LibBytecode.sourceCount(config.evaluableConfig.bytecode);
         if (sourceCount == 0) {
             revert OrderNoSources();
@@ -277,10 +277,9 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         // Merge our view on the sender/owner and handle IO emptiness with the
         // config and deployer's view on the `EvaluableV2` to produce the final
         // order.
-        OrderV2 memory order = OrderV2(
+        OrderV3 memory order = OrderV3(
             msg.sender,
-            LibBytecode.sourceOpsCount(config.evaluableConfig.bytecode, SourceIndexV2.unwrap(HANDLE_IO_ENTRYPOINT)) > 0,
-            EvaluableV2(interpreter, store, expression),
+            orderConfig.evaluable,
             config.validInputs,
             config.validOutputs
         );
@@ -306,8 +305,8 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
     }
 
-    /// @inheritdoc IOrderBookV3
-    function removeOrder(OrderV2 calldata order) external nonReentrant returns (bool stateChanged) {
+    /// @inheritdoc IOrderBookV4
+    function removeOrder(OrderV3 calldata order) external nonReentrant returns (bool stateChanged) {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
         }
@@ -319,11 +318,11 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
-    function takeOrders(TakeOrdersConfigV2 calldata config)
+    function takeOrders(TakeOrdersConfigV3 calldata config)
         external
         nonReentrant
         returns (uint256 totalTakerInput, uint256 totalTakerOutput)
@@ -528,11 +527,11 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function clear(
-        OrderV2 memory aliceOrder,
-        OrderV2 memory bobOrder,
-        ClearConfig calldata clearConfig,
+        OrderV3 memory aliceOrder,
+        OrderV3 memory bobOrder,
+        ClearConfigV2 calldata clearConfig,
         SignedContextV1[] memory aliceSignedContext,
         SignedContextV1[] memory bobSignedContext
     ) external nonReentrant {
@@ -640,7 +639,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     /// @param signedContext Any signed context provided by the clearer/taker
     /// that the order may need for its calculations.
     function calculateOrderIO(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         address counterparty,
