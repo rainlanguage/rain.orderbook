@@ -1,22 +1,29 @@
 <script lang="ts">
-import type { PlotData } from "$lib/typeshare/fuzz";
-import * as Plot from "@observablehq/plot";
-import { hexToBigInt, type Hex, formatUnits } from "viem";
-// import ModalViewRainlang from "./ModalViewRainlang.svelte";
+  import { html } from "htl";
+  import type { PlotData } from "$lib/typeshare/fuzz";
+  import * as Plot from "@observablehq/plot";
+  import { hexToBigInt, type Hex, formatUnits } from "viem";
+  import ModalViewRainlang from "./ModalViewRainlang.svelte";
 
-export let plotData: PlotData;
-let data: number[][];
-// let openRainlangView = false;
+  export let plotData: PlotData;
+  let data: number[][];
+  let openRainlangView = false;
 
-$: data = plotData?.data.map(
-    (row) => row.data.map(
-        (val) => {
-         return +formatUnits(hexToBigInt(val as Hex), 18)
-        }
-    )
-);
+  var openModal = function openModal() {
+    openRainlangView = true;
+  }
 
-let div: HTMLDivElement;
+  $: data = plotData?.data.map(
+      (row) => row.data.map(
+          (val) => {
+          return +formatUnits(hexToBigInt(val as Hex), 18)
+          }
+      )
+  );
+
+  $: rainlangText = plotData?.data[0].rainlang;
+
+  let div: HTMLDivElement;
 
   $: {
     div?.firstChild?.remove(); // remove old chart, if any
@@ -26,11 +33,11 @@ let div: HTMLDivElement;
       x: {grid: true},
       marginLeft: 70,
       marks: [
-        plotData.plot_type == "line" ?
-        Plot.line(data, {x: "0", y: "1", sort: {channel: "x"}}):
-        Plot.dot(data, {x: "0", y: "1", sort: {channel: "x"}}),
+        plotData.plot_type == "line"
+          ? Plot.line(data, {x: "0", y: "1", sort: {channel: "x"}})
+          : Plot.dot(data, {x: "0", y: "1", sort: {channel: "x"}}),
       ],
-      // subtitle: html`<a href="#" on:click={() => openRainlangView = true}>View Generated Rainlang</a>`,
+      subtitle: html`<button onclick=${openModal}>View Generated Rainlang</button>`
     })); // add the new chart
 
   }
@@ -40,4 +47,4 @@ let div: HTMLDivElement;
 <div bind:this={div} role="img" class="border p-4 w-full"></div>
 {/if}
 
-<!-- <ModalViewRainlang bind:open={openRainlangView} text={}/> -->
+<ModalViewRainlang bind:open={openRainlangView} text={rainlangText}/>
