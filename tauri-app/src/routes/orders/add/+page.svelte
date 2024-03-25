@@ -7,7 +7,7 @@
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
-  import { completionCallback, hoverCallback, problemsCallback } from '$lib/services/langServices';
+  import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
   import type { ChartData } from '$lib/typeshare/fuzz';
@@ -49,7 +49,6 @@
   $: scenario = (scenarioRef !== undefined && mergedConfig !== undefined) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   $: rainlangExtension = new RawRainlangExtension({
-    hover: (text, position) => hoverCallback.apply(null, [text, position, bindings]),
     diagnostics: async (text) => {
       // get problems with merging settings config with frontmatter
       const configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
@@ -59,7 +58,6 @@
 
       return [...configProblems, ...problems] as Problem[];
     },
-    completion: (text, position) => completionCallback.apply(null, [text, position, bindings]),
   });
 
   $: {
