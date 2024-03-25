@@ -232,46 +232,12 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder(OrderConfigV3 calldata config) external nonReentrant returns (bool stateChanged) {
-        uint256 sourceCount = LibBytecode.sourceCount(config.evaluableConfig.bytecode);
-        if (sourceCount == 0) {
-            revert OrderNoSources();
-        }
-        if (sourceCount == 1) {
-            revert OrderNoHandleIO();
-        }
+    function addOrder(OrderConfigV3 calldata orderConfig) external nonReentrant returns (bool stateChanged) {
         if (config.validInputs.length == 0) {
             revert OrderNoInputs();
         }
         if (config.validOutputs.length == 0) {
             revert OrderNoOutputs();
-        }
-        (IInterpreterV2 interpreter, IInterpreterStoreV2 store, address expression, bytes memory io) = config
-            .evaluableConfig
-            .deployer
-            .deployExpression2(config.evaluableConfig.bytecode, config.evaluableConfig.constants);
-        {
-            uint256 calculateInputs;
-            uint256 calculateOutputs;
-            uint256 handleInputs;
-            assembly ("memory-safe") {
-                let ioWord := mload(add(io, 0x20))
-                calculateInputs := byte(0, ioWord)
-                calculateOutputs := byte(1, ioWord)
-                handleInputs := byte(2, ioWord)
-            }
-
-            if (calculateInputs != 0) {
-                revert UnsupportedCalculateInputs(calculateInputs);
-            }
-
-            if (calculateOutputs < CALCULATE_ORDER_MIN_OUTPUTS) {
-                revert UnsupportedCalculateOutputs(calculateOutputs);
-            }
-
-            if (handleInputs != 0) {
-                revert UnsupportedHandleInputs(handleInputs);
-            }
         }
 
         // Merge our view on the sender/owner and handle IO emptiness with the
@@ -281,7 +247,8 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             msg.sender,
             orderConfig.evaluable,
             config.validInputs,
-            config.validOutputs
+            config.validOutputs,
+            bytes32(0)
         );
         bytes32 orderHash = order.hash();
 
@@ -298,9 +265,9 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
 
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
-            if (config.meta.length > 0) {
-                LibMeta.checkMetaUnhashedV1(config.meta);
-                emit MetaV1(msg.sender, uint256(orderHash), config.meta);
+            if (orderConfig.meta.length > 0) {
+                LibMeta.checkMetaUnhashedV1(orderConfig.meta);
+                emit MetaV1(msg.sender, uint256(orderHash), orderConfig.meta);
             }
         }
     }
@@ -331,8 +298,8 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             revert NoOrders();
         }
 
-        TakeOrderConfigV2 memory takeOrderConfig;
-        OrderV2 memory order;
+        TakeOrderConfigV3 memory takeOrderConfig;
+        OrderV3 memory order;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
