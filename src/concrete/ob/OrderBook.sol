@@ -34,7 +34,7 @@ import {
     OrderConfigV3,
     TakeOrderConfigV3,
     TakeOrdersConfigV3,
-    ClearConfigV2,
+    ClearConfig,
     ClearStateChange,
     ZeroMaximumInput,
     SignedContextV1,
@@ -191,16 +191,11 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(address owner => mapping(address token => mapping(bytes vaultId => uint256 balance))) internal
+    mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV4
-    function vaultBalance(address owner, address token, bytes calldata vaultId)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
 
@@ -219,7 +214,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit(address token, bytes calldata vaultId, uint256 amount, EvaluableV3[] calldata post)
+    function deposit(address token, uint256 vaultId, uint256 amount, EvaluableV3[] calldata post)
         external
         nonReentrant
     {
@@ -242,7 +237,10 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function withdraw(address token, bytes calldata vaultId, uint256 targetAmount, EvaluableV3[] calldata post) external nonReentrant {
+    function withdraw(address token, uint256 vaultId, uint256 targetAmount, EvaluableV3[] calldata post)
+        external
+        nonReentrant
+    {
         if (targetAmount == 0) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
@@ -312,7 +310,11 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function removeOrder(OrderV3 calldata order, EvaluableV3[] calldata post) external nonReentrant returns (bool stateChanged) {
+    function removeOrder(OrderV3 calldata order, EvaluableV3[] calldata post)
+        external
+        nonReentrant
+        returns (bool stateChanged)
+    {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
         }
@@ -543,7 +545,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     function clear(
         OrderV3 memory aliceOrder,
         OrderV3 memory bobOrder,
-        ClearConfigV2 calldata clearConfig,
+        ClearConfig calldata clearConfig,
         SignedContextV1[] memory aliceSignedContext,
         SignedContextV1[] memory bobSignedContext
     ) external nonReentrant {
@@ -700,10 +702,11 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
                 .evaluable
                 .interpreter
-                .eval2(
+                .eval3(
                 order.evaluable.store,
                 LibNamespace.qualifyNamespace(namespace, address(this)),
-                _calculateOrderDispatch(order.evaluable.expression),
+                order.evaluable.bytecode,
+                CALCULATE_ORDER_ENTRYPOINT,
                 context,
                 new uint256[](0)
             );
@@ -790,39 +793,36 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
         }
 
-        // Only dispatch handle IO entrypoint if it is defined, otherwise it is
-        // a waste of gas to hit the interpreter a second time.
-        if (orderIOCalculation.order.handleIO) {
-            // The handle IO eval is run under the same namespace as the
-            // calculate order entrypoint.
-            // Slither false positive. External calls within loops are fine if
-            // the caller controls which orders are eval'd as they can drop
-            // failing calls and resubmit a new transaction.
+        // The handle IO eval is run under the same namespace as the
+        // calculate order entrypoint.
+        // Slither false positive. External calls within loops are fine if
+        // the caller controls which orders are eval'd as they can drop
+        // failing calls and resubmit a new transaction.
+        // https://github.com/crytic/slither/issues/880
+        //slither-disable-next-line calls-loop
+        (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = orderIOCalculation
+            .order
+            .evaluable
+            .interpreter
+            .eval3(
+            orderIOCalculation.order.evaluable.store,
+            LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
+            orderIOCalculation.order.evaluable.bytecode,
+            HANDLE_IO_ENTRYPOINT,
+            orderIOCalculation.context,
+            new uint256[](0)
+        );
+        // There's nothing to be done with the stack.
+        (handleIOStack);
+        // Apply state changes to the interpreter store from the handle IO
+        // entrypoint.
+        if (handleIOKVs.length > 0) {
+            // Slither false positive. External calls within loops are fine
+            // if the caller controls which orders are eval'd as they can
+            // drop failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
-            (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = orderIOCalculation
-                .order
-                .evaluable
-                .interpreter
-                .eval2(
-                orderIOCalculation.order.evaluable.store,
-                LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
-                _handleIODispatch(orderIOCalculation.order.evaluable.expression),
-                orderIOCalculation.context,
-                new uint256[](0)
-            );
-            // There's nothing to be done with the stack.
-            (handleIOStack);
-            // Apply state changes to the interpreter store from the handle IO
-            // entrypoint.
-            if (handleIOKVs.length > 0) {
-                // Slither false positive. External calls within loops are fine
-                // if the caller controls which orders are eval'd as they can
-                // drop failing calls and resubmit a new transaction.
-                // https://github.com/crytic/slither/issues/880
-                //slither-disable-next-line calls-loop
-                orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
-            }
+            orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
         }
     }
 
@@ -883,13 +883,5 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         Input18Amount.unwrap(aliceInput18).scaleN(
             bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
         );
-    }
-
-    function _calculateOrderDispatch(address expression_) internal pure returns (EncodedDispatch) {
-        return LibEncodedDispatch.encode2(expression_, CALCULATE_ORDER_ENTRYPOINT, CALCULATE_ORDER_MAX_OUTPUTS);
-    }
-
-    function _handleIODispatch(address expression_) internal pure returns (EncodedDispatch) {
-        return LibEncodedDispatch.encode2(expression_, HANDLE_IO_ENTRYPOINT, HANDLE_IO_MAX_OUTPUTS);
     }
 }
