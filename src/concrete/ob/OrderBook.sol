@@ -212,7 +212,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     /// @inheritdoc IOrderBookV4
     function eval(EvaluableV3[] calldata post) external {
         LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(msg.sender)), 0),
+            StateNamespace.wrap(uint256(uint160(msg.sender))),
             LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
             post
         );
