@@ -45,7 +45,7 @@
   $: $dotrainFile.text, updateMergedConfig();
 
   $: scenarios = (mergedConfigSource !== undefined && mergedConfigSource?.scenarios !== undefined) ?
-    pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer!]?.network?.name === $activeNetworkRef) : {};
+    pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer]?.network?.name === $activeNetworkRef) : {};
   $: scenario = (scenarioRef !== undefined && mergedConfig !== undefined) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   $: rainlangExtension = new RawRainlangExtension({
@@ -198,7 +198,7 @@
     {#if scenarios === undefined || Object.keys(scenarios).length === 0}
       <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
     {:else}
-      <div class="grid justify-items-end gap-y-2">
+      <div class="flex justify-end gap-x-2">
         <DropdownRadio options={scenarios} bind:value={scenarioRef}>
           <svelte:fragment slot="content"  let:selectedRef>
             <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
@@ -211,7 +211,7 @@
             </div>
           </svelte:fragment>
         </DropdownRadio>
-        <Button on:click={generateRainlangString}>Generate Rainlang</Button>
+        <Button on:click={generateRainlangString} class="min-w-fit">Generate Rainlang</Button>
       </div>
     {/if}
     {#if !resetRainlang}
@@ -219,11 +219,10 @@
     {/if}
   </TabItem>
   <TabItem title="Charts">
-    {#if !chartData || chartData?.length == 0}
-      <Button disabled={isCharting} on:click={chart}><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
-    {:else}
+    {#if chartData && chartData?.length > 0}
       <Charts {chartData} />
     {/if}
+    <Button disabled={isCharting} on:click={chart} class="w-full"><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
   </TabItem>
 </Tabs>
 
