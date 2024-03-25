@@ -73,7 +73,7 @@
     }
   }
 
-  $: if ($dotrainFile.text || deployment) resetRainlang = true;
+  $: if ($dotrainFile.text || scenario) resetRainlang = true;
 
   async function updateMergedConfig() {
     try {
@@ -197,27 +197,26 @@
   defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
 >
   <TabItem open title="Rainlang">
-    {#if resetRainlang}
-      {#if scenarios === undefined || Object.keys(scenarios).length === 0}
-        <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
-      {:else}
-        <div class="grid justify-items-end gap-y-2">
-          <DropdownRadio options={scenarios} bind:value={scenarioRef}>
-            <svelte:fragment slot="content"  let:selectedRef>
-              <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
-            </svelte:fragment>
-
-            <svelte:fragment slot="option" let:ref let:option>
-              <div class="w-full overflow-hidden overflow-ellipsis">
-                <div class="text-md mb-2 break-word">{ref}</div>
-                <DropdownProperty key="Scenario" value={option.deployer ?? ""} />
-              </div>
-            </svelte:fragment>
-          </DropdownRadio>
-          <Button on:click={generateRainlangString}>Generate Rainlang</Button>
-        </div>
-      {/if}
+    {#if scenarios === undefined || Object.keys(scenarios).length === 0}
+      <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
     {:else}
+      <div class="grid justify-items-end gap-y-2">
+        <DropdownRadio options={scenarios} bind:value={scenarioRef}>
+          <svelte:fragment slot="content"  let:selectedRef>
+            <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
+          </svelte:fragment>
+
+          <svelte:fragment slot="option" let:ref let:option>
+            <div class="w-full overflow-hidden overflow-ellipsis">
+              <div class="text-md mb-2 break-word">{ref}</div>
+              <DropdownProperty key="Scenario" value={option.deployer ?? ""} />
+            </div>
+          </svelte:fragment>
+        </DropdownRadio>
+        <Button on:click={generateRainlangString}>Generate Rainlang</Button>
+      </div>
+    {/if}
+    {#if !resetRainlang}
       <CodeMirrorRainlang bind:value={rainlangText} disabled={true}/>
     {/if}
   </TabItem>
