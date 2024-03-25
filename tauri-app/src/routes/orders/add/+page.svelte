@@ -191,7 +191,11 @@
   </Helper>
 </div>
 
-<Tabs>
+<Tabs
+  style="underline"
+  contentClass="mt-4"
+  defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+>
   <TabItem open title="Rainlang">
     {#if resetRainlang}
       {#if scenarios === undefined || Object.keys(scenarios).length === 0}
