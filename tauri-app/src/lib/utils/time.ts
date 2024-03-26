@@ -17,18 +17,20 @@ export function timestampSecondsToUTCTimestamp(timestampSeconds: bigint) {
 
 /**
  * Method to put a timeout on a promise, throws the exception if promise is not settled within the time
+ * @param promise - The original promise
+ * @param time - The time in ms
+ * @param exception - The exception to reject with if time runs out before original promise settlement
  * @returns A new promise that gets settled with initial promise settlement or rejected with exception value
  * if the time runs out before the main promise settlement
  */
-export async function promiseTimeout<T>(promise: Promise<T>, time: number, exception: string | number | bigint | symbol | boolean): Promise<T> {
+export async function promiseTimeout<T>(promise: Promise<T>, time: number, exception: unknown): Promise<T> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let timeout: any;
   return Promise.race([
       promise,
       new Promise(
-          (_res, _rej) => timeout = setTimeout(_rej, time, exception)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ) as any
+          (_resolve, reject) => timeout = setTimeout(reject, time, exception)
+      ) as Promise<T>
   ]).finally(
       () => clearTimeout(timeout)
   );

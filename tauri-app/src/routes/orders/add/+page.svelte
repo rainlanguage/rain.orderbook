@@ -69,8 +69,8 @@
         // get problems with dotrain
         problems = await promiseTimeout(
           problemsCallback(text, bindings, deployment?.scenario.deployer.address),
-          3000,
-          "failed to get native parser errors"
+          5000,
+          "failed to parse on native parser"
         );
       } catch(e) {
         problems = [{
@@ -94,7 +94,7 @@
     }
   }
 
-  $: if ($dotrainFile.text || scenario) resetRainlang = true;
+  $: $dotrainFile.text, scenario, resetRainlang = true;
 
   async function updateMergedConfig() {
     try {
