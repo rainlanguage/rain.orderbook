@@ -8,6 +8,14 @@ pub struct Plot {
     pub title: Option<String>,
     pub subtitle: Option<String>,
     pub marks: Vec<Mark>,
+    pub x: Option<AxisOptions>,
+    pub y: Option<AxisOptions>,
+    pub margin: Option<u32>,
+    pub margin_left: Option<u32>,
+    pub margin_right: Option<u32>,
+    pub margin_top: Option<u32>,
+    pub margin_bottom: Option<u32>,
+    pub inset: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -18,15 +26,13 @@ pub enum Mark {
     Dot(DotOptions),
     Line(LineOptions),
     RectY(RectYOptions),
-    AxisX(AxisMark),
-    AxisY(AxisMark),
 }
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DotOptions {
     pub x: Option<String>,
     pub y: Option<String>,
-    pub r: Option<u64>,
+    pub r: Option<u32>,
     pub fill: Option<String>,
     pub stroke: Option<String>,
     pub transform: Option<Transform>,
@@ -37,7 +43,7 @@ pub struct DotOptions {
 pub struct LineOptions {
     pub x: Option<String>,
     pub y: Option<String>,
-    pub r: Option<u64>,
+    pub r: Option<u32>,
     pub fill: Option<String>,
     pub stroke: Option<String>,
     pub transform: Option<Transform>,
@@ -58,7 +64,7 @@ pub struct RectYOptions {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct AxisMark {
+pub struct AxisOptions {
     pub label: Option<String>,
     pub anchor: Option<String>,
     pub label_anchor: Option<String>,
@@ -80,7 +86,7 @@ pub enum Transform {
 pub struct TransformOutputs {
     x: Option<String>,
     y: Option<String>,
-    r: Option<u64>,
+    r: Option<u32>,
     z: Option<String>,
     stroke: Option<String>,
     fill: Option<String>,
@@ -95,10 +101,10 @@ pub struct HexBinTransform {
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct HexBinOptions {
     x: Option<String>,
     y: Option<String>,
-    #[serde(rename = "bin-width")]
     bin_width: Option<u32>,
 }
 
@@ -158,6 +164,14 @@ marks:
             Plot {
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
+                x: None,
+                y: None,
+                margin: None,
+                margin_left: None,
+                margin_right: None,
+                margin_top: None,
+                margin_bottom: None,
+                inset: None,
                 marks: vec![
                     Mark::Dot(DotOptions {
                         r: None,
@@ -215,8 +229,17 @@ marks:
             Plot {
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
+                x: None,
+                y: None,
+                margin: None,
+                margin_left: None,
+                margin_right: None,
+                margin_top: None,
+                margin_bottom: None,
+                inset: None,
                 marks: vec![Mark::Line(LineMark {
                     content: LineContent::Options(LineOptions {
+                        transform: None,
                         r: None,
                         fill: None,
                         x: Some("0.1".to_string()),
@@ -253,6 +276,14 @@ marks:
             Plot {
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
+                x: None,
+                y: None,
+                margin: None,
+                margin_left: None,
+                margin_right: None,
+                margin_top: None,
+                margin_bottom: None,
+                inset: None,
                 marks: vec![Mark::RectY(RectYMark {
                     content: RectYContent::Transform(Transform::BinX(BinXTransform {
                         outputs: TransformOutputs {

@@ -1,94 +1,87 @@
 <script lang="ts">
-import type { DotOptions, FuzzResultFlat, LineOptions, Mark, Plot as PlotT, Transform } from "$lib/typeshare/config";
-import * as Plot from "@observablehq/plot";
-import { hexToBigInt, type Hex, formatUnits } from "viem";
+  import type { FuzzResultFlat, Mark, Plot as PlotT, Transform } from '$lib/typeshare/config';
+  import * as Plot from '@observablehq/plot';
+  import { hexToBigInt, type Hex, formatUnits } from 'viem';
+  import camelcaseKeys from 'camelcase-keys';
 
-export let plot: PlotT;
-export let scenarioData: FuzzResultFlat;
+  export let plot: PlotT;
+  export let scenarioData: FuzzResultFlat;
 
-type PlotData = { [key: string]: number }
+  type PlotData = { [key: string]: number };
 
-let data: PlotData[];
+  let data: PlotData[];
+  $: data = transformData(scenarioData);
 
-const transformData = (fuzzResult: FuzzResultFlat): PlotData[] => {
-    return fuzzResult.data.map(row => {
-        const rowObject: PlotData = {};
-        fuzzResult.column_names.forEach((columnName, index) => {
-            rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
-        });
-        return rowObject;
+  // Transform the data from the backend to the format required by the plot library
+  const transformData = (fuzzResult: FuzzResultFlat): PlotData[] => {
+    return fuzzResult.data.map((row) => {
+      const rowObject: PlotData = {};
+      fuzzResult.column_names.forEach((columnName, index) => {
+        rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
+      });
+      return rowObject;
     });
-}
+  };
 
-$: data = transformData(scenarioData);
+  // Get the plot options from the plot object - removing the marks
+  const getPlotOptions = (plot: PlotT) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { marks, ...plotOptions } = plot;
+    return fixKeys(plotOptions);
+  };
 
-let div: HTMLDivElement;
-
-const buildMark = (data: PlotData[], markConfig: Mark) => {
-  switch (markConfig.type) {
-    case "line":
-            if (markConfig.options.transform == undefined) {
-              delete markConfig.options.transform;
-              return Plot.line(data, {sort: markConfig.options.x, ...markConfig.options} as Omit<LineOptions, "transform">);
-              } else {
-              return Plot.line(data, buildTransform(markConfig.options.transform))
-            }
-    case "dot":
-            if (markConfig.options.transform == undefined) {
-                return Plot.dot(data, markConfig.options as Omit<DotOptions, "transform">);
-              } else {
-              return Plot.dot(data, buildTransform(markConfig.options.transform))
-            }
-    case "recty":
-            if (markConfig.options.transform == undefined) {
-              delete markConfig.options.transform;
-              return Plot.rectY(data, markConfig.options as Omit<Plot.RectYOptions, "transform">);
-              } else {
-                console.log('rect transform')
-                console.log(markConfig.options.transform)
-              return Plot.rectY(data, buildTransform(markConfig.options.transform))
-            }
-    case "axisx":
-            return Plot.axisX(data, markConfig.options as Plot.AxisXOptions);
-    case "axisy":
-            return Plot.axisY(data, markConfig.options as Plot.AxisYOptions);
-  }
-}
-
-const buildTransform = (transform: Transform) => {
-    switch (transform.type) {
-        case "binx":
-            return Plot.binX(deleteNullKeys(transform.content.outputs), deleteNullKeys(transform.content.options));
-        case "hexbin":
-            const options: Plot.HexbinOptions = {
-              binWidth: transform.content.options?.["bin-width"],
-              ...transform.content.options}
-            return Plot.hexbin(deleteNullKeys(transform.content.outputs), deleteNullKeys(options));
+  // Map the mark object to the plot library function
+  const buildMark = (data: PlotData[], markConfig: Mark) => {
+    const options = fixKeys(markConfig.options);
+    switch (markConfig.type) {
+      case 'line':
+        return Plot.line(
+          data,
+          options.transform ? buildTransform(options.transform) : { sort: options.x, ...options },
+        );
+      case 'dot':
+        return Plot.dot(data, options.transform ? buildTransform(options.transform) : options);
+      case 'recty':
+        return Plot.rectY(data, options.transform ? buildTransform(options.transform) : options);
     }
-}
+  };
 
-const deleteNullKeys = (obj: any) => {
-    Object.keys(obj).forEach(key => {
-        if (obj[key] && typeof obj[key] === 'object') deleteNullKeys(obj[key]);
-        else if (obj[key] == null) delete obj[key];
+  // Map the transform object to the plot library function
+  const buildTransform = (transform: Transform) => {
+    switch (transform.type) {
+      case 'binx':
+        return Plot.binX(transform.content.outputs, transform.content.options);
+      case 'hexbin':
+        return Plot.hexbin(
+          transform.content.outputs as Plot.ChannelReducers<Plot.GroupReducer>,
+          transform.content.options,
+        );
+    }
+  };
+
+  // Delete keys with null values from an object and renaming all keys to camelCase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fixKeys = (obj: Record<string, any>): Record<string, any> => {
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] && typeof obj[key] === 'object') fixKeys(obj[key]);
+      else if (obj[key] == null) delete obj[key];
     });
-    return obj;
-  }
+    return camelcaseKeys(obj, { deep: true });
+  };
+
+  let div: HTMLDivElement;
 
   $: {
     div?.firstChild?.remove(); // remove old chart, if any
-    div?.append(Plot.plot({
-      title: plot.title,
-      subtitle: plot.subtitle,
-      y: {grid: true},
-      x: {grid: true},
-      marginLeft: 70,
-      marks: plot.marks.map(mark => buildMark(data, mark))
-    })); // add the new chart
-
+    div?.append(
+      Plot.plot({
+        ...getPlotOptions(plot),
+        marks: plot.marks.map((mark) => buildMark(data, mark)),
+      }),
+    ); // add the new chart
   }
 </script>
 
 {#if data}
-<div bind:this={div} role="img" class="border p-4 w-full"></div>
+  <div bind:this={div} role="img" class="w-full border p-4"></div>
 {/if}
