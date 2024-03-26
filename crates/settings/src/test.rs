@@ -49,6 +49,14 @@ pub fn mock_plot(name: &str) -> (String, Plot) {
         Plot {
             title: Some("Title".to_string()),
             subtitle: Some("Subtitle".to_string()),
+            inset: None,
+            margin: None,
+            margin_bottom: None,
+            margin_left: None,
+            margin_right: None,
+            margin_top: None,
+            x: None,
+            y: None,
             marks: vec![Mark::Dot(DotOptions {
                 transform: None,
                 r: None,

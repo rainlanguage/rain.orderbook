@@ -101,11 +101,11 @@ impl FuzzResult {
             }
             data.push(run_data);
         }
-        return Ok(FuzzResultFlat {
+        Ok(FuzzResultFlat {
             scenario: self.scenario.clone(),
             column_names,
             data,
-        });
+        })
     }
 }
 

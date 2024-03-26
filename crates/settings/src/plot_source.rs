@@ -237,15 +237,13 @@ marks:
                 margin_top: None,
                 margin_bottom: None,
                 inset: None,
-                marks: vec![Mark::Line(LineMark {
-                    content: LineContent::Options(LineOptions {
-                        transform: None,
-                        r: None,
-                        fill: None,
-                        x: Some("0.1".to_string()),
-                        y: Some("0.2".to_string()),
-                        stroke: Some("black".to_string()),
-                    }),
+                marks: vec![Mark::Line(LineOptions {
+                    transform: None,
+                    r: None,
+                    fill: None,
+                    x: Some("0.1".to_string()),
+                    y: Some("0.2".to_string()),
+                    stroke: Some("black".to_string()),
                 }),],
             }
         );
@@ -284,8 +282,12 @@ marks:
                 margin_top: None,
                 margin_bottom: None,
                 inset: None,
-                marks: vec![Mark::RectY(RectYMark {
-                    content: RectYContent::Transform(Transform::BinX(BinXTransform {
+                marks: vec![Mark::RectY(RectYOptions {
+                    x0: None,
+                    x1: None,
+                    y0: None,
+                    y1: None,
+                    transform: Some(Transform::BinX(BinXTransform {
                         outputs: TransformOutputs {
                             x: None,
                             y: Some("count".to_string()),
