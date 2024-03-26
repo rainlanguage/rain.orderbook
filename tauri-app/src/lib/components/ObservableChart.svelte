@@ -8,9 +8,29 @@
   export let scenarioData: FuzzResultFlat;
 
   type PlotData = { [key: string]: number };
+  let div: HTMLDivElement;
+  let error: string;
 
   let data: PlotData[];
   $: data = transformData(scenarioData);
+
+  $: if (div && data) {
+    try {
+      div?.firstChild?.remove(); // remove old chart, if any
+      div.append(
+        Plot.plot({
+          ...getPlotOptions(plot),
+          marks: plot.marks.map((mark) => buildMark(data, mark)),
+        }),
+      );
+    } catch (e) {
+      if (e instanceof Error) {
+        error = e.message;
+      } else {
+        error = String(e);
+      }
+    }
+  }
 
   // Transform the data from the backend to the format required by the plot library
   const transformData = (fuzzResult: FuzzResultFlat): PlotData[] => {
@@ -68,20 +88,10 @@
     });
     return camelcaseKeys(obj, { deep: true });
   };
-
-  let div: HTMLDivElement;
-
-  $: {
-    div?.firstChild?.remove(); // remove old chart, if any
-    div?.append(
-      Plot.plot({
-        ...getPlotOptions(plot),
-        marks: plot.marks.map((mark) => buildMark(data, mark)),
-      }),
-    ); // add the new chart
-  }
 </script>
 
-{#if data}
+{#if error}
+  <div class="w-full border p-4 text-red-500">{error}</div>
+{:else}
   <div bind:this={div} role="img" class="w-full border p-4"></div>
 {/if}
