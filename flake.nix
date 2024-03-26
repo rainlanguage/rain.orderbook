@@ -54,12 +54,21 @@
               rainix.rust-build-inputs.${system}
             ];
           };
-          ob-tauri-test =  rainix.mkTask.${system} {
-            name = "ob-tauri-test";
+          ob-tauri-unit-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-unit-test";
             body = ''
               set -euxo pipefail
 
               cd tauri-app && npm i && npm run test
+            '';
+          };
+
+          ob-tauri-e2e-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-e2e-test";
+            body = ''
+              set -euxo pipefail
+
+              TAURI_AUTOMATION=true WebKitWebDriver -p 4444 & cargo run --bin tauri-test-rs
             '';
           };
 
@@ -146,7 +155,8 @@
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
             packages.ob-tauri-prelude
-            packages.ob-tauri-test
+            packages.ob-tauri-unit-test
+            packages.ob-tauri-e2e-test
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
           ];
