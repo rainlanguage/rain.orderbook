@@ -27,6 +27,7 @@ pub struct ConfigSource {
     pub charts: HashMap<String, ChartConfigSource>,
     #[serde(default)]
     pub deployments: HashMap<String, DeploymentConfigSource>,
+    pub sentry: Option<bool>,
 }
 
 #[typeshare]
@@ -291,7 +292,9 @@ deployments:
         order: sellETH
     second-deployment:
         scenario: mainScenario
-        order: buyETH"#
+        order: buyETH
+        
+sentry: true"#
             .to_string();
 
         let config: ConfigSource = yaml_data.try_into().unwrap();
@@ -316,5 +319,6 @@ deployments:
                 .unwrap()
         );
         assert_eq!(config.tokens.get("eth").unwrap().decimals, Some(18));
+        assert!(config.sentry.unwrap());
     }
 }

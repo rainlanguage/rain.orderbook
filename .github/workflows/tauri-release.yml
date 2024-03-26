@@ -34,6 +34,21 @@ jobs:
 
       - run: ./prep-tauri.sh
 
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+
+      - run: nix develop .#tauri-shell --command ob-tauri-before-release
+        working-directory: ./tauri-app
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_ORG: rainlang
+          SENTRY_PROJECT: rain-orderbook
+          COMMIT_SHA: ${{ github.sha }}
+          SENTRY_LOG_LEVEL: debug
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,3 +63,4 @@ jobs:
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
+          releaseDraft: true

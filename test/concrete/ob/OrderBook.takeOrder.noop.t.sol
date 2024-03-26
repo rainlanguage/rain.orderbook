@@ -6,7 +6,7 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {NoOrders} from "src/concrete/ob/OrderBook.sol";
-import {OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderNoopTest

@@ -2,6 +2,11 @@
 
 Docs at https://rainprotocol.github.io/foundry.template
 
+## Run Tauri App for local development
+- Prepare the tauri build: `./prep-tauri.sh`
+- Copy `tauri-app/.env.example` to `tauri-ap/.env` and fill in values
+- Run tauri for develoment: `nix develop .#tauri-shell --command cargo tauri dev`
+
 ## Use as template
 
 ```
@@ -60,4 +65,3 @@ Run the following from the repo root, outside the nix shell, to generate Typescr
 ```bash
 nix run .#ob-tauri-prelude
 ```
-

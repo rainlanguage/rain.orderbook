@@ -60,13 +60,69 @@
             '';
           };
 
+          ob-tauri-before-release = rainix.mkTask.${system} {
+            name = "ob-tauri-before-release";
+            body = ''
+              # Idempotently, create new 'release' on sentry for the current commit
+              sentry-cli releases new -p ''${SENTRY_PROJECT} ''${COMMIT_SHA}
+              sentry-cli releases set-commits --auto ''${COMMIT_SHA}
+
+              # Overwrite env variables with release values
+              echo SENTRY_AUTH_TOKEN=''${SENTRY_AUTH_TOKEN} >> .env
+              echo SENTRY_ORG=''${SENTRY_ORG} >> .env
+              echo SENTRY_PROJECT=''${SENTRY_PROJECT} >> .env
+              echo VITE_SENTRY_RELEASE=''${COMMIT_SHA} >> .env
+              echo VITE_SENTRY_ENVIRONMENT=release >> .env
+              echo VITE_SENTRY_FORCE_DISABLED=false >> .env
+              echo VITE_SENTRY_DSN=''${SENTRY_DSN} >> .env
+            '';
+            additionalBuildInputs = [
+              pkgs.sentry-cli
+            ];
+          };
+
+          ob-tauri-before-build-ci = rainix.mkTask.${system} {
+            name = "ob-tauri-before-build-ci";
+            body = ''
+              # Create env file with working defaults
+              ENV_FILE=".env"
+              ENV_EXAMPLE_FILE=".env.example"
+              cp $ENV_EXAMPLE_FILE $ENV_FILE
+
+              # Add walletconnect project id from github action env to .env file
+              echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> $ENV_FILE
+            '';
+          };
+
           ob-tauri-before-build = rainix.mkTask.${system} {
             name = "ob-tauri-before-build";
             body = ''
               set -euxo pipefail
 
-              npm i && npm run build
+              # Source .env file if it exists
+              ENV_FILE=.env
+              if [ -f "$ENV_FILE" ]; then
+                  source $ENV_FILE
+              fi
+              
+              # Exit if required env variables are not defined
+              if [ -z "$VITE_WALLETCONNECT_PROJECT_ID" ]; then
+                echo "Cancelling build: VITE_WALLETCONNECT_PROJECT_ID is not defined"
+                exit 1
+              fi
 
+              if [ "$VITE_SENTRY_FORCE_DISABLED" != "true" ] && 
+              ( 
+                [ -z "$VITE_SENTRY_DSN" ] || 
+                [ -z "$VITE_SENTRY_ENVIRONMENT" ] || 
+                [ -z "$VITE_SENTRY_RELEASE" ] 
+              ); then
+                echo "Cancelling build: EITHER env variable VITE_SENTRY_FORCE_DISABLED=true OR all env variables VITE_SENTRY_DSN, VITE_SENTRY_ENVIRONMENT and VITE_SENTRY_RELEASE must be defined"
+                exit 1
+              fi
+
+
+              npm i && npm run build
               rm -rf lib
               mkdir -p lib
 
@@ -123,6 +179,7 @@
               fi
             '';
           };
+        
         } // rainix.packages.${system};
 
         devShells.default = rainix.devShells.${system}.default;
@@ -130,8 +187,10 @@
           packages = [
             packages.ob-tauri-prelude
             packages.ob-tauri-test
+            packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
+            packages.ob-tauri-before-release
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];

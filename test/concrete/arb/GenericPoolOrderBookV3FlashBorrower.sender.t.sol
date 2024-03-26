@@ -15,7 +15,7 @@ import {
     EvaluableConfigV3,
     TakeOrdersConfigV2,
     IExpressionDeployerV3
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {

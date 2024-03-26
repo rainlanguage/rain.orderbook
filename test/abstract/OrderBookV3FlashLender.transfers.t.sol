@@ -5,8 +5,11 @@ import {stdError} from "forge-std/Test.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {IERC3156FlashBorrower, ON_FLASH_LOAN_CALLBACK_SUCCESS} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IERC3156FlashLender} from "src/interface/ierc3156/IERC3156FlashLender.sol";
+import {
+    IERC3156FlashBorrower,
+    ON_FLASH_LOAN_CALLBACK_SUCCESS
+} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {FlashLenderCallbackFailed} from "src/abstract/OrderBookV3FlashLender.sol";
 

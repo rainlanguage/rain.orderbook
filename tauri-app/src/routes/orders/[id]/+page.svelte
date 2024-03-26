@@ -1,13 +1,11 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
-  import { TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
+  import { Button, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail, useOrderTakesList } from '$lib/stores/order';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import { orderRemove } from '$lib/services/order';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
   import Hash from '$lib/components/Hash.svelte';
@@ -19,9 +17,16 @@
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
   import { colorTheme } from '$lib/stores/darkMode';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { toasts } from '$lib/stores/toasts';
 
+  let openOrderRemoveModal = false;
   let isSubmitting = false;
-  let orderTakesListChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
+  type ChartData = { value: number; time: UTCTimestamp; color?: string}[];
+  let orderTakesListChartData: ChartData = [];
 
   const orderTakesList = useOrderTakesList($page.params.id);
 
@@ -29,7 +34,44 @@
   $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
   $: $orderTakesList.all, orderTakesListChartData = prepareChartData();
 
-  async function remove() {
+  function prepareChartData() {
+    const transformedData = $orderTakesList.all.map((d) => ({
+      value: parseFloat(d.ioratio),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+      color: $colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
+      outputAmount: +d.output_display
+    }));
+
+    // if we have multiple object in the array with the same timestamp, we need to merge them
+    // we do this by taking the weighted average of the ioratio values for objects that share the same timestamp.
+    const uniqueTimestamps = Array.from(new Set(transformedData.map((d) => d.time)));
+    let finalData: ChartData = [];
+    uniqueTimestamps.forEach((timestamp) => {
+      const objectsWithSameTimestamp = transformedData.filter((d) => d.time === timestamp);
+      if (objectsWithSameTimestamp.length > 1) {
+        // calculate a weighted average of the ioratio values using the amount of the output token as the weight
+        const ioratioSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.value * d.outputAmount, 0);
+        const outputAmountSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.outputAmount, 0);
+        const ioratioAverage = ioratioSum / outputAmountSum;
+        finalData.push({
+          value: ioratioAverage,
+          time: timestamp,
+          color: objectsWithSameTimestamp[0].color,
+        });
+      }
+    });
+
+    return sortBy(
+      finalData,
+      (d) => d.time
+    );
+  }
+  $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
+
+  orderDetail.refetch($page.params.id);
+  orderTakesList.fetchAll(0);
+
+  async function executeLedger() {
     isSubmitting = true;
     try {
       await orderRemove(order.id);
@@ -38,28 +80,25 @@
     isSubmitting = false;
   }
 
-  function prepareChartData() {
-    const transformedData = $orderTakesList.all.map((d) => ({
-      value: parseFloat(d.ioratio),
-      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-      color: '#4E4AF6',
-    }));
-
-    return sortBy(
-      transformedData,
-      (d) => d.time
-    );
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      const calldata = await orderRemoveCalldata(order.id) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success("Transaction sent successfully!");
+      await tx.wait(1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof e === "object" && (e as any)?.reason) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
+      }
+      else toasts.error("Transaction failed!");
+    }
+    isSubmitting = false;
   }
-
-  $: orderTakesListChartData = $orderTakesList.all.map((d) => ({
-    value: parseFloat(d.ioratio),
-    time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-    color: $colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
-  }));
-  $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
-
-  orderDetail.refetch($page.params.id);
-  orderTakesList.fetchAll(0);
 </script>
 
 <PageHeader title="Order" />
@@ -78,7 +117,7 @@
       <BadgeActive active={order.order_active} large />
     </div>
     {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-      <ButtonLoading color="dark" on:click={remove} loading={isSubmitting}>Remove</ButtonLoading>
+      <Button color="dark" on:click={() => openOrderRemoveModal = true}>Remove</Button>
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="card">
@@ -180,3 +219,12 @@
     </Tabs>
   </svelte:fragment>
 </PageContentDetail>
+
+<ModalExecute
+  bind:open={openOrderRemoveModal}
+  title="Remove Order"
+  execButtonLabel="Remove Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting={isSubmitting}
+/>

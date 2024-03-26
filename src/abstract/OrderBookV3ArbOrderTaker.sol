@@ -14,11 +14,14 @@ import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2
 import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
 import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {IOrderBookV3, NoOrders} from "../interface/unstable/IOrderBookV3.sol";
-import {IOrderBookV3ArbOrderTaker, IOrderBookV3OrderTaker} from "../interface/unstable/IOrderBookV3ArbOrderTaker.sol";
+import {IOrderBookV3, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {
+    IOrderBookV3ArbOrderTaker,
+    IOrderBookV3OrderTaker
+} from "rain.orderbook.interface/interface/IOrderBookV3ArbOrderTaker.sol";
 import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {TakeOrdersConfigV2} from "../interface/unstable/IOrderBookV3.sol";
+import {TakeOrdersConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
