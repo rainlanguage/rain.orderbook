@@ -13,7 +13,7 @@
   import type { ChartData } from '$lib/typeshare/fuzz';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
-  import { pickBy } from 'lodash';
+  import { pickBy, isEmpty } from 'lodash';
   import { convertConfigstringToConfig, mergeDotrainConfigWithSettings, mergeDotrainConfigWithSettingsProblems } from '$lib/services/config';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
@@ -171,7 +171,7 @@
   <svelte:fragment slot="additionalFields">
     <div class="flex flex-col gap-y-2">
       <Label>Select Deployment</Label>
-      {#if deployments === undefined || Object.keys(deployments).length === 0}
+      {#if isEmpty(deployments)}
         <span class="text-gray-500 dark:text-gray-400">No deployments found for the selected network</span>
       {:else}
         <div class="flex justify-end gap-x-2">
@@ -220,7 +220,7 @@
   <TabItem open title="Rainlang">
     <div class="flex flex-col gap-y-2">
       <Label>Select Scenario</Label>
-      {#if scenarios === undefined || Object.keys(scenarios).length === 0}
+      {#if isEmpty(scenarios)}
         <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
       {:else}
         <div class="flex justify-end gap-x-2">
