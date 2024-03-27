@@ -189,9 +189,16 @@ mod tests {
         ));
         assert_eq!(chart.plots.len(), 2);
 
-        assert!(
-            chart.plots[0].title == Some("plot1".into())
-                && chart.plots[1].title == Some("plot2".into())
+        // both plots should have the name "Title"
+        let mut plots = chart
+            .plots
+            .iter()
+            .map(|p| p.title.clone())
+            .collect::<Vec<Option<String>>>();
+        plots.sort();
+        assert_eq!(
+            plots,
+            vec![Some("Title".to_string()), Some("Title".to_string())]
         );
     }
 }

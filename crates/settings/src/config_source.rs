@@ -245,47 +245,25 @@ charts:
                 title: "My plot"
                 subtitle: "My subtitle"
                 marks:
-                    rectY:
-                        binX:
-                            outputs:
-                                y: count
-                            options:
-                                x: 0.1
-                                x-label: my metric
-                                interval: 20
-                    dot:
-                        x: 0.1
-                        y: 0.2
-                        stroke: red
-                    dot: 
-                        hexBin:
-                            outputs:
-                                fill: count
-                            options:
-                                x: 0.1
-                                x-label: my x axis
-                                y: 0.2
-                                y-label: my y axis
-                                binWidth: 10
-                    axisX:
-                        anchor: bottom
-                        label: my x axis
-
+                -   type: dot
+                    options:
+                        x: "0.1"
+                        y: "0.2"
+                        stroke: "black"            
             plot2:
                 title: "Hexbin"
                 marks:
-                    - mark: dot
+                    - type: dot
                       options:
                         transform:
-                            - type: hexbin
-                              outputs:
-                                fill: count
-                              options:
-                                x: 0.1
-                                x-label: my x axis
-                                y: 0.2
-                                y-label: my y axis
-                                binWidth: 10
+                            type: hexbin
+                            content:
+                                outputs:
+                                    fill: count
+                                options:
+                                    x: 0.1
+                                    y: 0.2
+                                    bin-width: 10
 deployments:
     first-deployment:
         scenario: mainScenario
