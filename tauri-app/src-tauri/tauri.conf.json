@@ -7,7 +7,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "Rain Orderbook",
+    "productName": "Raindex",
     "version": "0.0.0"
   },
   "tauri": {
@@ -34,7 +34,14 @@
     },
     "bundle": {
       "active": true,
-      "targets": ["deb", "nsis", "msi", "app", "dmg", "updater"],
+      "targets": [
+        "deb",
+        "nsis",
+        "msi",
+        "app",
+        "dmg",
+        "updater"
+      ],
       "identifier": "com.rainlanguage.orderbook",
       "icon": [
         "icons/32x32.png",
