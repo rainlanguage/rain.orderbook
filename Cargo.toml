@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "tauri-test-rs"]
+members = ["crates/*", "tauri-e2e-test"]
 exclude = ["tauri-app/src-tauri", "lib/rain.interpreter"]
 resolver = "2"
 
