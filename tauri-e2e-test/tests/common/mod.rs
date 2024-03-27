@@ -13,6 +13,7 @@ const WEBDRIVER_PATH: &str = "WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
 lazy_static! {
     static ref WEBDRIVER_PORT: u16 = pick_unused_port().expect("Failed to pick unused port");
+    static ref WEBDRIVER_URL: String = format!("http://localhost:{}", *WEBDRIVER_PORT);
 }
 
 pub struct WebdriverTestContext {
@@ -36,16 +37,19 @@ impl AsyncTestContext for WebdriverTestContext {
                 )
                 .as_str(),
             );
+            
+        // Pause for WebKitWebDriver server statup delay
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
         // Connect client and start session
         let mut capabilities = Capabilities::new();
         capabilities.add("browserName", "wry").unwrap();
         capabilities
             .add_subkey("webkitgtk:browserOptions", "binary", TAURI_APP_PATH)
-            .unwrap();
-        let driver = WebDriver::new(format!("http://localhost:{}", *WEBDRIVER_PORT).as_str(), capabilities)
+            .expect("Failed to add webkitgtk:browserOptions capability");
+        let driver = WebDriver::new(WEBDRIVER_URL.as_str(), capabilities)
             .await
-            .unwrap();
+            .expect(format!("Failed to start session on Webdriver server at {}", *WEBDRIVER_URL).as_str());
 
         // Reset app state
         let context = WebdriverTestContext {
