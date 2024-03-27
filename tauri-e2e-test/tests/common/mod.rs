@@ -1,8 +1,4 @@
-use tokio::{
-    process::{Child, Command},
-    time::sleep
-};
-use std::time::Duration;
+use tokio::process::{Child, Command};
 use test_context::AsyncTestContext;
 use thirtyfour::prelude::*;
 use thirtyfour::CapabilitiesHelper;
@@ -12,6 +8,9 @@ use lazy_static::lazy_static;
 
 mod settings;
 pub use settings::*;
+
+mod utils;
+pub use utils::*;
 
 const WEBDRIVER_PATH: &str = "WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
@@ -84,7 +83,7 @@ impl WebdriverTestContext {
     async fn goto_home(&self) {
         self.driver.goto("tauri://localhost/").await.unwrap();
         self.driver.refresh().await.unwrap();
-        Self::sleep_500ms().await;
+        sleep_ms(1000).await;
     }
     
     /// Reset app state
@@ -94,6 +93,32 @@ impl WebdriverTestContext {
         "#, vec![]).await.unwrap();
         self.goto_home().await;
         self.app_exists().await;
+    }
+
+    /// Read value from localstorage
+    pub async fn read_localstorage(&self, key: String) -> String {
+        let res = self.driver
+            .execute(r#"
+                return localStorage.getItem(arguments[0]);
+            "#, vec![Value::String(key.clone())])
+            .await
+            .unwrap();
+
+        if let Value::String(value_string) = res.json() {
+            return value_string.to_string();
+        } else {
+            panic!("Failed to read localstorage key {}", key);
+        }
+    }
+
+    /// Write value to localstorage
+    pub async fn write_localstorage(&self, key: String, value: String) {
+        self.driver
+            .execute(r#"
+                localStorage.setItem(arguments[0], arguments[1]);
+            "#, vec![Value::String(key.clone()), Value::String(value.clone())])
+            .await
+            .expect(format!("Failed to write localstorage key {} to value {}", key, value).as_str());
     }
 
     /// Apply settings
@@ -115,9 +140,5 @@ impl WebdriverTestContext {
             .unwrap();
         
         breadcrumb_title_elem.text().await.unwrap()
-    }
-
-    pub async fn sleep_500ms() {
-        sleep(Duration::from_millis(500)).await;
     }
 }
