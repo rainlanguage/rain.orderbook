@@ -1,6 +1,5 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
-use std::time::Duration;
 
 mod common;
 use common::WebdriverTestContext;
@@ -21,7 +20,6 @@ async fn navigates_to_settings_page_on_first_launch(ctx: &mut WebdriverTestConte
     let breadcrumb_title_elem = ctx
         .driver
         .query(By::Css("span[data-testid=breadcrumb-page-title]"))
-        .wait(Duration::from_secs(10), Duration::from_millis(15))
         .single()
         .await
         .unwrap();
@@ -38,7 +36,6 @@ async fn navigates_to_orders_page_when_valid_network_and_orderbook_settings(ctx:
     let breadcrumb_title_elem = ctx
         .driver
         .query(By::Css("span[data-testid=breadcrumb-page-title]"))
-        .wait(Duration::from_secs(10), Duration::from_millis(15))
         .single()
         .await
         .unwrap();
