@@ -22,6 +22,7 @@
   import { ethersExecute } from '$lib/services/ethersTx';
   import { orderbookAddress } from '$lib/stores/settings';
   import { toasts } from '$lib/stores/toasts';
+  import { reportErrorToSentry } from '$lib/services/sentry';
 
   let openOrderRemoveModal = false;
   let isSubmitting = false;
@@ -75,8 +76,9 @@
     isSubmitting = true;
     try {
       await orderRemove(order.id);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
   }
 
@@ -88,8 +90,7 @@
       toasts.success("Transaction sent successfully!");
       await tx.wait(1);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
+      reportErrorToSentry(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (typeof e === "object" && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

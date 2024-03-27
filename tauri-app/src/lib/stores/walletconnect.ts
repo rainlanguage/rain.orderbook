@@ -5,6 +5,7 @@ import * as chains from 'viem/chains';
 import { type NetworkConfigSource } from '$lib/typeshare/configString';
 import { createWeb3Modal, defaultConfig } from '@web3modal/ethers5'
 import { activeNetwork } from './settings';
+import { reportErrorToSentry } from '$lib/services/sentry';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
@@ -38,9 +39,8 @@ activeNetwork.subscribe(async network => {
     try {
       await oldModal.disconnect()
     } catch(e) {
-      walletconnectModal.set(undefined)
-      // eslint-disable-next-line no-console
-      console.log(e)
+      reportErrorToSentry(e);
+      walletconnectModal.set(undefined);
     }
   }
   if (network === undefined) {
