@@ -5,6 +5,7 @@
   import { isAddress } from 'viem';
   import { toasts } from '$lib/stores/toasts';
   import { getAddressFromLedger } from '$lib/services/wallet';
+  import { reportErrorToSentry } from '$lib/services/sentry';
 
   const maskOptions = {
     mask: Number,
@@ -30,8 +31,9 @@
     try {
       const res: string = await getAddressFromLedger(derivationIndex);
       walletAddress = res;
-    } catch (error) {
-      toasts.error(`Ledger error: ${error}`);
+    } catch (e) {
+      reportErrorToSentry(e);
+      toasts.error(`Ledger error: ${e as string}`);
     }
     isFetchingFromLedger = false;
   }

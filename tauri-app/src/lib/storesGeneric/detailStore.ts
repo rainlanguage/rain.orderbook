@@ -1,6 +1,7 @@
 import { toasts } from '$lib/stores/toasts';
 import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 import { derived, writable, type Invalidator, type Subscriber, type Unsubscriber } from 'svelte/store';
+import { reportErrorToSentry } from '$lib/services/sentry';
 
 
 export interface DetailStore<T> {
@@ -31,6 +32,7 @@ export function detailStore<T>(key: string, fetchById: (id: string) => Promise<T
         return {... value, [id]: res};
       });
     } catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
 

@@ -24,6 +24,7 @@
   import { orderAdd, orderAddCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -64,8 +65,9 @@
     try {
       mergedConfigSource = await mergeDotrainConfigWithSettings($dotrainFile.text);
       mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
-      // eslint-disable-next-line no-empty
-    } catch(e) {}
+    } catch(e) {
+      reportErrorToSentry(e, SentrySeverityLevel.Info);
+    }
   }
 
   async function chart() {
@@ -73,6 +75,7 @@
     try {
       chartData = await makeChartData($dotrainFile.text, $settingsText);
     } catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
     isCharting = false;
@@ -84,8 +87,9 @@
       if(!deployment) throw Error("Select a deployment to add order");
 
       await orderAdd($dotrainFile.text, deployment);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
   }
   async function executeWalletconnect() {
@@ -99,6 +103,7 @@
       toasts.success("Transaction sent successfully!");
       await tx.wait(1);
     } catch (e) {
+      reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
