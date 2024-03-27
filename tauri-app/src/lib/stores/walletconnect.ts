@@ -2,7 +2,7 @@
 import { get, writable } from '@square/svelte-store';
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
-import { type NetworkConfigSource } from '$lib/typeshare/configString';
+import { type NetworkConfigSource } from '$lib/typeshare/config';
 import { createWeb3Modal, defaultConfig } from '@web3modal/ethers5'
 import { activeNetwork } from './settings';
 import { reportErrorToSentry } from '$lib/services/sentry';

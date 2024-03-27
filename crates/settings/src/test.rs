@@ -44,6 +44,32 @@ pub fn mock_token(name: &str) -> Arc<Token> {
     })
 }
 
+pub fn mock_plot(name: &str) -> (String, Plot) {
+    (
+        name.to_string(),
+        Plot {
+            title: Some("Title".to_string()),
+            subtitle: Some("Subtitle".to_string()),
+            inset: None,
+            margin: None,
+            margin_bottom: None,
+            margin_left: None,
+            margin_right: None,
+            margin_top: None,
+            x: None,
+            y: None,
+            marks: vec![Mark::Dot(DotOptions {
+                transform: None,
+                r: None,
+                fill: None,
+                x: Some("0.1".to_string()),
+                y: Some("0.2".to_string()),
+                stroke: Some("black".to_string()),
+            })],
+        },
+    )
+}
+
 pub fn mock_subgraph() -> Arc<Subgraph> {
     Arc::new("http://subgraph.com".parse().unwrap())
 }
