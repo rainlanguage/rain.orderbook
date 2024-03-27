@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use thirtyfour::prelude::*;
 use serde_json::Value;
 use crate::common::harness::WebdriverTestContext;

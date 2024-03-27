@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use thirtyfour::prelude::Key;
 use lazy_static::lazy_static;
 
