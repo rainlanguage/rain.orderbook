@@ -13,7 +13,7 @@
   import type { ChartData } from '$lib/typeshare/fuzz';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
-  import { pickBy, isEmpty } from 'lodash';
+  import { pickBy, isEmpty, isNil } from 'lodash';
   import { convertConfigstringToConfig, mergeDotrainConfigWithSettings, mergeDotrainConfigWithSettingsProblems } from '$lib/services/config';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
@@ -40,15 +40,15 @@
   let rainlangText = "";
   let resetRainlang = true;
 
-  $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
+  $: deployments = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.deployments) && !isNil(mergedConfigSource?.orders)) ?
     pickBy(mergedConfigSource.deployments, (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.name === $activeNetworkRef) : {};
-  $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
+  $: deployment = (!isNil(deploymentRef) && !isNil(mergedConfig)) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
 
-  $: scenarios = (mergedConfigSource !== undefined && mergedConfigSource?.scenarios !== undefined) ?
+  $: scenarios = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.scenarios)) ?
     pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer]?.network?.name === $activeNetworkRef) : {};
-  $: scenario = (scenarioRef !== undefined && mergedConfig !== undefined) ? mergedConfig.scenarios[scenarioRef] : undefined;
+  $: scenario = (!isNil(scenarioRef) && !isNil(mergedConfig)) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   const rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -85,12 +85,12 @@
   });
 
   $: {
-    if(deploymentRef === undefined && deployments !== undefined && Object.keys(deployments).length > 0) {
+    if(isNil(deploymentRef) && !isEmpty(deployments)) {
       deploymentRef = Object.keys(deployments)[0];
     }
   }
   $: {
-    if(scenarioRef === undefined && scenarios !== undefined && Object.keys(scenarios).length > 0) {
+    if(isNil(scenarioRef) && !isEmpty(scenarios)) {
       scenarioRef = Object.keys(scenarios)[0];
     }
   }
@@ -150,10 +150,8 @@
       if(!scenario) throw Error("Select a scenario to generate rainlang");
       rainlangText = await orderAddComposeRainlang($dotrainFile.text, scenario);
       resetRainlang = false;
-      // eslint-disable-next-line no-empty
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
+      reportErrorToSentry(e);
       toasts.error("Please resolve issues first!")
       rainlangText = "";
       resetRainlang = true;
@@ -183,7 +181,7 @@
           <div class="w-full">
             <DropdownRadio options={deployments} bind:value={deploymentRef}>
               <svelte:fragment slot="content"  let:selectedRef>
-                <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
+                <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
               </svelte:fragment>
 
               <svelte:fragment slot="option" let:ref let:option>
@@ -231,7 +229,7 @@
         <div class="flex justify-end gap-x-2">
           <DropdownRadio options={scenarios} bind:value={scenarioRef}>
             <svelte:fragment slot="content"  let:selectedRef>
-              <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
+              <span>{!isNil(selectedRef) ? selectedRef : 'Select a scenario'}</span>
             </svelte:fragment>
 
             <svelte:fragment slot="option" let:ref let:option>
