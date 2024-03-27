@@ -28,7 +28,7 @@
 
 <WindowDraggableArea />
 
-<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
+<div data-testid="app-container" class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
   <Sidebar hasRequiredSettings={$hasRequiredSettings} />
 
   <main class="ml-64 h-full w-full grow overflow-x-auto p-8">

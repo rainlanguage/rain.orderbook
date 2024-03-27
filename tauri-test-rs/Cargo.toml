@@ -7,6 +7,10 @@ homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[dev-dependencies]
 thirtyfour = { workspace = true }
 tokio = { workspace = true }
+test-context = { workspace = true }
+serde_json = { workspace = true }
+portpicker = { workspace = true }
+lazy_static = { workspace = true }

@@ -68,7 +68,7 @@
             body = ''
               set -euxo pipefail
 
-              TAURI_AUTOMATION=true WebKitWebDriver -p 4444 & cargo run --bin tauri-test-rs
+              cargo test --package tauri-test-rs -- --test-threads=1 --nocapture
             '';
           };
 
