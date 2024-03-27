@@ -25,8 +25,12 @@ impl AsyncTestContext for WebdriverTestContext {
             .arg(format!("--port={}", *WEBDRIVER_PORT))
             .kill_on_drop(true)
             .spawn()
-            .unwrap_or_else(|_| panic!("Failed to launch WebKitWebDriver at path {} with port {}",
-                    WEBDRIVER_PATH, *WEBDRIVER_PORT));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to launch WebKitWebDriver at path {} with port {}",
+                    WEBDRIVER_PATH, *WEBDRIVER_PORT
+                )
+            });
 
         // Pause for WebKitWebDriver server statup delay
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -39,8 +43,12 @@ impl AsyncTestContext for WebdriverTestContext {
             .expect("Failed to add webkitgtk:browserOptions capability");
         let driver = WebDriver::new(WEBDRIVER_URL.as_str(), capabilities)
             .await
-            .unwrap_or_else(|_| panic!("Failed to start session on Webdriver server at {}",
-                    *WEBDRIVER_URL));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to start session on Webdriver server at {}",
+                    *WEBDRIVER_URL
+                )
+            });
 
         // Reset app state
         let context = WebdriverTestContext {

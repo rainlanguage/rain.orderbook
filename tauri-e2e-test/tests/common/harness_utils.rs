@@ -63,8 +63,12 @@ impl WebdriverTestContext {
                 vec![Value::String(key.clone()), Value::String(value.clone())],
             )
             .await
-            .unwrap_or_else(|_| panic!("Failed to write localstorage key {} to value {}",
-                    key, value));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to write localstorage key {} to value {}",
+                    key, value
+                )
+            });
     }
 
     /// Apply settings
