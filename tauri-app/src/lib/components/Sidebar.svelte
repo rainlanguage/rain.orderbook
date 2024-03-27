@@ -32,7 +32,7 @@
             href: '/',
             img: '/logo-light.svg',
           }}
-          imgClass="w-3/5"
+          imgClass="w-2/3 m-auto"
           aClass="w-full flex items-center justify-start gap-x-3 mb-5"
           spanClass="hidden"
         ></SidebarBrand>
@@ -44,7 +44,7 @@
             href: '/',
             img: '/logo-dark.svg',
           }}
-          imgClass="w-3/5"
+          imgClass="w-2/3 m-auto"
           aClass="w-full flex items-center justify-start gap-x-3 mb-5"
           spanClass="hidden"
         ></SidebarBrand>
