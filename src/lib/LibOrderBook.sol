@@ -7,6 +7,9 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
 } from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {SourceIndexV2, StateNamespace} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 
 /// @dev Orderbook context is actually fairly complex. The calling context column
 /// is populated before calculate order, but the remaining columns are only
@@ -71,3 +74,22 @@ uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW = 0;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_COLUMN = 6;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
+
+library LibOrderBook {
+    function doPost(StateNamespace namespace, uint256[][] memory context, EvaluableV3[] memory post) internal {
+        EvaluableV3 memory postEvaluable;
+        for (uint256 i = 0; i < post.length; ++i) {
+            postEvaluable = post[i];
+            (uint256[] memory stack, uint256[] memory writes) = postEvaluable.interpreter.eval3(
+                postEvaluable.store,
+                LibNamespace.qualifyNamespace(namespace, address(this)),
+                postEvaluable.bytecode,
+                SourceIndexV2.wrap(0),
+                context,
+                new uint256[](0)
+            );
+            (stack);
+            postEvaluable.store.set(namespace, writes);
+        }
+    }
+}

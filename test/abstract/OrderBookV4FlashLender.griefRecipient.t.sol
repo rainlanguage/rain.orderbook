@@ -7,9 +7,9 @@ import {
     ON_FLASH_LOAN_CALLBACK_SUCCESS
 } from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {FlashLenderCallbackFailed} from "src/abstract/OrderBookV3FlashLender.sol";
+import {FlashLenderCallbackFailed} from "src/abstract/OrderBookV4FlashLender.sol";
 
-/// @title OrderBookV3FlashLenderGriefRecipientTest
+/// @title OrderBookV4FlashLenderGriefRecipientTest
 /// Try to grief the recipient of the flash loan.
 contract OrderBookClearTest is OrderBookExternalMockTest {
     /// Tests that no matter who the receiver is, and no matter what happens with
