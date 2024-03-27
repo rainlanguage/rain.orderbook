@@ -1,4 +1,8 @@
-use tokio::process::{Child, Command};
+use tokio::{
+    process::{Child, Command},
+    time::sleep
+};
+use std::time::Duration;
 use test_context::AsyncTestContext;
 use thirtyfour::prelude::*;
 use thirtyfour::CapabilitiesHelper;
@@ -73,18 +77,18 @@ impl AsyncTestContext for WebdriverTestContext {
 impl WebdriverTestContext {
     /// Wait for svelte app to load
     async fn app_exists(&self) {
-        self.driver.query(By::Css("div[data-testid=app-container]")).exists().await.unwrap();
+        self.driver.query(By::Css("main")).exists().await.unwrap();
     }
 
     /// Navigate to home and refresh
     async fn goto_home(&self) {
         self.driver.goto("tauri://localhost/").await.unwrap();
         self.driver.refresh().await.unwrap();
+        Self::sleep_500ms().await;
     }
     
     /// Reset app state
     pub async fn reset_state(&self) {
-        println!("reset state");
         self.driver.execute(r#"
             localStorage.clear();
         "#, vec![]).await.unwrap();
@@ -99,5 +103,21 @@ impl WebdriverTestContext {
         "#, vec![Value::String(settings)]).await.unwrap();
         self.goto_home().await;
         self.app_exists().await;
+    }
+
+    /// Read breadcrumb title
+    pub async fn read_page_title(&self) -> String {
+        let breadcrumb_title_elem = self
+            .driver
+            .query(By::Css("span[data-testid=breadcrumb-page-title]"))
+            .single()
+            .await
+            .unwrap();
+        
+        breadcrumb_title_elem.text().await.unwrap()
+    }
+
+    pub async fn sleep_500ms() {
+        sleep(Duration::from_millis(500)).await;
     }
 }

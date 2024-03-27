@@ -68,7 +68,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo test --package tauri-e2e-test -- --test-threads=1 --nocapture
+              cargo test --package tauri-e2e-test -- --test-threads=1
             '';
           };
 
