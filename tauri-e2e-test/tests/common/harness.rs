@@ -5,7 +5,7 @@ use thirtyfour::CapabilitiesHelper;
 use portpicker::pick_unused_port;
 use lazy_static::lazy_static;
 
-const WEBDRIVER_PATH: &str = "WebKitWebDriver";
+const WEBDRIVER_PATH: &str = "/usr/bin/WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
 lazy_static! {
     static ref WEBDRIVER_PORT: u16 = pick_unused_port().expect("Failed to pick unused port");

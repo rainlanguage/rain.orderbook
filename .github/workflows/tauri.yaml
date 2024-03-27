@@ -28,3 +28,9 @@ jobs:
         working-directory: ./tauri-app
         env:
           WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      
+      - name: Run E2E Tests
+        if: ${{ matrix.os == "ubuntu-22.04" }}
+        run: |
+          sudo apt-get install -y webkit2gtk-driver xvfb
+          xvfb-run nix develop .#tauri-shell --command ob-tauri-e2e-test
