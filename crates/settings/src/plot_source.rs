@@ -215,11 +215,10 @@ title: Title
 subtitle: Subtitle
 marks:
 -   type: line
-    content:
-        options:
-            x: "0.1"
-            y: "0.2"
-            stroke: "black""#
+    options:
+        x: "0.1"
+        y: "0.2"
+        stroke: "black""#
             .to_string();
 
         let plot: Plot = yaml_data.try_into().unwrap();
@@ -256,7 +255,7 @@ title: Title
 subtitle: Subtitle
 marks:
 -   type: recty
-    content:
+    options:
         transform:
             type: binx
             content:
@@ -298,7 +297,7 @@ marks:
                         },
                         options: BinXOptions {
                             x: Some("0.1".to_string()),
-                            thresholds: Some(0),
+                            thresholds: Some(10),
                         },
                     })),
                 }),],
