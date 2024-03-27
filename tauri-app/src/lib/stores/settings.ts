@@ -8,6 +8,7 @@ import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';
 import { parseConfigSource } from '$lib/services/config';
+import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
 // general
 export const settingsText = cachedWritableStore<string>('settings', "", (s) => s, (s) => s);
@@ -17,6 +18,7 @@ export const settings = asyncDerived(settingsText, async ($settingsText): Promis
     const config: ConfigSource = await parseConfigSource($settingsText);
     return config;
   } catch(e) {
+    reportErrorToSentry(e, SentrySeverityLevel.Info);
     toasts.error(e as string);
   }
 });

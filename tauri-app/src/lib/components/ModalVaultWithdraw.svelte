@@ -9,6 +9,7 @@
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
+  import { reportErrorToSentry } from '$lib/services/sentry';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -31,8 +32,9 @@
     isSubmitting = true;
     try {
       await vaultWithdraw(vault.vault_id, vault.token.id, amount);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
     reset();
   }
@@ -45,8 +47,7 @@
       toasts.success("Transaction sent successfully!");
       await tx.wait(1);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
+      reportErrorToSentry(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (typeof e === "object" && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

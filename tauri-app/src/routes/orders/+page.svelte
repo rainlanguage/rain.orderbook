@@ -22,6 +22,7 @@
     DropdownItem,
     Spinner,
   } from 'flowbite-svelte';
+  import { reportErrorToSentry } from '$lib/services/sentry';
 
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;
@@ -32,8 +33,9 @@
     isSubmitting = true;
     try {
       await orderRemove(id);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
   }
   async function executeWalletconnect() {
@@ -44,8 +46,7 @@
       toasts.success("Transaction sent successfully!");
       await tx.wait(1);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
+      reportErrorToSentry(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (typeof e === "object" && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
