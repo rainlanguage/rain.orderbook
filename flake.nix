@@ -15,6 +15,14 @@
 
           tauri-release-env = rainix.tauri-release-env.${system};
 
+          ob-rs-test = rainix.mkTask.${system} {
+            name = "ob-rs-test";
+            body = ''
+              set -euxo pipefail
+              cargo test --workspace . --exclude tauri-e2e-test
+            '';
+          };
+
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
             body = ''
@@ -54,6 +62,7 @@
               rainix.rust-build-inputs.${system}
             ];
           };
+          
           ob-tauri-unit-test =  rainix.mkTask.${system} {
             name = "ob-tauri-unit-test";
             body = ''
@@ -194,7 +203,15 @@
         
         } // rainix.packages.${system};
 
-        devShells.default = rainix.devShells.${system}.default;
+        devShells.default = pkgs.mkShell {
+          packages = [
+            packages.ob-rs-test
+          ];
+
+          shellHook = rainix.devShells.${system}.default.shellHook;
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
+        };
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
             packages.ob-tauri-prelude
