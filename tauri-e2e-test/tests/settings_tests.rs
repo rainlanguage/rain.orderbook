@@ -1,10 +1,7 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
 mod common;
-use common::{
-    harness::WebdriverTestContext,
-    constants
-};
+use common::{constants, harness::WebdriverTestContext};
 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
@@ -19,9 +16,11 @@ async fn type_settings_and_apply(ctx: &mut WebdriverTestContext) {
         .send_keys(constants::MIN_VALID_SETTINGS_KEYS.as_str())
         .await
         .expect("Failed to type in codemirror element");
-        
+
     ctx.driver
-        .query(By::Css("button:has(span[data-testid=button-applysettings])"))
+        .query(By::Css(
+            "button:has(span[data-testid=button-applysettings])",
+        ))
         .and_clickable()
         .single()
         .await

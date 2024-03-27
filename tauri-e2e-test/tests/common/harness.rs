@@ -1,9 +1,9 @@
-use tokio::process::{Child, Command};
+use lazy_static::lazy_static;
+use portpicker::pick_unused_port;
 use test_context::AsyncTestContext;
 use thirtyfour::prelude::*;
 use thirtyfour::CapabilitiesHelper;
-use portpicker::pick_unused_port;
-use lazy_static::lazy_static;
+use tokio::process::{Child, Command};
 
 const WEBDRIVER_PATH: &str = "/usr/bin/WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
@@ -25,15 +25,9 @@ impl AsyncTestContext for WebdriverTestContext {
             .arg(format!("--port={}", *WEBDRIVER_PORT))
             .kill_on_drop(true)
             .spawn()
-            .expect(
-                format!(
-                    "Failed to launch WebKitWebDriver at path {} with port {}",
-                    WEBDRIVER_PATH,
-                    *WEBDRIVER_PORT
-                )
-                .as_str(),
-            );
-            
+            .unwrap_or_else(|_| panic!("Failed to launch WebKitWebDriver at path {} with port {}",
+                    WEBDRIVER_PATH, *WEBDRIVER_PORT));
+
         // Pause for WebKitWebDriver server statup delay
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
@@ -45,12 +39,13 @@ impl AsyncTestContext for WebdriverTestContext {
             .expect("Failed to add webkitgtk:browserOptions capability");
         let driver = WebDriver::new(WEBDRIVER_URL.as_str(), capabilities)
             .await
-            .expect(format!("Failed to start session on Webdriver server at {}", *WEBDRIVER_URL).as_str());
+            .unwrap_or_else(|_| panic!("Failed to start session on Webdriver server at {}",
+                    *WEBDRIVER_URL));
 
         // Reset app state
         let context = WebdriverTestContext {
             driver,
-            driver_server: child
+            driver_server: child,
         };
         context.reset_state().await;
 

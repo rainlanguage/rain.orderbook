@@ -1,17 +1,16 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
 mod common;
-use common::{
-    harness::WebdriverTestContext,
-    constants
-};
+use common::{constants, harness::WebdriverTestContext};
 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn sidebar_link_to_orders_page(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string())
+        .await;
 
-    let link_elem = ctx.driver
+    let link_elem = ctx
+        .driver
         .query(By::Css("aside a:has(> span[data-testid=sidebar-orders])"))
         .single()
         .await
@@ -24,9 +23,11 @@ async fn sidebar_link_to_orders_page(ctx: &mut WebdriverTestContext) {
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn sidebar_link_to_vaults_page(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string())
+        .await;
 
-    let link_elem = ctx.driver
+    let link_elem = ctx
+        .driver
         .query(By::Css("aside a:has(> span[data-testid=sidebar-vaults])"))
         .single()
         .await
@@ -39,9 +40,11 @@ async fn sidebar_link_to_vaults_page(ctx: &mut WebdriverTestContext) {
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn sidebar_link_to_settings_page(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string())
+        .await;
 
-    let link_elem = ctx.driver
+    let link_elem = ctx
+        .driver
         .query(By::Css("aside a:has(> span[data-testid=sidebar-settings])"))
         .single()
         .await
@@ -54,10 +57,14 @@ async fn sidebar_link_to_settings_page(ctx: &mut WebdriverTestContext) {
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn sidebar_link_to_external_documentation(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string())
+        .await;
 
-    let link_elem = ctx.driver
-        .query(By::Css("aside a:has(> span[data-testid=sidebar-documentation])"))
+    let link_elem = ctx
+        .driver
+        .query(By::Css(
+            "aside a:has(> span[data-testid=sidebar-documentation])",
+        ))
         .single()
         .await
         .expect("Failed to find sidebar-documentation element");
@@ -69,9 +76,11 @@ async fn sidebar_link_to_external_documentation(ctx: &mut WebdriverTestContext) 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn sidebar_shows_active_network(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string())
+        .await;
 
-    let label = ctx.driver
+    let label = ctx
+        .driver
         .query(By::Css("aside span[data-testid=dropdown-activenetwork]"))
         .single()
         .await
@@ -86,9 +95,11 @@ async fn sidebar_shows_active_network(ctx: &mut WebdriverTestContext) {
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn sidebar_shows_active_orderbook(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string())
+        .await;
 
-    let label = ctx.driver
+    let label = ctx
+        .driver
         .query(By::Css("aside span[data-testid=dropdown-activeorderbook]"))
         .single()
         .await
