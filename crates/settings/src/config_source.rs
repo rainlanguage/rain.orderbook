@@ -1,3 +1,4 @@
+use crate::Plot;
 use alloy_primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -137,23 +138,7 @@ pub struct ScenarioConfigSource {
 #[serde(rename_all = "kebab-case")]
 pub struct ChartConfigSource {
     pub scenario: Option<ScenarioRef>,
-    pub plots: HashMap<String, PlotString>,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub struct PlotString {
-    pub data: DataPointsString,
-    pub plot_type: String,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub struct DataPointsString {
-    pub x: String,
-    pub y: String,
+    pub plots: HashMap<String, Plot>,
 }
 
 impl TryFrom<String> for ConfigSource {
@@ -257,15 +242,28 @@ charts:
         scenario: mainScenario
         plots:
             plot1:
-                data:
-                    x: dataX
-                    y: dataY
-                plot-type: line
+                title: "My plot"
+                subtitle: "My subtitle"
+                marks:
+                -   type: dot
+                    options:
+                        x: "0.1"
+                        y: "0.2"
+                        stroke: "black"            
             plot2:
-                data:
-                    x: dataX2
-                    y: dataY2
-                plot-type: bar
+                title: "Hexbin"
+                marks:
+                    - type: dot
+                      options:
+                        transform:
+                            type: hexbin
+                            content:
+                                outputs:
+                                    fill: count
+                                options:
+                                    x: 0.1
+                                    y: 0.2
+                                    bin-width: 10
 deployments:
     first-deployment:
         scenario: mainScenario

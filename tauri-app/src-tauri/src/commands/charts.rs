@@ -4,11 +4,10 @@ use rain_orderbook_app_settings::config::*;
 use rain_orderbook_common::fuzz::*;
 
 #[tauri::command]
-pub async fn make_charts(dotrain: String, settings: String) -> CommandResult<Vec<ChartData>> {
+pub async fn make_charts(dotrain: String, settings: String) -> CommandResult<ChartData> {
     let config = merge_configstrings(dotrain.clone(), settings)?;
     let final_config: Config = config.try_into()?;
-    let mut fuzzer = FuzzRunner::new(dotrain.as_str(), final_config, None).await;
+    let fuzzer = FuzzRunner::new(dotrain.as_str(), final_config.clone(), None).await;
 
-    let chart_data = fuzzer.build_chart_datas().await?;
-    Ok(chart_data)
+    Ok(fuzzer.make_chart_data().await?)
 }

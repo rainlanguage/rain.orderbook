@@ -7,6 +7,7 @@ pub mod merge;
 pub mod network;
 pub mod order;
 pub mod orderbook;
+pub mod plot_source;
 pub mod scenario;
 pub mod token;
 
@@ -17,6 +18,7 @@ pub(crate) use deployment::*;
 pub(crate) use network::*;
 pub(crate) use order::*;
 pub(crate) use orderbook::*;
+pub(crate) use plot_source::*;
 pub(crate) use scenario::*;
 pub(crate) use token::*;
 
