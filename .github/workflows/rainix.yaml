@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        task: [rainix-rs-test, rainix-rs-artifacts]
+        task: [ob-rs-test, rainix-rs-artifacts]
         include:
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest

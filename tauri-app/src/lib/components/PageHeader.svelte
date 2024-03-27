@@ -23,7 +23,7 @@
         >
       {/each}
       <BreadcrumbItem spanClass="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize"
-        >{title}</BreadcrumbItem
+        ><span data-testid="breadcrumb-page-title">{title}</span></BreadcrumbItem
       >
     </Breadcrumb>
   </div>
