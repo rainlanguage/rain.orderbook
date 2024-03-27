@@ -12,7 +12,7 @@ import {
     IExpressionDeployerV3,
     TakeOrderConfigV2,
     TakeOrdersConfigV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {

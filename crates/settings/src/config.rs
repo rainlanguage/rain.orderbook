@@ -29,6 +29,7 @@ pub struct Config {
     pub charts: HashMap<String, Arc<Chart>>,
     #[typeshare(typescript(type = "Record<string, Deployment>"))]
     pub deployments: HashMap<String, Arc<Deployment>>,
+    pub sentry: Option<bool>,
 }
 
 pub type Subgraph = Url;
@@ -65,7 +66,12 @@ impl TryFrom<ConfigSource> for Config {
         let networks = item
             .networks
             .into_iter()
-            .map(|(name, network)| Ok((name, Arc::new(network.try_into()?))))
+            .map(|(name, network)| {
+                Ok((
+                    name.clone(),
+                    Arc::new(network.try_into_network(name.clone())?),
+                ))
+            })
             .collect::<Result<HashMap<String, Arc<Network>>, ParseConfigSourceError>>()?;
 
         let subgraphs = item
@@ -160,6 +166,7 @@ impl TryFrom<ConfigSource> for Config {
             scenarios,
             charts,
             deployments,
+            sentry: item.sentry,
         };
 
         Ok(config)
@@ -243,6 +250,7 @@ mod tests {
         let scenarios = HashMap::new();
         let charts = HashMap::new();
         let deployments = HashMap::new();
+        let sentry = Some(true);
 
         let config_string = ConfigSource {
             networks,
@@ -254,6 +262,7 @@ mod tests {
             scenarios,
             charts,
             deployments,
+            sentry,
         };
 
         let config_result = Config::try_from(config_string);
@@ -269,6 +278,7 @@ mod tests {
             Url::parse("https://mainnet.node").unwrap()
         );
         assert_eq!(mainnet_network.chain_id, 1);
+        assert_eq!(mainnet_network.name, "mainnet".to_string());
 
         // Verify subgraphs
         assert_eq!(config.subgraphs.len(), 1);
@@ -305,5 +315,8 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
+
+        // Verify sentry
+        assert!(config.sentry.unwrap());
     }
 }

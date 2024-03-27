@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { ToastMessageType } from '$lib/typeshare/toast';
 import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 import { flatten } from 'lodash';
+import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
 type Unsubscriber = () => void;
 
@@ -75,6 +76,7 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
         await promise;
         pageIndex.set(newPage);
       } catch(e) {
+        reportErrorToSentry(e, SentrySeverityLevel.Info);
         if(displayError) {
           toasts.error((e as Error).message);
         }
@@ -97,6 +99,9 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
         await fetchPage(newPage);
         newPage += 1;
       } catch(e) {
+        // Because we don't know the total number of pages in advance,
+        // we have to attempt to fetch the next page until we receive an error.
+        reportErrorToSentry(e, SentrySeverityLevel.Info);
         hasMorePages = false;
       }
     }
@@ -123,6 +128,7 @@ export function listStore<T>(key: string, fetchPageHandler: (page: number) => Pr
         });
       }
     } catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
     isExporting.set(false);
