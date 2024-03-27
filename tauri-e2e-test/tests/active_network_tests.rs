@@ -1,13 +1,15 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
-
 mod common;
-use common::WebdriverTestContext;
+use common::{
+    harness::WebdriverTestContext,
+    constants
+};
 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn open_active_network_dropdown(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(common::VALID_SETTINGS_MULTIPLE.to_string()).await;
+    ctx.apply_settings(constants::VALID_SETTINGS_MULTIPLE.to_string()).await;
 
     ctx.driver
         .query(By::Css("aside button:has(span[data-testid=dropdown-activenetwork])"))
@@ -30,7 +32,7 @@ async fn open_active_network_dropdown(ctx: &mut WebdriverTestContext) {
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn switch_active_network(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(common::VALID_SETTINGS_MULTIPLE.to_string()).await;
+    ctx.apply_settings(constants::VALID_SETTINGS_MULTIPLE.to_string()).await;
 
     // click dropdown
     ctx.driver

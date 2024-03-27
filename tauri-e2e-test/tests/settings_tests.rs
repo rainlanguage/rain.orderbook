@@ -1,8 +1,10 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
-
 mod common;
-use common::WebdriverTestContext;
+use common::{
+    harness::WebdriverTestContext,
+    constants
+};
 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
@@ -14,7 +16,7 @@ async fn type_settings_and_apply(ctx: &mut WebdriverTestContext) {
         .single()
         .await
         .expect("Failed to find codemirror element")
-        .send_keys(common::MIN_VALID_SETTINGS_KEYS.as_str())
+        .send_keys(constants::MIN_VALID_SETTINGS_KEYS.as_str())
         .await
         .expect("Failed to type in codemirror element");
         
@@ -30,5 +32,5 @@ async fn type_settings_and_apply(ctx: &mut WebdriverTestContext) {
 
     let settings_stored = ctx.read_localstorage("settings".to_string()).await;
 
-    assert_eq!(settings_stored, common::MIN_VALID_SETTINGS.to_string());
+    assert_eq!(settings_stored, constants::MIN_VALID_SETTINGS.to_string());
 }

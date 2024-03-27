@@ -1,8 +1,10 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
-
 mod common;
-use common::WebdriverTestContext;
+use common::{
+    harness::WebdriverTestContext,
+    constants
+};
 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
@@ -25,7 +27,7 @@ async fn navigates_to_settings_page_on_first_launch(ctx: &mut WebdriverTestConte
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
 async fn navigates_to_orders_page_when_valid_network_and_orderbook_settings(ctx: &mut WebdriverTestContext) {
-    ctx.apply_settings(common::MIN_VALID_SETTINGS.to_string()).await;
+    ctx.apply_settings(constants::MIN_VALID_SETTINGS.to_string()).await;
 
     let page_title = ctx.read_page_title().await;
 
