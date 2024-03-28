@@ -20,43 +20,23 @@ orderbooks:
     label: Polygon Orderbook";
 
 lazy_static! {
-    pub static ref MIN_VALID_SETTINGS_KEYS: String = "networks:"
-        + Key::Enter
-        + Key::Tab
-        + "polygon:"
-        + Key::Enter
-        + Key::Tab
-        + "rpc: https://rpc.ankr.com/polygon"
-        + Key::Enter
-        + "chain-id: 137"
-        + Key::Enter
-        + "label: Polygon"
-        + Key::Enter
-        + "network-id: 137"
-        + Key::Enter
-        + "currency: MATIC"
-        + Key::Enter
-        + Key::Backspace
-        + Key::Backspace
-        + "subgraphs:"
-        + Key::Enter
-        + Key::Tab
-        + "polygon: https://api.thegraph.com/subgraphs/name/siddharth2207/obv3subparser"
-        + Key::Enter
-        + Key::Backspace
-        + "orderbooks:"
-        + Key::Enter
-        + Key::Tab
-        + "polygonOB:"
-        + Key::Enter
-        + Key::Tab
-        + "address: 0xDE5aBE2837bc042397D80E37fb7b2C850a8d5a6C"
-        + Key::Enter
-        + "network: polygon"
-        + Key::Enter
-        + "subgraph: polygon"
-        + Key::Enter
-        + "label: Polygon Orderbook";
+  #[rustfmt::skip]
+  pub static ref MIN_VALID_SETTINGS_KEYS: String =
+    "networks:" + Key::Enter + Key::Tab +
+      "polygon:" + Key::Enter + Key::Tab +
+        "rpc: https://rpc.ankr.com/polygon" + Key::Enter +
+        "chain-id: 137" + Key::Enter +
+        "label: Polygon" + Key::Enter +
+        "network-id: 137" + Key::Enter +
+        "currency: MATIC" + Key::Enter + Key::Backspace + Key::Backspace +
+    "subgraphs:" + Key::Enter + Key::Tab +
+      "polygon: https://api.thegraph.com/subgraphs/name/siddharth2207/obv3subparser" + Key::Enter + Key::Backspace +
+    "orderbooks:" + Key::Enter + Key::Tab +
+      "polygonOB:" + Key::Enter + Key::Tab +
+        "address: 0xDE5aBE2837bc042397D80E37fb7b2C850a8d5a6C" + Key::Enter +
+        "network: polygon" + Key::Enter +
+        "subgraph: polygon" + Key::Enter +
+        "label: Polygon Orderbook";
 }
 
 pub const VALID_SETTINGS_MULTIPLE: &str = "
