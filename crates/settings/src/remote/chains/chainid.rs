@@ -2,7 +2,7 @@ use crate::config_source::*;
 use alloy_primitives::Address;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use url::{ParseError, Url};
+use url::Url;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -10,7 +10,7 @@ pub struct ChainId {
     pub name: String,
     pub chain: String,
     pub icon: Option<String>,
-    pub rpc: Vec<String>,
+    pub rpc: Vec<Url>,
     pub features: Option<Vec<Features>>,
     pub faucets: Option<Vec<String>>,
     pub native_currency: NativeCurrency,
@@ -49,15 +49,15 @@ pub struct ENS {
 #[serde(rename_all = "camelCase")]
 pub struct Explorer {
     pub name: String,
-    pub url: String,
+    pub url: Url,
     pub icon: Option<String>,
     pub standard: String,
 }
 
 #[derive(Error, Debug)]
 pub enum ChainIdError {
-    #[error("failed to parse provided rpc urls: {:?}", 0)]
-    InvalidRpcUrls(Vec<ParseError>),
+    #[error("provided rpc urls are not supported")]
+    UnsupportedRpcUrls,
     #[error("cannot find any rpc urls for this chain")]
     NoRpc,
 }
@@ -68,23 +68,17 @@ impl TryFrom<ChainId> for NetworkConfigSource {
         if value.rpc.is_empty() {
             return Err(ChainIdError::NoRpc);
         }
-        let mut errors = vec![];
         for rpc in &value.rpc {
-            if !rpc.contains("${") && !rpc.starts_with("ws") {
-                match Url::parse(rpc) {
-                    Ok(rpc_url) => {
-                        return Ok(NetworkConfigSource {
-                            chain_id: value.chain_id,
-                            rpc: rpc_url,
-                            network_id: Some(value.network_id),
-                            currency: Some(value.native_currency.symbol),
-                            label: Some(value.name),
-                        })
-                    }
-                    Err(e) => errors.push(e),
-                }
+            if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
+                return Ok(NetworkConfigSource {
+                    chain_id: value.chain_id,
+                    rpc: rpc.clone(),
+                    network_id: Some(value.network_id),
+                    currency: Some(value.native_currency.symbol),
+                    label: Some(value.name),
+                });
             }
         }
-        Err(ChainIdError::InvalidRpcUrls(errors))
+        Err(ChainIdError::UnsupportedRpcUrls)
     }
 }
