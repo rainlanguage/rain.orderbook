@@ -30,6 +30,9 @@ pub enum MergeError {
 
     #[error("There is already a deployment called {0}")]
     DeploymentCollision(String),
+
+    #[error("There is already a remote networks definition called {0}")]
+    RemoteNetworksCollision(String),
 }
 
 impl ConfigSource {
@@ -41,6 +44,15 @@ impl ConfigSource {
                 return Err(MergeError::NetworkCollision(key));
             }
             networks.insert(key, value);
+        }
+
+        // Remote Networks
+        let remote_networks = &mut self.using_networks_from;
+        for (key, value) in other.using_networks_from {
+            if remote_networks.contains_key(&key) {
+                return Err(MergeError::NetworkCollision(key));
+            }
+            remote_networks.insert(key, value);
         }
 
         // Subgraphs
@@ -231,6 +243,7 @@ mod tests {
     #[test]
     fn test_successful_merge() {
         let mut config = ConfigSource {
+            using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
@@ -244,6 +257,7 @@ mod tests {
         };
 
         let other = ConfigSource {
+            using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
@@ -262,6 +276,7 @@ mod tests {
     #[test]
     fn test_unsuccessful_merge() {
         let mut config = ConfigSource {
+            using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
@@ -275,6 +290,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
+            using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
