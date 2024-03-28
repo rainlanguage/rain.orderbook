@@ -253,7 +253,7 @@
     </div>
   </TabItem>
   <TabItem title="Charts">
-    {#if chartData && chartData?.length > 0}
+    {#if chartData}
       <Charts {chartData} />
     {/if}
     <Button disabled={isCharting} on:click={chart} class="w-full"><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
