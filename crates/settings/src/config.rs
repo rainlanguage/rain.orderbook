@@ -1,5 +1,7 @@
+use super::config_source::ConfigSourceError;
 use crate::*;
 use alloy_primitives::U256;
+// use async_convert::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -57,6 +59,8 @@ pub enum ParseConfigSourceError {
     SubgraphParseError(url::ParseError),
     #[error(transparent)]
     YamlDeserializerError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    ConfigSourceError(#[from] ConfigSourceError),
 }
 
 impl TryFrom<ConfigSource> for Config {
@@ -173,10 +177,12 @@ impl TryFrom<ConfigSource> for Config {
     }
 }
 
-impl TryFrom<String> for Config {
-    type Error = ParseConfigSourceError;
-    fn try_from(val: String) -> Result<Config, Self::Error> {
-        std::convert::TryInto::<ConfigSource>::try_into(val)?.try_into()
+// #[async_trait]
+impl Config {
+    // type Error = ParseConfigSourceError;
+    pub async fn try_from_string(val: String) -> Result<Config, ParseConfigSourceError> {
+        let config_source = ConfigSource::try_from_string(val).await?;
+        std::convert::TryInto::<Config>::try_into(config_source)
     }
 }
 
@@ -246,6 +252,7 @@ mod tests {
             },
         );
 
+        let using_networks_from = HashMap::new();
         let orders = HashMap::new();
         let scenarios = HashMap::new();
         let charts = HashMap::new();
@@ -253,6 +260,7 @@ mod tests {
         let sentry = Some(true);
 
         let config_string = ConfigSource {
+            using_networks_from,
             networks,
             subgraphs,
             orderbooks,

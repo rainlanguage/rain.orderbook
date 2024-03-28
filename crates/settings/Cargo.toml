@@ -14,6 +14,9 @@ url = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_yaml = { workspace = true }
+serde_json = { workspace = true }
 strict-yaml-rust = { workspace = true }
 alloy-primitives = { workspace = true }
 typeshare = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
