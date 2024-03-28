@@ -11,10 +11,10 @@ pub const MIN_VALID_SETTINGS: &str = "networks:
     network-id: 137
     currency: MATIC
 subgraphs:
-  polygon: https://api.thegraph.com/subgraphs/name/siddharth2207/obv3subparser
+  polygon: https://api.thegraph.com/subgraphs/name/h20liquidity/polygon-0xc95a5f8e
 orderbooks:
   polygonOB:
-    address: 0xDE5aBE2837bc042397D80E37fb7b2C850a8d5a6C
+    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
     network: polygon
     subgraph: polygon
     label: Polygon Orderbook";
@@ -75,12 +75,12 @@ networks:
     currency: ETH 
 
 subgraphs:
-  polygon: https://api.thegraph.com/subgraphs/name/siddharth2207/obv3subparser
-  mainnet: https://api.thegraph.com/subgraphs/name/siddharth2207/xblock
+  polygon: https://api.thegraph.com/subgraphs/name/h20liquidity/polygon-0xc95a5f8e
+  mainnet: https://api.thegraph.com/subgraphs/name/h20liquidity/ethereum-0xf1224a48
 
 orderbooks:
   polygonOB:
-    address: 0xDE5aBE2837bc042397D80E37fb7b2C850a8d5a6C
+    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
     network: polygon
     subgraph: polygon
     label: Polygon Orderbook
