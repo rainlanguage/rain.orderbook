@@ -3,7 +3,7 @@ import { cachedWritableStore, cachedWritableStringOptional } from '$lib/storesGe
 import  find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { type ConfigSource, type OrderbookRef, type OrderbookConfigSource } from '$lib/typeshare/configString';
+import { type ConfigSource, type OrderbookRef, type OrderbookConfigSource } from '$lib/typeshare/config';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { toasts } from './toasts';
 import { pickBy } from 'lodash';

@@ -1,6 +1,5 @@
 import { settingsText } from "$lib/stores/settings";
-import type { Config } from "$lib/typeshare/config";
-import type { ConfigSource } from "$lib/typeshare/configString";
+import type { Config, ConfigSource } from "$lib/typeshare/config";
 import { invoke } from "@tauri-apps/api";
 import { get } from "svelte/store";
 import { ErrorCode, type Problem } from 'codemirror-rainlang';

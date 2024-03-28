@@ -1,9 +1,8 @@
+use crate::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
-
-use crate::*;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -11,23 +10,7 @@ use crate::*;
 pub struct Chart {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
-    pub plots: HashMap<String, Plot>,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(rename_all = "kebab-case")]
-pub struct Plot {
-    pub data: DataPoints,
-    pub plot_type: String,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(rename_all = "kebab-case")]
-pub struct DataPoints {
-    pub x: String,
-    pub y: String,
+    pub plots: Vec<Plot>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -63,24 +46,22 @@ impl ChartConfigSource {
                 .plots
                 .into_iter()
                 .map(|(name, plot)| {
-                    Ok((
-                        name,
-                        Plot {
-                            data: DataPoints {
-                                x: plot.data.x,
-                                y: plot.data.y,
-                            },
-                            plot_type: plot.plot_type,
-                        },
-                    ))
+                    // if the plot has a title, use it, otherwise use the name
+                    let title = plot.title.unwrap_or_else(|| name.clone());
+                    Plot {
+                        title: Some(title),
+                        ..plot
+                    }
                 })
-                .collect::<Result<HashMap<String, Plot>, ParseChartConfigSourceError>>()?,
+                .collect::<Vec<Plot>>(),
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::test::mock_plot;
+
     use self::test::mock_deployer;
 
     use super::*;
@@ -97,19 +78,6 @@ mod tests {
         (name.to_string(), Arc::new(scenario))
     }
 
-    fn create_plot(name: &str) -> (String, PlotString) {
-        (
-            name.to_string(),
-            PlotString {
-                plot_type: "line".to_string(),
-                data: DataPointsString {
-                    x: "time".to_string(),
-                    y: "value".to_string(),
-                },
-            },
-        )
-    }
-
     #[test]
     fn test_success_explicit_scenario_name() {
         let (scenario_name, scenario) = create_scenario("scenario1", 100.into());
@@ -117,7 +85,7 @@ mod tests {
         scenarios.insert(scenario_name.clone(), scenario);
 
         let mut plots = HashMap::new();
-        let (plot_name, plot) = create_plot("plot1");
+        let (plot_name, plot) = mock_plot("plot1");
         plots.insert(plot_name, plot);
 
         let chart_string = ChartConfigSource {
@@ -132,7 +100,6 @@ mod tests {
             &chart.scenario,
             scenarios.get("scenario1").unwrap()
         ));
-        assert!(chart.plots.contains_key("plot1"));
     }
 
     #[test]
@@ -142,7 +109,7 @@ mod tests {
         scenarios.insert(chart_name.clone(), scenario);
 
         let mut plots = HashMap::new();
-        let (plot_name, plot) = create_plot("plot1");
+        let (plot_name, plot) = mock_plot("plot1");
         plots.insert(plot_name, plot);
 
         let chart_string = ChartConfigSource {
@@ -157,7 +124,6 @@ mod tests {
             &chart.scenario,
             scenarios.get(&chart_name).unwrap()
         ));
-        assert!(chart.plots.contains_key("plot1"));
     }
 
     #[test]
@@ -165,7 +131,7 @@ mod tests {
         let scenarios = HashMap::<String, Arc<Scenario>>::new(); // No scenarios added
 
         let mut plots = HashMap::new();
-        let (plot_name, plot) = create_plot("plot1");
+        let (plot_name, plot) = mock_plot("plot1");
         plots.insert(plot_name, plot);
 
         let chart_string = ChartConfigSource {
@@ -203,10 +169,10 @@ mod tests {
         scenarios.insert(scenario_name.clone(), scenario);
 
         let mut plots = HashMap::new();
-        let (plot_name, plot) = create_plot("plot1");
+        let (plot_name, plot) = mock_plot("plot1");
         plots.insert(plot_name, plot);
 
-        let (plot_name, plot) = create_plot("plot2");
+        let (plot_name, plot) = mock_plot("plot2");
         plots.insert(plot_name, plot);
 
         let chart_string = ChartConfigSource {
@@ -222,6 +188,17 @@ mod tests {
             scenarios.get("scenario5").unwrap()
         ));
         assert_eq!(chart.plots.len(), 2);
-        assert!(chart.plots.contains_key("plot1") && chart.plots.contains_key("plot2"));
+
+        // both plots should have the name "Title"
+        let mut plots = chart
+            .plots
+            .iter()
+            .map(|p| p.title.clone())
+            .collect::<Vec<Option<String>>>();
+        plots.sort();
+        assert_eq!(
+            plots,
+            vec![Some("Title".to_string()), Some("Title".to_string())]
+        );
     }
 }

@@ -9,8 +9,8 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
+  import type { ChartData } from '$lib/typeshare/config';
   import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
-  import type { ChartData } from '$lib/typeshare/fuzz';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
   import { pickBy, isEmpty, isNil } from 'lodash';
@@ -18,7 +18,7 @@
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigSource } from '$lib/typeshare/configString';
+  import type { ConfigSource } from '$lib/typeshare/config';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
@@ -30,7 +30,7 @@
 
   let isSubmitting = false;
   let isCharting = false;
-  let chartData: ChartData[];
+  let chartData: ChartData;
   let dotrainFile = textFileStore('Rain', ['rain']);
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
@@ -101,7 +101,7 @@
     try {
       mergedConfigSource = await mergeDotrainConfigWithSettings($dotrainFile.text);
       mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
-    } catch(e) {
+    } catch (e) {
       reportErrorToSentry(e, SentrySeverityLevel.Info);
     }
   }
@@ -110,7 +110,7 @@
     isCharting = true;
     try {
       chartData = await makeChartData($dotrainFile.text, $settingsText);
-    } catch(e) {
+    } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
     }
@@ -120,7 +120,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      if(!deployment) throw Error("Select a deployment to add order");
+      if (!deployment) throw Error('Select a deployment to add order');
 
       await orderAdd($dotrainFile.text, deployment);
     } catch (e) {
@@ -131,12 +131,12 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      if(!deployment) throw Error("Select a deployment to add order");
-      if (!$orderbookAddress) throw Error("Select an orderbook to add order");
+      if (!deployment) throw Error('Select a deployment to add order');
+      if (!$orderbookAddress) throw Error('Select an orderbook to add order');
 
-      const calldata = await orderAddCalldata($dotrainFile.text, deployment) as Uint8Array;
+      const calldata = (await orderAddCalldata($dotrainFile.text, deployment)) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
@@ -208,10 +208,15 @@
 
 <div class="my-8">
   <Label class="mb-2">Parse at Block Number</Label>
-  <InputBlockNumber bind:value={$forkBlockNumber.value} isFetching={$forkBlockNumber.isFetching} on:clickGetLatest={forkBlockNumber.fetch} required={false} />
+  <InputBlockNumber
+    bind:value={$forkBlockNumber.value}
+    isFetching={$forkBlockNumber.isFetching}
+    on:clickGetLatest={forkBlockNumber.fetch}
+    required={false}
+  />
   <Helper class="mt-2 text-sm">
-    The block number at which to parse the rain while drafting. Resets to
-    the latest block on app launch.
+    The block number at which to parse the rain while drafting. Resets to the latest block on app
+    launch.
   </Helper>
 </div>
 
@@ -261,5 +266,5 @@
   execButtonLabel="Add Order"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />
