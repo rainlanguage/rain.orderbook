@@ -1,7 +1,6 @@
 use super::config_source::ConfigSourceError;
 use crate::*;
 use alloy_primitives::U256;
-// use async_convert::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -177,9 +176,7 @@ impl TryFrom<ConfigSource> for Config {
     }
 }
 
-// #[async_trait]
 impl Config {
-    // type Error = ParseConfigSourceError;
     pub async fn try_from_string(val: String) -> Result<Config, ParseConfigSourceError> {
         let config_source = ConfigSource::try_from_string(val).await?;
         std::convert::TryInto::<Config>::try_into(config_source)
