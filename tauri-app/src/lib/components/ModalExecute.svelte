@@ -4,6 +4,7 @@
   import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from './InputLedgerWallet.svelte';
   import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
+  import { isNil } from 'lodash';
 
   export let open = false;
   export let title: string;
@@ -44,7 +45,7 @@
       bind:derivationIndex={$ledgerWalletDerivationIndex}
       bind:walletAddress={$ledgerWalletAddress.value}
     />
-    <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || $ledgerWalletDerivationIndex == undefined || $ledgerWalletDerivationIndex == null} loading={isSubmitting}>
+    <ButtonLoading class="w-full" on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || isNil($ledgerWalletDerivationIndex) || isNil($ledgerWalletDerivationIndex)} loading={isSubmitting}>
       {execButtonLabel}
     </ButtonLoading>
   {:else if selectedWalletconnect}
