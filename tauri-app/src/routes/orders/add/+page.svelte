@@ -9,16 +9,16 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
+  import type { ChartData } from '$lib/typeshare/config';
   import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
-  import type { ChartData } from '$lib/typeshare/fuzz';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
-  import { pickBy, isEmpty } from 'lodash';
+  import { pickBy, isEmpty, isNil } from 'lodash';
   import { convertConfigstringToConfig, mergeDotrainConfigWithSettings, mergeDotrainConfigWithSettingsProblems } from '$lib/services/config';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigSource } from '$lib/typeshare/configString';
+  import type { ConfigSource } from '$lib/typeshare/config';
   import DropdownProperty from '$lib/components/DropdownProperty.svelte';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
@@ -26,10 +26,11 @@
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { promiseTimeout } from '$lib/utils/time';
+  import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
 
   let isSubmitting = false;
   let isCharting = false;
-  let chartData: ChartData[];
+  let chartData: ChartData;
   let dotrainFile = textFileStore('Rain', ['rain']);
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
@@ -39,15 +40,15 @@
   let rainlangText = "";
   let resetRainlang = true;
 
-  $: deployments = (mergedConfigSource !== undefined && mergedConfigSource?.deployments !== undefined && mergedConfigSource?.orders !== undefined) ?
+  $: deployments = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.deployments) && !isNil(mergedConfigSource?.orders)) ?
     pickBy(mergedConfigSource.deployments, (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.name === $activeNetworkRef) : {};
-  $: deployment = (deploymentRef !== undefined && mergedConfig !== undefined) ? mergedConfig.deployments[deploymentRef] : undefined;
+  $: deployment = (!isNil(deploymentRef) && !isNil(mergedConfig)) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
 
-  $: scenarios = (mergedConfigSource !== undefined && mergedConfigSource?.scenarios !== undefined) ?
+  $: scenarios = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.scenarios)) ?
     pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer]?.network?.name === $activeNetworkRef) : {};
-  $: scenario = (scenarioRef !== undefined && mergedConfig !== undefined) ? mergedConfig.scenarios[scenarioRef] : undefined;
+  $: scenario = (!isNil(scenarioRef) && !isNil(mergedConfig)) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   const rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -84,12 +85,12 @@
   });
 
   $: {
-    if(deploymentRef === undefined && deployments !== undefined && Object.keys(deployments).length > 0) {
+    if(isNil(deploymentRef) && !isEmpty(deployments)) {
       deploymentRef = Object.keys(deployments)[0];
     }
   }
   $: {
-    if(scenarioRef === undefined && scenarios !== undefined && Object.keys(scenarios).length > 0) {
+    if(isNil(scenarioRef) && !isEmpty(scenarios)) {
       scenarioRef = Object.keys(scenarios)[0];
     }
   }
@@ -100,15 +101,17 @@
     try {
       mergedConfigSource = await mergeDotrainConfigWithSettings($dotrainFile.text);
       mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
-      // eslint-disable-next-line no-empty
-    } catch(e) {}
+    } catch (e) {
+      reportErrorToSentry(e, SentrySeverityLevel.Info);
+    }
   }
 
   async function chart() {
     isCharting = true;
     try {
       chartData = await makeChartData($dotrainFile.text, $settingsText);
-    } catch(e) {
+    } catch (e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
     isCharting = false;
@@ -117,24 +120,26 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      if(!deployment) throw Error("Select a deployment to add order");
+      if (!deployment) throw Error('Select a deployment to add order');
 
       await orderAdd($dotrainFile.text, deployment);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
   }
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      if(!deployment) throw Error("Select a deployment to add order");
-      if (!$orderbookAddress) throw Error("Select an orderbook to add order");
+      if (!deployment) throw Error('Select a deployment to add order');
+      if (!$orderbookAddress) throw Error('Select an orderbook to add order');
 
-      const calldata = await orderAddCalldata($dotrainFile.text, deployment) as Uint8Array;
+      const calldata = (await orderAddCalldata($dotrainFile.text, deployment)) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
+      reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
@@ -145,10 +150,8 @@
       if(!scenario) throw Error("Select a scenario to generate rainlang");
       rainlangText = await orderAddComposeRainlang($dotrainFile.text, scenario);
       resetRainlang = false;
-      // eslint-disable-next-line no-empty
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
+      reportErrorToSentry(e);
       toasts.error("Please resolve issues first!")
       rainlangText = "";
       resetRainlang = true;
@@ -178,7 +181,7 @@
           <div class="w-full">
             <DropdownRadio options={deployments} bind:value={deploymentRef}>
               <svelte:fragment slot="content"  let:selectedRef>
-                <span>{selectedRef !== undefined ? selectedRef : 'Select a deployment'}</span>
+                <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
               </svelte:fragment>
 
               <svelte:fragment slot="option" let:ref let:option>
@@ -205,10 +208,15 @@
 
 <div class="my-8">
   <Label class="mb-2">Parse at Block Number</Label>
-  <InputBlockNumber bind:value={$forkBlockNumber.value} isFetching={$forkBlockNumber.isFetching} on:clickGetLatest={forkBlockNumber.fetch} required={false} />
+  <InputBlockNumber
+    bind:value={$forkBlockNumber.value}
+    isFetching={$forkBlockNumber.isFetching}
+    on:clickGetLatest={forkBlockNumber.fetch}
+    required={false}
+  />
   <Helper class="mt-2 text-sm">
-    The block number at which to parse the rain while drafting. Resets to
-    the latest block on app launch.
+    The block number at which to parse the rain while drafting. Resets to the latest block on app
+    launch.
   </Helper>
 </div>
 
@@ -226,7 +234,7 @@
         <div class="flex justify-end gap-x-2">
           <DropdownRadio options={scenarios} bind:value={scenarioRef}>
             <svelte:fragment slot="content"  let:selectedRef>
-              <span>{selectedRef !== undefined ? selectedRef : 'Select a scenario'}</span>
+              <span>{!isNil(selectedRef) ? selectedRef : 'Select a scenario'}</span>
             </svelte:fragment>
 
             <svelte:fragment slot="option" let:ref let:option>
@@ -258,5 +266,5 @@
   execButtonLabel="Add Order"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />

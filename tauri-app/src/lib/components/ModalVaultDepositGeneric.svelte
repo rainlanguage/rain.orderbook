@@ -9,6 +9,7 @@
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { reportErrorToSentry } from '$lib/services/sentry';
 
   export let open = false;
   let vaultId: bigint | undefined = undefined;
@@ -36,8 +37,9 @@
     isSubmitting = true;
     try {
       await vaultDeposit(vaultId, tokenAddress, amount);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
     reset();
   }
@@ -63,6 +65,7 @@
       await depositTx.wait(1);
 
     } catch (e) {
+      reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
