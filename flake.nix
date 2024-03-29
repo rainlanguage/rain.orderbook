@@ -74,8 +74,12 @@
             body = ''
               set -euxo pipefail
 
-              cargo test --package tauri-e2e-test -- --test-threads=1
+              xvfb-run -a cargo test --package tauri-e2e-test -- --test-threads=1
             '';
+            additionalBuildInputs = [
+              pkgs.webkitgtk
+              pkgs.xvfb-run
+            ];
           };
 
           ob-tauri-before-release = rainix.mkTask.${system} {

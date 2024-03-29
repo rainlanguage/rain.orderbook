@@ -5,7 +5,7 @@ use thirtyfour::prelude::*;
 use thirtyfour::CapabilitiesHelper;
 use tokio::process::{Child, Command};
 
-const WEBDRIVER_PATH: &str = "/usr/bin/WebKitWebDriver";
+const WEBDRIVER_PATH: &str = "WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
 lazy_static! {
     static ref WEBDRIVER_PORT: u16 = pick_unused_port().expect("Failed to pick unused port");
