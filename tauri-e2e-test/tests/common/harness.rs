@@ -1,5 +1,5 @@
-use lazy_static::lazy_static;
 use portpicker::pick_unused_port;
+use std::sync::OnceLock;
 use test_context::AsyncTestContext;
 use thirtyfour::prelude::*;
 use thirtyfour::CapabilitiesHelper;
@@ -7,9 +7,15 @@ use tokio::process::{Child, Command};
 
 const WEBDRIVER_PATH: &str = "WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
-lazy_static! {
-    static ref WEBDRIVER_PORT: u16 = pick_unused_port().expect("Failed to pick unused port");
-    static ref WEBDRIVER_URL: String = format!("http://localhost:{}", *WEBDRIVER_PORT);
+
+pub fn webdriver_port() -> &'static u16 {
+    static WEBDRIVER_PORT: OnceLock<u16> = OnceLock::new();
+    WEBDRIVER_PORT.get_or_init(|| pick_unused_port().expect("Failed to pick unused port"))
+}
+
+pub fn webdriver_url() -> &'static String {
+    static WEBDRIVER_URL: OnceLock<String> = OnceLock::new();
+    WEBDRIVER_URL.get_or_init(|| format!("http://localhost:{}", webdriver_port()))
 }
 
 pub struct WebdriverTestContext {
@@ -22,13 +28,13 @@ impl AsyncTestContext for WebdriverTestContext {
         // Launch WebKitWebDriver
         let child = Command::new(WEBDRIVER_PATH)
             .env("TAURI_AUTOMATION", "true")
-            .arg(format!("--port={}", *WEBDRIVER_PORT))
+            .arg(format!("--port={}", webdriver_port()))
             .kill_on_drop(true)
             .spawn()
             .unwrap_or_else(|_| {
                 panic!(
                     "Failed to launch WebKitWebDriver at path {} with port {}",
-                    WEBDRIVER_PATH, *WEBDRIVER_PORT
+                    WEBDRIVER_PATH, webdriver_port()
                 )
             });
 
@@ -41,12 +47,12 @@ impl AsyncTestContext for WebdriverTestContext {
         capabilities
             .add_subkey("webkitgtk:browserOptions", "binary", TAURI_APP_PATH)
             .expect("Failed to add webkitgtk:browserOptions capability");
-        let driver = WebDriver::new(WEBDRIVER_URL.as_str(), capabilities)
+        let driver = WebDriver::new(webdriver_url().as_str(), capabilities)
             .await
             .unwrap_or_else(|_| {
                 panic!(
                     "Failed to start session on Webdriver server at {}",
-                    *WEBDRIVER_URL
+                    webdriver_url()
                 )
             });
 

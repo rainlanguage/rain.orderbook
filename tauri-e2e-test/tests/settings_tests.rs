@@ -13,7 +13,7 @@ async fn type_settings_and_apply(ctx: &mut WebdriverTestContext) {
         .single()
         .await
         .expect("Failed to find codemirror element")
-        .send_keys(constants::MIN_VALID_SETTINGS_KEYS.as_str())
+        .send_keys(constants::min_valid_settings_keys().as_str())
         .await
         .expect("Failed to type in codemirror element");
 

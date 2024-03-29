@@ -13,4 +13,3 @@ tokio = { workspace = true }
 test-context = { workspace = true }
 serde_json = { workspace = true }
 portpicker = { workspace = true }
-lazy_static = { workspace = true }

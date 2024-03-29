@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use lazy_static::lazy_static;
+use std::sync::OnceLock;
 use thirtyfour::prelude::Key;
 
 pub const MIN_VALID_SETTINGS: &str = "networks:
@@ -19,9 +19,10 @@ orderbooks:
     subgraph: polygon
     label: Polygon Orderbook";
 
-lazy_static! {
-  #[rustfmt::skip]
-  pub static ref MIN_VALID_SETTINGS_KEYS: String =
+#[rustfmt::skip]
+pub fn min_valid_settings_keys() -> &'static String {
+  static MIN_VALID_SETTINGS_KEYS: OnceLock<String> = OnceLock::new();
+  MIN_VALID_SETTINGS_KEYS.get_or_init(|| 
     "networks:" + Key::Enter + Key::Tab +
       "polygon:" + Key::Enter + Key::Tab +
         "rpc: https://rpc.ankr.com/polygon" + Key::Enter +
@@ -36,7 +37,8 @@ lazy_static! {
         "address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6" + Key::Enter +
         "network: polygon" + Key::Enter +
         "subgraph: polygon" + Key::Enter +
-        "label: Polygon Orderbook";
+        "label: Polygon Orderbook"
+  )
 }
 
 pub const VALID_SETTINGS_MULTIPLE: &str = "
