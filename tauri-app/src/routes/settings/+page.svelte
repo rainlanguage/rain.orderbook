@@ -10,7 +10,7 @@
   import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import IconLedger from '$lib/components/IconLedger.svelte';
-    import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
+  import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
 
   let open = false;
   let selectedLedger = false;
