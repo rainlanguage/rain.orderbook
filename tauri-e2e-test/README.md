@@ -1,6 +1,6 @@
 # Tauri End-to-End Tests
 
-End-to-end tests currently only support linux.
+End-to-end tests currently only run on linux (see [#501](https://github.com/rainlanguage/rain.orderbook/issues/501)).
 
 ## Run E2E Tests Headless
 1. Build tauri app
