@@ -8,7 +8,9 @@
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
-  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
+  import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
+  import IconLedger from '$lib/components/IconLedger.svelte';
+    import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
 
   let open = false;
   let selectedLedger = false;
@@ -18,9 +20,6 @@
     settingsText.set($settingsFile.text);
   };
 
-  $: walletconnectLabel = $walletconnectAccount
-    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
-    : "CONNECT"
 
   function reset() {
     open = false;
@@ -64,29 +63,34 @@
 
 <Modal title="Connect to Wallet" bind:open={open} outsideclose size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect}
-    <div class="flex flex-col w-full justify-between space-y-2">
-      <Button on:click={() => selectedLedger = true}>Ledger Wallet</Button>
-      <Button on:click={() => selectedWalletconnect = true}>WalletConnect</Button>
+    <div class="flex justify-center space-x-4">
+      <Button class="text-lg" on:click={() => selectedLedger = true}>
+        <div class="mr-4">
+          <IconLedger />
+        </div>
+        Ledger Wallet
+      </Button>
+      <Button class="text-lg" on:click={() => selectedWalletconnect = true}>
+        <div class="mr-3">
+          <IconWalletConnect />
+        </div>
+        WalletConnect
+      </Button>
     </div>
   {:else if selectedLedger}
-    <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
     <InputLedgerWallet
       bind:derivationIndex={$ledgerWalletDerivationIndex}
       bind:walletAddress={$ledgerWalletAddress.value}
     />
+
+    <div class="flex justify-end space-x-4">
+      <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
+    </div>
   {:else if selectedWalletconnect}
-    <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
-    <div class="flex flex-col w-full justify-between space-y-2">
-      <div class="text-lg text-center">Only <b>mobile</b> wallets are supported.</div>
-      <Button
-        color="blue"
-        class="px-2 py-1"
-        size="lg"
-        pill
-        on:click={() => $walletconnectModal?.open()}
-      >
-      {walletconnectLabel}
-      </Button>
+    <InputWalletConnect />
+
+    <div class="flex justify-end space-x-4">
+      <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
     </div>
   {/if}
 </Modal>
