@@ -15,6 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Free up disk space in action runner
+        if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get clean
           sudo rm -rf "/usr/local/share/boost"
