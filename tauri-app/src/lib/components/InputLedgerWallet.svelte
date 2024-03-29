@@ -41,7 +41,7 @@
 </script>
 
 <div>
-  <Alert color="yellow" border class="my-8">
+  <Alert color="yellow" border class="mb-8">
     <IconWarning slot="icon" />
     <div class="pl-2">
       <div class="mb-2 text-lg">Before you continue:</div>
