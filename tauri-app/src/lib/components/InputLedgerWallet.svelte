@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { Button, Input, Helper, Spinner } from 'flowbite-svelte';
+  import { Button, Input, Helper, Spinner, Alert } from 'flowbite-svelte';
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
   import { isAddress } from 'viem';
   import { toasts } from '$lib/stores/toasts';
   import { getAddressFromLedger } from '$lib/services/wallet';
   import { reportErrorToSentry } from '$lib/services/sentry';
+  import IconWarning from '$lib/components/IconWarning.svelte';
 
   const maskOptions = {
     mask: Number,
@@ -38,6 +39,17 @@
     isFetchingFromLedger = false;
   }
 </script>
+
+<Alert color="yellow" border>
+  <IconWarning slot="icon" />
+  <div class="pl-2">
+    <div class="mb-2 text-lg">Before you continue:</div>
+    <ul role="list" class="list-disc pl-5 space-y-2">
+      <li>All desktop applications linked to your Ledger wallet must be closed, including any desktop wallets and Ledger Live.</li>
+      <li>Your Ledger wallet must be authenticated with the Ethereum app open.</li>
+    </ul>
+  </div>
+</Alert>
 
 <div class="flex w-full items-start justify-start space-x-2">
   <div class="grow">
