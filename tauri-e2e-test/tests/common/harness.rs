@@ -8,12 +8,12 @@ use tokio::process::{Child, Command};
 const WEBDRIVER_PATH: &str = "WebKitWebDriver";
 const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
 
-pub fn webdriver_port() -> &'static u16 {
+fn webdriver_port() -> &'static u16 {
     static WEBDRIVER_PORT: OnceLock<u16> = OnceLock::new();
     WEBDRIVER_PORT.get_or_init(|| pick_unused_port().expect("Failed to pick unused port"))
 }
 
-pub fn webdriver_url() -> &'static String {
+fn webdriver_url() -> &'static String {
     static WEBDRIVER_URL: OnceLock<String> = OnceLock::new();
     WEBDRIVER_URL.get_or_init(|| format!("http://localhost:{}", webdriver_port()))
 }
@@ -50,10 +50,11 @@ impl AsyncTestContext for WebdriverTestContext {
             .expect("Failed to add webkitgtk:browserOptions capability");
         let driver = WebDriver::new(webdriver_url().as_str(), capabilities)
             .await
-            .unwrap_or_else(|_| {
+            .unwrap_or_else(|e| {
                 panic!(
-                    "Failed to start session on Webdriver server at {}",
-                    webdriver_url()
+                    "Failed to start session on Webdriver server at {}: {}",
+                    webdriver_url(),
+                    e
                 )
             });
 
