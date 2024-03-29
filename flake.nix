@@ -77,7 +77,6 @@
               xvfb-run -a cargo nextest run --retries 3 --package tauri-e2e-test --test-threads 1
             '';
             additionalBuildInputs = [
-              pkgs.webkitgtk
               pkgs.xvfb-run
               pkgs.cargo-nextest
             ];
@@ -91,7 +90,6 @@
               cargo nextest run --retries 3 --package tauri-e2e-test --test-threads 1
             '';
             additionalBuildInputs = [
-              pkgs.webkitgtk
               pkgs.cargo-nextest
             ];
           };
