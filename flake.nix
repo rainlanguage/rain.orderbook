@@ -202,13 +202,13 @@
               ls src-tauri/target/release
 
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Rain\ Orderbook
-                install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Rain\ Orderbook
-                install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Rain\ Orderbook
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
 
-                otool -L src-tauri/target/release/Rain\ Orderbook
+                otool -L src-tauri/target/release/Raindex
                 grep_exit_code=0
-                otool -L src-tauri/target/release/Rain\ Orderbook | grep -q /nix/store || grep_exit_code=$?
+                otool -L src-tauri/target/release/Raindex | grep -q /nix/store || grep_exit_code=$?
                 if [ $grep_exit_code -eq 0 ]; then
                   exit 1
                 fi
