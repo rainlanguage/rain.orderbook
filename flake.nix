@@ -69,8 +69,8 @@
             '';
           };
 
-          ob-tauri-e2e-test =  rainix.mkTask.${system} {
-            name = "ob-tauri-e2e-test";
+          ob-tauri-e2e-test-headless =  rainix.mkTask.${system} {
+            name = "ob-tauri-e2e-test=headless";
             body = ''
               set -euxo pipefail
 
@@ -79,6 +79,18 @@
             additionalBuildInputs = [
               pkgs.webkitgtk
               pkgs.xvfb-run
+            ];
+          };
+
+          ob-tauri-e2e-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-e2e-test";
+            body = ''
+              set -euxo pipefail
+
+              cargo test --package tauri-e2e-test -- --test-threads=1
+            '';
+            additionalBuildInputs = [
+              pkgs.webkitgtk
             ];
           };
 
@@ -218,6 +230,7 @@
             packages.ob-tauri-prelude
             packages.ob-tauri-unit-test
             packages.ob-tauri-e2e-test
+            packages.ob-tauri-e2e-test-headless
             packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
