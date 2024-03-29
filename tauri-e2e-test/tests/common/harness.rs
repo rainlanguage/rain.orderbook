@@ -6,7 +6,7 @@ use thirtyfour::CapabilitiesHelper;
 use tokio::process::{Child, Command};
 
 const WEBDRIVER_PATH: &str = "WebKitWebDriver";
-const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/rain-orderbook";
+const TAURI_APP_PATH: &str = "../tauri-app/src-tauri/target/release/raindex";
 
 fn webdriver_port() -> &'static u16 {
     static WEBDRIVER_PORT: OnceLock<u16> = OnceLock::new();
