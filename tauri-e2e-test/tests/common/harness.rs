@@ -34,7 +34,8 @@ impl AsyncTestContext for WebdriverTestContext {
             .unwrap_or_else(|_| {
                 panic!(
                     "Failed to launch WebKitWebDriver at path {} with port {}",
-                    WEBDRIVER_PATH, webdriver_port()
+                    WEBDRIVER_PATH,
+                    webdriver_port()
                 )
             });
 
