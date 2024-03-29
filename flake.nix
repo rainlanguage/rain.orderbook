@@ -229,13 +229,15 @@
           packages = [
             packages.ob-tauri-prelude
             packages.ob-tauri-unit-test
-            packages.ob-tauri-e2e-test
-            packages.ob-tauri-e2e-test-headless
             packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
-          ];
+          ] ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+            # e2e tests currently only support linux (see https://github.com/rainlanguage/rain.orderbook/issues/501)
+            packages.ob-tauri-e2e-test
+            packages.ob-tauri-e2e-test-headless
+          ]);
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
