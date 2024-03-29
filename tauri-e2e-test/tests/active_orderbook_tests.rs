@@ -1,7 +1,7 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
 mod common;
-use common::{constants, harness::WebdriverTestContext};
+use common::{constants, harness::WebdriverTestContext, utils::sleep_ms};
 
 #[test_context(WebdriverTestContext)]
 #[tokio::test]
@@ -69,6 +69,7 @@ async fn switch_active_network_changes_available_orderbooks(ctx: &mut WebdriverT
         .click()
         .await
         .expect("Failed to click last activenetwork dropdown option");
+    sleep_ms(1000).await;
 
     // check selected orderbook
     let label = ctx

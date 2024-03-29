@@ -30,10 +30,10 @@ lazy_static! {
         "network-id: 137" + Key::Enter +
         "currency: MATIC" + Key::Enter + Key::Backspace + Key::Backspace +
     "subgraphs:" + Key::Enter + Key::Tab +
-      "polygon: https://api.thegraph.com/subgraphs/name/siddharth2207/obv3subparser" + Key::Enter + Key::Backspace +
+      "polygon: https://api.thegraph.com/subgraphs/name/h20liquidity/polygon-0xc95a5f8e" + Key::Enter + Key::Backspace +
     "orderbooks:" + Key::Enter + Key::Tab +
       "polygonOB:" + Key::Enter + Key::Tab +
-        "address: 0xDE5aBE2837bc042397D80E37fb7b2C850a8d5a6C" + Key::Enter +
+        "address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6" + Key::Enter +
         "network: polygon" + Key::Enter +
         "subgraph: polygon" + Key::Enter +
         "label: Polygon Orderbook";
