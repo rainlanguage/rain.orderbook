@@ -14,6 +14,8 @@
   let isLoading: boolean;
   let open: boolean = false;
 
+  const FETCH_COUNT = 5;
+
   $: {
     if(index !== undefined) {
       const val = find(derivationsList, (d) => d.index === index);
@@ -23,15 +25,10 @@
     }
   };
 
-  $: {
-    if(!isLoading && open && derivationsList.length < 5) {
-      fetchMore();
-    }
-  };
-
   $: address, open = false;
 
-  async function fetchMore(count = 5) {
+  async function fetchMore(count = FETCH_COUNT) {
+    console.log('fetchMore')
     if(isLoading) return;
 
     isLoading = true;
@@ -40,6 +37,7 @@
       for (let index of range(derivationIndexMin, derivationIndexMin+count)) {
         if(!open) break;
 
+          console.log('getAddressFromLedger', index);
         const address = await getAddressFromLedger(index);
         derivationsList = [...derivationsList, {
           address,
@@ -52,10 +50,21 @@
     }
     isLoading = false;
   }
+
+  function toggleOpen() {
+    if(open) {
+      open = false;
+    } else {
+      open = true;
+      if(derivationsList.length < FETCH_COUNT && !isLoading) {
+        fetchMore();
+      }
+    }
+  }
 </script>
 
 <div class="relative">
-  <Button color="alternative" class="w-full pl-2 pr-0 text-left flex justify-between overflow-hidden overflow-ellipsis" on:click={() => (open = !open)}>
+  <Button color="alternative" class="w-full pl-2 pr-0 text-left flex justify-between overflow-hidden overflow-ellipsis" on:click={toggleOpen}>
     <Label>Select by Derivation Index</Label>
     <ChevronDownSolid class="w-3 h-3 mx-2 text-black dark:text-white" />
   </Button>
