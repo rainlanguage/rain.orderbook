@@ -15,6 +15,14 @@
 
           tauri-release-env = rainix.tauri-release-env.${system};
 
+          ob-rs-test = rainix.mkTask.${system} {
+            name = "ob-rs-test";
+            body = ''
+              set -euxo pipefail
+              cargo test --workspace . --exclude tauri-e2e-test
+            '';
+          };
+
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
             body = ''
@@ -51,13 +59,39 @@
               rainix.rust-build-inputs.${system}
             ];
           };
-          ob-tauri-test =  rainix.mkTask.${system} {
-            name = "ob-tauri-test";
+          
+          ob-tauri-unit-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-unit-test";
             body = ''
               set -euxo pipefail
 
               cd tauri-app && npm i && npm run test
             '';
+          };
+
+          ob-tauri-e2e-test-headless =  rainix.mkTask.${system} {
+            name = "ob-tauri-e2e-test-headless";
+            body = ''
+              set -euxo pipefail
+
+              xvfb-run -a cargo nextest run --retries 3 --package tauri-e2e-test --test-threads 1
+            '';
+            additionalBuildInputs = [
+              pkgs.xvfb-run
+              pkgs.cargo-nextest
+            ];
+          };
+
+          ob-tauri-e2e-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-e2e-test";
+            body = ''
+              set -euxo pipefail
+
+              cargo nextest run --retries 3 --package tauri-e2e-test --test-threads 1
+            '';
+            additionalBuildInputs = [
+              pkgs.cargo-nextest
+            ];
           };
 
           ob-tauri-before-release = rainix.mkTask.${system} {
@@ -182,16 +216,28 @@
         
         } // rainix.packages.${system};
 
-        devShells.default = rainix.devShells.${system}.default;
+        devShells.default = pkgs.mkShell {
+          packages = [
+            packages.ob-rs-test
+          ];
+
+          shellHook = rainix.devShells.${system}.default.shellHook;
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
+        };
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
             packages.ob-tauri-prelude
-            packages.ob-tauri-test
+            packages.ob-tauri-unit-test
             packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
-          ];
+          ] ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+            # e2e tests currently only support linux (see https://github.com/rainlanguage/rain.orderbook/issues/501)
+            packages.ob-tauri-e2e-test
+            packages.ob-tauri-e2e-test-headless
+          ]);
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;

@@ -14,6 +14,13 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Free up disk space in action runner
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get clean
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -31,3 +38,8 @@ jobs:
 
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
+            
+      - name: Run E2E Tests
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          nix develop .#tauri-shell --command ob-tauri-e2e-test-headless
