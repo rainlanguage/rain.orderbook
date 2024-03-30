@@ -28,7 +28,6 @@
   $: address, open = false;
 
   async function fetchMore(count = FETCH_COUNT) {
-    console.log('fetchMore')
     if(isLoading) return;
 
     isLoading = true;
@@ -37,7 +36,6 @@
       for (let index of range(derivationIndexMin, derivationIndexMin+count)) {
         if(!open) break;
 
-          console.log('getAddressFromLedger', index);
         const address = await getAddressFromLedger(index);
         derivationsList = [...derivationsList, {
           address,
@@ -52,13 +50,9 @@
   }
 
   function toggleOpen() {
-    if(open) {
-      open = false;
-    } else {
-      open = true;
-      if(derivationsList.length < FETCH_COUNT && !isLoading) {
-        fetchMore();
-      }
+    open = !open;
+    if(open && derivationsList.length < FETCH_COUNT && !isLoading) {
+      fetchMore();
     }
   }
 </script>
