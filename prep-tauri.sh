@@ -12,7 +12,7 @@ nix develop -i --command i9r-prelude
 cd -
 
 nix develop -i .#tauri-shell --command ob-tauri-prelude
-nix develop -i .#tauri-shell --command ob-tauri-test
+nix develop -i .#tauri-shell --command ob-tauri-unit-test
 
 # Run commands in tauri-app
 cd tauri-app

@@ -58,6 +58,7 @@
       >
         <svelte:fragment slot="icon">
           <ReceiptSolid class="h-5 w-5" />
+          <span data-testid="sidebar-orders"></span>
         </svelte:fragment>
       </SidebarItem>
       <SidebarItem
@@ -67,6 +68,7 @@
       >
         <svelte:fragment slot="icon">
           <WalletSolid class="h-5 w-5" />
+          <span data-testid="sidebar-vaults"></span>
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>
@@ -78,11 +80,13 @@
       <SidebarItem label="Settings" href="/settings">
         <svelte:fragment slot="icon">
           <GearSolid class="h-5 w-5" />
+          <span data-testid="sidebar-settings"></span>
         </svelte:fragment>
       </SidebarItem>
       <SidebarItem label="Documentation" target="_blank" href="https://docs.rainlang.xyz/intro">
         <svelte:fragment slot="icon">
           <IconExternalLink />
+          <span data-testid="sidebar-documentation"></span>
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>
