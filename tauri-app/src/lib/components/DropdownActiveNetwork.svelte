@@ -14,14 +14,14 @@
       {#if selectedRef === undefined}
         <span>Select a network</span>
       {:else if selectedOption?.label}
-        <span>{selectedOption.label}</span>
+        <span data-testid="dropdown-activenetwork">{selectedOption.label}</span>
       {:else}
-        <span>{selectedRef}</span>
+        <span data-testid="dropdown-activenetwork">{selectedRef}</span>
       {/if}
     </svelte:fragment>
 
     <svelte:fragment slot="option" let:option let:ref>
-      <div class="w-full overflow-hidden overflow-ellipsis">
+      <div data-testid="dropdown-activenetwork-option" class="w-full overflow-hidden overflow-ellipsis">
         <div class="text-md mb-2 break-word">{option.label ? option.label : ref}</div>
         <Helper class="text-xs overflow-hidden overflow-ellipsis break-all">{option.rpc}</Helper>
       </div>
