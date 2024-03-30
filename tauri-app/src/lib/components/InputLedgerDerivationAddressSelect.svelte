@@ -64,10 +64,10 @@
   </Button>
 
   {#if open}
-    <div class="absolute z-50 shadow-lg rounded-md bg-gray-100 p-4 w-full overflow-y-scroll">
+    <div class="absolute z-50 shadow-lg rounded-md bg-gray-100 dark:bg-gray-800 p-4 w-full overflow-y-scroll ring-[1px] dark:ring-gray-600 ring-gray-200">
       <div>
         {#each derivationsList as derivation}
-          <Radio bind:group={index} value={derivation.index} class="w-full p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+          <Radio bind:group={index} value={derivation.index} class="w-full p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
             <div class="ml-2 flex justify-start items-center space-x-2">
               <Badge>{derivation.index}</Badge>
               <div class="w-72 font-normal text-gray-800 dark:text-white">{derivation.address}</div>
