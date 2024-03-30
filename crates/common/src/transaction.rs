@@ -1,5 +1,5 @@
 use alloy_ethers_typecast::{
-    client::{LedgerClient, LedgerClientError},
+    client::{HDPath, LedgerClient, LedgerClientError},
     gas_fee_middleware::GasFeeSpeed,
     transaction::{
         ReadableClientError, ReadableClientHttp, WritableClientError, WriteContractParameters,
@@ -81,7 +81,7 @@ impl TransactionArgs {
         match self.chain_id {
             Some(chain_id) => {
                 let client = LedgerClient::new(
-                    self.derivation_index,
+                    self.derivation_index.map(|i| HDPath::LedgerLive(i)),
                     chain_id,
                     self.rpc_url.clone(),
                     self.gas_fee_speed,
