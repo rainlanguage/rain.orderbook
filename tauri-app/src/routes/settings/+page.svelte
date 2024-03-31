@@ -52,8 +52,10 @@
     <ButtonLoading
       color="green"
       disabled={$settingsFile.isEmpty}
-      on:click={apply}>Apply Settings</ButtonLoading
-    >
+      on:click={apply}>
+        Apply Settings
+        <span data-testid="button-applysettings"></span>
+      </ButtonLoading>
   </svelte:fragment>
 </FileTextarea>
 
