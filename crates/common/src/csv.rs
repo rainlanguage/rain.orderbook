@@ -30,4 +30,36 @@ where
 
         Ok(text)
     }
+} 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, Serialize)]
+    #[derive(Clone)]
+    struct Person {
+        name: String,
+        age: u32,
+    }
+    impl TryIntoCsv<Person> for Vec<Person> {}
+    #[test]
+    fn test_try_into_csv() {
+        let people = vec![
+            Person {
+                name: String::from("Alice"),
+                age: 25,
+            },
+            Person {
+                name: String::from("Bob"),
+                age: 30,
+            },
+        ];
+
+        let expected_csv = "name,age\nAlice,25\nBob,30\n";
+
+        let result = people.try_into_csv();
+        assert_eq!(result.unwrap(), expected_csv);
+    }
 }
+
