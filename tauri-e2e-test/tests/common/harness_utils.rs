@@ -18,6 +18,15 @@ impl WebdriverTestContext {
         sleep_ms(500).await;
     }
 
+    /// Navigate to add order page
+    pub async fn goto_add_order(&self) {
+        self.driver
+            .goto("tauri://localhost/orders/add/")
+            .await
+            .unwrap();
+        sleep_ms(500).await;
+    }
+
     /// Reset app state
     pub async fn reset_state(&self) {
         self.driver
