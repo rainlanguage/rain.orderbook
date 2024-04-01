@@ -46,8 +46,8 @@
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
 
-  $: scenarios = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.scenarios)) ?
-    pickBy(mergedConfigSource.scenarios, (d) => !d.deployer || mergedConfig?.deployers?.[d.deployer]?.network?.name === $activeNetworkRef) : {};
+  $: scenarios = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.scenarios)) && !isNil(mergedConfig) ?
+    pickBy(mergedConfig.scenarios, (d) => d?.deployer?.network?.name === $activeNetworkRef) : {};
   $: scenario = (!isNil(scenarioRef) && !isNil(mergedConfig)) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   const rainlangExtension = new RawRainlangExtension({
@@ -240,7 +240,7 @@
             <svelte:fragment slot="option" let:ref let:option>
               <div class="w-full overflow-hidden overflow-ellipsis">
                 <div class="text-md mb-2 break-word">{ref}</div>
-                <DropdownProperty key="Scenario" value={option.deployer ?? ""} />
+                <DropdownProperty key="Scenario" value={option.deployer.label ?? option.deployer.address} />
               </div>
             </svelte:fragment>
           </DropdownRadio>
