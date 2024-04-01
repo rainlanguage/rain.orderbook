@@ -59,6 +59,8 @@
           time: timestamp,
           color: objectsWithSameTimestamp[0].color,
         });
+      } else {
+        finalData.push(objectsWithSameTimestamp[0]);
       }
     });
 
