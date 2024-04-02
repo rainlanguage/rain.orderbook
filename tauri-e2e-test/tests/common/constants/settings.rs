@@ -77,39 +77,3 @@ orderbooks:
     subgraph: mainnet
     label: Mainnet Orderbook
 ";
-
-pub const VALID_WITH_NESTED_SCENARIO: &str = "
-networks: 
-  polygon: 
-    rpc: https://rpc.ankr.com/polygon 
-    chain-id: 137 
-    label: Polygon 
-    network-id: 137 
-    currency: MATIC
-
-subgraphs:
-  polygon: https://api.thegraph.com/subgraphs/name/h20liquidity/polygon-0xc95a5f8e
-
-orderbooks:
-  polygonOB:
-    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
-    network: polygon
-    subgraph: polygon
-    label: Polygon Orderbook
-  
-scenarios:
-  polygon:
-    bindings:
-      sub-parser: 0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB
-      spread-multiplier: 101e16
-    scenarios:
-      sell:
-        runs: 1
-        bindings:
-          binding1: 1
-          binding2: 2
-      buy:
-        bindings:
-          binding1: 3
-          binding2: 4
-";

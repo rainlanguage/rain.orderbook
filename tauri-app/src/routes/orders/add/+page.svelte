@@ -234,15 +234,11 @@
         <div class="flex justify-end gap-x-2">
           <DropdownRadio options={scenarios} bind:value={scenarioRef}>
             <svelte:fragment slot="content"  let:selectedRef>
-              {#if isNil(selectedRef)}
-                <span>Select a scenario</span>
-              {:else}
-                <span data-testid="dropdown-activescenario">{selectedRef}</span>
-              {/if}
+              <span>{!isNil(selectedRef) ? selectedRef : 'Select a scenario'}</span>
             </svelte:fragment>
 
             <svelte:fragment slot="option" let:ref let:option>
-              <div data-testid="dropdown-scenarios-option" class="w-full overflow-hidden overflow-ellipsis">
+              <div class="w-full overflow-hidden overflow-ellipsis">
                 <div class="text-md mb-2 break-word">{ref}</div>
                 <DropdownProperty key="Scenario" value={option.deployer.label ?? option.deployer.address} />
               </div>
