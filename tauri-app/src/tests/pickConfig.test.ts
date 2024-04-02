@@ -3,7 +3,7 @@ import type { Dictionary } from 'lodash';
 import { pickDeployments, pickScenarios } from '$lib/services/pickConfig';
 import type { Config, ConfigSource, DeploymentConfigSource, Scenario } from '$lib/typeshare/config';
 
-export const mockedConfig: Config = {
+export const config: Config = {
   "networks": {
     "network1": {
       "name": "network1",
@@ -151,7 +151,7 @@ export const mockedConfig: Config = {
 }
 
 
-export const mockedConfigSource: ConfigSource = {
+export const configSource: ConfigSource = {
   "networks": {
     "network1": {
       "rpc": "rpc-url",
@@ -216,7 +216,7 @@ export const mockedConfigSource: ConfigSource = {
 
 test('pick deployments', () => {
   const activeNetwork = "network1";
-  const result = pickDeployments(mockedConfigSource, mockedConfig, activeNetwork);
+  const result = pickDeployments(configSource, config, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {
     "sell": {
       "scenario": "network1.sell",
@@ -233,7 +233,7 @@ test('pick deployments', () => {
 
 test('pick deployments when empty', () => {
   const activeNetwork = "network2";
-  const result = pickDeployments(mockedConfigSource, mockedConfig, activeNetwork);
+  const result = pickDeployments(configSource, config, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {};
 
   expect(result).toStrictEqual(expectedPickedDeployments);
@@ -241,7 +241,7 @@ test('pick deployments when empty', () => {
 
 test('pick scenarios', () => {
   const activeNetwork = "network1";
-  const result = pickScenarios(mockedConfig, activeNetwork);
+  const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<Scenario> = {
     "network1.sell": {
       "name": "network1.sell",
@@ -286,7 +286,7 @@ test('pick scenarios', () => {
 
 test('pick scenarios when empty', () => {
   const activeNetwork = "network2";
-  const result = pickScenarios(mockedConfig, activeNetwork);
+  const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<Scenario> = {};
 
   expect(result).toStrictEqual(expectedPickedScenarios);
