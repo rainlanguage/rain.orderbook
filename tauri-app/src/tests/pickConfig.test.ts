@@ -5,276 +5,258 @@ import type { Config, ConfigSource, DeploymentConfigSource, Scenario } from '$li
 
 export const mockedConfig: Config = {
   "networks": {
-    "flare": {
-      "name": "flare",
-      "rpc": "https://rpc.ankr.com/flare",
+    "network1": {
+      "name": "network1",
+      "rpc": "rpc-url",
       "chain-id": 14,
-      "label": "Flare",
+      "label": "some-label",
       "network-id": 14,
-      "currency": "FLR"
+      "currency": "A"
     },
-    "polygon": {
-      "name": "flare",
-      "rpc": "https://rpc.ankr.com/polygon",
+    "network2": {
+      "name": "network2",
+      "rpc": "rpc-url",
       "chain-id": 137,
-      "label": "Polygon",
+      "label": "some-label",
       "network-id": 137,
-      "currency": "MATIC"
+      "currency": "B"
     }
   },
   "subgraphs": {
-    "flare": "https://subgraphs.h20liquidity.tech/subgraphs/name/flare-ob"
+    "network1": "some-url"
   },
   "orderbooks": {
-    "flare": {
-      "address": "0xf9bdedb1e8c32185e879e056eba9f5aec1839d60",
+    "network1": {
+      "address": "0x123456",
       "network": {
-        "name": "flare",
-        "rpc": "https://rpc.ankr.com/flare",
+        "name": "network1",
+        "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "Flare",
+        "label": "some-label",
         "network-id": 14,
-        "currency": "FLR"
+        "currency": "A"
       },
-      "subgraph": "https://subgraphs.h20liquidity.tech/subgraphs/name/flare-ob",
-      "label": "Flare Orderbook"
+      "subgraph": "some-url",
+      "label": "some-label"
     }
   },
   "tokens": {
     "wflr": {
       "network": {
-        "name": "flare",
-        "rpc": "https://rpc.ankr.com/flare",
+        "name": "network1",
+        "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "Flare",
+        "label": "some-label",
         "network-id": 14,
-        "currency": "FLR"
+        "currency": "A"
       },
-      "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+      "address": "0x123abcd",
       "decimals": 18,
       "label": undefined,
       "symbol": undefined
     },
     "weth": {
       "network": {
-        "name": "flare",
-        "rpc": "https://rpc.ankr.com/flare",
+        "name": "network1",
+        "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "Flare",
+        "label": "some-label",
         "network-id": 14,
-        "currency": "FLR"
+        "currency": "A"
       },
-      "address": "0x62bd084cbcd6c85347c50292a141ea4d3e7e3511",
+      "address": "0x9876efab",
       "decimals": 18,
       "label": undefined,
       "symbol": undefined
     }
   },
   "deployers": {
-    "flare": {
-      "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+    "network1": {
+      "address": "0xabcdef",
       "network": {
-        "name": "flare",
-        "rpc": "https://rpc.ankr.com/flare",
+        "name": "network1",
+        "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "Flare",
+        "label": "some-label",
         "network-id": 14,
-        "currency": "FLR"
+        "currency": "A"
       },
-      "label": "Flare Deployer"
+      "label": "some-label"
     }
   },
   "orders": {
-    "buy-wflr": {
+    "buy": {
       "inputs": [
         {
           "token": {
             "network": {
-              "name": "flare",
-              "rpc": "https://rpc.ankr.com/flare",
+              "name": "network1",
+              "rpc": "rpc-url",
               "chain-id": 14,
-              "label": "Flare",
+              "label": "some-label",
               "network-id": 14,
-              "currency": "FLR"
+              "currency": "A"
             },
-            "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+            "address": "0x123abcd",
             "decimals": 18,
             "label": undefined,
             "symbol": undefined
           },
-          "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+          "vault-id": "0x1"
         }
       ],
       "outputs": [
         {
           "token": {
             "network": {
-              "name": "flare",
-              "rpc": "https://rpc.ankr.com/flare",
+              "name": "network1",
+              "rpc": "rpc-url",
               "chain-id": 14,
-              "label": "Flare",
+              "label": "some-label",
               "network-id": 14,
-              "currency": "FLR"
+              "currency": "A"
             },
-            "address": "0x62bd084cbcd6c85347c50292a141ea4d3e7e3511",
+            "address": "0x9876efab",
             "decimals": 18,
             "label": undefined,
             "symbol": undefined
           },
-          "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+          "vault-id": "0x1"
         }
       ],
       "network": {
-        "name": "flare",
-        "rpc": "https://rpc.ankr.com/flare",
+        "name": "network1",
+        "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "Flare",
+        "label": "some-label",
         "network-id": 14,
-        "currency": "FLR"
+        "currency": "A"
       },
       "deployer": undefined,
       "orderbook": undefined
     },
-    "sell-wflr": {
+    "sell": {
       "inputs": [
         {
           "token": {
             "network": {
-              "name": "flare",
-              "rpc": "https://rpc.ankr.com/flare",
+              "name": "network1",
+              "rpc": "rpc-url",
               "chain-id": 14,
-              "label": "Flare",
+              "label": "some-label",
               "network-id": 14,
-              "currency": "FLR"
+              "currency": "A"
             },
-            "address": "0x62bd084cbcd6c85347c50292a141ea4d3e7e3511",
+            "address": "0x9876efab",
             "decimals": 18,
             "label": undefined,
             "symbol": undefined
           },
-          "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+          "vault-id": "0x1"
         }
       ],
       "outputs": [
         {
           "token": {
             "network": {
-              "name": "flare",
-              "rpc": "https://rpc.ankr.com/flare",
+              "name": "network1",
+              "rpc": "rpc-url",
               "chain-id": 14,
-              "label": "Flare",
+              "label": "some-label",
               "network-id": 14,
-              "currency": "FLR"
+              "currency": "A"
             },
-            "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+            "address": "0x123abcd",
             "decimals": 18,
             "label": undefined,
             "symbol": undefined
           },
-          "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+          "vault-id": "0x1"
         }
       ],
       "network": {
-        "name": "flare",
-        "rpc": "https://rpc.ankr.com/flare",
+        "name": "network1",
+        "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "Flare",
+        "label": "some-label",
         "network-id": 14,
-        "currency": "FLR"
+        "currency": "A"
       },
       "deployer": undefined,
       "orderbook": undefined
     }
   },
   "scenarios": {
-    "flare.sell-wflr": {
-      "name": "flare.sell-wflr",
-      "bindings": {
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-        "ftso-base": "\"FLR\"",
-        "ftso-quote": "\"ETH\"",
-        "spread-multiplier": "101e16"
-      },
+    "network1.sell": {
+      "name": "network1.sell",
+      "bindings": {},
       "runs": 1,
       "deployer": {
-        "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+        "address": "0xabcdef",
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
-        "label": "Flare Deployer"
+        "label": "some-label"
       }
     },
-    "flare": {
-      "name": "flare",
-      "bindings": {
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-        "spread-multiplier": "101e16"
-      },
+    "network1": {
+      "name": "network1",
+      "bindings": {},
       "runs": undefined,
       "deployer": {
-        "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+        "address": "0xabcdef",
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
-        "label": "Flare Deployer"
+        "label": "some-label"
       }
     },
-    "flare.buy-wflr": {
-      "name": "flare.buy-wflr",
-      "bindings": {
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-        "ftso-base": "\"ETH\"",
-        "ftso-quote": "\"FLR\"",
-        "spread-multiplier": "101e16"
-      },
+    "network1.buy": {
+      "name": "network1.buy",
+      "bindings": {},
       "runs": undefined,
       "deployer": {
-        "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+        "address": "0xabcdef",
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
-        "label": "Flare Deployer"
+        "label": "some-label"
       }
     }
   },
   "charts": {},
   "deployments": {
-    "sell-wflr": {
+    "sell": {
       "scenario": {
-        "name": "flare.sell-wflr",
-        "bindings": {
-          "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-          "ftso-base": "\"FLR\"",
-          "ftso-quote": "\"ETH\"",
-          "spread-multiplier": "101e16"
-        },
+        "name": "network1.sell",
+        "bindings": {},
         "runs": 1,
         "deployer": {
-          "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+          "address": "0xabcdef",
           "network": {
-            "name": "flare",
-            "rpc": "https://rpc.ankr.com/flare",
+            "name": "network1",
+            "rpc": "rpc-url",
             "chain-id": 14,
-            "label": "Flare",
+            "label": "some-label",
             "network-id": 14,
-            "currency": "FLR"
+            "currency": "A"
           },
-          "label": "Flare Deployer"
+          "label": "some-label"
         }
       },
       "order": {
@@ -282,73 +264,68 @@ export const mockedConfig: Config = {
           {
             "token": {
               "network": {
-                "name": "flare",
-                "rpc": "https://rpc.ankr.com/flare",
+                "name": "network1",
+                "rpc": "rpc-url",
                 "chain-id": 14,
-                "label": "Flare",
+                "label": "some-label",
                 "network-id": 14,
-                "currency": "FLR"
+                "currency": "A"
               },
-              "address": "0x62bd084cbcd6c85347c50292a141ea4d3e7e3511",
+              "address": "0x9876efab",
               "decimals": 18,
               "label": undefined,
               "symbol": undefined
             },
-            "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+            "vault-id": "0x1"
           }
         ],
         "outputs": [
           {
             "token": {
               "network": {
-                "name": "flare",
-                "rpc": "https://rpc.ankr.com/flare",
+                "name": "network1",
+                "rpc": "rpc-url",
                 "chain-id": 14,
-                "label": "Flare",
+                "label": "some-label",
                 "network-id": 14,
-                "currency": "FLR"
+                "currency": "A"
               },
-              "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+              "address": "0x123abcd",
               "decimals": 18,
               "label": undefined,
               "symbol": undefined
             },
-            "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+            "vault-id": "0x1"
           }
         ],
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
         "deployer": undefined,
         "orderbook": undefined
       }
     },
-    "buy-wflr": {
+    "buy": {
       "scenario": {
-        "name": "flare.buy-wflr",
-        "bindings": {
-          "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-          "ftso-base": "\"ETH\"",
-          "ftso-quote": "\"FLR\"",
-          "spread-multiplier": "101e16"
-        },
+        "name": "network1.buy",
+        "bindings": {},
         "runs": undefined,
         "deployer": {
-          "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+          "address": "0xabcdef",
           "network": {
-            "name": "flare",
-            "rpc": "https://rpc.ankr.com/flare",
+            "name": "network1",
+            "rpc": "rpc-url",
             "chain-id": 14,
-            "label": "Flare",
+            "label": "some-label",
             "network-id": 14,
-            "currency": "FLR"
+            "currency": "A"
           },
-          "label": "Flare Deployer"
+          "label": "some-label"
         }
       },
       "order": {
@@ -356,47 +333,47 @@ export const mockedConfig: Config = {
           {
             "token": {
               "network": {
-                "name": "flare",
-                "rpc": "https://rpc.ankr.com/flare",
+                "name": "network1",
+                "rpc": "rpc-url",
                 "chain-id": 14,
-                "label": "Flare",
+                "label": "some-label",
                 "network-id": 14,
-                "currency": "FLR"
+                "currency": "A"
               },
-              "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+              "address": "0x123abcd",
               "decimals": 18,
               "label": undefined,
               "symbol": undefined
             },
-            "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+            "vault-id": "0x1"
           }
         ],
         "outputs": [
           {
             "token": {
               "network": {
-                "name": "flare",
-                "rpc": "https://rpc.ankr.com/flare",
+                "name": "network1",
+                "rpc": "rpc-url",
                 "chain-id": 14,
-                "label": "Flare",
+                "label": "some-label",
                 "network-id": 14,
-                "currency": "FLR"
+                "currency": "A"
               },
-              "address": "0x62bd084cbcd6c85347c50292a141ea4d3e7e3511",
+              "address": "0x9876efab",
               "decimals": 18,
               "label": undefined,
               "symbol": undefined
             },
-            "vault-id": "0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20c"
+            "vault-id": "0x1"
           }
         ],
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
         "deployer": undefined,
         "orderbook": undefined
@@ -409,83 +386,83 @@ export const mockedConfig: Config = {
 
 export const mockedConfigSource: ConfigSource = {
   "networks": {
-    "flare": {
-      "rpc": "https://rpc.ankr.com/flare",
+    "network1": {
+      "rpc": "rpc-url",
       "chain-id": 14,
-      "label": "Flare",
+      "label": "some-label",
       "network-id": 14,
-      "currency": "FLR"
+      "currency": "A"
     },
-    "polygon": {
-      "rpc": "https://rpc.ankr.com/polygon",
+    "network2": {
+      "rpc": "rpc-url",
       "chain-id": 137,
-      "label": "Polygon",
+      "label": "some-label",
       "network-id": 137,
-      "currency": "MATIC"
+      "currency": "B"
     }
   },
   "subgraphs": {
-    "flare": "https://subgraphs.h20liquidity.tech/subgraphs/name/flare-ob"
+    "network1": "some-url"
   },
   "orderbooks": {
-    "flare": {
-      "address": "0xf9bdedb1e8c32185e879e056eba9f5aec1839d60",
-      "network": "flare",
-      "subgraph": "flare",
-      "label": "Flare Orderbook"
+    "network1": {
+      "address": "0x123456",
+      "network": "network1",
+      "subgraph": "network1",
+      "label": "some-label"
     }
   },
   "tokens": {
     "wflr": {
-      "network": "flare",
-      "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+      "network": "network1",
+      "address": "0x123abcd",
       "decimals": 18,
       "label": undefined,
       "symbol": undefined
     },
     "weth": {
-      "network": "flare",
-      "address": "0x62bd084cbcd6c85347c50292a141ea4d3e7e3511",
+      "network": "network1",
+      "address": "0x9876efab",
       "decimals": 18,
       "label": undefined,
       "symbol": undefined
     }
   },
   "deployers": {
-    "flare": {
-      "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
-      "network": "flare",
-      "label": "Flare Deployer"
+    "network1": {
+      "address": "0xabcdef",
+      "network": "network1",
+      "label": "some-label"
     }
   },
   "orders": {
-    "sell-wflr": {
+    "sell": {
       "inputs": [
         {
           "token": "weth",
-          "vault-id": 0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20cn
+          "vault-id": 0x1n
         }
       ],
       "outputs": [
         {
           "token": "wflr",
-          "vault-id": 0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20cn
+          "vault-id": 0x1n
         }
       ],
       "deployer": undefined,
       "orderbook": undefined
     },
-    "buy-wflr": {
+    "buy": {
       "inputs": [
         {
           "token": "wflr",
-          "vault-id": 0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20cn
+          "vault-id": 0x1n
         }
       ],
       "outputs": [
         {
           "token": "weth",
-          "vault-id": 0xcec26d26ca191a871ae3153b1f3d67c6bb2b00fd0a063db10ea8e8b0d524f20cn
+          "vault-id": 0x1n
         }
       ],
       "deployer": undefined,
@@ -493,28 +470,19 @@ export const mockedConfigSource: ConfigSource = {
     }
   },
   "scenarios": {
-    "flare": {
-      "bindings": {
-        "spread-multiplier": "101e16",
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB"
-      },
+    "network1": {
+      "bindings": {},
       "runs": undefined,
       "deployer": undefined,
       "scenarios": {
-        "buy-wflr": {
-          "bindings": {
-            "ftso-quote": "\"FLR\"",
-            "ftso-base": "\"ETH\""
-          },
+        "buy": {
+          "bindings": {},
           "runs": undefined,
           "deployer": undefined,
           "scenarios": undefined
         },
-        "sell-wflr": {
-          "bindings": {
-            "ftso-quote": "\"ETH\"",
-            "ftso-base": "\"FLR\""
-          },
+        "sell": {
+          "bindings": {},
           "runs": 1,
           "deployer": undefined,
           "scenarios": undefined
@@ -524,29 +492,29 @@ export const mockedConfigSource: ConfigSource = {
   },
   "charts": {},
   "deployments": {
-    "buy-wflr": {
-      "scenario": "flare.buy-wflr",
-      "order": "buy-wflr"
+    "buy": {
+      "scenario": "network1.buy",
+      "order": "buy"
     },
-    "sell-wflr": {
-      "scenario": "flare.sell-wflr",
-      "order": "sell-wflr"
+    "sell": {
+      "scenario": "network1.sell",
+      "order": "sell"
     }
   },
   "sentry": undefined
 }
 
 test('pick deployments', () => {
-  const activeNetwork = "flare";
+  const activeNetwork = "network1";
   const result = pickDeployments(mockedConfigSource, mockedConfig, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {
-    "sell-wflr": {
-      "scenario": "flare.sell-wflr",
-      "order": "sell-wflr"
+    "sell": {
+      "scenario": "network1.sell",
+      "order": "sell"
     },
-    "buy-wflr": {
-      "scenario": "flare.buy-wflr",
-      "order": "buy-wflr"
+    "buy": {
+      "scenario": "network1.buy",
+      "order": "buy"
     }
   };
 
@@ -554,7 +522,7 @@ test('pick deployments', () => {
 });
 
 test('pick deployments when empty', () => {
-  const activeNetwork = "polygon";
+  const activeNetwork = "network2";
   const result = pickDeployments(mockedConfigSource, mockedConfig, activeNetwork);
   const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {};
 
@@ -562,71 +530,58 @@ test('pick deployments when empty', () => {
 });
 
 test('pick scenarios', () => {
-  const activeNetwork = "flare";
+  const activeNetwork = "network1";
   const result = pickScenarios(mockedConfig, activeNetwork);
   const expectedPickedScenarios: Dictionary<Scenario> = {
-    "flare.sell-wflr": {
-      "name": "flare.sell-wflr",
-      "bindings": {
-        "ftso-base": "\"FLR\"",
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-        "ftso-quote": "\"ETH\"",
-        "spread-multiplier": "101e16"
-      },
+    "network1.sell": {
+      "name": "network1.sell",
+      "bindings": {},
       "runs": 1,
       "deployer": {
-        "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+        "address": "0xabcdef",
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
-        "label": "Flare Deployer"
+        "label": "some-label"
       }
     },
-    "flare.buy-wflr": {
-      "name": "flare.buy-wflr",
-      "bindings": {
-        "ftso-base": "\"ETH\"",
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-        "ftso-quote": "\"FLR\"",
-        "spread-multiplier": "101e16"
-      },
+    "network1.buy": {
+      "name": "network1.buy",
+      "bindings": {},
       "runs": undefined,
       "deployer": {
-        "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+        "address": "0xabcdef",
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
-        "label": "Flare Deployer"
+        "label": "some-label"
       }
     },
-    "flare": {
-      "name": "flare",
-      "bindings": {
-        "flare-sub-parser": "0xc4b7A086FD25260461f7F50ac9D62Cb86006bbEB",
-        "spread-multiplier": "101e16"
-      },
+    "network1": {
+      "name": "network1",
+      "bindings": {},
       "runs": undefined,
       "deployer": {
-        "address": "0xd19581a021f4704ad4ebff68258e7a0a9db1cd77",
+        "address": "0xabcdef",
         "network": {
-          "name": "flare",
-          "rpc": "https://rpc.ankr.com/flare",
+          "name": "network1",
+          "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "Flare",
+          "label": "some-label",
           "network-id": 14,
-          "currency": "FLR"
+          "currency": "A"
         },
-        "label": "Flare Deployer"
+        "label": "some-label"
       }
     }
   };
@@ -635,7 +590,7 @@ test('pick scenarios', () => {
 });
 
 test('pick scenarios when empty', () => {
-  const activeNetwork = "polygon";
+  const activeNetwork = "network2";
   const result = pickScenarios(mockedConfig, activeNetwork);
   const expectedPickedScenarios: Dictionary<Scenario> = {};
 
