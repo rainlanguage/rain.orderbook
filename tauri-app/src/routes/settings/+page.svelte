@@ -28,7 +28,7 @@
   }
 </script>
 
-<PageHeader title="Settings" />
+<PageHeader title="Settasdfadsinaaaasd" />
 
 {#await hasRequiredSettings}
   <!-- -->
