@@ -9,17 +9,11 @@ export const mockedConfig: Config = {
       "name": "network1",
       "rpc": "rpc-url",
       "chain-id": 14,
-      "label": "some-label",
-      "network-id": 14,
-      "currency": "A"
     },
     "network2": {
       "name": "network2",
       "rpc": "rpc-url",
       "chain-id": 137,
-      "label": "some-label",
-      "network-id": 137,
-      "currency": "B"
     }
   },
   "subgraphs": {
@@ -32,12 +26,8 @@ export const mockedConfig: Config = {
         "name": "network1",
         "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "some-label",
-        "network-id": 14,
-        "currency": "A"
       },
       "subgraph": "some-url",
-      "label": "some-label"
     }
   },
   "deployers": {
@@ -47,11 +37,7 @@ export const mockedConfig: Config = {
         "name": "network1",
         "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "some-label",
-        "network-id": 14,
-        "currency": "A"
       },
-      "label": "some-label"
     }
   },
   "tokens": {},
@@ -63,12 +49,7 @@ export const mockedConfig: Config = {
         "name": "network1",
         "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "some-label",
-        "network-id": 14,
-        "currency": "A"
       },
-      "deployer": undefined,
-      "orderbook": undefined
     },
     "sell": {
       "inputs": [],
@@ -77,64 +58,44 @@ export const mockedConfig: Config = {
         "name": "network1",
         "rpc": "rpc-url",
         "chain-id": 14,
-        "label": "some-label",
-        "network-id": 14,
-        "currency": "A"
       },
-      "deployer": undefined,
-      "orderbook": undefined
     }
   },
   "scenarios": {
     "network1.sell": {
       "name": "network1.sell",
       "bindings": {},
-      "runs": 1,
       "deployer": {
         "address": "0xabcdef",
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "label": "some-label"
       }
     },
     "network1": {
       "name": "network1",
       "bindings": {},
-      "runs": undefined,
       "deployer": {
         "address": "0xabcdef",
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "label": "some-label"
       }
     },
     "network1.buy": {
       "name": "network1.buy",
       "bindings": {},
-      "runs": undefined,
       "deployer": {
         "address": "0xabcdef",
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "label": "some-label"
       }
     }
   },
@@ -144,18 +105,13 @@ export const mockedConfig: Config = {
       "scenario": {
         "name": "network1.sell",
         "bindings": {},
-        "runs": 1,
         "deployer": {
           "address": "0xabcdef",
           "network": {
             "name": "network1",
             "rpc": "rpc-url",
             "chain-id": 14,
-            "label": "some-label",
-            "network-id": 14,
-            "currency": "A"
           },
-          "label": "some-label"
         }
       },
       "order": {
@@ -165,30 +121,20 @@ export const mockedConfig: Config = {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "deployer": undefined,
-        "orderbook": undefined
       }
     },
     "buy": {
       "scenario": {
         "name": "network1.buy",
         "bindings": {},
-        "runs": undefined,
         "deployer": {
           "address": "0xabcdef",
           "network": {
             "name": "network1",
             "rpc": "rpc-url",
             "chain-id": 14,
-            "label": "some-label",
-            "network-id": 14,
-            "currency": "A"
           },
-          "label": "some-label"
         }
       },
       "order": {
@@ -198,12 +144,7 @@ export const mockedConfig: Config = {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "deployer": undefined,
-        "orderbook": undefined
       }
     }
   }
@@ -215,16 +156,10 @@ export const mockedConfigSource: ConfigSource = {
     "network1": {
       "rpc": "rpc-url",
       "chain-id": 14,
-      "label": "some-label",
-      "network-id": 14,
-      "currency": "A"
     },
     "network2": {
       "rpc": "rpc-url",
       "chain-id": 137,
-      "label": "some-label",
-      "network-id": 137,
-      "currency": "B"
     }
   },
   "subgraphs": {
@@ -235,47 +170,33 @@ export const mockedConfigSource: ConfigSource = {
       "address": "0x123456",
       "network": "network1",
       "subgraph": "network1",
-      "label": "some-label"
     }
   },
   "deployers": {
     "network1": {
       "address": "0xabcdef",
       "network": "network1",
-      "label": "some-label"
     }
   },
   "orders": {
     "sell": {
       "inputs": [],
       "outputs": [],
-      "deployer": undefined,
-      "orderbook": undefined
     },
     "buy": {
       "inputs": [],
       "outputs": [],
-      "deployer": undefined,
-      "orderbook": undefined
     }
   },
   "scenarios": {
     "network1": {
       "bindings": {},
-      "runs": undefined,
-      "deployer": undefined,
       "scenarios": {
         "buy": {
           "bindings": {},
-          "runs": undefined,
-          "deployer": undefined,
-          "scenarios": undefined
         },
         "sell": {
           "bindings": {},
-          "runs": 1,
-          "deployer": undefined,
-          "scenarios": undefined
         }
       }
     }
@@ -325,52 +246,37 @@ test('pick scenarios', () => {
     "network1.sell": {
       "name": "network1.sell",
       "bindings": {},
-      "runs": 1,
       "deployer": {
         "address": "0xabcdef",
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "label": "some-label"
       }
     },
     "network1.buy": {
       "name": "network1.buy",
       "bindings": {},
-      "runs": undefined,
       "deployer": {
         "address": "0xabcdef",
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "label": "some-label"
       }
     },
     "network1": {
       "name": "network1",
       "bindings": {},
-      "runs": undefined,
       "deployer": {
         "address": "0xabcdef",
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
           "chain-id": 14,
-          "label": "some-label",
-          "network-id": 14,
-          "currency": "A"
         },
-        "label": "some-label"
       }
     }
   };
