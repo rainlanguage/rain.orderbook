@@ -13,8 +13,7 @@
   import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
-  import { pickBy, isEmpty, isNil } from 'lodash';
-  import { convertConfigstringToConfig, mergeDotrainConfigWithSettings, mergeDotrainConfigWithSettingsProblems } from '$lib/services/config';
+  import { isEmpty, isNil } from 'lodash';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
@@ -27,6 +26,12 @@
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { promiseTimeout } from '$lib/utils/time';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
+  import { pickScenarios, pickDeployments } from '$lib/services/pickConfig';
+  import {
+    convertConfigstringToConfig,
+    mergeDotrainConfigWithSettings,
+    mergeDotrainConfigWithSettingsProblems
+  } from '$lib/services/config';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -40,14 +45,12 @@
   let rainlangText = "";
   let resetRainlang = true;
 
-  $: deployments = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.deployments) && !isNil(mergedConfigSource?.orders)) ?
-    pickBy(mergedConfigSource.deployments, (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.name === $activeNetworkRef) : {};
+  $: deployments = pickDeployments(mergedConfigSource, mergedConfig, $activeNetworkRef);
   $: deployment = (!isNil(deploymentRef) && !isNil(mergedConfig)) ? mergedConfig.deployments[deploymentRef] : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
 
-  $: scenarios = (!isNil(mergedConfigSource) && !isNil(mergedConfigSource?.scenarios)) && !isNil(mergedConfig) ?
-    pickBy(mergedConfig.scenarios, (d) => d?.deployer?.network?.name === $activeNetworkRef) : {};
+  $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
   $: scenario = (!isNil(scenarioRef) && !isNil(mergedConfig)) ? mergedConfig.scenarios[scenarioRef] : undefined;
 
   const rainlangExtension = new RawRainlangExtension({
