@@ -40,36 +40,6 @@ export const mockedConfig: Config = {
       "label": "some-label"
     }
   },
-  "tokens": {
-    "wflr": {
-      "network": {
-        "name": "network1",
-        "rpc": "rpc-url",
-        "chain-id": 14,
-        "label": "some-label",
-        "network-id": 14,
-        "currency": "A"
-      },
-      "address": "0x123abcd",
-      "decimals": 18,
-      "label": undefined,
-      "symbol": undefined
-    },
-    "weth": {
-      "network": {
-        "name": "network1",
-        "rpc": "rpc-url",
-        "chain-id": 14,
-        "label": "some-label",
-        "network-id": 14,
-        "currency": "A"
-      },
-      "address": "0x9876efab",
-      "decimals": 18,
-      "label": undefined,
-      "symbol": undefined
-    }
-  },
   "deployers": {
     "network1": {
       "address": "0xabcdef",
@@ -84,46 +54,11 @@ export const mockedConfig: Config = {
       "label": "some-label"
     }
   },
+  "tokens": {},
   "orders": {
     "buy": {
-      "inputs": [
-        {
-          "token": {
-            "network": {
-              "name": "network1",
-              "rpc": "rpc-url",
-              "chain-id": 14,
-              "label": "some-label",
-              "network-id": 14,
-              "currency": "A"
-            },
-            "address": "0x123abcd",
-            "decimals": 18,
-            "label": undefined,
-            "symbol": undefined
-          },
-          "vault-id": "0x1"
-        }
-      ],
-      "outputs": [
-        {
-          "token": {
-            "network": {
-              "name": "network1",
-              "rpc": "rpc-url",
-              "chain-id": 14,
-              "label": "some-label",
-              "network-id": 14,
-              "currency": "A"
-            },
-            "address": "0x9876efab",
-            "decimals": 18,
-            "label": undefined,
-            "symbol": undefined
-          },
-          "vault-id": "0x1"
-        }
-      ],
+      "inputs": [],
+      "outputs": [],
       "network": {
         "name": "network1",
         "rpc": "rpc-url",
@@ -136,44 +71,8 @@ export const mockedConfig: Config = {
       "orderbook": undefined
     },
     "sell": {
-      "inputs": [
-        {
-          "token": {
-            "network": {
-              "name": "network1",
-              "rpc": "rpc-url",
-              "chain-id": 14,
-              "label": "some-label",
-              "network-id": 14,
-              "currency": "A"
-            },
-            "address": "0x9876efab",
-            "decimals": 18,
-            "label": undefined,
-            "symbol": undefined
-          },
-          "vault-id": "0x1"
-        }
-      ],
-      "outputs": [
-        {
-          "token": {
-            "network": {
-              "name": "network1",
-              "rpc": "rpc-url",
-              "chain-id": 14,
-              "label": "some-label",
-              "network-id": 14,
-              "currency": "A"
-            },
-            "address": "0x123abcd",
-            "decimals": 18,
-            "label": undefined,
-            "symbol": undefined
-          },
-          "vault-id": "0x1"
-        }
-      ],
+      "inputs": [],
+      "outputs": [],
       "network": {
         "name": "network1",
         "rpc": "rpc-url",
@@ -260,44 +159,8 @@ export const mockedConfig: Config = {
         }
       },
       "order": {
-        "inputs": [
-          {
-            "token": {
-              "network": {
-                "name": "network1",
-                "rpc": "rpc-url",
-                "chain-id": 14,
-                "label": "some-label",
-                "network-id": 14,
-                "currency": "A"
-              },
-              "address": "0x9876efab",
-              "decimals": 18,
-              "label": undefined,
-              "symbol": undefined
-            },
-            "vault-id": "0x1"
-          }
-        ],
-        "outputs": [
-          {
-            "token": {
-              "network": {
-                "name": "network1",
-                "rpc": "rpc-url",
-                "chain-id": 14,
-                "label": "some-label",
-                "network-id": 14,
-                "currency": "A"
-              },
-              "address": "0x123abcd",
-              "decimals": 18,
-              "label": undefined,
-              "symbol": undefined
-            },
-            "vault-id": "0x1"
-          }
-        ],
+        "inputs": [],
+        "outputs": [],
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
@@ -329,44 +192,8 @@ export const mockedConfig: Config = {
         }
       },
       "order": {
-        "inputs": [
-          {
-            "token": {
-              "network": {
-                "name": "network1",
-                "rpc": "rpc-url",
-                "chain-id": 14,
-                "label": "some-label",
-                "network-id": 14,
-                "currency": "A"
-              },
-              "address": "0x123abcd",
-              "decimals": 18,
-              "label": undefined,
-              "symbol": undefined
-            },
-            "vault-id": "0x1"
-          }
-        ],
-        "outputs": [
-          {
-            "token": {
-              "network": {
-                "name": "network1",
-                "rpc": "rpc-url",
-                "chain-id": 14,
-                "label": "some-label",
-                "network-id": 14,
-                "currency": "A"
-              },
-              "address": "0x9876efab",
-              "decimals": 18,
-              "label": undefined,
-              "symbol": undefined
-            },
-            "vault-id": "0x1"
-          }
-        ],
+        "inputs": [],
+        "outputs": [],
         "network": {
           "name": "network1",
           "rpc": "rpc-url",
@@ -379,8 +206,7 @@ export const mockedConfig: Config = {
         "orderbook": undefined
       }
     }
-  },
-  "sentry": undefined
+  }
 }
 
 
@@ -412,22 +238,6 @@ export const mockedConfigSource: ConfigSource = {
       "label": "some-label"
     }
   },
-  "tokens": {
-    "wflr": {
-      "network": "network1",
-      "address": "0x123abcd",
-      "decimals": 18,
-      "label": undefined,
-      "symbol": undefined
-    },
-    "weth": {
-      "network": "network1",
-      "address": "0x9876efab",
-      "decimals": 18,
-      "label": undefined,
-      "symbol": undefined
-    }
-  },
   "deployers": {
     "network1": {
       "address": "0xabcdef",
@@ -437,34 +247,14 @@ export const mockedConfigSource: ConfigSource = {
   },
   "orders": {
     "sell": {
-      "inputs": [
-        {
-          "token": "weth",
-          "vault-id": 0x1n
-        }
-      ],
-      "outputs": [
-        {
-          "token": "wflr",
-          "vault-id": 0x1n
-        }
-      ],
+      "inputs": [],
+      "outputs": [],
       "deployer": undefined,
       "orderbook": undefined
     },
     "buy": {
-      "inputs": [
-        {
-          "token": "wflr",
-          "vault-id": 0x1n
-        }
-      ],
-      "outputs": [
-        {
-          "token": "weth",
-          "vault-id": 0x1n
-        }
-      ],
+      "inputs": [],
+      "outputs": [],
       "deployer": undefined,
       "orderbook": undefined
     }
@@ -500,8 +290,7 @@ export const mockedConfigSource: ConfigSource = {
       "scenario": "network1.sell",
       "order": "sell"
     }
-  },
-  "sentry": undefined
+  }
 }
 
 test('pick deployments', () => {
