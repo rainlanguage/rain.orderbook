@@ -1,18 +1,14 @@
 <script lang="ts">
-  import type { FuzzResultFlat, Mark, Plot as PlotT, Transform } from '$lib/typeshare/config';
+  import type { Mark, Plot as PlotT, Transform } from '$lib/typeshare/config';
   import * as Plot from '@observablehq/plot';
-  import { hexToBigInt, type Hex, formatUnits } from 'viem';
   import camelcaseKeys from 'camelcase-keys';
+  import type { TransformedPlotData } from '$lib/utils/chartData';
 
   export let plot: PlotT;
-  export let scenarioData: FuzzResultFlat;
+  export let data: TransformedPlotData[];
 
-  type PlotData = { [key: string]: number };
   let div: HTMLDivElement;
   let error: string;
-
-  let data: PlotData[];
-  $: data = transformData(scenarioData);
 
   $: if (div && data) {
     try {
@@ -32,17 +28,6 @@
     }
   }
 
-  // Transform the data from the backend to the format required by the plot library
-  const transformData = (fuzzResult: FuzzResultFlat): PlotData[] => {
-    return fuzzResult.data.map((row) => {
-      const rowObject: PlotData = {};
-      fuzzResult.column_names.forEach((columnName, index) => {
-        rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
-      });
-      return rowObject;
-    });
-  };
-
   // Get the plot options from the plot object - removing the marks
   const getPlotOptions = (plot: PlotT) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -51,7 +36,7 @@
   };
 
   // Map the mark object to the plot library function
-  const buildMark = (data: PlotData[], markConfig: Mark) => {
+  const buildMark = (data: TransformedPlotData[], markConfig: Mark) => {
     const options = fixKeys(markConfig.options);
     switch (markConfig.type) {
       case 'line':
