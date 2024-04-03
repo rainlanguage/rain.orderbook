@@ -1,7 +1,9 @@
-use crate::Plot;
+use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
+use crate::{Metric, Plot};
 use alloy_primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use thiserror::Error;
 use typeshare::typeshare;
 use url::Url;
 
@@ -9,6 +11,8 @@ use url::Url;
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigSource {
+    #[serde(default)]
+    pub using_networks_from: HashMap<String, RemoteNetworksConfigSource>,
     #[serde(default)]
     pub networks: HashMap<String, NetworkConfigSource>,
     #[serde(default)]
@@ -62,6 +66,14 @@ pub struct NetworkConfigSource {
     #[typeshare(typescript(type = "number"))]
     pub network_id: Option<u64>,
     pub currency: Option<String>,
+}
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct RemoteNetworksConfigSource {
+    pub url: String,
+    pub format: String,
 }
 
 #[typeshare]
@@ -139,12 +151,46 @@ pub struct ScenarioConfigSource {
 pub struct ChartConfigSource {
     pub scenario: Option<ScenarioRef>,
     pub plots: HashMap<String, Plot>,
+    pub metrics: Option<Vec<Metric>>,
 }
 
-impl TryFrom<String> for ConfigSource {
-    type Error = serde_yaml::Error;
-    fn try_from(val: String) -> Result<ConfigSource, Self::Error> {
-        serde_yaml::from_str(&val)
+#[derive(Error, Debug)]
+pub enum ConfigSourceError {
+    #[error(transparent)]
+    YamlDeserializerError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    RemoteNetworkError(#[from] RemoteNetworkError),
+    #[error("Conflicting networks, a network with key '{}' already exists", 0)]
+    ConflictingNetworks(String),
+    #[error(transparent)]
+    ChainIdError(#[from] ChainIdError),
+}
+
+impl ConfigSource {
+    pub async fn try_from_string(val: String) -> Result<ConfigSource, ConfigSourceError> {
+        let mut conf: ConfigSource = serde_yaml::from_str(&val)?;
+        if !conf.using_networks_from.is_empty() {
+            for (_key, item) in conf.using_networks_from.iter() {
+                let remote_networks =
+                    RemoteNetworks::try_from_remote_network_config_source(item.clone()).await?;
+                match remote_networks {
+                    RemoteNetworks::ChainId(chains) => {
+                        for chain in &chains {
+                            if conf.networks.iter().all(|(k, _v)| *k != chain.short_name) {
+                                if let Ok(v) = chain.clone().try_into() {
+                                    conf.networks.insert(chain.short_name.clone(), v);
+                                }
+                            } else {
+                                return Err(ConfigSourceError::ConflictingNetworks(
+                                    chain.name.clone(),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(conf)
     }
 }
 
@@ -152,9 +198,14 @@ impl TryFrom<String> for ConfigSource {
 mod tests {
     use super::*;
 
-    #[test]
-    fn parse_yaml_into_configstrings() {
+    #[tokio::test]
+    async fn parse_yaml_into_configstrings() {
         let yaml_data = r#"
+using-networks-from:
+    chainid:
+        url: https://chainid.network/chains.json
+        format: chainid
+
 networks:
     mainnet:
         rpc: https://mainnet.node
@@ -240,6 +291,18 @@ scenarios:
 charts:
     mainChart:
         scenario: mainScenario
+        metrics:
+        -   label: A metric
+            description: A description
+            unit-prefix: $
+            unit-suffix: USD
+            value: 0.1
+        -   label: Another metric
+            unit-suffix: ETH
+            value: 0.2
+        -   label: Yet another metric
+            unit-prefix: £
+            value: 0.3
         plots:
             plot1:
                 title: "My plot"
@@ -275,7 +338,7 @@ deployments:
 sentry: true"#
             .to_string();
 
-        let config: ConfigSource = yaml_data.try_into().unwrap();
+        let config = ConfigSource::try_from_string(yaml_data).await.unwrap();
 
         // Asserting a few values to verify successful parsing
         assert_eq!(
@@ -298,5 +361,23 @@ sentry: true"#
         );
         assert_eq!(config.tokens.get("eth").unwrap().decimals, Some(18));
         assert!(config.sentry.unwrap());
+
+        // remote networks fetched from remote source and converted and added to networks
+        assert_eq!(
+            config.clone().networks.get("eth").unwrap().rpc,
+            Url::parse("https://api.mycryptoapi.com/eth").unwrap()
+        );
+        assert_eq!(
+            config.networks.get("eth").unwrap().label,
+            Some("Ethereum Mainnet".into())
+        );
+        assert_eq!(
+            config.clone().networks.get("matic").unwrap().rpc,
+            Url::parse("https://polygon-rpc.com/").unwrap()
+        );
+        assert_eq!(
+            config.networks.get("matic").unwrap().label,
+            Some("Polygon Mainnet".into())
+        );
     }
 }

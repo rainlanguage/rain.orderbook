@@ -11,6 +11,18 @@ pub struct Chart {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
     pub plots: Vec<Plot>,
+    pub metrics: Option<Vec<Metric>>,
+}
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub struct Metric {
+    pub label: String,
+    pub description: Option<String>,
+    pub unit_prefix: Option<String>,
+    pub unit_suffix: Option<String>,
+    pub value: String,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -42,6 +54,7 @@ impl ChartConfigSource {
 
         Ok(Chart {
             scenario: scenario_ref,
+            metrics: self.metrics,
             plots: self
                 .plots
                 .into_iter()
@@ -91,6 +104,7 @@ mod tests {
         let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
             plots,
+            metrics: None,
         };
 
         let chart = chart_string
@@ -115,6 +129,7 @@ mod tests {
         let chart_string = ChartConfigSource {
             scenario: None,
             plots,
+            metrics: None,
         };
 
         let chart = chart_string
@@ -137,6 +152,7 @@ mod tests {
         let chart_string = ChartConfigSource {
             scenario: Some("nonexistent_scenario".to_string()),
             plots,
+            metrics: None,
         };
 
         let result = chart_string.try_into_chart("chart3".to_string(), &scenarios);
@@ -153,6 +169,7 @@ mod tests {
         let chart_string = ChartConfigSource {
             scenario: None,
             plots: HashMap::new(),
+            metrics: None,
         };
 
         let result = chart_string.try_into_chart("chart4".to_string(), &scenarios);
@@ -175,9 +192,18 @@ mod tests {
         let (plot_name, plot) = mock_plot("plot2");
         plots.insert(plot_name, plot);
 
+        let metrics: Vec<Metric> = vec![Metric {
+            label: "label".to_string(),
+            description: Some("description".to_string()),
+            unit_prefix: Some("unit_prefix".to_string()),
+            unit_suffix: Some("unit_suffix".to_string()),
+            value: "value".to_string(),
+        }];
+
         let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
             plots,
+            metrics: Some(metrics),
         };
 
         let chart = chart_string
