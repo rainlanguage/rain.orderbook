@@ -1,10 +1,10 @@
-import { walletconnectAccount, walletconnectIsConnected, walletconnectModal } from "$lib/stores/walletconnect";
+import { walletconnectAccount, walletconnectIsConnected, walletconnectProvider } from "$lib/stores/walletconnect";
 import { toasts } from "$lib/stores/toasts";
 import { get } from "@square/svelte-store";
 import { BigNumber, ethers } from "ethers";
 
 export async function ethersExecute(calldata: Uint8Array, to: string): Promise<ethers.providers.TransactionResponse> {
-  const walletProvider = get(walletconnectModal)?.getWalletProvider();
+  const walletProvider = walletconnectProvider;
   if (!walletProvider || !get(walletconnectIsConnected) || !get(walletconnectAccount)) {
     toasts.error("user not connected");
     return Promise.reject("user not connected");
@@ -25,7 +25,7 @@ const abi = [
 ];
 
 export async function checkAllowance(tokenAddress: string, spender: string): Promise<BigNumber> {
-  const walletProvider = get(walletconnectModal)?.getWalletProvider();
+  const walletProvider = walletconnectProvider;
   if (!walletProvider) {
     toasts.error("user not connected");
     return Promise.reject("user not connected");

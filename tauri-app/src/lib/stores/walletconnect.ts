@@ -1,78 +1,91 @@
 
 import { get, writable } from '@square/svelte-store';
-import find from 'lodash/find';
-import * as chains from 'viem/chains';
-import { type NetworkConfigSource } from '$lib/typeshare/config';
-import { createWeb3Modal, defaultConfig } from '@web3modal/ethers5'
 import { activeNetwork } from './settings';
-import { reportErrorToSentry } from '$lib/services/sentry';
+// import { reportErrorToSentry } from '$lib/services/sentry';
+import Provider from '@walletconnect/ethereum-provider';
+import { colorTheme } from './darkMode';
+// import { WalletConnectModal, WalletConnectModalConfig } from '@walletconnect/modal';
+import { toasts } from './toasts';
+// import { EthersConstantsUtil, EthersHelpersUtil, EthersStoreUtil } from '@web3modal/scaffold-utils/ethers';
+import * as chains from 'viem/chains';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
-const ethersConfig = defaultConfig({
-  metadata: {
-    name: "Raindex",
-    description: "Raindex allows anyone to write, test, deploy and manage token trading strategies written in rainlang, on any EVM network.",
-    url: "https://rainlang.xyz",
-    icons: [
-      "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg",
-      "https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg",
-    ]
-  },
-  enableEIP6963: false,
-  enableInjected: false,
-  enableCoinbase: false,
-});
+const metadata = {
+  name: "Raindex",
+  description: "Raindex allows anyone to write, test, deploy and manage token trading strategies written in rainlang, on any EVM network.",
+  url: "https://rainlang.xyz",
+  icons: [
+    "https://raw.githubusercontent.com/rainlanguage/dotrain/main/assets/rainlang-banner.svg",
+    "https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg",
+  ]
+};
 
-export const walletconnectModal = writable<ReturnType<typeof createWeb3Modal> | undefined>();
 export const walletconnectAccount = writable<string | undefined>(undefined);
 export const walletconnectIsConnected = writable<boolean>(false);
-let eventUnsubscribe: (() => void) | undefined;
 
-// subscribe to networks and instantiate wagmi config store from it
-activeNetwork.subscribe(async network => {
-  if (eventUnsubscribe) eventUnsubscribe();
-  walletconnectAccount.set(undefined);
-  walletconnectIsConnected.set(false);
-  const oldModal = get(walletconnectModal)
-  if (oldModal !== undefined) {
-    try {
-      await oldModal.disconnect()
-    } catch (e) {
-      reportErrorToSentry(e);
-      walletconnectModal.set(undefined);
+export let walletconnectProvider: Provider | undefined;
+(async() => {
+  const optionalChains = Object.values(chains).map(v => v.id) as [number, ...number[]];
+  walletconnectProvider = await Provider.init({
+    metadata,
+    projectId: WALLETCONNECT_PROJECT_ID,
+    showQrModal: true,
+    optionalChains,
+    qrModalOptions: { themeMode: get(colorTheme) },
+    optionalEvents: ["chainChanged", "accountsChanged", "connect", "disconnect", "display_uri", "session_event"],
+  });
+  walletconnectProvider.on("connect", () => {
+    console.log(walletconnectProvider?.accounts);
+    console.log(walletconnectProvider?.chainId);
+    walletconnectAccount.set(walletconnectProvider?.accounts[0]);
+    walletconnectIsConnected.set(true);
+  });
+  walletconnectProvider.on("disconnect", () => {
+    console.log("disssssssssss");
+    walletconnectAccount.set(undefined);
+    walletconnectIsConnected.set(false);
+  });
+  walletconnectProvider.on("accountsChanged", (acc) => {
+    console.log("yoyoyoyo");
+    console.log(walletconnectProvider?.chainId);
+    walletconnectAccount.set(acc[0]);
+  });
+  walletconnectProvider.on("chainChanged", async (chainid) => {
+    console.log("nnnnnnnn");
+    console.log(walletconnectProvider?.chainId);
+    console.log(chainid);
+    await walletconnectDisconnect();
+  });
+})();
+
+export async function walletconnectConnect() {
+  if (get(walletconnectIsConnected)) {
+    await walletconnectDisconnect();
+  } else {
+    const network = get(activeNetwork);
+    if (network) {
+      const rpcMap: Record<string, string>  = {};
+      rpcMap[network['chain-id']] = network.rpc;
+      await walletconnectProvider?.connect({
+        chains: [network['chain-id']],
+        rpcMap
+      })
+    } else {
+      toasts.error("Cannot find active network")
     }
   }
-  if (network === undefined) {
-    walletconnectModal.set(undefined);
-  }
-  else {
-    const chain = find(Object.values(chains), (c) => c.id === network["chain-id"]);
-    walletconnectModal.set(
-      createWeb3Modal({
-        ethersConfig,
-        chains: [getNetwork(network, chain)],
-        projectId: WALLETCONNECT_PROJECT_ID,
-        enableOnramp: true,
-        allWallets: "SHOW",
-      })
-    )
-    const modal = get(walletconnectModal);
-    eventUnsubscribe = modal?.subscribeEvents(v => {
-      if (v.data.event === "MODAL_CLOSE") {
-        walletconnectAccount.set(modal.getAddress());
-        walletconnectIsConnected.set(modal.getIsConnected());
-      }
-    })
-  }
-})
-
-function getNetwork(network: NetworkConfigSource, chain?: chains.Chain) {
-  return {
-    chainId: network['chain-id'],
-    name: chain?.name ?? `network with chain id: ${network['chain-id']}`,
-    currency: chain?.nativeCurrency.symbol ?? network.currency ?? "eth",
-    explorerUrl: chain?.blockExplorers?.default.url ?? "",
-    rpcUrl: network.rpc
-  }
 }
+
+export async function walletconnectDisconnect() {
+  try {
+    await walletconnectProvider?.disconnect();
+  } catch(e) {
+    console.log(e)
+  }
+  walletconnectAccount.set(undefined);
+  walletconnectIsConnected.set(false);
+}
+
+// subscribe to networks and instantiate wagmi config store from it
+activeNetwork.subscribe(async () => await walletconnectDisconnect())

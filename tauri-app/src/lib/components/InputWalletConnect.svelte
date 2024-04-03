@@ -1,6 +1,6 @@
 <script lang="ts">
   import IconWarning from "$lib/components/IconWarning.svelte";
-  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
+  import { walletconnectConnect, walletconnectAccount } from '$lib/stores/walletconnect';
   import { Alert, Button } from "flowbite-svelte";
 
   $: walletconnectLabel = $walletconnectAccount
@@ -20,7 +20,7 @@
       class="px-2 py-1"
       size="lg"
       pill
-      on:click={() => $walletconnectModal?.open()}
+      on:click={() => walletconnectConnect()}
     >
     {walletconnectLabel}
     </Button>

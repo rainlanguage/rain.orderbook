@@ -1,15 +1,15 @@
 <script lang="ts">
   import { Button } from 'flowbite-svelte';
-  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
+  import { walletconnectConnect, walletconnectAccount, walletconnectProvider } from '$lib/stores/walletconnect';
 
   $: label = $walletconnectAccount
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : "CONNECT"
 
   function connect() {
-    $walletconnectModal?.open(
+    walletconnectConnect()
       // {view: "Networks"}
-    )
+    // )
   }
 </script>
 
@@ -22,7 +22,7 @@
             class="px-2 py-1"
             size="xs"
             pill
-            disabled={$walletconnectModal === undefined}
+            disabled={walletconnectProvider === undefined}
             on:click={connect}
           >
           {label}
