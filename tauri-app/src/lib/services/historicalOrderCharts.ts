@@ -47,7 +47,7 @@ export function prepareHistoricalOrderChartData(takeOrderEntities: TakeOrderEnti
 if (import.meta.vitest) {
     const { it, expect } = import.meta.vitest
 
-    it('transforms data as expected', () => {
+    it('transforms and sorts data as expected', () => {
 
         const takeOrderEntities: TakeOrderEntity[] = [
             {
@@ -102,12 +102,12 @@ if (import.meta.vitest) {
         const result = prepareHistoricalOrderChartData(takeOrderEntities, 'dark');
 
         expect(result.length).toEqual(3);
-        expect(result[0].value).toEqual(0.15);
-        expect(result[0].time).toEqual(1630000000n);
-        expect(result[1].value).toEqual(0.35);
-        expect(result[1].time).toEqual(1631000000n);
+        expect(result[0].value).toEqual(0.2);
+        expect(result[0].time).toEqual(1630000000);
+        expect(result[1].value).toEqual(0.3);
+        expect(result[1].time).toEqual(1631000000);
         expect(result[2].value).toEqual(0.1);
-        expect(result[2].time).toEqual(1632000000n);
+        expect(result[2].time).toEqual(1632000000);
 
         // check the color
         expect(result[0].color).toEqual('#5178FF');
