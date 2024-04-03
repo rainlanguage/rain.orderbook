@@ -105,7 +105,7 @@ mod tests {
 
         let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
-            plots,
+            plots: Some(plots),
             metrics: None,
         };
 
@@ -200,6 +200,7 @@ mod tests {
             unit_prefix: Some("unit_prefix".to_string()),
             unit_suffix: Some("unit_suffix".to_string()),
             value: "value".to_string(),
+            precision: Some(2),
         }];
 
         let chart_string = ChartConfigSource {
@@ -215,7 +216,7 @@ mod tests {
             &chart.scenario,
             scenarios.get("scenario5").unwrap()
         ));
-        assert_eq!(chart.plots.unwrap().len(), 2);
+        assert_eq!(chart.clone().plots.unwrap().len(), 2);
 
         // both plots should have the name "Title"
         let mut plots = chart
