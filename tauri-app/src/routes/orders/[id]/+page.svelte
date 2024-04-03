@@ -4,7 +4,7 @@
   import { orderDetail, useOrderTakesList } from '$lib/stores/order';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
-  import { formatTimestampSecondsAsLocal, timestampSecondsToUTCTimestamp } from '$lib/utils/time';
+  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
@@ -15,7 +15,6 @@
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import type { UTCTimestamp } from 'lightweight-charts';
   import { colorTheme } from '$lib/stores/darkMode';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
@@ -23,52 +22,21 @@
   import { orderbookAddress } from '$lib/stores/settings';
   import { toasts } from '$lib/stores/toasts';
   import { reportErrorToSentry } from '$lib/services/sentry';
+  import {
+    prepareHistoricalOrderChartData,
+    type HistoricalOrderChartData,
+  } from '$lib/services/historicalOrderCharts';
 
   let openOrderRemoveModal = false;
   let isSubmitting = false;
-  type ChartData = { value: number; time: UTCTimestamp; color?: string}[];
-  let orderTakesListChartData: ChartData = [];
+  let orderTakesListChartData: HistoricalOrderChartData = [];
 
   const orderTakesList = useOrderTakesList($page.params.id);
 
   $: order = $orderDetail.data[$page.params.id]?.order;
   $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
-  $: $orderTakesList.all, orderTakesListChartData = prepareChartData();
+  $: orderTakesListChartData = prepareHistoricalOrderChartData($orderTakesList.all, $colorTheme);
 
-  function prepareChartData() {
-    const transformedData = $orderTakesList.all.map((d) => ({
-      value: parseFloat(d.ioratio),
-      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-      color: $colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
-      outputAmount: +d.output_display
-    }));
-
-    // if we have multiple object in the array with the same timestamp, we need to merge them
-    // we do this by taking the weighted average of the ioratio values for objects that share the same timestamp.
-    const uniqueTimestamps = Array.from(new Set(transformedData.map((d) => d.time)));
-    let finalData: ChartData = [];
-    uniqueTimestamps.forEach((timestamp) => {
-      const objectsWithSameTimestamp = transformedData.filter((d) => d.time === timestamp);
-      if (objectsWithSameTimestamp.length > 1) {
-        // calculate a weighted average of the ioratio values using the amount of the output token as the weight
-        const ioratioSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.value * d.outputAmount, 0);
-        const outputAmountSum = objectsWithSameTimestamp.reduce((acc, d) => acc + d.outputAmount, 0);
-        const ioratioAverage = ioratioSum / outputAmountSum;
-        finalData.push({
-          value: ioratioAverage,
-          time: timestamp,
-          color: objectsWithSameTimestamp[0].color,
-        });
-      } else {
-        finalData.push(objectsWithSameTimestamp[0]);
-      }
-    });
-
-    return sortBy(
-      finalData,
-      (d) => d.time
-    );
-  }
   $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
 
   orderDetail.refetch($page.params.id);
@@ -87,18 +55,17 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await orderRemoveCalldata(order.id) as Uint8Array;
+      const calldata = (await orderRemoveCalldata(order.id)) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress!);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === "object" && (e as any)?.reason) {
+      if (typeof e === 'object' && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      }
-      else toasts.error("Transaction failed!");
+      } else toasts.error('Transaction failed!');
     }
     isSubmitting = false;
   }
@@ -120,7 +87,7 @@
       <BadgeActive active={order.order_active} large />
     </div>
     {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-      <Button color="dark" on:click={() => openOrderRemoveModal = true}>Remove</Button>
+      <Button color="dark" on:click={() => (openOrderRemoveModal = true)}>Remove</Button>
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="card">
@@ -189,8 +156,8 @@
             <TableHeadCell padding="p-4">Date</TableHeadCell>
             <TableHeadCell padding="p-0">Sender</TableHeadCell>
             <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
-            <TableHeadCell padding="p-0">Input</TableHeadCell>
             <TableHeadCell padding="p-0">Output</TableHeadCell>
+            <TableHeadCell padding="p-0">Input</TableHeadCell>
             <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
           </svelte:fragment>
 
@@ -229,5 +196,5 @@
   execButtonLabel="Remove Order"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />
