@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { sentrySvelteKit } from "@sentry/sveltekit";
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, loadEnv } from 'vite';
@@ -21,11 +22,11 @@ export default defineConfig(({ mode }) => {
       ...sentryPlugins,
       sveltekit(),
       checker({
-      typescript: true,
-      eslint: {
+        typescript: true,
+        eslint: {
           lintCommand: 'eslint src',
         },
-    })],
+      })],
 
 
     // prevent vite from obscuring rust errors
@@ -43,6 +44,14 @@ export default defineConfig(({ mode }) => {
 
     build: {
       sourcemap: true
+    },
+
+    test: {
+      includeSource: ['src/**/*.{js,ts}'],
+    },
+
+    define: {
+      'import.meta.vitest': 'undefined',
     },
   }
 });
