@@ -138,7 +138,7 @@ pub struct ScenarioConfigSource {
 #[serde(rename_all = "kebab-case")]
 pub struct ChartConfigSource {
     pub scenario: Option<ScenarioRef>,
-    pub plots: HashMap<String, Plot>,
+    pub plots: Option<HashMap<String, Plot>>,
     pub metrics: Option<Vec<Metric>>,
 }
 
