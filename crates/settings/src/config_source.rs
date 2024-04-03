@@ -1,4 +1,4 @@
-use crate::Plot;
+use crate::{Metric, Plot};
 use alloy_primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -139,6 +139,7 @@ pub struct ScenarioConfigSource {
 pub struct ChartConfigSource {
     pub scenario: Option<ScenarioRef>,
     pub plots: HashMap<String, Plot>,
+    pub metrics: Option<Vec<Metric>>,
 }
 
 impl TryFrom<String> for ConfigSource {
@@ -240,6 +241,18 @@ scenarios:
 charts:
     mainChart:
         scenario: mainScenario
+        metrics:
+        -   label: A metric
+            description: A description
+            unit-prefix: $
+            unit-suffix: USD
+            value: 0.1
+        -   label: Another metric
+            unit-suffix: ETH
+            value: 0.2
+        -   label: Yet another metric
+            unit-prefix: £
+            value: 0.3
         plots:
             plot1:
                 title: "My plot"
