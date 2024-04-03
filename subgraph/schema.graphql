@@ -1,3 +1,65 @@
 type Order @entity {
+    id: ID!
+}
+
+# Created for every Deposit event
+type VaultDeposit implements Event @entity {
+    id: ID! # use txhash of the event + N Deposit on the tx
+    "The transaction sender of this deposit"
+    # ---> DL: Do we still want to do the mapping for this field?
+    sender: Account! # Deposit.sender
+    "The token that was deposited"
+    token: ERC20! # Deposit.config.token
+    "The vaultId that was deposited into"
+    vaultId: BigInt! # Deposit.config.vaultId
+    "The Vault that was deposited into"
+    # ---> DL: Do we still want to do the mapping for this field?
+    # vault: Vault! # map by {Deposit.config.vaultId}-{sender}
+    "The amount that was deposited"
+    amount: BigInt! # Deposit.config.amount
+    amountDisplay: BigDecimal!
+    "The current balance of this token for this Vault"
+    # ---> DL: Do we still want to do the mapping for this field?
+    # tokenVault: TokenVault! # map by {Deposit.config.vaultId}-{Deposit.sender}-{Deposit.config.token}
+    transaction: Transaction!
+    emitter: Account!
+    timestamp: BigInt!
+}
+
+type Account @entity {
+  id: Bytes!
+  # orders: [Order!] @derivedFrom(field: "owner")
+  # withdraws: [VaultWithdraw!] @derivedFrom(field: "sender")
+  deposits: [VaultDeposit!] @derivedFrom(field: "sender")
+  # ordersCleared: [OrderClear!] @derivedFrom(field: "clearer")
+  # bounties: [Bounty!] @derivedFrom(field: "clearer")
+  # takeOrderEntities: [TakeOrderEntity!] @derivedFrom(field: "sender")
+  # vaults: [Vault!] @derivedFrom(field: "owner")
+  # tokenVaults: [TokenVault!] @derivedFrom(field: "owner")
+  events: [Event!] @derivedFrom(field: "emitter")
+}
+
+type ERC20 @entity {
+  id: ID! # address of token
+  name: String!
+  symbol: String!
+  totalSupply: BigInt!
+  totalSupplyDisplay: BigDecimal!
+  decimals: Int!
+}
+
+type Transaction @entity(immutable: true) {
   id: ID!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  events: [Event!] @derivedFrom(field: "transaction")
+}
+
+interface Event {
+  id: ID!
+  "Transaction this event was emitted in."
+  transaction: Transaction!
+  "Account that sent the transaction this event was emitted in."
+  emitter: Account!
+  timestamp: BigInt!
 }
