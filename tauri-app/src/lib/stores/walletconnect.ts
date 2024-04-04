@@ -1,3 +1,4 @@
+import find from 'lodash/find';
 import { toasts } from './toasts';
 import * as chains from 'viem/chains';
 import { colorTheme } from './darkMode';
@@ -6,7 +7,6 @@ import { get, writable } from '@square/svelte-store';
 import Provider from '@walletconnect/ethereum-provider';
 import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
-import find from 'lodash/find';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
@@ -87,7 +87,7 @@ export async function walletconnectConnect() {
           rpcMap
         })
       } catch {
-        toasts.error("canceled")
+        toasts.error("canceled by user!")
       }
     } else {
       toasts.error("Cannot find active network")
@@ -116,11 +116,10 @@ activeNetwork.subscribe(async network => {
   if (network && walletconnectProvider?.accounts?.length) {
     try {
       console.log("ccc", walletconnectProvider?.chainId);
-      const x = await walletconnectProvider?.request({
+      await walletconnectProvider?.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: network['chain-id'].toString(16) }],
       });
-      console.log(x);
       console.log("done")
     } catch(e) {
       const errMsg = getErrorMsg(e);
@@ -146,6 +145,8 @@ activeNetwork.subscribe(async network => {
             await walletconnectDisconnect();
             toasts.error(`could not add network, reason: ${getErrorMsg(addChainErr)}`);
           }
+        } else {
+          toasts.error("could not add network, reason: unsupported network");
         }
       } else {
         console.log(e);
