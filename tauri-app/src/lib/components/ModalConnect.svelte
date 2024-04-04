@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
-  import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
+  import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import IconLedger from '$lib/components/IconLedger.svelte';
   import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
@@ -11,9 +11,11 @@
   let selectedLedger = false;
   let selectedWalletconnect = false;
 
-  $: walletconnectLabel = $walletconnectAccount
+  $: label = $walletconnectAccount
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
-    : "Connect to Wallet"
+    : $ledgerWalletAddress
+      ? `${$ledgerWalletAddress.slice(0, 5)}...${$ledgerWalletAddress.slice(-5)}`
+      : "Connect to Wallet"
 
   function reset() {
     open = false;
@@ -23,11 +25,11 @@
 </script>
 
 <div class="flex flex-col w-full w-full py-4">
-  <Button color="blue" on:click={() => open = true}>{walletconnectLabel}</Button>
+  <Button color="blue" on:click={() => open = true}>{label}</Button>
 </div>
 
 <Modal title="Connect to Wallet" bind:open={open} outsideclose size="sm" on:close={reset}>
-  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount}
+  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount && !$ledgerWalletAddress}
     <div class="flex justify-center space-x-4">
       <Button class="text-lg" on:click={() => selectedLedger = true}>
         <div class="mr-4">
@@ -42,11 +44,8 @@
         WalletConnect
       </Button>
     </div>
-  {:else if selectedLedger}
-    <InputLedgerWallet
-      bind:derivationIndex={$ledgerWalletDerivationIndex}
-      bind:walletAddress={$ledgerWalletAddress.value}
-    />
+  {:else if selectedLedger || $ledgerWalletAddress}
+    <InputLedgerWallet />
     <div class="flex justify-end space-x-4">
       <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
     </div>
