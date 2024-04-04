@@ -52,9 +52,6 @@
       </div>
     </SidebarGroup>
     <SidebarGroup border>
-      <ModalConnect/>
-    </SidebarGroup>
-    <SidebarGroup border>
       <SidebarItem
         label="Orders"
         href={hasRequiredSettings ? '/orders' : undefined}
@@ -79,6 +76,9 @@
     <SidebarGroup border>
       <DropdownActiveNetwork />
       <DropdownActiveOrderbook />
+    </SidebarGroup>
+    <SidebarGroup border>
+      <ModalConnect />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">
