@@ -1,22 +1,26 @@
-import { walletconnectAccount, walletconnectIsConnected, walletconnectProvider } from "$lib/stores/walletconnect";
 import { toasts } from "$lib/stores/toasts";
 import { get } from "@square/svelte-store";
 import { BigNumber, ethers } from "ethers";
+import { walletconnectAccount, walletconnectProvider } from "$lib/stores/walletconnect";
 
 export async function ethersExecute(calldata: Uint8Array, to: string): Promise<ethers.providers.TransactionResponse> {
-  const walletProvider = walletconnectProvider;
-  if (!walletProvider || !get(walletconnectIsConnected) || !get(walletconnectAccount)) {
+  if (!walletconnectProvider || !get(walletconnectAccount)) {
     toasts.error("user not connected");
     return Promise.reject("user not connected");
   }
   else {
-    const ethersProvider = new ethers.providers.Web3Provider(walletProvider);
+    const ethersProvider = new ethers.providers.Web3Provider(walletconnectProvider);
     const signer = ethersProvider.getSigner();
     const rawtx = {
       data: calldata,
       to,
     };
-    return signer.sendTransaction(rawtx);
+    try {
+      return await signer.sendTransaction(rawtx);
+    }catch(e) {
+      console.log(e)
+      return Promise.reject(e);
+    }
   }
 }
 
