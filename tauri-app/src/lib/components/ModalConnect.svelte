@@ -13,7 +13,7 @@
 
   $: walletconnectLabel = $walletconnectAccount
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
-    : "Connect to Wallet"
+    : 'Connect to Wallet';
 
   function reset() {
     open = false;
@@ -22,20 +22,20 @@
   }
 </script>
 
-<div class="flex flex-col w-full w-full py-4">
-  <Button color="blue" on:click={() => open = true}>{walletconnectLabel}</Button>
+<div class="flex w-full w-full flex-col py-4">
+  <Button color="primary" on:click={() => (open = true)}>{walletconnectLabel}</Button>
 </div>
 
-<Modal title="Connect to Wallet" bind:open={open} outsideclose size="sm" on:close={reset}>
+<Modal title="Connect to Wallet" bind:open outsideclose size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount}
     <div class="flex justify-center space-x-4">
-      <Button class="text-lg" on:click={() => selectedLedger = true}>
+      <Button class="text-lg" on:click={() => (selectedLedger = true)}>
         <div class="mr-4">
           <IconLedger />
         </div>
         Ledger Wallet
       </Button>
-      <Button class="text-lg" on:click={() => selectedWalletconnect = true}>
+      <Button class="text-lg" on:click={() => (selectedWalletconnect = true)}>
         <div class="mr-3">
           <IconWalletConnect />
         </div>
@@ -48,13 +48,13 @@
       bind:walletAddress={$ledgerWalletAddress.value}
     />
     <div class="flex justify-end space-x-4">
-      <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
+      <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
     </div>
   {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
     {#if !$walletconnectAccount}
       <div class="flex justify-end space-x-4">
-        <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
+        <Button color="alternative" on:click={() => (selectedWalletconnect = false)}>Back</Button>
       </div>
     {/if}
   {/if}
