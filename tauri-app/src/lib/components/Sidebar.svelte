@@ -14,12 +14,33 @@
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
   import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
   import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
+  import { Button, Modal } from 'flowbite-svelte';
+  import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
+  import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
+  import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
+  import IconLedger from '$lib/components/IconLedger.svelte';
+  import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
+  import { walletconnectAccount } from '$lib/stores/walletconnect';
 
   export let hasRequiredSettings = false;
 
   $: nonActiveClass = !hasRequiredSettings
     ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 '
     : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600';
+
+  let open = false;
+  let selectedLedger = false;
+  let selectedWalletconnect = false;
+
+  $: walletconnectLabel = $walletconnectAccount
+    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
+    : "Connect to Wallet"
+
+  function reset() {
+    open = false;
+    selectedLedger = false;
+    selectedWalletconnect = false;
+  }
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
@@ -48,6 +69,11 @@
           aClass="w-full flex items-center justify-start gap-x-3 mb-5"
           spanClass="hidden"
         ></SidebarBrand>
+      </div>
+    </SidebarGroup>
+    <SidebarGroup border>
+      <div class="flex flex-col w-full w-full py-4">
+        <Button color="blue" on:click={() => open = true}>{walletconnectLabel}</Button>
       </div>
     </SidebarGroup>
     <SidebarGroup border>
@@ -95,3 +121,37 @@
     </SidebarGroup>
   </SidebarWrapper>
 </Sidebar>
+
+<Modal title="Connect to Wallet" bind:open={open} outsideclose size="sm" on:close={reset}>
+  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount}
+    <div class="flex justify-center space-x-4">
+      <Button class="text-lg" on:click={() => selectedLedger = true}>
+        <div class="mr-4">
+          <IconLedger />
+        </div>
+        Ledger Wallet
+      </Button>
+      <Button class="text-lg" on:click={() => selectedWalletconnect = true}>
+        <div class="mr-3">
+          <IconWalletConnect />
+        </div>
+        WalletConnect
+      </Button>
+    </div>
+  {:else if selectedLedger}
+    <InputLedgerWallet
+      bind:derivationIndex={$ledgerWalletDerivationIndex}
+      bind:walletAddress={$ledgerWalletAddress.value}
+    />
+    <div class="flex justify-end space-x-4">
+      <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
+    </div>
+  {:else if selectedWalletconnect || $walletconnectAccount}
+    <InputWalletConnect />
+    {#if !$walletconnectAccount}
+      <div class="flex justify-end space-x-4">
+        <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
+      </div>
+    {/if}
+  {/if}
+</Modal>

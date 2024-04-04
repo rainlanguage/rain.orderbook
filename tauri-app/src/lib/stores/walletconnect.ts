@@ -90,7 +90,6 @@ export async function walletconnectConnect() {
 }
 
 export async function walletconnectDisconnect() {
-  walletconnectAccount.set(undefined);
   walletconnectIsDisconnecting.set(true);
   try {
     await walletconnectProvider?.disconnect();
@@ -98,6 +97,7 @@ export async function walletconnectDisconnect() {
     reportErrorToSentry(e);
   }
   walletconnectIsDisconnecting.set(false);
+  walletconnectAccount.set(undefined);
 }
 
 // subscribe to networks and disconnect on network changes
