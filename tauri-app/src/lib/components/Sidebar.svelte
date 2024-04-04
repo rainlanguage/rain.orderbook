@@ -14,8 +14,6 @@
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
   import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
   import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
-  import { Button } from 'flowbite-svelte';
-  import { walletconnectAccount } from '$lib/stores/walletconnect';
   import ModalConnect from '$lib/components/ModalConnect.svelte';
 
   export let hasRequiredSettings = false;
@@ -23,12 +21,6 @@
   $: nonActiveClass = !hasRequiredSettings
     ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 '
     : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600';
-
-  let open = false;
-
-  $: walletconnectLabel = $walletconnectAccount
-    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
-    : "Connect to Wallet"
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
@@ -60,9 +52,7 @@
       </div>
     </SidebarGroup>
     <SidebarGroup border>
-      <div class="flex flex-col w-full w-full py-4">
-        <Button color="blue" on:click={() => open = true}>{walletconnectLabel}</Button>
-      </div>
+      <ModalConnect/>
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem
@@ -109,5 +99,3 @@
     </SidebarGroup>
   </SidebarWrapper>
 </Sidebar>
-
-<ModalConnect bind:open={open} />

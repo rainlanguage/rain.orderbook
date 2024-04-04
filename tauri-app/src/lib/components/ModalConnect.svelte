@@ -7,9 +7,13 @@
   import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
 
-  export let open = false;
+  let open = false;
   let selectedLedger = false;
   let selectedWalletconnect = false;
+
+  $: walletconnectLabel = $walletconnectAccount
+    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
+    : "Connect to Wallet"
 
   function reset() {
     open = false;
@@ -17,6 +21,10 @@
     selectedWalletconnect = false;
   }
 </script>
+
+<div class="flex flex-col w-full w-full py-4">
+  <Button color="blue" on:click={() => open = true}>{walletconnectLabel}</Button>
+</div>
 
 <Modal title="Connect to Wallet" bind:open={open} outsideclose size="sm" on:close={reset}>
   {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount}
