@@ -14,34 +14,39 @@ on:
           - ethereum
           - flare
           - mumbai
+          - oasis_sapphire
           - polygon
           - songbird
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
     steps:
       - run: |
           network=${{ inputs.network }}
           echo "etherscan_api_key_secret_name=CI_DEPLOY_${network^^}_ETHERSCAN_API_KEY" >> $GITHUB_ENV
           echo "rpc_secret_name=CI_DEPLOY_${network^^}_RPC_URL" >> $GITHUB_ENV
+          echo "verify_secret_name=CI_DEPLOY_${network^^}_VERIFY" >> $GITHUB_ENV
+          echo "verifier_secret_name=CI_DEPLOY_${network^^}_VERIFIER" >> $GITHUB_ENV
+          echo "verifier_url_secret_name=CI_DEPLOY_${network^^}_VERIFIER_URL" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
 
       - run: nix develop --command rainix-sol-prelude
       - run: nix develop --command rainix-rs-prelude
       - name: deploy to ${{ inputs.network }}
         run: nix develop --command rainix-sol-artifacts
         env:
-          ETH_RPC_URL: ${{ secrets[env.rpc_secret_name] || '' }}
-          ETHERSCAN_API_KEY: ${{ secrets[env.etherscan_api_key_secret_name] || ''}}
-          DEPLOY_VERIFIER: ${{ inputs.network == 'flare' && 'sourcify' || inputs.network == 'songbird' && 'blockscout' || 'etherscan' }}
-          DEPLOY_VERIFIER_URL: ${{ inputs.network == 'songbird' && 'https://songbird-explorer.flare.network/api' || inputs.network == 'flare' && 'https://api.routescan.io/v2/network/mainnet/evm/14/etherscan' || '' }}
+          DEPLOY_BROADCAST: '1'
+          DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
+          ETH_RPC_URL: ${{ secrets[env.rpc_secret_name] || vars[env.rpc_secret_name] || '' }}
+          ETHERSCAN_API_KEY: ${{ secrets[env.etherscan_api_key_secret_name] || vars[env.etherscan_api_key_secret_name] || ''}}
+          DEPLOY_VERIFY: ${{ secrets[env.verify_secret_name] || vars[env.verify_secret_name] || '' }}
+          DEPLOY_VERIFIER: ${{ secrets[env.verifier_secret_name] || vars[env.verifier_secret_name] || '' }}
+          DEPLOY_VERIFIER_URL: ${{ secrets[env.verifier_url_secret_name] || vars[env.verifier_url_secret_name] || '' }}

@@ -14,14 +14,14 @@
     {#if selectedRef === undefined}
     <span>Select an orderbook</span>
   {:else if selectedOption?.label}
-    <span>{selectedOption.label}</span>
+    <span data-testid="dropdown-activeorderbook">{selectedOption.label}</span>
   {:else}
-    <span>{selectedRef}</span>
+    <span data-testid="dropdown-activeorderbook">{selectedRef}</span>
   {/if}
   </svelte:fragment>
 
     <svelte:fragment slot="option" let:option let:ref>
-      <div class="w-full overflow-hidden overflow-ellipsis">
+      <div data-testid="dropdown-activeorderbook-option" class="w-full overflow-hidden overflow-ellipsis">
         <div class="text-md mb-2 break-word">{option.label ? option.label : ref}</div>
         <Helper class="text-xs overflow-hidden overflow-ellipsis break-all">{option.address}</Helper>
       </div>

@@ -272,4 +272,57 @@ price: 2e18;
             ]
         );
     }
+
+    #[test]
+    fn test_order_config_v2_validity() {
+        let inputs = vec![
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(0),
+                decimals: 18,
+            },
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(1),
+                decimals: 18,
+            },
+        ];
+        let outputs = vec![
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(0),
+                decimals: 18,
+            },
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(1),
+                decimals: 18,
+            },
+        ];
+        let deployer = Address::random();
+        let bytecode = vec![
+            0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60,
+            0x60, 0x40,
+        ];
+        let constants = vec![U256::from(0), U256::from(1), U256::from(2), U256::from(3)];
+        let meta = vec![9, 10, 11, 12];
+
+        let order_config_v2 = OrderConfigV2 {
+            validInputs: inputs.clone(),
+            validOutputs: outputs.clone(),
+            evaluableConfig: EvaluableConfigV3 {
+                deployer,
+                bytecode: bytecode.clone(),
+                constants: constants.clone(),
+            },
+            meta: meta.clone(),
+        };
+
+        assert_eq!(order_config_v2.validInputs, inputs);
+        assert_eq!(order_config_v2.validOutputs, outputs);
+        assert_eq!(order_config_v2.evaluableConfig.deployer, deployer);
+        assert_eq!(order_config_v2.evaluableConfig.bytecode, bytecode);
+        assert_eq!(order_config_v2.evaluableConfig.constants, constants);
+        assert_eq!(order_config_v2.meta, meta.clone());
+    }
 }
