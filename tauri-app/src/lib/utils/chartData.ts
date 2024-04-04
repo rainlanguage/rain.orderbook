@@ -1,10 +1,25 @@
 import type { FuzzResultFlat } from "$lib/typeshare/config";
 import { hexToBigInt, type Hex, formatUnits } from "viem";
 
-export type TransformedPlotData = { [key: string]: number };
+export type TransformedHexAndFormattedData = { [key: string]: [number, Hex] };
 
 // Transform the data from the backend to the format required by the plot library
-export const transformData = (fuzzResult: FuzzResultFlat): TransformedPlotData[] => {
+export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndFormattedData[] => {
+    if (fuzzResult.data.some((row) => row.length !== fuzzResult.column_names.length)) {
+        throw new Error('Number of column names does not match data length');
+    }
+    return fuzzResult.data.map((row) => {
+        const rowObject: TransformedHexAndFormattedData = {};
+        fuzzResult.column_names.forEach((columnName, index) => {
+            rowObject[columnName] = [+formatUnits(hexToBigInt(row[index] as Hex), 18), row[index] as Hex];
+        });
+        return rowObject;
+    });
+};
+
+export type TransformedPlotData = { [key: string]: number };
+
+export const transformDataForPlot = (fuzzResult: FuzzResultFlat): TransformedPlotData[] => {
     if (fuzzResult.data.some((row) => row.length !== fuzzResult.column_names.length)) {
         throw new Error('Number of column names does not match data length');
     }
@@ -36,10 +51,15 @@ if (import.meta.vitest) {
         const transformedData = transformData(fuzzResult);
 
         expect(transformedData.length).toEqual(4);
-        expect(transformedData[0].col1).toEqual(1);
-        expect(transformedData[0].col2).toEqual(3);
-        expect(transformedData[1].col1).toEqual(2);
-        expect(transformedData[1].col2).toEqual(4);
+        expect(transformedData[0].col1[0]).toEqual(1);
+        expect(transformedData[0].col2[0]).toEqual(3);
+        expect(transformedData[1].col1[0]).toEqual(2);
+        expect(transformedData[1].col2[0]).toEqual(4);
+
+        expect(transformedData[0].col1[1]).toEqual('0xDE0B6B3A7640000');
+        expect(transformedData[0].col2[1]).toEqual('0x29A2241AF62C0000');
+        expect(transformedData[1].col1[1]).toEqual('0x1BC16D674EC80000');
+        expect(transformedData[1].col2[1]).toEqual('0x3782DACE9D900000');
 
         const fuzzResult3 = {
             data: [
