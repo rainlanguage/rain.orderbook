@@ -18,7 +18,7 @@
     </div>
     <div>
       <span class="text-gray-500 dark:text-gray-400">ID</span>
-      <span class="mb-1 overflow-hidden overflow-ellipsis">
+      <span class="mb-1 break-all">
         {bigintStringToHex(tokenVault.vault_id)}
       </span>
     </div>
