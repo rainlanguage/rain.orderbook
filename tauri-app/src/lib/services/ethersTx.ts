@@ -15,12 +15,7 @@ export async function ethersExecute(calldata: Uint8Array, to: string): Promise<e
       data: calldata,
       to,
     };
-    try {
-      return await signer.sendTransaction(rawtx);
-    }catch(e) {
-      console.log(e)
-      return Promise.reject(e);
-    }
+    return signer.sendTransaction(rawtx);
   }
 }
 
@@ -29,13 +24,12 @@ const abi = [
 ];
 
 export async function checkAllowance(tokenAddress: string, spender: string): Promise<BigNumber> {
-  const walletProvider = walletconnectProvider;
-  if (!walletProvider) {
+  if (!walletconnectProvider) {
     toasts.error("user not connected");
     return Promise.reject("user not connected");
   }
   else {
-    const ethersProvider = new ethers.providers.Web3Provider(walletProvider);
+    const ethersProvider = new ethers.providers.Web3Provider(walletconnectProvider);
     const signer = ethersProvider.getSigner();
     const contract = new ethers.Contract(tokenAddress, abi, signer);
     return contract.allowance(await signer.getAddress(), spender) as BigNumber;
