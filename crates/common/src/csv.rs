@@ -30,14 +30,13 @@ where
 
         Ok(text)
     }
-} 
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[derive(Debug, Serialize)]
-    #[derive(Clone)]
+    #[derive(Debug, Serialize, Clone)]
     struct Person {
         name: String,
         age: u32,
@@ -62,4 +61,3 @@ mod tests {
         assert_eq!(result.unwrap(), expected_csv);
     }
 }
-
