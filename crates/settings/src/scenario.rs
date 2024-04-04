@@ -193,6 +193,7 @@ mod tests {
 
         // Construct ConfigSource with the above scenarios
         let config_string = ConfigSource {
+            using_networks_from: HashMap::new(),
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
             orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
