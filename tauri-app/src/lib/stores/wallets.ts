@@ -13,7 +13,6 @@ export const walletAddressMatchesOrBlank = derived(
       const otherAddressLowercase = otherAddress.toLowerCase();
       return $walletAddress.value.toLowerCase() === otherAddressLowercase
         || $walletconnectAccount?.toLowerCase() === otherAddressLowercase
-        || $walletAddress.value === "";
     }
   }
 );

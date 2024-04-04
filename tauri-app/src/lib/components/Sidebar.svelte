@@ -12,8 +12,7 @@
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
-  import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
-  import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
+  import { PlusSolid } from 'flowbite-svelte-icons';
 
   export let hasRequiredSettings = false;
 
@@ -51,6 +50,12 @@
       </div>
     </SidebarGroup>
     <SidebarGroup border>
+      <SidebarItem label="New Order" href={'/orders/add'} {nonActiveClass}>
+        <svelte:fragment slot="icon">
+          <PlusSolid class="h-5 w-5" />
+          <span data-testid="sidebar-new-order"></span>
+        </svelte:fragment>
+      </SidebarItem>
       <SidebarItem
         label="Orders"
         href={hasRequiredSettings ? '/orders' : undefined}
@@ -71,10 +76,6 @@
           <span data-testid="sidebar-vaults"></span>
         </svelte:fragment>
       </SidebarItem>
-    </SidebarGroup>
-    <SidebarGroup border>
-      <DropdownActiveNetwork />
-      <DropdownActiveOrderbook />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">

@@ -12,7 +12,7 @@
   import type { ChartData, Scenario } from '$lib/typeshare/config';
   import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
-  import { textFileStore } from '$lib/storesGeneric/textFileStore';
+  import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
@@ -38,7 +38,6 @@
   let isSubmitting = false;
   let isCharting = false;
   let chartData: ChartData;
-  let dotrainFile = textFileStore('Rain', ['rain']);
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
   let mergedConfigSource: ConfigSource | undefined = undefined;
@@ -53,7 +52,7 @@
       ? mergedConfig.deployments[deploymentRef]
       : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
-  $: $dotrainFile.text, updateMergedConfig();
+  $: $globalDotrainFile.text, updateMergedConfig();
 
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
@@ -65,7 +64,7 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($dotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
 
   const rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -116,7 +115,7 @@
 
   async function updateMergedConfig() {
     try {
-      mergedConfigSource = await mergeDotrainConfigWithSettings($dotrainFile.text);
+      mergedConfigSource = await mergeDotrainConfigWithSettings($globalDotrainFile.text);
       mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
     } catch (e) {
       reportErrorToSentry(e, SentrySeverityLevel.Info);
@@ -126,7 +125,7 @@
   async function chart() {
     isCharting = true;
     try {
-      chartData = await makeChartData($dotrainFile.text, $settingsText);
+      chartData = await makeChartData($globalDotrainFile.text, $settingsText);
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
@@ -139,7 +138,7 @@
     try {
       if (!deployment) throw Error('Select a deployment to add order');
 
-      await orderAdd($dotrainFile.text, deployment);
+      await orderAdd($globalDotrainFile.text, deployment);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -151,7 +150,7 @@
       if (!deployment) throw Error('Select a deployment to add order');
       if (!$orderbookAddress) throw Error('Select an orderbook to add order');
 
-      const calldata = (await orderAddCalldata($dotrainFile.text, deployment)) as Uint8Array;
+      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
@@ -189,10 +188,10 @@
 
 <PageHeader title="Add Order" />
 
-<FileTextarea textFile={dotrainFile} title="New Order">
+<FileTextarea textFile={globalDotrainFile} title="New Order">
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
-      bind:value={$dotrainFile.text}
+      bind:value={$globalDotrainFile.text}
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
       {rainlangExtension}
@@ -227,7 +226,7 @@
             class="min-w-fit"
             color="green"
             loading={isSubmitting}
-            disabled={$dotrainFile.isEmpty}
+            disabled={$globalDotrainFile.isEmpty}
             on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
           >
         </div>

@@ -23,6 +23,8 @@
     Spinner,
   } from 'flowbite-svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
+  import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
+  import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
 
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;
@@ -41,18 +43,17 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await orderRemoveCalldata(id) as Uint8Array;
+      const calldata = (await orderRemoveCalldata(id)) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress!);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === "object" && (e as any)?.reason) {
+      if (typeof e === 'object' && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      }
-      else toasts.error("Transaction failed!");
+      } else toasts.error('Transaction failed!');
     }
     isSubmitting = false;
   }
@@ -67,7 +68,10 @@
 {:else}
   <div class="flex w-full justify-between py-4">
     <div class="text-3xl font-medium dark:text-white">Orders</div>
-    <Button color="green" href="/orders/add">Add Order</Button>
+    <div class="flex min-w-[500px] items-center gap-x-2">
+      <DropdownActiveNetwork />
+      <DropdownActiveOrderbook />
+    </div>
   </div>
 
   <AppTable
@@ -146,5 +150,5 @@
   execButtonLabel="Remove Order"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />
