@@ -3,13 +3,13 @@
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button, Spinner, Tabs, TabItem} from 'flowbite-svelte';
+  import { Helper, Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
   import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData } from '$lib/typeshare/config';
+  import type { ChartData, Scenario } from '$lib/typeshare/config';
   import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { textFileStore } from '$lib/storesGeneric/textFileStore';
@@ -30,8 +30,10 @@
   import {
     convertConfigstringToConfig,
     mergeDotrainConfigWithSettings,
-    mergeDotrainConfigWithSettingsProblems
+    mergeDotrainConfigWithSettingsProblems,
   } from '$lib/services/config';
+  import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
+  import { useDebouncedFn } from '$lib/utils/asyncDebounce';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -42,31 +44,43 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-  let rainlangText = "";
-  let resetRainlang = true;
+
+  let composedRainlangForScenarios: Map<Scenario, string> = new Map();
 
   $: deployments = pickDeployments(mergedConfigSource, mergedConfig, $activeNetworkRef);
-  $: deployment = (!isNil(deploymentRef) && !isNil(mergedConfig)) ? mergedConfig.deployments[deploymentRef] : undefined;
+  $: deployment =
+    !isNil(deploymentRef) && !isNil(mergedConfig)
+      ? mergedConfig.deployments[deploymentRef]
+      : undefined;
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $dotrainFile.text, updateMergedConfig();
 
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
-  $: scenario = (!isNil(scenarioRef) && !isNil(mergedConfig)) ? mergedConfig.scenarios[scenarioRef] : undefined;
+
+  let openTab: Record<string, boolean> = {};
+
+  const {
+    debouncedFn: debouncedGenerateRainlangStrings,
+    result: generatedRainlang,
+    error,
+  } = useDebouncedFn(generateRainlangStrings, 500);
+
+  $: debouncedGenerateRainlangStrings($dotrainFile.text, mergedConfig?.scenarios);
 
   const rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
       let configProblems = [];
-      let problems = []
+      let problems = [];
       try {
         // get problems with merging settings config with frontmatter
         configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
-      } catch(e) {
+      } catch (e) {
         configProblems = [
           {
             msg: e as string,
             position: [0, 0],
-            code: 9
-          }
+            code: 9,
+          },
         ];
       }
       try {
@@ -74,31 +88,31 @@
         problems = await promiseTimeout(
           problemsCallback(text, bindings, deployment?.scenario.deployer.address),
           5000,
-          "failed to parse on native parser"
+          'failed to parse on native parser',
         );
-      } catch(e) {
-        problems = [{
-          msg: e as string,
-          position: [0, 0],
-          code: 9
-        }];
+      } catch (e) {
+        problems = [
+          {
+            msg: e as string,
+            position: [0, 0],
+            code: 9,
+          },
+        ];
       }
       return [...configProblems, ...problems] as Problem[];
     },
   });
 
   $: {
-    if(isNil(deploymentRef) && !isEmpty(deployments)) {
+    if (isNil(deploymentRef) && !isEmpty(deployments)) {
       deploymentRef = Object.keys(deployments)[0];
     }
   }
   $: {
-    if(isNil(scenarioRef) && !isEmpty(scenarios)) {
+    if (isNil(scenarioRef) && !isEmpty(scenarios)) {
       scenarioRef = Object.keys(scenarios)[0];
     }
   }
-
-  $: $dotrainFile.text, scenario, resetRainlang = true;
 
   async function updateMergedConfig() {
     try {
@@ -148,16 +162,27 @@
     isSubmitting = false;
   }
 
-  async function generateRainlangString() {
+  async function generateRainlangStrings(
+    dotrainText: string,
+    scenarios?: Record<string, Scenario>,
+  ): Promise<Map<Scenario, string> | undefined> {
     try {
-      if(!scenario) throw Error("Select a scenario to generate rainlang");
-      rainlangText = await orderAddComposeRainlang($dotrainFile.text, scenario);
-      resetRainlang = false;
+      if (isEmpty(scenarios)) return;
+      composedRainlangForScenarios = new Map();
+      for (const scenario of Object.values(scenarios)) {
+        try {
+          const composedRainlang = await orderAddComposeRainlang(dotrainText, scenario);
+          composedRainlangForScenarios.set(scenario, composedRainlang);
+        } catch (e) {
+          composedRainlangForScenarios.set(
+            scenario,
+            e?.toString() || 'Error composing rainlang for scenario',
+          );
+        }
+      }
+      return composedRainlangForScenarios;
     } catch (e) {
       reportErrorToSentry(e);
-      toasts.error("Please resolve issues first!")
-      rainlangText = "";
-      resetRainlang = true;
     }
   }
 </script>
@@ -178,18 +203,20 @@
     <div class="flex flex-col gap-y-2">
       <Label>Select Deployment</Label>
       {#if isEmpty(deployments)}
-        <span class="text-gray-500 dark:text-gray-400">No deployments found for the selected network</span>
+        <span class="text-gray-500 dark:text-gray-400"
+          >No deployments found for the selected network</span
+        >
       {:else}
         <div class="flex justify-end gap-x-2">
           <div class="w-full">
             <DropdownRadio options={deployments} bind:value={deploymentRef}>
-              <svelte:fragment slot="content"  let:selectedRef>
+              <svelte:fragment slot="content" let:selectedRef>
                 <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
               </svelte:fragment>
 
               <svelte:fragment slot="option" let:ref let:option>
                 <div class="w-full overflow-hidden overflow-ellipsis">
-                  <div class="text-md mb-2 break-word">{ref}</div>
+                  <div class="text-md break-word mb-2">{ref}</div>
                   <DropdownProperty key="Scenario" value={option.scenario} />
                   <DropdownProperty key="Order" value={option.order} />
                 </div>
@@ -201,7 +228,7 @@
             color="green"
             loading={isSubmitting}
             disabled={$dotrainFile.isEmpty}
-            on:click={() => openAddOrderModal = true}>Add Order</ButtonLoading
+            on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
           >
         </div>
       {/if}
@@ -223,43 +250,33 @@
   </Helper>
 </div>
 
+<Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
+  ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button
+>
+
 <Tabs
   style="underline"
   contentClass="mt-4"
   defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
 >
   <TabItem open title="Rainlang">
-    <div class="flex flex-col gap-y-2">
-      <Label>Select Scenario</Label>
-      {#if isEmpty(scenarios)}
-        <span class="text-gray-500 dark:text-gray-400">No scenarios found for the selected network</span>
-      {:else}
-        <div class="flex justify-end gap-x-2">
-          <DropdownRadio options={scenarios} bind:value={scenarioRef}>
-            <svelte:fragment slot="content"  let:selectedRef>
-              <span>{!isNil(selectedRef) ? selectedRef : 'Select a scenario'}</span>
-            </svelte:fragment>
-
-            <svelte:fragment slot="option" let:ref let:option>
-              <div class="w-full overflow-hidden overflow-ellipsis">
-                <div class="text-md mb-2 break-word">{ref}</div>
-                <DropdownProperty key="Scenario" value={option.deployer.label ?? option.deployer.address} />
-              </div>
-            </svelte:fragment>
-          </DropdownRadio>
-          <Button on:click={generateRainlangString} class="min-w-fit">Generate Rainlang</Button>
-        </div>
-      {/if}
-      {#if !resetRainlang}
-        <CodeMirrorRainlang bind:value={rainlangText} disabled={true}/>
-      {/if}
-    </div>
-  </TabItem>
-  <TabItem title="Charts">
-    {#if chartData}
-      <Charts {chartData} />
+    {#if $generatedRainlang && !$error}
+      <Tabs
+        style="underline"
+        contentClass="mt-4"
+        defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+      >
+        {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
+          <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
+            <CodeMirrorRainlang bind:value={rainlangText} disabled={true} />
+          </TabItem>
+        {/each}
+      </Tabs>
     {/if}
-    <Button disabled={isCharting} on:click={chart} class="w-full"><span class="mr-2">Make charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button>
+  </TabItem>
+  <TabItem title="Debug"><ScenarioDebugTable {chartData} /></TabItem>
+  <TabItem title="Charts">
+    <Charts {chartData} />
   </TabItem>
 </Tabs>
 
