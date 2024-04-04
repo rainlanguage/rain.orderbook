@@ -1,10 +1,11 @@
 <script lang="ts">
   import IconWarning from "$lib/components/IconWarning.svelte";
-  import { walletconnectModal, walletconnectAccount } from '$lib/stores/walletconnect';
-  import { Alert, Button } from "flowbite-svelte";
+  import { Alert } from "flowbite-svelte";
+  import ButtonLoading from "./ButtonLoading.svelte";
+  import { walletconnectConnect, walletconnectIsDisconnecting, walletconnectAccount, walletconnectIsConnecting } from '$lib/stores/walletconnect';
 
   $: walletconnectLabel = $walletconnectAccount
-    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
+    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}  (click to disconnect)`
     : "CONNECT"
 </script>
 
@@ -15,14 +16,15 @@
   </Alert>
 
   <div class="flex flex-col w-full justify-between space-y-2">
-    <Button
+    <ButtonLoading
       color="blue"
       class="px-2 py-1"
       size="lg"
       pill
-      on:click={() => $walletconnectModal?.open()}
+      loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
+      on:click={walletconnectConnect}
     >
     {walletconnectLabel}
-    </Button>
+    </ButtonLoading>
   </div>
 </div>
