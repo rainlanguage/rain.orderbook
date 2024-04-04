@@ -10,7 +10,7 @@ use typeshare::typeshare;
 pub struct Chart {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
-    pub plots: Vec<Plot>,
+    pub plots: Option<Vec<Plot>>,
     pub metrics: Option<Vec<Metric>>,
 }
 
@@ -23,6 +23,7 @@ pub struct Metric {
     pub unit_prefix: Option<String>,
     pub unit_suffix: Option<String>,
     pub value: String,
+    pub precision: Option<u8>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -52,21 +53,22 @@ impl ChartConfigSource {
                 .map(Arc::clone)?,
         };
 
+        // Convert `self.plots` from Option<HashMap<String, Plot>> to Option<Vec<Plot>>
+        let plots = self.plots.map(|plots_map| {
+            plots_map
+                .into_iter()
+                .map(|(name, mut plot)| {
+                    // If the plot does not have a title, use the name from the map
+                    plot.title.get_or_insert(name);
+                    plot
+                })
+                .collect::<Vec<Plot>>()
+        });
+
         Ok(Chart {
             scenario: scenario_ref,
             metrics: self.metrics,
-            plots: self
-                .plots
-                .into_iter()
-                .map(|(name, plot)| {
-                    // if the plot has a title, use it, otherwise use the name
-                    let title = plot.title.unwrap_or_else(|| name.clone());
-                    Plot {
-                        title: Some(title),
-                        ..plot
-                    }
-                })
-                .collect::<Vec<Plot>>(),
+            plots,
         })
     }
 }
@@ -103,7 +105,7 @@ mod tests {
 
         let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
-            plots,
+            plots: Some(plots),
             metrics: None,
         };
 
@@ -128,7 +130,7 @@ mod tests {
 
         let chart_string = ChartConfigSource {
             scenario: None,
-            plots,
+            plots: Some(plots),
             metrics: None,
         };
 
@@ -151,7 +153,7 @@ mod tests {
 
         let chart_string = ChartConfigSource {
             scenario: Some("nonexistent_scenario".to_string()),
-            plots,
+            plots: Some(plots),
             metrics: None,
         };
 
@@ -168,7 +170,7 @@ mod tests {
 
         let chart_string = ChartConfigSource {
             scenario: None,
-            plots: HashMap::new(),
+            plots: None,
             metrics: None,
         };
 
@@ -198,11 +200,12 @@ mod tests {
             unit_prefix: Some("unit_prefix".to_string()),
             unit_suffix: Some("unit_suffix".to_string()),
             value: "value".to_string(),
+            precision: Some(2),
         }];
 
         let chart_string = ChartConfigSource {
             scenario: Some(scenario_name),
-            plots,
+            plots: Some(plots),
             metrics: Some(metrics),
         };
 
@@ -213,11 +216,12 @@ mod tests {
             &chart.scenario,
             scenarios.get("scenario5").unwrap()
         ));
-        assert_eq!(chart.plots.len(), 2);
+        assert_eq!(chart.clone().plots.unwrap().len(), 2);
 
         // both plots should have the name "Title"
         let mut plots = chart
             .plots
+            .unwrap()
             .iter()
             .map(|p| p.title.clone())
             .collect::<Vec<Option<String>>>();
