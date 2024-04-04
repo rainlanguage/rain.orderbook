@@ -29,16 +29,18 @@
     ledgerWalletDerivationIndex.set(derivationIndex);
   }
 
-  async function getAddress() {
-    isConnecting = true;
-    try {
-      const res: string = await getAddressFromLedger(derivationIndex);
-      ledgerWalletAddress.set(res)
-    } catch (e) {
-      reportErrorToSentry(e);
-      toasts.error(`Ledger error: ${e as string}`);
+  async function ledgerConnect() {
+    if (!$ledgerWalletAddress) {
+      isConnecting = true;
+      try {
+        const res: string = await getAddressFromLedger(derivationIndex);
+        ledgerWalletAddress.set(res)
+      } catch (e) {
+        reportErrorToSentry(e);
+        toasts.error(`Ledger error: ${e as string}`);
+      }
+      isConnecting = false;
     }
-    isConnecting = false;
   }
 
   function ledgerDisconnect() {
@@ -68,7 +70,7 @@
       size="lg"
       pill
       loading={isConnecting}
-      on:click={getAddress}
+      on:click={ledgerConnect}
     >
       {#if $ledgerWalletAddress}
         <Hash type={HashType.Wallet} value={$ledgerWalletAddress} />

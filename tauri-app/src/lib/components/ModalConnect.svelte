@@ -25,7 +25,7 @@
 </script>
 
 <div class="flex flex-col w-full w-full py-4">
-  <Button color="blue" on:click={() => open = true}>{label}</Button>
+  <Button color="blue" pill on:click={() => open = true}>{label}</Button>
 </div>
 
 <Modal title="Connect to Wallet" bind:open={open} outsideclose size="sm" on:close={reset}>

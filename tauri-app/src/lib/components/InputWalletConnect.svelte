@@ -2,9 +2,15 @@
   import IconWarning from "$lib/components/IconWarning.svelte";
   import { Alert } from "flowbite-svelte";
   import ButtonLoading from "./ButtonLoading.svelte";
-  import { walletconnectConnect, walletconnectIsDisconnecting, walletconnectAccount, walletconnectIsConnecting, walletconnectDisconnect } from '$lib/stores/walletconnect';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
+  import {
+    walletconnectConnect,
+    walletconnectAccount,
+    walletconnectDisconnect,
+    walletconnectIsConnecting,
+    walletconnectIsDisconnecting,
+  } from '$lib/stores/walletconnect';
 </script>
 
 <div>
@@ -31,7 +37,7 @@
     {#if $walletconnectAccount}
       <ButtonLoading
         color="red"
-        class="px-2 py-1 min-w-fit text-sm"
+        class="px-2 py-1 min-w-fit"
         size="lg"
         pill
         loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
