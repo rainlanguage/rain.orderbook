@@ -46,10 +46,14 @@
   let composedRainlangForScenarios: Map<Scenario, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
-  $: deployment =
-    !isNil(deploymentRef) && !isNil(mergedConfig)
-      ? mergedConfig.deployments[deploymentRef]
-      : undefined;
+  $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
+
+  // Resetting the selected deployment to undefined if it is not in the current
+  // strats deployment list anymore
+  $: if (deploymentRef && deployments && !Object.keys(deployments).includes(deploymentRef)) {
+    deploymentRef = undefined;
+  }
+
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $globalDotrainFile.text, updateMergedConfig();
 
@@ -101,11 +105,6 @@
     },
   });
 
-  $: {
-    if (isNil(deploymentRef) && !isEmpty(deployments)) {
-      deploymentRef = Object.keys(deployments)[0];
-    }
-  }
   $: {
     if (isNil(scenarioRef) && !isEmpty(scenarios)) {
       scenarioRef = Object.keys(scenarios)[0];
@@ -198,7 +197,7 @@
   </svelte:fragment>
 
   <svelte:fragment slot="additionalFields">
-    <div class="flex items-center gap-x-4">
+    <div class="flex items-center justify-end gap-x-4">
       {#if isEmpty(deployments)}
         <span class="text-gray-500 dark:text-gray-400"
           >No deployments found for the selected network</span
@@ -221,7 +220,7 @@
         class="min-w-fit"
         color="green"
         loading={isSubmitting}
-        disabled={$globalDotrainFile.isEmpty}
+        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef)}
         on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
       >
     </div>
