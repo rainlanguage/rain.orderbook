@@ -57,7 +57,7 @@ Provider.init(
     await walletconnectDisconnect();
   }
 }).catch(e => {
-  toasts.error("Cuuld not instantiate Walletconnect modal")
+  toasts.error("Could not instantiate Walletconnect modal")
   reportErrorToSentry(e);
 });
 
