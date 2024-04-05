@@ -2,10 +2,10 @@ import { themes as codeMirrorThemes } from "$lib/utils/codeMirrorThemes";
 import { themes as lightweightChartsThemes } from "$lib/utils/lightweightChartsThemes";
 import { derived, writable } from "svelte/store";
 
-function readColorTheme() {
+function readColorTheme(): "dark" | "light" {
   const saved = localStorage.getItem('color-theme');
   if(saved) {
-    return saved;
+    return saved as "dark" | "light";
   } else if(document.body.classList.contains('dark')) {
     return 'dark';
   } else {

@@ -13,6 +13,8 @@
   import { page } from '$app/stores';
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
   import { PlusSolid } from 'flowbite-svelte-icons';
+  import IconTelegram from '$lib/components/IconTelegram.svelte';
+  import ModalConnect from '$lib/components/ModalConnect.svelte';
 
   export let hasRequiredSettings = false;
 
@@ -21,7 +23,7 @@
     : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600';
 </script>
 
-<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
+<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
   <SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
     <SidebarGroup ulClass="">
       <div class="block dark:hidden">
@@ -78,6 +80,9 @@
       </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border>
+      <ModalConnect />
+    </SidebarGroup>
+    <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">
         <svelte:fragment slot="icon">
           <GearSolid class="h-5 w-5" />
@@ -90,8 +95,14 @@
           <span data-testid="sidebar-documentation"></span>
         </svelte:fragment>
       </SidebarItem>
+      <SidebarItem label="Ask for help" target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
+        <svelte:fragment slot="icon">
+          <IconTelegram />
+          <span data-testid="sidebar-telegram"></span>
+        </svelte:fragment>
+      </SidebarItem>
     </SidebarGroup>
-    <SidebarGroup border class="flex justify-end">
+    <SidebarGroup border class="flex justify-start">
       <ButtonDarkMode />
     </SidebarGroup>
   </SidebarWrapper>
