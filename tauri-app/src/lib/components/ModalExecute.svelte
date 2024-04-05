@@ -1,11 +1,10 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
+  import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
-  import { isNil } from 'lodash';
   import IconLedger from './IconLedger.svelte';
   import IconWalletConnect from './IconWalletConnect.svelte';
 
@@ -30,7 +29,7 @@
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
-  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount}
+  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount && !$ledgerWalletAddress}
     <div class="flex justify-center space-x-4">
       <Button class="text-lg" on:click={() => selectedLedger = true}>
         <div class="mr-4">
@@ -51,22 +50,17 @@
         <Button color="alternative" on:click={() => {onBack?.(); reset();}}>Back</Button>
       {/if}
     </div>
-  {:else if selectedLedger}
-    <InputLedgerWallet
-      bind:derivationIndex={$ledgerWalletDerivationIndex}
-      bind:walletAddress={$ledgerWalletAddress.value}
-    />
-
-    <div class="flex justify-end space-x-4">
+  {:else if selectedLedger || $ledgerWalletAddress}
+    <InputLedgerWallet />
+    <div class="flex justify-between space-x-4">
       <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
-      <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || isNil($ledgerWalletDerivationIndex) || isNil($ledgerWalletDerivationIndex)} loading={isSubmitting}>
+      <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress} loading={isSubmitting}>
         {execButtonLabel}
       </ButtonLoading>
     </div>
   {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
-
-    <div class="flex justify-end space-x-4">
+    <div class="flex justify-between space-x-4">
       {#if !$walletconnectAccount}
         <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
       {/if}

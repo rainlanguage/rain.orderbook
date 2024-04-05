@@ -1,17 +1,16 @@
 <script lang="ts">
-  import IconWarning from '$lib/components/IconWarning.svelte';
-  import { Alert } from 'flowbite-svelte';
-  import ButtonLoading from './ButtonLoading.svelte';
+  import IconWarning from "$lib/components/IconWarning.svelte";
+  import { Alert } from "flowbite-svelte";
+  import ButtonLoading from "./ButtonLoading.svelte";
+  import Hash from '$lib/components/Hash.svelte';
+  import { HashType } from '$lib/types/hash';
   import {
     walletconnectConnect,
-    walletconnectIsDisconnecting,
     walletconnectAccount,
+    walletconnectDisconnect,
     walletconnectIsConnecting,
+    walletconnectIsDisconnecting,
   } from '$lib/stores/walletconnect';
-
-  $: walletconnectLabel = $walletconnectAccount
-    ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}  (click to disconnect)`
-    : 'Connect';
 </script>
 
 <div>
@@ -20,13 +19,32 @@
     Only mobile wallets are supported in WalletConnect.
   </Alert>
 
-  <div class="flex w-full flex-col justify-between space-y-2">
+  <div class="flex w-full justify-end space-x-2">
     <ButtonLoading
       color="primary"
+      class="px-2 py-1 w-full"
+      size="lg"
+      pill
       loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
       on:click={walletconnectConnect}
     >
-      {walletconnectLabel}
+      {#if $walletconnectAccount}
+        <Hash type={HashType.Wallet} value={$walletconnectAccount} />
+      {:else}
+        Connect
+      {/if}
     </ButtonLoading>
+    {#if $walletconnectAccount}
+      <ButtonLoading
+        color="red"
+        class="px-2 py-1 min-w-fit"
+        size="lg"
+        pill
+        loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
+        on:click={walletconnectDisconnect}
+      >
+        Disconnect
+      </ButtonLoading>
+    {/if}
   </div>
 </div>

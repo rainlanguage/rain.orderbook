@@ -34,7 +34,7 @@
 </button>
 
 {#if shorten}
-  <Tooltip triggeredBy={`#${id}`}>
+  <Tooltip triggeredBy={`#${id}`} class="z-20">
     <div class="inline-block flex justify-start items-center space-x-2">
       {#if type === HashType.Wallet }
         <WalletOutline size="sm" />
