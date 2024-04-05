@@ -52,7 +52,7 @@
     </div>
   {:else if selectedLedger || $ledgerWalletAddress}
     <InputLedgerWallet />
-    <div class="flex justify-end space-x-4">
+    <div class="flex justify-between space-x-4">
       <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
       <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress} loading={isSubmitting}>
         {execButtonLabel}
@@ -60,7 +60,7 @@
     </div>
   {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
-    <div class="flex justify-end space-x-4">
+    <div class="flex justify-between space-x-4">
       {#if !$walletconnectAccount}
         <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
       {/if}
