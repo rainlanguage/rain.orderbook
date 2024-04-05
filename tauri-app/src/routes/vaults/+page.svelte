@@ -49,22 +49,19 @@
     <svelte:fragment slot="head">
       <TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
       <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
+      <TableHeadCell padding="px-3 py-4">Orders</TableHeadCell>
       <TableHeadCell padding="px-2 py-4">Token</TableHeadCell>
       <TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
-      <TableHeadCell padding="px-3 py-4">Orders</TableHeadCell>
       <TableHeadCell padding="px-4 py-4"></TableHeadCell>
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
-      <TableBodyCell tdClass="break-all px-4 py-4">{bigintStringToHex(item.vault_id)}</TableBodyCell>
+      <TableBodyCell tdClass="break-all px-4 py-2 min-w-48">
+        <Hash type={HashType.Identifier} value={bigintStringToHex(item.vault_id)} shorten={item.vault_id.length > 10}/>
+      </TableBodyCell>
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"
         ><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell
       >
-      <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
-      <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {item.balance_display}
-        {item.token.symbol}
-      </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
         {#if item.orders}
           <div class="flex flex-wrap items-end justify-start">
@@ -79,6 +76,11 @@
             {#if item.orders.length > 3}...{/if}
           </div>
         {/if}
+      </TableBodyCell>
+      <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
+      <TableBodyCell tdClass="break-all p-2 min-w-48">
+        {item.balance_display}
+        {item.token.symbol}
       </TableBodyCell>
       <TableBodyCell tdClass="px-0 text-right">
         {#if $walletAddressMatchesOrBlank(item.owner.id)}

@@ -46,9 +46,11 @@
     </div>
   {:else if selectedLedger || $ledgerWalletAddress}
     <InputLedgerWallet />
-    <div class="flex justify-between space-x-4">
-      <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
-    </div>
+    {#if !$ledgerWalletAddress}
+      <div class="flex justify-between space-x-4">
+        <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
+      </div>
+    {/if}
   {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
     {#if !$walletconnectAccount}
