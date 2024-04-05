@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { TextFileStore } from "$lib/storesGeneric/textFileStore";
+  import { Button } from "flowbite-svelte";
   import ButtonLoading from "./ButtonLoading.svelte";
 
   export let textFile: TextFileStore;
@@ -18,6 +19,11 @@
   </div>
   <div>
     <div class="flex justify-end gap-x-2">
+      <Button
+        class="bg-stone-800 hover:bg-stone-700 text-white dark:hover:bg-stone-500 dark:bg-stone-600"
+        disabled={$textFile.isEmpty}
+        on:click={() => {$textFile.text = ""}}>Clear</Button
+      >
       {#if $textFile.path}
         <ButtonLoading
           loading={$textFile.isSaving}

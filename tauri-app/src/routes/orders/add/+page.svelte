@@ -102,7 +102,6 @@
   $: {
     if (!isEmpty(deployments)) {
       deploymentRef = Object.keys(deployments)[0];
-      console.log(deploymentRef);
     }
   }
 
