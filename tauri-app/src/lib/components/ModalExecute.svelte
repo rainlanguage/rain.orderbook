@@ -30,7 +30,7 @@
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
-  {#if !selectedLedger && !selectedWalletconnect}
+  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount}
     <div class="flex justify-center space-x-4">
       <Button class="text-lg" on:click={() => selectedLedger = true}>
         <div class="mr-4">
@@ -63,11 +63,13 @@
         {execButtonLabel}
       </ButtonLoading>
     </div>
-  {:else if selectedWalletconnect}
+  {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
 
     <div class="flex justify-end space-x-4">
-      <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
+      {#if !$walletconnectAccount}
+        <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
+      {/if}
       <ButtonLoading on:click={() => executeWalletconnect().finally(() => reset())} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
         {execButtonLabel}
       </ButtonLoading>

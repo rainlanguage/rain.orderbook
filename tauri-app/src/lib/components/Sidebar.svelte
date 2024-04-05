@@ -15,6 +15,7 @@
   import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
   import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
   import IconTelegram from '$lib/components/IconTelegram.svelte';
+  import ModalConnect from '$lib/components/ModalConnect.svelte';
 
   export let hasRequiredSettings = false;
 
@@ -76,6 +77,9 @@
     <SidebarGroup border>
       <DropdownActiveNetwork />
       <DropdownActiveOrderbook />
+    </SidebarGroup>
+    <SidebarGroup border>
+      <ModalConnect />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">

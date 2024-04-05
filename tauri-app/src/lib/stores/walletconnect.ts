@@ -34,7 +34,10 @@ Provider.init(
       "disconnect",
     ],
     showQrModal: true,
-    qrModalOptions: { themeMode: get(colorTheme) },
+    qrModalOptions: {
+      themeMode: get(colorTheme),
+      enableExplorer: false
+    },
   }
 ).then(async provider => {
   provider.on("connect", () => {
@@ -46,14 +49,7 @@ Provider.init(
   provider.on("accountsChanged", (accounts) => {
     walletconnectAccount.set(accounts?.[0] ?? undefined);
   });
-  provider.on("chainChanged", async (chainid) => {
-    // disconnect if networks from ui and wallet dont match
-    const network = get(activeNetwork);
-    if (!network || network['chain-id'] !== Number(chainid)) {
-      toasts.error("Please choose the same chain in your wallet")
-      await walletconnectDisconnect();
-    }
-  });
+
   walletconnectProvider = provider;
 
   // disconnect if last session is still active
@@ -61,7 +57,7 @@ Provider.init(
     await walletconnectDisconnect();
   }
 }).catch(e => {
-  toasts.error("could not instantiate walletconnect service")
+  toasts.error("Could not instantiate Walletconnect modal")
   reportErrorToSentry(e);
 });
 
@@ -72,7 +68,7 @@ export async function walletconnectConnect() {
     walletconnectIsConnecting.set(true);
     const network = get(activeNetwork);
     if (network) {
-      const rpcMap: Record<string, string>  = {};
+      const rpcMap: Record<string, string> = {};
       rpcMap[network['chain-id']] = network.rpc;
       try {
         await walletconnectProvider?.connect({
@@ -80,7 +76,7 @@ export async function walletconnectConnect() {
           rpcMap
         })
       } catch {
-        toasts.error("canceled by user!")
+        toasts.error("Connection cancelled by user")
       }
     } else {
       toasts.error("Cannot find active network")
@@ -90,18 +86,18 @@ export async function walletconnectConnect() {
 }
 
 export async function walletconnectDisconnect() {
-  walletconnectAccount.set(undefined);
   walletconnectIsDisconnecting.set(true);
   try {
     await walletconnectProvider?.disconnect();
-  } catch(e) {
+  } catch (e) {
     reportErrorToSentry(e);
   }
   walletconnectIsDisconnecting.set(false);
+  walletconnectAccount.set(undefined);
 }
 
 // subscribe to networks and disconnect on network changes
 activeNetwork.subscribe(async () => await walletconnectDisconnect());
 
 // set theme when changed by user
-colorTheme.subscribe(v => (walletconnectProvider?.modal as WalletConnectModal)?.setTheme({themeMode: v}))
+colorTheme.subscribe(v => (walletconnectProvider?.modal as WalletConnectModal)?.setTheme({ themeMode: v }))
