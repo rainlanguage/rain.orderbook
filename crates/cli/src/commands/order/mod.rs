@@ -1,4 +1,5 @@
 mod add;
+mod compose;
 mod detail;
 mod list;
 mod remove;
@@ -7,6 +8,7 @@ use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
 use clap::Parser;
+use compose::Compose;
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
 use remove::CliOrderRemoveArgs;
@@ -24,6 +26,9 @@ pub enum Order {
 
     #[command(about = "Remove an Order", alias = "rm")]
     Remove(CliOrderRemoveArgs),
+
+    #[command(about = "Compose a .rain order file to Rainlang", alias = "compose")]
+    Compose(Compose),
 }
 
 impl Execute for Order {
@@ -33,6 +38,7 @@ impl Execute for Order {
             Order::Detail(detail) => detail.execute().await,
             Order::Create(create) => create.execute().await,
             Order::Remove(remove) => remove.execute().await,
+            Order::Compose(compose) => compose.execute().await,
         }
     }
 }
