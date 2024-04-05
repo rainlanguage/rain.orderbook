@@ -2,6 +2,7 @@ pub mod add_order;
 pub mod csv;
 pub mod deposit;
 pub mod dotrain_add_order_lsp;
+pub mod dotrain_order;
 pub mod frontmatter;
 pub mod fuzz;
 pub mod meta;
