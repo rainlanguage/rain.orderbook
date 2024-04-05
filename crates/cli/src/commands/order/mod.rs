@@ -27,7 +27,7 @@ pub enum Order {
     #[command(about = "Remove an Order", alias = "rm")]
     Remove(CliOrderRemoveArgs),
 
-    #[command(about = "Compose a .rain order file to Rainlang", alias = "compose")]
+    #[command(about = "Compose a .rain order file to Rainlang", alias = "comp")]
     Compose(Compose),
 }
 

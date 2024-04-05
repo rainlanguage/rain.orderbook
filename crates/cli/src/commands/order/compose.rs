@@ -2,9 +2,7 @@ use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
 use anyhow::{anyhow, Result};
 use clap::Args;
-use rain_orderbook_app_settings::{config_source::ConfigSource, Config};
-use rain_orderbook_common::dotrain::RainDocument;
-use rain_orderbook_common::rainlang::compose_to_rainlang;
+use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
@@ -17,31 +15,37 @@ pub struct Compose {
     )]
     dotrain_file: PathBuf,
 
+    // path to the settings yaml
+    #[arg(
+        short = 'c',
+        long,
+        help = "Path to the settings yaml file",
+        default_value = "settings.yml"
+    )]
+    settings_file: Option<PathBuf>,
+
     // the name of the scenrio to use
     #[arg(short = 's', long, help = "The name of the scenario to use")]
     scenario: String,
 
     // supported encoding
-    #[arg(short = 'o', long, help = "Output encoding", default_value = "Binary")]
+    #[arg(short = 'o', long, help = "Output encoding", default_value = "binary")]
     encoding: SupportedOutputEncoding,
 }
 
 impl Execute for Compose {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
-        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let config_string = ConfigSource::try_from_string(frontmatter.to_string()).await?;
-        let config: Config = config_string.try_into()?;
-
-        let scenario = config.scenarios.get(&self.scenario).ok_or_else(|| {
-            anyhow!(
-                "Scenario {} not found in file {}",
-                self.scenario,
-                self.dotrain_file.display()
-            )
-        })?;
-
-        let rainlang = compose_to_rainlang(dotrain, scenario.bindings.clone())?;
+        let settings = match &self.settings_file {
+            Some(settings_file) => {
+                Some(read_to_string(settings_file.clone()).map_err(|e| anyhow!(e))?)
+            }
+            None => None,
+        };
+        let rainlang = DotrainOrder::new(dotrain, settings)
+            .await?
+            .compose_scenario_to_rainlang(self.scenario.clone())
+            .await?;
 
         output(&None, self.encoding.clone(), rainlang.as_bytes())?;
 
