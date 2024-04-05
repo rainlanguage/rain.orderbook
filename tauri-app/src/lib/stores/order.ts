@@ -6,6 +6,9 @@ import type { Order } from '$lib/typeshare/ordersList';
 import { listStore } from '$lib/storesGeneric/listStore';
 import type { TakeOrderEntity } from '$lib/typeshare/orderTakesList';
 import { asyncDerived } from '@square/svelte-store';
+import { textFileStore } from '$lib/storesGeneric/textFileStore';
+
+export const addOrderDotrainFile = textFileStore('Rain', ['rain']);
 
 export const ordersList = asyncDerived(subgraphUrl, async () => {
   const url = await subgraphUrl.load();
