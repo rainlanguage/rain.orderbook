@@ -21,7 +21,7 @@
 
   <div class="flex w-full justify-end space-x-2">
     <ButtonLoading
-      color="blue"
+      color="primary"
       class="px-2 py-1 w-full"
       size="lg"
       pill
@@ -31,7 +31,7 @@
       {#if $walletconnectAccount}
         <Hash type={HashType.Wallet} value={$walletconnectAccount} />
       {:else}
-        CONNECT
+        Connect
       {/if}
     </ButtonLoading>
     {#if $walletconnectAccount}
@@ -43,7 +43,7 @@
         loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
         on:click={walletconnectDisconnect}
       >
-        DISCONNECT
+        Disconnect
       </ButtonLoading>
     {/if}
   </div>
