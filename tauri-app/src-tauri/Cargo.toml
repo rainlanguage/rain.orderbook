@@ -21,7 +21,7 @@ alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-ty
 alloy-primitives = "0.6.3"
 alloy-json-abi = "0.6.3"
 alloy-sol-types = { version = "0.6.3", features = ["json"] }
-typeshare = "1.0.1"
+typeshare = "1.9.0"
 reqwest = { version = "0.11.22", features = ["json"] }
 chrono = { version = "0.4.32", features = ["serde"] }
 uuid = { version = "1.7.0", features = ["serde"] }
