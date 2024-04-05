@@ -14,6 +14,7 @@
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
   import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
   import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
+  import IconTelegram from '$lib/components/IconTelegram.svelte';
   import ModalConnect from '$lib/components/ModalConnect.svelte';
 
   export let hasRequiredSettings = false;
@@ -91,6 +92,12 @@
         <svelte:fragment slot="icon">
           <IconExternalLink />
           <span data-testid="sidebar-documentation"></span>
+        </svelte:fragment>
+      </SidebarItem>
+      <SidebarItem label="Ask for help" target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
+        <svelte:fragment slot="icon">
+          <IconTelegram />
+          <span data-testid="sidebar-telegram"></span>
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>
