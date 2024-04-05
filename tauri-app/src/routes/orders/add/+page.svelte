@@ -18,7 +18,6 @@
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/config';
-  import DropdownProperty from '$lib/components/DropdownProperty.svelte';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -26,7 +25,7 @@
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { promiseTimeout } from '$lib/utils/time';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
-  import { pickScenarios, pickDeployments } from '$lib/services/pickConfig';
+  import { pickScenarios } from '$lib/services/pickConfig';
   import {
     convertConfigstringToConfig,
     mergeDotrainConfigWithSettings,
@@ -46,7 +45,7 @@
 
   let composedRainlangForScenarios: Map<Scenario, string> = new Map();
 
-  $: deployments = pickDeployments(mergedConfigSource, mergedConfig, $activeNetworkRef);
+  $: deployments = mergedConfig?.deployments;
   $: deployment =
     !isNil(deploymentRef) && !isNil(mergedConfig)
       ? mergedConfig.deployments[deploymentRef]
@@ -199,38 +198,32 @@
   </svelte:fragment>
 
   <svelte:fragment slot="additionalFields">
-    <div class="flex flex-col gap-y-2">
-      <Label>Select Deployment</Label>
+    <div class="flex items-center gap-x-4">
       {#if isEmpty(deployments)}
         <span class="text-gray-500 dark:text-gray-400"
           >No deployments found for the selected network</span
         >
       {:else}
-        <div class="flex justify-end gap-x-2">
-          <div class="w-full">
-            <DropdownRadio options={deployments} bind:value={deploymentRef}>
-              <svelte:fragment slot="content" let:selectedRef>
-                <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
-              </svelte:fragment>
+        <Label class="whitespace-nowrap">Select deployment</Label>
+        <DropdownRadio options={deployments} bind:value={deploymentRef}>
+          <svelte:fragment slot="content" let:selectedRef>
+            <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
+          </svelte:fragment>
 
-              <svelte:fragment slot="option" let:ref let:option>
-                <div class="w-full overflow-hidden overflow-ellipsis">
-                  <div class="text-md break-word mb-2">{ref}</div>
-                  <DropdownProperty key="Scenario" value={option.scenario} />
-                  <DropdownProperty key="Order" value={option.order} />
-                </div>
-              </svelte:fragment>
-            </DropdownRadio>
-          </div>
-          <ButtonLoading
-            class="min-w-fit"
-            color="green"
-            loading={isSubmitting}
-            disabled={$globalDotrainFile.isEmpty}
-            on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
-          >
-        </div>
+          <svelte:fragment slot="option" let:ref>
+            <div class="w-full overflow-hidden overflow-ellipsis">
+              <div class="text-md break-word mb-2">{ref}</div>
+            </div>
+          </svelte:fragment>
+        </DropdownRadio>
       {/if}
+      <ButtonLoading
+        class="min-w-fit"
+        color="green"
+        loading={isSubmitting}
+        disabled={$globalDotrainFile.isEmpty}
+        on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
+      >
     </div>
   </svelte:fragment>
 </FileTextarea>
