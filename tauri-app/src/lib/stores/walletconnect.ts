@@ -62,9 +62,7 @@ Provider.init(
 });
 
 export async function walletconnectConnect() {
-  if (walletconnectProvider?.accounts?.length) {
-    await walletconnectDisconnect();
-  } else {
+  if (!walletconnectProvider?.accounts?.length) {
     walletconnectIsConnecting.set(true);
     const network = get(activeNetwork);
     if (network) {
