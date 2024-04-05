@@ -5,6 +5,7 @@ import { get, writable } from '@square/svelte-store';
 import Provider from '@walletconnect/ethereum-provider';
 import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
+import { hexToNumber, isHex } from 'viem';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
@@ -21,6 +22,7 @@ export const walletconnectAccount = writable<string | undefined>(undefined);
 export const walletconnectIsDisconnecting = writable<boolean>(false);
 export const walletconnectIsConnecting = writable<boolean>(false);
 export let walletconnectProvider: Provider | undefined;
+export const walletConnectNetwork = writable<number>(0);
 
 Provider.init(
   {
@@ -48,6 +50,10 @@ Provider.init(
   });
   provider.on("accountsChanged", (accounts) => {
     walletconnectAccount.set(accounts?.[0] ?? undefined);
+  });
+  provider.on("chainChanged", (chain) => {
+    if (isHex(chain)) walletConnectNetwork.set(hexToNumber(chain))
+    else walletConnectNetwork.set(parseInt(chain));
   });
 
   walletconnectProvider = provider;
@@ -93,9 +99,6 @@ export async function walletconnectDisconnect() {
   walletconnectIsDisconnecting.set(false);
   walletconnectAccount.set(undefined);
 }
-
-// subscribe to networks and disconnect on network changes
-activeNetwork.subscribe(async () => await walletconnectDisconnect());
 
 // set theme when changed by user
 colorTheme.subscribe(v => (walletconnectProvider?.modal as WalletConnectModal)?.setTheme({ themeMode: v }))
