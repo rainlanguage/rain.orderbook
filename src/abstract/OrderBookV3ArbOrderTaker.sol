@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {console2} from "forge-std/console2.sol";
-
 import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -11,7 +9,6 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
-import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
 import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV3, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
@@ -48,13 +45,7 @@ uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no return values.
 uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-abstract contract OrderBookV3ArbOrderTaker is
-    IOrderBookV3ArbOrderTaker,
-    ReentrancyGuard,
-    Initializable,
-    ICloneableV2,
-    ERC165
-{
+abstract contract OrderBookV3ArbOrderTaker is IOrderBookV3ArbOrderTaker, ReentrancyGuard, Initializable, ERC165 {
     using SafeERC20 for IERC20;
 
     event Initialize(address sender, OrderBookV3ArbOrderTakerConfigV1 config);
@@ -64,36 +55,9 @@ abstract contract OrderBookV3ArbOrderTaker is
     IInterpreterV2 public sI9r;
     IInterpreterStoreV2 public sI9rStore;
 
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IOrderBookV3OrderTaker).interfaceId || interfaceId == type(ICloneableV2).interfaceId
-            || super.supportsInterface(interfaceId);
-    }
-
-    function _beforeInitialize(bytes memory data) internal virtual {}
-
-    /// Ensure the contract is not initializing.
-    modifier onlyNotInitializing() {
-        if (_isInitializing()) {
-            revert Initializing();
-        }
-        _;
-    }
-
-    function initialize(OrderBookV3ArbOrderTakerConfigV1 calldata) external pure returns (bytes32) {
-        revert InitializeSignatureFn();
-    }
-
-    /// @inheritdoc ICloneableV2
-    function initialize(bytes memory data) external initializer nonReentrant returns (bytes32) {
-        OrderBookV3ArbOrderTakerConfigV1 memory config = abi.decode(data, (OrderBookV3ArbOrderTakerConfigV1));
-
+    constructor(OrderBookV3ArbOrderTakerConfigV1 memory config) {
         // Dispatch the hook before any external calls are made.
-        _beforeInitialize(config.implementationData);
+        _beforeConstruction(config.implementationData);
 
         // @todo this could be paramaterised on `arb`.
         sOrderBook = IOrderBookV3(config.orderBook);
@@ -126,17 +90,17 @@ abstract contract OrderBookV3ArbOrderTaker is
             }
             sI9rDispatch = LibEncodedDispatch.encode2(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
         }
+    }
 
-        return ICLONEABLE_V2_SUCCESS;
+    function _beforeConstruction(bytes memory data) internal virtual {}
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IOrderBookV3OrderTaker).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IOrderBookV3ArbOrderTaker
-    function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput)
-        external
-        payable
-        nonReentrant
-        onlyNotInitializing
-    {
+    function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput) external payable nonReentrant {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -195,12 +159,7 @@ abstract contract OrderBookV3ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV3OrderTaker
-    function onTakeOrders(address, address, uint256, uint256, bytes calldata)
-        public
-        virtual
-        override
-        onlyNotInitializing
-    {
+    function onTakeOrders(address, address, uint256, uint256, bytes calldata) public virtual override {
         if (msg.sender != address(sOrderBook)) {
             revert BadLender(msg.sender);
         }

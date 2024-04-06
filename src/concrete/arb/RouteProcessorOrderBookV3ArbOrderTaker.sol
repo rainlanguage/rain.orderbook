@@ -18,8 +18,10 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
 
     IRouteProcessor public sRouteProcessor;
 
+    constructor(OrderBookV3ArbOrderTakerConfigV1 memory config) OrderBookV3ArbOrderTaker(config) {}
+
     /// @inheritdoc OrderBookV3ArbOrderTaker
-    function _beforeInitialize(bytes memory data) internal virtual override {
+    function _beforeConstruction(bytes memory data) internal virtual override {
         (address routeProcessor) = abi.decode(data, (address));
         sRouteProcessor = IRouteProcessor(routeProcessor);
     }
@@ -44,5 +46,5 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     }
 
     /// Allow receiving gas.
-    fallback() external onlyNotInitializing {}
+    fallback() external {}
 }

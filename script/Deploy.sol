@@ -18,14 +18,17 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // OB.
-        new OrderBook();
+        OrderBook orderbook = new OrderBook();
 
         // Subparsers.
         new OrderBookSubParser();
 
         // Order takers.
         new GenericPoolOrderBookV3ArbOrderTaker();
-        new RouteProcessorOrderBookV3ArbOrderTaker();
+        new RouteProcessorOrderBookV3ArbOrderTaker(OrderBookV3ArbOrderTakerConfigV1(
+            address(orderbook),
+            EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
+        ));
 
         // Flash borrowers.
         new GenericPoolOrderBookV3FlashBorrower();

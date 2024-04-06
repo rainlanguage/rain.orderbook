@@ -8,7 +8,6 @@ import {
     OrderBookV3ArbOrderTakerConfigV1,
     MinimumOutput
 } from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 import {
     OrderV2,
     EvaluableConfigV3,

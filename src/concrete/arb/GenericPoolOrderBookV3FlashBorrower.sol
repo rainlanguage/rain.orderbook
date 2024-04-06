@@ -7,7 +7,6 @@ import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156
 import {
     OrderBookV3FlashBorrower,
     OrderBookV3FlashBorrowerConfigV2,
-    ICloneableV2,
     MinimumOutput,
     SafeERC20,
     IERC20,
@@ -45,5 +44,5 @@ contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     }
 
     /// Allow receiving gas.
-    fallback() external onlyNotInitializing {}
+    fallback() external {}
 }

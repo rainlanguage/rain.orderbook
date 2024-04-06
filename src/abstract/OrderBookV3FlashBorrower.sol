@@ -12,7 +12,6 @@ import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {ICloneableV2, ICLONEABLE_V2_SUCCESS} from "rain.factory/src/interface/ICloneableV2.sol";
 import {
     IInterpreterV2,
     SourceIndexV2,
@@ -90,7 +89,6 @@ uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 ///   it easier to track profits, etc.
 abstract contract OrderBookV3FlashBorrower is
     IERC3156FlashBorrower,
-    ICloneableV2,
     ReentrancyGuard,
     Initializable,
     ERC165
@@ -113,36 +111,9 @@ abstract contract OrderBookV3FlashBorrower is
     /// The associated store for the interpreter.
     IInterpreterStoreV2 public sI9rStore;
 
-    constructor() {
-        // Arb contracts are expected to be cloned proxies so allowing
-        // initialization of the implementation is a security risk.
-        _disableInitializers();
-    }
-
-    /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IERC3156FlashBorrower).interfaceId || interfaceId == type(ICloneableV2).interfaceId
-            || super.supportsInterface(interfaceId);
-    }
-
-    /// Hook called before initialize happens. Inheriting contracts can perform
-    /// internal state maintenance before any external contract calls are made.
-    /// @param data Arbitrary bytes the child may use to initialize.
-    //slither-disable-next-line dead-code
-    function _beforeInitialize(bytes memory data) internal virtual {}
-
-    /// Type hints for the input encoding for the `initialize` function.
-    /// Reverts ALWAYS with `InitializeSignatureFn` as per ICloneableV2.
-    function initialize(OrderBookV3FlashBorrowerConfigV2 calldata) external pure returns (bytes32) {
-        revert InitializeSignatureFn();
-    }
-
-    /// @inheritdoc ICloneableV2
-    function initialize(bytes memory data) external initializer nonReentrant returns (bytes32) {
-        (OrderBookV3FlashBorrowerConfigV2 memory config) = abi.decode(data, (OrderBookV3FlashBorrowerConfigV2));
-
+    constructor(OrderBookV3FlashBorrowerConfigV2 memory config) {
         // Dispatch the hook before any external calls are made.
-        _beforeInitialize(config.implementationData);
+        _beforeConstruction(config.implementationData);
 
         // @todo This could be paramaterised on `arb`.
         sOrderBook = IOrderBookV3(config.orderBook);
@@ -174,16 +145,14 @@ abstract contract OrderBookV3FlashBorrower is
             }
             sI9rDispatch = LibEncodedDispatch.encode2(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
         }
-
-        return ICLONEABLE_V2_SUCCESS;
     }
 
-    /// Ensure the contract is not initializing.
-    modifier onlyNotInitializing() {
-        if (_isInitializing()) {
-            revert Initializing();
-        }
-        _;
+    function _beforeConstruction(bytes memory data) internal virtual {}
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IERC3156FlashBorrower).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     /// Hook that inheriting contracts MUST implement in order to achieve
@@ -200,7 +169,6 @@ abstract contract OrderBookV3FlashBorrower is
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data)
         external
-        onlyNotInitializing
         returns (bytes32)
     {
         // As per reference implementation.
@@ -262,7 +230,6 @@ abstract contract OrderBookV3FlashBorrower is
         external
         payable
         nonReentrant
-        onlyNotInitializing
     {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
