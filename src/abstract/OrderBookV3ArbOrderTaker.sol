@@ -87,7 +87,8 @@ abstract contract OrderBookV3ArbOrderTaker is IOrderBookV3ArbOrderTaker, Reentra
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IOrderBookV3OrderTaker).interfaceId || super.supportsInterface(interfaceId);
+        return (interfaceId == type(IOrderBookV3OrderTaker).interfaceId)
+            || (interfaceId == type(IOrderBookV3ArbOrderTaker).interfaceId) || super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IOrderBookV3ArbOrderTaker
