@@ -9,6 +9,8 @@ async fn open_active_network_dropdown(ctx: &mut WebdriverTestContext) {
     ctx.apply_settings(constants::VALID_SETTINGS_MULTIPLE.to_string())
         .await;
 
+    ctx.driver.goto("tauri://localhost/orders").await.unwrap();
+
     ctx.driver
         .query(By::Css(
             "aside button:has(span[data-testid=dropdown-activenetwork])",
@@ -37,6 +39,8 @@ async fn open_active_network_dropdown(ctx: &mut WebdriverTestContext) {
 async fn switch_active_network(ctx: &mut WebdriverTestContext) {
     ctx.apply_settings(constants::VALID_SETTINGS_MULTIPLE.to_string())
         .await;
+
+    ctx.driver.goto("tauri://localhost/orders").await.unwrap();
 
     // click dropdown
     ctx.driver

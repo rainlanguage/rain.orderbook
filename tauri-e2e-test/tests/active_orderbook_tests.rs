@@ -8,6 +8,9 @@ use common::{constants, harness::WebdriverTestContext, utils::sleep_ms};
 async fn open_active_orderbook_dropdown(ctx: &mut WebdriverTestContext) {
     ctx.apply_settings(constants::VALID_SETTINGS_MULTIPLE.to_string())
         .await;
+
+    ctx.driver.goto("tauri://localhost/orders").await.unwrap();
+
     ctx.write_localstorage(
         "settings.activeNetworkRef".to_string(),
         "polygon".to_string(),
@@ -43,6 +46,8 @@ async fn open_active_orderbook_dropdown(ctx: &mut WebdriverTestContext) {
 async fn switch_active_network_changes_available_orderbooks(ctx: &mut WebdriverTestContext) {
     ctx.apply_settings(constants::VALID_SETTINGS_MULTIPLE.to_string())
         .await;
+
+    ctx.driver.goto("tauri://localhost/orders").await.unwrap();
 
     // click dropdown
     ctx.driver
