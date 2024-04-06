@@ -15,10 +15,8 @@ import {
     IO,
     SignedContextV1
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
-import {OrderBookV3ArbOrderTakerConfigV1} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {
-    EvaluableConfigV3
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderBookV3ArbConfigV1} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
+import {EvaluableConfigV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -36,7 +34,7 @@ abstract contract ArbTest is Test {
     FlashLendingMockOrderBook immutable iOrderBook;
     address immutable iArb;
 
-    function buildArb(OrderBookV3ArbOrderTakerConfigV1 memory config) internal virtual returns (address);
+    function buildArb(OrderBookV3ArbConfigV1 memory config) internal virtual returns (address);
 
     constructor() {
         iDeployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
@@ -50,13 +48,14 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
         vm.label(address(iOrderBook), "iOrderBook");
 
-        iArb = buildArb(OrderBookV3ArbOrderTakerConfigV1(
-            address(iOrderBook),
-            EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
-            abi.encode(iRefundoor)
-        ));
+        iArb = buildArb(
+            OrderBookV3ArbConfigV1(
+                address(iOrderBook),
+                EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
+                abi.encode(iRefundoor)
+            )
+        );
         vm.label(iArb, "iArb");
-
     }
 
     // function buildConstructorConfig() internal returns (address deployer) {

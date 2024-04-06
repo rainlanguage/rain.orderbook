@@ -37,6 +37,3 @@
 [submodule "lib/rain.orderbook.interface"]
 	path = lib/rain.orderbook.interface
 	url = https://github.com/rainlanguage/rain.orderbook.interface
-[submodule "lib/sushiswap"]
-	path = lib/sushiswap
-	url = https://github.com/sushiswap/sushiswap

@@ -8,7 +8,7 @@ import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {
     OrderBookV3ArbOrderTaker,
-    OrderBookV3ArbOrderTakerConfigV1,
+    OrderBookV3ArbConfigV1,
     MinimumOutput
 } from "../../abstract/OrderBookV3ArbOrderTaker.sol";
 
@@ -18,7 +18,7 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
 
     IRouteProcessor public sRouteProcessor;
 
-    constructor(OrderBookV3ArbOrderTakerConfigV1 memory config) OrderBookV3ArbOrderTaker(config) {}
+    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV3ArbOrderTaker(config) {}
 
     /// @inheritdoc OrderBookV3ArbOrderTaker
     function _beforeConstruction(bytes memory data) internal virtual override {

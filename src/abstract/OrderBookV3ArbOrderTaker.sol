@@ -19,23 +19,23 @@ import {
 import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
+import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV3ArbConfigV1} from "./OrderBookV3ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
 
-/// Config for `OrderBookV3ArbOrderTakerConfigV1` to initialize.
-/// @param orderBook The `IOrderBookV3` to use for `takeOrders`.
-/// @param evaluableConfig The config to eval for access control to arb.
-/// @param implementationData Arbitrary bytes to pass to the implementation in
-/// the `beforeInitialize` hook.
-struct OrderBookV3ArbOrderTakerConfigV1 {
-    address orderBook;
-    EvaluableConfigV3 evaluableConfig;
-    bytes implementationData;
-}
+// /// Config for `OrderBookV3ArbOrderTakerConfigV1` to initialize.
+// /// @param orderBook The `IOrderBookV3` to use for `takeOrders`.
+// /// @param evaluableConfig The config to eval for access control to arb.
+// /// @param implementationData Arbitrary bytes to pass to the implementation in
+// /// the `beforeInitialize` hook.
+// struct OrderBookV3ArbOrderTakerConfigV1 {
+//     address orderBook;
+//     EvaluableConfigV3 evaluableConfig;
+//     bytes implementationData;
+// }
 
 /// @dev "Before arb" is evaluabled before the arb is executed. Ostensibly this
 /// is to allow for access control to the arb, the return values are ignored.
@@ -48,22 +48,22 @@ uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 abstract contract OrderBookV3ArbOrderTaker is IOrderBookV3ArbOrderTaker, ReentrancyGuard, Initializable, ERC165 {
     using SafeERC20 for IERC20;
 
-    event Initialize(address sender, OrderBookV3ArbOrderTakerConfigV1 config);
+    // event Initialize(address sender, OrderBookV3ArbOrderTakerConfigV1 config);
 
     IOrderBookV3 public sOrderBook;
     EncodedDispatch public sI9rDispatch;
     IInterpreterV2 public sI9r;
     IInterpreterStoreV2 public sI9rStore;
 
-    constructor(OrderBookV3ArbOrderTakerConfigV1 memory config) {
+    constructor(OrderBookV3ArbConfigV1 memory config) {
         // Dispatch the hook before any external calls are made.
         _beforeConstruction(config.implementationData);
 
         // @todo this could be paramaterised on `arb`.
         sOrderBook = IOrderBookV3(config.orderBook);
 
-        // Emit events before any external calls are made.
-        emit Initialize(msg.sender, config);
+        // // Emit events before any external calls are made.
+        // emit Initialize(msg.sender, config);
 
         // If there are any sources to eval then initialize the dispatch,
         // otherwise it will remain 0 and we can skip evaluation on `arb`.

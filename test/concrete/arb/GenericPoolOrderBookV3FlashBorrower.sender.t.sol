@@ -6,7 +6,7 @@ import {ArbTest} from "test/util/abstract/ArbTest.sol";
 import {
     GenericPoolOrderBookV3FlashBorrower,
     MinimumOutput,
-    OrderBookV3FlashBorrowerConfigV2
+    OrderBookV3ArbConfigV1
 } from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
 import {
     OrderV2,
@@ -23,6 +23,10 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     //     vm.label(iArb, "iArb");
     //     return ArbTestConstructorConfig(deployer, iArb);
     // }
+
+    function buildArb(OrderBookV3ArbConfigV1 memory config) internal override returns (address) {
+        return address(new GenericPoolOrderBookV3FlashBorrower(config));
+    }
 
     constructor() ArbTest() {
         // ICloneableV2(iArb).initialize(

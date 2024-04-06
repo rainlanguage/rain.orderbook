@@ -4,7 +4,7 @@ pragma solidity =0.8.19;
 import {ArbTest} from "./ArbTest.sol";
 import {
     GenericPoolOrderBookV3ArbOrderTaker,
-    OrderBookV3ArbOrderTakerConfigV1
+    OrderBookV3ArbConfigV1
 } from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import {
     OrderV2,
@@ -20,10 +20,9 @@ contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
     //     return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker()));
     // }
 
-    function buildArb(OrderBookV3ArbOrderTakerConfigV1 memory config) internal override returns (address) {
+    function buildArb(OrderBookV3ArbConfigV1 memory config) internal override returns (address) {
         return address(new GenericPoolOrderBookV3ArbOrderTaker(config));
     }
 
-    constructor() ArbTest() {
-    }
+    constructor() ArbTest() {}
 }

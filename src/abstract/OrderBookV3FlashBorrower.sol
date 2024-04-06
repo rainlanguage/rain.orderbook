@@ -19,7 +19,7 @@ import {
 } from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, Initializing} from "./OrderBookV3ArbCommon.sol";
+import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV3ArbConfigV1} from "./OrderBookV3ArbCommon.sol";
 import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 
@@ -36,16 +36,16 @@ error SwapFailed();
 /// Thrown when "Before arb" expects inputs.
 error NonZeroBeforeArbInputs();
 
-/// Config for `OrderBookV3FlashBorrower` to initialize.
-/// @param orderBook The `IOrderBookV3` contract to arb against.
-/// @param evaluableConfig The config to eval for access control to arb.
-/// @param implementationData Arbitrary bytes to pass to the implementation in
-/// the `beforeInitialize` hook.
-struct OrderBookV3FlashBorrowerConfigV2 {
-    address orderBook;
-    EvaluableConfigV3 evaluableConfig;
-    bytes implementationData;
-}
+// /// Config for `OrderBookV3FlashBorrower` to initialize.
+// /// @param orderBook The `IOrderBookV3` contract to arb against.
+// /// @param evaluableConfig The config to eval for access control to arb.
+// /// @param implementationData Arbitrary bytes to pass to the implementation in
+// /// the `beforeInitialize` hook.
+// struct OrderBookV3FlashBorrowerConfigV2 {
+//     address orderBook;
+//     EvaluableConfigV3 evaluableConfig;
+//     bytes implementationData;
+// }
 
 /// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
 /// allows for some kind of access control to the arb.
@@ -87,19 +87,14 @@ uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV3FlashBorrower is
-    IERC3156FlashBorrower,
-    ReentrancyGuard,
-    Initializable,
-    ERC165
-{
+abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, Initializable, ERC165 {
     using Address for address;
     using SafeERC20 for IERC20;
 
-    /// Emitted when the contract is initialized. Contains the
-    /// OrderBookFlashBorrowerConfig struct to ensure the type appears in the
-    /// ABI.
-    event Initialize(address sender, OrderBookV3FlashBorrowerConfigV2 config);
+    // /// Emitted when the contract is initialized. Contains the
+    // /// OrderBookFlashBorrowerConfig struct to ensure the type appears in the
+    // /// ABI.
+    // event Initialize(address sender, OrderBookV3FlashBorrowerConfigV2 config);
 
     /// `OrderBook` contract to lend and arb against.
     IOrderBookV3 public sOrderBook;
@@ -111,15 +106,15 @@ abstract contract OrderBookV3FlashBorrower is
     /// The associated store for the interpreter.
     IInterpreterStoreV2 public sI9rStore;
 
-    constructor(OrderBookV3FlashBorrowerConfigV2 memory config) {
+    constructor(OrderBookV3ArbConfigV1 memory config) {
         // Dispatch the hook before any external calls are made.
         _beforeConstruction(config.implementationData);
 
         // @todo This could be paramaterised on `arb`.
         sOrderBook = IOrderBookV3(config.orderBook);
 
-        // Emit events before any external calls are made.
-        emit Initialize(msg.sender, config);
+        // // Emit events before any external calls are made.
+        // emit Initialize(msg.sender, config);
 
         // If there are sources to eval then initialize the dispatch, otherwise
         // it will remain 0 and we can skip evaluation on `arb`.
@@ -151,8 +146,7 @@ abstract contract OrderBookV3FlashBorrower is
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IERC3156FlashBorrower).interfaceId
-            || super.supportsInterface(interfaceId);
+        return interfaceId == type(IERC3156FlashBorrower).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /// Hook that inheriting contracts MUST implement in order to achieve
