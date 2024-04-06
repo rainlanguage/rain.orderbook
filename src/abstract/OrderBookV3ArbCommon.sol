@@ -8,9 +8,6 @@ import {EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpret
 /// @param actual The actual output that would be received by the sender.
 error MinimumOutput(uint256 minimum, uint256 actual);
 
-// /// Thrown when calling functions while the contract is still initializing.
-// error Initializing();
-
 /// Thrown when the stack is not empty after the access control dispatch.
 error NonZeroBeforeArbStack();
 
@@ -18,6 +15,12 @@ error NonZeroBeforeArbStack();
 /// @param badLender The untrusted lender calling `onFlashLoan`.
 error BadLender(address badLender);
 
+/// Configuration for an arb contract to construct.
+/// @param orderBook The `OrderBook` contract to arb against.
+/// @param evaluableConfig The `EvaluableConfigV3` to use as a pre-hook for each
+/// arb.
+/// @param implementationData The constructor data for the specific
+/// implementation of the arb contract.
 struct OrderBookV3ArbConfigV1 {
     address orderBook;
     EvaluableConfigV3 evaluableConfig;
