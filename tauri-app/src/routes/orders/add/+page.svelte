@@ -10,7 +10,7 @@
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import type { ChartData, Scenario } from '$lib/typeshare/config';
-  import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
+  import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
@@ -53,6 +53,8 @@
   $: if (deploymentRef && deployments && !Object.keys(deployments).includes(deploymentRef)) {
     deploymentRef = undefined;
   }
+
+  $: $activeNetworkRef = deployment?.order.network.name;
 
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $globalDotrainFile.text, updateMergedConfig();
@@ -135,6 +137,8 @@
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
+      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+        throw Error('No orderbook associated with scenario');
 
       await orderAdd($globalDotrainFile.text, deployment);
     } catch (e) {
@@ -146,10 +150,11 @@
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (!$orderbookAddress) throw Error('Select an orderbook to add order');
+      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+        throw Error('No orderbook associated with scenario');
 
       const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress);
+      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {

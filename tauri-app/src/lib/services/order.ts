@@ -10,7 +10,7 @@ export async function orderAdd(dotrain: string, deployment: Deployment) {
     deployment,
     transactionArgs: {
       rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
+      orderbook_address: deployment.order.orderbook?.address,
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
     },
@@ -38,7 +38,7 @@ export async function orderAddCalldata(dotrain: string, deployment: Deployment) 
     deployment,
     transactionArgs: {
       rpc_url: get(rpcUrl),
-      orderbook_address: get(orderbookAddress),
+      orderbook_address: deployment.order.orderbook?.address,
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
     },
