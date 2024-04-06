@@ -23,8 +23,7 @@
     Spinner,
   } from 'flowbite-svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
-  import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
+  import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
 
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;
@@ -68,10 +67,7 @@
 {:else}
   <div class="flex w-full justify-between py-4">
     <div class="text-3xl font-medium dark:text-white">Orders</div>
-    <div class="flex min-w-[500px] items-center gap-x-2">
-      <DropdownActiveNetwork />
-      <DropdownActiveOrderbook />
-    </div>
+    <ListViewOrderbookSelector />
   </div>
 
   <AppTable

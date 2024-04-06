@@ -199,9 +199,7 @@
   <svelte:fragment slot="additionalFields">
     <div class="flex items-center justify-end gap-x-4">
       {#if isEmpty(deployments)}
-        <span class="text-gray-500 dark:text-gray-400"
-          >No deployments found for the selected network</span
-        >
+        <span class="text-gray-500 dark:text-gray-400">No valid deployments found</span>
       {:else}
         <Label class="whitespace-nowrap">Select deployment</Label>
         <DropdownRadio options={deployments} bind:value={deploymentRef}>

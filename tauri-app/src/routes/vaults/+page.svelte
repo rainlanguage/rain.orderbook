@@ -20,9 +20,8 @@
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
   import AppTable from '$lib/components/AppTable.svelte';
-  import { subgraphUrl } from '$lib/stores/settings';
-  import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
-  import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
+  import { activeOrderbook, subgraphUrl } from '$lib/stores/settings';
+  import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -38,15 +37,15 @@
 <div class="flex w-full justify-between py-4">
   <div class="flex items-center gap-x-6">
     <div class="text-3xl font-medium dark:text-white">Vaults</div>
-    <Button size="sm" color="primary" on:click={() => (showDepositGenericModal = true)}
-      >New vault</Button
+    <Button
+      disabled={!$activeOrderbook}
+      size="sm"
+      color="primary"
+      on:click={() => (showDepositGenericModal = true)}>New vault</Button
     >
   </div>
   <div class="flex flex-col items-end gap-y-2">
-    <div class="flex min-w-[500px] items-center gap-x-2">
-      <DropdownActiveNetwork />
-      <DropdownActiveOrderbook />
-    </div>
+    <ListViewOrderbookSelector />
   </div>
 </div>
 
