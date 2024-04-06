@@ -92,9 +92,6 @@ abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     IInterpreterStoreV2 public immutable iI9rStore;
 
     constructor(OrderBookV3ArbConfigV1 memory config) {
-        // Dispatch the hook before any external calls are made.
-        _beforeConstruction(config.implementationData);
-
         // @todo This could be paramaterised on `arb`.
         iOrderBook = IOrderBookV3(config.orderBook);
 
@@ -134,8 +131,6 @@ abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         iI9rStore = i9rStore;
         iI9rDispatch = i9rDispatch;
     }
-
-    function _beforeConstruction(bytes memory data) internal virtual {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {

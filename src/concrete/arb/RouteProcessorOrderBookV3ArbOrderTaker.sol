@@ -16,14 +16,11 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    IRouteProcessor public sRouteProcessor;
+    IRouteProcessor public immutable iRouteProcessor;
 
-    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV3ArbOrderTaker(config) {}
-
-    /// @inheritdoc OrderBookV3ArbOrderTaker
-    function _beforeConstruction(bytes memory data) internal virtual override {
-        (address routeProcessor) = abi.decode(data, (address));
-        sRouteProcessor = IRouteProcessor(routeProcessor);
+    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV3ArbOrderTaker(config) {
+        (address routeProcessor) = abi.decode(config.implementationData, (address));
+        iRouteProcessor = IRouteProcessor(routeProcessor);
     }
 
     /// @inheritdoc OrderBookV3ArbOrderTaker
@@ -35,13 +32,13 @@ contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
         bytes calldata takeOrdersData
     ) public virtual override {
         super.onTakeOrders(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
-        IERC20(inputToken).safeApprove(address(sRouteProcessor), 0);
-        IERC20(inputToken).safeApprove(address(sRouteProcessor), type(uint256).max);
+        IERC20(inputToken).safeApprove(address(iRouteProcessor), 0);
+        IERC20(inputToken).safeApprove(address(iRouteProcessor), type(uint256).max);
         bytes memory route = abi.decode(takeOrdersData, (bytes));
-        (uint256 amountOut) = sRouteProcessor.processRoute(
+        (uint256 amountOut) = iRouteProcessor.processRoute(
             inputToken, inputAmountSent, outputToken, totalOutputAmount, address(this), route
         );
-        IERC20(inputToken).safeApprove(address(sRouteProcessor), 0);
+        IERC20(inputToken).safeApprove(address(iRouteProcessor), 0);
         (amountOut);
     }
 
