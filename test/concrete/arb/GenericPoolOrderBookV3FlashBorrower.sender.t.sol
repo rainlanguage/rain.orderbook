@@ -17,7 +17,6 @@ import {
 } from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
-
     function buildArb(OrderBookV3ArbConfigV1 memory config) internal override returns (address) {
         return address(new GenericPoolOrderBookV3FlashBorrower(config));
     }

@@ -15,11 +15,6 @@ import {
 } from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {
-    // function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-    //     address deployer = buildConstructorConfig();
-    //     return ArbTestConstructorConfig(deployer, address(new GenericPoolOrderBookV3ArbOrderTaker()));
-    // }
-
     function buildArb(OrderBookV3ArbConfigV1 memory config) internal override returns (address) {
         return address(new GenericPoolOrderBookV3ArbOrderTaker(config));
     }

@@ -58,19 +58,6 @@ abstract contract ArbTest is Test {
         vm.label(iArb, "iArb");
     }
 
-    // function buildConstructorConfig() internal returns (address deployer) {
-    //     deployer =
-
-    //     // // All non-mocked calls will revert.
-    //     // vm.etch(deployer, REVERTING_MOCK_BYTECODE);
-    //     // vm.mockCall(
-    //     //     deployer,
-    //     //     abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-    //     //     // Don't need any io for the "before arb" expression.
-    //     //     abi.encode(address(0), address(0), address(0), "0000")
-    //     // );
-    // }
-
     function buildTakeOrderConfig(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view

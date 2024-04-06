@@ -15,22 +15,6 @@ import {
 } from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract RouteProcessorOrderBookV3ArbOrderTakerTest is ArbTest {
-    // function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-    //     address deployer = buildConstructorConfig();
-    //     return ArbTestConstructorConfig(
-    //         deployer,
-    //         address(
-    //             new RouteProcessorOrderBookV3ArbOrderTaker(
-    //                 OrderBookV3ArbOrderTakerConfigV1(
-    //                     address(iOrderBook),
-    //                     EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
-    //                     abi.encode(iRefundoor)
-    //                 )
-    //             )
-    //         )
-    //     );
-    // }
-
     function buildArb(OrderBookV3ArbConfigV1 memory config) internal override returns (address) {
         return address(new RouteProcessorOrderBookV3ArbOrderTaker(config));
     }
