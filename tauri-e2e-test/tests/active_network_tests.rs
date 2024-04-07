@@ -1,6 +1,7 @@
 use test_context::test_context;
 use thirtyfour::prelude::*;
 mod common;
+use crate::common::utils::sleep_ms;
 use common::{constants, harness::WebdriverTestContext};
 
 #[test_context(WebdriverTestContext)]
@@ -10,6 +11,8 @@ async fn open_active_network_dropdown(ctx: &mut WebdriverTestContext) {
         .await;
 
     ctx.driver.goto("tauri://localhost/orders").await.unwrap();
+
+    sleep_ms(500).await;
 
     ctx.driver
         .query(By::Css(
@@ -41,6 +44,8 @@ async fn switch_active_network(ctx: &mut WebdriverTestContext) {
         .await;
 
     ctx.driver.goto("tauri://localhost/orders").await.unwrap();
+
+    sleep_ms(500).await;
 
     // click dropdown
     ctx.driver

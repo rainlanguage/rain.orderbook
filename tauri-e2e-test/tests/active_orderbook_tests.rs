@@ -11,6 +11,8 @@ async fn open_active_orderbook_dropdown(ctx: &mut WebdriverTestContext) {
 
     ctx.driver.goto("tauri://localhost/orders").await.unwrap();
 
+    sleep_ms(500).await;
+
     ctx.write_localstorage(
         "settings.activeNetworkRef".to_string(),
         "polygon".to_string(),
@@ -48,6 +50,8 @@ async fn switch_active_network_changes_available_orderbooks(ctx: &mut WebdriverT
         .await;
 
     ctx.driver.goto("tauri://localhost/orders").await.unwrap();
+
+    sleep_ms(500).await;
 
     // click dropdown
     ctx.driver
