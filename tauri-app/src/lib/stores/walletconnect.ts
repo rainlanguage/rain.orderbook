@@ -1,6 +1,6 @@
 import { toasts } from './toasts';
 import { colorTheme } from './darkMode';
-import { activeNetwork } from './settings';
+import { settings } from './settings';
 import { get, writable } from '@square/svelte-store';
 import Provider from '@walletconnect/ethereum-provider';
 import { WalletConnectModal } from '@walletconnect/modal';
@@ -70,20 +70,30 @@ Provider.init(
 export async function walletconnectConnect() {
   if (!walletconnectProvider?.accounts?.length) {
     walletconnectIsConnecting.set(true);
-    const network = get(activeNetwork);
-    if (network) {
-      const rpcMap: Record<string, string> = {};
-      rpcMap[network['chain-id']] = network.rpc;
+    const rpcMap: Record<string, string> = {};
+    const chains: number[] = [];
+
+    const $settings = get(settings);
+
+    if ($settings?.networks) {
+      for (const network of Object.values($settings.networks)) {
+        rpcMap[network['chain-id']] = network.rpc;
+        chains.push(network['chain-id']);
+      }
       try {
         await walletconnectProvider?.connect({
-          chains: [network['chain-id']],
+          optionalChains: chains,
           rpcMap
         })
-      } catch {
-        toasts.error("Connection cancelled by user")
+      } catch (e) {
+        if (e instanceof ErrorEvent) {
+          toasts.error(e?.message)
+        } else {
+          "Could not connect to WalletConnect provider."
+        }
       }
     } else {
-      toasts.error("Cannot find active network")
+      toasts.error("No networks configured in settings.")
     }
     walletconnectIsConnecting.set(false);
   }

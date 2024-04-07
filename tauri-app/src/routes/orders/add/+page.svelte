@@ -54,8 +54,6 @@
     deploymentRef = undefined;
   }
 
-  $: $activeNetworkRef = deployment?.order.network.name;
-
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $globalDotrainFile.text, updateMergedConfig();
 
@@ -276,6 +274,7 @@
 
 <ModalExecute
   bind:open={openAddOrderModal}
+  overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
   {executeLedger}

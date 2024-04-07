@@ -7,7 +7,8 @@
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import IconLedger from './IconLedger.svelte';
   import IconWalletConnect from './IconWalletConnect.svelte';
-  import { activeNetworkRef, chainId } from '$lib/stores/settings';
+  import { activeNetworkRef, chainId as globalChainId } from '$lib/stores/settings';
+  import type { Network } from '$lib/typeshare/config';
 
   export let open = false;
   export let title: string;
@@ -16,6 +17,9 @@
   export let executeWalletconnect: () => Promise<void>;
   export let isSubmitting = false;
   export let onBack: (() => void) | undefined = undefined;
+
+  export let overrideNetwork: Network | undefined = undefined;
+  $: chainId = overrideNetwork?.['chain-id'] || $globalChainId;
 
   let selectedLedger = false;
   let selectedWalletconnect = false;
@@ -77,13 +81,15 @@
       {/if}
       <ButtonLoading
         on:click={() => executeWalletconnect().finally(() => reset())}
-        disabled={isSubmitting || !$walletconnectAccount || $walletConnectNetwork !== $chainId}
+        disabled={isSubmitting || !$walletconnectAccount || $walletConnectNetwork !== chainId}
         loading={isSubmitting}
       >
         {execButtonLabel}
       </ButtonLoading>
-      {#if $walletconnectAccount && $walletConnectNetwork !== $chainId}
-        <div class="text-red-500">Please connect your wallet to {$activeNetworkRef} network</div>
+      {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
+        <div class="text-red-500">
+          Please connect your wallet to {overrideNetwork?.name || $activeNetworkRef} network
+        </div>
       {/if}
     </div>
   {/if}
