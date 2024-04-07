@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { Button, Dropdown, DropdownItem, Spinner, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+  import {
+    Button,
+    Dropdown,
+    DropdownItem,
+    Spinner,
+    TableBodyCell,
+    TableHeadCell,
+  } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { vaultsList } from '$lib/stores/vault';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -13,7 +20,21 @@
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
   import AppTable from '$lib/components/AppTable.svelte';
-  import { subgraphUrl } from '$lib/stores/settings';
+  import {
+    activeOrderbook,
+    resetActiveNetworkRef,
+    resetActiveOrderbookRef,
+    subgraphUrl,
+  } from '$lib/stores/settings';
+  import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
+  import { onMount } from 'svelte';
+
+  onMount(async () => {
+    if (!$activeOrderbook) {
+      await resetActiveNetworkRef();
+      resetActiveOrderbookRef();
+    }
+  });
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -27,11 +48,18 @@
 <PageHeader title="Vaults" />
 
 <div class="flex w-full justify-between py-4">
-  <div class="text-3xl font-medium dark:text-white">Vaults</div>
-
-  <Button color="green" on:click={() => (showDepositGenericModal = true)}
-    >Deposit into new vault</Button
-  >
+  <div class="flex items-center gap-x-6">
+    <div class="text-3xl font-medium dark:text-white">Vaults</div>
+    <Button
+      disabled={!$activeOrderbook}
+      size="sm"
+      color="primary"
+      on:click={() => (showDepositGenericModal = true)}>New vault</Button
+    >
+  </div>
+  <div class="flex flex-col items-end gap-y-2">
+    <ListViewOrderbookSelector />
+  </div>
 </div>
 
 {#if $vaultsList === undefined}
@@ -56,7 +84,8 @@
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
-      <TableBodyCell tdClass="break-all px-4 py-4">{bigintStringToHex(item.vault_id)}</TableBodyCell>
+      <TableBodyCell tdClass="break-all px-4 py-4">{bigintStringToHex(item.vault_id)}</TableBodyCell
+      >
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"
         ><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell
       >

@@ -1,10 +1,11 @@
 import { toasts } from './toasts';
 import { colorTheme } from './darkMode';
-import { activeNetwork } from './settings';
+import { settings } from './settings';
 import { get, writable } from '@square/svelte-store';
 import Provider from '@walletconnect/ethereum-provider';
 import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
+import { hexToNumber, isHex } from 'viem';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
@@ -21,6 +22,7 @@ export const walletconnectAccount = writable<string | undefined>(undefined);
 export const walletconnectIsDisconnecting = writable<boolean>(false);
 export const walletconnectIsConnecting = writable<boolean>(false);
 export let walletconnectProvider: Provider | undefined;
+export const walletConnectNetwork = writable<number>(0);
 
 Provider.init(
   {
@@ -49,6 +51,10 @@ Provider.init(
   provider.on("accountsChanged", (accounts) => {
     walletconnectAccount.set(accounts?.[0] ?? undefined);
   });
+  provider.on("chainChanged", (chain) => {
+    if (isHex(chain)) walletConnectNetwork.set(hexToNumber(chain))
+    else walletConnectNetwork.set(parseInt(chain));
+  });
 
   walletconnectProvider = provider;
 
@@ -64,20 +70,30 @@ Provider.init(
 export async function walletconnectConnect() {
   if (!walletconnectProvider?.accounts?.length) {
     walletconnectIsConnecting.set(true);
-    const network = get(activeNetwork);
-    if (network) {
-      const rpcMap: Record<string, string> = {};
-      rpcMap[network['chain-id']] = network.rpc;
+    const rpcMap: Record<string, string> = {};
+    const chains: number[] = [];
+
+    const $settings = get(settings);
+
+    if ($settings?.networks) {
+      for (const network of Object.values($settings.networks)) {
+        rpcMap[network['chain-id']] = network.rpc;
+        chains.push(network['chain-id']);
+      }
       try {
         await walletconnectProvider?.connect({
-          chains: [network['chain-id']],
+          optionalChains: chains,
           rpcMap
         })
-      } catch {
-        toasts.error("Connection cancelled by user")
+      } catch (e) {
+        if (e instanceof ErrorEvent) {
+          toasts.error(e?.message)
+        } else {
+          "Could not connect to WalletConnect provider."
+        }
       }
     } else {
-      toasts.error("Cannot find active network")
+      toasts.error("No networks configured in settings.")
     }
     walletconnectIsConnecting.set(false);
   }
@@ -93,9 +109,6 @@ export async function walletconnectDisconnect() {
   walletconnectIsDisconnecting.set(false);
   walletconnectAccount.set(undefined);
 }
-
-// subscribe to networks and disconnect on network changes
-activeNetwork.subscribe(async () => await walletconnectDisconnect());
 
 // set theme when changed by user
 colorTheme.subscribe(v => (walletconnectProvider?.modal as WalletConnectModal)?.setTheme({ themeMode: v }))

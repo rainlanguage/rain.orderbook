@@ -15,6 +15,8 @@ interface TextFileData {
 
 type Unsubscriber = () => void;
 
+export const globalDotrainFile = textFileStore('Rain', ['rain']);
+
 export interface TextFileStore {
     subscribe: ( subscriber: Subscriber<TextFileData>, invalidate?: Invalidator<TextFileData>) => Unsubscriber,
     set: (v: TextFileData) => void,
