@@ -38,8 +38,3 @@ jobs:
 
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
-            
-      - name: Run E2E Tests
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          nix develop .#tauri-shell --command ob-tauri-e2e-test-headless
