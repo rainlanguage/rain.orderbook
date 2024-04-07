@@ -8,7 +8,13 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
-  import { orderbookAddress, subgraphUrl } from '$lib/stores/settings';
+  import {
+    orderbookAddress,
+    resetActiveNetworkRef,
+    resetActiveOrderbookRef,
+    subgraphUrl,
+    activeOrderbook,
+  } from '$lib/stores/settings';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -24,6 +30,14 @@
   } from 'flowbite-svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
+  import { onMount } from 'svelte';
+
+  onMount(async () => {
+    if (!$activeOrderbook) {
+      await resetActiveNetworkRef();
+      resetActiveOrderbookRef();
+    }
+  });
 
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;

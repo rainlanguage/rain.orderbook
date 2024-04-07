@@ -20,8 +20,21 @@
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
   import AppTable from '$lib/components/AppTable.svelte';
-  import { activeOrderbook, subgraphUrl } from '$lib/stores/settings';
+  import {
+    activeOrderbook,
+    resetActiveNetworkRef,
+    resetActiveOrderbookRef,
+    subgraphUrl,
+  } from '$lib/stores/settings';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
+  import { onMount } from 'svelte';
+
+  onMount(async () => {
+    if (!$activeOrderbook) {
+      await resetActiveNetworkRef();
+      resetActiveOrderbookRef();
+    }
+  });
 
   let showDepositModal = false;
   let showWithdrawModal = false;

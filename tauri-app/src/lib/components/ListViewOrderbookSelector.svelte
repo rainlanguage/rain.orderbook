@@ -6,7 +6,7 @@
   import { Alert } from 'flowbite-svelte';
 </script>
 
-<div class="flex min-w-[500px] items-center justify-end gap-x-2">
+<div class="flex min-w-[600px] items-center justify-end gap-x-2">
   {#if isEmpty($settings?.networks)}
     <Alert color="gray"
       >No networks added to <a class="underline" href="/settings">settings</a></Alert
