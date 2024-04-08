@@ -7,23 +7,23 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {
-    OrderBookV3ArbOrderTaker,
-    OrderBookV3ArbConfigV1,
+    OrderBookV4ArbOrderTaker,
+    OrderBookV4ArbConfigV1,
     MinimumOutput
-} from "../../abstract/OrderBookV3ArbOrderTaker.sol";
+} from "../../abstract/OrderBookV4ArbOrderTaker.sol";
 
-contract RouteProcessorOrderBookV3ArbOrderTaker is OrderBookV3ArbOrderTaker {
+contract RouteProcessorOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
     IRouteProcessor public immutable iRouteProcessor;
 
-    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV3ArbOrderTaker(config) {
+    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbOrderTaker(config) {
         (address routeProcessor) = abi.decode(config.implementationData, (address));
         iRouteProcessor = IRouteProcessor(routeProcessor);
     }
 
-    /// @inheritdoc OrderBookV3ArbOrderTaker
+    /// @inheritdoc OrderBookV4ArbOrderTaker
     function onTakeOrders(
         address inputToken,
         address outputToken,

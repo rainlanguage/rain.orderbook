@@ -9,12 +9,8 @@ import {
     SignedContextV1,
     TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {
-    IERC3156FlashLender
-} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
-import {
-    IERC3156FlashBorrower
-} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
+import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 abstract contract IOrderBookV4Stub is IOrderBookV4 {
     /// @inheritdoc IOrderBookV4

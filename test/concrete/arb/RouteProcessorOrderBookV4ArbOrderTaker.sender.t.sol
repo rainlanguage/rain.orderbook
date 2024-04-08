@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {RouteProcessorOrderBookV3ArbOrderTakerTest} from
-    "test/util/abstract/RouteProcessorOrderBookV3ArbOrderTakerTest.sol";
+import {RouteProcessorOrderBookV4ArbOrderTakerTest} from
+    "test/util/abstract/RouteProcessorOrderBookV4ArbOrderTakerTest.sol";
 import {
     OrderV3,
-    EvaluableConfigV3,
+    EvaluableV3,
     IExpressionDeployerV3,
     TakeOrderConfigV3,
     TakeOrdersConfigV3
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {
-    RouteProcessorOrderBookV3ArbOrderTaker,
-    OrderBookV3ArbConfigV1,
+    RouteProcessorOrderBookV4ArbOrderTaker,
+    OrderBookV4ArbConfigV1,
     MinimumOutput
-} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
-contract RouteProcessorOrderBookV3ArbOrderTakerSenderTest is RouteProcessorOrderBookV3ArbOrderTakerTest {
+contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
     function testRouteProcessorTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {

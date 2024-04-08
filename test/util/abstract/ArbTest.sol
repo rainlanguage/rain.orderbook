@@ -15,8 +15,8 @@ import {
     IO,
     SignedContextV1
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
-import {OrderBookV3ArbConfigV1} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {EvaluableConfigV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderBookV4ArbConfigV1} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
+import {EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}

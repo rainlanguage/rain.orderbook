@@ -29,7 +29,10 @@ library LibTestAddOrder {
     /// Valid config has a few requirements. Mutates the config in place.
     /// Anything that doesn't meet the requirements will just be set to 0 values
     /// as this is faster than forcing the fuzzer to rebuild with assume.
-    function conformConfig(OrderConfigV3 memory config, IInterpreterV3 interpreter, IInterpreterStoreV2 store) internal pure {
+    function conformConfig(OrderConfigV3 memory config, IInterpreterV3 interpreter, IInterpreterStoreV2 store)
+        internal
+        pure
+    {
         if (config.meta.length > 0) {
             // This is a bit of a hack, but it's the easiest way to get a valid
             // meta document.

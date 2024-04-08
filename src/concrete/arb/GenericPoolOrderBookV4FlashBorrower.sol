@@ -5,17 +5,17 @@ import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/I
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 import {
-    OrderBookV3FlashBorrower,
+    OrderBookV4FlashBorrower,
     MinimumOutput,
     SafeERC20,
     IERC20,
     Address,
-    TakeOrdersConfigV2,
-    OrderBookV3ArbConfigV1
-} from "../../abstract/OrderBookV3FlashBorrower.sol";
+    TakeOrdersConfigV3,
+    OrderBookV4ArbConfigV1
+} from "../../abstract/OrderBookV4FlashBorrower.sol";
 
-/// @title GenericPoolOrderBookV3FlashBorrower
-/// Implements the OrderBookV3FlashBorrower interface for a external liquidity
+/// @title GenericPoolOrderBookV4FlashBorrower
+/// Implements the OrderBookV4FlashBorrower interface for a external liquidity
 /// source that behaves vaguely like a standard AMM. The `exchangeData` from
 /// `arb` is decoded into a spender, pool and callData. The `callData` is
 /// literally the encoded function call to the pool. This allows the `arb`
@@ -24,13 +24,13 @@ import {
 /// The `spender` is the address that will be approved to spend the input token
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
-contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
+contract GenericPoolOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV3FlashBorrower(config) {}
+    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV4FlashBorrower(config) {}
 
-    /// @inheritdoc OrderBookV3FlashBorrower
+    /// @inheritdoc OrderBookV4FlashBorrower
     function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual override {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(exchangeData, (address, address, bytes));

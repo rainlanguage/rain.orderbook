@@ -10,15 +10,17 @@ import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter.interface/int
 import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {IOrderBookV3, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {IOrderBookV4, NoOrders} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {
-    IOrderBookV3ArbOrderTaker,
-    IOrderBookV3OrderTaker
-} from "rain.orderbook.interface/interface/IOrderBookV3ArbOrderTaker.sol";
-import {IInterpreterV2, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+    IOrderBookV4ArbOrderTaker,
+    IOrderBookV4OrderTaker
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4ArbOrderTaker.sol";
+import {
+    IInterpreterV3, DEFAULT_STATE_NAMESPACE
+} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {TakeOrdersConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV3ArbConfigV1} from "./OrderBookV3ArbCommon.sol";
+import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV4ArbConfigV1} from "./OrderBookV4ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 
@@ -33,7 +35,7 @@ uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no return values.
 uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-abstract contract OrderBookV3ArbOrderTaker is IOrderBookV3ArbOrderTaker, ReentrancyGuard, ERC165 {
+abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, ReentrancyGuard, ERC165 {
     using SafeERC20 for IERC20;
 
     event Construct(address sender, OrderBookV3ArbConfigV1 config);
@@ -92,7 +94,7 @@ abstract contract OrderBookV3ArbOrderTaker is IOrderBookV3ArbOrderTaker, Reentra
     }
 
     /// @inheritdoc IOrderBookV3ArbOrderTaker
-    function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput) external payable nonReentrant {
+    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput) external payable nonReentrant {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -150,7 +152,7 @@ abstract contract OrderBookV3ArbOrderTaker is IOrderBookV3ArbOrderTaker, Reentra
         Address.sendValue(payable(msg.sender), address(this).balance);
     }
 
-    /// @inheritdoc IOrderBookV3OrderTaker
+    /// @inheritdoc IOrderBookV4OrderTaker
     function onTakeOrders(address, address, uint256, uint256, bytes calldata) public virtual override {
         if (msg.sender != address(iOrderBook)) {
             revert BadLender(msg.sender);
