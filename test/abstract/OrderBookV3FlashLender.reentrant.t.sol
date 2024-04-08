@@ -5,13 +5,13 @@ import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {
-    IOrderBookV3,
-    OrderConfigV2,
-    OrderV2,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2,
+    IOrderBookV4,
+    OrderConfigV3,
+    OrderV3,
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3,
     ClearConfig
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -99,8 +99,8 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and add an order from within a flash loan.
-    function testReenterAddOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
-        LibTestAddOrder.conformConfig(config, iDeployer);
+    function testReenterAddOrder(uint256 loanAmount, OrderConfigV3 memory config) external {
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         config.evaluableConfig.bytecode = bytecode;
@@ -111,7 +111,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and remove an order from within a flash loan.
-    function testReenterRemoveOrder(uint256 loanAmount, OrderV2 memory order) external {
+    function testReenterRemoveOrder(uint256 loanAmount, OrderV3 memory order) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         order.owner = address(borrower);
@@ -119,8 +119,8 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and take orders.
-    function testReenterTakeOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
-        LibTestAddOrder.conformConfig(config, iDeployer);
+    function testReenterTakeOrder(uint256 loanAmount, OrderConfigV3 memory config) external {
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         config.evaluableConfig.bytecode = bytecode;
@@ -129,12 +129,12 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         vm.recordLogs();
         iOrderbook.addOrder(config);
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+        (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
-        orders[0] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV2 memory takeOrdersConfig =
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
+        TakeOrdersConfigV3 memory takeOrdersConfig =
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
 
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -148,18 +148,18 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         uint256 loanAmount,
         address alice,
         address bob,
-        OrderConfigV2 memory aliceConfig,
-        OrderConfigV2 memory bobConfig
+        OrderConfigV3 memory aliceConfig,
+        OrderConfigV3 memory bobConfig
     ) external {
         vm.assume(alice != bob);
 
-        LibTestAddOrder.conformConfig(aliceConfig, iDeployer);
+        LibTestAddOrder.conformConfig(aliceConfig, iInterpreter, iStore);
         (bytes memory bytecode, uint256[] memory constants) =
             IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         aliceConfig.evaluableConfig.bytecode = bytecode;
         aliceConfig.evaluableConfig.constants = constants;
 
-        LibTestAddOrder.conformConfig(bobConfig, iDeployer);
+        LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
         (bytecode, constants) = IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
         bobConfig.evaluableConfig.bytecode = bytecode;
         bobConfig.evaluableConfig.constants = constants;
@@ -171,13 +171,13 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         vm.prank(alice);
         iOrderbook.addOrder(aliceConfig);
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, OrderV2 memory aliceOrder,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+        (,, OrderV3 memory aliceOrder,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
 
         vm.recordLogs();
         vm.prank(bob);
         iOrderbook.addOrder(bobConfig);
         entries = vm.getRecordedLogs();
-        (,, OrderV2 memory bobOrder,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+        (,, OrderV3 memory bobOrder,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
 
         ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 0, 0);
 
@@ -186,7 +186,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         checkFlashLoanNotRevert(
             borrower,
             abi.encodeWithSelector(
-                IOrderBookV3.clear.selector,
+                IOrderBookV4.clear.selector,
                 aliceOrder,
                 bobOrder,
                 clearConfig,

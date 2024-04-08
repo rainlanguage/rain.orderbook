@@ -12,7 +12,7 @@ import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpre
 /// @notice Tests the addOrder function of the OrderBook contract.
 contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without calculations MUST revert.
-    function testAddOrderWithoutCalculationsReverts(address owner, OrderConfigV2 memory config) public {
+    function testAddOrderWithoutCalculationsReverts(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         config.evaluableConfig.bytecode = "";
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
