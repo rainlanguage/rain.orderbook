@@ -37,14 +37,14 @@ error SwapFailed();
 /// Thrown when "Before arb" expects inputs.
 error NonZeroBeforeArbInputs();
 
-/// Config for `OrderBookV3FlashBorrower` to initialize.
-/// @param orderBook The `IOrderBookV3` contract to arb against.
+/// Config for `OrderBookV4FlashBorrower` to initialize.
+/// @param orderBook The `IOrderBookV4` contract to arb against.
 /// @param evaluableConfig The config to eval for access control to arb.
 /// @param implementationData Arbitrary bytes to pass to the implementation in
 /// the `beforeInitialize` hook.
-struct OrderBookV3FlashBorrowerConfigV2 {
+struct OrderBookV4FlashBorrowerConfigV3 {
     address orderBook;
-    EvaluableConfigV3 evaluableConfig;
+    EvaluableV3 evaluable;
     bytes implementationData;
 }
 
