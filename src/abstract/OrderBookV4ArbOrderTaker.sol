@@ -37,11 +37,15 @@ error NonZeroBeforeArbInputs(uint256 inputs);
 /// is to allow for access control to the arb, the return values are ignored.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
-abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, ReentrancyGuard, ERC165, OrderBookV4ArbCommon {
+abstract contract OrderBookV4ArbOrderTaker is
+    IOrderBookV4ArbOrderTaker,
+    ReentrancyGuard,
+    ERC165,
+    OrderBookV4ArbCommon
+{
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {
-    }
+    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -50,7 +54,12 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
     }
 
     /// @inheritdoc IOrderBookV4ArbOrderTaker
-    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput, EvaluableV3 calldata evaluable) external payable nonReentrant onlyValidEvaluable(evaluable) {
+    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput, EvaluableV3 calldata evaluable)
+        external
+        payable
+        nonReentrant
+        onlyValidEvaluable(evaluable)
+    {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();

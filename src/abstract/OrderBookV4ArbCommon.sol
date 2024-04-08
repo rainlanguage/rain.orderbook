@@ -61,7 +61,7 @@ abstract contract OrderBookV4ArbCommon {
     }
 
     modifier onlyValidEvaluable(EvaluableV3 calldata evaluable) {
-                if (evaluable.hash() != iEvaluableHash) {
+        if (evaluable.hash() != iEvaluableHash) {
             revert BadEvaluable();
         }
         if (address(evaluable.interpreter) != address(0)) {

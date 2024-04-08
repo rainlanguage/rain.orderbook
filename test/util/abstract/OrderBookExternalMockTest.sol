@@ -65,8 +65,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         internal
         returns (OrderV3 memory, bytes32)
     {
-        (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         assertTrue(!iOrderbook.orderExists(orderHash));
         vm.mockCall(
             address(iDeployer),

@@ -24,7 +24,9 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0, EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
+            0,
+            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
         );
     }
 

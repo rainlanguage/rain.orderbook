@@ -14,7 +14,13 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV4ArbConfigV1, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
+import {
+    BadLender,
+    MinimumOutput,
+    NonZeroBeforeArbStack,
+    OrderBookV4ArbConfigV1,
+    OrderBookV4ArbCommon
+} from "./OrderBookV4ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
 
 /// Thrown when the initiator is not the order book.
@@ -61,8 +67,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     using Address for address;
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {
-    }
+    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {

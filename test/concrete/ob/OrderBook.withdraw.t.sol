@@ -3,7 +3,11 @@ pragma solidity =0.8.19;
 
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import {OrderBookExternalMockTest, IERC20, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {
+    OrderBookExternalMockTest,
+    IERC20,
+    REVERTING_MOCK_BYTECODE
+} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 

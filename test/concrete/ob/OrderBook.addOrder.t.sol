@@ -46,8 +46,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// A stack of 1 for calculate order reverts.
     function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        bytes memory bytecode =
-            iParserV2.parse2("_:block-timestamp();:;");
+        bytes memory bytecode = iParserV2.parse2("_:block-timestamp();:;");
         config.evaluable.bytecode = bytecode;
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, 1));
         vm.prank(owner);
@@ -57,8 +56,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// A stack of 2 for calculate order deploys.
     function testAddOrderRealTwoStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        bytes memory bytecode =
-            iParserV2.parse2("_ _:block-timestamp() chain-id();:;");
+        bytes memory bytecode = iParserV2.parse2("_ _:block-timestamp() chain-id();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
@@ -67,8 +65,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// A stack of 3 for calculate order deploys.
     function testAddOrderRealThreeStackCalculate(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        bytes memory bytecode =
-            iParserV2.parse2("_ _ _:block-timestamp() chain-id() block-number();:;");
+        bytes memory bytecode = iParserV2.parse2("_ _ _:block-timestamp() chain-id() block-number();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));

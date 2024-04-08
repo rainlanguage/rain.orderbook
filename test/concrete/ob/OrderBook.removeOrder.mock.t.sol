@@ -16,8 +16,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(alice != bob);
 
-        (OrderV3 memory expectedOrder, bytes32 expectedOrderHash) =
-            LibTestAddOrder.expectedOrder(alice, config);
+        (OrderV3 memory expectedOrder, bytes32 expectedOrderHash) = LibTestAddOrder.expectedOrder(alice, config);
 
         // It will revert even if the order has not been added yet.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
@@ -42,7 +41,9 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// The same order can be added and removed multiple times.
-    function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, bytes memory expression) external {
+    function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, bytes memory expression)
+        external
+    {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         OrderV3 memory order;
@@ -60,10 +61,11 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// An order MUST NOT change state if it does not exist.
-    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, bytes memory expression) external {
+    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, bytes memory expression)
+        external
+    {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(alice, config);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(alice, config);
         assertFalse(iOrderbook.orderExists(orderHash));
         vm.record();
         vm.recordLogs();
@@ -105,9 +107,12 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Different owners can add and remove the same order.
-    function testRemoveOrderDifferentOwners(address alice, address bob, OrderConfigV3 memory config, bytes memory expression)
-        external
-    {
+    function testRemoveOrderDifferentOwners(
+        address alice,
+        address bob,
+        OrderConfigV3 memory config,
+        bytes memory expression
+    ) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(alice != bob);
         (OrderV3 memory orderAlice, bytes32 orderHashAlice) = addOrderWithChecks(alice, config, expression);

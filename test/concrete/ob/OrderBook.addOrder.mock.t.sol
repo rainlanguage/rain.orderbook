@@ -17,8 +17,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         config.evaluable.bytecode = "";
         vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
-        (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -30,8 +29,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         config.validInputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
-        (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -44,8 +42,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         config.validOutputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
-        (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -82,17 +79,18 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
 
-        (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
 
     /// Adding a valid order with a non-empty meta MUST emit MetaV1 if the meta
     /// is self describing as a rain meta document.
-    function testAddOrderWithNonEmptyMetaEmitsMetaV1(address owner, OrderConfigV3 memory config, bytes memory expression)
-        public
-    {
+    function testAddOrderWithNonEmptyMetaEmitsMetaV1(
+        address owner,
+        OrderConfigV3 memory config,
+        bytes memory expression
+    ) public {
         config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);

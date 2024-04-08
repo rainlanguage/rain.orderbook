@@ -23,8 +23,7 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
         return true;
     }
 
-    function eval(EvaluableV3[] calldata) external pure {
-    }
+    function eval(EvaluableV3[] calldata) external pure {}
 
     /// @inheritdoc IOrderBookV4
     function takeOrders2(TakeOrdersConfigV3 calldata) external pure returns (uint256, uint256) {
