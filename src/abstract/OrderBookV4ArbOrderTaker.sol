@@ -38,16 +38,16 @@ uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, ReentrancyGuard, ERC165 {
     using SafeERC20 for IERC20;
 
-    event Construct(address sender, OrderBookV3ArbConfigV1 config);
+    event Construct(address sender, OrderBookV4ArbConfigV1 config);
 
-    IOrderBookV3 public immutable iOrderBook;
+    IOrderBookV4 public immutable iOrderBook;
     EncodedDispatch public immutable iI9rDispatch;
     IInterpreterV2 public immutable iI9r;
     IInterpreterStoreV2 public immutable iI9rStore;
 
-    constructor(OrderBookV3ArbConfigV1 memory config) {
+    constructor(OrderBookV4ArbConfigV1 memory config) {
         // @todo this could be paramaterised on `arb`.
-        iOrderBook = IOrderBookV3(config.orderBook);
+        iOrderBook = IOrderBookV4(config.orderBook);
 
         // // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
@@ -89,11 +89,11 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return (interfaceId == type(IOrderBookV3OrderTaker).interfaceId)
-            || (interfaceId == type(IOrderBookV3ArbOrderTaker).interfaceId) || super.supportsInterface(interfaceId);
+        return (interfaceId == type(IOrderBookV4OrderTaker).interfaceId)
+            || (interfaceId == type(IOrderBookV4ArbOrderTaker).interfaceId) || super.supportsInterface(interfaceId);
     }
 
-    /// @inheritdoc IOrderBookV3ArbOrderTaker
+    /// @inheritdoc IOrderBookV4ArbOrderTaker
     function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput) external payable nonReentrant {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {

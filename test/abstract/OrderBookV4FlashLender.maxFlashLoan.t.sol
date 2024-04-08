@@ -4,9 +4,9 @@ pragma solidity =0.8.19;
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-/// @title OrderBookV3FlashLenderMaxFlashLoanTest
-/// Tests the maximum flash loan amount for `OrderBookV3FlashLender`.
-contract OrderBookV3FlashLenderMaxFlashLoanTest is OrderBookExternalMockTest {
+/// @title OrderBookV4FlashLenderMaxFlashLoanTest
+/// Tests the maximum flash loan amount for `OrderBookV4FlashLender`.
+contract OrderBookV4FlashLenderMaxFlashLoanTest is OrderBookExternalMockTest {
     /// Tests that the maximum flash loan amount for `OrderBookV3FlashLender` is
     /// the balance of the token in the order book.
     function testFlashMaxLoan(uint256 amount) public {

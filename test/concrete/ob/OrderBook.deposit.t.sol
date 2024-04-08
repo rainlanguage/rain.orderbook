@@ -29,7 +29,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         vm.prank(depositor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IOrderBookV3.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
+                IOrderBookV4.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
         iOrderbook.deposit(address(iToken0), vaultId, 0);
@@ -180,7 +180,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         vm.assume(reAmount != 0);
         vm.prank(depositor);
         Reenteroor reenteroor = new Reenteroor();
-        reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV3.deposit.selector, reToken, reVaultId, reAmount));
+        reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV4.deposit.selector, reToken, reVaultId, reAmount));
         vm.expectRevert(bytes("ReentrancyGuard: reentrant call"));
         iOrderbook.deposit(address(reenteroor), vaultId, amount);
     }

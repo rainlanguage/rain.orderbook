@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {GenericPoolOrderBookV3ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV3ArbOrderTakerTest.sol";
+import {GenericPoolOrderBookV4ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV4ArbOrderTakerTest.sol";
 
 import {
-    GenericPoolOrderBookV3ArbOrderTaker,
-    OrderBookV3ArbConfigV1,
+    GenericPoolOrderBookV4ArbOrderTaker,
+    OrderBookV4ArbConfigV1,
     MinimumOutput
-} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
+} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {
     OrderV3,
     EvaluableConfigV3,
@@ -16,14 +16,14 @@ import {
     TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
-contract GenericPoolOrderBookV3ArbOrderTakerSenderTest is GenericPoolOrderBookV3ArbOrderTakerTest {
+contract GenericPoolOrderBookV4ArbOrderTakerSenderTest is GenericPoolOrderBookV4ArbOrderTakerTest {
     function testGenericPoolTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb(
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0
         );
     }
@@ -42,8 +42,8 @@ contract GenericPoolOrderBookV3ArbOrderTakerSenderTest is GenericPoolOrderBookV3
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb(
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             minimumOutput
         );
     }

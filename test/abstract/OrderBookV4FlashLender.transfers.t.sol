@@ -77,9 +77,9 @@ contract Carol is IPull {
     }
 }
 
-/// @title OrderBookV3FlashLenderTransferTest
-/// Tests the `OrderBookV3FlashLender` transfer functions.
-contract OrderBookV3FlashLenderTransferTest is OrderBookExternalMockTest {
+/// @title OrderBookV4FlashLenderTransferTest
+/// Tests the `OrderBookV4FlashLender` transfer functions.
+contract OrderBookV4FlashLenderTransferTest is OrderBookExternalMockTest {
     /// Alice can send tokens to Bob, who will return them and then the loan will
     /// be repaid.
     function testFlashLoanTransferSuccess(uint256 amount, bool success) public {

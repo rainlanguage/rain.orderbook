@@ -26,7 +26,7 @@ import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 /// - Deploys a mockable deployer contract for a DISpair.
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
-/// Implements IOrderBookV3 so that it has access to all the relevant events.
+/// Implements IOrderBookV4 so that it has access to all the relevant events.
 abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
     IInterpreterV3 immutable iInterpreter;
     IInterpreterStoreV2 immutable iStore;

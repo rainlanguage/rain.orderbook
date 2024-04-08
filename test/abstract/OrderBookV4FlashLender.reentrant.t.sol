@@ -18,10 +18,10 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
-/// @title OrderBookV3FlashLenderReentrant
+/// @title OrderBookV4FlashLenderReentrant
 /// Test that flash borrowers can reenter the orderbook, which is necessary for
 /// trading etc. against it while the loan is active.
-contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
+contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     function checkFlashLoanNotRevert(Reenteroor borrower, bytes memory encodedCall, uint256 loanAmount) internal {
         borrower.reenterWith(encodedCall);
         vm.mockCall(

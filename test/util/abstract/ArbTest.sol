@@ -34,7 +34,7 @@ abstract contract ArbTest is Test {
     FlashLendingMockOrderBook immutable iOrderBook;
     address immutable iArb;
 
-    function buildArb(OrderBookV3ArbConfigV1 memory config) internal virtual returns (address);
+    function buildArb(OrderBookV4ArbConfigV1 memory config) internal virtual returns (address);
 
     constructor() {
         iDeployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
@@ -49,9 +49,9 @@ abstract contract ArbTest is Test {
         vm.label(address(iOrderBook), "iOrderBook");
 
         iArb = buildArb(
-            OrderBookV3ArbConfigV1(
+            OrderBookV4ArbConfigV1(
                 address(iOrderBook),
-                EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
+                EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
                 abi.encode(iRefundoor)
             )
         );

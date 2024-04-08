@@ -40,7 +40,7 @@ import {
     SignedContextV1,
     EvaluableV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IOrderBookV3OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV3OrderTaker.sol";
+import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV4OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
@@ -519,7 +519,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
 
         if (config.data.length > 0) {
-            IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
+            IOrderBookV4OrderTaker(msg.sender).onTakeOrders(
                 config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
                 config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
                 totalTakerInput,

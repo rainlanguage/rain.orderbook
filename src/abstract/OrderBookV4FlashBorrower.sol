@@ -10,7 +10,9 @@ import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/li
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IOrderBookV3, TakeOrdersConfigV2, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {
+    IOrderBookV4, TakeOrdersConfigV3, NoOrders
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {
     IInterpreterV2,
     SourceIndexV2,
@@ -18,8 +20,8 @@ import {
 } from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV3ArbConfigV1} from "./OrderBookV3ArbCommon.sol";
-import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV4ArbConfigV1} from "./OrderBookV4ArbCommon.sol";
+import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 
 /// Thrown when the initiator is not the order book.
@@ -45,7 +47,7 @@ uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
 /// @dev "Before arb" has no outputs.
 uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-/// @title OrderBookV3FlashBorrower
+/// @title OrderBookV4FlashBorrower
 /// @notice Abstract contract that liq-source specifialized contracts can inherit
 /// to provide flash loan based arbitrage against external liquidity sources to
 /// fill orderbook orders.
@@ -75,14 +77,14 @@ uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165 {
+abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165 {
     using Address for address;
     using SafeERC20 for IERC20;
 
-    event Construct(address sender, OrderBookV3ArbConfigV1 config);
+    event Construct(address sender, OrderBookV4ArbConfigV1 config);
 
     /// `OrderBook` contract to lend and arb against.
-    IOrderBookV3 public immutable iOrderBook;
+    IOrderBookV4 public immutable iOrderBook;
 
     /// The encoded dispatch that will run for access control to `arb`.
     EncodedDispatch public immutable iI9rDispatch;
@@ -91,9 +93,9 @@ abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// The associated store for the interpreter.
     IInterpreterStoreV2 public immutable iI9rStore;
 
-    constructor(OrderBookV3ArbConfigV1 memory config) {
+    constructor(OrderBookV4ArbConfigV1 memory config) {
         // @todo This could be paramaterised on `arb`.
-        iOrderBook = IOrderBookV3(config.orderBook);
+        iOrderBook = IOrderBookV4(config.orderBook);
 
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
@@ -195,7 +197,7 @@ abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// Finally the orders are taken and the remaining assets are sent to the
     /// sender.
     ///
-    /// @param takeOrders As per `IOrderBookV3.takeOrders`.
+    /// @param takeOrders As per `IOrderBookV4.takeOrders2`.
     /// @param minimumSenderOutput The minimum output that must be sent to the
     /// sender by the end of the arb call. This, in combination with the
     /// orderbook's own asset handling, is expected to REPLACE the standard
@@ -208,7 +210,7 @@ abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// for decoding this data and defining how it controls interactions with
     /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
     /// uses this data as a literal encoded external call.
-    function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput, bytes calldata exchangeData)
+    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput, bytes calldata exchangeData)
         external
         payable
         nonReentrant

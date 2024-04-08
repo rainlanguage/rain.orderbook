@@ -8,11 +8,11 @@ import {
 } from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-/// @title OrderBookV3FlashLenderMockSuccessTest
-/// Show that if the receiver is `OrderBookV3FlashBorrower` and the token
+/// @title OrderBookV4FlashLenderMockSuccessTest
+/// Show that if the receiver is `OrderBookV4FlashBorrower` and the token
 /// movements do not error, then the flash loan will succeed.
-contract OrderBookV3FlashLenderMockSuccessTest is OrderBookExternalMockTest {
-    /// Tests that if the receiver is `OrderBookV3FlashBorrower` and the token
+contract OrderBookV4FlashLenderMockSuccessTest is OrderBookExternalMockTest {
+    /// Tests that if the receiver is `OrderBookV4FlashBorrower` and the token
     /// movements do not error, then the flash loan will succeed.
     function testFlashLoanToReceiver(uint256 amount, bytes memory data) public {
         // Return true for all transfers.

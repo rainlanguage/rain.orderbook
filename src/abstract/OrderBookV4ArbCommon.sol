@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {EvaluableV3} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
 
 /// Thrown when the minimum output for the sender is not met after the arb.
 /// @param minimum The minimum output expected by the sender.
@@ -21,7 +21,7 @@ error BadLender(address badLender);
 /// arb.
 /// @param implementationData The constructor data for the specific
 /// implementation of the arb contract.
-struct OrderBookV3ArbConfigV1 {
+struct OrderBookV4ArbConfigV1 {
     address orderBook;
     EvaluableConfigV3 evaluableConfig;
     bytes implementationData;

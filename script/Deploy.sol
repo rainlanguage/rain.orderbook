@@ -4,11 +4,15 @@ pragma solidity =0.8.19;
 import {Script} from "forge-std/Script.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
-import {GenericPoolOrderBookV3ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
-import {EvaluableConfigV3, IExpressionDeployerV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {OrderBookV3ArbConfigV1} from "src/abstract/OrderBookV3ArbCommon.sol";
+import {
+    EvaluableV3,
+    IInterpreterV3,
+    IInterpreterStoreV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {OrderBookV4ArbConfigV1} from "src/abstract/OrderBookV4ArbCommon.sol";
 
 /// @dev Exact bytecode taken from sushiswap deployments list in github.
 /// https://github.com/sushiswap/sushiswap/blob/master/protocols/route-processor/deployments/ethereum/RouteProcessor3_2.json#L330

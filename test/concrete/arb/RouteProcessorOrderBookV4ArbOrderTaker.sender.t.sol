@@ -22,7 +22,7 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
     {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0
         );
     }
@@ -41,8 +41,8 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb(
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
             minimumOutput
         );
     }

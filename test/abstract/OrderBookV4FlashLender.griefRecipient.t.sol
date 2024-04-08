@@ -14,7 +14,7 @@ import {FlashLenderCallbackFailed} from "src/abstract/OrderBookV4FlashLender.sol
 contract OrderBookClearTest is OrderBookExternalMockTest {
     /// Tests that no matter who the receiver is, and no matter what happens with
     /// the tokens, the flash loan will revert if the receiver is not
-    /// `OrderBookV3FlashBorrower`.
+    /// `OrderBookV4FlashBorrower`.
     function testFlashLoanToNonReceiver(
         uint256 amount,
         bytes memory data,

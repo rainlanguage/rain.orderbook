@@ -4,7 +4,7 @@ pragma solidity =0.8.19;
 import {ArbTest} from "./ArbTest.sol";
 import {
     RouteProcessorOrderBookV4ArbOrderTaker,
-    OrderBookV3ArbConfigV1
+    OrderBookV4ArbConfigV1
 } from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTakerTest is ArbTest {
