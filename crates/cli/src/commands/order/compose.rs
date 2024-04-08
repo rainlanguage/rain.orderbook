@@ -16,12 +16,7 @@ pub struct Compose {
     dotrain_file: PathBuf,
 
     // path to the settings yaml
-    #[arg(
-        short = 'c',
-        long,
-        help = "Path to the settings yaml file",
-        default_value = "settings.yml"
-    )]
+    #[arg(short = 'c', long, help = "Path to the settings yaml file")]
     settings_file: Option<PathBuf>,
 
     // the name of the scenrio to use
