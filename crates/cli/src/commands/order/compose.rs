@@ -19,8 +19,7 @@ pub struct Compose {
     #[arg(
         short = 'c',
         long,
-        help = "Path to the settings yaml file",
-        default_value = "settings.yml"
+        help = "Path to the settings yaml file"
     )]
     settings_file: Option<PathBuf>,
 
