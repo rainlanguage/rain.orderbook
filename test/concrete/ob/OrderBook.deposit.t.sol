@@ -20,7 +20,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
 
-        iOrderbook.deposit(address(iToken0), vaultId, amount);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new EvaluableV3[](0));
         assertEq(iOrderbook.vaultBalance(depositor, address(iToken0), vaultId), amount);
     }
 
@@ -32,7 +32,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
                 IOrderBookV4.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
-        iOrderbook.deposit(address(iToken0), vaultId, 0);
+        iOrderbook.deposit2(address(iToken0), vaultId, 0, new EvaluableV3[](0));
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -46,14 +46,14 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        iOrderbook.deposit(address(iToken0), 0, 1);
+        iOrderbook.deposit2(address(iToken0), 0, 1, new EvaluableV3[](0));
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit(address(iToken0), 0, 1);
+        iOrderbook.deposit2(address(iToken0), 0, 1, new EvaluableV3[](0));
     }
 
     /// Test a cold deposit, which is the worst case scenario for gas. In this
@@ -68,7 +68,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit(address(iToken0), 0, 1);
+        iOrderbook.deposit2(address(iToken0), 0, 1, new EvaluableV3[](0));
     }
 
     /// Any failure in the deposit should revert the entire transaction.
@@ -78,7 +78,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         // The token contract always reverts when not mocked.
         vm.prank(depositor);
         vm.expectRevert(bytes("SafeERC20: low-level call failed"));
-        iOrderbook.deposit(address(iToken0), vaultId, amount);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new EvaluableV3[](0));
 
         // Mocking the token to return false should also revert.
         vm.prank(depositor);
@@ -89,7 +89,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         );
         // This error string appears when the call completes but returns false.
         vm.expectRevert(bytes("SafeERC20: ERC20 operation did not succeed"));
-        iOrderbook.deposit(address(iToken0), vaultId, amount);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new EvaluableV3[](0));
     }
 
     /// Defines a deposit to be used in testDepositMany.
@@ -136,7 +136,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             emit Deposit(actions[i].depositor, actions[i].token, actions[i].vaultId, uint256(actions[i].amount));
             vm.record();
             vm.recordLogs();
-            iOrderbook.deposit(actions[i].token, actions[i].vaultId, actions[i].amount);
+            iOrderbook.deposit2(actions[i].token, actions[i].vaultId, actions[i].amount, new EvaluableV3[](0));
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
             assertEq(vm.getRecordedLogs().length, 1, "logs");
             // - reentrancy guard x3
@@ -164,7 +164,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         );
         vm.expectEmit(false, false, false, true);
         emit Deposit(depositor, address(iToken0), vaultId, amount);
-        iOrderbook.deposit(address(iToken0), vaultId, amount);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new EvaluableV3[](0));
     }
 
     /// Depositing should NOT allow reentrancy.
@@ -180,9 +180,9 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         vm.assume(reAmount != 0);
         vm.prank(depositor);
         Reenteroor reenteroor = new Reenteroor();
-        reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV4.deposit.selector, reToken, reVaultId, reAmount));
+        reenteroor.reenterWith(abi.encodeWithSelector(IOrderBookV4.deposit2.selector, reToken, reVaultId, reAmount, new EvaluableV3[](0)));
         vm.expectRevert(bytes("ReentrancyGuard: reentrant call"));
-        iOrderbook.deposit(address(reenteroor), vaultId, amount);
+        iOrderbook.deposit2(address(reenteroor), vaultId, amount, new EvaluableV3[](0));
     }
 
     /// Vault balances MUST NOT silently overflow.
@@ -199,7 +199,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amountOne),
             abi.encode(true)
         );
-        iOrderbook.deposit(address(iToken0), vaultId, amountOne);
+        iOrderbook.deposit2(address(iToken0), vaultId, amountOne, new EvaluableV3[](0));
 
         vm.prank(depositor);
         vm.mockCall(
@@ -208,7 +208,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         vm.expectRevert(stdError.arithmeticError);
-        iOrderbook.deposit(address(iToken0), vaultId, amountTwo);
+        iOrderbook.deposit2(address(iToken0), vaultId, amountTwo, new EvaluableV3[](0));
     }
 
     // Invariant testing doesn't seem to work currently.

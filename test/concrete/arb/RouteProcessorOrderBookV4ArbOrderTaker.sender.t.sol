@@ -7,7 +7,9 @@ import {
     OrderV3,
     EvaluableV3,
     TakeOrderConfigV3,
-    TakeOrdersConfigV3
+    TakeOrdersConfigV3,
+    IInterpreterV3,
+    IInterpreterStoreV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {
     RouteProcessorOrderBookV4ArbOrderTaker,
@@ -21,8 +23,8 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
     {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb(
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0, EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
         );
     }
 
@@ -40,9 +42,10 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb(
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
-            minimumOutput
+            minimumOutput,
+            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
         );
     }
 }

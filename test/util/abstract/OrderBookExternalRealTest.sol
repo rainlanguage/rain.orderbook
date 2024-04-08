@@ -12,10 +12,9 @@ import {
 import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
-import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/unstable/IParserV2.sol";
-import {IOrderBookV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IOrderBookV4, IInterpreterV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
@@ -24,7 +23,7 @@ import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterPa
 string constant DEPLOYER_META_PATH = "lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
-    IInterpreterV2 internal immutable iInterpreter;
+    IInterpreterV3 internal immutable iInterpreter;
     IInterpreterStoreV2 internal immutable iStore;
     IParserV2 internal immutable iParserV2;
     IOrderBookV4 internal immutable iOrderbook;
@@ -32,9 +31,9 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     IERC20 internal immutable iToken1;
 
     constructor() {
-        iInterpreter = IInterpreterV2(new RainterpreterNPE2());
+        iInterpreter = IInterpreterV3(new RainterpreterNPE2());
         iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
-        address parser = IParserV2(new RainterpreterParserNPE2());
+        address parser = address(new RainterpreterParserNPE2());
 
         // Deploy the expression deployer.
         vm.etch(address(IERC1820_REGISTRY), REVERTING_MOCK_BYTECODE);

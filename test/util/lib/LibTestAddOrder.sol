@@ -16,13 +16,9 @@ library LibTestAddOrder {
     /// for a given order config.
     function expectedOrder(
         address owner,
-        OrderConfigV3 memory config,
-        IInterpreterV3 interpreter,
-        IInterpreterStoreV2 store,
-        bytes memory bytecode
+        OrderConfigV3 memory config
     ) internal pure returns (OrderV3 memory, bytes32) {
-        EvaluableV3 memory expectedEvaluable = EvaluableV3(interpreter, store, bytecode);
-        OrderV3 memory order = OrderV3(owner, expectedEvaluable, config.validInputs, config.validOutputs, bytes32(0));
+        OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, bytes32(0));
         return (order, LibOrder.hash(order));
     }
 

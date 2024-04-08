@@ -39,7 +39,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             vm.mockCall(outputToken, "", abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new EvaluableV3[](0));
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](configs.length);
@@ -47,10 +47,10 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < configs.length; i++) {
             bytes memory bytecode = iParserV2.parse2(configs[i]);
             EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-            config = OrderV3(validInputs, validOutputs, evaluable, "");
+            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
 
             vm.recordLogs();
-            iOrderbook.addOrder(config);
+            iOrderbook.addOrder2(config, new EvaluableV3[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 3);
             (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
@@ -62,7 +62,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         if (err.length > 0) {
             vm.expectRevert(err);
         }
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);
         // We don't really care about the outputs as the tests are basically just
         // trying to show that the IO handler is running or not running by simple
         // reverts.

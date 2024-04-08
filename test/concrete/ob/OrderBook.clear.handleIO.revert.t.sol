@@ -41,16 +41,16 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new EvaluableV3[](0));
         assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
 
         bytes memory bytecode = iParserV2.parse2(rainString);
         EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-        config = OrderConfigV3(validInputs, validOutputs, evaluable, "");
+        config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
 
         vm.prank(owner);
         vm.recordLogs();
-        iOrderbook.addOrder(config);
+        iOrderbook.addOrder2(config, new EvaluableV3[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 3);
         (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));

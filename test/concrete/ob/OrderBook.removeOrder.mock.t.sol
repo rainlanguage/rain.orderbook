@@ -2,7 +2,7 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV3, OrderV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {OrderConfigV3, OrderV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
@@ -10,19 +10,19 @@ import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 /// @notice A contract to test the OrderBook removeOrder function.
 contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     /// An order MUST ONLY be removable by its owner.
-    function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV3 memory config, address expression)
+    function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV3 memory config, bytes memory expression)
         external
     {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(alice != bob);
 
         (OrderV3 memory expectedOrder, bytes32 expectedOrderHash) =
-            LibTestAddOrder.expectedOrder(alice, config, iInterpreter, iStore, expression);
+            LibTestAddOrder.expectedOrder(alice, config);
 
         // It will revert even if the order has not been added yet.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder(expectedOrder);
+        iOrderbook.removeOrder2(expectedOrder, new EvaluableV3[](0));
 
         // And will revert after the order is added.
         (OrderV3 memory order, bytes32 orderHash) = addOrderWithChecks(alice, config, expression);
@@ -30,7 +30,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder(order);
+        iOrderbook.removeOrder2(order, new EvaluableV3[](0));
 
         // Alice can remove the order.
         removeOrderWithChecks(alice, order);
@@ -38,11 +38,11 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // It will revert even after the order has been removed.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder(order);
+        iOrderbook.removeOrder2(order, new EvaluableV3[](0));
     }
 
     /// The same order can be added and removed multiple times.
-    function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, address expression) external {
+    function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, bytes memory expression) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         OrderV3 memory order;
@@ -60,15 +60,15 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// An order MUST NOT change state if it does not exist.
-    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, address expression) external {
-        LibTestAddOrder.conformConfig(config, iDeployer);
+    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, bytes memory expression) external {
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         (OrderV3 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(alice, config, iInterpreter, iStore, expression);
+            LibTestAddOrder.expectedOrder(alice, config);
         assertFalse(iOrderbook.orderExists(orderHash));
         vm.record();
         vm.recordLogs();
         vm.prank(alice);
-        assertFalse(iOrderbook.removeOrder(order));
+        assertFalse(iOrderbook.removeOrder2(order, new EvaluableV3[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.
@@ -81,17 +81,17 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     function testRemoveOrderDifferent(
         address alice,
         OrderConfigV3 memory configOne,
-        address expressionOne,
+        bytes memory expressionOne,
         OrderConfigV3 memory configTwo,
-        address expressionTwo
+        bytes memory expressionTwo
     ) external {
-        LibTestAddOrder.conformConfig(configOne, iDeployer);
-        LibTestAddOrder.conformConfig(configTwo, iDeployer);
+        LibTestAddOrder.conformConfig(configOne, iInterpreter, iStore);
+        LibTestAddOrder.conformConfig(configTwo, iInterpreter, iStore);
 
         (OrderV3 memory expectedOrderOne, bytes32 expectedOrderHashOne) =
-            LibTestAddOrder.expectedOrder(alice, configOne, iInterpreter, iStore, expressionOne);
+            LibTestAddOrder.expectedOrder(alice, configOne);
         (OrderV3 memory expectedOrderTwo, bytes32 expectedOrderHashTwo) =
-            LibTestAddOrder.expectedOrder(alice, configTwo, iInterpreter, iStore, expressionTwo);
+            LibTestAddOrder.expectedOrder(alice, configTwo);
         (expectedOrderOne);
         (expectedOrderTwo);
         vm.assume(expectedOrderHashOne != expectedOrderHashTwo);
@@ -105,10 +105,10 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Different owners can add and remove the same order.
-    function testRemoveOrderDifferentOwners(address alice, address bob, OrderConfigV3 memory config, address expression)
+    function testRemoveOrderDifferentOwners(address alice, address bob, OrderConfigV3 memory config, bytes memory expression)
         external
     {
-        LibTestAddOrder.conformConfig(config, iDeployer);
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(alice != bob);
         (OrderV3 memory orderAlice, bytes32 orderHashAlice) = addOrderWithChecks(alice, config, expression);
         (OrderV3 memory orderBob, bytes32 orderHashBob) = addOrderWithChecks(bob, config, expression);
@@ -117,11 +117,11 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // Owners can't interfere with each other.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice, bob));
         vm.prank(alice);
-        iOrderbook.removeOrder(orderBob);
+        iOrderbook.removeOrder2(orderBob, new EvaluableV3[](0));
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder(orderAlice);
+        iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
 
         removeOrderWithChecks(alice, orderAlice);
         removeOrderWithChecks(bob, orderBob);
@@ -132,20 +132,20 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         address alice,
         address bob,
         OrderConfigV3 memory configOne,
-        address expressionOne,
+        bytes memory expressionOne,
         OrderConfigV3 memory configTwo,
-        address expressionTwo
+        bytes memory expressionTwo
     ) external {
         {
-            LibTestAddOrder.conformConfig(configOne, iDeployer);
-            LibTestAddOrder.conformConfig(configTwo, iDeployer);
+            LibTestAddOrder.conformConfig(configOne, iInterpreter, iStore);
+            LibTestAddOrder.conformConfig(configTwo, iInterpreter, iStore);
             vm.assume(alice != bob);
 
             // Ensure the configs are different.
             (OrderV3 memory expectedOrderOne, bytes32 expectedOrderHashOne) =
-                LibTestAddOrder.expectedOrder(address(0), configOne, iInterpreter, iStore, expressionOne);
+                LibTestAddOrder.expectedOrder(address(0), configOne);
             (OrderV3 memory expectedOrderTwo, bytes32 expectedOrderHashTwo) =
-                LibTestAddOrder.expectedOrder(address(0), configTwo, iInterpreter, iStore, expressionTwo);
+                LibTestAddOrder.expectedOrder(address(0), configTwo);
             (expectedOrderOne);
             (expectedOrderTwo);
             vm.assume(expectedOrderHashOne != expectedOrderHashTwo);
@@ -176,17 +176,17 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // Owners can't interfere with each other.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice, bob));
         vm.prank(alice);
-        iOrderbook.removeOrder(orderBobOne);
+        iOrderbook.removeOrder2(orderBobOne, new EvaluableV3[](0));
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice, bob));
         vm.prank(alice);
-        iOrderbook.removeOrder(orderBobTwo);
+        iOrderbook.removeOrder2(orderBobTwo, new EvaluableV3[](0));
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder(orderAliceOne);
+        iOrderbook.removeOrder2(orderAliceOne, new EvaluableV3[](0));
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder(orderAliceTwo);
+        iOrderbook.removeOrder2(orderAliceTwo, new EvaluableV3[](0));
 
         removeOrderWithChecks(alice, orderAliceOne);
         removeOrderWithChecks(bob, orderBobOne);

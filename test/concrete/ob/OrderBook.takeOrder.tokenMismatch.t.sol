@@ -6,10 +6,11 @@ import {
     OrderV3,
     IO,
     TakeOrderConfigV3,
-    TakeOrdersConfigV3
+    TakeOrdersConfigV3,
+    EvaluableV3,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -54,7 +55,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
                 TokenMismatch.selector, b.validInputs[bInputIOIndex].token, a.validInputs[aInputIOIndex].token
             )
         );
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -93,7 +94,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
                 TokenMismatch.selector, b.validOutputs[bOutputIOIndex].token, a.validOutputs[aOutputIOIndex].token
             )
         );
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 }

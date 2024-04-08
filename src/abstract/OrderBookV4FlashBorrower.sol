@@ -61,6 +61,9 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     using Address for address;
     using SafeERC20 for IERC20;
 
+    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {
+    }
+
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IERC3156FlashBorrower).interfaceId || super.supportsInterface(interfaceId);
@@ -103,7 +106,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders(takeOrders);
+        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders2(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;

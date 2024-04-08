@@ -9,9 +9,10 @@ import {NoOrders} from "src/concrete/ob/OrderBook.sol";
 import {
     OrderV3,
     TakeOrdersConfigV3,
-    TakeOrderConfigV3
+    TakeOrderConfigV3,
+    SignedContextV1,
+    EvaluableV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
@@ -25,7 +26,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         TakeOrdersConfigV3 memory config =
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV3[](0), "");
         vm.expectRevert(NoOrders.selector);
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -55,7 +56,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         assertEq(totalTakerInput, 0);
         assertEq(totalTakerOutput, 0);
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -113,7 +114,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
         vm.recordLogs();
         {
-            (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+            (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
             assertEq(totalTakerInput, 0);
             assertEq(totalTakerOutput, 0);
         }

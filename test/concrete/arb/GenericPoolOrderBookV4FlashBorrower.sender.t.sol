@@ -12,7 +12,9 @@ import {
     OrderV3,
     TakeOrderConfigV3,
     EvaluableV3,
-    TakeOrdersConfigV3
+    TakeOrdersConfigV3,
+    IInterpreterV3,
+    IInterpreterStoreV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
@@ -29,10 +31,11 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
     ) public {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV4FlashBorrower(iArb).arb(
+        GenericPoolOrderBookV4FlashBorrower(iArb).arb2(
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             0,
-            abi.encode(iRefundoor, iRefundoor, "")
+            abi.encode(iRefundoor, iRefundoor, ""),
+            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
         );
     }
 
@@ -50,10 +53,11 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        GenericPoolOrderBookV4FlashBorrower(iArb).arb(
+        GenericPoolOrderBookV4FlashBorrower(iArb).arb2(
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             minimumOutput,
-            abi.encode(iRefundoor, iRefundoor, "")
+            abi.encode(iRefundoor, iRefundoor, ""),
+            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
         );
     }
 }

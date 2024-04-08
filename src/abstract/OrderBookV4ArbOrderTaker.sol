@@ -40,6 +40,9 @@ SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, ReentrancyGuard, ERC165, OrderBookV4ArbCommon {
     using SafeERC20 for IERC20;
 
+    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {
+    }
+
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return (interfaceId == type(IOrderBookV4OrderTaker).interfaceId)
@@ -58,7 +61,7 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
 
         IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
         IERC20(ordersInputToken).safeApprove(address(iOrderBook), type(uint256).max);
-        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders(takeOrders);
+        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders2(takeOrders);
         (totalInput, totalOutput);
         IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
 

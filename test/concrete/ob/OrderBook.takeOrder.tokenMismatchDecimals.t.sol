@@ -3,11 +3,12 @@ pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {TokenDecimalsMismatch} from "src/concrete/ob/OrderBook.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {
     TakeOrderConfigV3,
     TakeOrdersConfigV3,
-    OrderV3
+    OrderV3,
+    EvaluableV3,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchDecimalsTest
@@ -56,7 +57,7 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
                 a.validInputs[aInputIOIndex].decimals
             )
         );
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -98,7 +99,7 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
                 a.validOutputs[aOutputIOIndex].decimals
             )
         );
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 }

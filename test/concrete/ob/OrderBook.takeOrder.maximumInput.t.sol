@@ -27,7 +27,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV3(order, 0, 0, signedContexts);
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, 0, type(uint256).max, orders, "");
         vm.expectRevert(ZeroMaximumInput.selector);
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -66,12 +66,12 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                     IO[] memory outputs = new IO[](1);
                     outputs[0] = IO(address(iToken1), 18, vaultId);
                     EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-                    orderConfig = OrderConfigV3(inputs, outputs, evaluable, "");
+                    orderConfig = OrderConfigV3(evaluable, inputs, outputs, bytes32(0), bytes32(0), "");
                 }
 
                 vm.prank(testOrders[i].owner);
                 vm.recordLogs();
-                iOrderbook.addOrder(orderConfig);
+                iOrderbook.addOrder2(orderConfig, new EvaluableV3[](0));
                 Vm.Log[] memory entries = vm.getRecordedLogs();
                 assertEq(entries.length, 3);
                 (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
@@ -98,7 +98,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 );
                 uint256 balanceBefore = iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId);
                 vm.prank(testVaults[i].owner);
-                iOrderbook.deposit(testVaults[i].token, vaultId, testVaults[i].deposit);
+                iOrderbook.deposit2(testVaults[i].token, vaultId, testVaults[i].deposit, new EvaluableV3[](0));
                 assertEq(
                     iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId),
                     balanceBefore + testVaults[i].deposit,
@@ -136,7 +136,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         );
 
         vm.prank(bob);
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         assertEq(totalTakerInput, expectedTakerInput, "totalTakerInput");
         assertEq(totalTakerOutput, expectedTakerOutput, "totalTakerOutput");
 

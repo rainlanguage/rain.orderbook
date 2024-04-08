@@ -10,6 +10,7 @@ import {
 import {IOrderBookV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
+import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 
 /// Thrown when the minimum output for the sender is not met after the arb.
 /// @param minimum The minimum output expected by the sender.
@@ -42,6 +43,8 @@ error BadEvaluable();
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
 abstract contract OrderBookV4ArbCommon {
+    using LibEvaluable for EvaluableV3;
+
     event Construct(address sender, OrderBookV4ArbConfigV1 config);
 
     bytes32 public immutable iEvaluableHash;
@@ -61,7 +64,7 @@ abstract contract OrderBookV4ArbCommon {
                 if (evaluable.hash() != iEvaluableHash) {
             revert BadEvaluable();
         }
-        if (evaluable.interpreter != address(0)) {
+        if (address(evaluable.interpreter) != address(0)) {
             (uint256[] memory stack, uint256[] memory kvs) = evaluable.interpreter.eval3(
                 evaluable.store,
                 LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),

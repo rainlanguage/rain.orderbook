@@ -5,10 +5,8 @@ import {Test} from "lib/forge-std/src/Test.sol";
 
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV3, OrderV3, IO, ClearConfig} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {OrderConfigV3, OrderV3, IO, ClearConfig, EvaluableV3, SignedContextV1, IInterpreterV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookClearTest
@@ -21,7 +19,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         address bob,
         OrderConfigV3 memory bobConfig,
         uint256 bobVaultId,
-        address expression,
+        bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,
         uint256 bobBountyVaultId
@@ -62,13 +60,13 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStack[1] = 1e18; // orderIORatio
         vm.mockCall(
             address(iInterpreter),
-            abi.encodeWithSelector(IInterpreterV2.eval2.selector),
+            abi.encodeWithSelector(IInterpreterV3.eval3.selector),
             abi.encode(orderStack, new uint256[](0))
         );
 
         // Clear the order using `bountyBot` address as caller clearer.
         vm.prank(bountyBot);
-        iOrderbook.clear(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
+        iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
     }
 
     /// Add an order using an owner (the caller) and modify the valid IOs to have
@@ -76,7 +74,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     function _addOrderMockInternal(
         address owner,
         OrderConfigV3 memory config,
-        address expression,
+        bytes memory expression,
         IERC20 inputToken,
         IERC20 outputToken
     ) internal returns (OrderV3 memory, bytes32) {
@@ -99,7 +97,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(true)
         );
-        iOrderbook.deposit(address(token), vaultId, amount);
+        iOrderbook.deposit2(address(token), vaultId, amount, new EvaluableV3[](0));
 
         // Check that the vaultBalance was updated
         assertEq(iOrderbook.vaultBalance(depositor, address(token), vaultId), amount);
