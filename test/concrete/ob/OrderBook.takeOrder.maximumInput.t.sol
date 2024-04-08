@@ -9,7 +9,7 @@ import {
     TakeOrdersConfigV3,
     ZeroMaximumInput,
     IO,
-    EvaluableConfigV3,
+    EvaluableV3,
     OrderConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
@@ -66,8 +66,8 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                     inputs[0] = IO(address(iToken0), 18, vaultId);
                     IO[] memory outputs = new IO[](1);
                     outputs[0] = IO(address(iToken1), 18, vaultId);
-                    EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-                    orderConfig = OrderConfigV3(inputs, outputs, evaluableConfig, "");
+                    EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iInterpreterStore, bytecode);
+                    orderConfig = OrderConfigV3(inputs, outputs, evaluable, "");
                 }
 
                 vm.prank(testOrders[i].owner);

@@ -17,12 +17,11 @@ error BadLender(address badLender);
 
 /// Configuration for an arb contract to construct.
 /// @param orderBook The `OrderBook` contract to arb against.
-/// @param evaluableConfig The `EvaluableConfigV3` to use as a pre-hook for each
-/// arb.
+/// @param evaluable The `EvaluableV3` to use as a pre-hook for each arb.
 /// @param implementationData The constructor data for the specific
 /// implementation of the arb contract.
 struct OrderBookV4ArbConfigV1 {
     address orderBook;
-    EvaluableConfigV3 evaluableConfig;
+    EvaluableV3 evaluable;
     bytes implementationData;
 }

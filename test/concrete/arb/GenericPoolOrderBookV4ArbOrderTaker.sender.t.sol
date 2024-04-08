@@ -10,8 +10,7 @@ import {
 } from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {
     OrderV3,
-    EvaluableConfigV3,
-    IExpressionDeployerV3,
+    EvaluableV3,
     TakeOrderConfigV3,
     TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";

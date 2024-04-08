@@ -10,7 +10,6 @@ import {
     IO,
     OrderConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 
 /// @title OrderBookClearHandleIORevertTest
@@ -44,9 +43,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
         assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
 
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
-        EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-        config = OrderConfigV3(validInputs, validOutputs, evaluableConfig, "");
+        bytes memory bytecode = IParserV2(address(iParser)).parse2(rainString);
+        EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iInterpreterStore, bytecode);
+        config = OrderConfigV3(validInputs, validOutputs, evaluable, "");
 
         vm.prank(owner);
         vm.recordLogs();

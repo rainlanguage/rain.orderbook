@@ -25,10 +25,9 @@ import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterPa
 string constant DEPLOYER_META_PATH = "lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
-    IExpressionDeployerV3 internal immutable iDeployer;
     IInterpreterV2 internal immutable iInterpreter;
     IInterpreterStoreV2 internal immutable iStore;
-    IParserV1 internal immutable iParser;
+    IParserV2 internal immutable iParserV2;
     IOrderBookV4 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
@@ -36,7 +35,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     constructor() {
         iInterpreter = IInterpreterV2(new RainterpreterNPE2());
         iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
-        iParser = IParserV1(new RainterpreterParserNPE2());
+        parser = IParserV2(new RainterpreterParserNPE2());
 
         // Deploy the expression deployer.
         vm.etch(address(IERC1820_REGISTRY), REVERTING_MOCK_BYTECODE);
@@ -56,11 +55,11 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
             console2.log("expected deployer meta hash:");
             console2.logBytes32(DEPLOYER_CALLER_META_HASH);
         }
-        iDeployer = IExpressionDeployerV3(
+        iParserV2 = IParserV2(
             address(
                 new RainterpreterExpressionDeployerNPE2(
                     RainterpreterExpressionDeployerNPE2ConstructionConfig(
-                        address(iInterpreter), address(iStore), address(iParser), deployerMeta
+                        address(iInterpreter), address(iStore), address(parser), deployerMeta
                     )
                 )
             )

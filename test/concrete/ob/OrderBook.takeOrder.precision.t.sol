@@ -11,7 +11,6 @@ import {
     OrderConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -34,9 +33,9 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
-            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
-            EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-            config = OrderConfigV3(validInputs, validOutputs, evaluableConfig, "");
+            bytes memory bytecode = IParserV2(address(iParserV2)).parse2(rainString);
+            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iInterpreterStore, bytecode);
+            config = OrderConfigV3(validInputs, validOutputs, evaluable, "");
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
             vm.etch(inputToken, hex"fe");

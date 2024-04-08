@@ -6,7 +6,6 @@ import {RouteProcessorOrderBookV4ArbOrderTakerTest} from
 import {
     OrderV3,
     EvaluableV3,
-    IExpressionDeployerV3,
     TakeOrderConfigV3,
     TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";

@@ -11,9 +11,8 @@ import {
 import {
     OrderV3,
     TakeOrderConfigV3,
-    EvaluableConfigV3,
-    TakeOrdersConfigV3,
-    IExpressionDeployerV3
+    EvaluableV3,
+    TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {

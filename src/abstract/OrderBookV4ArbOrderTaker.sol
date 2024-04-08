@@ -6,8 +6,7 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/Reentra
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
-import {EvaluableConfigV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV4, NoOrders} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
@@ -20,7 +19,13 @@ import {
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV4ArbConfigV1} from "./OrderBookV4ArbCommon.sol";
+import {
+    BadLender,
+    MinimumOutput,
+    NonZeroBeforeArbStack,
+    OrderBookV4ArbConfigV1,
+    EvaluableV3
+} from "./OrderBookV4ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 
@@ -42,7 +47,7 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
 
     IOrderBookV4 public immutable iOrderBook;
     EncodedDispatch public immutable iI9rDispatch;
-    IInterpreterV2 public immutable iI9r;
+    IInterpreterV3 public immutable iI9r;
     IInterpreterStoreV2 public immutable iI9rStore;
 
     constructor(OrderBookV4ArbConfigV1 memory config) {
@@ -52,7 +57,7 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
         // // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
 
-        IInterpreterV2 i9r = IInterpreterV2(address(0));
+        IInterpreterV3 i9r = IInterpreterV3(address(0));
         IInterpreterStoreV2 i9rStore = IInterpreterStoreV2(address(0));
         EncodedDispatch i9rDispatch = EncodedDispatch.wrap(0);
 
