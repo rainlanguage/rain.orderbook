@@ -206,7 +206,7 @@ abstract contract OrderBookV3FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
-    /// the external liquidity. For example, `GenericPoolOrderBookV3FlashBorrower`
+    /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
     /// uses this data as a literal encoded external call.
     function arb(TakeOrdersConfigV2 calldata takeOrders, uint256 minimumSenderOutput, bytes calldata exchangeData)
         external
