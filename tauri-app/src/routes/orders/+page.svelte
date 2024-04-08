@@ -8,7 +8,13 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
-  import { orderbookAddress, subgraphUrl } from '$lib/stores/settings';
+  import {
+    orderbookAddress,
+    resetActiveNetworkRef,
+    resetActiveOrderbookRef,
+    subgraphUrl,
+    activeOrderbook,
+  } from '$lib/stores/settings';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -22,6 +28,16 @@
     DropdownItem,
     Spinner,
   } from 'flowbite-svelte';
+  import { reportErrorToSentry } from '$lib/services/sentry';
+  import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
+  import { onMount } from 'svelte';
+
+  onMount(async () => {
+    if (!$activeOrderbook) {
+      await resetActiveNetworkRef();
+      resetActiveOrderbookRef();
+    }
+  });
 
   $: $subgraphUrl, $ordersList?.fetchFirst();
   let openOrderRemoveModal = false;
@@ -32,26 +48,25 @@
     isSubmitting = true;
     try {
       await orderRemove(id);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
   }
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await orderRemoveCalldata(id) as Uint8Array;
+      const calldata = (await orderRemoveCalldata(id)) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress!);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(e);
+      reportErrorToSentry(e);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === "object" && (e as any)?.reason) {
+      if (typeof e === 'object' && (e as any)?.reason) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      }
-      else toasts.error("Transaction failed!");
+      } else toasts.error('Transaction failed!');
     }
     isSubmitting = false;
   }
@@ -66,7 +81,7 @@
 {:else}
   <div class="flex w-full justify-between py-4">
     <div class="text-3xl font-medium dark:text-white">Orders</div>
-    <Button color="green" href="/orders/add">Add Order</Button>
+    <ListViewOrderbookSelector />
   </div>
 
   <AppTable
@@ -145,5 +160,5 @@
   execButtonLabel="Remove Order"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />

@@ -1,6 +1,7 @@
 import { derived, writable } from "svelte/store";
 import { cachedWritableStore } from "./cachedWritableStore";
 import { toasts } from "$lib/stores/toasts";
+import { reportErrorToSentry } from '$lib/services/sentry';
 
 interface FetchableStoreData<T> {
   value: T,
@@ -22,6 +23,7 @@ export function fetchableStore<T>(key: string, defaultValue: T, handleFetch: () 
       const res: T = await handleFetch();
       value.set(res);
     } catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
     isFetching.set(false);

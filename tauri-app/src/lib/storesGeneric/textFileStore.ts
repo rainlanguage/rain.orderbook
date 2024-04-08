@@ -2,6 +2,7 @@ import { toasts } from '$lib/stores/toasts';
 import { open, save } from '@tauri-apps/api/dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
 import { derived, get, writable, type Invalidator, type Subscriber } from "svelte/store";
+import { reportErrorToSentry } from '$lib/services/sentry';
 
 interface TextFileData {
   text: string;
@@ -13,6 +14,8 @@ interface TextFileData {
 }
 
 type Unsubscriber = () => void;
+
+export const globalDotrainFile = textFileStore('Rain', ['rain']);
 
 export interface TextFileStore {
     subscribe: ( subscriber: Subscriber<TextFileData>, invalidate?: Invalidator<TextFileData>) => Unsubscriber,
@@ -64,6 +67,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
         path.set(pathValue as string);
       }
     } catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
 
@@ -84,6 +88,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
       toasts.success(`Saved to ${pathValue}`);
     }
     catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
 
@@ -108,6 +113,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
       }
 
     } catch(e) {
+      reportErrorToSentry(e);
       toasts.error(e as string);
     }
 

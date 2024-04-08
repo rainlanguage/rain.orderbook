@@ -15,6 +15,14 @@
 
           tauri-release-env = rainix.tauri-release-env.${system};
 
+          ob-rs-test = rainix.mkTask.${system} {
+            name = "ob-rs-test";
+            body = ''
+              set -euxo pipefail
+              cargo test --workspace .
+            '';
+          };
+
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
             body = ''
@@ -36,11 +44,8 @@
               typeshare crates/subgraph/src/types/order_takes_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakesList.ts;
               typeshare crates/subgraph/src/types/order_take_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakeDetail.ts;
 
-              typeshare crates/common/src/fuzz/mod.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/fuzz.ts;
-
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare crates/settings/src/config.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
-              typeshare crates/settings/src/config_source.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/configString.ts;
+              typeshare crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
@@ -54,8 +59,9 @@
               rainix.rust-build-inputs.${system}
             ];
           };
-          ob-tauri-test =  rainix.mkTask.${system} {
-            name = "ob-tauri-test";
+          
+          ob-tauri-unit-test =  rainix.mkTask.${system} {
+            name = "ob-tauri-unit-test";
             body = ''
               set -euxo pipefail
 
@@ -169,13 +175,13 @@
               ls src-tauri/target/release
 
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Rain\ Orderbook
-                install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Rain\ Orderbook
-                install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Rain\ Orderbook
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
 
-                otool -L src-tauri/target/release/Rain\ Orderbook
+                otool -L src-tauri/target/release/Raindex
                 grep_exit_code=0
-                otool -L src-tauri/target/release/Rain\ Orderbook | grep -q /nix/store || grep_exit_code=$?
+                otool -L src-tauri/target/release/Raindex | grep -q /nix/store || grep_exit_code=$?
                 if [ $grep_exit_code -eq 0 ]; then
                   exit 1
                 fi
@@ -185,11 +191,19 @@
         
         } // rainix.packages.${system};
 
-        devShells.default = rainix.devShells.${system}.default;
+        devShells.default = pkgs.mkShell {
+          packages = [
+            packages.ob-rs-test
+          ];
+
+          shellHook = rainix.devShells.${system}.default.shellHook;
+          buildInputs = rainix.devShells.${system}.default.buildInputs;
+          nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
+        };
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
             packages.ob-tauri-prelude
-            packages.ob-tauri-test
+            packages.ob-tauri-unit-test
             packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle

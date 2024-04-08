@@ -12,7 +12,7 @@ import {
 } from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
-    OrderBookV3ArbOrderTakerConfigV1,
+    OrderBookV3ArbConfigV1,
     MinimumOutput
 } from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 

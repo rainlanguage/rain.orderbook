@@ -162,8 +162,8 @@ impl AddOrderArgs {
         Ok(meta_doc_bytes)
     }
 
-    /// Generate an addOrder call from given dotrain
-    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
+    /// Compose to rainlang string
+    pub fn compose_to_rainlang(&self) -> Result<String, AddOrderArgsError> {
         // Parse file into dotrain document
         let meta_store = LANG_SERVICES.meta_store();
 
@@ -176,11 +176,15 @@ impl AddOrderArgs {
                     .collect(),
             );
         };
-
         let dotrain_doc =
             RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
-        let rainlang = dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?;
 
+        Ok(dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?)
+    }
+
+    /// Generate an addOrder call from given dotrain
+    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
+        let rainlang = self.compose_to_rainlang()?;
         let (bytecode, constants) = self.try_parse_rainlang(rpc_url, rainlang.clone()).await?;
         let meta = self.try_generate_meta(rainlang)?;
 
@@ -267,5 +271,58 @@ price: 2e18;
                 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
             ]
         );
+    }
+
+    #[test]
+    fn test_order_config_v2_validity() {
+        let inputs = vec![
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(0),
+                decimals: 18,
+            },
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(1),
+                decimals: 18,
+            },
+        ];
+        let outputs = vec![
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(0),
+                decimals: 18,
+            },
+            IO {
+                token: Address::random(),
+                vaultId: U256::from(1),
+                decimals: 18,
+            },
+        ];
+        let deployer = Address::random();
+        let bytecode = vec![
+            0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60,
+            0x60, 0x40,
+        ];
+        let constants = vec![U256::from(0), U256::from(1), U256::from(2), U256::from(3)];
+        let meta = vec![9, 10, 11, 12];
+
+        let order_config_v2 = OrderConfigV2 {
+            validInputs: inputs.clone(),
+            validOutputs: outputs.clone(),
+            evaluableConfig: EvaluableConfigV3 {
+                deployer,
+                bytecode: bytecode.clone(),
+                constants: constants.clone(),
+            },
+            meta: meta.clone(),
+        };
+
+        assert_eq!(order_config_v2.validInputs, inputs);
+        assert_eq!(order_config_v2.validOutputs, outputs);
+        assert_eq!(order_config_v2.evaluableConfig.deployer, deployer);
+        assert_eq!(order_config_v2.evaluableConfig.bytecode, bytecode);
+        assert_eq!(order_config_v2.evaluableConfig.constants, constants);
+        assert_eq!(order_config_v2.meta, meta.clone());
     }
 }

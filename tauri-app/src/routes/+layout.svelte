@@ -12,24 +12,12 @@
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
-  import { goto } from '$app/navigation';
-  import { hasRequiredSettings, settings } from '$lib/stores/settings';
-
-  $: $hasRequiredSettings, redirectIfMissingSettings();
-
-  async function redirectIfMissingSettings() {
-    await settings.load();
-    const hasRequiredSettingsVal = await hasRequiredSettings.load();
-    if (!hasRequiredSettingsVal) goto('/settings');
-  }
-
-  redirectIfMissingSettings();
 </script>
 
 <WindowDraggableArea />
 
-<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
-  <Sidebar hasRequiredSettings={$hasRequiredSettings} />
+<div class="mb-10 flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
+  <Sidebar />
 
   <main class="ml-64 h-full w-full grow overflow-x-auto p-8">
     <slot />
@@ -47,5 +35,5 @@
   </div>
 </div>
 <div class="bg-primary-400 fixed bottom-0 left-64 right-0 p-2 text-center text-white">
-  The Rain Orderbook app is still early alpha - have fun but use at your own risk!
+  The Raindex app is still early alpha - have fun but use at your own risk!
 </div>

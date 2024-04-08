@@ -14,15 +14,31 @@ use rain_orderbook_app_settings::chart::Chart;
 use rain_orderbook_app_settings::config::*;
 use rain_orderbook_app_settings::scenario::Scenario;
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
+use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChartData {
+    scenarios_data: HashMap<String, FuzzResultFlat>,
+    charts: HashMap<String, Chart>,
+}
 
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
     pub runs: Vec<RainEvalResult>,
+}
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FuzzResultFlat {
+    pub scenario: String,
+    pub column_names: Vec<String>,
+    #[typeshare(serialized_as = "Vec<Vec<String>>")]
+    pub data: Vec<Vec<U256>>,
 }
 
 impl FuzzResult {
@@ -35,29 +51,70 @@ impl FuzzResult {
         }
         Ok(collection)
     }
+
+    pub fn flatten_traces(&self) -> Result<FuzzResultFlat, FuzzRunnerError> {
+        let mut column_names: Vec<String> = vec![];
+        let mut source_paths: Vec<String> = vec![];
+
+        let first_run_traces = &self
+            .runs
+            .first()
+            .ok_or(FuzzRunnerError::ScenarioNoRuns)?
+            .traces;
+
+        for trace in first_run_traces.iter() {
+            let current_path = if trace.parent_source_index == trace.source_index {
+                format!("{}", trace.source_index)
+            } else {
+                source_paths
+                    .iter()
+                    .rev()
+                    .find_map(|recent_path| {
+                        recent_path.split('.').last().and_then(|last_part| {
+                            if last_part == trace.parent_source_index.to_string() {
+                                Some(format!("{}.{}", recent_path, trace.source_index))
+                            } else {
+                                None
+                            }
+                        })
+                    })
+                    .ok_or_else(|| FuzzRunnerError::CorruptTraces)?
+            };
+
+            for (index, _) in trace.stack.iter().enumerate() {
+                column_names.push(format!("{}.{}", current_path, index));
+            }
+
+            source_paths.push(current_path);
+        }
+
+        let mut data: Vec<Vec<U256>> = vec![];
+
+        for run in self.runs.iter() {
+            let mut run_data: Vec<U256> = vec![];
+            for trace in run.traces.iter() {
+                let mut stack = trace.stack.clone();
+                stack.reverse();
+                for stack_item in stack.iter() {
+                    run_data.push(*stack_item);
+                }
+            }
+            data.push(run_data);
+        }
+        Ok(FuzzResultFlat {
+            scenario: self.scenario.clone(),
+            column_names,
+            data,
+        })
+    }
 }
 
+#[derive(Clone)]
 pub struct FuzzRunner {
     pub forker: Forker,
     pub dotrain: String,
     pub rng: TestRng,
     pub settings: Config,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PlotData {
-    pub name: String,
-    pub plot_type: String,
-    #[typeshare(serialized_as = "Vec<Vec<String>>")]
-    pub data: Vec<Vec<U256>>,
-}
-
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ChartData {
-    pub name: String,
-    pub plots: Vec<PlotData>,
 }
 
 #[derive(Error, Debug)]
@@ -66,6 +123,8 @@ pub enum FuzzRunnerError {
     ScenarioNotFound(String),
     #[error("Scenario has no runs defined")]
     ScenarioNoRuns,
+    #[error("Corrupt traces")]
+    CorruptTraces,
     #[error("{0} is not a testable scenario")]
     ScenarioNotTestable(String),
     #[error(transparent)]
@@ -212,55 +271,30 @@ impl FuzzRunner {
         })
     }
 
-    pub async fn build_chart_data(
-        &mut self,
-        name: String,
-        chart: Chart,
-    ) -> Result<ChartData, FuzzRunnerError> {
-        let res = self.run_scenario(&chart.scenario).await?;
-
-        let plot_data_results: Result<Vec<PlotData>, FuzzRunnerError> = chart
-            .plots
-            .into_iter()
-            .map(|(name, plot)| {
-                let x_result = res.collect_data_by_path(&plot.data.x);
-                let y_result = res.collect_data_by_path(&plot.data.y);
-
-                x_result
-                    .and_then(|x| {
-                        y_result.map(|y| {
-                            // Map each pair (x, y) into a Vec<U256>
-                            let merged_data = x
-                                .into_iter()
-                                .zip(y.into_iter())
-                                .map(|(x_val, y_val)| vec![x_val, y_val])
-                                .collect::<Vec<Vec<U256>>>();
-                            PlotData {
-                                plot_type: plot.plot_type,
-                                name,
-                                data: merged_data,
-                            }
-                        })
-                    })
-                    .map_err(|e| e.into())
-            })
-            .collect();
-
-        let plots = plot_data_results?;
-
-        Ok(ChartData { name, plots })
-    }
-
-    pub async fn build_chart_datas(&mut self) -> Result<Vec<ChartData>, FuzzRunnerError> {
+    pub async fn make_chart_data(&self) -> Result<ChartData, FuzzRunnerError> {
         let charts = self.settings.charts.clone();
-        let mut chart_datas = Vec::new();
+        let mut scenarios_data: HashMap<String, FuzzResultFlat> = HashMap::new();
 
-        for (name, chart) in charts {
-            let chart_data = self.build_chart_data(name, chart.deref().clone()).await?;
-            chart_datas.push(chart_data);
+        for (_, chart) in charts.clone() {
+            let scenario_name = chart.scenario.name.clone();
+            let mut runner = self.clone();
+            scenarios_data.entry(scenario_name.clone()).or_insert(
+                runner
+                    .run_scenario_by_name(&scenario_name)
+                    .await?
+                    .flatten_traces()?,
+            );
         }
 
-        Ok(chart_datas)
+        let charts: HashMap<String, Chart> = charts
+            .iter()
+            .map(|(k, v)| (k.clone(), v.as_ref().clone()))
+            .collect();
+
+        Ok(ChartData {
+            scenarios_data,
+            charts,
+        })
     }
 }
 
@@ -314,57 +348,50 @@ b: fuzzed;
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        println!("{:#?}", res);
+        assert!(res.runs.len() == 500);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_build_chart_data() {
+    async fn test_nested_flattened_fuzz() {
         let dotrain = r#"
-    deployers:
-        mumbai:
-            address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
-        some-deployer:
-            address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
-            network: mumbai
-    networks:
-        mumbai:
-            rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-            chain-id: 80001
-    scenarios:
-        mumbai:
-            runs: 500
-            bindings:
-                bound: 3
-        mainnet:
-            deployer: some-deployer
-            runs: 1
-    charts:
-        mainChart:
-            scenario: mumbai
-            plots:
-                plot1:
-                    data:
-                        x: 0.0
-                        y: 0.1
-                    plot-type: line
-                plot2:
-                    data:
-                        x: 0.0
-                        y: 0.2
-                    plot-type: bar
-    ---
-    #bound !bind it
-    #fuzzed !fuzz it
-    #calculate-io
-    a: bound,
-    b: fuzzed,
-    c: 1;
-    #handle-io
-    :;
-        "#;
+deployers:
+    mumbai:
+        address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
+    some-deployer:
+        address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
+        network: mumbai
+networks:
+    mumbai:
+        rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
+        chain-id: 80001
+scenarios:
+    mumbai:
+        runs: 500
+        bindings:
+            bound: 3
+    mainnet:
+        deployer: some-deployer
+        runs: 1
+---
+#bound !bind it
+#fuzzed !fuzz it
+#calculate-io
+a: 1,
+b: 2,
+c: call<'nested>(),
+d: call<'called-twice>();
+#nested
+c: 5,
+d: call<'called-twice>(),
+e: 3;
+#called-twice
+c: 6,
+d: 4;
+#handle-io
+:;
+    "#;
         let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-
         let config = settings
             .try_into()
             .map_err(|e| println!("{:?}", e))
@@ -372,23 +399,23 @@ b: fuzzed;
 
         let mut runner = FuzzRunner::new(dotrain, config, None).await;
 
-        let chart_data = runner.build_chart_datas().await.unwrap();
+        let res = runner
+            .run_scenario_by_name("mumbai")
+            .await
+            .map_err(|e| println!("{:#?}", e))
+            .unwrap();
 
-        println!("{:#?}", chart_data);
+        let flattened = res.flatten_traces().unwrap();
 
-        assert_eq!(chart_data.len(), 1);
-        assert_eq!(chart_data[0].name, "mainChart");
-        assert_eq!(chart_data[0].plots.len(), 2);
-
-        // Collect plot names from the result
-        let plot_names: Vec<String> = chart_data[0]
-            .plots
-            .iter()
-            .map(|plot| plot.name.clone())
-            .collect();
-
-        // Check for the presence of expected plot names
-        assert!(plot_names.contains(&"plot1".to_string()));
-        assert!(plot_names.contains(&"plot2".to_string()));
+        // find the column index of 0.2.3.0
+        let column_index = flattened.column_names.iter().position(|x| x == "0.2.3.0");
+        // get that from the first row of data
+        let value = flattened
+            .data
+            .first()
+            .unwrap()
+            .get(column_index.unwrap())
+            .unwrap();
+        assert!(value == &U256::from(6));
     }
 }

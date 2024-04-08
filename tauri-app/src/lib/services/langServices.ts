@@ -3,6 +3,7 @@ import { ErrorCode, type Problem, TextDocumentItem, Position, Hover, CompletionI
 import { rpcUrl } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
+import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
 /**
  * Provides problems callback by invoking related tauri command
@@ -12,6 +13,7 @@ export async function problemsCallback(textDocument: TextDocumentItem, bindings:
     return await invoke('call_lsp_problems', { textDocument, rpcUrl: get(rpcUrl), blockNumber: get(forkBlockNumber).value, bindings, deployer: deployerAddress });
   }
   catch (err) {
+    reportErrorToSentry(err, SentrySeverityLevel.Info);
     return [{
       msg: typeof err === "string" ? err : err instanceof Error ? err.message : "something went wrong!",
       position: [0, 0],

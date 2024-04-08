@@ -1,9 +1,9 @@
 import { settingsText } from "$lib/stores/settings";
-import type { Config } from "$lib/typeshare/config";
-import type { ConfigSource } from "$lib/typeshare/configString";
+import type { Config, ConfigSource } from "$lib/typeshare/config";
 import { invoke } from "@tauri-apps/api";
 import { get } from "svelte/store";
 import { ErrorCode, type Problem } from 'codemirror-rainlang';
+import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
 export const parseConfigSource = async (text: string): Promise<ConfigSource> => invoke("parse_configstring", {text});
 
@@ -17,6 +17,7 @@ export async function parseConfigSourceProblems(text: string) {
   try {
     await parseConfigSource(text);
   } catch(e) {
+    reportErrorToSentry(e, SentrySeverityLevel.Info);
     problems.push(convertErrorToProblem(e));
   }
 
@@ -29,6 +30,7 @@ export async function mergeDotrainConfigWithSettingsProblems(dotrain: string) {
   try {
     await mergeDotrainConfigWithSettings(dotrain);
   } catch(e) {
+    reportErrorToSentry(e, SentrySeverityLevel.Info);
     problems.push(convertErrorToProblem(e));
   }
 

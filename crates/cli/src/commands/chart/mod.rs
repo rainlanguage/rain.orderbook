@@ -22,10 +22,10 @@ impl Execute for Chart {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let config_string: ConfigSource = frontmatter.to_string().try_into()?;
+        let config_string = ConfigSource::try_from_string(frontmatter.to_string()).await?;
         let config: Config = config_string.try_into()?;
-        let mut fuzzer = FuzzRunner::new(&dotrain, config, None).await;
-        let chart_data = fuzzer.build_chart_datas().await?;
+        let fuzzer = FuzzRunner::new(&dotrain, config, None).await;
+        let chart_data = fuzzer.make_chart_data().await?;
 
         info!("{:#?}", chart_data);
         Ok(())
