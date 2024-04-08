@@ -5,11 +5,11 @@ import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     ClearConfig,
-    OrderV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
     IO,
-    OrderConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+    OrderConfigV3
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 
@@ -23,7 +23,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     {
         uint256 vaultId = 0;
 
-        OrderConfigV2 memory config;
+        OrderConfigV3 memory config;
         IO[] memory validOutputs;
         IO[] memory validInputs;
         {
@@ -46,7 +46,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
 
         (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
         EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-        config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
+        config = OrderConfigV3(validInputs, validOutputs, evaluableConfig, "");
 
         vm.prank(owner);
         vm.recordLogs();

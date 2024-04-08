@@ -10,12 +10,12 @@ import {
     OrderBookV3FlashBorrowerConfigV2
 } from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
 import {
-    OrderV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
     EvaluableConfigV3,
-    TakeOrdersConfigV2,
+    TakeOrdersConfigV3,
     IExpressionDeployerV3
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
@@ -36,21 +36,21 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
     }
 
     function testGenericPoolOrderBookV3FlashBorrowerTakeOrdersSender(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex
     ) public {
-        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         GenericPoolOrderBookV3FlashBorrower(iArb).arb(
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, ""),
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             0,
             abi.encode(iRefundoor, iRefundoor, "")
         );
     }
 
     function testGenericPoolOrderBookV3FlashBorrowerMinimumOutput(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256 minimumOutput,
@@ -60,7 +60,7 @@ contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
         minimumOutput = bound(minimumOutput, mintAmount + 1, type(uint256).max);
         iTakerOutput.mint(iArb, mintAmount);
 
-        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         GenericPoolOrderBookV3FlashBorrower(iArb).arb(

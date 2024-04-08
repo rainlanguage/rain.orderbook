@@ -10,8 +10,8 @@ import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {Refundoor} from "test/util/concrete/Refundoor.sol";
 import {
     FlashLendingMockOrderBook,
-    OrderV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
     IO,
     SignedContextV1
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
@@ -71,7 +71,7 @@ abstract contract ArbTest is Test {
     function buildTakeOrderConfig(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
-        returns (TakeOrderConfigV2[] memory)
+        returns (TakeOrderConfigV3[] memory)
     {
         if (order.validInputs.length == 0) {
             order.validInputs = new IO[](1);
@@ -85,8 +85,8 @@ abstract contract ArbTest is Test {
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
-        orders[0] = TakeOrderConfigV2(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        orders[0] = TakeOrderConfigV3(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
         return orders;
     }
 

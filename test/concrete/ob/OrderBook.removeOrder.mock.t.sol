@@ -2,7 +2,7 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV2, OrderV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderConfigV3, OrderV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
@@ -10,7 +10,7 @@ import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 /// @notice A contract to test the OrderBook removeOrder function.
 contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     /// An order MUST ONLY be removable by its owner.
-    function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV2 memory config, address expression)
+    function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV3 memory config, address expression)
         external
     {
         LibTestAddOrder.conformConfig(config, iDeployer);
@@ -42,7 +42,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// The same order can be added and removed multiple times.
-    function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV2 memory config, address expression) external {
+    function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, address expression) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
 
         OrderV2 memory order;
@@ -60,7 +60,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// An order MUST NOT change state if it does not exist.
-    function testRemoveOrderDoesNotExist(address alice, OrderConfigV2 memory config, address expression) external {
+    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, address expression) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
         (OrderV2 memory order, bytes32 orderHash) =
             LibTestAddOrder.expectedOrder(alice, config, iInterpreter, iStore, expression);
@@ -80,9 +80,9 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     /// Can add and remove different orders.
     function testRemoveOrderDifferent(
         address alice,
-        OrderConfigV2 memory configOne,
+        OrderConfigV3 memory configOne,
         address expressionOne,
-        OrderConfigV2 memory configTwo,
+        OrderConfigV3 memory configTwo,
         address expressionTwo
     ) external {
         LibTestAddOrder.conformConfig(configOne, iDeployer);
@@ -105,7 +105,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Different owners can add and remove the same order.
-    function testRemoveOrderDifferentOwners(address alice, address bob, OrderConfigV2 memory config, address expression)
+    function testRemoveOrderDifferentOwners(address alice, address bob, OrderConfigV3 memory config, address expression)
         external
     {
         LibTestAddOrder.conformConfig(config, iDeployer);
@@ -131,9 +131,9 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     function testRemoveOrderDifferentOwnersDifferent(
         address alice,
         address bob,
-        OrderConfigV2 memory configOne,
+        OrderConfigV3 memory configOne,
         address expressionOne,
-        OrderConfigV2 memory configTwo,
+        OrderConfigV3 memory configTwo,
         address expressionTwo
     ) external {
         {

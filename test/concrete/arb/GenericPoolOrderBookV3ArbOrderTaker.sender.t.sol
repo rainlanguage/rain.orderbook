@@ -10,18 +10,18 @@ import {
 } from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 import {
-    OrderV2,
+    OrderV3,
     EvaluableConfigV3,
     IExpressionDeployerV3,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerSenderTest is GenericPoolOrderBookV3ArbOrderTakerTest {
-    function testGenericPoolTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function testGenericPoolTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
-        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
@@ -40,7 +40,7 @@ contract GenericPoolOrderBookV3ArbOrderTakerSenderTest is GenericPoolOrderBookV3
         minimumOutput = bound(minimumOutput, mintAmount + 1, type(uint256).max);
         iTakerOutput.mint(iArb, mintAmount);
 
-        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         GenericPoolOrderBookV3ArbOrderTaker(iArb).arb(

@@ -6,20 +6,20 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {NoOrders} from "src/concrete/ob/OrderBook.sol";
-import {OrderV2, TakeOrdersConfigV2, TakeOrderConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderV3, TakeOrdersConfigV3, TakeOrderConfigV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
 /// on the no-op case.
 contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
-    using LibOrder for OrderV2;
+    using LibOrder for OrderV3;
 
     /// Take orders makes no sense without any orders in the input array and the
     /// caller has full control over this so we error.
     function testTakeOrderNoopZeroOrders() external {
-        TakeOrdersConfigV2 memory config =
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV2[](0), "");
+        TakeOrdersConfigV3 memory config =
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV3[](0), "");
         vm.expectRevert(NoOrders.selector);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
         (totalTakerInput, totalTakerOutput);
@@ -44,10 +44,10 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         // malformed orders to be passed in, and still show that nothing happens.
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
-        TakeOrderConfigV2 memory orderConfig = TakeOrderConfigV2(order, inputIOIndex, outputIOIndex, signedContexts);
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
+        TakeOrderConfigV3 memory orderConfig = TakeOrderConfigV3(order, inputIOIndex, outputIOIndex, signedContexts);
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV3 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
@@ -85,26 +85,26 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
         order1.validOutputs[outputIOIndex1].decimals = order2.validOutputs[outputIOIndex2].decimals;
 
-        TakeOrdersConfigV2 memory config;
+        TakeOrdersConfigV3 memory config;
         {
-            TakeOrderConfigV2[] memory orders;
+            TakeOrderConfigV3[] memory orders;
             {
                 // We don't bound the input or output indexes as we want to allow
                 // malformed orders to be passed in, and still show that nothing happens.
                 SignedContextV1[] memory signedContexts1 = new SignedContextV1[](1);
                 signedContexts1[0] = signedContext1;
-                TakeOrderConfigV2 memory orderConfig1 =
-                    TakeOrderConfigV2(order1, inputIOIndex1, outputIOIndex1, signedContexts1);
+                TakeOrderConfigV3 memory orderConfig1 =
+                    TakeOrderConfigV3(order1, inputIOIndex1, outputIOIndex1, signedContexts1);
                 SignedContextV1[] memory signedContexts2 = new SignedContextV1[](1);
                 signedContexts2[0] = signedContext2;
-                TakeOrderConfigV2 memory orderConfig2 =
-                    TakeOrderConfigV2(order2, inputIOIndex2, outputIOIndex2, signedContexts2);
-                orders = new TakeOrderConfigV2[](2);
+                TakeOrderConfigV3 memory orderConfig2 =
+                    TakeOrderConfigV3(order2, inputIOIndex2, outputIOIndex2, signedContexts2);
+                orders = new TakeOrderConfigV3[](2);
                 orders[0] = orderConfig1;
                 orders[1] = orderConfig2;
             }
 
-            config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+            config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
         }
 
         vm.recordLogs();

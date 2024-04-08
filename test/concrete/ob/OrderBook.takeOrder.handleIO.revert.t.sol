@@ -5,12 +5,12 @@ import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     ClearConfig,
-    OrderV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
     IO,
-    OrderConfigV2,
-    TakeOrdersConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+    OrderConfigV3,
+    TakeOrdersConfigV3
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
@@ -23,7 +23,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
-        OrderConfigV2 memory config;
+        OrderConfigV3 memory config;
         IO[] memory validOutputs;
         IO[] memory validInputs;
         {
@@ -42,12 +42,12 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](configs.length);
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](configs.length);
 
         for (uint256 i = 0; i < configs.length; i++) {
             (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(configs[i]);
             EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-            config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
+            config = OrderConfigV3(validInputs, validOutputs, evaluableConfig, "");
 
             vm.recordLogs();
             iOrderbook.addOrder(config);
@@ -55,9 +55,9 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             assertEq(entries.length, 3);
             (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
-            orders[i] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
+            orders[i] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV2 memory takeOrdersConfig = TakeOrdersConfigV2(0, maxInput, type(uint256).max, orders, "");
+        TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3(0, maxInput, type(uint256).max, orders, "");
 
         if (err.length > 0) {
             vm.expectRevert(err);

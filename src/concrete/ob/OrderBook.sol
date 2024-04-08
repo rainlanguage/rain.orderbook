@@ -474,7 +474,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                         totalTakerOutput += takerOutput;
 
                         recordVaultIO(takerOutput, takerInput, orderIOCalculation);
-                        emit TakeOrder(msg.sender, takeOrderConfig, takerInput, takerOutput);
+                        emit TakeOrderV2(msg.sender, takeOrderConfig, takerInput, takerOutput);
 
                         // Add the pointer to the order IO calculation to the array
                         // of order IO calculations to handle. This is
@@ -542,7 +542,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function clear(
+    function clear2(
         OrderV3 memory aliceOrder,
         OrderV3 memory bobOrder,
         ClearConfig calldata clearConfig,
@@ -606,7 +606,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             }
 
             // Emit the Clear event before `eval2`.
-            emit Clear(msg.sender, aliceOrder, bobOrder, clearConfig);
+            emit ClearV2(msg.sender, aliceOrder, bobOrder, clearConfig);
         }
         OrderIOCalculationV2 memory aliceOrderIOCalculation = calculateOrderIO(
             aliceOrder, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bobOrder.owner, bobSignedContext

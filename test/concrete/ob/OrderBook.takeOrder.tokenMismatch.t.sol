@@ -2,7 +2,7 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OrderV2, IO, TakeOrderConfigV2, TakeOrdersConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderV3, IO, TakeOrderConfigV3, TakeOrdersConfigV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
@@ -40,9 +40,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up outputs so we don't trigger that code path.
         b.validOutputs[bOutputIOIndex].token = a.validOutputs[aOutputIOIndex].token;
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](2);
-        orders[0] = TakeOrderConfigV2(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV2(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
+        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -79,10 +79,10 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up inputs so we don't trigger that code path.
         b.validInputs[bInputIOIndex].token = a.validInputs[aInputIOIndex].token;
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](2);
-        orders[0] = TakeOrderConfigV2(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV2(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maxTakerInput, maxIORatio, orders, "");
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
+        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(
             abi.encodeWithSelector(
                 TokenMismatch.selector, b.validOutputs[bOutputIOIndex].token, a.validOutputs[aOutputIOIndex].token

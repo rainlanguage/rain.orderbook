@@ -2,13 +2,12 @@
 pragma solidity =0.8.19;
 
 import {Test} from "lib/forge-std/src/Test.sol";
-import {console2} from "forge-std/console2.sol";
 
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
 import {IMetaV1} from "rain.metadata/lib/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
+import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
@@ -28,7 +27,7 @@ import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV3 so that it has access to all the relevant events.
-abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV3Stub {
+abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
     IInterpreterV3 immutable iInterpreter;
     IInterpreterStoreV2 immutable iStore;
     IExpressionDeployerV3 immutable iDeployer;

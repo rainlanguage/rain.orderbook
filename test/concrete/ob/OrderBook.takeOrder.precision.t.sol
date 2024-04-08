@@ -4,11 +4,11 @@ pragma solidity =0.8.19;
 import {Vm} from "forge-std/Test.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderV2,
-    TakeOrdersConfigV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrdersConfigV3,
+    TakeOrderConfigV3,
     IO,
-    OrderConfigV2
+    OrderConfigV3
 } from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
@@ -26,7 +26,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         uint256 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
-        OrderConfigV2 memory config;
+        OrderConfigV3 memory config;
         {
             IO[] memory validInputs = new IO[](1);
             validInputs[0] = IO(inputToken, inputTokenDecimals, vaultId);
@@ -36,7 +36,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             // precision is not handled correctly.
             (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
             EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-            config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
+            config = OrderConfigV3(validInputs, validOutputs, evaluableConfig, "");
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
             vm.etch(inputToken, hex"fe");
@@ -55,10 +55,10 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         assertEq(entries.length, 3);
         (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
-        orders[0] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV2 memory takeOrdersConfig =
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
+        TakeOrdersConfigV3 memory takeOrdersConfig =
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);
         assertEq(totalTakerInput, expectedTakerTotalInput);
         assertEq(totalTakerOutput, expectedTakerTotalOutput);

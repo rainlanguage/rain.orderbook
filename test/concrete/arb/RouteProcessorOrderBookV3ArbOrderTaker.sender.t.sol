@@ -4,11 +4,11 @@ pragma solidity =0.8.19;
 import {RouteProcessorOrderBookV3ArbOrderTakerTest} from
     "test/util/abstract/RouteProcessorOrderBookV3ArbOrderTakerTest.sol";
 import {
-    OrderV2,
+    OrderV3,
     EvaluableConfigV3,
     IExpressionDeployerV3,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {
     RouteProcessorOrderBookV3ArbOrderTaker,
@@ -17,10 +17,10 @@ import {
 } from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV3ArbOrderTakerSenderTest is RouteProcessorOrderBookV3ArbOrderTakerTest {
-    function testRouteProcessorTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function testRouteProcessorTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
-        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(
             TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))), 0
@@ -28,7 +28,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerSenderTest is RouteProcessorOrder
     }
 
     function testRouteProcessorMinimumOutput(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256 minimumOutput,
@@ -38,7 +38,7 @@ contract RouteProcessorOrderBookV3ArbOrderTakerSenderTest is RouteProcessorOrder
         minimumOutput = bound(minimumOutput, mintAmount + 1, type(uint256).max);
         iTakerOutput.mint(iArb, mintAmount);
 
-        TakeOrderConfigV2[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         RouteProcessorOrderBookV3ArbOrderTaker(iArb).arb(

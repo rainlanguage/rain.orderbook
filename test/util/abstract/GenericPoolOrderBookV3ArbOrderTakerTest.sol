@@ -7,12 +7,12 @@ import {
     OrderBookV3ArbOrderTakerConfigV1
 } from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
 import {
-    OrderV2,
+    OrderV3,
     EvaluableConfigV3,
     IExpressionDeployerV3,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerTest is ArbTest {

@@ -50,7 +50,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(
             borrower,
-            abi.encodeWithSelector(IOrderBookV3.vaultBalance.selector, address(borrower), address(iToken0), vaultId),
+            abi.encodeWithSelector(IOrderBookV4.vaultBalance.selector, address(borrower), address(iToken0), vaultId),
             loanAmount
         );
     }
@@ -60,7 +60,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(
-            borrower, abi.encodeWithSelector(IOrderBookV3.orderExists.selector, orderHash), loanAmount
+            borrower, abi.encodeWithSelector(IOrderBookV4.orderExists.selector, orderHash), loanAmount
         );
     }
 
@@ -76,7 +76,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         );
         checkFlashLoanNotRevert(
             borrower,
-            abi.encodeWithSelector(IOrderBookV3.deposit.selector, address(iToken0), vaultId, depositAmount),
+            abi.encodeWithSelector(IOrderBookV4.deposit.selector, address(iToken0), vaultId, depositAmount),
             loanAmount
         );
     }
@@ -93,7 +93,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         );
         checkFlashLoanNotRevert(
             borrower,
-            abi.encodeWithSelector(IOrderBookV3.withdraw.selector, address(iToken0), vaultId, withdrawAmount),
+            abi.encodeWithSelector(IOrderBookV4.withdraw.selector, address(iToken0), vaultId, withdrawAmount),
             loanAmount
         );
     }
@@ -107,7 +107,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         config.evaluableConfig.constants = constants;
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
-        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV3.addOrder.selector, config), loanAmount);
+        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.addOrder.selector, config), loanAmount);
     }
 
     /// Can reenter and remove an order from within a flash loan.
@@ -115,7 +115,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         order.owner = address(borrower);
-        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV3.removeOrder.selector, order), loanAmount);
+        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.removeOrder.selector, order), loanAmount);
     }
 
     /// Can reenter and take orders.
@@ -139,7 +139,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(
-            borrower, abi.encodeWithSelector(IOrderBookV3.takeOrders.selector, takeOrdersConfig), loanAmount
+            borrower, abi.encodeWithSelector(IOrderBookV4.takeOrders.selector, takeOrdersConfig), loanAmount
         );
     }
 

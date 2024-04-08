@@ -5,7 +5,7 @@ import {Test} from "lib/forge-std/src/Test.sol";
 
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV2, OrderV2, IO, ClearConfig} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderConfigV3, OrderV3, IO, ClearConfig} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
@@ -16,10 +16,10 @@ import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 contract OrderBookClearTest is OrderBookExternalMockTest {
     function testClearSimple(
         address alice,
-        OrderConfigV2 memory aliceConfig,
+        OrderConfigV3 memory aliceConfig,
         uint256 aliceVaultId,
         address bob,
-        OrderConfigV2 memory bobConfig,
+        OrderConfigV3 memory bobConfig,
         uint256 bobVaultId,
         address expression,
         address bountyBot,
@@ -75,7 +75,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// just one valid IO from an input and output tokens.
     function _addOrderMockInternal(
         address owner,
-        OrderConfigV2 memory config,
+        OrderConfigV3 memory config,
         address expression,
         IERC20 inputToken,
         IERC20 outputToken

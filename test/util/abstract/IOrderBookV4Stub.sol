@@ -2,36 +2,40 @@
 pragma solidity =0.8.19;
 
 import {
-    IOrderBookV3,
-    OrderConfigV2,
-    OrderV2,
+    IOrderBookV4,
+    OrderConfigV3,
+    OrderV3,
     ClearConfig,
     SignedContextV1,
-    IERC3156FlashBorrower,
-    TakeOrdersConfigV2,
+    TakeOrdersConfigV3
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
     IERC3156FlashLender
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
+import {
+    IERC3156FlashBorrower
+} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-abstract contract IOrderBookV3Stub is IOrderBookV3 {
-    /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfigV2 calldata) external pure returns (bool) {
+abstract contract IOrderBookV4Stub is IOrderBookV4 {
+    /// @inheritdoc IOrderBookV4
+    function addOrder2(OrderConfigV3 calldata) external pure returns (bool) {
         revert("addOrder");
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function orderExists(bytes32) external pure returns (bool) {
         revert("orderExists");
     }
 
-    /// @inheritdoc IOrderBookV3
-    function removeOrder(OrderV2 calldata) external pure returns (bool) {
+    /// @inheritdoc IOrderBookV4
+    function removeOrder2(OrderV3 calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
-    /// @inheritdoc IOrderBookV3
-    function clear(
-        OrderV2 memory,
-        OrderV2 memory,
+    /// @inheritdoc IOrderBookV4
+    function clear2(
+        OrderV3 memory,
+        OrderV3 memory,
         ClearConfig calldata,
         SignedContextV1[] memory,
         SignedContextV1[] memory
@@ -39,8 +43,8 @@ abstract contract IOrderBookV3Stub is IOrderBookV3 {
         revert("clear");
     }
 
-    /// @inheritdoc IOrderBookV3
-    function deposit(address, uint256, uint256) external pure {
+    /// @inheritdoc IOrderBookV4
+    function deposit2(address, uint256, uint256) external pure {
         revert("deposit");
     }
 
@@ -59,18 +63,18 @@ abstract contract IOrderBookV3Stub is IOrderBookV3 {
         revert("maxFlashLoan");
     }
 
-    /// @inheritdoc IOrderBookV3
-    function takeOrders(TakeOrdersConfigV2 calldata) external pure returns (uint256, uint256) {
+    /// @inheritdoc IOrderBookV4
+    function takeOrders2(TakeOrdersConfigV2 calldata) external pure returns (uint256, uint256) {
         revert("takeOrders");
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function vaultBalance(address, address, uint256) external pure returns (uint256) {
         revert("vaultBalance");
     }
 
-    /// @inheritdoc IOrderBookV3
-    function withdraw(address, uint256, uint256) external pure {
+    /// @inheritdoc IOrderBookV4
+    function withdraw2(address, uint256, uint256) external pure {
         revert("withdraw");
     }
 }
