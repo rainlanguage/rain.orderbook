@@ -33,12 +33,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         // -- Add two orders with similar IO tokens (swapped)
         // Add alice order with a input token (iToken0) and output token (iToken1)
-        (OrderV2 memory aliceOrder, bytes32 aliceOrderHash) =
+        (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) =
             _addOrderMockInternal(alice, aliceConfig, expression, iToken0, iToken1);
         assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
         // Add bob order with a input token (iToken1) and output token (iToken0)
-        (OrderV2 memory bobOrder, bytes32 bobOrderHash) =
+        (OrderV3 memory bobOrder, bytes32 bobOrderHash) =
             _addOrderMockInternal(bob, bobConfig, expression, iToken1, iToken0);
         assertTrue(iOrderbook.orderExists(bobOrderHash));
 
@@ -79,10 +79,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         address expression,
         IERC20 inputToken,
         IERC20 outputToken
-    ) internal returns (OrderV2 memory, bytes32) {
+    ) internal returns (OrderV3 memory, bytes32) {
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        config.evaluable.bytecode = hex"02000000040000000000000000";
         config.meta = new bytes(0);
 
         config.validInputs = _helperBuildIO(config.validInputs, address(inputToken), 18);

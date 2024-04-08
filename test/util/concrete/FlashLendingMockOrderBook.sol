@@ -5,8 +5,13 @@ import {
     TakeOrderConfigV3,
     IO,
     OrderV3,
-    SignedContextV1
+    SignedContextV1,
+    IOrderBookV4,
+    TakeOrdersConfigV3,
+    OrderConfigV3,
+    ClearConfig
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 contract FlashLendingMockOrderBook is IOrderBookV4 {
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
@@ -17,11 +22,13 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
         return true;
     }
 
-    function takeOrders(TakeOrdersConfigV2 calldata) external pure returns (uint256 totalInput, uint256 totalOutput) {
+    /// @inheritdoc IOrderBookV4
+    function takeOrders2(TakeOrdersConfigV3 calldata) external pure returns (uint256 totalInput, uint256 totalOutput) {
         return (0, 0);
     }
 
-    function addOrder(OrderConfigV2 calldata) external pure returns (bool stateChanged) {
+    /// @inheritdoc IOrderBookV4
+    function addOrder2(OrderConfigV3 calldata) external pure returns (bool stateChanged) {
         return false;
     }
 
@@ -29,9 +36,10 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
         return false;
     }
 
-    function clear(
-        OrderV2 memory alice,
-        OrderV2 memory bob,
+    /// @inheritdoc IOrderBookV4
+    function clear2(
+        OrderV3 memory alice,
+        OrderV3 memory bob,
         ClearConfig calldata clearConfig,
         SignedContextV1[] memory aliceSignedContextV1,
         SignedContextV1[] memory bobSignedContextV1
@@ -39,7 +47,7 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
     function deposit(address token, uint256 vaultId, uint256 amount) external {}
     function flashFee(address token, uint256 amount) external view returns (uint256) {}
     function maxFlashLoan(address token) external view returns (uint256) {}
-    function removeOrder(OrderV2 calldata order) external returns (bool stateChanged) {}
+    function removeOrder2(OrderV3 calldata order) external returns (bool stateChanged) {}
 
     function vaultBalance(address owner, address token, uint256 id) external view returns (uint256 balance) {}
     function withdraw(address token, uint256 vaultId, uint256 targetAmount) external {}

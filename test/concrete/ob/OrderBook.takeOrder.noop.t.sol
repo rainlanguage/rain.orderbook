@@ -35,7 +35,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// transaction in this case as there may be other orders in the input array
     /// in the general case.
     function testTakeOrderNoopNonLiveOrderOne(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         SignedContextV1 memory signedContext
@@ -51,7 +51,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         TakeOrderConfigV3 memory orderConfig = TakeOrderConfigV3(order, inputIOIndex, outputIOIndex, signedContexts);
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV3 memory config = TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
@@ -64,8 +64,8 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
     /// Same as above but with two orders.
     function testTakeOrderNoopNonLiveOrderTwo(
-        OrderV2 memory order1,
-        OrderV2 memory order2,
+        OrderV3 memory order1,
+        OrderV3 memory order2,
         uint256 inputIOIndex1,
         uint256 outputIOIndex1,
         uint256 inputIOIndex2,

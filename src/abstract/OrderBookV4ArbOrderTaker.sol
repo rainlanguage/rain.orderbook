@@ -24,7 +24,8 @@ import {
     MinimumOutput,
     NonZeroBeforeArbStack,
     OrderBookV4ArbConfigV1,
-    EvaluableV3
+    EvaluableV3,
+    OrderBookV4ArbCommon
 } from "./OrderBookV4ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
@@ -35,62 +36,9 @@ error NonZeroBeforeArbInputs(uint256 inputs);
 /// @dev "Before arb" is evaluabled before the arb is executed. Ostensibly this
 /// is to allow for access control to the arb, the return values are ignored.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
-/// @dev "Before arb" has no return values.
-uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
-/// @dev "Before arb" has no return values.
-uint16 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
-abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, ReentrancyGuard, ERC165 {
+abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, ReentrancyGuard, ERC165, OrderBookV4ArbCommon {
     using SafeERC20 for IERC20;
-
-    event Construct(address sender, OrderBookV4ArbConfigV1 config);
-
-    IOrderBookV4 public immutable iOrderBook;
-    EncodedDispatch public immutable iI9rDispatch;
-    IInterpreterV3 public immutable iI9r;
-    IInterpreterStoreV2 public immutable iI9rStore;
-
-    constructor(OrderBookV4ArbConfigV1 memory config) {
-        // @todo this could be paramaterised on `arb`.
-        iOrderBook = IOrderBookV4(config.orderBook);
-
-        // // Emit events before any external calls are made.
-        emit Construct(msg.sender, config);
-
-        IInterpreterV3 i9r = IInterpreterV3(address(0));
-        IInterpreterStoreV2 i9rStore = IInterpreterStoreV2(address(0));
-        EncodedDispatch i9rDispatch = EncodedDispatch.wrap(0);
-
-        // If there are any sources to eval then initialize the dispatch,
-        // otherwise it will remain 0 and we can skip evaluation on `arb`.
-        if (LibBytecode.sourceCount(config.evaluableConfig.bytecode) > 0) {
-            address expression;
-
-            bytes memory io;
-            // We have to trust the deployer because it produces the expression
-            // address for dispatch anyway.
-            // All external functions on this contract have `onlyNotInitializing`
-            // modifier on them so can't be reentered here anyway.
-            //slither-disable-next-line reentrancy-benign
-            (i9r, i9rStore, expression, io) = config.evaluableConfig.deployer.deployExpression2(
-                config.evaluableConfig.bytecode, config.evaluableConfig.constants
-            );
-            {
-                uint256 inputs;
-                assembly ("memory-safe") {
-                    inputs := and(mload(add(io, 1)), 0xFF)
-                }
-                if (inputs != 0) {
-                    revert NonZeroBeforeArbInputs(inputs);
-                }
-            }
-            i9rDispatch = LibEncodedDispatch.encode2(expression, BEFORE_ARB_SOURCE_INDEX, BEFORE_ARB_MAX_OUTPUTS);
-        }
-
-        iI9r = i9r;
-        iI9rStore = i9rStore;
-        iI9rDispatch = i9rDispatch;
-    }
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -99,7 +47,7 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
     }
 
     /// @inheritdoc IOrderBookV4ArbOrderTaker
-    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput) external payable nonReentrant {
+    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput, EvaluableV3 calldata evaluable) external payable nonReentrant onlyValidEvaluable(evaluable) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -107,26 +55,6 @@ abstract contract OrderBookV4ArbOrderTaker is IOrderBookV4ArbOrderTaker, Reentra
 
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
-
-        // Run the access control dispatch if it is set.
-        EncodedDispatch dispatch = iI9rDispatch;
-        if (EncodedDispatch.unwrap(dispatch) > 0) {
-            (uint256[] memory stack, uint256[] memory kvs) = iI9r.eval2(
-                iI9rStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),
-                dispatch,
-                LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-                new uint256[](0)
-            );
-            // This can only happen if interpreter is broken.
-            if (stack.length > 0) {
-                revert NonZeroBeforeArbStack();
-            }
-            // Persist any state changes from the expression.
-            if (kvs.length > 0) {
-                iI9rStore.set(DEFAULT_STATE_NAMESPACE, kvs);
-            }
-        }
 
         IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
         IERC20(ordersInputToken).safeApprove(address(iOrderBook), type(uint256).max);

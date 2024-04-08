@@ -17,6 +17,8 @@ import {
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV4ArbConfigV1} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -58,7 +60,7 @@ abstract contract ArbTest is Test {
         vm.label(iArb, "iArb");
     }
 
-    function buildTakeOrderConfig(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function buildTakeOrderConfig(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
         returns (TakeOrderConfigV3[] memory)

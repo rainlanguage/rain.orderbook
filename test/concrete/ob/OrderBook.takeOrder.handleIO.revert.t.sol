@@ -9,9 +9,10 @@ import {
     TakeOrderConfigV3,
     IO,
     OrderConfigV3,
-    TakeOrdersConfigV3
+    TakeOrdersConfigV3,
+    EvaluableV3,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
@@ -44,15 +45,15 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](configs.length);
 
         for (uint256 i = 0; i < configs.length; i++) {
-            bytes memory bytecode = IParserV2(address(iParserV2)).parse2(configs[i]);
-            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iInterpreterStore, bytecode);
+            bytes memory bytecode = iParserV2.parse2(configs[i]);
+            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
             config = OrderV3(validInputs, validOutputs, evaluable, "");
 
             vm.recordLogs();
             iOrderbook.addOrder(config);
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 3);
-            (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+            (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
 
             orders[i] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
         }

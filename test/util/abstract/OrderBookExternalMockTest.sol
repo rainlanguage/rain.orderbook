@@ -74,7 +74,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
             abi.encode(iInterpreter, iStore, expression, hex"00020000")
         );
         vm.expectEmit(false, false, false, true);
-        emit AddOrder(owner, iDeployer, order, orderHash);
+        emit AddOrderV2(owner, iDeployer, order, orderHash);
         if (config.meta.length > 0) {
             vm.expectEmit(false, false, true, false);
             // The subject of the meta is the order hash.
@@ -124,7 +124,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         // This check assumes the order exists before we try to remove it.
         assertTrue(iOrderbook.orderExists(orderHash));
         vm.expectEmit(false, false, false, true);
-        emit RemoveOrder(owner, order, orderHash);
+        emit RemoveOrderV2(owner, order, orderHash);
         vm.record();
         vm.recordLogs();
         vm.prank(owner);

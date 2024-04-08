@@ -7,14 +7,14 @@ import {OrderBookV4FlashLender, IERC3156FlashLender} from "src/abstract/OrderBoo
 
 /// @dev We need a contract that is deployable in order to test the abstract
 /// base contract.
-contract ChildOrderBookV4FlashLender is OrderBookV3FlashLender {
-    constructor() OrderBookV3FlashLender() {}
+contract ChildOrderBookV4FlashLender is OrderBookV4FlashLender {
+    constructor() OrderBookV4FlashLender() {}
 }
 
 contract OrderBookV4FlashLenderIERC165Test is Test {
     /// Test that ERC165 and IERC3156FlashLender are supported interfaces
     /// as per ERC165.
-    function testOrderBookV3FlashLenderIERC165(bytes4 badInterfaceId) external {
+    function testOrderBookV4FlashLenderIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
         vm.assume(badInterfaceId != type(IERC3156FlashLender).interfaceId);
 

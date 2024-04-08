@@ -10,6 +10,7 @@ import {
     OrderBookV4ArbConfigV1
 } from "src/abstract/OrderBookV4FlashBorrower.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 
 /// @dev We need a contract that is deployable in order to test the abstract
 /// base contract.

@@ -28,7 +28,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerSenderTest is GenericPoolOrderBookV4
     }
 
     function testGenericPoolMinimumOutput(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256 minimumOutput,

@@ -8,9 +8,10 @@ import {
     TakeOrdersConfigV3,
     TakeOrderConfigV3,
     IO,
-    OrderConfigV3
+    OrderConfigV3,
+    EvaluableV3,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -33,8 +34,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
-            bytes memory bytecode = IParserV2(address(iParserV2)).parse2(rainString);
-            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iInterpreterStore, bytecode);
+            bytes memory bytecode = iParserV2.parse2(rainString);
+            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
             config = OrderConfigV3(validInputs, validOutputs, evaluable, "");
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
@@ -52,7 +53,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         iOrderbook.addOrder(config);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 3);
-        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+        (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
 
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));

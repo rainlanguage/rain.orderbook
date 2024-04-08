@@ -13,10 +13,10 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV3 memory config, address expression)
         external
     {
-        LibTestAddOrder.conformConfig(config, iDeployer);
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(alice != bob);
 
-        (OrderV2 memory expectedOrder, bytes32 expectedOrderHash) =
+        (OrderV3 memory expectedOrder, bytes32 expectedOrderHash) =
             LibTestAddOrder.expectedOrder(alice, config, iInterpreter, iStore, expression);
 
         // It will revert even if the order has not been added yet.
@@ -25,7 +25,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         iOrderbook.removeOrder(expectedOrder);
 
         // And will revert after the order is added.
-        (OrderV2 memory order, bytes32 orderHash) = addOrderWithChecks(alice, config, expression);
+        (OrderV3 memory order, bytes32 orderHash) = addOrderWithChecks(alice, config, expression);
         assertEq(orderHash, expectedOrderHash);
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
@@ -43,9 +43,9 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
 
     /// The same order can be added and removed multiple times.
     function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, address expression) external {
-        LibTestAddOrder.conformConfig(config, iDeployer);
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
-        OrderV2 memory order;
+        OrderV3 memory order;
         bytes32 orderHashA;
         bytes32 orderHashB;
         // Each iteration is quite slow so 3 is about as much as we want to do.
@@ -62,7 +62,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     /// An order MUST NOT change state if it does not exist.
     function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, address expression) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (OrderV2 memory order, bytes32 orderHash) =
+        (OrderV3 memory order, bytes32 orderHash) =
             LibTestAddOrder.expectedOrder(alice, config, iInterpreter, iStore, expression);
         assertFalse(iOrderbook.orderExists(orderHash));
         vm.record();
@@ -88,16 +88,16 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         LibTestAddOrder.conformConfig(configOne, iDeployer);
         LibTestAddOrder.conformConfig(configTwo, iDeployer);
 
-        (OrderV2 memory expectedOrderOne, bytes32 expectedOrderHashOne) =
+        (OrderV3 memory expectedOrderOne, bytes32 expectedOrderHashOne) =
             LibTestAddOrder.expectedOrder(alice, configOne, iInterpreter, iStore, expressionOne);
-        (OrderV2 memory expectedOrderTwo, bytes32 expectedOrderHashTwo) =
+        (OrderV3 memory expectedOrderTwo, bytes32 expectedOrderHashTwo) =
             LibTestAddOrder.expectedOrder(alice, configTwo, iInterpreter, iStore, expressionTwo);
         (expectedOrderOne);
         (expectedOrderTwo);
         vm.assume(expectedOrderHashOne != expectedOrderHashTwo);
 
-        (OrderV2 memory orderOne, bytes32 orderHashOne) = addOrderWithChecks(alice, configOne, expressionOne);
-        (OrderV2 memory orderTwo, bytes32 orderHashTwo) = addOrderWithChecks(alice, configTwo, expressionTwo);
+        (OrderV3 memory orderOne, bytes32 orderHashOne) = addOrderWithChecks(alice, configOne, expressionOne);
+        (OrderV3 memory orderTwo, bytes32 orderHashTwo) = addOrderWithChecks(alice, configTwo, expressionTwo);
         assertEq(orderHashOne, expectedOrderHashOne);
         assertEq(orderHashTwo, expectedOrderHashTwo);
         removeOrderWithChecks(alice, orderOne);
@@ -110,8 +110,8 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     {
         LibTestAddOrder.conformConfig(config, iDeployer);
         vm.assume(alice != bob);
-        (OrderV2 memory orderAlice, bytes32 orderHashAlice) = addOrderWithChecks(alice, config, expression);
-        (OrderV2 memory orderBob, bytes32 orderHashBob) = addOrderWithChecks(bob, config, expression);
+        (OrderV3 memory orderAlice, bytes32 orderHashAlice) = addOrderWithChecks(alice, config, expression);
+        (OrderV3 memory orderBob, bytes32 orderHashBob) = addOrderWithChecks(bob, config, expression);
         assertTrue(orderHashAlice != orderHashBob);
 
         // Owners can't interfere with each other.
@@ -142,19 +142,19 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
             vm.assume(alice != bob);
 
             // Ensure the configs are different.
-            (OrderV2 memory expectedOrderOne, bytes32 expectedOrderHashOne) =
+            (OrderV3 memory expectedOrderOne, bytes32 expectedOrderHashOne) =
                 LibTestAddOrder.expectedOrder(address(0), configOne, iInterpreter, iStore, expressionOne);
-            (OrderV2 memory expectedOrderTwo, bytes32 expectedOrderHashTwo) =
+            (OrderV3 memory expectedOrderTwo, bytes32 expectedOrderHashTwo) =
                 LibTestAddOrder.expectedOrder(address(0), configTwo, iInterpreter, iStore, expressionTwo);
             (expectedOrderOne);
             (expectedOrderTwo);
             vm.assume(expectedOrderHashOne != expectedOrderHashTwo);
         }
 
-        OrderV2 memory orderAliceOne;
-        OrderV2 memory orderBobOne;
-        OrderV2 memory orderAliceTwo;
-        OrderV2 memory orderBobTwo;
+        OrderV3 memory orderAliceOne;
+        OrderV3 memory orderBobOne;
+        OrderV3 memory orderAliceTwo;
+        OrderV3 memory orderBobTwo;
         {
             bytes32 orderHashAliceOne;
             bytes32 orderHashBobOne;

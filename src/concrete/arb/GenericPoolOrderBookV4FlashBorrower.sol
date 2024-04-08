@@ -31,7 +31,7 @@ contract GenericPoolOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
     constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4FlashBorrower(config) {}
 
     /// @inheritdoc OrderBookV4FlashBorrower
-    function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual override {
+    function _exchange(TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) internal virtual override {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(exchangeData, (address, address, bytes));
 

@@ -237,7 +237,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount, EvaluableV3[] calldata post)
+    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, EvaluableV3[] calldata post)
         external
         nonReentrant
     {

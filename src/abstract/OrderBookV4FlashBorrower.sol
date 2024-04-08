@@ -7,22 +7,15 @@ import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
-import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {
     IOrderBookV4, TakeOrdersConfigV3, NoOrders
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {
-    IInterpreterV3,
-    SourceIndexV2,
-    DEFAULT_STATE_NAMESPACE
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV4ArbConfigV1} from "./OrderBookV4ArbCommon.sol";
+import {BadLender, MinimumOutput, NonZeroBeforeArbStack, OrderBookV4ArbConfigV1, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
-import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -33,19 +26,6 @@ error FlashLoanFailed();
 
 /// Thrown when the swap fails.
 error SwapFailed();
-
-/// Thrown when "Before arb" expects inputs.
-error NonZeroBeforeArbInputs();
-
-/// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
-/// allows for some kind of access control to the arb.
-SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
-/// @dev "Before arb" has no inputs.
-uint256 constant BEFORE_ARB_MIN_INPUTS = 0;
-/// @dev "Before arb" has no outputs.
-uint256 constant BEFORE_ARB_MIN_OUTPUTS = 0;
-/// @dev "Before arb" has no outputs.
-uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 
 /// @title OrderBookV4FlashBorrower
 /// @notice Abstract contract that liq-source specifialized contracts can inherit
@@ -77,23 +57,9 @@ uint256 constant BEFORE_ARB_MAX_OUTPUTS = 0;
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165 {
+abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV4ArbCommon {
     using Address for address;
     using SafeERC20 for IERC20;
-
-    event Construct(address sender, OrderBookV4ArbConfigV1 config);
-
-    bytes32 public immutable iEvaluableHash;
-
-    constructor(OrderBookV4ArbConfigV1 memory config) {
-        // @todo This could be paramaterised on `arb`.
-        iOrderBook = IOrderBookV4(config.orderBook);
-
-        // Emit events before any external calls are made.
-        emit Construct(msg.sender, config);
-
-        iEvaluableHash = config.evaluable.hash();
-    }
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -109,7 +75,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// @param takeOrders As per `arb`.
     /// @param exchangeData As per `arb`.
     //slither-disable-next-line dead-code
-    function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual {}
+    function _exchange(TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) internal virtual {}
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data)
@@ -125,8 +91,8 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
             revert BadInitiator(initiator);
         }
 
-        (TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) =
-            abi.decode(data, (TakeOrdersConfigV2, bytes));
+        (TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) =
+            abi.decode(data, (TakeOrdersConfigV3, bytes));
 
         // Dispatch the `_exchange` hook to ensure we have the correct asset
         // type and amount to fill the orders.
@@ -172,12 +138,11 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
     /// uses this data as a literal encoded external call.
     function arb2(
-        IOrderBookV4 orderbook,
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
         bytes calldata exchangeData,
-        Evaluable calldata evaluable
-    ) external payable nonReentrant {
+        EvaluableV3 calldata evaluable
+    ) external payable nonReentrant onlyValidEvaluable(evaluable) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -194,32 +159,15 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // give us and there's no reason to borrow less.
         uint256 flashLoanAmount = takeOrders.minimumInput;
 
-        if (evaluable.interpreter != address(0)) {
-            (uint256[] memory stack, uint256[] memory kvs) = evaluable.interpreter.eval3(
-                evaluable.store,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),
-                evaluable.bytecode,
-                BEFORE_ARB_SOURCE_INDEX,
-                LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-                new uint256[](0)
-            );
-            // We don't care about the stack.
-            (stack);
-            // Persist any state changes from the expression.
-            if (kvs.length > 0) {
-                evaluable.store.set(DEFAULT_STATE_NAMESPACE, kvs);
-            }
-        }
-
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
-        IERC20(ordersInputToken).safeApprove(address(orderbook), 0);
-        IERC20(ordersInputToken).safeApprove(address(orderbook), type(uint256).max);
-        if (!orderbook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
+        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(iOrderBook), type(uint256).max);
+        if (!iOrderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
-        IERC20(ordersInputToken).safeApprove(address(orderbook), 0);
+        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
 
         // Send all unspent input tokens to the sender.
         uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));

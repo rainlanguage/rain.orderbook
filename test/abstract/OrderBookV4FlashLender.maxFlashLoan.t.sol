@@ -7,7 +7,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 /// @title OrderBookV4FlashLenderMaxFlashLoanTest
 /// Tests the maximum flash loan amount for `OrderBookV4FlashLender`.
 contract OrderBookV4FlashLenderMaxFlashLoanTest is OrderBookExternalMockTest {
-    /// Tests that the maximum flash loan amount for `OrderBookV3FlashLender` is
+    /// Tests that the maximum flash loan amount for `OrderBookV4FlashLender` is
     /// the balance of the token in the order book.
     function testFlashMaxLoan(uint256 amount) public {
         vm.mockCall(

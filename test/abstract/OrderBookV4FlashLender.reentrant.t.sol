@@ -12,7 +12,7 @@ import {
     TakeOrdersConfigV3,
     ClearConfig
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
+import {IParserV2} from "rain.interpreter.interface/interface/unstable/IParserV2.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
@@ -101,13 +101,13 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     /// Can reenter and add an order from within a flash loan.
     function testReenterAddOrder(uint256 loanAmount, OrderConfigV3 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
-        config.evaluableConfig.bytecode = bytecode;
-        config.evaluableConfig.constants = constants;
+        bytes memory bytecode =
+            IParserV2(address(iParserV2)).parse2("_ _:max-int-value() 1e18;:;");
+        config.evaluable.bytecode = bytecode;
+
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
-        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.addOrder.selector, config), loanAmount);
+        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.addOrder2.selector, config), loanAmount);
     }
 
     /// Can reenter and remove an order from within a flash loan.
@@ -115,19 +115,18 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         order.owner = address(borrower);
-        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.removeOrder.selector, order), loanAmount);
+        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.removeOrder2.selector, order), loanAmount);
     }
 
     /// Can reenter and take orders.
     function testReenterTakeOrder(uint256 loanAmount, OrderConfigV3 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
-        config.evaluableConfig.bytecode = bytecode;
-        config.evaluableConfig.constants = constants;
+        bytes memory bytecode =
+            IParserV2(address(iParserV2)).parse2("_ _:max-int-value() 1e18;:;");
+        config.evaluable.bytecode = bytecode;
 
         vm.recordLogs();
-        iOrderbook.addOrder(config);
+        iOrderbook.addOrder2(config);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
 
@@ -154,15 +153,13 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.assume(alice != bob);
 
         LibTestAddOrder.conformConfig(aliceConfig, iInterpreter, iStore);
-        (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
-        aliceConfig.evaluableConfig.bytecode = bytecode;
-        aliceConfig.evaluableConfig.constants = constants;
+        bytes memory bytecode =
+            IParserV2(address(iParserV2)).parse2("_ _:max-int-value() 1e18;:;");
+        aliceConfig.evaluable.bytecode = bytecode;
 
         LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
-        (bytecode, constants) = IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
-        bobConfig.evaluableConfig.bytecode = bytecode;
-        bobConfig.evaluableConfig.constants = constants;
+        bytecode = IParserV2(address(iParserV2)).parse2("_ _:max-int-value() 1e18;:;");
+        bobConfig.evaluable.bytecode = bytecode;
 
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
         aliceConfig.validInputs[0] = bobConfig.validOutputs[0];
