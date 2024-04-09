@@ -10,11 +10,13 @@
     on any EVM network.
   </div>
   <div class="flex items-center gap-x-2">
-    <Button href="https://t.me/+W0aQ36ptN_E2MjZk">
+    <Button target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
       <IconTelegram dark />
       <span class="ml-2">Join the community</span>
     </Button>
-    <Button href="https://docs.rainlang.xyz/raindex/getting-started">Get started</Button>
+    <Button target="_blank" href="https://docs.rainlang.xyz/raindex/getting-started"
+      >Get started</Button
+    >
   </div>
   <div style="position: relative; padding-bottom: 64.63195691202873%; height: 0;" class="w-full">
     <iframe
