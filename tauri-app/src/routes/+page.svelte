@@ -5,7 +5,7 @@
 
 <div class="mx-auto flex max-w-prose flex-col items-center gap-y-8 pt-12">
   <img alt="Raindex logo" class="w-[400px]" src="/logo-light.svg" />
-  <div class="mt-4 text-2xl">
+  <div class="mt-4 text-center text-2xl">
     Raindex is an onchain orderbook contract that enables users to deploy complex, onchain
     strategies for managing token trades.
   </div>
