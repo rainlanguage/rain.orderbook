@@ -9,6 +9,7 @@ import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/arb/RouteProc
 import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
 import {EvaluableConfigV3, IExpressionDeployerV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {OrderBookV3ArbConfigV1} from "src/abstract/OrderBookV3ArbCommon.sol";
+import {IMetaBoardV1} from "rain.metadata/interface/IMetaBoardV1.sol";
 
 /// @dev Exact bytecode taken from sushiswap deployments list in github.
 /// https://github.com/sushiswap/sushiswap/blob/master/protocols/route-processor/deployments/ethereum/RouteProcessor3_2.json#L330
@@ -27,6 +28,8 @@ bytes constant ROUTE_PROCESSOR_3_2_CREATION_CODE =
 contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
+        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParserAuthoringMeta.rain.meta");
+        IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
 
         vm.startBroadcast(deployerPrivateKey);
 
@@ -34,7 +37,8 @@ contract Deploy is Script {
         OrderBook orderbook = new OrderBook();
 
         // Subparsers.
-        new OrderBookSubParser();
+        OrderBookSubParser subParser = new OrderBookSubParser();
+        metaboard.emitMeta(uint256(uint160(address(subParser))), subParserDescribedByMeta);
 
         bytes memory routeProcessor3_2Code = ROUTE_PROCESSOR_3_2_CREATION_CODE;
         address routeProcessor3_2;

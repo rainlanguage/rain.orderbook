@@ -45,6 +45,8 @@ import {
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
 } from "../../lib/LibOrderBook.sol";
 
+bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0);
+
 bytes constant SUB_PARSER_PARSE_META =
     hex"01004800040040020200110000000000001006102008000020040000000100000090088de69a0b015d8302c9be1f116682f50584c8d406bbcde60fb5f425102ce8cf1283156f0109ac300398cd200ab1aeaf0ea9bcef075e0bc300d3b4e80de78f2e0c9fc5d509a7e6560427db4a";
 bytes constant SUB_PARSER_WORD_PARSERS =
@@ -54,6 +56,10 @@ bytes constant SUB_PARSER_OPERAND_HANDLERS =
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
+
+    function describedByMetaV1() external pure returns (bytes32) {
+        return DESCRIBED_BY_META_HASH;
+    }
 
     function subParserParseMeta() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_PARSE_META;
