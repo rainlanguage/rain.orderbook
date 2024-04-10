@@ -38,6 +38,9 @@ contract Deploy is Script {
 
         // Subparsers.
         OrderBookSubParser subParser = new OrderBookSubParser();
+        if (subParser.describedByMetaV1() != keccak256(subParserDescribedByMeta)) {
+            revert("Subparser meta mismatch");
+        }
         metaboard.emitMeta(uint256(uint160(address(subParser))), subParserDescribedByMeta);
 
         bytes memory routeProcessor3_2Code = ROUTE_PROCESSOR_3_2_CREATION_CODE;
