@@ -43,6 +43,7 @@ jobs:
 
       - run: nix develop --command rainix-sol-prelude
       - run: nix develop --command rainix-rs-prelude
+      - run: nix develop --command raindex-prelude
 
       - name: Run ${{ matrix.task }}
         env:
