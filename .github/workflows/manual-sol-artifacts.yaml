@@ -16,6 +16,7 @@ on:
           - mumbai
           - oasis_sapphire
           - polygon
+          - sepolia
           - songbird
 
 jobs:
@@ -50,3 +51,4 @@ jobs:
           DEPLOY_VERIFY: ${{ secrets[env.verify_secret_name] || vars[env.verify_secret_name] || '' }}
           DEPLOY_VERIFIER: ${{ secrets[env.verifier_secret_name] || vars[env.verifier_secret_name] || '' }}
           DEPLOY_VERIFIER_URL: ${{ secrets[env.verifier_url_secret_name] || vars[env.verifier_url_secret_name] || '' }}
+          DEPLOY_METABOARD_ADDRESS: ${{ secrets[env.metaboard_address_secret_name] || vars[env.metaboard_address_secret_name] || '' }}
