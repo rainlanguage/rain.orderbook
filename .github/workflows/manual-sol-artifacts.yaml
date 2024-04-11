@@ -41,6 +41,8 @@ jobs:
 
       - run: nix develop --command rainix-sol-prelude
       - run: nix develop --command rainix-rs-prelude
+      - run: nix develop --command raindex-prelude
+
       - name: deploy to ${{ inputs.network }}
         run: nix develop --command rainix-sol-artifacts
         env:
