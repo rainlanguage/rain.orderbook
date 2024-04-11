@@ -3,6 +3,7 @@
 # Run commands in the current working directory
 nix develop -i --command rainix-sol-prelude
 nix develop -i --command rainix-rs-prelude
+nix develop -i --command raindex-prelude
 
 # Run commands in lib/rain.interpreter
 cd lib/rain.interpreter
