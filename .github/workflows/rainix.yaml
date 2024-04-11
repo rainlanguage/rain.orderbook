@@ -47,7 +47,8 @@ jobs:
 
       - name: Run ${{ matrix.task }}
         env:
-          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_MUMBAI_RPC_URL }}
+          ETH_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
           DEPLOY_VERIFIER: ''
+          DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
         run: nix develop --command ${{ matrix.task }}
