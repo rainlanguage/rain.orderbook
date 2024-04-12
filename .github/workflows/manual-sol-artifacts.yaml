@@ -8,6 +8,7 @@ on:
         type: choice
         options:
           - arbitrum
+          - arbitrum_sepolia
           - avalanche
           - base
           - bsc
