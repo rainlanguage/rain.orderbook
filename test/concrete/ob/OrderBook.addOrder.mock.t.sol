@@ -11,36 +11,36 @@ import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpre
 /// @title OrderBookAddOrderMockTest
 /// @notice Tests the addOrder function of the OrderBook contract.
 contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
-    /// Adding an order without calculations MUST revert.
-    function testAddOrderWithoutCalculationsReverts(address owner, OrderConfigV3 memory config) public {
+    /// Adding an order without calculations does not revert.
+    /// This is a runtime error.
+    function testAddOrderWithoutCalculationsDeploys(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         config.evaluable.bytecode = "";
-        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
 
-    /// Adding an order without inputs MUST revert.
-    function testAddOrderWithoutInputsReverts(address owner, OrderConfigV3 memory config) public {
+    /// Adding an order without inputs deploys.
+    /// This is a runtime error.
+    function testAddOrderWithoutInputsDeploys(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IO[](0);
-        vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
 
-    /// Adding an order without outputs MUST revert.
-    function testAddOrderWithoutOutputsReverts(address owner, OrderConfigV3 memory config) public {
+    /// Adding an order without outputs deploys.
+    /// This is a runtime error.
+    function testAddOrderWithoutOutputsDeploys(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         config.validOutputs = new IO[](0);
-        vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);

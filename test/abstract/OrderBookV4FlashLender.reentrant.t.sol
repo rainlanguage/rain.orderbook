@@ -73,7 +73,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(
-                IERC20.transferFrom.selector, borrower, address(iOrderbook), depositAmount, new EvaluableV3[](0)
+                IERC20.transferFrom.selector, borrower, address(iOrderbook), depositAmount
             ),
             abi.encode(true)
         );
@@ -139,7 +139,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.recordLogs();
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
@@ -180,13 +180,13 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.prank(alice);
         iOrderbook.addOrder2(aliceConfig, new EvaluableV3[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, OrderV3 memory aliceOrder,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+        (,, OrderV3 memory aliceOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         vm.recordLogs();
         vm.prank(bob);
         iOrderbook.addOrder2(bobConfig, new EvaluableV3[](0));
         entries = vm.getRecordedLogs();
-        (,, OrderV3 memory bobOrder,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+        (,, OrderV3 memory bobOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 0, 0);
 

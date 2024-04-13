@@ -47,13 +47,13 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < configs.length; i++) {
             bytes memory bytecode = iParserV2.parse2(configs[i]);
             EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
+            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
 
             vm.recordLogs();
             iOrderbook.addOrder2(config, new EvaluableV3[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
-            assertEq(entries.length, 3);
-            (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+            assertEq(entries.length, 1);
+            (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
             orders[i] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
         }

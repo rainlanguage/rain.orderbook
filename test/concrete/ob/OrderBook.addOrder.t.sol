@@ -33,22 +33,22 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
-    /// A stack of 0 for calculate order reverts.
+    /// A stack of 0 for calculate order deploys.
+    /// Stack size checks are runtime.
     function testAddOrderRealZeroStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2(":;:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, 0));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
     /// A stack of 1 for calculate order reverts.
+    /// Stack size checks are runtime.
     function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_:block-timestamp();:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, 1));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
@@ -71,53 +71,53 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
-    /// Inputs for calculate order errors. Tests one input.
+    /// Inputs for calculate order. Tests one input.
+    /// Deploys because this is a runtime check.
     function testAddOrderRealCalculateInputsReverts1(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i:;:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateInputs.selector, 1));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
     /// Inputs for calculate order errors. Tests two inputs.
+    /// Deploys because this is a runtime check.
     function testAddOrderRealCalculateInputsReverts2(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i0 i1:;:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateInputs.selector, 2));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
     /// Inputs for calculate order errors. This takes precedent over the same
     /// error in handle io.
+    /// Deploys because this is a runtime check.
     function testAddOrderRealCalculateInputsRevertsPreference(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i:;i:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateInputs.selector, 1));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
     /// Inputs for handle io errors. Tests one input.
+    /// Deploys because this is a runtime check.
     function testAddOrderRealHandleIOInputsReverts1(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_ _:1e18 1e18;i:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 1));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
     /// Inputs for handle io errors. Tests two inputs.
+    /// Deploys because this is a runtime check.
     function testAddOrderRealHandleIOInputsReverts2(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_ _:1e18 1e18;i0 i1:;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 2));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }

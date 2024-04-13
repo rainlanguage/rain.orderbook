@@ -19,7 +19,7 @@ library LibTestAddOrder {
         pure
         returns (OrderV3 memory, bytes32)
     {
-        OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, bytes32(0));
+        OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.salt);
         return (order, LibOrder.hash(order));
     }
 

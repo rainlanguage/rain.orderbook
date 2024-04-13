@@ -52,8 +52,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         vm.recordLogs();
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 3);
-        (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+        assertEq(entries.length, 1);
+        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));

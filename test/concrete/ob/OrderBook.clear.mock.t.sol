@@ -37,6 +37,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         vm.assume(alice != bountyBot);
         vm.assume(bob != bountyBot);
 
+        aliceConfig.evaluable.interpreter = iInterpreter;
+        aliceConfig.evaluable.store = iStore;
+
+        bobConfig.evaluable.interpreter = iInterpreter;
+        bobConfig.evaluable.store = iStore;
+
         // -- Add two orders with similar IO tokens (swapped)
         // Add alice order with a input token (iToken0) and output token (iToken1)
         (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) =

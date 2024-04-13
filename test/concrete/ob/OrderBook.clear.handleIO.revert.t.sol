@@ -52,8 +52,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         vm.recordLogs();
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 3);
-        (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+        assertEq(entries.length, 1);
+        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         return order;
     }
