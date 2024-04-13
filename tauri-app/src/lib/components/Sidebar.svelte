@@ -75,7 +75,11 @@
           <span data-testid="sidebar-settings"></span>
         </svelte:fragment>
       </SidebarItem>
-      <SidebarItem label="Documentation" target="_blank" href="https://docs.rainlang.xyz/intro">
+      <SidebarItem
+        label="Documentation"
+        target="_blank"
+        href="https://docs.rainlang.xyz/raindex/overview"
+      >
         <svelte:fragment slot="icon">
           <IconExternalLink />
           <span data-testid="sidebar-documentation"></span>

@@ -4,15 +4,13 @@ pragma solidity =0.8.19;
 import {Script} from "forge-std/Script.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
-import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
-import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
-import {
-    EvaluableV3,
-    IInterpreterV3,
-    IInterpreterStoreV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {OrderBookV4ArbConfigV1} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {GenericPoolOrderBookV3ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
+import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
+import {EvaluableConfigV3, IExpressionDeployerV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {OrderBookV3ArbConfigV1} from "src/abstract/OrderBookV3ArbCommon.sol";
+import {IMetaBoardV1} from "rain.metadata/interface/IMetaBoardV1.sol";
+import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 
 /// @dev Exact bytecode taken from sushiswap deployments list in github.
 /// https://github.com/sushiswap/sushiswap/blob/master/protocols/route-processor/deployments/ethereum/RouteProcessor3_2.json#L330
@@ -31,6 +29,8 @@ bytes constant ROUTE_PROCESSOR_3_2_CREATION_CODE =
 contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
+        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParserDescribedByMetaV1.rain.meta");
+        IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
 
         vm.startBroadcast(deployerPrivateKey);
 
@@ -38,7 +38,8 @@ contract Deploy is Script {
         OrderBook orderbook = new OrderBook();
 
         // Subparsers.
-        new OrderBookSubParser();
+        OrderBookSubParser subParser = new OrderBookSubParser();
+        LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
 
         bytes memory routeProcessor3_2Code = ROUTE_PROCESSOR_3_2_CREATION_CODE;
         address routeProcessor3_2;
