@@ -61,9 +61,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// An order MUST NOT change state if it does not exist.
-    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, bytes memory expression)
-        external
-    {
+    function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, bytes memory) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(alice, config);
         assertFalse(iOrderbook.orderExists(orderHash));

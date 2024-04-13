@@ -214,7 +214,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit(address token, uint256 vaultId, uint256 amount, EvaluableV3[] calldata post)
+    function deposit2(address token, uint256 vaultId, uint256 amount, EvaluableV3[] calldata post)
         external
         nonReentrant
     {
@@ -264,7 +264,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder(OrderConfigV3 calldata orderConfig, EvaluableV3[] calldata post)
+    function addOrder2(OrderConfigV3 calldata orderConfig, EvaluableV3[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)
@@ -310,7 +310,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function removeOrder(OrderV3 calldata order, EvaluableV3[] calldata post)
+    function removeOrder2(OrderV3 calldata order, EvaluableV3[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)
@@ -336,7 +336,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
-    function takeOrders(TakeOrdersConfigV3 calldata config)
+    function takeOrders2(TakeOrdersConfigV3 calldata config)
         external
         nonReentrant
         returns (uint256 totalTakerInput, uint256 totalTakerOutput)

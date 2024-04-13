@@ -66,9 +66,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Adding a valid order with a non-empty meta MUST revert if the meta is
     /// not self describing as a rain meta document.
-    function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfigV3 memory config, bytes memory expression)
-        public
-    {
+    function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfigV3 memory config, bytes memory) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
