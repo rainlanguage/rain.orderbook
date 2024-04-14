@@ -14,21 +14,20 @@ import {
 /// @title OrderBookAddOrderTest
 /// @notice A test harness for testing the OrderBook addOrder function.
 contract OrderBookAddOrderTest is OrderBookExternalRealTest {
-    /// No sources reverts as we need at least a calculate expression.
-    function testAddOrderRealNoSourcesReverts(address owner, OrderConfigV3 memory config) public {
+    /// No sources deploys as we let this be a runtime check.
+    function testAddOrderRealNoSourcesDeploys(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = hex"";
-        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }
 
     /// No handle IO reverts.
-    function testAddOrderRealNoHandleIOReverts(address owner, OrderConfigV3 memory config) public {
+    /// This is a runtime check.
+    function testAddOrderRealNoHandleIODeploys(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2(":;");
         config.evaluable.bytecode = bytecode;
-        vm.expectRevert(abi.encodeWithSelector(OrderNoHandleIO.selector));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
     }

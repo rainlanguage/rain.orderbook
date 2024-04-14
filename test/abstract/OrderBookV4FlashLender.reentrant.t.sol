@@ -72,9 +72,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         depositAmount = bound(depositAmount, 1, type(uint256).max);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(
-                IERC20.transferFrom.selector, borrower, address(iOrderbook), depositAmount
-            ),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, borrower, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
         checkFlashLoanNotRevert(
