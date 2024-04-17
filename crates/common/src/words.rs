@@ -1,21 +1,19 @@
-use std::ops::Add;
-
 use alloy_dyn_abi::SolType;
 use alloy_ethers_typecast::transaction::{
-    ReadContractParameters, ReadContractParametersBuilder, ReadContractParametersBuilderError,
-    ReadableClient, ReadableClientError,
+    ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
+    ReadableClientError,
 };
 use alloy_primitives::{
-    hex::{decode, hex::encode, FromHexError},
+    hex::{decode, FromHexError},
     Address,
 };
 use alloy_sol_types::sol;
 use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
-use rain_metadata::{types::authoring::v1::AuthoringMeta, KnownMagic, RainMetaDocumentV1Item};
+use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
 use rain_metadata_bindings::IDescribedByMetaV1;
 use thiserror::Error;
 
-struct Words {
+pub struct Words {
     metaboard_url: String,
     rpc_url: String,
 }
@@ -27,11 +25,9 @@ sol!(
         bytes32 word;
         string description;
     }
-
-    struct AuthoringMetas {
-        AuthoringMetaV2[] metas;
-    }
 );
+
+type AuthoringMetas = sol! { AuthoringMetaV2[] };
 
 #[derive(Error, Debug)]
 pub enum WordsError {
@@ -53,6 +49,8 @@ pub enum WordsError {
     MetadataError(#[from] rain_metadata::Error),
     #[error(transparent)]
     AbiDecodeError(#[from] alloy_sol_types::Error),
+    #[error(transparent)]
+    Utf8Error(#[from] std::string::FromUtf8Error),
 }
 
 impl Words {
@@ -93,14 +91,14 @@ impl Words {
         let meta_bytes_slice = meta_bytes.as_slice();
         let rain_meta_document_item = RainMetaDocumentV1Item::cbor_decode(meta_bytes_slice)?;
 
-        let payload = rain_meta_document_item[0].payload.to_vec();
+        println!("rain_meta_document_item: {:?}", rain_meta_document_item);
 
-        println!("Payload: {}", encode(&payload));
+        let payload = rain_meta_document_item[0].unpack()?;
 
         let authoring_meta = AuthoringMetas::abi_decode(&payload, true)?;
 
-        for item in authoring_meta.metas.iter() {
-            println!("Word: {}", item.word);
+        for item in authoring_meta.iter() {
+            println!("Word: {}", String::from_utf8(item.word.as_slice().into())?);
             println!("Description: {}", item.description);
         }
 
