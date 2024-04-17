@@ -29,18 +29,27 @@ contract Token is ERC20 {
 }
 
 abstract contract ArbTest is Test {
-    address immutable iDeployer;
+    IInterpreterV3 immutable iInterpreter;
+    IInterpreterStoreV2 immutable iInterpreterStore;
+
     Token immutable iTakerInput;
     Token immutable iTakerOutput;
     address immutable iRefundoor;
     FlashLendingMockOrderBook immutable iOrderBook;
     address immutable iArb;
 
+    function expression() internal virtual returns (bytes memory) {
+        return "";
+    }
+
     function buildArb(OrderBookV4ArbConfigV1 memory config) internal virtual returns (address);
 
     constructor() {
-        iDeployer = address(uint160(uint256(keccak256("deployer.rain.test"))));
-        vm.label(iDeployer, "iDeployer");
+        iInterpreter = IInterpreterV3(address(uint160(uint256(keccak256("interpreter.rain.test")))));
+        vm.label(address(iInterpreter), "iInterpreter");
+        iInterpreterStore = IInterpreterStoreV2(address(uint160(uint256(keccak256("interpreter.store.rain.test")))));
+        vm.label(address(iInterpreterStore), "iInterpreterStore");
+
         iTakerInput = new Token();
         vm.label(address(iTakerInput), "iTakerInput");
         iTakerOutput = new Token();
@@ -53,7 +62,7 @@ abstract contract ArbTest is Test {
         iArb = buildArb(
             OrderBookV4ArbConfigV1(
                 address(iOrderBook),
-                EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
+                EvaluableV3(iInterpreter, iInterpreterStore, expression()),
                 abi.encode(iRefundoor)
             )
         );

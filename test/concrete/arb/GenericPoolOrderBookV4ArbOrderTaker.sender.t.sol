@@ -26,7 +26,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerSenderTest is GenericPoolOrderBookV4
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
+            EvaluableV3(iInterpreter, iInterpreterStore, "")
         );
     }
 
@@ -47,7 +47,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerSenderTest is GenericPoolOrderBookV4
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             minimumOutput,
-            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
+            EvaluableV3(iInterpreter, iInterpreterStore, "")
         );
     }
 }

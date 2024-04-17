@@ -35,7 +35,7 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             0,
             abi.encode(iRefundoor, iRefundoor, ""),
-            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
+            EvaluableV3(iInterpreter, iInterpreterStore, "")
         );
     }
 
@@ -57,7 +57,7 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             minimumOutput,
             abi.encode(iRefundoor, iRefundoor, ""),
-            EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), "")
+            EvaluableV3(iInterpreter, iInterpreterStore, "")
         );
     }
 }

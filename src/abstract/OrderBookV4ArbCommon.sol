@@ -36,7 +36,7 @@ struct OrderBookV4ArbConfigV1 {
 }
 
 /// Thrown when the evaluable does not match the expected hash.
-error BadEvaluable();
+error WrongEvaluable();
 
 /// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
 /// allows for some kind of access control to the arb.
@@ -62,9 +62,9 @@ abstract contract OrderBookV4ArbCommon {
 
     modifier onlyValidEvaluable(EvaluableV3 calldata evaluable) {
         if (evaluable.hash() != iEvaluableHash) {
-            revert BadEvaluable();
+            revert WrongEvaluable();
         }
-        if (address(evaluable.interpreter) != address(0)) {
+        if (evaluable.bytecode.length > 0) {
             (uint256[] memory stack, uint256[] memory kvs) = evaluable.interpreter.eval3(
                 evaluable.store,
                 LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),
