@@ -24,17 +24,19 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
-        bytes memory wrongExpression
+        EvaluableV3 memory evaluable
     ) public {
-        vm.assume(keccak256(wrongExpression) != keccak256(expression()));
-
+        vm.assume(
+            address(evaluable.interpreter) != address(iInterpreter) || evaluable.store != iInterpreterStore
+                || keccak256(evaluable.bytecode) != keccak256(expression())
+        );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            EvaluableV3(iInterpreter, iInterpreterStore, wrongExpression)
+            evaluable
         );
     }
 
