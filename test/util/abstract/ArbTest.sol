@@ -61,9 +61,7 @@ abstract contract ArbTest is Test {
 
         iArb = buildArb(
             OrderBookV4ArbConfigV1(
-                address(iOrderBook),
-                EvaluableV3(iInterpreter, iInterpreterStore, expression()),
-                abi.encode(iRefundoor)
+                address(iOrderBook), EvaluableV3(iInterpreter, iInterpreterStore, expression()), abi.encode(iRefundoor)
             )
         );
         vm.label(iArb, "iArb");
