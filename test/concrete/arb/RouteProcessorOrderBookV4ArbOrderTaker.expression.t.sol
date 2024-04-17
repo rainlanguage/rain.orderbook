@@ -11,13 +11,31 @@ import {
     IInterpreterV3,
     IInterpreterStoreV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {LibNamespace, DEFAULT_STATE_NAMESPACE} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongEvaluable} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
         // We're going to test with a mock so it doesn't matter what the expression is.
         return hex"deadbeef";
+    }
+
+    function testRouteProcessorTakeOrdersWrongExpression(
+        OrderV3 memory order,
+        uint256 inputIOIndex,
+        uint256 outputIOIndex,
+        bytes memory wrongExpression
+    ) public {
+        vm.assume(keccak256(wrongExpression) != keccak256(expression()));
+
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+
+        vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            0,
+            EvaluableV3(iInterpreter, iInterpreterStore, wrongExpression)
+        );
     }
 
     function testRouteProcessorTakeOrdersExpression(

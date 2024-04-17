@@ -16,13 +16,36 @@ import {
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {LibNamespace, DEFAULT_STATE_NAMESPACE, BEFORE_ARB_SOURCE_INDEX} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {
+    LibNamespace,
+    DEFAULT_STATE_NAMESPACE,
+    BEFORE_ARB_SOURCE_INDEX,
+    WrongEvaluable
+} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 
 contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBookV4ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
         // We're going to test with a mock so it doesn't matter what the expression is.
         return hex"deadbeef";
+    }
+
+    function testGenericPoolTakeOrdersWrongExpression(
+        OrderV3 memory order,
+        uint256 inputIOIndex,
+        uint256 outputIOIndex,
+        bytes memory wrongExpression
+    ) public {
+        vm.assume(keccak256(wrongExpression) != keccak256(expression()));
+
+        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+
+        vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            0,
+            EvaluableV3(iInterpreter, iInterpreterStore, wrongExpression)
+        );
     }
 
     function testGenericPoolTakeOrdersExpression(
