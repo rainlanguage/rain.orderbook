@@ -13,6 +13,7 @@ pub mod transaction;
 pub mod types;
 pub mod utils;
 pub mod withdraw;
+pub mod words;
 
 pub use dotrain;
 pub use dotrain_lsp;
