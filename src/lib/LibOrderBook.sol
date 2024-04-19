@@ -76,7 +76,8 @@ uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
 
 library LibOrderBook {
-    function doPost(StateNamespace namespace, uint256[][] memory context, EvaluableV3[] memory post) internal {
+    function doPost(uint256[][] memory context, EvaluableV3[] memory post) internal {
+        StateNamespace namespace = StateNamespace.wrap(uint256(uint160(msg.sender)));
         EvaluableV3 memory postEvaluable;
         for (uint256 i = 0; i < post.length; ++i) {
             postEvaluable = post[i];

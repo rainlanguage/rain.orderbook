@@ -206,11 +206,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
 
     /// @inheritdoc IOrderBookV4
     function eval(EvaluableV3[] calldata post) external nonReentrant {
-        LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(msg.sender))),
-            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-            post
-        );
+        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
     }
 
     /// @inheritdoc IOrderBookV4
@@ -229,11 +225,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         sVaultBalances[msg.sender][token][vaultId] += amount;
 
-        LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(msg.sender))),
-            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-            post
-        );
+        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
     }
 
     /// @inheritdoc IOrderBookV4
@@ -256,11 +248,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
         }
 
-        LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(msg.sender))),
-            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-            post
-        );
+        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
     }
 
     /// @inheritdoc IOrderBookV4
@@ -303,11 +291,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             }
         }
 
-        LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(msg.sender))),
-            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-            post
-        );
+        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
     }
 
     /// @inheritdoc IOrderBookV4
@@ -326,11 +310,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             emit RemoveOrderV2(msg.sender, orderHash, order);
         }
 
-        LibOrderBook.doPost(
-            StateNamespace.wrap(uint256(uint160(msg.sender))),
-            LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-            post
-        );
+        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
     }
 
     /// @inheritdoc IOrderBookV4
