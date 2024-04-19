@@ -8,6 +8,7 @@ on:
         type: choice
         options:
           - arbitrum
+          - arbitrum_sepolia
           - avalanche
           - base
           - bsc
@@ -16,6 +17,7 @@ on:
           - mumbai
           - oasis_sapphire
           - polygon
+          - sepolia
           - songbird
 
 jobs:
@@ -29,6 +31,7 @@ jobs:
           echo "verify_secret_name=CI_DEPLOY_${network^^}_VERIFY" >> $GITHUB_ENV
           echo "verifier_secret_name=CI_DEPLOY_${network^^}_VERIFIER" >> $GITHUB_ENV
           echo "verifier_url_secret_name=CI_DEPLOY_${network^^}_VERIFIER_URL" >> $GITHUB_ENV
+          echo "metaboard_address_secret_name=CI_DEPLOY_${network^^}_METABOARD_ADDRESS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
@@ -40,6 +43,8 @@ jobs:
 
       - run: nix develop --command rainix-sol-prelude
       - run: nix develop --command rainix-rs-prelude
+      - run: nix develop --command raindex-prelude
+
       - name: deploy to ${{ inputs.network }}
         run: nix develop --command rainix-sol-artifacts
         env:
@@ -50,3 +55,4 @@ jobs:
           DEPLOY_VERIFY: ${{ secrets[env.verify_secret_name] || vars[env.verify_secret_name] || '' }}
           DEPLOY_VERIFIER: ${{ secrets[env.verifier_secret_name] || vars[env.verifier_secret_name] || '' }}
           DEPLOY_VERIFIER_URL: ${{ secrets[env.verifier_url_secret_name] || vars[env.verifier_url_secret_name] || '' }}
+          DEPLOY_METABOARD_ADDRESS: ${{ secrets[env.metaboard_address_secret_name] || vars[env.metaboard_address_secret_name] || '' }}

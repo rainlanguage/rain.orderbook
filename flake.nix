@@ -15,6 +15,24 @@
 
           tauri-release-env = rainix.tauri-release-env.${system};
 
+          raindex-prelude = rainix.mkTask.${system} {
+            name = "raindex-prelude";
+            body = ''
+              set -euxo pipefail
+
+              mkdir -p meta;
+              forge script --silent ./script/BuildAuthoringMeta.sol;
+              rain meta build \
+                -i <(cat ./meta/OrderBookSubParserAuthoringMeta.rain.meta) \
+                -m authoring-meta-v1 \
+                -t cbor \
+                -e deflate \
+                -l none \
+                -o meta/OrderBookSubParserDescribedByMetaV1.rain.meta \
+                ;
+            '';
+          };
+
           ob-rs-test = rainix.mkTask.${system} {
             name = "ob-rs-test";
             body = ''
@@ -30,7 +48,7 @@
 
               # Generate Typescript types from rust types
               mkdir -p tauri-app/src/lib/typeshare
-              
+
               export CARGO_HOME=$(mktemp -d)
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
@@ -59,7 +77,7 @@
               rainix.rust-build-inputs.${system}
             ];
           };
-          
+
           ob-tauri-unit-test =  rainix.mkTask.${system} {
             name = "ob-tauri-unit-test";
             body = ''
@@ -113,18 +131,18 @@
               if [ -f "$ENV_FILE" ]; then
                   source $ENV_FILE
               fi
-              
+
               # Exit if required env variables are not defined
               if [ -z "$VITE_WALLETCONNECT_PROJECT_ID" ]; then
                 echo "Cancelling build: VITE_WALLETCONNECT_PROJECT_ID is not defined"
                 exit 1
               fi
 
-              if [ "$VITE_SENTRY_FORCE_DISABLED" != "true" ] && 
-              ( 
-                [ -z "$VITE_SENTRY_DSN" ] || 
-                [ -z "$VITE_SENTRY_ENVIRONMENT" ] || 
-                [ -z "$VITE_SENTRY_RELEASE" ] 
+              if [ "$VITE_SENTRY_FORCE_DISABLED" != "true" ] &&
+              (
+                [ -z "$VITE_SENTRY_DSN" ] ||
+                [ -z "$VITE_SENTRY_ENVIRONMENT" ] ||
+                [ -z "$VITE_SENTRY_RELEASE" ]
               ); then
                 echo "Cancelling build: EITHER env variable VITE_SENTRY_FORCE_DISABLED=true OR all env variables VITE_SENTRY_DSN, VITE_SENTRY_ENVIRONMENT and VITE_SENTRY_RELEASE must be defined"
                 exit 1
@@ -188,11 +206,12 @@
               fi
             '';
           };
-        
+
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
           packages = [
+            packages.raindex-prelude
             packages.ob-rs-test
           ];
 
@@ -202,6 +221,7 @@
         };
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
+            packages.raindex-prelude
             packages.ob-tauri-prelude
             packages.ob-tauri-unit-test
             packages.ob-tauri-before-build-ci
