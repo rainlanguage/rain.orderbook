@@ -9,8 +9,12 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // reads/writes for reentrancy guard.
         assert(reads.length == 3);
-        reads[0] = bytes32(0);
+        assert(reads[0] == bytes32(uint256(0)));
+        assert(reads[1] == bytes32(uint256(0)));
+        assert(reads[2] == bytes32(uint256(0)));
         assert(writes.length == 2);
+        assert(writes[0] == bytes32(uint256(0)));
+        assert(writes[1] == bytes32(uint256(0)));
     }
 
     function testOrderBookEvalEmptyNoop() external {
@@ -41,7 +45,7 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         iOrderbook.eval(evals);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        // 1 for get and 1 for set.
+        // each get is 2 reads. 1 during eval and 1 during store set.
         assert(reads.length == 2);
         // 1 for the set implied by get.
         assert(writes.length == 1);
@@ -64,7 +68,7 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         iOrderbook.eval(evals1);
         checkReentrancyRW();
         (reads, writes) = vm.accesses(address(iStore));
-        // 1 for the get and 1 for set.
+        // each get is 2 reads. 1 during eval and 1 during store set.
         assert(reads.length == 2);
         // 1 for the set implied by get.
         assert(writes.length == 1);
@@ -84,6 +88,14 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
 
         checkReentrancyRW();
 
+        (bytes32[] memory reads0, bytes32[] memory writes0) = vm.accesses(address(iStore));
+        // each get is 2 reads. 1 during eval and 1 during store set.
+        // each set is 1 read.
+        assert(reads0.length == 6);
+        // each get is 1 write.
+        // each set is 1 write.
+        assert(writes0.length == 4);
+
         // Again.
         EvaluableV3[] memory evals1 = new EvaluableV3[](4);
         evals1[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 20);"));
@@ -92,6 +104,19 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         evals1[2] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(2 30);"));
         evals1[3] =
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"1st set not equal\");"));
+
+        vm.record();
+        iOrderbook.eval(evals1);
+
+        checkReentrancyRW();
+
+        (bytes32[] memory reads1, bytes32[] memory writes1) = vm.accesses(address(iStore));
+        // each get is 2 reads. 1 during eval and 1 during store set.
+        // each set is 1 read.
+        assert(reads1.length == 6);
+        // each get is 1 write.
+        // each set is 1 write.
+        assert(writes1.length == 4);
     }
 
     function testOrderBookEvalWriteStateDifferentOwnersNamespaced(address alice, address bob) external {
@@ -106,11 +131,18 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"1st set not equal\");"));
 
         vm.record();
-
         vm.prank(alice);
         iOrderbook.eval(evals0);
 
         checkReentrancyRW();
+
+        (bytes32[] memory reads0, bytes32[] memory writes0) = vm.accesses(address(iStore));
+        // each get is 2 reads. 1 during eval and 1 during store set.
+        // each set is 1 read.
+        assert(reads0.length == 6);
+        // each get is 1 write.
+        // each set is 1 write.
+        assert(writes0.length == 4);
 
         EvaluableV3[] memory evals1 = new EvaluableV3[](4);
         evals1[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 20);"));
@@ -120,8 +152,19 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         evals1[3] =
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"1st set not equal\");"));
 
+        vm.record();
         vm.prank(bob);
         iOrderbook.eval(evals1);
+
+        checkReentrancyRW();
+
+        (bytes32[] memory reads1, bytes32[] memory writes1) = vm.accesses(address(iStore));
+        // each get is 2 reads. 1 during eval and 1 during store set.
+        // each set is 1 read.
+        assert(reads1.length == 6);
+        // each get is 1 write.
+        // each set is 1 write.
+        assert(writes1.length == 4);
 
         // Ensure that the state is different for different owners.
         EvaluableV3[] memory evals2 = new EvaluableV3[](2);
@@ -130,14 +173,34 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         evals2[1] =
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"alice state 2\");"));
 
+        vm.record();
         vm.prank(alice);
         iOrderbook.eval(evals2);
+
+        checkReentrancyRW();
+
+        (bytes32[] memory reads2, bytes32[] memory writes2) = vm.accesses(address(iStore));
+        // each get is 2 reads. 1 during eval and 1 during store set.
+        // each set is 1 read.
+        assert(reads2.length == 4);
+        // each get is 1 write.
+        // each set is 1 write.
+        assert(writes2.length == 2);
 
         EvaluableV3[] memory evals3 = new EvaluableV3[](2);
         evals3[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 20) \"bob state 1\");"));
         evals3[1] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"bob state 2\");"));
 
+        vm.record();
         vm.prank(bob);
         iOrderbook.eval(evals3);
+
+        (bytes32[] memory reads3, bytes32[] memory writes3) = vm.accesses(address(iStore));
+        // each get is 2 reads. 1 during eval and 1 during store set.
+        // each set is 1 read.
+        assert(reads3.length == 4);
+        // each get is 1 write.
+        // each set is 1 write.
+        assert(writes3.length == 2);
     }
 }
