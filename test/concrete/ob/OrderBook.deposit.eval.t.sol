@@ -3,46 +3,68 @@ pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
-contract OrderBookEvalTest is OrderBookExternalRealTest {
+contract OrderBookDepositEvalTest is OrderBookExternalRealTest {
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        // reads/writes for reentrancy guard.
-        assert(reads.length == 3);
+        // 3 reads for reentrancy guard.
+        // 2 reads for deposit.
+        assert(reads.length == 5);
         assert(reads[0] == bytes32(uint256(0)));
         assert(reads[1] == bytes32(uint256(0)));
-        assert(reads[2] == bytes32(uint256(0)));
-        assert(writes.length == 2);
+        assert(reads[4] == bytes32(uint256(0)));
+        // 2 writes for reentrancy guard.
+        // 1 write for deposit.
+        assert(writes.length == 3);
         assert(writes[0] == bytes32(uint256(0)));
-        assert(writes[1] == bytes32(uint256(0)));
+        assert(writes[2] == bytes32(uint256(0)));
     }
 
-    function testOrderBookEvalEmptyNoop() external {
+    function testOrderBookDepositEvalEmptyNoop(uint256 vaultId, uint256 amount) external {
+        vm.assume(amount > 0);
         EvaluableV3[] memory evals = new EvaluableV3[](0);
         vm.record();
-        iOrderbook.eval(evals);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), amount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == 0);
         assert(writes.length == 0);
     }
 
-    function testOrderBookEvalOneStateless() external {
+    function testOrderBookDepositEvalOneStateless(uint256 vaultId, uint256 amount) external {
+        vm.assume(amount > 0);
         EvaluableV3[] memory evals = new EvaluableV3[](1);
         evals[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2("_:1;"));
         vm.record();
-        iOrderbook.eval(evals);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), amount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == 0);
         assert(writes.length == 0);
     }
 
-    function testOrderBookEvalOneReadState() external {
+    function testOrderBookDepositEvalOneReadState(uint256 vaultId, uint256 amount) external {
+        vm.assume(amount > 0);
         EvaluableV3[] memory evals = new EvaluableV3[](1);
         evals[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2("_:get(0);"));
         vm.record();
-        iOrderbook.eval(evals);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), amount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         // each get is 2 reads. 1 during eval and 1 during store set.
@@ -51,11 +73,17 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         assert(writes.length == 1);
     }
 
-    function testOrderBookEvalWriteStateSingle() external {
+    function testOrderBookDepositEvalWriteStateSingle(uint256 vaultId, uint256 amount) external {
+        amount = bound(amount, 1, type(uint128).max);
         EvaluableV3[] memory evals0 = new EvaluableV3[](1);
         evals0[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 2);"));
         vm.record();
-        iOrderbook.eval(evals0);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), amount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals0);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         // 1 for the set.
@@ -65,16 +93,18 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         EvaluableV3[] memory evals1 = new EvaluableV3[](1);
         evals1[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 2) \"set works\");"));
         vm.record();
-        iOrderbook.eval(evals1);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals1);
         checkReentrancyRW();
         (reads, writes) = vm.accesses(address(iStore));
         // each get is 2 reads. 1 during eval and 1 during store set.
         assert(reads.length == 2);
-        // 1 for the set implied by get.
+        // 1 for the set implied by the get.
         assert(writes.length == 1);
     }
 
-    function testOrderBookEvalWriteStateSequential() external {
+    function testOrderBookDepositEvalWriteStateSequential(uint256 vaultId, uint256 amount) external {
+        amount = bound(amount, 1, type(uint128).max);
+
         EvaluableV3[] memory evals0 = new EvaluableV3[](4);
         evals0[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 2);"));
         evals0[1] =
@@ -84,7 +114,12 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"1st set not equal\");"));
 
         vm.record();
-        iOrderbook.eval(evals0);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), amount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals0);
 
         checkReentrancyRW();
 
@@ -106,7 +141,7 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"1st set not equal\");"));
 
         vm.record();
-        iOrderbook.eval(evals1);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals1);
 
         checkReentrancyRW();
 
@@ -119,8 +154,14 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         assert(writes1.length == 4);
     }
 
-    function testOrderBookEvalWriteStateDifferentOwnersNamespaced(address alice, address bob) external {
+    function testOrderBookDepositEvalWriteStateDifferentOwnersNamespaced(
+        address alice,
+        address bob,
+        uint256 vaultId,
+        uint256 amount
+    ) external {
         vm.assume(alice != bob);
+        amount = bound(amount, 1, type(uint128).max);
 
         EvaluableV3[] memory evals0 = new EvaluableV3[](4);
         evals0[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 2);"));
@@ -131,8 +172,13 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"1st set not equal\");"));
 
         vm.record();
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount),
+            abi.encode(true)
+        );
         vm.prank(alice);
-        iOrderbook.eval(evals0);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals0);
 
         checkReentrancyRW();
 
@@ -153,8 +199,13 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
             EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"1st set not equal\");"));
 
         vm.record();
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), amount),
+            abi.encode(true)
+        );
         vm.prank(bob);
-        iOrderbook.eval(evals1);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals1);
 
         checkReentrancyRW();
 
@@ -175,7 +226,7 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
 
         vm.record();
         vm.prank(alice);
-        iOrderbook.eval(evals2);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals2);
 
         checkReentrancyRW();
 
@@ -193,7 +244,7 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
 
         vm.record();
         vm.prank(bob);
-        iOrderbook.eval(evals3);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals3);
 
         checkReentrancyRW();
 
