@@ -38,6 +38,9 @@ abstract contract ArbTest is Test {
     FlashLendingMockOrderBook immutable iOrderBook;
     address immutable iArb;
 
+    /// Mimics the `Construct` event from `OrderBookV4ArbCommon`.
+    event Construct(address sender, OrderBookV4ArbConfigV1 config);
+
     function expression() internal virtual returns (bytes memory) {
         return "";
     }
@@ -59,11 +62,13 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
         vm.label(address(iOrderBook), "iOrderBook");
 
-        iArb = buildArb(
-            OrderBookV4ArbConfigV1(
-                address(iOrderBook), EvaluableV3(iInterpreter, iInterpreterStore, expression()), abi.encode(iRefundoor)
-            )
+        OrderBookV4ArbConfigV1 memory config = OrderBookV4ArbConfigV1(
+            address(iOrderBook), EvaluableV3(iInterpreter, iInterpreterStore, expression()), abi.encode(iRefundoor)
         );
+
+        vm.expectEmit();
+        emit Construct(address(this), config);
+        iArb = buildArb(config);
         vm.label(iArb, "iArb");
     }
 
