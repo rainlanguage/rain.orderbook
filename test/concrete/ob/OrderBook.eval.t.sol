@@ -17,192 +17,89 @@ contract OrderBookEvalTest is OrderBookExternalRealTest {
         assert(writes[1] == bytes32(uint256(0)));
     }
 
-    function testOrderBookEvalEmptyNoop() external {
-        EvaluableV3[] memory evals = new EvaluableV3[](0);
+    function checkEval(address owner, bytes[] memory evalStrings, uint256 expectedReads, uint256 expectedWrites)
+        internal
+    {
+        vm.startPrank(owner);
+        EvaluableV3[] memory evals = new EvaluableV3[](evalStrings.length);
+        for (uint256 i = 0; i < evalStrings.length; i++) {
+            evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
+        }
         vm.record();
         iOrderbook.eval(evals);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        assert(reads.length == 0);
-        assert(writes.length == 0);
+        assert(reads.length == expectedReads);
+        assert(writes.length == expectedWrites);
+        vm.stopPrank();
     }
 
-    function testOrderBookEvalOneStateless() external {
-        EvaluableV3[] memory evals = new EvaluableV3[](1);
-        evals[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2("_:1;"));
-        vm.record();
-        iOrderbook.eval(evals);
-        checkReentrancyRW();
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        assert(reads.length == 0);
-        assert(writes.length == 0);
+    function testOrderBookEvalEmptyNoop(address alice) external {
+        checkEval(alice, new bytes[](0), 0, 0);
     }
 
-    function testOrderBookEvalOneReadState() external {
-        EvaluableV3[] memory evals = new EvaluableV3[](1);
-        evals[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2("_:get(0);"));
-        vm.record();
-        iOrderbook.eval(evals);
-        checkReentrancyRW();
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        assert(reads.length == 2);
-        // 1 for the set implied by get.
-        assert(writes.length == 1);
+    function testOrderBookEvalOneStateless(address alice) external {
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes("_:1;");
+        checkEval(alice, evals, 0, 0);
     }
 
-    function testOrderBookEvalWriteStateSingle() external {
-        EvaluableV3[] memory evals0 = new EvaluableV3[](1);
-        evals0[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 2);"));
-        vm.record();
-        iOrderbook.eval(evals0);
-        checkReentrancyRW();
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        // 1 for the set.
-        assert(reads.length == 1);
-        assert(writes.length == 1);
+    function testOrderBookEvalOneReadState(address alice) external {
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes("_:get(0);");
+        checkEval(alice, evals, 2, 1);
+    }
 
-        EvaluableV3[] memory evals1 = new EvaluableV3[](1);
-        evals1[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 2) \"set works\");"));
-        vm.record();
-        iOrderbook.eval(evals1);
-        checkReentrancyRW();
-        (reads, writes) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        assert(reads.length == 2);
-        // 1 for the set implied by get.
-        assert(writes.length == 1);
+    function testOrderBookEvalWriteStateSingle(address alice) external {
+        bytes[] memory evals0 = new bytes[](1);
+        evals0[0] = bytes(":set(1 2);");
+        checkEval(alice, evals0, 1, 1);
+
+        bytes[] memory evals1 = new bytes[](1);
+        evals1[0] = bytes(":ensure(equal-to(get(1) 2) \"set works\");");
+        checkEval(alice, evals1, 2, 1);
     }
 
     function testOrderBookEvalWriteStateSequential() external {
-        EvaluableV3[] memory evals0 = new EvaluableV3[](4);
-        evals0[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 2);"));
-        evals0[1] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 2) \"0th set not equal\");"));
-        evals0[2] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(2 3);"));
-        evals0[3] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"1st set not equal\");"));
+        bytes[] memory evals0 = new bytes[](4);
+        evals0[0] = bytes(":set(1 2);");
+        evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
+        evals0[2] = bytes(":set(2 3);");
+        evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
+        checkEval(address(0), evals0, 6, 4);
 
-        vm.record();
-        iOrderbook.eval(evals0);
-
-        checkReentrancyRW();
-
-        (bytes32[] memory reads0, bytes32[] memory writes0) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        // each set is 1 read.
-        assert(reads0.length == 6);
-        // each get is 1 write.
-        // each set is 1 write.
-        assert(writes0.length == 4);
-
-        // Again.
-        EvaluableV3[] memory evals1 = new EvaluableV3[](4);
-        evals1[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 20);"));
-        evals1[1] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 20) \"0th set not equal\");"));
-        evals1[2] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(2 30);"));
-        evals1[3] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"1st set not equal\");"));
-
-        vm.record();
-        iOrderbook.eval(evals1);
-
-        checkReentrancyRW();
-
-        (bytes32[] memory reads1, bytes32[] memory writes1) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        // each set is 1 read.
-        assert(reads1.length == 6);
-        // each get is 1 write.
-        // each set is 1 write.
-        assert(writes1.length == 4);
+        bytes[] memory evals1 = new bytes[](4);
+        evals1[0] = bytes(":set(1 20);");
+        evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
+        evals1[2] = bytes(":set(2 30);");
+        evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
+        checkEval(address(0), evals1, 6, 4);
     }
 
     function testOrderBookEvalWriteStateDifferentOwnersNamespaced(address alice, address bob) external {
         vm.assume(alice != bob);
+        bytes[] memory evals0 = new bytes[](4);
+        evals0[0] = bytes(":set(1 2);");
+        evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
+        evals0[2] = bytes(":set(2 3);");
+        evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
+        checkEval(alice, evals0, 6, 4);
 
-        EvaluableV3[] memory evals0 = new EvaluableV3[](4);
-        evals0[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 2);"));
-        evals0[1] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 2) \"0th set not equal\");"));
-        evals0[2] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(2 3);"));
-        evals0[3] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"1st set not equal\");"));
+        bytes[] memory evals1 = new bytes[](4);
+        evals1[0] = bytes(":set(1 20);");
+        evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
+        evals1[2] = bytes(":set(2 30);");
+        evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
+        checkEval(bob, evals1, 6, 4);
 
-        vm.record();
-        vm.prank(alice);
-        iOrderbook.eval(evals0);
+        bytes[] memory evals2 = new bytes[](2);
+        evals2[0] = bytes(":ensure(equal-to(get(1) 2) \"alice state 1\");");
+        evals2[1] = bytes(":ensure(equal-to(get(2) 3) \"alice state 2\");");
+        checkEval(alice, evals2, 4, 2);
 
-        checkReentrancyRW();
-
-        (bytes32[] memory reads0, bytes32[] memory writes0) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        // each set is 1 read.
-        assert(reads0.length == 6);
-        // each get is 1 write.
-        // each set is 1 write.
-        assert(writes0.length == 4);
-
-        EvaluableV3[] memory evals1 = new EvaluableV3[](4);
-        evals1[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(1 20);"));
-        evals1[1] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 20) \"0th set not equal\");"));
-        evals1[2] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":set(2 30);"));
-        evals1[3] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"1st set not equal\");"));
-
-        vm.record();
-        vm.prank(bob);
-        iOrderbook.eval(evals1);
-
-        checkReentrancyRW();
-
-        (bytes32[] memory reads1, bytes32[] memory writes1) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        // each set is 1 read.
-        assert(reads1.length == 6);
-        // each get is 1 write.
-        // each set is 1 write.
-        assert(writes1.length == 4);
-
-        // Ensure that the state is different for different owners.
-        EvaluableV3[] memory evals2 = new EvaluableV3[](2);
-        evals2[0] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 2) \"alice state 1\");"));
-        evals2[1] =
-            EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 3) \"alice state 2\");"));
-
-        vm.record();
-        vm.prank(alice);
-        iOrderbook.eval(evals2);
-
-        checkReentrancyRW();
-
-        (bytes32[] memory reads2, bytes32[] memory writes2) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        // each set is 1 read.
-        assert(reads2.length == 4);
-        // each get is 1 write.
-        // each set is 1 write.
-        assert(writes2.length == 2);
-
-        EvaluableV3[] memory evals3 = new EvaluableV3[](2);
-        evals3[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(1) 20) \"bob state 1\");"));
-        evals3[1] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(":ensure(equal-to(get(2) 30) \"bob state 2\");"));
-
-        vm.record();
-        vm.prank(bob);
-        iOrderbook.eval(evals3);
-
-        checkReentrancyRW();
-
-        (bytes32[] memory reads3, bytes32[] memory writes3) = vm.accesses(address(iStore));
-        // each get is 2 reads. 1 during eval and 1 during store set.
-        // each set is 1 read.
-        assert(reads3.length == 4);
-        // each get is 1 write.
-        // each set is 1 write.
-        assert(writes3.length == 2);
+        bytes[] memory evals3 = new bytes[](2);
+        evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
+        evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
+        checkEval(bob, evals3, 4, 2);
     }
 }
