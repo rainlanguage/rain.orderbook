@@ -21,7 +21,15 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         assert(writes[2] == bytes32(uint256(0)));
     }
 
-    function checkWithdraw(address owner, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount, bytes[] memory evalStrings, uint256 expectedReads, uint256 expectedWrites) internal {
+    function checkWithdraw(
+        address owner,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount,
+        bytes[] memory evalStrings,
+        uint256 expectedReads,
+        uint256 expectedWrites
+    ) internal {
         vm.startPrank(owner);
         vm.mockCall(
             address(iToken0),
@@ -35,9 +43,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
         }
         vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount),
-            abi.encode(true)
+            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount), abi.encode(true)
         );
         vm.record();
         iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, evals);
@@ -48,14 +54,24 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         vm.stopPrank();
     }
 
-    function testOrderBookWithdrawEvalEmptyNoop(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalEmptyNoop(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, new bytes[](0), 0, 0);
     }
 
-    function testOrderBookWithdrawEvalOneStateless(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalOneStateless(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
@@ -64,7 +80,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
     }
 
-    function testOrderBookWithdrawEvalOneReadState(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalOneReadState(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
@@ -74,7 +95,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 2, 1);
     }
 
-    function testOrderBookWithdrawEvalWriteStateSingle(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalWriteStateSingle(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
@@ -89,7 +115,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 2, 1);
     }
 
-    function testOrderBookWithdrawEvalWriteStateSequential(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalWriteStateSequential(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
