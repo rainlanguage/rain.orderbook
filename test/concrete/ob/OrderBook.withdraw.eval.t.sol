@@ -6,19 +6,19 @@ import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/uns
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
-    function checkReentrancyRW() internal {
+    function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 2 reads for deposit.
-        assert(reads.length == 5);
+        assert(reads.length == expectedReads);
         assert(reads[0] == bytes32(uint256(0)));
         assert(reads[1] == bytes32(uint256(0)));
-        assert(reads[4] == bytes32(uint256(0)));
+        assert(reads[reads.length - 1] == bytes32(uint256(0)));
         // 2 writes for reentrancy guard.
         // 1 write for deposit.
-        assert(writes.length == 3);
+        assert(writes.length == expectedWrites);
         assert(writes[0] == bytes32(uint256(0)));
-        assert(writes[2] == bytes32(uint256(0)));
+        assert(writes[writes.length - 1] == bytes32(uint256(0)));
     }
 
     function checkWithdraw(
@@ -36,7 +36,9 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+        if (depositAmount > 0) {
+            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+        }
 
         EvaluableV3[] memory evals = new EvaluableV3[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
@@ -47,7 +49,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         );
         vm.record();
         iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, evals);
-        checkReentrancyRW();
+        checkReentrancyRW(depositAmount > 0 ? 5 : 4, depositAmount > 0 ? 3 : 2);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
         assert(writes.length == expectedWrites);
@@ -182,5 +184,16 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
         // each get is 2 reads and 1 write.
         checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals3, 4, 2);
+    }
+
+    /// Evals DO NOT run if withdrawal amount ends up as 0.
+    /// No withdraw => no eval.
+    function testOrderBookWithdrawalEvalZeroAmountEvalNoop(address alice, uint256 vaultId, uint256 withdrawAmount)
+        external
+    {
+        withdrawAmount = bound(withdrawAmount, 1, type(uint128).max);
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes(":ensure(0 \"always fails\");");
+        checkWithdraw(alice, vaultId, 0, withdrawAmount, evals, 0, 0);
     }
 }

@@ -6,19 +6,21 @@ import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/uns
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 
 contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
-    function checkReentrancyRW() internal {
+    mapping(bytes32 => bool) salts;
+
+    function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 1 reads for add order.
-        assert(reads.length == 5);
+        assert(reads.length == expectedReads);
         assert(reads[0] == bytes32(uint256(0)));
         assert(reads[1] == bytes32(uint256(0)));
-        assert(reads[4] == bytes32(uint256(0)));
+        assert(reads[reads.length - 1] == bytes32(uint256(0)));
         // 2 writes for reentrancy guard.
         // 1 write for add order.
-        assert(writes.length == 3);
+        assert(writes.length == expectedWrites);
         assert(writes[0] == bytes32(uint256(0)));
-        assert(writes[2] == bytes32(uint256(0)));
+        assert(writes[writes.length - 1] == bytes32(uint256(0)));
     }
 
     function checkAddOrder(
@@ -34,15 +36,15 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < evalStrings.length; i++) {
             evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
         }
-        // Hacky way to give a unique salt to each order passed in.
-        config.salt = keccak256(abi.encode(evalStrings));
         vm.record();
-        iOrderbook.addOrder2(config, evals);
-        checkReentrancyRW();
+        bool stateChanged = iOrderbook.addOrder2(config, evals);
+        assert(stateChanged != salts[config.salt]);
+        checkReentrancyRW(salts[config.salt] ? 4 : 5, salts[config.salt] ? 2 : 3);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
         assert(writes.length == expectedWrites);
         vm.stopPrank();
+        salts[config.salt] = true;
     }
 
     function testAddOrderEmptyNoop(address alice, OrderConfigV3 memory config) external {
@@ -65,10 +67,12 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
     function testAddOrderWriteStateSingle(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
+        config.salt = bytes32(uint256(0));
         checkAddOrder(alice, config, evals0, 1, 1);
 
         bytes[] memory evals1 = new bytes[](1);
         evals1[0] = bytes(":ensure(equal-to(get(1) 2) \"set works\");");
+        config.salt = bytes32(uint256(1));
         checkAddOrder(alice, config, evals1, 2, 1);
     }
 
@@ -90,6 +94,7 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
         evals0[2] = bytes(":set(2 3);");
         evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
+        config.salt = bytes32(uint256(0));
         checkAddOrder(alice, config, evals0, 6, 4);
 
         bytes[] memory evals1 = new bytes[](4);
@@ -97,16 +102,32 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
         evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
         evals1[2] = bytes(":set(2 30);");
         evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
+        config.salt = bytes32(uint256(1));
         checkAddOrder(bob, config, evals1, 6, 4);
 
         bytes[] memory evals2 = new bytes[](2);
         evals2[0] = bytes(":ensure(equal-to(get(1) 2) \"alice state 1\");");
         evals2[1] = bytes(":ensure(equal-to(get(2) 3) \"alice state 2\");");
+        config.salt = bytes32(uint256(2));
         checkAddOrder(alice, config, evals2, 4, 2);
 
         bytes[] memory evals3 = new bytes[](2);
         evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
+        config.salt = bytes32(uint256(3));
         checkAddOrder(bob, config, evals3, 4, 2);
+    }
+
+    /// Evals DO NOT eval if the adding of an order is a noop.
+    /// I.e. if the order is added twice the second time nothing happens.
+    function testAddLiveOrderNoop(address alice, OrderConfigV3 memory config) external {
+        bytes[] memory evals0 = new bytes[](0);
+        checkAddOrder(alice, config, evals0, 0, 0);
+
+        // The config is the same here so the same order is added.
+        // This is a noop so the evals do not run.
+        bytes[] memory evals1 = new bytes[](1);
+        evals1[0] = bytes(":ensure(0 \"always error\");");
+        checkAddOrder(alice, config, evals1, 0, 0);
     }
 }
