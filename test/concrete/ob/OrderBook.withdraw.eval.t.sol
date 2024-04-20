@@ -21,10 +21,11 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         assert(writes[2] == bytes32(uint256(0)));
     }
 
-    function checkWithdraw(uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount, bytes[] memory evalStrings, uint256 expectedReads, uint256 expectedWrites) internal {
+    function checkWithdraw(address owner, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount, bytes[] memory evalStrings, uint256 expectedReads, uint256 expectedWrites) internal {
+        vm.startPrank(owner);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
         iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
@@ -35,7 +36,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         }
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transfer.selector, address(this), withdrawAmount),
+            abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount),
             abi.encode(true)
         );
         vm.record();
@@ -44,67 +45,111 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
         assert(writes.length == expectedWrites);
+        vm.stopPrank();
     }
 
-    function testOrderBookWithdrawEvalEmptyNoop(uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalEmptyNoop(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
-        checkWithdraw(vaultId, depositAmount, withdrawAmount, new bytes[](0), 0, 0);
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, new bytes[](0), 0, 0);
     }
 
-    function testOrderBookWithdrawEvalOneStateless(uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalOneStateless(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
-        vm.record();
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), depositAmount),
-            abi.encode(true)
-        );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
-
-        EvaluableV3[] memory evals = new EvaluableV3[](1);
-        evals[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2("_:1;"));
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transfer.selector, address(this), withdrawAmount),
-            abi.encode(true)
-        );
-        vm.record();
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, evals);
-        checkReentrancyRW();
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        assert(reads.length == 0);
-        assert(writes.length == 0);
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes("_:1;");
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
     }
 
-    function testOrderBookWithdrawEvalOneReadState(uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+    function testOrderBookWithdrawEvalOneReadState(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
-        vm.record();
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), depositAmount),
-            abi.encode(true)
-        );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes("_:get(0);");
+        // each get is 2 reads and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 2, 1);
+    }
 
-        EvaluableV3[] memory evals = new EvaluableV3[](1);
-        evals[0] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2("_:get(0);"));
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transfer.selector, address(this), withdrawAmount),
-            abi.encode(true)
-        );
-        vm.record();
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, evals);
-        checkReentrancyRW();
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
-        assert(reads.length == 1);
-        assert(reads[0] == bytes32(uint256(1)));
-        assert(writes.length == 0);
+    function testOrderBookWithdrawEvalWriteStateSingle(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+
+        bytes[] memory evals0 = new bytes[](1);
+        evals0[0] = bytes(":set(1 2);");
+        // each set is 1 read and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 1, 1);
+
+        bytes[] memory evals1 = new bytes[](1);
+        evals1[0] = bytes(":ensure(equal-to(get(1) 2) \"set works\");");
+        // each get is 2 reads and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 2, 1);
+    }
+
+    function testOrderBookWithdrawEvalWriteStateSequential(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount) external {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+
+        bytes[] memory evals0 = new bytes[](4);
+        evals0[0] = bytes(":set(1 2);");
+        evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
+        evals0[2] = bytes(":set(2 3);");
+        evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
+        // each set is 1 read and 1 write.
+        // each get is 2 reads and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 6, 4);
+
+        bytes[] memory evals1 = new bytes[](4);
+        evals1[0] = bytes(":set(1 20);");
+        evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
+        evals1[2] = bytes(":set(2 30);");
+        evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
+        // each set is 1 read and 1 write.
+        // each get is 2 reads and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 6, 4);
+    }
+
+    function testOrderBookWithdrawEvalWriteStateDifferentOwnersNamespaced(
+        address alice,
+        address bob,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+
+        bytes[] memory evals0 = new bytes[](4);
+        evals0[0] = bytes(":set(1 2);");
+        evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
+        evals0[2] = bytes(":set(2 3);");
+        evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
+        // each set is 1 read and 1 write.
+        // each get is 2 reads and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals0, 6, 4);
+
+        bytes[] memory evals1 = new bytes[](4);
+        evals1[0] = bytes(":set(1 20);");
+        evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
+        evals1[2] = bytes(":set(2 30);");
+        evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
+        // each set is 1 read and 1 write.
+        // each get is 2 reads and 1 write.
+        checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals1, 6, 4);
+
+        bytes[] memory evals2 = new bytes[](2);
+        evals2[0] = bytes(":ensure(equal-to(get(1) 2) \"alice state 1\");");
+        evals2[1] = bytes(":ensure(equal-to(get(2) 3) \"alice state 2\");");
+        // each get is 2 reads and 1 write.
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals2, 4, 2);
+
+        bytes[] memory evals3 = new bytes[](2);
+        evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
+        evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
+        // each get is 2 reads and 1 write.
+        checkWithdraw(bob, vaultId, depositAmount, withdrawAmount, evals3, 4, 2);
     }
 }
