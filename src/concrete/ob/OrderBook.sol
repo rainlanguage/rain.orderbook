@@ -246,9 +246,9 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
-        }
 
-        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
+            LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
+        }
     }
 
     /// @inheritdoc IOrderBookV4
@@ -289,9 +289,9 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                 LibMeta.checkMetaUnhashedV1(orderConfig.meta);
                 emit MetaV1(order.owner, uint256(orderHash), orderConfig.meta);
             }
-        }
 
-        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
+            LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
+        }
     }
 
     /// @inheritdoc IOrderBookV4
@@ -308,9 +308,9 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             stateChanged = true;
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
-        }
 
-        LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
+            LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
+        }
     }
 
     /// @inheritdoc IOrderBookV4
