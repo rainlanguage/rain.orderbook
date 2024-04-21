@@ -268,7 +268,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         // config and deployer's view on the `EvaluableV2` to produce the final
         // order.
         OrderV3 memory order = OrderV3(
-            msg.sender, orderConfig.evaluable, orderConfig.validInputs, orderConfig.validOutputs, orderConfig.salt
+            msg.sender, orderConfig.evaluable, orderConfig.validInputs, orderConfig.validOutputs, orderConfig.nonce
         );
         bytes32 orderHash = order.hash();
 

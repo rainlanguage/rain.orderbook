@@ -6,7 +6,7 @@ import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/uns
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 
 contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
-    mapping(bytes32 => bool) salts;
+    mapping(bytes32 => bool) nonces;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -38,13 +38,13 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
         }
         vm.record();
         bool stateChanged = iOrderbook.addOrder2(config, evals);
-        assert(stateChanged != salts[config.salt]);
-        checkReentrancyRW(salts[config.salt] ? 4 : 5, salts[config.salt] ? 2 : 3);
+        assert(stateChanged != nonces[config.nonce]);
+        checkReentrancyRW(nonces[config.nonce] ? 4 : 5, nonces[config.nonce] ? 2 : 3);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
         assert(writes.length == expectedWrites);
         vm.stopPrank();
-        salts[config.salt] = true;
+        nonces[config.nonce] = true;
     }
 
     function testAddOrderEmptyNoop(address alice, OrderConfigV3 memory config) external {
@@ -67,12 +67,12 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
     function testAddOrderWriteStateSingle(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
-        config.salt = bytes32(uint256(0));
+        config.nonce = bytes32(uint256(0));
         checkAddOrder(alice, config, evals0, 1, 1);
 
         bytes[] memory evals1 = new bytes[](1);
         evals1[0] = bytes(":ensure(equal-to(get(1) 2) \"set works\");");
-        config.salt = bytes32(uint256(1));
+        config.nonce = bytes32(uint256(1));
         checkAddOrder(alice, config, evals1, 2, 1);
     }
 
@@ -94,7 +94,7 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
         evals0[2] = bytes(":set(2 3);");
         evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
-        config.salt = bytes32(uint256(0));
+        config.nonce = bytes32(uint256(0));
         checkAddOrder(alice, config, evals0, 6, 4);
 
         bytes[] memory evals1 = new bytes[](4);
@@ -102,19 +102,19 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
         evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
         evals1[2] = bytes(":set(2 30);");
         evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
-        config.salt = bytes32(uint256(1));
+        config.nonce = bytes32(uint256(1));
         checkAddOrder(bob, config, evals1, 6, 4);
 
         bytes[] memory evals2 = new bytes[](2);
         evals2[0] = bytes(":ensure(equal-to(get(1) 2) \"alice state 1\");");
         evals2[1] = bytes(":ensure(equal-to(get(2) 3) \"alice state 2\");");
-        config.salt = bytes32(uint256(2));
+        config.nonce = bytes32(uint256(2));
         checkAddOrder(alice, config, evals2, 4, 2);
 
         bytes[] memory evals3 = new bytes[](2);
         evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
-        config.salt = bytes32(uint256(3));
+        config.nonce = bytes32(uint256(3));
         checkAddOrder(bob, config, evals3, 4, 2);
     }
 

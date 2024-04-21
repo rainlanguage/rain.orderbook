@@ -35,12 +35,12 @@ contract OrderBookRemoveOrderEvalTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < evalStrings.length; i++) {
             evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
         }
-        // Hacky way to give a unique salt to each order passed in.
-        config.salt = keccak256(abi.encode(evalStrings));
+        // Hacky way to give a unique nonce to each order passed in.
+        config.nonce = keccak256(abi.encode(evalStrings));
         if (addOrder) {
             iOrderbook.addOrder2(config, new EvaluableV3[](0));
         }
-        OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.salt);
+        OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         vm.record();
         bool stateChanged = iOrderbook.removeOrder2(order, evals);
         assertEq(stateChanged, addOrder);
