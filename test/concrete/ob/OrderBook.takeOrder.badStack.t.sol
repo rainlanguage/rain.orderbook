@@ -22,7 +22,7 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
-        config.evaluable.bytecode = iParserV2.parse2(":;:;");
+        config.evaluable.bytecode = iParserV2.parse2(rainString);
 
         OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
@@ -35,7 +35,7 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
         iOrderbook.addOrder2(config, new EvaluableV3[](0));
 
         vm.prank(bob);
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));
         iOrderbook.takeOrders2(takeOrdersConfig);
     }
 
