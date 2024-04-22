@@ -13,6 +13,7 @@ import {
     EvaluableV3,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
@@ -165,5 +166,43 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[2] = "_ _:1e18 1e18;:set(0 0);";
         configs[3] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
         checkTakeOrderHandleIO(configs, "", toClear);
+    }
+
+    /// Note that a different interpreter MAY NOT revert if handle io is missing,
+    /// but the canonical interpreter will.
+    function testTakeOrderNoHandleIORevert0() external {
+        bytes[] memory configs = new bytes[](1);
+        configs[0] = "_ _:1e18 1e18;";
+        checkTakeOrderHandleIO(
+            configs,
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            type(uint256).max
+        );
+    }
+
+    /// Note that a different interpreter MAY NOT revert if handle io is missing,
+    /// but the canonical interpreter will.
+    function testTakeOrderNoHandleIORevert1() external {
+        bytes[] memory configs = new bytes[](2);
+        configs[0] = "_ _:1e18 1e18;:;";
+        configs[1] = "_ _:1e18 1e18;";
+        checkTakeOrderHandleIO(
+            configs,
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            type(uint256).max
+        );
+    }
+
+    /// Note that a different interpreter MAY NOT revert if handle io is missing,
+    /// but the canonical interpreter will.
+    function testTakeOrderNoHandleIORevert2() external {
+        bytes[] memory configs = new bytes[](2);
+        configs[0] = "_ _:1e18 1e18;";
+        configs[1] = "_ _:1e18 1e18;:;";
+        checkTakeOrderHandleIO(
+            configs,
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            type(uint256).max
+        );
     }
 }

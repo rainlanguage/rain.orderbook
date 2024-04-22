@@ -12,6 +12,7 @@ import {
     EvaluableV3,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookClearHandleIORevertTest
 /// @notice A test harness for testing the OrderBook clear function will run
@@ -127,6 +128,54 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
 
         bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
         bytes memory bobString = "_ _:max-int-value() 1e18;:;";
+
+        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+    }
+
+    /// Note that this error comes from the i9r so it is possible for a different
+    /// i9r to not have this error.
+    function testClearOrderAliceNoHandleIORevert() external {
+        bytes memory aliceString = "_ _:max-int-value() 1e18;";
+        bytes memory bobString = "_ _:max-int-value() 1e18;:;";
+
+        // This is a bit fragile but the error message includes the inner
+        // executable bytecode only, not the outer parsed bytecode.
+        bytes memory aliceErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+        bytes memory bobErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+
+        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+    }
+
+    /// Note that this error comes from the i9r so it is possible for a different
+    /// i9r to not have this error.
+    function testClearOrderBobNoHandleIORevert() external {
+        bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
+        bytes memory bobString = "_ _:max-int-value() 1e18;";
+
+        // This is a bit fragile but the error message includes the inner
+        // executable bytecode only, not the outer parsed bytecode.
+        bytes memory aliceErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+        bytes memory bobErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+
+        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+    }
+
+    /// Note that this error comes from the i9r so it is possible for a different
+    /// i9r to not have this error.
+    function testClearOrderBothNoHandleIORevert() external {
+        bytes memory aliceString = "_ _:max-int-value() 1e18;";
+        bytes memory bobString = "_ _:max-int-value() 1e18;";
+
+        // This is a bit fragile but the error message includes the inner
+        // executable bytecode only, not the outer parsed bytecode.
+        bytes memory aliceErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+        bytes memory bobErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
