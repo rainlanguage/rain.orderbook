@@ -31,6 +31,7 @@
   import { reportErrorToSentry } from '$lib/services/sentry';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { onMount } from 'svelte';
+    import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -62,11 +63,7 @@
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === 'object' && (e as any)?.reason) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      } else toasts.error('Transaction failed!');
+      toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
   }
