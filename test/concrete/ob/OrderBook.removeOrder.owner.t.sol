@@ -20,13 +20,17 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < 2; i++) {
             bool stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
             assert(stateChange);
+            assert(iOrderbook.orderExists(order.hash()));
             stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
             assert(!stateChange);
+            assert(iOrderbook.orderExists(order.hash()));
 
             stateChange = iOrderbook.removeOrder2(order, new EvaluableV3[](0));
             assert(stateChange);
+            assert(!iOrderbook.orderExists(order.hash()));
             stateChange = iOrderbook.removeOrder2(order, new EvaluableV3[](0));
             assert(!stateChange);
+            assert(!iOrderbook.orderExists(order.hash()));
         }
 
         vm.stopPrank();
@@ -43,77 +47,70 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
         OrderV3 memory orderBob = OrderV3(bob, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         {
-            vm.startPrank(alice);
+            vm.prank(alice);
             bool stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
+
             assert(stateChange);
-            vm.stopPrank();
-
             assert(iOrderbook.orderExists(orderAlice.hash()));
+            assert(!iOrderbook.orderExists(orderBob.hash()));
 
-            vm.startPrank(bob);
+            vm.prank(bob);
             stateChange = iOrderbook.removeOrder2(orderBob, new EvaluableV3[](0));
             assert(!stateChange);
-            vm.stopPrank();
-
             assert(iOrderbook.orderExists(orderAlice.hash()));
+            assert(!iOrderbook.orderExists(orderBob.hash()));
 
-            vm.startPrank(alice);
+            vm.prank(alice);
             stateChange = iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
             assert(stateChange);
-            vm.stopPrank();
-
             assert(!iOrderbook.orderExists(orderAlice.hash()));
-        }
-
-        {
-            vm.startPrank(bob);
-            bool stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
-            assert(stateChange);
-            vm.stopPrank();
-
-            assert(iOrderbook.orderExists(orderBob.hash()));
-
-            vm.startPrank(alice);
-            stateChange = iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
-            assert(!stateChange);
-            vm.stopPrank();
-
-            assert(iOrderbook.orderExists(orderBob.hash()));
-
-            vm.startPrank(bob);
-            stateChange = iOrderbook.removeOrder2(orderBob, new EvaluableV3[](0));
-            assert(stateChange);
-            vm.stopPrank();
-
             assert(!iOrderbook.orderExists(orderBob.hash()));
         }
 
         {
-            vm.startPrank(alice);
+            vm.prank(bob);
             bool stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
             assert(stateChange);
-            vm.stopPrank();
-
-            assert(iOrderbook.orderExists(orderAlice.hash()));
-
-            vm.startPrank(bob);
-            stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
-            assert(stateChange);
-            vm.stopPrank();
-
             assert(iOrderbook.orderExists(orderBob.hash()));
-
-            vm.startPrank(alice);
-            stateChange = iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
-            assert(stateChange);
-            vm.stopPrank();
-
             assert(!iOrderbook.orderExists(orderAlice.hash()));
 
-            vm.startPrank(bob);
+            vm.prank(alice);
+            stateChange = iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
+            assert(!stateChange);
+            assert(iOrderbook.orderExists(orderBob.hash()));
+            assert(!iOrderbook.orderExists(orderAlice.hash()));
+
+            vm.prank(bob);
             stateChange = iOrderbook.removeOrder2(orderBob, new EvaluableV3[](0));
             assert(stateChange);
-            vm.stopPrank();
+            assert(!iOrderbook.orderExists(orderBob.hash()));
+            assert(!iOrderbook.orderExists(orderAlice.hash()));
+        }
+
+        {
+            vm.prank(alice);
+            bool stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
+            assert(stateChange);
+            assert(iOrderbook.orderExists(orderAlice.hash()));
+            assert(!iOrderbook.orderExists(orderBob.hash()));
+
+            vm.prank(bob);
+            stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
+            assert(stateChange);
+            assert(iOrderbook.orderExists(orderBob.hash()));
+            assert(iOrderbook.orderExists(orderAlice.hash()));
+
+            vm.prank(alice);
+            stateChange = iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
+            assert(stateChange);
+            assert(!iOrderbook.orderExists(orderAlice.hash()));
+            assert(iOrderbook.orderExists(orderBob.hash()));
+
+            vm.prank(bob);
+            stateChange = iOrderbook.removeOrder2(orderBob, new EvaluableV3[](0));
+            assert(stateChange);
+            assert(!iOrderbook.orderExists(orderBob.hash()));
+            assert(!iOrderbook.orderExists(orderAlice.hash()));
         }
     }
 
@@ -123,17 +120,15 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
 
         OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
-        vm.startPrank(alice);
+        vm.prank(alice);
         bool stateChange = iOrderbook.addOrder2(config, new EvaluableV3[](0));
         assert(stateChange);
-        vm.stopPrank();
-
         assert(iOrderbook.orderExists(order.hash()));
 
-        vm.startPrank(bob);
+        vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         stateChange = iOrderbook.removeOrder2(order, new EvaluableV3[](0));
         assert(!stateChange);
-        vm.stopPrank();
+        assert(iOrderbook.orderExists(order.hash()));
     }
 }
