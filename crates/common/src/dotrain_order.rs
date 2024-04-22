@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dotrain::{error::ComposeError, RainDocument};
 use rain_orderbook_app_settings::{
     config_source::{ConfigSource, ConfigSourceError},
@@ -57,6 +59,7 @@ impl DotrainOrder {
     pub async fn compose_scenario_to_rainlang(
         &self,
         scenario: String,
+        override_bindings: Vec<[String; 2]>,
     ) -> Result<String, DotrainOrderError> {
         let scenario = self
             .config
@@ -64,10 +67,18 @@ impl DotrainOrder {
             .get(&scenario)
             .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
 
-        Ok(compose_to_rainlang(
-            self.dotrain.clone(),
-            scenario.bindings.clone(),
-        )?)
+        let binds_map: HashMap<String, String> = override_bindings
+            .iter()
+            .map(|bind| (bind[0].clone(), bind[1].clone()))
+            .collect();
+        let merged_binds = scenario
+            .bindings
+            .clone()
+            .into_iter()
+            .chain(binds_map.into_iter())
+            .collect::<HashMap<_, _>>();
+
+        Ok(compose_to_rainlang(self.dotrain.clone(), merged_binds)?)
     }
 }
 
@@ -104,6 +115,53 @@ _ _: 0 0;
     }
 
     #[tokio::test]
+    async fn test_rainlang_from_binding() {
+        let dotrain = r#"
+        networks:
+            polygon: 
+                rpc: https://rpc.ankr.com/polygon 
+                chain-id: 137 
+                network-id: 137 
+                currency: MATIC
+        deployers:
+            polygon:
+                address: 0x1234567890123456789012345678901234567890
+        scenarios:
+            polygon:
+                bindings:
+                    max-output: 10e18
+                    io-ratio: 1e18
+        ---
+        #io-ratio !Ratio for calculating the output
+        #max-output !Maximum output
+        #calculate-io
+        _ _: max-output io-ratio;
+        #handle-io
+        :;"#;
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        let override_bindings: Vec<[String; 2]> = vec![
+            ["max-output".to_string(), "10000000000000000000".to_string()],
+            ["io-ratio".to_string(), "1000000000000000000".to_string()],
+        ];
+
+        let rainlang = dotrain_order
+            .compose_scenario_to_rainlang("polygon".to_string(), override_bindings)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            rainlang,
+            r#"/* 0. calculate-io */ 
+_ _: 10000000000000000000 1000000000000000000;
+
+/* 1. handle-io */ 
+:;"#
+        );
+    }
+
+    #[tokio::test]
     async fn test_rainlang_from_scenario() {
         let dotrain = r#"
 networks:
@@ -117,16 +175,17 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
----
+        ---
 #calculate-io
 _ _: 0 0;
 #handle-io
 :;"#;
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let override_bindings: Vec<[String; 2]> = vec![];
 
         let rainlang = dotrain_order
-            .compose_scenario_to_rainlang("polygon".to_string())
+            .compose_scenario_to_rainlang("polygon".to_string(), override_bindings)
             .await
             .unwrap();
 
