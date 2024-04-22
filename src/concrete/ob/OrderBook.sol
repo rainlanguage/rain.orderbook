@@ -255,7 +255,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     function addOrder2(OrderConfigV3 calldata orderConfig, EvaluableV3[] calldata post)
         external
         nonReentrant
-        returns (bool stateChanged)
+        returns (bool)
     {
         if (orderConfig.validInputs.length == 0) {
             revert OrderNoInputs();
@@ -272,10 +272,10 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         );
         bytes32 orderHash = order.hash();
 
-        // If the order is not dead we return early without state changes.
-        if (sOrders[orderHash] == ORDER_DEAD) {
-            stateChanged = true;
+        bool stateChange = sOrders[orderHash] == ORDER_DEAD;
 
+        // If the order is not dead we return early without state changes.
+        if (stateChange) {
             // This has to come after the external call to deploy the expression
             // because the order hash is derived from the expression and DISPair
             // addresses.
@@ -292,6 +292,8 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
 
             LibOrderBook.doPost(LibContext.build(new uint256[][](0), new SignedContextV1[](0)), post);
         }
+
+        return stateChange;
     }
 
     /// @inheritdoc IOrderBookV4
