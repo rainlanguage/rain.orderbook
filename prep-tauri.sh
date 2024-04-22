@@ -12,6 +12,10 @@ nix develop -i --command rainix-rs-prelude
 nix develop -i --command i9r-prelude
 cd -
 
+# Run commands in lib/rain.metadata
+cd lib/rain.metadata
+nix develop -i --command rainix-sol-prelude
+
 nix develop -i .#tauri-shell --command ob-tauri-prelude
 nix develop -i .#tauri-shell --command ob-tauri-unit-test
 
