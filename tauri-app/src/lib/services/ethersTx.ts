@@ -15,13 +15,7 @@ export async function ethersExecute(calldata: Uint8Array, to: string): Promise<e
       data: calldata,
       to,
     };
-    try {
-      return signer.sendTransaction(rawtx);
-    } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (<any>error).rawtx = rawtx;
-      throw error;
-    }
+    return signer.sendTransaction(rawtx);
   }
 }
 
