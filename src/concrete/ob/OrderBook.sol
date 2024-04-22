@@ -694,6 +694,12 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                 new uint256[](0)
             );
 
+            // This is redundant with the array index checks implied by solidity
+            // but it's a much clearer error message.
+            if (calculateOrderStack.length < CALCULATE_ORDER_MIN_OUTPUTS) {
+                revert UnsupportedCalculateOutputs(calculateOrderStack.length);
+            }
+
             Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
             uint256 orderIORatio = calculateOrderStack[0];
 
