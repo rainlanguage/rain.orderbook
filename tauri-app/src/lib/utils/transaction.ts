@@ -10,11 +10,7 @@ export function formatBlockExplorerTransactionUrl(txHash: string) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function formatEthersTransactionError(e: any) {
-  if (typeof e === "object" && e?.error) {
-    return `Transaction failed, error: 
-    ${JSON.stringify(e.error)}`;
-  }
-  else if (typeof e === "object") {
+  if (typeof e === "object") {
     return `Transaction failed, error: 
     ${JSON.stringify(e)}`;
   }
