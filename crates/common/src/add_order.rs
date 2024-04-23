@@ -10,14 +10,14 @@ use alloy_primitives::{hex::FromHexError, Address, U256};
 use alloy_sol_types::SolCall;
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use rain_interpreter_dispair::{DISPair, DISPairError};
-use rain_interpreter_parser::{Parser, ParserError, ParserV1};
+use rain_interpreter_parser::{Parser, ParserError, ParserV1, ParserV2};
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
 use rain_orderbook_app_settings::deployment::Deployment;
 use rain_orderbook_bindings::{
-    IOrderBookV3::{addOrderCall, EvaluableConfigV3, OrderConfigV2, IO},
+    IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, IO},
     ERC20::decimalsCall,
 };
 use serde::{Deserialize, Serialize};
@@ -128,20 +128,20 @@ impl AddOrderArgs {
         &self,
         rpc_url: String,
         rainlang: String,
-    ) -> Result<(Vec<u8>, Vec<U256>), AddOrderArgsError> {
+    ) -> Result<Vec<u8>, AddOrderArgsError> {
         let client = ReadableClientHttp::new_from_url(rpc_url)
             .map_err(AddOrderArgsError::ReadableClientError)?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
 
-        let parser: ParserV1 = dispair.clone().into();
+        let parser: ParserV2 = dispair.clone().into();
         let rainlang_parsed = parser
             .parse_text(rainlang.as_str(), client)
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        Ok((rainlang_parsed.bytecode, rainlang_parsed.constants))
+        Ok((rainlang_parsed.bytecode))
     }
 
     /// Generate RainlangSource meta
@@ -183,26 +183,35 @@ impl AddOrderArgs {
     }
 
     /// Generate an addOrder call from given dotrain
-    async fn try_into_call(&self, rpc_url: String) -> Result<addOrderCall, AddOrderArgsError> {
+    async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
-        let (bytecode, constants) = self.try_parse_rainlang(rpc_url, rainlang.clone()).await?;
+        let bytecode = self
+            .try_parse_rainlang(rpc_url.clone(), rainlang.clone())
+            .await?;
         let meta = self.try_generate_meta(rainlang)?;
 
-        Ok(addOrderCall {
-            config: OrderConfigV2 {
+        let deployer = self.deployer;
+        let dispair =
+            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url)?).await?;
+
+        Ok(addOrder2Call {
+            config: OrderConfigV3 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
-                evaluableConfig: EvaluableConfigV3 {
-                    deployer: self.deployer,
+                evaluable: EvaluableV3 {
+                    interpreter: dispair.interpreter,
+                    store: dispair.store,
                     bytecode,
-                    constants,
                 },
                 meta,
+                nonce: U256::from(0).into(),
+                secret: U256::from(0).into(),
             },
+            post: vec![],
         })
     }
 
-    pub async fn execute<S: Fn(WriteTransactionStatus<addOrderCall>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder2Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
@@ -307,13 +316,15 @@ price: 2e18;
         let constants = vec![U256::from(0), U256::from(1), U256::from(2), U256::from(3)];
         let meta = vec![9, 10, 11, 12];
 
-        let order_config_v2 = OrderConfigV2 {
+        let order_config_v2 = OrderConfigV3 {
+            nonce: U256::from(0),
+            secret: U256::from(0),
             validInputs: inputs.clone(),
             validOutputs: outputs.clone(),
-            evaluableConfig: EvaluableConfigV3 {
-                deployer,
+            evaluable: EvaluableV3 {
+                interpreter: Address::random(),
+                store: Address::random(),
                 bytecode: bytecode.clone(),
-                constants: constants.clone(),
             },
             meta: meta.clone(),
         };

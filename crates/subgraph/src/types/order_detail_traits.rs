@@ -1,7 +1,7 @@
 use crate::types::order_detail;
 use crate::utils::base10_str_to_u256;
-use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address};
-use rain_orderbook_bindings::IOrderBookV3::{EvaluableV2, OrderV2, IO};
+use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address, U256};
+use rain_orderbook_bindings::IOrderBookV4::{EvaluableV3, OrderV3, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
 
@@ -30,17 +30,16 @@ impl TryInto<IO> for order_detail::Io {
     }
 }
 
-impl TryInto<OrderV2> for order_detail::Order {
+impl TryInto<OrderV3> for order_detail::Order {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<OrderV2, OrderDetailError> {
-        Ok(OrderV2 {
+    fn try_into(self) -> Result<OrderV3, OrderDetailError> {
+        Ok(OrderV3 {
             owner: self.owner.id.0.parse::<Address>()?,
-            handleIO: self.handle_io,
-            evaluable: EvaluableV2 {
+            evaluable: EvaluableV3 {
                 interpreter: self.interpreter.0.parse::<Address>()?,
                 store: self.interpreter_store.0.parse::<Address>()?,
-                expression: self.expression.0.parse::<Address>()?,
+                bytecode: vec![],
             },
             validInputs: self
                 .valid_inputs
@@ -54,12 +53,15 @@ impl TryInto<OrderV2> for order_detail::Order {
                 .into_iter()
                 .map(|v| v.try_into())
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
+            nonce: U256::from(0).into(),
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
     use crate::types::order_detail::{
         Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault, Vault,
@@ -119,7 +121,7 @@ mod tests {
             }),
         };
 
-        let order_v2: OrderV2 = order_detail.try_into().unwrap();
+        let order_v2: OrderV3 = order_detail.try_into().unwrap();
 
         assert_eq!(
             order_v2.owner,
@@ -127,7 +129,6 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
-        assert!(order_v2.handleIO);
         assert_eq!(
             order_v2.evaluable.interpreter,
             "0x0000000000000000000000000000000000000002"
@@ -140,12 +141,7 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
-        assert_eq!(
-            order_v2.evaluable.expression,
-            "0x0000000000000000000000000000000000000004"
-                .parse::<Address>()
-                .unwrap()
-        );
+        assert_eq!(order_v2.evaluable.bytecode, vec![] as Vec<u8>);
         assert_eq!(
             order_v2.validInputs[0].token,
             "0x0000000000000000000000000000000000000005"
