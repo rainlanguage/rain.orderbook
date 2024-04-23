@@ -178,7 +178,7 @@
             </TableBodyCell>
             <TableBodyCell tdClass="break-all py-2">
               <!-- {item.ioratio} -->
-              {Number(item.output_display) / Number(item.input_display)}
+              {BigInt(item.output_display) / BigInt(item.input_display)}
               {item.output_token.symbol}/{item.input_token.symbol}
             </TableBodyCell>
           </svelte:fragment>
