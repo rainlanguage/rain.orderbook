@@ -10,7 +10,7 @@ use alloy_primitives::{hex::FromHexError, Address, U256};
 use alloy_sol_types::SolCall;
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use rain_interpreter_dispair::{DISPair, DISPairError};
-use rain_interpreter_parser::{Parser, ParserError, ParserV1, ParserV2};
+use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
@@ -141,7 +141,7 @@ impl AddOrderArgs {
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        Ok((rainlang_parsed.bytecode))
+        Ok(rainlang_parsed.bytecode)
     }
 
     /// Generate RainlangSource meta
@@ -308,22 +308,23 @@ price: 2e18;
                 decimals: 18,
             },
         ];
-        let deployer = Address::random();
+        let interpreter = Address::random();
+        let store = Address::random();
+
         let bytecode = vec![
             0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60,
             0x60, 0x40,
         ];
-        let constants = vec![U256::from(0), U256::from(1), U256::from(2), U256::from(3)];
         let meta = vec![9, 10, 11, 12];
 
         let order_config_v2 = OrderConfigV3 {
-            nonce: U256::from(0),
-            secret: U256::from(0),
+            nonce: U256::from(0).into(),
+            secret: U256::from(0).into(),
             validInputs: inputs.clone(),
             validOutputs: outputs.clone(),
             evaluable: EvaluableV3 {
-                interpreter: Address::random(),
-                store: Address::random(),
+                interpreter,
+                store,
                 bytecode: bytecode.clone(),
             },
             meta: meta.clone(),
@@ -331,9 +332,9 @@ price: 2e18;
 
         assert_eq!(order_config_v2.validInputs, inputs);
         assert_eq!(order_config_v2.validOutputs, outputs);
-        assert_eq!(order_config_v2.evaluableConfig.deployer, deployer);
-        assert_eq!(order_config_v2.evaluableConfig.bytecode, bytecode);
-        assert_eq!(order_config_v2.evaluableConfig.constants, constants);
+        assert_eq!(order_config_v2.evaluable.interpreter, interpreter);
+        assert_eq!(order_config_v2.evaluable.store, store);
+        assert_eq!(order_config_v2.evaluable.bytecode, bytecode);
         assert_eq!(order_config_v2.meta, meta.clone());
     }
 }
