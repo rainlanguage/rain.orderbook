@@ -204,8 +204,8 @@ impl AddOrderArgs {
                     bytecode,
                 },
                 meta,
-                nonce: U256::from(0).into(),
-                secret: U256::from(0).into(),
+                nonce: alloy_primitives::private::rand::random::<U256>().into(),
+                secret: alloy_primitives::private::rand::random::<U256>().into(),
             },
             post: vec![],
         })
@@ -318,8 +318,8 @@ price: 2e18;
         let meta = vec![9, 10, 11, 12];
 
         let order_config_v2 = OrderConfigV3 {
-            nonce: U256::from(0).into(),
-            secret: U256::from(0).into(),
+            nonce: U256::from(8).into(),
+            secret: U256::from(8).into(),
             validInputs: inputs.clone(),
             validOutputs: outputs.clone(),
             evaluable: EvaluableV3 {
