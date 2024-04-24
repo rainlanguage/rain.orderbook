@@ -307,17 +307,17 @@ mod tests {
     async fn test_fuzz_runner() {
         let dotrain = r#"
 deployers:
-    mumbai:
-        address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
+    polygon:
+        address: 0xF77b3c3f61af5a3cE7f7CE3cfFc117491104432E
     some-deployer:
-        address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
-        network: mumbai
+        address: 0xF77b3c3f61af5a3cE7f7CE3cfFc117491104432E
+        network: polygon
 networks:
-    mumbai:
-        rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
+    polygon:
+        rpc: https://rpc.ankr.com/polygon
         chain-id: 80001
 scenarios:
-    mumbai:
+    polygon:
         runs: 500
         bindings:
             bound: 3
@@ -343,7 +343,7 @@ b: fuzzed;
         let mut runner = FuzzRunner::new(dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("mumbai")
+            .run_scenario_by_name("polygon")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -355,17 +355,17 @@ b: fuzzed;
     async fn test_nested_flattened_fuzz() {
         let dotrain = r#"
 deployers:
-    mumbai:
-        address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
+    polygon:
+        address: 0xF77b3c3f61af5a3cE7f7CE3cfFc117491104432E
     some-deployer:
-        address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
-        network: mumbai
+        address: 0xF77b3c3f61af5a3cE7f7CE3cfFc117491104432E
+        network: polygon
 networks:
-    mumbai:
-        rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
+    polygon:
+        rpc: https://rpc.ankr.com/polygon
         chain-id: 80001
 scenarios:
-    mumbai:
+    polygon:
         runs: 500
         bindings:
             bound: 3
@@ -400,7 +400,7 @@ d: 4;
         let mut runner = FuzzRunner::new(dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("mumbai")
+            .run_scenario_by_name("polygon")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
