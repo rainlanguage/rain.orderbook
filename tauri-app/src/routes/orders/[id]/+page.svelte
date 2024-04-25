@@ -1,7 +1,9 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
+  import Card from './../../../lib/components/Card.svelte';
   import { Button, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
   import { orderDetail, useOrderTakesList } from '$lib/stores/order';
+  import { vaultDetail } from '$lib/stores/vault';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
@@ -26,7 +28,8 @@
     prepareHistoricalOrderChartData,
     type HistoricalOrderChartData,
   } from '$lib/services/historicalOrderCharts';
-    import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import type { TokenVault } from '$lib/typeshare/vaultDetail';
 
   let openOrderRemoveModal = false;
   let isSubmitting = false;
@@ -40,8 +43,42 @@
 
   $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
 
+  // Extend the order object with the full vault details
+  $: orderWithVaults = {
+    ...order,
+    valid_inputs: order.valid_inputs?.reduce((acc: TokenVault[], input) => {
+      const vault = $vaultDetail.data[input.token_vault.id] as TokenVault;
+      if (vault) acc.push(vault);
+      return acc;
+    }, []),
+    valid_outputs: order.valid_outputs?.reduce((acc: TokenVault[], output) => {
+      const vault = $vaultDetail.data[output.token_vault.id] as TokenVault;
+      if (vault) acc.push(vault);
+      return acc;
+    }, []),
+  };
+
   orderDetail.refetch($page.params.id);
   orderTakesList.fetchAll(0);
+
+  // Refetch the vaults if the vaults in the order have changed
+  // DL: Do we need this?
+  $: {
+    if (order.valid_inputs) {
+      order.valid_inputs.forEach((input) => {
+        if (!$vaultDetail.data[input.token_vault.id]) {
+          vaultDetail.refetch(input.token_vault.id);
+        }
+      });
+    }
+    if (order.valid_outputs) {
+      order.valid_outputs.forEach((output) => {
+        if (!$vaultDetail.data[output.token_vault.id]) {
+          vaultDetail.refetch(output.token_vault.id);
+        }
+      });
+    }
+  }
 
   async function executeLedger() {
     isSubmitting = true;
@@ -63,7 +100,7 @@
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
-   }
+    }
     isSubmitting = false;
   }
 </script>
@@ -103,23 +140,23 @@
         </svelte:fragment>
       </CardProperty>
 
-      <CardProperty>
+      <Card>
         <svelte:fragment slot="key">Input vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          {#each order.valid_inputs || [] as t}
-            <ButtonVaultLink tokenVault={t.token_vault} />
+          {#each orderWithVaults.valid_inputs || [] as t}
+            <ButtonVaultLink tokenVault={t} />
           {/each}
         </svelte:fragment>
-      </CardProperty>
+      </Card>
 
-      <CardProperty>
+      <Card>
         <svelte:fragment slot="key">Output vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          {#each order.valid_outputs || [] as t}
-            <ButtonVaultLink tokenVault={t.token_vault} />
+          {#each orderWithVaults.valid_outputs || [] as t}
+            <ButtonVaultLink tokenVault={t} />
           {/each}
         </svelte:fragment>
-      </CardProperty>
+      </Card>
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
