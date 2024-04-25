@@ -245,6 +245,7 @@ mod tests {
         let mut config = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -259,6 +260,7 @@ mod tests {
         let other = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -278,6 +280,7 @@ mod tests {
         let mut config = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -292,6 +295,7 @@ mod tests {
         let mut other = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
