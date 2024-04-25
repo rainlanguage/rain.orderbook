@@ -4999,6 +4999,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
+name = "rain-interpreter-env"
+version = "0.0.0"
+dependencies = [
+ "alloy-primitives 0.6.4",
+ "once_cell",
+]
+
+[[package]]
 name = "rain-interpreter-eval"
 version = "0.1.0"
 dependencies = [
@@ -5008,6 +5016,7 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "foundry-evm",
  "once_cell",
+ "rain-interpreter-env",
  "rain_interpreter_bindings",
  "reqwest",
  "revm",
@@ -5079,6 +5088,14 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
+]
+
+[[package]]
+name = "rain-orderbook-env"
+version = "0.0.0"
+dependencies = [
+ "alloy-primitives 0.6.4",
+ "once_cell",
 ]
 
 [[package]]

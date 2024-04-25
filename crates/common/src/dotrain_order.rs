@@ -1,10 +1,14 @@
+use alloy_ethers_typecast::transaction::ReadableClient;
 use dotrain::{error::ComposeError, RainDocument};
+use rain_interpreter_parser::ParserV2;
+use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::{
     config_source::{ConfigSource, ConfigSourceError},
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
 use thiserror::Error;
+use typeshare::typeshare;
 
 use crate::rainlang::compose_to_rainlang;
 
@@ -12,6 +16,9 @@ pub struct DotrainOrder {
     pub config: Config,
     pub dotrain: String,
 }
+
+#[typeshare]
+pub type ScenariosAuthoringMeta = HashMap<String, Vec<AuthoringMetaV2>>;
 
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
@@ -24,11 +31,17 @@ pub enum DotrainOrderError {
     #[error("Scenario {0} not found")]
     ScenarioNotFound(String),
 
+    #[error("Metaboard {0} not found")]
+    MetaboardNotFound(String),
+
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
 
     #[error(transparent)]
     MergeConfigError(#[from] MergeError),
+
+    #[error(transparent)]
+    AuthoringMetaV2Error(#[from] AuthoringMetaV2Error),
 }
 
 impl DotrainOrder {
@@ -68,6 +81,82 @@ impl DotrainOrder {
             self.dotrain.clone(),
             scenario.bindings.clone(),
         )?)
+    }
+
+    pub async fn get_pragmas_for_scenario(
+        &self,
+        scenario: String,
+    ) -> Result<Vec<Address>, DotrainOrderError> {
+        let deployer = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
+            .deployer;
+        let parser: ParserV2 = deployer.address.into();
+        let rainlang = self.compose_scenario_to_rainlang(scenario).await?;
+        let client = ReadableClient::new_from_url(deployer.network.rpc.clone());
+        let mut pragmas = parser.parse_pragma_text(rainlang.into(), client).await?;
+        pragmas.push(deployer.address);
+
+        Ok(pragmas)
+    }
+
+    pub async fn get_authoring_meta_v2_for_scenario(
+        &self,
+        scenario: String,
+    ) -> Result<Vec<AuthoringMetaV2>, DotrainOrderError> {
+        let rpc = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
+            .deployer
+            .network
+            .rpc
+            .clone();
+
+        let network_name = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
+            .deployer
+            .network
+            .name;
+
+        let metaboard = self
+            .config
+            .metaboards
+            .get(&network_name)
+            .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network_name.clone()))?
+            .clone();
+
+        let pragmas = self.get_pragmas_for_scenario(scenario).await?;
+
+        let mut authoring_metas = Vec::new();
+
+        for pragma in pragmas {
+            let authoring_meta_v2 = AuthoringMetaV2::fetch_for_contract(pragma, rpc, metaboard)?;
+            authoring_metas.push(authoring_meta_v2);
+        }
+
+        Ok(authoring_metas)
+    }
+
+    pub async fn get_authoring_metas_for_all_scenarios(
+        &self,
+    ) -> Result<ScenariosAuthoringMeta, DotrainOrderError> {
+        let mut authoring_metas = HashMap::new();
+
+        for scenario in self.config.scenarios.keys() {
+            let authoring_meta_v2 = self
+                .get_authoring_meta_v2_for_scenario(scenario.clone())
+                .await?;
+            authoring_meta.insert(scenario.clone(), authoring_meta_v2);
+        }
+
+        Ok(authoring_metas)
     }
 }
 
@@ -178,5 +267,39 @@ networks:
                 .rpc,
             "https://1rpc.io/eth".parse().unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn test_get_pragmas_for_scenario() {
+        let dotrain = format!(
+            r#"
+networks:
+    polygon: 
+        rpc: {rpc_url} 
+        chain-id: 137 
+        network-id: 137 
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x00
+scenarios:
+    polygon:
+---
+using-words-from 0x00
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL,
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        let pragmas = dotrain_order
+            .get_pragmas_for_scenario("polygon".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(pragmas.len(), 2);
     }
 }

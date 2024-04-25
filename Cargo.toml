@@ -51,6 +51,7 @@ derive_builder = "0.20.0"
 thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
+rain-orderbook-env = { path = "crates/env" }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

@@ -2266,9 +2266,9 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.14"
+version = "6.0.1-alpha.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26a685841ac8f4507444b3552ff3a7aedd867e48678bc19ac456190154358ecb"
+checksum = "44c87a4f19a456549866a219abb85443b9f076d5721611c115f60c56831429e8"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -2277,7 +2277,7 @@ dependencies = [
  "getrandom 0.2.12",
  "magic_string",
  "once_cell",
- "rain-metadata 0.0.2-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rain-metadata 0.0.2-alpha.2",
  "regex",
  "serde",
  "serde_bytes",
@@ -2287,9 +2287,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.14"
+version = "6.0.1-alpha.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b2047a3b281d745d8a1229586df6171c2fdeee27260239d3aa01583ada1e848"
+checksum = "9491938d3d50e8f1161c57bc54a0919958553f9a9c04bfbf78ef1cbf8d4082bd"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -6327,6 +6327,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
+name = "rain-interpreter-env"
+version = "0.0.0"
+dependencies = [
+ "alloy-primitives 0.6.4",
+ "once_cell",
+]
+
+[[package]]
 name = "rain-interpreter-eval"
 version = "0.1.0"
 dependencies = [
@@ -6336,41 +6344,13 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "foundry-evm",
  "once_cell",
+ "rain-interpreter-env",
  "rain_interpreter_bindings",
  "reqwest",
  "revm",
  "serde",
  "serde_json",
  "thiserror",
-]
-
-[[package]]
-name = "rain-metadata"
-version = "0.0.2-alpha.2"
-dependencies = [
- "alloy-json-abi 0.5.4",
- "alloy-primitives 0.5.4",
- "alloy-sol-types 0.5.4",
- "anyhow",
- "clap",
- "deflate",
- "futures",
- "graphql_client",
- "inflate",
- "itertools 0.10.5",
- "once_cell",
- "regex",
- "reqwest",
- "schemars",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "serde_json",
- "strum 0.24.1",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "validator",
 ]
 
 [[package]]
@@ -6401,6 +6381,40 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "validator",
+]
+
+[[package]]
+name = "rain-metadata"
+version = "0.0.2-alpha.6"
+dependencies = [
+ "alloy-ethers-typecast",
+ "alloy-json-abi 0.5.4",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
+ "anyhow",
+ "clap",
+ "deflate",
+ "futures",
+ "graphql_client",
+ "inflate",
+ "itertools 0.10.5",
+ "once_cell",
+ "rain_metaboard_subgraph",
+ "rain_metadata_bindings",
+ "regex",
+ "reqwest",
+ "schemars",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_json",
+ "strum 0.24.1",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
  "validator",
 ]
 
@@ -6446,6 +6460,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_metaboard_subgraph"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives 0.6.4",
+ "cynic",
+ "cynic-codegen",
+ "reqwest",
+ "thiserror",
+]
+
+[[package]]
+name = "rain_metadata_bindings"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
+]
+
+[[package]]
 name = "rain_orderbook_app_settings"
 version = "0.0.1"
 dependencies = [
@@ -6488,10 +6521,12 @@ dependencies = [
  "once_cell",
  "proptest",
  "rain-interpreter-eval",
- "rain-metadata 0.0.2-alpha.2",
+ "rain-metadata 0.0.2-alpha.6",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
+ "rain_metaboard_subgraph",
+ "rain_metadata_bindings",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
