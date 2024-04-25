@@ -196,6 +196,7 @@ mod tests {
             using_networks_from: HashMap::new(),
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
+            metaboards: HashMap::new(), // Assuming no metaboards for simplification
             orderbooks: HashMap::new(), // Assuming no orderbooks for simplification
             tokens: HashMap::new(),    // Assuming no tokens for simplification
             deployers,
