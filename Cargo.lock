@@ -5230,6 +5230,7 @@ dependencies = [
  "proptest",
  "rain-interpreter-eval",
  "rain-metadata 0.0.2-alpha.6",
+ "rain-orderbook-env",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
