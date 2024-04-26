@@ -152,6 +152,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         uint256 depositAmount,
         uint256 withdrawAmount
     ) external {
+        vm.assume(alice != bob);
         depositAmount = bound(depositAmount, 1, type(uint128).max);
         withdrawAmount = bound(withdrawAmount, 1, depositAmount);
 
