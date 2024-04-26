@@ -2266,9 +2266,9 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.14"
+version = "6.0.1-alpha.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26a685841ac8f4507444b3552ff3a7aedd867e48678bc19ac456190154358ecb"
+checksum = "44c87a4f19a456549866a219abb85443b9f076d5721611c115f60c56831429e8"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -2277,7 +2277,7 @@ dependencies = [
  "getrandom 0.2.12",
  "magic_string",
  "once_cell",
- "rain-metadata 0.0.2-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rain-metadata 0.0.2-alpha.2",
  "regex",
  "serde",
  "serde_bytes",
@@ -2287,9 +2287,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.14"
+version = "6.0.1-alpha.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b2047a3b281d745d8a1229586df6171c2fdeee27260239d3aa01583ada1e848"
+checksum = "9491938d3d50e8f1161c57bc54a0919958553f9a9c04bfbf78ef1cbf8d4082bd"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -6347,6 +6347,8 @@ dependencies = [
 [[package]]
 name = "rain-metadata"
 version = "0.0.2-alpha.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae6fd96284c6c4cb18205c703826da75df9c01479b07ca6b1905a30dc78d54d2"
 dependencies = [
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
@@ -6375,9 +6377,7 @@ dependencies = [
 
 [[package]]
 name = "rain-metadata"
-version = "0.0.2-alpha.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae6fd96284c6c4cb18205c703826da75df9c01479b07ca6b1905a30dc78d54d2"
+version = "0.0.2-alpha.6"
 dependencies = [
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.5.4",
@@ -6488,7 +6488,7 @@ dependencies = [
  "once_cell",
  "proptest",
  "rain-interpreter-eval",
- "rain-metadata 0.0.2-alpha.2",
+ "rain-metadata 0.0.2-alpha.6",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
@@ -8458,6 +8458,7 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "chrono",
  "dotrain",
+ "ethers",
  "rain_orderbook_app_settings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
