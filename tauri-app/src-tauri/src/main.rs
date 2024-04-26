@@ -22,6 +22,8 @@ use commands::vault::{
     vault_withdraw_calldata, vaults_list, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
+use commands::wallet::get_balance_from_ledger;
+use commands::wallet::get_balance_from_wallet;
 
 fn main() {
     if std::env::consts::OS == "linux" {
@@ -53,6 +55,8 @@ fn run_tauri_app() {
             order_takes_list,
             order_takes_list_write_csv,
             get_address_from_ledger,
+            get_balance_from_ledger,
+            get_balance_from_wallet,
             get_chainid,
             get_block_number,
             parse_dotrain,
