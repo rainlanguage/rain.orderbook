@@ -2,7 +2,7 @@ use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::SolCall;
-use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
+use rain_orderbook_bindings::IOrderBookV4::withdraw2Call;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -12,26 +12,27 @@ pub struct WithdrawArgs {
     pub target_amount: U256,
 }
 
-impl From<WithdrawArgs> for withdrawCall {
+impl From<WithdrawArgs> for withdraw2Call {
     fn from(val: WithdrawArgs) -> Self {
-        withdrawCall {
+        withdraw2Call {
             token: val.token,
             vaultId: val.vault_id,
             targetAmount: val.target_amount,
+            post: vec![],
         }
     }
 }
 
 impl WithdrawArgs {
     /// Execute OrderbookV3 withdraw call
-    pub async fn execute<S: Fn(WriteTransactionStatus<withdrawCall>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<withdraw2Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WritableTransactionExecuteError> {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
-        let withdraw_call: withdrawCall = self.clone().into();
+        let withdraw_call: withdraw2Call = self.clone().into();
         let params = transaction_args
             .try_into_write_contract_parameters(withdraw_call, transaction_args.orderbook_address)
             .await?;
@@ -44,7 +45,7 @@ impl WithdrawArgs {
     }
 
     pub async fn get_withdraw_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let withdraw_call: withdrawCall = self.clone().into();
+        let withdraw_call: withdraw2Call = self.clone().into();
         Ok(withdraw_call.abi_encode())
     }
 }
@@ -63,7 +64,7 @@ mod tests {
             target_amount: U256::from(100),
         };
 
-        let withdraw_call: withdrawCall = args.into();
+        let withdraw_call: withdraw2Call = args.into();
         assert_eq!(
             withdraw_call.token,
             "0x1234567890abcdef1234567890abcdef12345678"
