@@ -15,6 +15,7 @@ use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
 use dotrain::error::ComposeError;
+use ethers::providers::ProviderError;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -74,6 +75,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     ConfigSourceError(#[from] ConfigSourceError),
+
+    #[error(transparent)]
+    ProviderError(#[from] ProviderError),
 }
 
 impl Serialize for CommandError {
