@@ -20,6 +20,16 @@ pub struct DotrainOrder {
 }
 
 #[typeshare]
+pub struct ExtAuthoringMetaV2Word {
+    pub word: String,
+    pub description: String,
+}
+#[typeshare]
+pub struct ExtAuthoringMetaV2 {
+    pub words: Vec<ExtAuthoringMetaV2Word>,
+}
+
+#[typeshare(serialized_as = "HashMap<String, ExtAuthoringMetaV2>")]
 pub type PragmasAuthoringMeta = HashMap<Address, AuthoringMetaV2>;
 
 #[typeshare]
