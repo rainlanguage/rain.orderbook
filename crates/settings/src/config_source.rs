@@ -31,6 +31,8 @@ pub struct ConfigSource {
     pub charts: HashMap<String, ChartConfigSource>,
     #[serde(default)]
     pub deployments: HashMap<String, DeploymentConfigSource>,
+    #[serde(default)]
+    pub metaboards: HashMap<String, Url>,
     pub sentry: Option<bool>,
 }
 
@@ -54,6 +56,9 @@ pub type OrderbookRef = String;
 
 #[typeshare]
 pub type TokenRef = String;
+
+#[typeshare]
+pub type MetaboardRef = String;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
