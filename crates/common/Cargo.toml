@@ -28,9 +28,8 @@ reqwest = { workspace = true }
 strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
 dotrain-lsp = { workspace = true }
-rain-metadata = { workspace = true }
-rain_metaboard_subgraph = { workspace = true }
-rain_metadata_bindings = { workspace = true }
+rain-metaboard-subgraph = { workspace = true }
+rain-metadata-bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
