@@ -1,5 +1,5 @@
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
-use alloy_primitives::{hex::encode, Address};
+use alloy_primitives::Address;
 use dotrain::{error::ComposeError, RainDocument};
 use rain_interpreter_parser::{ParserError, ParserV2};
 use rain_metadata::types::authoring::v2::*;
@@ -20,7 +20,10 @@ pub struct DotrainOrder {
 }
 
 #[typeshare]
-pub type ScenariosAuthoringMeta = HashMap<String, Vec<AuthoringMetaV2>>;
+pub type PragmasAuthoringMeta = HashMap<Address, AuthoringMetaV2>;
+
+#[typeshare]
+pub type ScenariosAuthoringMeta = HashMap<String, PragmasAuthoringMeta>;
 
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
@@ -103,8 +106,7 @@ impl DotrainOrder {
             .deployer;
         let parser: ParserV2 = deployer.address.into();
         let rainlang = self.compose_scenario_to_rainlang(scenario).await?;
-        println!("rainlang: {:?}", rainlang.clone());
-        println!("rainlang: {:?}", encode(rainlang.as_bytes()));
+
         let client = ReadableClient::new_from_url(deployer.network.rpc.clone().to_string())?;
         let mut pragmas = parser.parse_pragma_text(&*rainlang, client).await?;
         pragmas.push(deployer.address);
@@ -115,7 +117,7 @@ impl DotrainOrder {
     pub async fn get_authoring_meta_v2_for_scenario(
         &self,
         scenario: String,
-    ) -> Result<Vec<AuthoringMetaV2>, DotrainOrderError> {
+    ) -> Result<PragmasAuthoringMeta, DotrainOrderError> {
         let rpc = self
             .config
             .scenarios
@@ -144,25 +146,25 @@ impl DotrainOrder {
 
         let pragmas = self.get_pragmas_for_scenario(scenario).await?;
 
-        let mut authoring_metas = Vec::new();
+        let mut authoring_metas_for_pragmas = HashMap::new();
 
         for pragma in pragmas {
             let authoring_meta_v2 =
                 AuthoringMetaV2::fetch_for_contract(pragma, rpc.to_string(), metaboard.to_string())
                     .await?;
-            authoring_metas.push(authoring_meta_v2);
+            authoring_metas_for_pragmas.insert(pragma, authoring_meta_v2);
         }
 
-        Ok(authoring_metas)
+        Ok(authoring_metas_for_pragmas)
     }
 
     pub async fn get_authoring_metas_for_all_scenarios(
         &self,
     ) -> Result<ScenariosAuthoringMeta, DotrainOrderError> {
-        let mut authoring_metas = HashMap::new();
+        let mut authoring_metas: ScenariosAuthoringMeta = HashMap::new();
 
         for scenario in self.config.scenarios.keys() {
-            let authoring_meta_v2 = self
+            let authoring_meta_v2: PragmasAuthoringMeta = self
                 .get_authoring_meta_v2_for_scenario(scenario.clone())
                 .await?;
             authoring_metas.insert(scenario.clone(), authoring_meta_v2);
@@ -178,10 +180,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_config_parse() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
 networks:
     polygon: 
-        rpc: https://rpc.ankr.com/polygon 
+        rpc: {rpc_url}
         chain-id: 137 
         network-id: 137 
         currency: MATIC
@@ -194,7 +197,9 @@ scenarios:
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;"#;
+:;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+        );
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
@@ -206,10 +211,11 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_rainlang_from_scenario() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
 networks:
     polygon: 
-        rpc: https://rpc.ankr.com/polygon 
+        rpc: {rpc_url} 
         chain-id: 137 
         network-id: 137 
         currency: MATIC
@@ -222,7 +228,9 @@ scenarios:
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;"#;
+:;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+        );
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
@@ -243,10 +251,11 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_config_merge() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
 networks: 
   polygon: 
-    rpc: https://rpc.ankr.com/polygon 
+    rpc: {rpc_url}
     chain-id: 137 
     network-id: 137 
     currency: MATIC
@@ -255,15 +264,20 @@ networks:
 _ _: 00;
 
 #handle-io
-:;"#;
+:;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+        );
 
-        let settings = r#"
+        let settings = format!(
+            r#"
 networks:
     mainnet: 
-        rpc: https://1rpc.io/eth 
+        rpc: {rpc_url} 
         chain-id: 1 
         network-id: 1 
-        currency: ETH"#;
+        currency: ETH"#,
+            rpc_url = rain_orderbook_env::CI_RPC_URL_ETHEREUM_FORK
+        );
 
         let merged_dotrain_order =
             DotrainOrder::new(dotrain.to_string(), Some(settings.to_string()))
@@ -277,7 +291,9 @@ networks:
                 .get("mainnet")
                 .unwrap()
                 .rpc,
-            "https://1rpc.io/eth".parse().unwrap()
+            rain_orderbook_env::CI_RPC_URL_ETHEREUM_FORK
+                .parse()
+                .unwrap()
         );
     }
 
@@ -330,14 +346,16 @@ deployers:
 scenarios:
     sepolia:
 metaboards:
-    sepolia: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/test-mb-sepolia/0.0.1/gn
+    sepolia: {metaboard_url}
 ---
 #calculate-io
+using-words-from 0x8f037f2a3fF2dee510486D9C63A47A245991a4C1
 _: order-hash(),
 _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL,
+            metaboard_url = rain_orderbook_env::CI_SEPOLIA_METABOARD_URL,
         );
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
@@ -346,7 +364,5 @@ _ _: 0 0;
             .get_authoring_metas_for_all_scenarios()
             .await
             .unwrap();
-
-        println!("{:?}", authoring_metas);
     }
 }
