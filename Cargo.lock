@@ -5825,6 +5825,7 @@ dependencies = [
  "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
+ "eyre",
  "foundry-evm",
  "once_cell",
  "rain-interpreter-env",
