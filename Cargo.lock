@@ -2936,7 +2936,7 @@ dependencies = [
  "path-slash",
  "regex",
  "reqwest 0.11.27",
- "revm-primitives 2.1.0",
+ "revm-primitives",
  "semver 1.0.22",
  "serde",
  "serde_json",
@@ -5667,11 +5667,11 @@ dependencies = [
 
 [[package]]
 name = "revm-interpreter"
-version = "3.3.0"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "776848391ed76d5103ca1aa1632cd21b521e2870afb30b63723da862d69efd0f"
+checksum = "8fa10c2dc1e8f4934bdc763a2c09371bcec29e50c22e55e3eb325ee0cba09064"
 dependencies = [
- "revm-primitives 3.0.0",
+ "revm-primitives",
  "serde",
 ]
 
@@ -5685,7 +5685,7 @@ dependencies = [
  "c-kzg",
  "k256",
  "once_cell",
- "revm-primitives 2.1.0",
+ "revm-primitives",
  "ripemd",
  "secp256k1",
  "sha2 0.10.8",
@@ -5702,26 +5702,8 @@ dependencies = [
  "auto_impl",
  "bitflags 2.5.0",
  "bitvec",
- "cfg-if",
- "enumn",
- "hashbrown 0.14.3",
- "hex",
- "serde",
-]
-
-[[package]]
-name = "revm-primitives"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a4d7d3e793e907dc0797a9d3b43abfdf5226d133855214db9bd27d4cee33ebd"
-dependencies = [
- "alloy-primitives 0.6.4",
- "auto_impl",
- "bitflags 2.5.0",
- "bitvec",
  "c-kzg",
  "cfg-if",
- "dyn-clone",
  "enumn",
  "hashbrown 0.14.3",
  "hex",
