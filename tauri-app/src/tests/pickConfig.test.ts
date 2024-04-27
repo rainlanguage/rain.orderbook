@@ -19,6 +19,9 @@ export const config: Config = {
   "subgraphs": {
     "network1": "some-url"
   },
+  "metaboards": {
+    "network1": "some-url"
+  },
   "orderbooks": {
     "network1": {
       "address": "0x123456",
