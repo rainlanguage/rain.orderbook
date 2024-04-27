@@ -24,7 +24,7 @@
               forge script --silent ./script/BuildAuthoringMeta.sol;
               rain meta build \
                 -i <(cat ./meta/OrderBookSubParserAuthoringMeta.rain.meta) \
-                -m authoring-meta-v1 \
+                -m authoring-meta-v2 \
                 -t cbor \
                 -e deflate \
                 -l none \
