@@ -3,12 +3,9 @@
 set -euxo pipefail
 
 keep=(
-  -k
-  CI_DEPLOY_SEPOLIA_RPC_URL
-  -k
-  CI_FORK_SEPOLIA_DEPLOYER_ADDRESS
-  -k
-  CI_FORK_SEPOLIA_BLOCK_NUMBER
+  -k CI_DEPLOY_SEPOLIA_RPC_URL
+  -k CI_FORK_SEPOLIA_DEPLOYER_ADDRESS
+  -k CI_FORK_SEPOLIA_BLOCK_NUMBER
 )
 
 # Run commands in the current working directory
