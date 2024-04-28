@@ -118,7 +118,7 @@ impl DotrainOrder {
         let rainlang = self.compose_scenario_to_rainlang(scenario).await?;
 
         let client = ReadableClient::new_from_url(deployer.network.rpc.clone().to_string())?;
-        let mut pragmas = parser.parse_pragma_text(&*rainlang, client).await?;
+        let mut pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         pragmas.push(deployer.address);
 
         Ok(pragmas)
@@ -193,10 +193,10 @@ mod tests {
         let dotrain = format!(
             r#"
 networks:
-    polygon: 
+    polygon:
         rpc: {rpc_url}
-        chain-id: 137 
-        network-id: 137 
+        chain-id: 137
+        network-id: 137
         currency: MATIC
 deployers:
     polygon:
@@ -224,10 +224,10 @@ _ _: 0 0;
         let dotrain = format!(
             r#"
 networks:
-    polygon: 
-        rpc: {rpc_url} 
-        chain-id: 137 
-        network-id: 137 
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
         currency: MATIC
 deployers:
     polygon:
@@ -251,10 +251,10 @@ _ _: 0 0;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. calculate-io */ 
+            r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
         );
     }
@@ -263,11 +263,11 @@ _ _: 0 0;
     async fn test_config_merge() {
         let dotrain = format!(
             r#"
-networks: 
-  polygon: 
+networks:
+  polygon:
     rpc: {rpc_url}
-    chain-id: 137 
-    network-id: 137 
+    chain-id: 137
+    network-id: 137
     currency: MATIC
 ---
 #calculate-io
@@ -281,10 +281,10 @@ _ _: 00;
         let settings = format!(
             r#"
 networks:
-    mainnet: 
-        rpc: {rpc_url} 
-        chain-id: 1 
-        network-id: 1 
+    mainnet:
+        rpc: {rpc_url}
+        chain-id: 1
+        network-id: 1
         currency: ETH"#,
             rpc_url = rain_orderbook_env::CI_RPC_URL_ETHEREUM_FORK
         );
@@ -312,8 +312,8 @@ networks:
         let dotrain = format!(
             r#"
 networks:
-    sepolia: 
-        rpc: {rpc_url} 
+    sepolia:
+        rpc: {rpc_url}
         chain-id: 0
 deployers:
     sepolia:
@@ -347,8 +347,8 @@ _ _: 0 0;
         let dotrain = format!(
             r#"
 networks:
-    sepolia: 
-        rpc: {rpc_url} 
+    sepolia:
+        rpc: {rpc_url}
         chain-id: 0
 deployers:
     sepolia:
@@ -370,7 +370,7 @@ _ _: 0 0;
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
-        let authoring_metas = dotrain_order
+        let _authoring_metas = dotrain_order
             .get_authoring_metas_for_all_scenarios()
             .await
             .unwrap();
