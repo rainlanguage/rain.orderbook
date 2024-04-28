@@ -8,19 +8,20 @@ import {
     ClearConfig,
     SignedContextV1,
     TakeOrdersConfigV3,
-    EvaluableV3
+    EvaluableV3,
+    ActionV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 abstract contract IOrderBookV4Stub is IOrderBookV4 {
     /// @inheritdoc IOrderBookV4
-    function eval(EvaluableV3[] calldata) external pure {
+    function enact(ActionV1[] calldata) external pure {
         revert("eval");
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder2(OrderConfigV3 calldata, EvaluableV3[] calldata) external pure returns (bool) {
+    function addOrder2(OrderConfigV3 calldata, ActionV1[] calldata) external pure returns (bool) {
         revert("addOrder");
     }
 
@@ -30,7 +31,7 @@ abstract contract IOrderBookV4Stub is IOrderBookV4 {
     }
 
     /// @inheritdoc IOrderBookV4
-    function removeOrder2(OrderV3 calldata, EvaluableV3[] calldata) external pure returns (bool) {
+    function removeOrder2(OrderV3 calldata, ActionV1[] calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
@@ -46,7 +47,7 @@ abstract contract IOrderBookV4Stub is IOrderBookV4 {
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit2(address, uint256, uint256, EvaluableV3[] calldata) external pure {
+    function deposit2(address, uint256, uint256, ActionV1[] calldata) external pure {
         revert("deposit");
     }
 
@@ -76,7 +77,7 @@ abstract contract IOrderBookV4Stub is IOrderBookV4 {
     }
 
     /// @inheritdoc IOrderBookV4
-    function withdraw2(address, uint256, uint256, EvaluableV3[] calldata) external pure {
+    function withdraw2(address, uint256, uint256, ActionV1[] calldata) external pure {
         revert("withdraw");
     }
 }

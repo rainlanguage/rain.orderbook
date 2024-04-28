@@ -2,10 +2,15 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
+    OrderConfigV3,
+    EvaluableV3,
+    ActionV1,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 
-contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
+contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     mapping(bytes32 => bool) nonces;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
@@ -32,12 +37,13 @@ contract OrderBookAddOrderEvalTest is OrderBookExternalRealTest {
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(owner);
-        EvaluableV3[] memory evals = new EvaluableV3[](evalStrings.length);
+        ActionV1[] memory actions = new ActionV1[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
-            evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
+            actions[i] =
+                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
-        bool stateChanged = iOrderbook.addOrder2(config, evals);
+        bool stateChanged = iOrderbook.addOrder2(config, actions);
         assert(stateChanged != nonces[config.nonce]);
         checkReentrancyRW(nonces[config.nonce] ? 4 : 5, nonces[config.nonce] ? 2 : 3);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));

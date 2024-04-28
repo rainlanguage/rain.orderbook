@@ -2,7 +2,9 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV3, OrderV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
+    OrderConfigV3, OrderV3, EvaluableV3, ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
@@ -21,7 +23,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // It will revert even if the order has not been added yet.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder2(expectedOrder, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(expectedOrder, new ActionV1[](0));
 
         // And will revert after the order is added.
         (OrderV3 memory order, bytes32 orderHash) = addOrderWithChecks(alice, config, expression);
@@ -29,7 +31,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder2(order, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(order, new ActionV1[](0));
 
         // Alice can remove the order.
         removeOrderWithChecks(alice, order);
@@ -37,7 +39,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // It will revert even after the order has been removed.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder2(order, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(order, new ActionV1[](0));
     }
 
     /// The same order can be added and removed multiple times.
@@ -68,7 +70,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         vm.record();
         vm.recordLogs();
         vm.prank(alice);
-        assertFalse(iOrderbook.removeOrder2(order, new EvaluableV3[](0)));
+        assertFalse(iOrderbook.removeOrder2(order, new ActionV1[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.
@@ -120,11 +122,11 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // Owners can't interfere with each other.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice, bob));
         vm.prank(alice);
-        iOrderbook.removeOrder2(orderBob, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(orderBob, new ActionV1[](0));
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder2(orderAlice, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(orderAlice, new ActionV1[](0));
 
         removeOrderWithChecks(alice, orderAlice);
         removeOrderWithChecks(bob, orderBob);
@@ -179,17 +181,17 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
         // Owners can't interfere with each other.
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice, bob));
         vm.prank(alice);
-        iOrderbook.removeOrder2(orderBobOne, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(orderBobOne, new ActionV1[](0));
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice, bob));
         vm.prank(alice);
-        iOrderbook.removeOrder2(orderBobTwo, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(orderBobTwo, new ActionV1[](0));
 
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder2(orderAliceOne, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(orderAliceOne, new ActionV1[](0));
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
         vm.prank(bob);
-        iOrderbook.removeOrder2(orderAliceTwo, new EvaluableV3[](0));
+        iOrderbook.removeOrder2(orderAliceTwo, new ActionV1[](0));
 
         removeOrderWithChecks(alice, orderAliceOne);
         removeOrderWithChecks(bob, orderBobOne);

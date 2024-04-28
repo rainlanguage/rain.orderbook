@@ -3,7 +3,7 @@ pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {OrderConfigV3, EvaluableV3, ActionV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/unstable/IParserV2.sol";
 import {
     UnsupportedCalculateOutputs,
@@ -19,7 +19,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = hex"";
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// No handle IO reverts.
@@ -29,7 +29,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2(":;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// A stack of 0 for calculate order deploys.
@@ -39,7 +39,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2(":;:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// A stack of 1 for calculate order reverts.
@@ -49,7 +49,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_:block-timestamp();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// A stack of 2 for calculate order deploys.
@@ -58,7 +58,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_ _:block-timestamp() chain-id();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// A stack of 3 for calculate order deploys.
@@ -67,7 +67,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_ _ _:block-timestamp() chain-id() block-number();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// Inputs for calculate order. Tests one input.
@@ -77,7 +77,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("i:;:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// Inputs for calculate order errors. Tests two inputs.
@@ -87,7 +87,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("i0 i1:;:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// Inputs for calculate order errors. This takes precedent over the same
@@ -98,7 +98,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("i:;i:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// Inputs for handle io errors. Tests one input.
@@ -108,7 +108,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_ _:1e18 1e18;i:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// Inputs for handle io errors. Tests two inputs.
@@ -118,6 +118,6 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_ _:1e18 1e18;i0 i1:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 }

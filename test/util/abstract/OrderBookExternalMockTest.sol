@@ -11,7 +11,12 @@ import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IOrderBookV4, OrderConfigV3, OrderV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
+    IOrderBookV4,
+    OrderConfigV3,
+    OrderV3,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";
@@ -82,7 +87,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        assertTrue(iOrderbook.addOrder2(config, new EvaluableV3[](0)));
+        assertTrue(iOrderbook.addOrder2(config, new ActionV1[](0)));
         // MetaV1 is NOT emitted if the meta is empty.
         assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -104,7 +109,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        assertFalse(iOrderbook.addOrder2(config, new EvaluableV3[](0)));
+        assertFalse(iOrderbook.addOrder2(config, new ActionV1[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (reads, writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.
@@ -128,7 +133,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         vm.recordLogs();
         vm.prank(owner);
         // An order was removed so this is true as there is a state change.
-        assertTrue(iOrderbook.removeOrder2(order, new EvaluableV3[](0)));
+        assertTrue(iOrderbook.removeOrder2(order, new ActionV1[](0)));
         assertEq(vm.getRecordedLogs().length, 1);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check, 1x for dead write.
@@ -142,7 +147,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         vm.recordLogs();
         vm.prank(owner);
         // There is no state change so this is false.
-        assertFalse(iOrderbook.removeOrder2(order, new EvaluableV3[](0)));
+        assertFalse(iOrderbook.removeOrder2(order, new ActionV1[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (reads, writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.

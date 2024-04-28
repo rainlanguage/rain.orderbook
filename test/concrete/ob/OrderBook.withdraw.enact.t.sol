@@ -2,7 +2,12 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
+    OrderConfigV3,
+    EvaluableV3,
+    ActionV1,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
@@ -37,18 +42,19 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
         if (depositAmount > 0) {
-            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
         }
 
-        EvaluableV3[] memory evals = new EvaluableV3[](evalStrings.length);
+        ActionV1[] memory actions = new ActionV1[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
-            evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
+            actions[i] =
+                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount), abi.encode(true)
         );
         vm.record();
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, evals);
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, actions);
         checkReentrancyRW(depositAmount > 0 ? 5 : 4, depositAmount > 0 ? 3 : 2);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);

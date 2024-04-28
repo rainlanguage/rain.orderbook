@@ -2,10 +2,15 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OrderConfigV3, EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
+    OrderConfigV3,
+    EvaluableV3,
+    ActionV1,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
-contract OrderBookDepositEvalTest is OrderBookExternalRealTest {
+contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
@@ -36,12 +41,13 @@ contract OrderBookDepositEvalTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
-        EvaluableV3[] memory evals = new EvaluableV3[](evalStrings.length);
+        ActionV1[] memory actions = new ActionV1[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
-            evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
+            actions[i] =
+                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, evals);
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
@@ -49,20 +55,20 @@ contract OrderBookDepositEvalTest is OrderBookExternalRealTest {
         vm.stopPrank();
     }
 
-    function testOrderBookDepositEvalEmptyNoop(address alice, uint256 vaultId, uint256 amount) external {
+    function testOrderBookDepositEnactEmptyNoop(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount > 0);
         bytes[] memory evals = new bytes[](0);
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
-    function testOrderBookDepositEvalOneStateless(address alice, uint256 vaultId, uint256 amount) external {
+    function testOrderBookDepositEnactOneStateless(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount > 0);
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
-    function testOrderBookDepositEvalOneReadState(address alice, uint256 vaultId, uint256 amount) external {
+    function testOrderBookDepositEnactOneReadState(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount > 0);
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");

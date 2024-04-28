@@ -10,7 +10,8 @@ import {
     IO,
     OrderConfigV3,
     EvaluableV3,
-    SignedContextV1
+    SignedContextV1,
+    ActionV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
@@ -46,11 +47,11 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             vm.mockCall(inputToken, "", abi.encode(true));
         }
         if (expectedTakerTotalInput > 0) {
-            iOrderbook.deposit2(outputToken, vaultId, expectedTakerTotalInput, new EvaluableV3[](0));
+            iOrderbook.deposit2(outputToken, vaultId, expectedTakerTotalInput, new ActionV1[](0));
         }
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), expectedTakerTotalInput);
         vm.recordLogs();
-        iOrderbook.addOrder2(config, new EvaluableV3[](0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
         (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));

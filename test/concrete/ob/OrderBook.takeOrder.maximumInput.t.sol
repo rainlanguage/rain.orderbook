@@ -10,7 +10,8 @@ import {
     ZeroMaximumInput,
     IO,
     EvaluableV3,
-    OrderConfigV3
+    OrderConfigV3,
+    ActionV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
@@ -70,7 +71,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
                 vm.prank(testOrders[i].owner);
                 vm.recordLogs();
-                iOrderbook.addOrder2(orderConfig, new EvaluableV3[](0));
+                iOrderbook.addOrder2(orderConfig, new ActionV1[](0));
                 Vm.Log[] memory entries = vm.getRecordedLogs();
                 assertEq(entries.length, 1);
                 (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
@@ -97,7 +98,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 );
                 uint256 balanceBefore = iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId);
                 vm.prank(testVaults[i].owner);
-                iOrderbook.deposit2(testVaults[i].token, vaultId, testVaults[i].deposit, new EvaluableV3[](0));
+                iOrderbook.deposit2(testVaults[i].token, vaultId, testVaults[i].deposit, new ActionV1[](0));
                 assertEq(
                     iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId),
                     balanceBefore + testVaults[i].deposit,

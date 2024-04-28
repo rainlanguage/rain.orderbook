@@ -9,7 +9,7 @@ import {
     REVERTING_MOCK_BYTECODE
 } from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
-import {EvaluableV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {ActionV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
@@ -20,7 +20,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawZero(address alice, address token, uint256 vaultId) external {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(ZeroWithdrawTargetAmount.selector, alice, token, vaultId));
-        iOrderbook.withdraw2(token, vaultId, 0, new EvaluableV3[](0));
+        iOrderbook.withdraw2(token, vaultId, 0, new ActionV1[](0));
     }
 
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
@@ -29,7 +29,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.prank(alice);
         vm.record();
         vm.recordLogs();
-        iOrderbook.withdraw2(token, vaultId, amount, new EvaluableV3[](0));
+        iOrderbook.withdraw2(token, vaultId, amount, new ActionV1[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // Zero logs because nothing happened.
         assertEq(vm.getRecordedLogs().length, 0, "logs");
@@ -52,7 +52,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         vm.prank(alice);
@@ -61,7 +61,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         );
         vm.expectEmit(false, false, false, true);
         emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, depositAmount);
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new EvaluableV3[](0));
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new ActionV1[](0));
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), 0);
     }
 
@@ -78,7 +78,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         vm.prank(alice);
@@ -88,7 +88,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.expectEmit(false, false, false, true);
         // The full withdraw amount is possible as it's only a partial withdraw.
         emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, withdrawAmount);
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new EvaluableV3[](0));
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new ActionV1[](0));
         // The vault balance is reduced by the withdraw amount.
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount - withdrawAmount);
     }
@@ -105,13 +105,13 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new EvaluableV3[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         // The token contract always reverts when not mocked.
         vm.prank(alice);
         vm.expectRevert("SafeERC20: low-level call failed");
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new EvaluableV3[](0));
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new ActionV1[](0));
 
         vm.prank(alice);
         vm.mockCall(
@@ -120,7 +120,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encode(false)
         );
         vm.expectRevert("SafeERC20: ERC20 operation did not succeed");
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new EvaluableV3[](0));
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new ActionV1[](0));
     }
 
     /// Defines an action that can be taken in withdrawal tests.
@@ -167,7 +167,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                 );
                 vm.expectEmit(false, false, false, true);
                 emit Deposit(action.alice, action.token, action.vaultId, action.amount);
-                iOrderbook.deposit2(action.token, action.vaultId, action.amount, new EvaluableV3[](0));
+                iOrderbook.deposit2(action.token, action.vaultId, action.amount, new ActionV1[](0));
                 assertEq(
                     iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
                     balance + action.amount,
@@ -184,7 +184,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                     vm.expectEmit(false, false, false, true);
                     emit Withdraw(action.alice, action.token, action.vaultId, action.amount, expectedActualAmount);
                 }
-                iOrderbook.withdraw2(action.token, action.vaultId, action.amount, new EvaluableV3[](0));
+                iOrderbook.withdraw2(action.token, action.vaultId, action.amount, new ActionV1[](0));
                 assertEq(
                     iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
                     balance - expectedActualAmount,

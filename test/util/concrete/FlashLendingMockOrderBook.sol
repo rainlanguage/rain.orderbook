@@ -10,7 +10,8 @@ import {
     TakeOrdersConfigV3,
     OrderConfigV3,
     ClearConfig,
-    EvaluableV3
+    EvaluableV3,
+    ActionV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
@@ -23,7 +24,7 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
         return true;
     }
 
-    function eval(EvaluableV3[] calldata) external pure {}
+    function enact(ActionV1[] calldata) external pure {}
 
     /// @inheritdoc IOrderBookV4
     function takeOrders2(TakeOrdersConfigV3 calldata) external pure returns (uint256, uint256) {
@@ -31,7 +32,7 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder2(OrderConfigV3 calldata, EvaluableV3[] calldata) external pure returns (bool) {
+    function addOrder2(OrderConfigV3 calldata, ActionV1[] calldata) external pure returns (bool) {
         return false;
     }
 
@@ -47,11 +48,11 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
         SignedContextV1[] memory,
         SignedContextV1[] memory
     ) external {}
-    function deposit2(address, uint256, uint256, EvaluableV3[] calldata) external {}
+    function deposit2(address, uint256, uint256, ActionV1[] calldata) external {}
     function flashFee(address, uint256) external view returns (uint256) {}
     function maxFlashLoan(address) external view returns (uint256) {}
-    function removeOrder2(OrderV3 calldata, EvaluableV3[] calldata) external returns (bool) {}
+    function removeOrder2(OrderV3 calldata, ActionV1[] calldata) external returns (bool) {}
 
     function vaultBalance(address, address, uint256) external view returns (uint256) {}
-    function withdraw2(address, uint256, uint256, EvaluableV3[] calldata) external {}
+    function withdraw2(address, uint256, uint256, ActionV1[] calldata) external {}
 }

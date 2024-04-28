@@ -2,10 +2,16 @@
 pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {OrderConfigV3, EvaluableV3, OrderV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {
+    OrderConfigV3,
+    EvaluableV3,
+    OrderV3,
+    ActionV1,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 
-contract OrderBookRemoveOrderEvalTest is OrderBookExternalRealTest {
+contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
@@ -31,18 +37,19 @@ contract OrderBookRemoveOrderEvalTest is OrderBookExternalRealTest {
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(owner);
-        EvaluableV3[] memory evals = new EvaluableV3[](evalStrings.length);
+        ActionV1[] memory actions = new ActionV1[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
-            evals[i] = EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i]));
+            actions[i] =
+                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         // Hacky way to give a unique nonce to each order passed in.
         config.nonce = keccak256(abi.encode(evalStrings));
         if (addOrder) {
-            iOrderbook.addOrder2(config, new EvaluableV3[](0));
+            iOrderbook.addOrder2(config, new ActionV1[](0));
         }
         OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         vm.record();
-        bool stateChanged = iOrderbook.removeOrder2(order, evals);
+        bool stateChanged = iOrderbook.removeOrder2(order, actions);
         assertEq(stateChanged, addOrder);
         checkReentrancyRW(addOrder ? 5 : 4, addOrder ? 3 : 2);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
