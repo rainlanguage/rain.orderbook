@@ -4,3 +4,4 @@ result
 meta
 target
 .DS_Store
+.env

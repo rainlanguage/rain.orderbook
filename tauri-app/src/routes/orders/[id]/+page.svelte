@@ -26,6 +26,7 @@
     prepareHistoricalOrderChartData,
     type HistoricalOrderChartData,
   } from '$lib/services/historicalOrderCharts';
+    import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   let openOrderRemoveModal = false;
   let isSubmitting = false;
@@ -61,12 +62,8 @@
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === 'object' && (e as any)?.reason) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      } else toasts.error('Transaction failed!');
-    }
+      toasts.error(formatEthersTransactionError(e));
+   }
     isSubmitting = false;
   }
 </script>
@@ -180,8 +177,9 @@
               {item.output_token.symbol}
             </TableBodyCell>
             <TableBodyCell tdClass="break-all py-2">
-              {item.ioratio}
-              {item.input_token.symbol}/{item.output_token.symbol}
+              <!-- {item.ioratio} -->
+              {BigInt(item.output_display) / BigInt(item.input_display)}
+              {item.output_token.symbol}/{item.input_token.symbol}
             </TableBodyCell>
           </svelte:fragment>
         </AppTable>
