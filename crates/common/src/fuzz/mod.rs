@@ -330,14 +330,14 @@ b: fuzzed;
     "#,
             rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
         );
-        let frontmatter = RainDocument::get_front_matter(&*dotrain).unwrap();
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
         let config = settings
             .try_into()
             .map_err(|e| println!("{:?}", e))
             .unwrap();
 
-        let mut runner = FuzzRunner::new(&*dotrain, config, None).await;
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
             .run_scenario_by_name("sepolia")
@@ -384,14 +384,14 @@ d: 4;
     "#,
             rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
         );
-        let frontmatter = RainDocument::get_front_matter(&*dotrain).unwrap();
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
         let config = settings
             .try_into()
             .map_err(|e| println!("{:?}", e))
             .unwrap();
 
-        let mut runner = FuzzRunner::new(&*dotrain, config, None).await;
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
             .run_scenario_by_name("sepolia")
