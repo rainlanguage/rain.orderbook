@@ -761,11 +761,11 @@
         "solc": "solc_2"
       },
       "locked": {
-        "lastModified": 1714243491,
-        "narHash": "sha256-2XLu2rKzFkfNo/3Aao0iTMksFBFULwegB4+Dv8/v/0c=",
+        "lastModified": 1714495246,
+        "narHash": "sha256-C4+Ze2ET8f+8Z8jFqtw4kI/9SN63Z8l1N40L+VMOfEQ=",
         "owner": "rainprotocol",
         "repo": "rainix",
-        "rev": "cf9ba7561d34bc61bc4b9b38b6b09807b4d258e8",
+        "rev": "62929aa3e40bcc89d849e037c1a041f56b20f07e",
         "type": "github"
       },
       "original": {
@@ -911,11 +911,11 @@
         "nixpkgs": "nixpkgs_15"
       },
       "locked": {
-        "lastModified": 1713924823,
-        "narHash": "sha256-kOeyS3GFwgnKvzuBMmFqEAX0xwZ7Nj4/5tXuvpZ0d4U=",
+        "lastModified": 1714443211,
+        "narHash": "sha256-lKTA3XqRo4aVgkyTSCtpcALpGXdmkilHTtN00eRg0QU=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "8a2edac3ae926a2a6ce60f4595dcc4540fc8cad4",
+        "rev": "ce35c36f58f82cee6ec959e0d44c587d64281b6f",
         "type": "github"
       },
       "original": {
