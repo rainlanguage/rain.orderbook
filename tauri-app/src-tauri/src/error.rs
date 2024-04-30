@@ -15,6 +15,7 @@ use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
 use dotrain::error::ComposeError;
+use rain_orderbook_common::dotrain_order::DotrainOrderError;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -74,6 +75,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     ConfigSourceError(#[from] ConfigSourceError),
+
+    #[error(transparent)]
+    DotrainOrderError(#[from] DotrainOrderError),
 }
 
 impl Serialize for CommandError {

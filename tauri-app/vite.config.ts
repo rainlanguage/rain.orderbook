@@ -3,6 +3,7 @@ import { sentrySvelteKit } from "@sentry/sveltekit";
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, loadEnv } from 'vite';
 import checker from 'vite-plugin-checker';
+import {svelteTesting} from '@testing-library/svelte/vite'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -21,14 +22,14 @@ export default defineConfig(({ mode }) => {
     plugins: [
       ...sentryPlugins,
       sveltekit(),
+      svelteTesting(),
       checker({
         typescript: true,
         eslint: {
           lintCommand: 'eslint src',
         },
       })],
-
-
+    
     // prevent vite from obscuring rust errors
     clearScreen: false,
 
@@ -48,6 +49,8 @@ export default defineConfig(({ mode }) => {
 
     test: {
       includeSource: ['src/**/*.{js,ts}'],
+      environment: 'jsdom',
+      setupFiles: ['./vitest-setup.ts'],
     },
 
     define: {
