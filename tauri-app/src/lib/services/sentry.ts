@@ -70,8 +70,8 @@ export function handleErrorWithSentryIfEnabled<T extends HandleClientError | Han
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function reportErrorToSentry(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   e: any,
   level: SentrySeverityLevel = SentrySeverityLevel.Error,
 ) {
