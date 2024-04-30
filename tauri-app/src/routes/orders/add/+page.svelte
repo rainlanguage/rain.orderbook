@@ -33,6 +33,8 @@
   } from '$lib/services/config';
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
+  import Words from '$lib/components/Words.svelte';
+  import { getAuthoringMetas } from '$lib/services/authoringMeta';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -60,6 +62,14 @@
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
   let openTab: Record<string, boolean> = {};
+
+  const {
+    debouncedFn: debounceGetAuthoringMetas,
+    result: authoringMetasResult,
+    error: authoringMetasError,
+  } = useDebouncedFn(getAuthoringMetas, 500);
+
+  $: debounceGetAuthoringMetas($globalDotrainFile.text, $settingsText);
 
   const {
     debouncedFn: debouncedGenerateRainlangStrings,
@@ -269,6 +279,9 @@
   <TabItem title="Debug"><ScenarioDebugTable {chartData} /></TabItem>
   <TabItem title="Charts">
     <Charts {chartData} />
+  </TabItem>
+  <TabItem title="Words">
+    <Words authoringMetas={$authoringMetasResult} error={$authoringMetasError} />
   </TabItem>
 </Tabs>
 
