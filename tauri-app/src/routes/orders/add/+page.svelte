@@ -35,7 +35,6 @@
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetas } from '$lib/services/authoringMeta';
-  import type { ScenariosAuthoringMeta } from '$lib/typeshare/dotrainOrder';
 
   let isSubmitting = false;
   let isCharting = false;
