@@ -32,7 +32,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vault_id, vault.token.id, amount);
+      await vaultWithdraw(BigInt(vault.vault_id), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -44,7 +44,7 @@
     isSubmitting = true;
     try {
       const calldata = (await vaultWithdrawCalldata(
-        vault.vault_id,
+        BigInt(vault.vault_id),
         vault.token.id,
         amount,
       )) as Uint8Array;
@@ -115,7 +115,7 @@
         bind:value={amount}
         symbol={vault.token.symbol}
         decimals={vault.token.decimals}
-        maxValue={vault.balance}
+        maxValue={BigInt(vault.balance)}
       />
 
       <Helper color="red" class="h-6 text-sm">

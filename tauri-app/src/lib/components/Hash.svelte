@@ -14,7 +14,7 @@
   $: displayValue =
     value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
 
-  function copy(e) {
+  function copy(e: MouseEvent) {
     if (copyOnClick) {
       e.stopPropagation();
       navigator.clipboard.writeText(value);

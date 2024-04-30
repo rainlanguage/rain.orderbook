@@ -13,12 +13,6 @@
 </script>
 
 <Toast class="mt-2 w-full !max-w-none" dismissable={false}>
-  {#if transactionStatusNotice.series_position}
-    <div class="text-lg font-bold text-gray-900 dark:text-white">
-      Transaction {transactionStatusNotice.series_position.position} of
-      {transactionStatusNotice.series_position.total}
-    </div>
-  {/if}
   <div class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
     {transactionStatusNotice.label}
   </div>
