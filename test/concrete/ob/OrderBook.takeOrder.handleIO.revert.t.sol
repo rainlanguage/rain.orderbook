@@ -10,10 +10,9 @@ import {
     IO,
     OrderConfigV2,
     TakeOrdersConfigV2
-} from "src/interface/unstable/IOrderBookV3.sol";
-import {EnsureFailed} from "rain.interpreter/lib/op/logic/LibOpEnsureNP.sol";
-import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
+import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
@@ -71,111 +70,100 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     }
 
     function testTakeOrderHandleIO0() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](1);
-        configs[0] = "_ _:max-int-value() 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        configs[0] = "_ _:max-int-value() 1e18;:ensure(0 \"err\");";
+        checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO1() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;:ensure<1>(0);";
+        configs[0] = "_ _:1e18 1e18;:ensure(0 \"err\");";
         configs[1] = "_ _:1e18 1e18;:;";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO2() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](2);
         configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err\");";
+        checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO3() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure<1>(0);";
+        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err\");";
         configs[2] = "_ _:1e18 1e18;:;";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO4() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 1, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure<1>(0);";
-        configs[2] = "_ _:1e18 1e18;:ensure<2>(0);";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err 1\");";
+        configs[2] = "_ _:1e18 1e18;:ensure(0 \"err 2\");";
+        checkTakeOrderHandleIO(configs, "err 1", type(uint256).max);
     }
 
     function testTakeOrderHandleIO5() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](3);
         configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure<2>(0);";
-        configs[2] = "_ _:1e18 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err 2\");";
+        configs[2] = "_ _:1e18 1e18;:ensure(0 \"err 1\");";
+        checkTakeOrderHandleIO(configs, "err 2", type(uint256).max);
     }
 
     function testTakeOrderHandleIO6() external {
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](3);
-        configs[0] = "_ _:1e18 1e18;:ensure<2>(0);";
+        configs[0] = "_ _:1e18 1e18;:ensure(0 \"err 2\");";
         configs[1] = "_ _:1e18 1e18;:;";
-        configs[2] = "_ _:1e18 1e18;:ensure<1>(0);";
-        checkTakeOrderHandleIO(configs, err, type(uint256).max);
+        configs[2] = "_ _:1e18 1e18;:ensure(0 \"err 1\");";
+        checkTakeOrderHandleIO(configs, "err 2", type(uint256).max);
     }
 
     function testTakeOrderHandleIO7(uint256 toClear) external {
         toClear = bound(toClear, 3e18 + 1, type(uint256).max);
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](4);
         configs[0] = "_ _:1e18 1e18;:set(0 1);";
-        configs[1] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[1] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
         configs[2] = "_ _:1e18 1e18;:set(0 0);";
-        configs[3] = "_ _:1e18 1e18;:ensure<2>(get(0));";
-        checkTakeOrderHandleIO(configs, err, toClear);
+        configs[3] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        checkTakeOrderHandleIO(configs, "err 2", toClear);
     }
 
     function testTakeOrderHandleIO8(uint256 toClear) external {
         toClear = bound(toClear, 4e18 + 1, type(uint256).max);
-        bytes memory err = abi.encodeWithSelector(EnsureFailed.selector, 2, 0);
         bytes[] memory configs = new bytes[](5);
         configs[0] = "_ _:1e18 1e18;:;";
         configs[1] = "_ _:1e18 1e18;:set(0 1);";
-        configs[2] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[2] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
         configs[3] = "_ _:1e18 1e18;:set(0 0);";
-        configs[4] = "_ _:1e18 1e18;:ensure<2>(get(0));";
-        checkTakeOrderHandleIO(configs, err, toClear);
+        configs[4] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        checkTakeOrderHandleIO(configs, "err 2", toClear);
     }
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
     function testTakeOrderHandleIO9(uint256 toClear) external {
         toClear = bound(toClear, 1, 4e18);
-        bytes memory err = "";
         bytes[] memory configs = new bytes[](5);
         configs[0] = "_ _:1e18 1e18;:;";
         configs[1] = "_ _:1e18 1e18;:set(0 1);";
-        configs[2] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[2] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
         configs[3] = "_ _:1e18 1e18;:set(0 0);";
-        configs[4] = "_ _:1e18 1e18;:ensure<2>(get(0));";
-        checkTakeOrderHandleIO(configs, err, toClear);
+        configs[4] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        checkTakeOrderHandleIO(configs, "", toClear);
     }
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
     function testTakeOrderHandleIO10(uint256 toClear) external {
         toClear = bound(toClear, 1, 3e18);
-        bytes memory err = "";
         bytes[] memory configs = new bytes[](4);
         configs[0] = "_ _:1e18 1e18;:set(0 1);";
-        configs[1] = "_ _:1e18 1e18;:ensure<1>(get(0));";
+        configs[1] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
         configs[2] = "_ _:1e18 1e18;:set(0 0);";
-        configs[3] = "_ _:1e18 1e18;:ensure<2>(get(0));";
-        checkTakeOrderHandleIO(configs, err, toClear);
+        configs[3] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        checkTakeOrderHandleIO(configs, "", toClear);
     }
 }

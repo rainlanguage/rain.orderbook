@@ -12,14 +12,14 @@ import {
 import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
-import {IInterpreterV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
-import {IInterpreterStoreV2} from "rain.interpreter/interface/unstable/IInterpreterStoreV2.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
-import {IOrderBookV3} from "src/interface/unstable/IOrderBookV3.sol";
+import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
+import {IOrderBookV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
-import {IParserV1} from "rain.interpreter/interface/IParserV1.sol";
+import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
 
 string constant DEPLOYER_META_PATH = "lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta";

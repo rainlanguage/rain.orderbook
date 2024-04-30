@@ -1,5 +1,6 @@
 use crate::types::order_detail;
-use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address, U256};
+use crate::utils::base10_str_to_u256;
+use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address};
 use rain_orderbook_bindings::IOrderBookV3::{EvaluableV2, OrderV2, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
@@ -12,6 +13,21 @@ pub enum OrderDetailError {
     TryFromIntError(#[from] TryFromIntError),
     #[error(transparent)]
     ParseError(#[from] ParseError),
+}
+
+impl TryInto<IO> for order_detail::Io {
+    type Error = OrderDetailError;
+
+    fn try_into(self) -> Result<IO, OrderDetailError> {
+        Ok(IO {
+            token: self.token_vault.token.id.into_inner().parse::<Address>()?,
+            decimals: self.token_vault.token.decimals.try_into()?,
+
+            // Vault ID returned from the subgraph is the base-10 value in a string *without* a "0x" prefix
+            // See https://github.com/rainlanguage/rain.orderbook/issues/315
+            vaultId: base10_str_to_u256(self.token_vault.vault_id.0.as_str())?,
+        })
+    }
 }
 
 impl TryInto<OrderV2> for order_detail::Order {
@@ -30,25 +46,13 @@ impl TryInto<OrderV2> for order_detail::Order {
                 .valid_inputs
                 .unwrap_or_default()
                 .into_iter()
-                .map(|v| -> Result<IO, OrderDetailError> {
-                    Ok(IO {
-                        token: v.token_vault.token.id.into_inner().parse::<Address>()?,
-                        decimals: v.token_vault.token.decimals.try_into()?,
-                        vaultId: U256::from_str_radix(v.token_vault.vault_id.0.as_str(), 16)?,
-                    })
-                })
+                .map(|v| v.try_into())
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
             validOutputs: self
                 .valid_outputs
                 .unwrap_or_default()
                 .into_iter()
-                .map(|v| -> Result<IO, OrderDetailError> {
-                    Ok(IO {
-                        token: v.token_vault.token.id.into_inner().parse::<Address>()?,
-                        decimals: v.token_vault.token.decimals.try_into()?,
-                        vaultId: U256::from_str_radix(v.token_vault.vault_id.0.as_str(), 16)?,
-                    })
-                })
+                .map(|v| v.try_into())
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
         })
     }

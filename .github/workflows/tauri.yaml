@@ -3,8 +3,32 @@ on: [push]
 
 jobs:
   build-tauri:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [
+            macos-13,
+            macos-14,
+            ubuntu-22.04,
+          ]
+
+    runs-on: ${{ matrix.os }}
+    env:
+      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
+      CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
+      CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
+      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
+      CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
+      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
+      RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
     steps:
+      - name: Free up disk space in action runner
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get clean
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -13,23 +37,15 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: .
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: .
+      - run: ./prep-tauri.sh
 
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command i9r-prelude
-        working-directory: lib/rain.interpreter
-
-      - run: nix develop .#tauri-shell --command cargo build --verbose
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command ob-tauri-prelude
       - run: nix develop --command rainix-rs-static
         working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command ob-tauri-test
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app

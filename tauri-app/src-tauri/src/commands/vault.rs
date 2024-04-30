@@ -1,19 +1,23 @@
 use crate::error::CommandResult;
-use crate::transaction_status::{SeriesPosition, TransactionStatusNoticeRwLock};
+use crate::toast::toast_error;
+use crate::transaction_status::TransactionStatusNoticeRwLock;
+use alloy_primitives::{Bytes, U256};
 use rain_orderbook_common::{
+    csv::TryIntoCsv,
     deposit::DepositArgs,
     subgraph::SubgraphArgs,
     transaction::TransactionArgs,
+    types::{TokenVaultFlattened, VaultBalanceChangeFlattened},
+    utils::timestamp::FormatTimestampDisplayError,
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::{
-    types::{flattened::{TokenVaultFlattened, VaultBalanceChangeFlattened, TryIntoFlattenedError}, vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
-    TryIntoCsv,
+    types::{vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
     PaginationArgs,
 };
+use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
-use std::fs;
 
 #[tauri::command]
 pub async fn vaults_list(
@@ -32,9 +36,12 @@ pub async fn vaults_list(
 pub async fn vaults_list_write_csv(
     path: PathBuf,
     subgraph_args: SubgraphArgs,
-    pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
-    let vaults = vaults_list(subgraph_args, pagination_args).await?;
+    let vaults = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .vaults_list_all()
+        .await?;
     let vaults_flattened: Vec<TokenVaultFlattened> = vaults.into_iter().map(|o| o.into()).collect();
     let csv_text = vaults_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
@@ -43,7 +50,7 @@ pub async fn vaults_list_write_csv(
 }
 
 #[tauri::command]
-pub async fn vault_list_balance_changes(
+pub async fn vault_balance_changes_list(
     id: String,
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
@@ -51,20 +58,26 @@ pub async fn vault_list_balance_changes(
     let data = subgraph_args
         .to_subgraph_client()
         .await?
-        .vault_list_balance_changes(id.into(), pagination_args)
+        .vault_balance_changes_list(id.into(), pagination_args)
         .await?;
     Ok(data)
 }
 
 #[tauri::command]
-pub async fn vault_list_balance_changes_write_csv(
+pub async fn vault_balance_changes_list_write_csv(
     id: String,
     path: PathBuf,
     subgraph_args: SubgraphArgs,
-    pagination_args: PaginationArgs,
 ) -> CommandResult<()> {
-    let data = vault_list_balance_changes(id, subgraph_args, pagination_args).await?;
-    let data_flattened: Vec<VaultBalanceChangeFlattened> = data.into_iter().map(|o| o.try_into()).collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
+    let data = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .vault_balance_changes_list_all(id.into())
+        .await?;
+    let data_flattened: Vec<VaultBalanceChangeFlattened> =
+        data.into_iter()
+            .map(|o| o.try_into())
+            .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
     let csv_text = data_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 
@@ -92,11 +105,7 @@ pub async fn vault_deposit(
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Approve ERC20 token transfer".into(),
-        Some(SeriesPosition {
-            position: 1,
-            total: 2,
-        }),
+        "Approve ERC20 token transfer".into()
     );
     let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
@@ -108,11 +117,7 @@ pub async fn vault_deposit(
         });
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Deposit tokens into vault".into(),
-        Some(SeriesPosition {
-            position: 2,
-            total: 2,
-        }),
+        "Deposit tokens into vault".into()
     );
     let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
@@ -127,13 +132,46 @@ pub async fn vault_deposit(
 }
 
 #[tauri::command]
+pub async fn vault_deposit_approve_calldata(
+    app_handle: AppHandle,
+    deposit_args: DepositArgs,
+    transaction_args: TransactionArgs,
+    current_allowance: U256,
+) -> CommandResult<Bytes> {
+    let calldata = deposit_args
+        .get_approve_calldata(transaction_args, current_allowance)
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
+    Ok(Bytes::from(calldata))
+}
+
+#[tauri::command]
+pub async fn vault_deposit_calldata(
+    app_handle: AppHandle,
+    deposit_args: DepositArgs,
+) -> CommandResult<Bytes> {
+    let calldata = deposit_args
+        .get_deposit_calldata()
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
+
+    Ok(Bytes::from(calldata))
+}
+
+#[tauri::command]
 pub async fn vault_withdraw(
     app_handle: AppHandle,
     withdraw_args: WithdrawArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice =
-        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into(), None);
+        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into());
     let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
@@ -144,4 +182,20 @@ pub async fn vault_withdraw(
         });
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn vault_withdraw_calldata(
+    app_handle: AppHandle,
+    withdraw_args: WithdrawArgs,
+) -> CommandResult<Bytes> {
+    let calldata = withdraw_args
+        .get_withdraw_calldata()
+        .await
+        .map_err(|e| {
+            toast_error(app_handle.clone(), e.to_string());
+            e
+        })?;
+
+    Ok(Bytes::from(calldata))
 }

@@ -3,13 +3,13 @@ pragma solidity ^0.8.19;
 
 import {META_MAGIC_NUMBER_V1} from "rain.metadata/lib/LibMeta.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderConfigV2, OrderV2, IO} from "src/interface/unstable/IOrderBookV3.sol";
-import {IInterpreterV2, SourceIndexV2} from "rain.interpreter/interface/unstable/IInterpreterV2.sol";
-import {IInterpreterStoreV1} from "rain.interpreter/interface/IInterpreterStoreV1.sol";
-import {IExpressionDeployerV3} from "rain.interpreter/interface/unstable/IExpressionDeployerV3.sol";
-import {EvaluableV2} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
+import {OrderConfigV2, OrderV2, IO} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {IInterpreterV2, SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
+import {EvaluableV2} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 import {HANDLE_IO_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
-import {LibBytecode} from "rain.interpreter/lib/bytecode/LibBytecode.sol";
+import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 
 library LibTestAddOrder {
     /// A little boilerplate to make it easier to build the order that we expect
@@ -18,7 +18,7 @@ library LibTestAddOrder {
         address owner,
         OrderConfigV2 memory config,
         IInterpreterV2 interpreter,
-        IInterpreterStoreV1 store,
+        IInterpreterStoreV2 store,
         address expression
     ) internal pure returns (OrderV2 memory, bytes32) {
         EvaluableV2 memory expectedEvaluable = EvaluableV2(interpreter, store, expression);

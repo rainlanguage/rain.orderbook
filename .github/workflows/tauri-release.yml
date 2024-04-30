@@ -1,4 +1,4 @@
-name: 'publish'
+name: Tauri Publish
 
 # This will trigger the action on each push to the `release` branch.
 on:
@@ -14,11 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-          macos-latest,
-          ubuntu-20.04
-          # Someone who cares can make windows work.
-          # windows-latest
-        ]
+            macos-13,
+            macos-14,
+            ubuntu-22.04,
+            # Someone who cares can make windows work.
+            # windows-latest
+          ]
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -31,33 +32,34 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - name: install rainix tauri release env
-        run: nix profile install .#tauri-release-env
+      - run: ./prep-tauri.sh
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-20.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libssl-dev
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      # Need to prebuild the sol artifacts so that rust can find them.
-      - run: nix develop --command rainix-sol-prelude
-      - run: nix develop --command rainix-rs-prelude
-
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command i9r-prelude
-        working-directory: lib/rain.interpreter
-
-      - run: nix develop .#tauri-shell --command ob-tauri-prelude
+      - run: nix develop .#tauri-shell --command ob-tauri-before-release
+        working-directory: ./tauri-app
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_ORG: rainlang
+          SENTRY_PROJECT: rain-orderbook
+          COMMIT_SHA: ${{ github.sha }}
+          SENTRY_LOG_LEVEL: debug
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tauriScript: 'nix develop .#tauri-shell --command cargo tauri'
+          tauriScript: "nix develop -i --keep APPLE_CERTIFICATE --keep APPLE_CERTIFICATE_PASSWORD --keep APPLE_SIGNING_IDENTITY --keep APPLE_ID --keep APPLE_PASSWORD --keep APPLE_TEAM_ID .#tauri-shell --command cargo tauri"
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
-          releaseName: 'App v__VERSION__-${{ github.sha }}'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseName: "App v__VERSION__-${{ github.sha }}"
+          releaseBody: "See the assets to download this version and install."

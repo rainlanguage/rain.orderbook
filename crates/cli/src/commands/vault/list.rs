@@ -5,10 +5,8 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::TokenVaultFlattened, PaginationArgs, TryIntoCsv,
-};
+use rain_orderbook_common::{csv::TryIntoCsv, subgraph::SubgraphArgs, types::TokenVaultFlattened};
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -23,19 +21,28 @@ pub struct CliVaultListArgs {
 impl Execute for CliVaultListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-        let vaults = subgraph_args
-            .to_subgraph_client()
-            .await?
-            .vaults_list(pagination_args)
-            .await?;
-        let vaults_flattened: Vec<TokenVaultFlattened> =
-            vaults.into_iter().map(|o| o.into()).collect();
 
         if self.pagination_args.csv {
+            let vaults = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .vaults_list_all()
+                .await?;
+            let vaults_flattened: Vec<TokenVaultFlattened> =
+                vaults.into_iter().map(|o| o.into()).collect();
+
             let csv_text = vaults_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
+            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let vaults = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .vaults_list(pagination_args)
+                .await?;
+            let vaults_flattened: Vec<TokenVaultFlattened> =
+                vaults.into_iter().map(|o| o.into()).collect();
+
             let table = build_table(vaults_flattened)?;
             info!("\n{}", table);
         }

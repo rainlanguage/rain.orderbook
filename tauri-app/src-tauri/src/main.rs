@@ -6,23 +6,42 @@ pub mod toast;
 pub mod transaction_status;
 
 mod commands;
-use commands::chain::get_chainid;
-use commands::fork::parse_dotrain;
-use commands::order::{order_add, order_detail, order_remove, orders_list, orders_list_write_csv};
-use commands::vault::{
-    vault_deposit, vault_detail, vault_list_balance_changes, vault_list_balance_changes_write_csv,
-    vault_withdraw, vaults_list, vaults_list_write_csv,
+use commands::chain::{get_block_number, get_chainid};
+use commands::charts::make_charts;
+use commands::config::{convert_configstring_to_config, merge_configstrings, parse_configstring};
+use commands::dotrain::parse_dotrain;
+use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
+use commands::order::{
+    compose_from_scenario, order_add, order_add_calldata, order_detail, order_remove,
+    order_remove_calldata, orders_list, orders_list_write_csv,
 };
-use commands::order_clear::{order_clears_list, order_clears_list_write_csv};
+use commands::order_take::{order_takes_list, order_takes_list_write_csv};
+use commands::vault::{
+    vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
+    vault_deposit_approve_calldata, vault_deposit_calldata, vault_detail, vault_withdraw,
+    vault_withdraw_calldata, vaults_list, vaults_list_write_csv,
+};
 use commands::wallet::get_address_from_ledger;
 
 fn main() {
+    if std::env::consts::OS == "linux" {
+        // Disable webkitgtk Accelerated Compositing to avoid a blank screen
+        // See https://github.com/tauri-apps/tauri/issues/5143
+        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        run_tauri_app();
+        std::env::remove_var("WEBKIT_DISABLE_COMPOSITING_MODE");
+    } else {
+        run_tauri_app();
+    }
+}
+
+fn run_tauri_app() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             vaults_list,
             vaults_list_write_csv,
-            vault_list_balance_changes,
-            vault_list_balance_changes_write_csv,
+            vault_balance_changes_list,
+            vault_balance_changes_list_write_csv,
             vault_detail,
             vault_deposit,
             vault_withdraw,
@@ -31,11 +50,25 @@ fn main() {
             order_detail,
             order_add,
             order_remove,
-            order_clears_list,
-            order_clears_list_write_csv,
+            order_takes_list,
+            order_takes_list_write_csv,
             get_address_from_ledger,
             get_chainid,
+            get_block_number,
             parse_dotrain,
+            call_lsp_completion,
+            call_lsp_hover,
+            call_lsp_problems,
+            parse_configstring,
+            merge_configstrings,
+            convert_configstring_to_config,
+            make_charts,
+            order_add_calldata,
+            order_remove_calldata,
+            vault_deposit_approve_calldata,
+            vault_deposit_calldata,
+            vault_withdraw_calldata,
+            compose_from_scenario,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

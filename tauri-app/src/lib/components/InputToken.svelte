@@ -10,6 +10,12 @@
 
   $: isAddressValid = address && address.length > 0 && isAddress(address);
 
+  $: {
+    if(decimals !== undefined) {
+      decimalsRaw = decimals.toString();
+    }
+  }
+
   const decimalsMaskOptions = {
     mask: Number,
     min: 0,
@@ -43,6 +49,7 @@
   </div>
   <div class="w-32 grow-0 break-all">
     <input
+      type="text"
       value={decimalsRaw}
       class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400"
       use:imask={decimalsMaskOptions}

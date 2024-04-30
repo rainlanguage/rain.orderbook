@@ -1,12 +1,13 @@
 {
   "build": {
-    "beforeDevCommand": "npm i && npm run dev",
-    "beforeBuildCommand": "npm i && npm run build",
+    "beforeDevCommand": "ob-tauri-before-build && npm run dev",
+    "beforeBuildCommand": "ob-tauri-before-build",
+    "beforeBundleCommand": "ob-tauri-before-bundle",
     "devPath": "http://localhost:1420",
     "distDir": "../build"
   },
   "package": {
-    "productName": "rain-orderbook-tauri-app",
+    "productName": "Raindex",
     "version": "0.0.0"
   },
   "tauri": {
@@ -23,19 +24,42 @@
       "fs": {
         "readFile": true,
         "writeFile": true
+      },
+      "window": {
+        "startDragging": true
+      },
+      "os": {
+        "all": true
       }
     },
     "bundle": {
       "active": true,
-      "targets": ["deb", "nsis", "msi", "app", "dmg", "updater"],
-      "identifier": "com.rainlanguage.orderbook.tauri-app",
+      "targets": [
+        "deb",
+        "nsis",
+        "msi",
+        "app",
+        "dmg",
+        "updater"
+      ],
+      "identifier": "com.rainlanguage.orderbook",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "macOS": {
+        "minimumSystemVersion": "11",
+        "frameworks": [
+          "../lib/libintl.8.dylib",
+          "../lib/libiconv.dylib",
+          "../lib/libcharset.1.dylib",
+          "../lib/libiconv-nocharset.dylib",
+          "../lib/libusb-1.0.0.dylib"
+        ]
+      }
     },
     "security": {
       "csp": null
@@ -44,9 +68,10 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "Rain Orderbook",
-        "width": 800,
-        "height": 600
+        "width": 1200,
+        "height": 700,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay"
       }
     ]
   }

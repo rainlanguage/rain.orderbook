@@ -1,6 +1,7 @@
-use crate::{error::WritableTransactionExecuteError, transaction::TransactionArgs};
+use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
+use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::IOrderBookV3::withdrawCall;
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +41,11 @@ impl WithdrawArgs {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_withdraw_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
+        let withdraw_call: withdrawCall = self.clone().into();
+        Ok(withdraw_call.abi_encode())
     }
 }
 

@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {IERC3156FlashLender} from "src/interface/ierc3156/IERC3156FlashLender.sol";
-import {IERC3156FlashBorrower} from "src/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
+import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 import {
     OrderBookV3FlashBorrower,
-    OrderBookV3FlashBorrowerConfigV2,
-    ICloneableV2,
     MinimumOutput,
     SafeERC20,
     IERC20,
     Address,
-    TakeOrdersConfigV2
+    TakeOrdersConfigV2,
+    OrderBookV3ArbConfigV1
 } from "../../abstract/OrderBookV3FlashBorrower.sol";
 
 /// @title GenericPoolOrderBookV3FlashBorrower
@@ -28,6 +27,8 @@ import {
 contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
+
+    constructor(OrderBookV3ArbConfigV1 memory config) OrderBookV3FlashBorrower(config) {}
 
     /// @inheritdoc OrderBookV3FlashBorrower
     function _exchange(TakeOrdersConfigV2 memory takeOrders, bytes memory exchangeData) internal virtual override {
@@ -45,5 +46,5 @@ contract GenericPoolOrderBookV3FlashBorrower is OrderBookV3FlashBorrower {
     }
 
     /// Allow receiving gas.
-    fallback() external onlyNotInitializing {}
+    fallback() external {}
 }

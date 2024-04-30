@@ -8,7 +8,7 @@ export function cachedWritableStore<T>(
 ) {
   const getCache = () => {
     const cached = localStorage.getItem(key);
-    return cached ? deserialize(cached) : defaultValue;
+    return cached !== null ? deserialize(cached) : defaultValue;
   }
   const setCache = (value?: T) => {
     if(value !== undefined) {
@@ -39,3 +39,4 @@ export const cachedWritableOptionalStore = <T>(
 ) => cachedWritableStore<T | undefined>(key, defaultValue, (v) => v ? serialize(v) : '', (v) => v ? deserialize(v) : undefined);
 
 export const cachedWritableIntOptional = (key: string, defaultValue = undefined) => cachedWritableOptionalStore<number>(key, defaultValue, (v) => v.toString(), (v) => parseInt(v));
+export const cachedWritableStringOptional = (key: string, defaultValue = undefined) => cachedWritableOptionalStore<string>(key, defaultValue, (v) => v, (v) => v);

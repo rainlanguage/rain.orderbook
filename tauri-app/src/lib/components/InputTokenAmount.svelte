@@ -20,6 +20,12 @@
     radix: '.',
   };
 
+  $: {
+    if(value !== undefined) {
+      valueRaw = formatUnits(value, decimals);
+    }
+  }
+
   function complete({ detail }: { detail: InputMask }) {
     valueRaw = detail.value;
 
@@ -42,20 +48,22 @@
 </script>
 
 <div class="w-full">
-  <div class="relative flex w-full">
-    <input
-      class={`focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 ${symbol && '!rounded-none !rounded-l-lg'}`}
+  <div class="flex w-full">
+    <div class="relative flex w-full">
+      <input
+        type="text"
+        class={`focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 ${symbol && '!rounded-none !rounded-l-lg'}`}
+        value={valueRaw}
+        use:imask={maskOptions}
+        on:complete={complete}
+      />
 
-      value={valueRaw}
-      use:imask={maskOptions}
-      on:complete={complete}
-    />
-
-    {#if maxValue}
-      <div class="absolute right-[5.8rem] flex h-10 flex-col justify-center">
-        <Button color="blue" class="px-2 py-1" size="xs" pill on:click={fillMaxValue}>MAX</Button>
-      </div>
-    {/if}
+      {#if maxValue}
+        <div class="absolute right-4 flex h-10 flex-col justify-center">
+          <Button color="blue" class="px-2 py-1" size="xs" pill on:click={fillMaxValue}>MAX</Button>
+        </div>
+      {/if}
+    </div>
 
     {#if symbol}
       <InputAddon>

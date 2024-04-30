@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        task: [rainix-rs-test, rainix-rs-artifacts]
+        task: [ob-rs-test, rainix-rs-artifacts]
         include:
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest
@@ -22,6 +22,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
+      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
+      CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
+      CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
+      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
+      CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
+      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
+      RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,10 +50,12 @@ jobs:
 
       - run: nix develop --command rainix-sol-prelude
       - run: nix develop --command rainix-rs-prelude
+      - run: nix develop --command raindex-prelude
 
       - name: Run ${{ matrix.task }}
         env:
-          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_RPC_URL }}
+          ETH_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-          DEPLOY_VERIFIER: 'etherscan'
+          DEPLOY_VERIFIER: ''
+
         run: nix develop --command ${{ matrix.task }}

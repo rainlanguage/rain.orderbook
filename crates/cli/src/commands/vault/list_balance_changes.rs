@@ -5,15 +5,15 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::{TryIntoFlattenedError, VaultBalanceChangeFlattened},
-    PaginationArgs, TryIntoCsv,
+use rain_orderbook_common::{
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::VaultBalanceChangeFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
-pub struct CliVaultListBalanceChanges {
+pub struct CliVaultBalanceChangesList {
     #[arg(short = 'i', long, help = "ID of the Vault")]
     vault_id: String,
 
@@ -24,25 +24,37 @@ pub struct CliVaultListBalanceChanges {
     subgraph_args: CliSubgraphArgs,
 }
 
-impl Execute for CliVaultListBalanceChanges {
+impl Execute for CliVaultBalanceChangesList {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-        let vault_balance_changes = subgraph_args
-            .to_subgraph_client()
-            .await?
-            .vault_list_balance_changes(self.vault_id.clone().into(), pagination_args)
-            .await?;
-        let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
-            vault_balance_changes
-                .into_iter()
-                .map(|o| o.try_into())
-                .collect::<Result<Vec<VaultBalanceChangeFlattened>, TryIntoFlattenedError>>()?;
 
         if self.pagination_args.csv {
+            let vault_balance_changes = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .vault_balance_changes_list_all(self.vault_id.clone().into())
+                .await?;
+            let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
+                vault_balance_changes
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
+
             let csv_text = vault_balance_changes_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
+            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let vault_balance_changes = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .vault_balance_changes_list(self.vault_id.clone().into(), pagination_args)
+                .await?;
+            let vault_balance_changes_flattened: Vec<VaultBalanceChangeFlattened> =
+                vault_balance_changes
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
+
             let table = build_table(vault_balance_changes_flattened)?;
             info!("\n{}", table);
         }

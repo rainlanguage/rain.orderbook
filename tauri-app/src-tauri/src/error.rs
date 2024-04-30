@@ -1,11 +1,20 @@
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use alloy_primitives::ruint::FromUintError;
-use rain_orderbook_common::add_order::AddOrderArgsError;
-use rain_orderbook_common::error::ForkParseError;
-use rain_orderbook_subgraph_client::{types::flattened::TryIntoFlattenedError, OrderbookSubgraphClientError, TryIntoCsvError};
+use rain_orderbook_app_settings::config::ParseConfigSourceError;
+use rain_orderbook_app_settings::config_source::ConfigSourceError;
+use rain_orderbook_app_settings::merge::MergeError;
+use rain_orderbook_common::fuzz::FuzzRunnerError;
+use rain_orderbook_common::remove_order::RemoveOrderArgsError;
+use rain_orderbook_common::transaction::WritableTransactionExecuteError;
+use rain_orderbook_common::{
+    add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
+    rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
+};
+use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
 use url::ParseError;
+use dotrain::error::ComposeError;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -32,12 +41,39 @@ pub enum CommandError {
 
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
-    
+
     #[error(transparent)]
-    TryIntoFlattenedError(#[from] TryIntoFlattenedError),
+    TryIntoFlattenedError(#[from] FormatTimestampDisplayError),
 
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+
+    #[error(transparent)]
+    TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
+
+    #[error(transparent)]
+    FuzzRunnerError(#[from] FuzzRunnerError),
+
+    #[error(transparent)]
+    MergeError(#[from] MergeError),
+
+    #[error(transparent)]
+    ParseConfigSourceError(#[from] ParseConfigSourceError),
+
+    #[error(transparent)]
+    ParseConfigYamlError(#[from] serde_yaml::Error),
+
+    #[error(transparent)]
+    RemoveOrderArgsError(#[from] RemoveOrderArgsError),
+
+    #[error(transparent)]
+    WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
+
+    #[error(transparent)]
+    ComposeError(#[from] ComposeError),
+
+    #[error(transparent)]
+    ConfigSourceError(#[from] ConfigSourceError),
 }
 
 impl Serialize for CommandError {

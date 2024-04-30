@@ -1,12 +1,18 @@
 <script lang="ts">
   import type { InputMask } from 'imask';
   import { imask } from '@imask/svelte';
-  import { fromHex } from 'viem';
+  import { fromHex, toHex } from 'viem';
   import { HEX_INPUT_REGEX } from '$lib/utils/hex';
 
   let valueRaw: string = '';
   export let value: bigint;
   export let required = true;
+
+  $: {
+    if(value !== undefined) {
+      valueRaw = toHex(value)
+    }
+  }
 
   const maskOptions = {
     // hexadecimal string, optionally starting with 0x
@@ -34,6 +40,7 @@
 
 <input
   {required}
+  type="text"
   value={valueRaw}
   class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400"
   use:imask={maskOptions}

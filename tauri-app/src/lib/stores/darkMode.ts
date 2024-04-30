@@ -1,10 +1,11 @@
-import { darkTheme, lightTheme } from "$lib/utils/codeMirrorThemes";
+import { themes as codeMirrorThemes } from "$lib/utils/codeMirrorThemes";
+import { themes as lightweightChartsThemes } from "$lib/utils/lightweightChartsThemes";
 import { derived, writable } from "svelte/store";
 
-function readColorTheme() {
+function readColorTheme(): "dark" | "light" {
   const saved = localStorage.getItem('color-theme');
   if(saved) {
-    return saved;
+    return saved as "dark" | "light";
   } else if(document.body.classList.contains('dark')) {
     return 'dark';
   } else {
@@ -16,4 +17,6 @@ export const colorTheme = writable(readColorTheme());
 
 colorTheme.subscribe((val: string) => localStorage.setItem('color-theme', val));
 
-export const codeMirrorTheme = derived(colorTheme, ($colorTheme) => $colorTheme === 'dark' ? darkTheme : lightTheme);
+export const codeMirrorTheme = derived(colorTheme, ($colorTheme) => $colorTheme === 'dark' ? codeMirrorThemes.dark : codeMirrorThemes.light);
+
+export const lightweightChartsTheme = derived(colorTheme, ($colorTheme) => $colorTheme === 'dark' ? lightweightChartsThemes.dark : lightweightChartsThemes.light);

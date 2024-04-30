@@ -1,0 +1,46 @@
+---
+source: crates/subgraph/tests/order_take_test.rs
+expression: request_body.query
+---
+query OrderTakeDetailQuery($id: ID!) {
+  takeOrderEntity(id: $id) {
+    id
+    transaction {
+      id
+    }
+    sender {
+      id
+    }
+    timestamp
+    order {
+      id
+    }
+    IORatio
+    input
+    inputDisplay
+    inputToken {
+      id
+      name
+      symbol
+      decimals
+    }
+    inputIOIndex
+    output
+    outputDisplay
+    outputToken {
+      id
+      name
+      symbol
+      decimals
+    }
+    outputIOIndex
+    context {
+      callingContext
+      calculationsContext
+      vaultInputsContext
+      vaultOutputsContext
+    }
+  }
+}
+
+

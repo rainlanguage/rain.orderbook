@@ -1,94 +1,283 @@
 <script lang="ts">
-  import { redirectIfSettingsNotDefined } from '$lib/utils/redirect';
-  import { ordersList } from '$lib/stores/ordersList';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { loadDotrainFile, saveDotrainFileAs, saveFile as saveDotrainFile } from '$lib/utils/file';
+  import FileTextarea from '$lib/components/FileTextarea.svelte';
+  import { Helper, Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
+  import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
+  import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
+  import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
+  import { problemsCallback } from '$lib/services/langServices';
+  import { makeChartData } from '$lib/services/chart';
+  import type { ChartData, Scenario } from '$lib/typeshare/config';
+  import { settingsText, activeNetworkRef } from '$lib/stores/settings';
+  import Charts from '$lib/components/Charts.svelte';
+  import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
+  import { isEmpty, isNil } from 'lodash';
+  import type { Config } from '$lib/typeshare/config';
+  import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
-  import { orderAdd } from '$lib/utils/orderAdd';
-  import { Card } from 'flowbite-svelte';
+  import type { ConfigSource } from '$lib/typeshare/config';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { promiseTimeout } from '$lib/utils/time';
+  import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
+  import { pickScenarios } from '$lib/services/pickConfig';
+  import {
+    convertConfigstringToConfig,
+    mergeDotrainConfigWithSettings,
+    mergeDotrainConfigWithSettingsProblems,
+  } from '$lib/services/config';
+  import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
+  import { useDebouncedFn } from '$lib/utils/asyncDebounce';
 
-  let dotrain: string = '';
-  let path: string;
-  let isOpening = false;
-  let isSavingAs = false;
-  let isSaving = false;
   let isSubmitting = false;
+  let isCharting = false;
+  let chartData: ChartData;
+  let deploymentRef: string | undefined = undefined;
+  let scenarioRef: string | undefined = undefined;
+  let mergedConfigSource: ConfigSource | undefined = undefined;
+  let mergedConfig: Config | undefined = undefined;
+  let openAddOrderModal = false;
 
-  $: isEmpty = dotrain.length === 0;
+  let composedRainlangForScenarios: Map<Scenario, string> = new Map();
 
-  async function openFile() {
-    isOpening = true;
-    try {
-      [dotrain, path] = await loadDotrainFile();
-    } catch(e) {
-      toasts.error(e as string);
-    }
-    isOpening = false;
+  $: deployments = mergedConfig?.deployments;
+  $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
+
+  // Resetting the selected deployment to undefined if it is not in the current
+  // strats deployment list anymore
+  $: if (deploymentRef && deployments && !Object.keys(deployments).includes(deploymentRef)) {
+    deploymentRef = undefined;
   }
 
-  async function saveFileAs() {
-    isSavingAs = true;
-    try {
-      path = await saveDotrainFileAs(dotrain);
-      toasts.success(`Saved to ${path}`, {break_text: true});
-    } catch(e) {
-      toasts.error(e as string);
+  $: bindings = deployment ? deployment.scenario.bindings : {};
+  $: $globalDotrainFile.text, updateMergedConfig();
+
+  $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
+
+  let openTab: Record<string, boolean> = {};
+
+  const {
+    debouncedFn: debouncedGenerateRainlangStrings,
+    result: generatedRainlang,
+    error,
+  } = useDebouncedFn(generateRainlangStrings, 500);
+
+  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+
+  const rainlangExtension = new RawRainlangExtension({
+    diagnostics: async (text) => {
+      let configProblems = [];
+      let problems = [];
+      try {
+        // get problems with merging settings config with frontmatter
+        configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
+      } catch (e) {
+        configProblems = [
+          {
+            msg: e as string,
+            position: [0, 0],
+            code: 9,
+          },
+        ];
+      }
+      try {
+        // get problems with dotrain
+        problems = await promiseTimeout(
+          problemsCallback(text, bindings, deployment?.scenario.deployer.address),
+          5000,
+          'failed to parse on native parser',
+        );
+      } catch (e) {
+        problems = [
+          {
+            msg: e as string,
+            position: [0, 0],
+            code: 9,
+          },
+        ];
+      }
+      return [...configProblems, ...problems] as Problem[];
+    },
+  });
+
+  $: {
+    if (isNil(scenarioRef) && !isEmpty(scenarios)) {
+      scenarioRef = Object.keys(scenarios)[0];
     }
-    isSavingAs = false;
   }
 
-  async function saveFile() {
-    if(!path) return;
-
-    isSaving = true;
+  async function updateMergedConfig() {
     try {
-      await saveDotrainFile(dotrain, path);
-      toasts.success(`Saved to ${path}`, {break_text: true});
-    } catch(e) {
-      toasts.error(e as string);
+      mergedConfigSource = await mergeDotrainConfigWithSettings($globalDotrainFile.text);
+      mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
+    } catch (e) {
+      reportErrorToSentry(e, SentrySeverityLevel.Info);
     }
-    isSaving = false;
   }
 
-  async function execute() {
+  async function chart() {
+    isCharting = true;
+    try {
+      chartData = await makeChartData($globalDotrainFile.text, $settingsText);
+    } catch (e) {
+      reportErrorToSentry(e);
+      toasts.error(e as string);
+    }
+    isCharting = false;
+  }
+
+  async function executeLedger() {
     isSubmitting = true;
     try {
-      await orderAdd(dotrain);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+      if (!deployment) throw Error('Select a deployment to add order');
+      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+        throw Error('No orderbook associated with scenario');
+
+      await orderAdd($globalDotrainFile.text, deployment);
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
+    isSubmitting = false;
+  }
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      if (!deployment) throw Error('Select a deployment to add order');
+      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+        throw Error('No orderbook associated with scenario');
+
+      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
+      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
+      toasts.success('Transaction sent successfully!');
+      await tx.wait(1);
+    } catch (e) {
+      reportErrorToSentry(e);
+      toasts.error(formatEthersTransactionError(e));
+    }
     isSubmitting = false;
   }
 
-  redirectIfSettingsNotDefined();
-  ordersList.fetchPage(1);
+  async function generateRainlangStrings(
+    dotrainText: string,
+    scenarios?: Record<string, Scenario>,
+  ): Promise<Map<Scenario, string> | undefined> {
+    try {
+      if (isEmpty(scenarios)) return;
+      composedRainlangForScenarios = new Map();
+      for (const scenario of Object.values(scenarios)) {
+        try {
+          const composedRainlang = await orderAddComposeRainlang(dotrainText, scenario);
+          composedRainlangForScenarios.set(scenario, composedRainlang);
+        } catch (e) {
+          composedRainlangForScenarios.set(
+            scenario,
+            e?.toString() || 'Error composing rainlang for scenario',
+          );
+        }
+      }
+      return composedRainlangForScenarios;
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
+  }
 </script>
 
-<PageHeader title="Add Order">
-  <svelte:fragment slot="actions">
-    {#if path}
-      <ButtonLoading size="xs" loading={isSaving} color="green" on:click={saveFile}>Save</ButtonLoading>
-    {/if}
-    <ButtonLoading size="xs" loading={isSavingAs} color="green" on:click={saveFileAs}>Save As</ButtonLoading>
-    <ButtonLoading size="xs" loading={isOpening} color="blue" on:click={openFile}>Load Dotrain File</ButtonLoading>
+<PageHeader title="Add Order" />
+
+<FileTextarea textFile={globalDotrainFile} title="New Order">
+  <svelte:fragment slot="textarea">
+    <CodeMirrorDotrain
+      bind:value={$globalDotrainFile.text}
+      disabled={isSubmitting}
+      styles={{ '&': { minHeight: '400px' } }}
+      {rainlangExtension}
+    />
   </svelte:fragment>
-</PageHeader>
 
+  <svelte:fragment slot="additionalFields">
+    <div class="flex items-center justify-end gap-x-4">
+      {#if isEmpty(deployments)}
+        <span class="text-gray-500 dark:text-gray-400">No valid deployments found</span>
+      {:else}
+        <Label class="whitespace-nowrap">Select deployment</Label>
+        <DropdownRadio options={deployments} bind:value={deploymentRef}>
+          <svelte:fragment slot="content" let:selectedRef>
+            <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
+          </svelte:fragment>
 
-<div class="flex justify-center w-full">
-  <div class="w-full max-w-screen-xl mb-4">
-    <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-      Order Dotrain
-    </h5>
-
-    <Card size="xl" class="w-full mb-4">
-      <CodeMirrorDotrain bind:value={dotrain} disabled={isSubmitting} />
-    </Card>
-
-
-    <div class="flex justify-end">
-      <ButtonLoading color="green" size="xl" loading={isSubmitting} disabled={isEmpty} on:click={execute}>Add Order</ButtonLoading>
+          <svelte:fragment slot="option" let:ref>
+            <div class="w-full overflow-hidden overflow-ellipsis">
+              <div class="text-md break-word mb-2">{ref}</div>
+            </div>
+          </svelte:fragment>
+        </DropdownRadio>
+      {/if}
+      <ButtonLoading
+        class="min-w-fit"
+        color="green"
+        loading={isSubmitting}
+        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef)}
+        on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
+      >
     </div>
-  </div>
+  </svelte:fragment>
+</FileTextarea>
+
+<div class="my-8">
+  <Label class="mb-2">Parse at Block Number</Label>
+  <InputBlockNumber
+    bind:value={$forkBlockNumber.value}
+    isFetching={$forkBlockNumber.isFetching}
+    on:clickGetLatest={forkBlockNumber.fetch}
+    required={false}
+  />
+  <Helper class="mt-2 text-sm">
+    The block number at which to parse the rain while drafting. Resets to the latest block on app
+    launch.
+  </Helper>
 </div>
+
+<Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
+  ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button
+>
+
+<Tabs
+  style="underline"
+  contentClass="mt-4"
+  defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+>
+  <TabItem open title="Rainlang">
+    {#if $generatedRainlang && !$error}
+      <Tabs
+        style="underline"
+        contentClass="mt-4"
+        defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+      >
+        {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
+          <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
+            <CodeMirrorRainlang bind:value={rainlangText} disabled={true} />
+          </TabItem>
+        {/each}
+      </Tabs>
+    {/if}
+  </TabItem>
+  <TabItem title="Debug"><ScenarioDebugTable {chartData} /></TabItem>
+  <TabItem title="Charts">
+    <Charts {chartData} />
+  </TabItem>
+</Tabs>
+
+<ModalExecute
+  bind:open={openAddOrderModal}
+  overrideNetwork={deployment?.order.network}
+  title="Add Order"
+  execButtonLabel="Add Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting
+/>

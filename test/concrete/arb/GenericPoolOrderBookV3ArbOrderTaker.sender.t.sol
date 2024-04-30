@@ -5,17 +5,16 @@ import {GenericPoolOrderBookV3ArbOrderTakerTest} from "test/util/abstract/Generi
 
 import {
     GenericPoolOrderBookV3ArbOrderTaker,
-    OrderBookV3ArbOrderTakerConfigV1,
+    OrderBookV3ArbConfigV1,
     MinimumOutput
 } from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {ICloneableV2} from "rain.factory/src/interface/ICloneableV2.sol";
 import {
     OrderV2,
     EvaluableConfigV3,
     IExpressionDeployerV3,
     TakeOrderConfigV2,
     TakeOrdersConfigV2
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3ArbOrderTakerSenderTest is GenericPoolOrderBookV3ArbOrderTakerTest {
     function testGenericPoolTakeOrdersSender(OrderV2 memory order, uint256 inputIOIndex, uint256 outputIOIndex)

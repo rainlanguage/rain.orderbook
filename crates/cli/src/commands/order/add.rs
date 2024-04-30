@@ -3,9 +3,12 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::Args;
+use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
+use rain_orderbook_common::frontmatter::parse_frontmatter;
 use rain_orderbook_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
+use std::ops::Deref;
 use std::path::PathBuf;
 use tracing::info;
 
@@ -18,22 +21,32 @@ pub struct CliOrderAddArgs {
     )]
     dotrain_file: PathBuf,
 
+    #[arg(short = 'e', long, help = "Deployment key to select from frontmatter")]
+    deployment: String,
+
     #[clap(flatten)]
     pub transaction_args: CliTransactionArgs,
 }
 
-impl TryFrom<CliOrderAddArgs> for AddOrderArgs {
-    type Error = anyhow::Error;
+impl CliOrderAddArgs {
+    async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
+        let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
+        let config: Config = parse_frontmatter(text.clone()).await?.try_into()?;
+        let config_deployment = config
+            .deployments
+            .get(&self.deployment)
+            .ok_or(anyhow!("specified deployment is undefined!"))?;
 
-    fn try_from(val: CliOrderAddArgs) -> Result<Self> {
-        let text = read_to_string(val.dotrain_file).map_err(|e| anyhow!(e))?;
-        Ok(Self { dotrain: text })
+        Ok(
+            AddOrderArgs::new_from_deployment(text.clone(), config_deployment.deref().clone())
+                .await?,
+        )
     }
 }
 
 impl Execute for CliOrderAddArgs {
     async fn execute(&self) -> Result<()> {
-        let add_order_args: AddOrderArgs = self.clone().try_into()?;
+        let add_order_args: AddOrderArgs = self.clone().to_add_order_args().await?;
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
 

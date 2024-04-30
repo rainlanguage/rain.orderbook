@@ -27,12 +27,14 @@ fs_permissions = [
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterParserNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterStoreNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterNPE2" },
-  { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" }
+  { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" },
+  { access = "read-write", path = "./meta/OrderBookSubParserAuthoringMeta.rain.meta"}
 ]
 
 remappings = [
   "rain.interpreter/=lib/rain.interpreter/src/",
-  "rain.metadata/=lib/rain.metadata/src/"
+  "rain.metadata/=lib/rain.metadata/src/",
+  "rain.interpreter.interface/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/src/",
 ]
 
 [fuzz]

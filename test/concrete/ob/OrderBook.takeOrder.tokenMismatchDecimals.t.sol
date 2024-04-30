@@ -3,8 +3,8 @@ pragma solidity =0.8.19;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {TokenDecimalsMismatch} from "src/concrete/ob/OrderBook.sol";
-import {SignedContextV1} from "rain.interpreter/interface/IInterpreterCallerV2.sol";
-import {TakeOrderConfigV2, TakeOrdersConfigV2, OrderV2} from "src/interface/unstable/IOrderBookV3.sol";
+import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {TakeOrderConfigV2, TakeOrdersConfigV2, OrderV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchDecimalsTest
 /// @notice A test harness for testing the OrderBook takeOrder function.

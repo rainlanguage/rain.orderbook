@@ -1,98 +1,198 @@
 <script lang="ts">
-  import { Card } from 'flowbite-svelte';
-  import { orderDetail } from '$lib/stores/orderDetail';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/settings';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import CardProperty from './../../../lib/components/CardProperty.svelte';
+  import { Button, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
+  import { orderDetail, useOrderTakesList } from '$lib/stores/order';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import { orderRemove } from '$lib/utils/orderRemove';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { page } from '$app/stores';
   import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/utils/hash';
+  import { HashType } from '$lib/types/hash';
+  import AppTable from '$lib/components/AppTable.svelte';
+  import { sortBy } from 'lodash';
+  import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
+  import PageContentDetail from '$lib/components/PageContentDetail.svelte';
+  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { colorTheme } from '$lib/stores/darkMode';
+  import ModalExecute from '$lib/components/ModalExecute.svelte';
+  import { orderRemove, orderRemoveCalldata } from '$lib/services/order';
+  import { ethersExecute } from '$lib/services/ethersTx';
+  import { orderbookAddress } from '$lib/stores/settings';
+  import { toasts } from '$lib/stores/toasts';
+  import { reportErrorToSentry } from '$lib/services/sentry';
+  import {
+    prepareHistoricalOrderChartData,
+    type HistoricalOrderChartData,
+  } from '$lib/services/historicalOrderCharts';
+    import { formatEthersTransactionError } from '$lib/utils/transaction';
 
+  let openOrderRemoveModal = false;
   let isSubmitting = false;
+  let orderTakesListChartData: HistoricalOrderChartData = [];
 
-  $: order = $orderDetail[$page.params.id];
+  const orderTakesList = useOrderTakesList($page.params.id);
 
-  async function remove() {
+  $: order = $orderDetail.data[$page.params.id]?.order;
+  $: orderRainlang = $orderDetail.data[$page.params.id]?.rainlang;
+  $: orderTakesListChartData = prepareHistoricalOrderChartData($orderTakesList.all, $colorTheme);
+
+  $: orderTakesListChartDataSorted = sortBy(orderTakesListChartData, (d) => d.time);
+
+  orderDetail.refetch($page.params.id);
+  orderTakesList.fetchAll(0);
+
+  async function executeLedger() {
     isSubmitting = true;
     try {
       await orderRemove(order.id);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      reportErrorToSentry(e);
+    }
     isSubmitting = false;
   }
 
-  orderDetail.refetch($page.params.id);
+  async function executeWalletconnect() {
+    isSubmitting = true;
+    try {
+      const calldata = (await orderRemoveCalldata(order.id)) as Uint8Array;
+      const tx = await ethersExecute(calldata, $orderbookAddress!);
+      toasts.success('Transaction sent successfully!');
+      await tx.wait(1);
+    } catch (e) {
+      reportErrorToSentry(e);
+      toasts.error(formatEthersTransactionError(e));
+   }
+    isSubmitting = false;
+  }
 </script>
 
-<PageHeader title="Order">
-  <svelte:fragment slot="actions">
+<PageHeader title="Order" />
+
+<PageContentDetail
+  isFetching={$orderDetail.isFetching}
+  isEmpty={order === undefined}
+  emptyMessage="Order not found"
+>
+  <svelte:fragment slot="top">
+    <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
+      <div class="flex gap-x-2">
+        <span class="font-light">Order</span>
+        <Hash shorten value={order.id} />
+      </div>
+      <BadgeActive active={order.order_active} large />
+    </div>
     {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
-      <ButtonLoading color="blue" size="xs" on:click={remove} loading={isSubmitting}>
-        Remove
-      </ButtonLoading>
+      <Button color="dark" on:click={() => (openOrderRemoveModal = true)}>Remove</Button>
     {/if}
   </svelte:fragment>
-</PageHeader>
-
-{#if order === undefined}
-  <div class="text-center text-gray-900 dark:text-white">Order not found</div>
-{:else}
-  <div class="flex w-full flex-wrap justify-evenly space-y-12 xl:space-x-8 2xl:space-y-0">
-    <Card class="relative" size="xl">
-      <BadgeActive active={order.order_active} class="absolute right-5 top-5"/>
-      <div class="mt-4">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Order ID
-        </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          <Hash type={HashType.Identifier} shorten={false} value={order.id} />
-        </p>
-      </div>
-
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Owner Address
-        </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+  <svelte:fragment slot="card">
+    <div class="flex flex-col gap-y-6">
+      <CardProperty>
+        <svelte:fragment slot="key">Owner</svelte:fragment>
+        <svelte:fragment slot="value">
           <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
-        </p>
-      </div>
+        </svelte:fragment>
+      </CardProperty>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Created At
-        </h5>
-        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+      <CardProperty>
+        <svelte:fragment slot="key">Created</svelte:fragment>
+        <svelte:fragment slot="value">
           {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
-        </p>
-      </div>
+        </svelte:fragment>
+      </CardProperty>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Input Vaults
-        </h5>
-        <div class="flex flex-wrap space-x-2 space-y-2">
-          {#each (order.valid_inputs || []) as t}
+      <CardProperty>
+        <svelte:fragment slot="key">Input vaults</svelte:fragment>
+        <svelte:fragment slot="value">
+          {#each order.valid_inputs || [] as t}
             <ButtonVaultLink tokenVault={t.token_vault} />
           {/each}
-        </div>
-      </div>
+        </svelte:fragment>
+      </CardProperty>
 
-      <div class="mt-8">
-        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Output Vaults
-        </h5>
-        <div class="flex flex-wrap space-x-2 space-y-2">
-          {#each (order.valid_outputs || []) as t}
+      <CardProperty>
+        <svelte:fragment slot="key">Output vaults</svelte:fragment>
+        <svelte:fragment slot="value">
+          {#each order.valid_outputs || [] as t}
             <ButtonVaultLink tokenVault={t.token_vault} />
           {/each}
-        </div>
-      </div>
-    </Card>
-  </div>
-{/if}
+        </svelte:fragment>
+      </CardProperty>
+    </div>
+  </svelte:fragment>
+  <svelte:fragment slot="chart">
+    <LightweightChartLine
+      title="Trades"
+      data={orderTakesListChartDataSorted}
+      loading={$orderTakesList.isFetchingAll}
+      emptyMessage="No trades found"
+    />
+  </svelte:fragment>
+  <svelte:fragment slot="below">
+    <Tabs
+      style="underline"
+      contentClass="mt-4"
+      defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+    >
+      <TabItem open title="Rainlang source">
+        {#if orderRainlang}
+          <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+            <CodeMirrorRainlang disabled={true} value={orderRainlang} />
+          </div>
+        {:else}
+          <div class="w-full tracking-tight text-gray-900 dark:text-white">
+            Rain source not included in order meta
+          </div>
+        {/if}
+      </TabItem>
+      <TabItem title="Trades">
+        <AppTable listStore={orderTakesList} emptyMessage="No trades found" rowHoverable={false}>
+          <svelte:fragment slot="head">
+            <TableHeadCell padding="p-4">Date</TableHeadCell>
+            <TableHeadCell padding="p-0">Sender</TableHeadCell>
+            <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
+            <TableHeadCell padding="p-0">Output</TableHeadCell>
+            <TableHeadCell padding="p-0">Input</TableHeadCell>
+            <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
+          </svelte:fragment>
 
+          <svelte:fragment slot="bodyRow" let:item>
+            <TableBodyCell tdClass="px-4 py-2">
+              {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2 min-w-32">
+              <Hash type={HashType.Wallet} value={item.sender.id} />
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2 min-w-32">
+              <Hash type={HashType.Transaction} value={item.transaction.id} />
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2">
+              {item.input_display}
+              {item.input_token.symbol}
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2">
+              {item.output_display}
+              {item.output_token.symbol}
+            </TableBodyCell>
+            <TableBodyCell tdClass="break-all py-2">
+              <!-- {item.ioratio} -->
+              {BigInt(item.output_display) / BigInt(item.input_display)}
+              {item.output_token.symbol}/{item.input_token.symbol}
+            </TableBodyCell>
+          </svelte:fragment>
+        </AppTable>
+      </TabItem>
+    </Tabs>
+  </svelte:fragment>
+</PageContentDetail>
+
+<ModalExecute
+  bind:open={openOrderRemoveModal}
+  title="Remove Order"
+  execButtonLabel="Remove Order"
+  {executeLedger}
+  {executeWalletconnect}
+  bind:isSubmitting
+/>

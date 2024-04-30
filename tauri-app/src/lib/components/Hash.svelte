@@ -2,7 +2,7 @@
   import { toasts } from "$lib/stores/toasts";
   import { Tooltip } from 'flowbite-svelte';
   import { WalletOutline, FingerprintOutline, ClipboardListOutline } from "flowbite-svelte-icons";
-  import { HashType } from "$lib/utils/hash";
+  import { HashType } from "$lib/types/hash";
 
   export let value: string;
   export let type: HashType | undefined = undefined;
@@ -22,7 +22,7 @@
   }
 </script>
 
-<button type="button" {id} class="inline-block flex justify-start items-center space-x-2" on:click={copy}>
+<button type="button" {id} class="inline-block flex justify-start items-center space-x-2 text-left" on:click={copy}>
   {#if type === HashType.Wallet }
     <WalletOutline size="sm" />
   {:else if type === HashType.Identifier }
@@ -34,14 +34,16 @@
 </button>
 
 {#if shorten}
-  <Tooltip triggeredBy={`#${id}`} class="inline-block flex justify-start items-center space-x-2">
-    {#if type === HashType.Wallet }
-      <WalletOutline size="sm" />
-    {:else if type === HashType.Identifier }
-      <FingerprintOutline size="sm" />
-    {:else if type === HashType.Transaction}
-      <ClipboardListOutline size="sm" />
-    {/if}
-    <div>{value}</div>
+  <Tooltip triggeredBy={`#${id}`} class="z-20">
+    <div class="inline-block flex justify-start items-center space-x-2">
+      {#if type === HashType.Wallet }
+        <WalletOutline size="sm" />
+      {:else if type === HashType.Identifier }
+        <FingerprintOutline size="sm" />
+      {:else if type === HashType.Transaction}
+        <ClipboardListOutline size="sm" />
+      {/if}
+      <div>{value}</div>
+    </div>
   </Tooltip>
 {/if}

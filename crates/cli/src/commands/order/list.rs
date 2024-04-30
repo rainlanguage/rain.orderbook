@@ -5,11 +5,11 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
-    types::flattened::{OrderFlattened, TryIntoFlattenedError},
-    PaginationArgs, TryIntoCsv,
+use rain_orderbook_common::{
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderFlattened,
+    utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -24,22 +24,34 @@ pub struct CliOrderListArgs {
 impl Execute for CliOrderListArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-        let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-        let orders = subgraph_args
-            .to_subgraph_client()
-            .await?
-            .orders_list(pagination_args)
-            .await?;
-        let orders_flattened: Vec<OrderFlattened> =
-            orders
-                .into_iter()
-                .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderFlattened>, TryIntoFlattenedError>>()?;
 
         if self.pagination_args.csv {
+            let orders = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .orders_list_all()
+                .await?;
+            let orders_flattened: Vec<OrderFlattened> =
+                orders
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
+
             let csv_text = orders_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
+            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let orders = subgraph_args
+                .to_subgraph_client()
+                .await?
+                .orders_list(pagination_args)
+                .await?;
+            let orders_flattened: Vec<OrderFlattened> =
+                orders
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
+
             let table = build_table(orders_flattened)?;
             info!("\n{}", table);
         }

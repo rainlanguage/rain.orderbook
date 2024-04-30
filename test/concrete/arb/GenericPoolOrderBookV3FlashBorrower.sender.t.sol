@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.19;
 
-import {ArbTest, ArbTestConstructorConfig} from "test/util/abstract/ArbTest.sol";
+import {ArbTest} from "test/util/abstract/ArbTest.sol";
 
 import {
     GenericPoolOrderBookV3FlashBorrower,
     MinimumOutput,
-    ICloneableV2,
-    OrderBookV3FlashBorrowerConfigV2
+    OrderBookV3ArbConfigV1
 } from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
 import {
     OrderV2,
@@ -15,25 +14,14 @@ import {
     EvaluableConfigV3,
     TakeOrdersConfigV2,
     IExpressionDeployerV3
-} from "src/interface/unstable/IOrderBookV3.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
 
 contract GenericPoolOrderBookV3FlashBorrowerTest is ArbTest {
-    function buildArbTestConstructorConfig() internal returns (ArbTestConstructorConfig memory) {
-        address deployer = buildConstructorConfig();
-        address iArb = address(new GenericPoolOrderBookV3FlashBorrower());
-        vm.label(iArb, "iArb");
-        return ArbTestConstructorConfig(deployer, iArb);
+    function buildArb(OrderBookV3ArbConfigV1 memory config) internal override returns (address) {
+        return address(new GenericPoolOrderBookV3FlashBorrower(config));
     }
 
-    constructor() ArbTest(buildArbTestConstructorConfig()) {
-        ICloneableV2(iArb).initialize(
-            abi.encode(
-                OrderBookV3FlashBorrowerConfigV2(
-                    address(iOrderBook), EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
-                )
-            )
-        );
-    }
+    constructor() ArbTest() {}
 
     function testGenericPoolOrderBookV3FlashBorrowerTakeOrdersSender(
         OrderV2 memory order,

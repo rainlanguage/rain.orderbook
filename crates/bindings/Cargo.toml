@@ -9,3 +9,4 @@ homepage.workspace = true
 [dependencies]
 alloy-sol-types = { workspace = true, features = ["json"] }
 alloy-primitives = { workspace = true }
+serde = { workspace = true }

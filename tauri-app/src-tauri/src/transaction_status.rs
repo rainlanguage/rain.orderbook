@@ -32,15 +32,6 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
     }
 }
 
-/// Position and Total number in a 'series' of transactions
-/// i.e. position: 1, total: 2 would be represent "Transaction 1 of 2"
-#[typeshare]
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SeriesPosition {
-    pub position: u8,
-    pub total: u8,
-}
-
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionStatusNotice {
@@ -50,19 +41,17 @@ pub struct TransactionStatusNotice {
 
     /// Human-readable label to display in the UI, describing the transaction i.e. "Approving ERC20 Token Spend"
     pub label: String,
-    pub series_position: Option<SeriesPosition>,
 }
 
 pub struct TransactionStatusNoticeRwLock(RwLock<TransactionStatusNotice>);
 
 impl TransactionStatusNoticeRwLock {
-    pub fn new(label: String, series_position: Option<SeriesPosition>) -> Self {
+    pub fn new(label: String) -> Self {
         let notice = TransactionStatusNotice {
             id: Uuid::new_v4(),
             status: TransactionStatus::Initialized,
             created_at: Utc::now(),
             label,
-            series_position,
         };
         Self(RwLock::new(notice))
     }
