@@ -9,7 +9,11 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint --fix src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint-check": "eslint src",
+    "format": "prettier --write src",
+    "format-check": "prettier --list-different src",
+    "svelte-lint-format-check": "npm run check && npm run lint-check && npm run format-check"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^3.0.0",
