@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { TextFileStore } from "$lib/storesGeneric/textFileStore";
-  import ButtonLoading from "./ButtonLoading.svelte";
+  import type { TextFileStore } from '$lib/storesGeneric/textFileStore';
+  import ButtonLoading from './ButtonLoading.svelte';
 
   export let textFile: TextFileStore;
   export let title: string;
@@ -19,21 +19,15 @@
   <div>
     <div class="flex justify-end gap-x-2">
       {#if $textFile.path}
-        <ButtonLoading
-          loading={$textFile.isSaving}
-          color="green"
-          on:click={textFile.saveFile}>Save</ButtonLoading
+        <ButtonLoading loading={$textFile.isSaving} color="green" on:click={textFile.saveFile}
+          >Save</ButtonLoading
         >
       {/if}
-      <ButtonLoading
-        loading={$textFile.isSavingAs}
-        color="green"
-        on:click={textFile.saveFileAs}>Save As</ButtonLoading
+      <ButtonLoading loading={$textFile.isSavingAs} color="green" on:click={textFile.saveFileAs}
+        >Save As</ButtonLoading
       >
-      <ButtonLoading
-        loading={$textFile.isLoading}
-        color="blue"
-        on:click={textFile.loadFile}>Load</ButtonLoading
+      <ButtonLoading loading={$textFile.isLoading} color="blue" on:click={textFile.loadFile}
+        >Load</ButtonLoading
       >
     </div>
   </div>

@@ -1,7 +1,7 @@
 import { toasts } from '$lib/stores/toasts';
 import { open, save } from '@tauri-apps/api/dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/api/fs';
-import { derived, get, writable, type Invalidator, type Subscriber } from "svelte/store";
+import { derived, get, writable, type Invalidator, type Subscriber } from 'svelte/store';
 import { reportErrorToSentry } from '$lib/services/sentry';
 
 interface TextFileData {
@@ -18,36 +18,43 @@ type Unsubscriber = () => void;
 export const globalDotrainFile = textFileStore('Rain', ['rain']);
 
 export interface TextFileStore {
-    subscribe: ( subscriber: Subscriber<TextFileData>, invalidate?: Invalidator<TextFileData>) => Unsubscriber,
-    set: (v: TextFileData) => void,
-    loadFile: () => Promise<void>,
-    saveFile: () => Promise<void>,
-    saveFileAs: () => Promise<void>,
+  subscribe: (
+    subscriber: Subscriber<TextFileData>,
+    invalidate?: Invalidator<TextFileData>,
+  ) => Unsubscriber;
+  set: (v: TextFileData) => void;
+  loadFile: () => Promise<void>;
+  saveFile: () => Promise<void>;
+  saveFileAs: () => Promise<void>;
 }
 
-export function textFileStore(name: string, extensions: string[], defaultText: string = "") {
+export function textFileStore(name: string, extensions: string[], defaultText: string = '') {
   const text = writable<string>(defaultText);
   const path = writable<string | undefined>();
   const isLoading = writable(false);
   const isSaving = writable(false);
   const isSavingAs = writable(false);
 
-  const { subscribe } = derived([text, path, isLoading, isSaving, isSavingAs], ([$text, $path, $isLoading, $isSaving, $isSavingAs]) => ({
-    text: $text,
-    path: $path,
-    isLoading: $isLoading,
-    isSaving: $isSaving,
-    isSavingAs: $isSavingAs,
-    isEmpty: $text.length === 0,
-  }));
+  const { subscribe } = derived(
+    [text, path, isLoading, isSaving, isSavingAs],
+    ([$text, $path, $isLoading, $isSaving, $isSavingAs]) => ({
+      text: $text,
+      path: $path,
+      isLoading: $isLoading,
+      isSaving: $isSaving,
+      isSavingAs: $isSavingAs,
+      isEmpty: $text.length === 0,
+    }),
+  );
 
   const defaultDialogOptions = {
-    filters: [{
-      name,
-      extensions
-    }]
-  }
-
+    filters: [
+      {
+        name,
+        extensions,
+      },
+    ],
+  };
 
   /// Select a text file with a dialog and load its text + path
   async function loadFile() {
@@ -57,16 +64,16 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
       const pathValue = await open({
         title: `Load ${name}`,
         multiple: false,
-        ...defaultDialogOptions
+        ...defaultDialogOptions,
       });
 
-      if(pathValue !== null) {
+      if (pathValue !== null) {
         const textValue = await readTextFile(pathValue as string);
 
         text.set(textValue);
         path.set(pathValue as string);
       }
-    } catch(e) {
+    } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
     }
@@ -77,7 +84,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
   /// Save new text to already chosen file path
   async function saveFile() {
     const pathValue = get(path);
-    if(pathValue === undefined) return;
+    if (pathValue === undefined) return;
 
     isSaving.set(true);
 
@@ -86,8 +93,7 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
 
       path.set(pathValue as string);
       toasts.success(`Saved to ${pathValue}`);
-    }
-    catch(e) {
+    } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
     }
@@ -102,17 +108,16 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
     try {
       const pathValue = await save({
         title: `Save ${name} As`,
-        ...defaultDialogOptions
+        ...defaultDialogOptions,
       });
 
-      if(pathValue !== null) {
+      if (pathValue !== null) {
         await writeTextFile(pathValue as string, get(text));
 
         path.set(pathValue as string);
         toasts.success(`Saved to ${pathValue}`);
       }
-
-    } catch(e) {
+    } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
     }
@@ -126,5 +131,5 @@ export function textFileStore(name: string, extensions: string[], defaultText: s
     loadFile,
     saveFile,
     saveFileAs,
-  }
+  };
 }

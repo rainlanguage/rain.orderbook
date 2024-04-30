@@ -34,7 +34,7 @@
       isConnecting = true;
       try {
         const res: string = await getAddressFromLedger(derivationIndex);
-        ledgerWalletAddress.set(res)
+        ledgerWalletAddress.set(res);
       } catch (e) {
         reportErrorToSentry(e);
         toasts.error(`Ledger error: ${e as string}`);
@@ -56,17 +56,20 @@
     <IconWarning slot="icon" />
     <div class="pl-2">
       <div class="mb-2 text-lg">Before you continue:</div>
-      <ul role="list" class="list-disc pl-5 space-y-2">
-        <li>All desktop applications linked to your Ledger wallet must be closed, including any desktop wallets and Ledger Live.</li>
+      <ul role="list" class="list-disc space-y-2 pl-5">
+        <li>
+          All desktop applications linked to your Ledger wallet must be closed, including any
+          desktop wallets and Ledger Live.
+        </li>
         <li>Your Ledger wallet must be authenticated with the Ethereum app open.</li>
       </ul>
     </div>
   </Alert>
 
-  <div class="flex w-full justify-end space-x-2 items-start">
+  <div class="flex w-full items-start justify-end space-x-2">
     <ButtonLoading
       color="primary"
-      class="px-2 py-1 w-full"
+      class="w-full px-2 py-1"
       size="lg"
       pill
       loading={isConnecting}
@@ -81,7 +84,7 @@
     {#if $ledgerWalletAddress}
       <ButtonLoading
         color="red"
-        class="px-2 py-1 min-w-fit"
+        class="min-w-fit px-2 py-1"
         size="lg"
         pill
         loading={isDisconnecting}
@@ -93,7 +96,7 @@
       <div class="w-32 grow-0 break-all">
         <input
           type="text"
-          class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-32 rounded-xl border-gray-300 bg-gray-50 p-1.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+          class="block w-32 rounded-xl border-gray-300 bg-gray-50 p-1.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500 rtl:text-right"
           value={derivationIndex}
           use:imask={maskOptions}
           on:complete={completeDerivationIndex}

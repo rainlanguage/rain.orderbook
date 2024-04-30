@@ -1,4 +1,4 @@
-import { handleErrorWithSentryIfEnabled, initSentry } from "$lib/services/sentry";
+import { handleErrorWithSentryIfEnabled, initSentry } from '$lib/services/sentry';
 
 // Initialize sentry, disabled by default
 initSentry();

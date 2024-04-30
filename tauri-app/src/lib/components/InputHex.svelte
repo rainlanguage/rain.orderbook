@@ -9,8 +9,8 @@
   export let required = true;
 
   $: {
-    if(value !== undefined) {
-      valueRaw = toHex(value)
+    if (value !== undefined) {
+      valueRaw = toHex(value);
     }
   }
 
@@ -42,7 +42,7 @@
   {required}
   type="text"
   value={valueRaw}
-  class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400"
+  class="block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500 rtl:text-right"
   use:imask={maskOptions}
   on:complete={complete}
 />

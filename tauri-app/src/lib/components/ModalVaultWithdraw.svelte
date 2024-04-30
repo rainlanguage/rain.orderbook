@@ -10,7 +10,7 @@
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
-    import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -43,9 +43,13 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
+      const calldata = (await vaultWithdrawCalldata(
+        vault.vault_id,
+        vault.token.id,
+        amount,
+      )) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress!);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
@@ -57,7 +61,13 @@
 </script>
 
 {#if !selectWallet}
-  <Modal title="Withdraw from Vault" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
+  <Modal
+    title="Withdraw from Vault"
+    bind:open
+    outsideclose={!isSubmitting}
+    size="sm"
+    on:close={reset}
+  >
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
         Vault ID
@@ -118,7 +128,10 @@
       <Button color="alternative" on:click={reset}>Cancel</Button>
 
       <Button
-        on:click={() => {selectWallet = true; open = false;}}
+        on:click={() => {
+          selectWallet = true;
+          open = false;
+        }}
         disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
       >
         Proceed
@@ -129,10 +142,10 @@
 
 <ModalExecute
   bind:open={selectWallet}
-  onBack={() => open = true}
+  onBack={() => (open = true)}
   title="Withdraw from Vault"
   execButtonLabel="Withdraw"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />

@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { sentrySvelteKit } from "@sentry/sveltekit";
+import { sentrySvelteKit } from '@sentry/sveltekit';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, loadEnv } from 'vite';
 import checker from 'vite-plugin-checker';
@@ -7,15 +7,18 @@ import checker from 'vite-plugin-checker';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
-  const sentryPlugins = env.VITE_SENTRY_ENVIRONMENT === 'release' && env.SENTRY_SOURCE_MAPS_ENABLED === 'true' ? [
-    sentrySvelteKit({
-      sourceMapsUploadOptions: {
-        org: env.SENTRY_ORG,
-        project: env.SENTRY_PROJECT,
-        authToken: env.SENTRY_AUTH_TOKEN,
-      }
-    })
-  ] : [];
+  const sentryPlugins =
+    env.VITE_SENTRY_ENVIRONMENT === 'release' && env.SENTRY_SOURCE_MAPS_ENABLED === 'true'
+      ? [
+          sentrySvelteKit({
+            sourceMapsUploadOptions: {
+              org: env.SENTRY_ORG,
+              project: env.SENTRY_PROJECT,
+              authToken: env.SENTRY_AUTH_TOKEN,
+            },
+          }),
+        ]
+      : [];
 
   return {
     plugins: [
@@ -26,8 +29,8 @@ export default defineConfig(({ mode }) => {
         eslint: {
           lintCommand: 'eslint src',
         },
-      })],
-
+      }),
+    ],
 
     // prevent vite from obscuring rust errors
     clearScreen: false,
@@ -38,12 +41,12 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       watch: {
         // tell vite to ignore watching `src-tauri`
-        ignored: ["**/src-tauri/**"],
+        ignored: ['**/src-tauri/**'],
       },
     },
 
     build: {
-      sourcemap: true
+      sourcemap: true,
     },
 
     test: {
@@ -53,5 +56,5 @@ export default defineConfig(({ mode }) => {
     define: {
       'import.meta.vitest': 'undefined',
     },
-  }
+  };
 });

@@ -11,9 +11,7 @@
     "sourceMap": true,
     "strict": true,
     "moduleResolution": "bundler",
-    "types": [
-      "vitest/importMeta"
-    ]
+    "types": ["vitest/importMeta"]
   }
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //

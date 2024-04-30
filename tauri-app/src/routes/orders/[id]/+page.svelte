@@ -26,7 +26,7 @@
     prepareHistoricalOrderChartData,
     type HistoricalOrderChartData,
   } from '$lib/services/historicalOrderCharts';
-    import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   let openOrderRemoveModal = false;
   let isSubmitting = false;
@@ -63,7 +63,7 @@
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
-   }
+    }
     isSubmitting = false;
   }
 </script>
