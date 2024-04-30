@@ -43,7 +43,7 @@ const authoringMetas: ScenariosAuthoringMeta = {
 }
 
 test('shows correct words per scenario', async () => {
-    render(Words, { authoringMetas });
+    render(Words, { authoringMetas, error: undefined });
 
     await userEvent.click(screen.getByText('scenario1'));
 
@@ -77,5 +77,12 @@ test('shows correct words per scenario', async () => {
     expect(pragmas2[0]).toHaveTextContent('0x89ab');
     expect(pragmas2[1]).toHaveTextContent('0xcdef');
 })
+
+test('shows error message when error is present', async () => {
+    render(Words, { authoringMetas: undefined, error: 'Test error' });
+
+    const errorMsg = screen.getByTestId('error-msg');
+    expect(errorMsg).toHaveTextContent('Test error');
+});
 
 

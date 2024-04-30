@@ -34,13 +34,12 @@
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
-    import { getAuthoringMetas } from '$lib/services/authoringMeta';
-    import type { ScenariosAuthoringMeta } from '$lib/typeshare/dotrainOrder';
+  import { getAuthoringMetas } from '$lib/services/authoringMeta';
+  import type { ScenariosAuthoringMeta } from '$lib/typeshare/dotrainOrder';
 
   let isSubmitting = false;
   let isCharting = false;
   let chartData: ChartData;
-  let authoringMetas: ScenariosAuthoringMeta
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
   let mergedConfigSource: ConfigSource | undefined = undefined;
@@ -61,13 +60,17 @@
   $: bindings = deployment ? deployment.scenario.bindings : {};
   $: $globalDotrainFile.text, updateMergedConfig();
 
-  $: getAuthoringMetas($globalDotrainFile.text, $settingsText).then((res) => {
-    authoringMetas = res;
-  });
-
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
   let openTab: Record<string, boolean> = {};
+
+  const {
+    debouncedFn: debounceGetAuthoringMetas,
+    result: authoringMetasResult,
+    error: authoringMetasError,
+  } = useDebouncedFn(getAuthoringMetas, 500);
+
+  $: debounceGetAuthoringMetas($globalDotrainFile.text, $settingsText);
 
   const {
     debouncedFn: debouncedGenerateRainlangStrings,
@@ -279,7 +282,7 @@
     <Charts {chartData} />
   </TabItem>
   <TabItem title="Words">
-    <Words {authoringMetas} />
+    <Words authoringMetas={$authoringMetasResult} error={$authoringMetasError} />
   </TabItem>
 </Tabs>
 

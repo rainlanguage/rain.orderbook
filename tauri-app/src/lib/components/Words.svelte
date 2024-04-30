@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { ScenariosAuthoringMeta } from '$lib/typeshare/dotrainOrder';
-  import { TabItem, Tabs } from 'flowbite-svelte';
+  import { P, TabItem, Tabs } from 'flowbite-svelte';
   import WordTable from '$lib/components/WordTable.svelte';
 
-  export let authoringMetas: ScenariosAuthoringMeta;
+  export let authoringMetas: ScenariosAuthoringMeta | undefined;
+  export let error: unknown | undefined;
 </script>
 
 {#if authoringMetas}
@@ -24,4 +25,9 @@
       </TabItem>
     {/each}
   </Tabs>
+{:else if error}
+  <div data-testid="error-msg">
+    <P>Error getting words for this order</P>
+    <P>{error?.toString() || ''}</P>
+  </div>
 {/if}
