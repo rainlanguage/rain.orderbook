@@ -3,11 +3,11 @@
 
   inputs = {
     rainix.url = "github:rainlanguage/rainix";
-    rain.url = "github:rainlanguage/rain.cli";
+    # rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {self, flake-utils, rainix, rain }:
+  outputs = {self, flake-utils, rainix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = rainix.pkgs.${system};
@@ -215,7 +215,7 @@
           packages = [
             packages.raindex-prelude
             packages.ob-rs-test
-            rain.defaultPackage.${system}
+            # rain.defaultPackage.${system}
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
