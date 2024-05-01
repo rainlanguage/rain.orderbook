@@ -9,7 +9,7 @@ license = "CAL-1.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "a6bcb86b9b61a56d2440d33313f024297ce737bb" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "d6e66509d752e490db02002dc61e4bded3213ed0" }
 alloy-sol-types = "0.6.3"
 alloy-primitives = "0.6.3"
 alloy-json-abi = "0.6.3"

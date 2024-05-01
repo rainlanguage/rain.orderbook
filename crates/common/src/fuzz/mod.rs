@@ -248,7 +248,7 @@ impl FuzzRunner {
                     deployer: deployer.address,
                     namespace: FullyQualifiedNamespace::default(),
                     context: vec![],
-                    decode_errors: false,
+                    decode_errors: true,
                 };
                 fork_clone
                     .fork_eval(args)

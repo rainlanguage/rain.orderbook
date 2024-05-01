@@ -226,7 +226,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=a6bcb86b9b61a56d2440d33313f024297ce737bb#a6bcb86b9b61a56d2440d33313f024297ce737bb"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d6e66509d752e490db02002dc61e4bded3213ed0#d6e66509d752e490db02002dc61e4bded3213ed0"
 dependencies = [
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
@@ -7266,6 +7266,7 @@ dependencies = [
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "ethers",
+ "rain-interpreter-eval",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "serde",
@@ -7287,7 +7288,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "tokio",
- "typeshare 1.0.1",
+ "typeshare",
  "url",
 ]
 
@@ -7336,7 +7337,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "typeshare 1.0.1",
+ "typeshare",
  "url",
 ]
 
@@ -7352,7 +7353,7 @@ dependencies = [
  "reqwest 0.11.27",
  "serde",
  "thiserror",
- "typeshare 1.0.1",
+ "typeshare",
 ]
 
 [[package]]
@@ -9312,6 +9313,7 @@ dependencies = [
  "alloy-sol-types 0.6.4",
  "chrono",
  "dotrain",
+ "rain-interpreter-eval",
  "rain_orderbook_app_settings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
@@ -9324,7 +9326,7 @@ dependencies = [
  "tauri-build",
  "tauri-cli",
  "thiserror",
- "typeshare 1.0.2",
+ "typeshare",
  "url",
  "uuid 1.8.0",
 ]
@@ -10108,19 +10110,7 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
- "typeshare-annotation 1.0.2",
-]
-
-[[package]]
-name = "typeshare"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99877a66770b25072a67101e80790fd7fe9ed9eff8c69ffb81e9bf5cbea7733f"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "typeshare-annotation 1.0.3",
+ "typeshare-annotation",
 ]
 
 [[package]]
@@ -10130,16 +10120,6 @@ source = "git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf1720680
 dependencies = [
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "typeshare-annotation"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecce25dea8aeaadc44909f4c1226d22d84512fccd07d22447ecbad176bc09545"
-dependencies = [
- "quote",
- "syn 2.0.60",
 ]
 
 [[package]]

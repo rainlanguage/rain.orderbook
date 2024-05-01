@@ -10,6 +10,7 @@ use commands::authoring_meta::get_authoring_metas;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::make_charts;
 use commands::config::{convert_configstring_to_config, merge_configstrings, parse_configstring};
+use commands::decode_errors::decode_errors;
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
@@ -70,7 +71,8 @@ fn run_tauri_app() {
             vault_deposit_calldata,
             vault_withdraw_calldata,
             compose_from_scenario,
-            get_authoring_metas
+            get_authoring_metas,
+            decode_errors
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
