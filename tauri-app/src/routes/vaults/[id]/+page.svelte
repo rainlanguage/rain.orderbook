@@ -18,17 +18,14 @@
   import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
   import { bigintToFloat } from '$lib/utils/number';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
-  import {
-    ArrowDownOutline,
-    ArrowUpOutline,
-  } from 'flowbite-svelte-icons';
+  import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
 
-  let vaultBalanceChangesChartData:  { value: number; time: UTCTimestamp; color?: string }[] = [];
+  let vaultBalanceChangesChartData: { value: number; time: UTCTimestamp; color?: string }[] = [];
   const vaultBalanceChangesList = useVaultBalanceChangesList($page.params.id);
 
   function prepareChartData() {
@@ -41,14 +38,11 @@
       color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
     }));
 
-    return sortBy(
-      transformedData,
-      (d) => d.time
-    );
+    return sortBy(transformedData, (d) => d.time);
   }
 
   $: vault = $vaultDetail.data[$page.params.id];
-  $: $vaultBalanceChangesList.all, vaultBalanceChangesChartData = prepareChartData();
+  $: $vaultBalanceChangesList.all, (vaultBalanceChangesChartData = prepareChartData());
 
   vaultDetail.refetch($page.params.id);
   vaultBalanceChangesList.fetchAll(0);

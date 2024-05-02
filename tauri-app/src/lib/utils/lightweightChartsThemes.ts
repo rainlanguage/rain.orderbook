@@ -4,7 +4,7 @@ export const themes = {
   dark: {
     layout: {
       textColor: 'white',
-      background: { type: ColorType.Solid, color: "transparent" },
+      background: { type: ColorType.Solid, color: 'transparent' },
     },
     grid: {
       vertLines: { color: '#484848' },
@@ -20,5 +20,5 @@ export const themes = {
       vertLines: { color: '#ECECEC' },
       horzLines: { color: '#ECECEC' },
     },
-  }
-}
+  },
+};

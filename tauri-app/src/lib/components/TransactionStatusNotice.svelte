@@ -13,13 +13,9 @@
 </script>
 
 <Toast class="mt-2 w-full !max-w-none" dismissable={false}>
-  {#if transactionStatusNotice.series_position}
-    <div class="text-lg font-bold text-gray-900 dark:text-white">
-      Transaction {transactionStatusNotice.series_position.position} of
-      {transactionStatusNotice.series_position.total}
-    </div>
-  {/if}
-  <div class="mb-4 text-lg font-bold text-gray-900 dark:text-white">{transactionStatusNotice.label}</div>
+  <div class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+    {transactionStatusNotice.label}
+  </div>
   <div class="flex w-full items-center justify-start space-x-4 px-4">
     {#if transactionStatusNotice.status.type === 'Initialized' || transactionStatusNotice.status.type === 'PendingPrepare'}
       <Spinner />

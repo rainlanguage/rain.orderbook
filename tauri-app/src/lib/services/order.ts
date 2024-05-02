@@ -5,7 +5,7 @@ import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import type { Deployment, Scenario } from '$lib/typeshare/config';
 
 export async function orderAdd(dotrain: string, deployment: Deployment) {
-  await invoke("order_add", {
+  await invoke('order_add', {
     dotrain,
     deployment,
     transactionArgs: {
@@ -18,7 +18,7 @@ export async function orderAdd(dotrain: string, deployment: Deployment) {
 }
 
 export async function orderRemove(id: string) {
-  await invoke("order_remove", {
+  await invoke('order_remove', {
     id,
     transactionArgs: {
       rpc_url: get(rpcUrl),
@@ -27,13 +27,13 @@ export async function orderRemove(id: string) {
       chain_id: get(chainId),
     },
     subgraphArgs: {
-      url: get(subgraphUrl)
-    }
+      url: get(subgraphUrl),
+    },
   });
 }
 
 export async function orderAddCalldata(dotrain: string, deployment: Deployment) {
-  return await invoke("order_add_calldata", {
+  return await invoke('order_add_calldata', {
     dotrain,
     deployment,
     transactionArgs: {
@@ -46,16 +46,19 @@ export async function orderAddCalldata(dotrain: string, deployment: Deployment) 
 }
 
 export async function orderRemoveCalldata(id: string) {
-  return await invoke("order_remove_calldata", {
+  return await invoke('order_remove_calldata', {
     id,
     subgraphArgs: {
-      url: get(subgraphUrl)
-    }
+      url: get(subgraphUrl),
+    },
   });
 }
 
-export async function orderAddComposeRainlang(dotrain: string, scenario: Scenario): Promise<string> {
-  return await invoke("compose_from_scenario", {
+export async function orderAddComposeRainlang(
+  dotrain: string,
+  scenario: Scenario,
+): Promise<string> {
+  return await invoke('compose_from_scenario', {
     dotrain,
     scenario,
   });

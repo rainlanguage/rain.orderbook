@@ -12,24 +12,36 @@ export const ordersList = asyncDerived(subgraphUrl, async () => {
 
   return listStore<Order>(
     `${url}.ordersList`,
-    (page) => invoke("orders_list", {subgraphArgs: { url }, paginationArgs: { page: page+1, page_size: 10 } }),
-    (path) => invoke("orders_list_write_csv", { path, subgraphArgs: { url } })
+    (page) =>
+      invoke('orders_list', {
+        subgraphArgs: { url },
+        paginationArgs: { page: page + 1, page_size: 10 },
+      }),
+    (path) => invoke('orders_list_write_csv', { path, subgraphArgs: { url } }),
   );
 });
 
-export const orderDetail = detailStore<OrderDetailExtended>("orders.orderDetail", async (id: string) => {
-  const url = await subgraphUrl.load();
-  return invoke("order_detail", {id, subgraphArgs: { url } });
-});
-
-export const useOrderTakesList = (orderId: string) =>  listStore<TakeOrderEntity>(
-  `orderTakesList-${orderId}`,
-  async (page) => {
+export const orderDetail = detailStore<OrderDetailExtended>(
+  'orders.orderDetail',
+  async (id: string) => {
     const url = await subgraphUrl.load();
-    return invoke("order_takes_list", {subgraphArgs: { url }, orderId, paginationArgs: { page: page+1, page_size: 10 } });
-  },
-  async (path) => {
-    const url = await subgraphUrl.load();
-    return invoke("order_takes_list_write_csv", {path, subgraphArgs: { url }, orderId});
+    return invoke('order_detail', { id, subgraphArgs: { url } });
   },
 );
+
+export const useOrderTakesList = (orderId: string) =>
+  listStore<TakeOrderEntity>(
+    `orderTakesList-${orderId}`,
+    async (page) => {
+      const url = await subgraphUrl.load();
+      return invoke('order_takes_list', {
+        subgraphArgs: { url },
+        orderId,
+        paginationArgs: { page: page + 1, page_size: 10 },
+      });
+    },
+    async (path) => {
+      const url = await subgraphUrl.load();
+      return invoke('order_takes_list_write_csv', { path, subgraphArgs: { url }, orderId });
+    },
+  );

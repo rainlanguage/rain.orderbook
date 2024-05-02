@@ -15,7 +15,7 @@
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : $ledgerWalletAddress
       ? `${$ledgerWalletAddress.slice(0, 5)}...${$ledgerWalletAddress.slice(-5)}`
-      : "Connect to Wallet";
+      : 'Connect to Wallet';
 
   function reset() {
     open = false;
