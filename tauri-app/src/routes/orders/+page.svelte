@@ -31,7 +31,7 @@
   import { reportErrorToSentry } from '$lib/services/sentry';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { onMount } from 'svelte';
-    import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   onMount(async () => {
     if (!$activeOrderbook) {

@@ -4,7 +4,7 @@ import { rpcUrl, orderbookAddress, chainId } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 
 export async function vaultDeposit(vaultId: bigint, token: string, amount: bigint) {
-  await invoke("vault_deposit", {
+  await invoke('vault_deposit', {
     depositArgs: {
       vault_id: vaultId.toString(),
       token,
@@ -15,12 +15,12 @@ export async function vaultDeposit(vaultId: bigint, token: string, amount: bigin
       orderbook_address: get(orderbookAddress),
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
-    }
+    },
   });
 }
 
 export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount: bigint) {
-  await invoke("vault_withdraw", {
+  await invoke('vault_withdraw', {
     withdrawArgs: {
       vault_id: vaultId.toString(),
       token,
@@ -30,13 +30,13 @@ export async function vaultWithdraw(vaultId: bigint, token: string, targetAmount
       rpc_url: get(rpcUrl),
       orderbook_address: get(orderbookAddress),
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId)
-    }
+      chain_id: get(chainId),
+    },
   });
 }
 
 export async function vaultWithdrawCalldata(vaultId: bigint, token: string, targetAmount: bigint) {
-  return await invoke("vault_withdraw_calldata", {
+  return await invoke('vault_withdraw_calldata', {
     withdrawArgs: {
       vault_id: vaultId.toString(),
       token,
@@ -46,23 +46,28 @@ export async function vaultWithdrawCalldata(vaultId: bigint, token: string, targ
       rpc_url: get(rpcUrl),
       orderbook_address: get(orderbookAddress),
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: get(chainId)
-    }
+      chain_id: get(chainId),
+    },
   });
 }
 
 export async function vaultDepositCalldata(vaultId: bigint, token: string, amount: bigint) {
-  return await invoke("vault_deposit_calldata", {
+  return await invoke('vault_deposit_calldata', {
     depositArgs: {
       vault_id: vaultId.toString(),
       token,
       amount: amount.toString(),
-    }
+    },
   });
 }
 
-export async function vaultDepositApproveCalldata(vaultId: bigint, token: string, amount: bigint, currentAllowance: bigint) {
-  return await invoke("vault_deposit_approve_calldata", {
+export async function vaultDepositApproveCalldata(
+  vaultId: bigint,
+  token: string,
+  amount: bigint,
+  currentAllowance: bigint,
+) {
+  return await invoke('vault_deposit_approve_calldata', {
     depositArgs: {
       vault_id: vaultId.toString(),
       token,
@@ -74,6 +79,6 @@ export async function vaultDepositApproveCalldata(vaultId: bigint, token: string
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
     },
-    currentAllowance: currentAllowance.toString()
+    currentAllowance: currentAllowance.toString(),
   });
 }
