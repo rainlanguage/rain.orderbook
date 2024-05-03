@@ -2,11 +2,12 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainprotocol/rainix";
+    rainix.url = "github:rainlanguage/rainix";
+    rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {self, flake-utils, rainix }:
+  outputs = {self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = rainix.pkgs.${system};
@@ -15,11 +16,29 @@
 
           tauri-release-env = rainix.tauri-release-env.${system};
 
+          raindex-prelude = rainix.mkTask.${system} {
+            name = "raindex-prelude";
+            body = ''
+              set -euxo pipefail
+
+              mkdir -p meta;
+              forge script --silent ./script/BuildAuthoringMeta.sol;
+              rain meta build \
+                -i <(cat ./meta/OrderBookSubParserAuthoringMeta.rain.meta) \
+                -m authoring-meta-v2 \
+                -t cbor \
+                -e deflate \
+                -l none \
+                -o meta/OrderBookSubParserDescribedByMetaV1.rain.meta \
+                ;
+            '';
+          };
+
           ob-rs-test = rainix.mkTask.${system} {
             name = "ob-rs-test";
             body = ''
               set -euxo pipefail
-              cargo test --workspace . --exclude tauri-e2e-test
+              cargo test --workspace .
             '';
           };
 
@@ -30,7 +49,7 @@
 
               # Generate Typescript types from rust types
               mkdir -p tauri-app/src/lib/typeshare
-              
+
               export CARGO_HOME=$(mktemp -d)
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
@@ -47,6 +66,7 @@
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               typeshare crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
+              typeshare crates/common/src/dotrain_order.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/dotrainOrder.ts;
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
 
@@ -59,7 +79,7 @@
               rainix.rust-build-inputs.${system}
             ];
           };
-          
+
           ob-tauri-unit-test =  rainix.mkTask.${system} {
             name = "ob-tauri-unit-test";
             body = ''
@@ -67,31 +87,6 @@
 
               cd tauri-app && npm i && npm run test
             '';
-          };
-
-          ob-tauri-e2e-test-headless =  rainix.mkTask.${system} {
-            name = "ob-tauri-e2e-test-headless";
-            body = ''
-              set -euxo pipefail
-
-              xvfb-run -a cargo nextest run --retries 3 --package tauri-e2e-test --test-threads 1
-            '';
-            additionalBuildInputs = [
-              pkgs.xvfb-run
-              pkgs.cargo-nextest
-            ];
-          };
-
-          ob-tauri-e2e-test =  rainix.mkTask.${system} {
-            name = "ob-tauri-e2e-test";
-            body = ''
-              set -euxo pipefail
-
-              cargo nextest run --retries 3 --package tauri-e2e-test --test-threads 1
-            '';
-            additionalBuildInputs = [
-              pkgs.cargo-nextest
-            ];
           };
 
           ob-tauri-before-release = rainix.mkTask.${system} {
@@ -138,18 +133,18 @@
               if [ -f "$ENV_FILE" ]; then
                   source $ENV_FILE
               fi
-              
+
               # Exit if required env variables are not defined
               if [ -z "$VITE_WALLETCONNECT_PROJECT_ID" ]; then
                 echo "Cancelling build: VITE_WALLETCONNECT_PROJECT_ID is not defined"
                 exit 1
               fi
 
-              if [ "$VITE_SENTRY_FORCE_DISABLED" != "true" ] && 
-              ( 
-                [ -z "$VITE_SENTRY_DSN" ] || 
-                [ -z "$VITE_SENTRY_ENVIRONMENT" ] || 
-                [ -z "$VITE_SENTRY_RELEASE" ] 
+              if [ "$VITE_SENTRY_FORCE_DISABLED" != "true" ] &&
+              (
+                [ -z "$VITE_SENTRY_DSN" ] ||
+                [ -z "$VITE_SENTRY_ENVIRONMENT" ] ||
+                [ -z "$VITE_SENTRY_RELEASE" ]
               ); then
                 echo "Cancelling build: EITHER env variable VITE_SENTRY_FORCE_DISABLED=true OR all env variables VITE_SENTRY_DSN, VITE_SENTRY_ENVIRONMENT and VITE_SENTRY_RELEASE must be defined"
                 exit 1
@@ -213,12 +208,14 @@
               fi
             '';
           };
-        
+
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
           packages = [
+            packages.raindex-prelude
             packages.ob-rs-test
+            rain.defaultPackage.${system}
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
@@ -227,17 +224,14 @@
         };
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
+            packages.raindex-prelude
             packages.ob-tauri-prelude
             packages.ob-tauri-unit-test
             packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
-          ] ++ (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-            # e2e tests currently only support linux (see https://github.com/rainlanguage/rain.orderbook/issues/501)
-            packages.ob-tauri-e2e-test
-            packages.ob-tauri-e2e-test-headless
-          ]);
+          ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;

@@ -10,6 +10,7 @@
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   export let open = false;
   export let vault: TokenVaultDetail | TokenVaultListItem;
@@ -31,7 +32,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(vault.vault_id, vault.token.id, amount);
+      await vaultWithdraw(BigInt(vault.vault_id), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -42,18 +43,17 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      const calldata = await vaultWithdrawCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
+      const calldata = (await vaultWithdrawCalldata(
+        BigInt(vault.vault_id),
+        vault.token.id,
+        amount,
+      )) as Uint8Array;
       const tx = await ethersExecute(calldata, $orderbookAddress!);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === "object" && (e as any)?.reason) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      }
-      else toasts.error("Transaction failed!");
+      toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
     reset();
@@ -61,7 +61,13 @@
 </script>
 
 {#if !selectWallet}
-  <Modal title="Withdraw from Vault" bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
+  <Modal
+    title="Withdraw from Vault"
+    bind:open
+    outsideclose={!isSubmitting}
+    size="sm"
+    on:close={reset}
+  >
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
         Vault ID
@@ -109,7 +115,7 @@
         bind:value={amount}
         symbol={vault.token.symbol}
         decimals={vault.token.decimals}
-        maxValue={vault.balance}
+        maxValue={BigInt(vault.balance)}
       />
 
       <Helper color="red" class="h-6 text-sm">
@@ -122,7 +128,10 @@
       <Button color="alternative" on:click={reset}>Cancel</Button>
 
       <Button
-        on:click={() => {selectWallet = true; open = false;}}
+        on:click={() => {
+          selectWallet = true;
+          open = false;
+        }}
         disabled={!amount || amount === 0n || amountGTBalance || isSubmitting}
       >
         Proceed
@@ -133,10 +142,10 @@
 
 <ModalExecute
   bind:open={selectWallet}
-  onBack={() => open = true}
+  onBack={() => (open = true)}
   title="Withdraw from Vault"
   execButtonLabel="Withdraw"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />

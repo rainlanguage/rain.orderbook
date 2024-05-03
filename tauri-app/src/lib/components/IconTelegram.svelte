@@ -1,9 +1,12 @@
+<script lang="ts">
+  export let dark = false;
+</script>
+
 <svg
   width="24px"
   height="24px"
   viewBox="0 0 24 24"
-  class="h-5 w-5"
-  version="1.1"
+  class={`h-5 w-5 fill-current ${dark ? 'text-white dark:text-black' : 'text-black dark:text-white'}`}
   style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:1.41421;"
   ><path
     id="telegram-1"

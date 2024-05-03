@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
+import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -24,8 +25,13 @@ uint256 constant FLASH_FEE = 0;
 /// @notice Implements `IERC3156FlashLender` for `OrderBook`. Based on the
 /// reference implementation by Alberto Cuesta Cañada found at
 /// https://eips.ethereum.org/EIPS/eip-3156#flash-loan-reference-implementation
-abstract contract OrderBookV3FlashLender is IERC3156FlashLender {
+abstract contract OrderBookV3FlashLender is IERC3156FlashLender, ERC165 {
     using SafeERC20 for IERC20;
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IERC3156FlashLender).interfaceId || super.supportsInterface(interfaceId);
+    }
 
     /// @inheritdoc IERC3156FlashLender
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)

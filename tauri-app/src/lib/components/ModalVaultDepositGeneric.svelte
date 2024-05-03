@@ -1,7 +1,11 @@
 <script lang="ts">
   import { Button, Modal, Label } from 'flowbite-svelte';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultDeposit, vaultDepositApproveCalldata, vaultDepositCalldata } from '$lib/services/vault';
+  import {
+    vaultDeposit,
+    vaultDepositApproveCalldata,
+    vaultDepositCalldata,
+  } from '$lib/services/vault';
   import InputToken from '$lib/components/InputToken.svelte';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import { orderbookAddress } from '$lib/stores/settings';
@@ -31,8 +35,8 @@
   }
 
   async function executeLedger() {
-    if(vaultId === undefined) return;
-    if(amount === undefined) return;
+    if (vaultId === undefined) return;
+    if (amount === undefined) return;
 
     isSubmitting = true;
     try {
@@ -45,25 +49,33 @@
   }
 
   async function executeWalletconnect() {
-    if(vaultId === undefined) return;
-    if(amount === undefined) return;
+    if (vaultId === undefined) return;
+    if (amount === undefined) return;
 
     isSubmitting = true;
     try {
-      if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
+      if (!$orderbookAddress) throw Error('Select an orderbook to deposit');
       const allowance = await checkAllowance(tokenAddress, $orderbookAddress);
       if (allowance.lt(amount)) {
-        const approveCalldata = await vaultDepositApproveCalldata(vaultId, tokenAddress, amount, allowance.toBigInt()) as Uint8Array;
+        const approveCalldata = (await vaultDepositApproveCalldata(
+          vaultId,
+          tokenAddress,
+          amount,
+          allowance.toBigInt(),
+        )) as Uint8Array;
         const approveTx = await ethersExecute(approveCalldata, tokenAddress);
-        toasts.success("Approve Transaction sent successfully!");
+        toasts.success('Approve Transaction sent successfully!');
         await approveTx.wait(1);
       }
 
-      const depositCalldata = await vaultDepositCalldata(vaultId, tokenAddress, amount) as Uint8Array;
+      const depositCalldata = (await vaultDepositCalldata(
+        vaultId,
+        tokenAddress,
+        amount,
+      )) as Uint8Array;
       const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
-
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
@@ -100,7 +112,13 @@
     </div>
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={() => {selectWallet = true; open = false;}} disabled={!amount || amount === 0n || isSubmitting}>
+      <Button
+        on:click={() => {
+          selectWallet = true;
+          open = false;
+        }}
+        disabled={!amount || amount === 0n || isSubmitting}
+      >
         Proceed
       </Button>
     </div>
@@ -109,10 +127,10 @@
 
 <ModalExecute
   bind:open={selectWallet}
-  onBack={() => open = true}
+  onBack={() => (open = true)}
   title="Deposit to Vault"
   execButtonLabel="Deposit"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />

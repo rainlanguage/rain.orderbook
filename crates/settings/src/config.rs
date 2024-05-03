@@ -16,6 +16,8 @@ pub struct Config {
     pub networks: HashMap<String, Arc<Network>>,
     #[typeshare(typescript(type = "Record<string, string>"))]
     pub subgraphs: HashMap<String, Arc<Subgraph>>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
+    pub metaboards: HashMap<String, Arc<Metaboard>>,
     #[typeshare(typescript(type = "Record<string, Orderbook>"))]
     pub orderbooks: HashMap<String, Arc<Orderbook>>,
     #[typeshare(typescript(type = "Record<string, Token>"))]
@@ -34,6 +36,7 @@ pub struct Config {
 }
 
 pub type Subgraph = Url;
+pub type Metaboard = Url;
 pub type Vault = U256;
 
 #[derive(Error, Debug)]
@@ -82,6 +85,12 @@ impl TryFrom<ConfigSource> for Config {
             .into_iter()
             .map(|(name, subgraph)| Ok((name, Arc::new(subgraph))))
             .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigSourceError>>()?;
+
+        let metaboards = item
+            .metaboards
+            .into_iter()
+            .map(|(name, metaboard)| Ok((name, Arc::new(metaboard))))
+            .collect::<Result<HashMap<String, Arc<Metaboard>>, ParseConfigSourceError>>()?;
 
         let orderbooks = item
             .orderbooks
@@ -162,6 +171,7 @@ impl TryFrom<ConfigSource> for Config {
         let config = Config {
             networks,
             subgraphs,
+            metaboards,
             orderbooks,
             tokens,
             deployers,
@@ -208,6 +218,12 @@ mod tests {
         subgraphs.insert(
             "mainnet".to_string(),
             Url::parse("https://mainnet.subgraph").unwrap(),
+        );
+
+        let mut metaboards = HashMap::new();
+        metaboards.insert(
+            "mainnet".to_string(),
+            Url::parse("https://mainnet.metaboard").unwrap(),
         );
 
         let mut orderbooks = HashMap::new();
@@ -260,6 +276,7 @@ mod tests {
             using_networks_from,
             networks,
             subgraphs,
+            metaboards,
             orderbooks,
             tokens,
             deployers,

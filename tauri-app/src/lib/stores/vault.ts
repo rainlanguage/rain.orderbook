@@ -11,24 +11,33 @@ export const vaultsList = asyncDerived(subgraphUrl, async () => {
 
   return listStore<TokenVault>(
     `${url}.vaultsList`,
-    (page) => invoke("vaults_list", {subgraphArgs: { url }, paginationArgs: { page: page+1, page_size: 10 } }),
-    (path) => invoke("vaults_list_write_csv", {path, subgraphArgs: { url }}),
+    (page) =>
+      invoke('vaults_list', {
+        subgraphArgs: { url },
+        paginationArgs: { page: page + 1, page_size: 10 },
+      }),
+    (path) => invoke('vaults_list_write_csv', { path, subgraphArgs: { url } }),
   );
 });
 
-export const vaultDetail = detailStore<TokenVault>("vaults.vaultsDetail", async (id: string) => {
+export const vaultDetail = detailStore<TokenVault>('vaults.vaultsDetail', async (id: string) => {
   const url = await subgraphUrl.load();
-  return invoke("vault_detail", {id, subgraphArgs: { url } });
+  return invoke('vault_detail', { id, subgraphArgs: { url } });
 });
 
-export const useVaultBalanceChangesList = (id: string) => listStore<VaultBalanceChange>(
-  `vaultBalanceChangesList-${id}`,
-  async (page) => {
-    const url = await subgraphUrl.load();
-    return invoke("vault_balance_changes_list", {subgraphArgs: { url }, id, paginationArgs: { page: page+1, page_size: 10 } })
-  },
-  async (path) => {
-    const url = await subgraphUrl.load();
-    return invoke("vault_balance_changes_list_write_csv", {path, subgraphArgs: { url }, id})
-  },
-);
+export const useVaultBalanceChangesList = (id: string) =>
+  listStore<VaultBalanceChange>(
+    `vaultBalanceChangesList-${id}`,
+    async (page) => {
+      const url = await subgraphUrl.load();
+      return invoke('vault_balance_changes_list', {
+        subgraphArgs: { url },
+        id,
+        paginationArgs: { page: page + 1, page_size: 10 },
+      });
+    },
+    async (path) => {
+      const url = await subgraphUrl.load();
+      return invoke('vault_balance_changes_list_write_csv', { path, subgraphArgs: { url }, id });
+    },
+  );

@@ -115,7 +115,6 @@
       {#if title !== undefined}
         <div class="mb-2 text-xl">{title}</div>
       {/if}
-
     </div>
 
     <div>
