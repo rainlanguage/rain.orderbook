@@ -2,7 +2,7 @@
   import CodeMirror from 'svelte-codemirror-editor';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import { yaml } from '@codemirror/lang-yaml';
-  import { parseConfigSourceProblems } from '$lib/services/config';
+  import { parseConfigSourceProblems } from '$lib/services/configCodemirrorProblems';
   import { RawRainlangExtension } from 'codemirror-rainlang';
   import { openLintPanel } from '@codemirror/lint';
 

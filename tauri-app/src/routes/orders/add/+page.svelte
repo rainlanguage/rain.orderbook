@@ -29,8 +29,8 @@
   import {
     convertConfigstringToConfig,
     mergeDotrainConfigWithSettings,
-    mergeDotrainConfigWithSettingsProblems,
   } from '$lib/services/config';
+  import { mergeDotrainConfigWithSettingsProblems } from '$lib/services/configCodemirrorProblems';
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
