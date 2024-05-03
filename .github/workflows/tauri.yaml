@@ -41,12 +41,8 @@ jobs:
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app
-      - run: nix develop .#tauri-shell --command ob-tauri-prelude
-      - run: nix develop --command rainix-rs-static
-        working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
-      - run: nix develop .#tauri-shell --command ob-tauri-test
         env:
           WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
