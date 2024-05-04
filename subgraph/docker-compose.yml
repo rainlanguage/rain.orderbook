@@ -1,14 +1,6 @@
-version: '4'
-
-include:
-  - rain.subgraph.docker/docker-compose.yml
-
+version: '3'
 services:
-  # The subgraph cli as a box that we can mount our code into as a volume.
-  subgraph-cli:
-    image: rainprotocol/subgraph.subgraph-cli
-    profiles: ["subgraph-cli"]
-    # Pull the whole repo into the subgraph.
+  matchstick:
+    image: rainprotocol/matchstick:main
     volumes:
-      - ../:/repo
-    working_dir: /repo
+      - ..:/matchstick
