@@ -292,17 +292,16 @@
     },
     "nixpkgs_6": {
       "locked": {
-        "lastModified": 1712609864,
-        "narHash": "sha256-c0U5x9ucCKHZHqaJIy4eB0FTFNWbLLF9PyNsVDDj75w=",
+        "lastModified": 1714848109,
+        "narHash": "sha256-+U7FPSgPrb8XmVC/tg0p0ONZpEoOXnU4n29SwKAo7mQ=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "902522b1a069597be55bc1547fadaaeb62111019",
+        "rev": "efd518852d119c174039619a8c84fd11d1afba71",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "902522b1a069597be55bc1547fadaaeb62111019",
         "type": "github"
       }
     },
@@ -388,16 +387,17 @@
         "solc": "solc_2"
       },
       "locked": {
-        "lastModified": 1714583484,
-        "narHash": "sha256-Tn1OMkjY9C1J2CGpbqeEEma2qnLCSmzGP/iRJfxosFU=",
+        "lastModified": 1714848959,
+        "narHash": "sha256-ugsjTrdi0tIqTzym6TVIoDRTGq68KM3Rfb+6lWcgF30=",
         "owner": "rainlanguage",
         "repo": "rainix",
-        "rev": "2013ef7eb66b707d3f61fc2deb022c7db377d49f",
+        "rev": "27352af51e6dc42a886cbe2f1e6ed995d5c70f69",
         "type": "github"
       },
       "original": {
         "owner": "rainlanguage",
         "repo": "rainix",
+        "rev": "27352af51e6dc42a886cbe2f1e6ed995d5c70f69",
         "type": "github"
       }
     },

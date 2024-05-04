@@ -1,77 +1,23 @@
-name: Test subgraph
-
+name: MetaBoard Subgraph CI
 on: [push]
 
-env:
-  FOUNDRY_PROFILE: ci
-
 jobs:
-  test-subgraph:
-    name: Test subgraph
+  test:
     runs-on: ubuntu-latest
-    env:
-      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
-    defaults:
-      run:
-        working-directory: subgraph
+
     steps:
-      - uses: actions/checkout@v4
-        # Need this or graph-node won't be populated.
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          # Nix flakes refuse to run in shallow clones.
           fetch-depth: 0
           submodules: recursive
 
-      - uses: DeterminateSystems/nix-installer-action@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: .
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: .
+      - name: Build subgraph
+        run: nix develop -c subgraph-build
 
-      - name: Docker compose up
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
-
-      - name: npm install for the graph cli service
-        run: docker compose run -w /repo/subgraph subgraph-cli npm install
-
-      - name: Codegen from subgraph
-        run: docker compose run -w /repo/subgraph subgraph-cli graph codegen
-
-      - name: Build the subgraph
-        run: docker compose run -w /repo/subgraph subgraph-cli graph build
-
-      - name: Deploy the subgraph
-        run: |
-          docker compose run -w /repo/subgraph subgraph-cli graph create --node http://graph-node:8020 example/test
-          docker compose run -w /repo/subgraph subgraph-cli graph deploy --node http://graph-node:8020 --ipfs http://ipfs:5001 -l "v0.0.0" example/test
-
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - name: Interpreter prelude
-        run: nix develop --command i9r-prelude
-        working-directory: lib/rain.interpreter
-
-      - name: Deploy i9r to ethnode
-        run: nix develop --command rainix-sol-artifacts
-        env:
-          ETH_RPC_URL: http://localhost:8545
-          # Key for standard test mnemonic at index 0.
-          # "test test test test test test test test test test test junk"
-          DEPLOYMENT_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-        working-directory: lib/rain.interpreter
-
-      - name: Deploy contracts to ethnode
-        run: nix develop --command rainix-sol-artifacts
-        env:
-          ETH_RPC_URL: http://localhost:8545
-          # Key for standard test mnemonic at index 0.
-          # "test test test test test test test test test test test junk"
-          DEPLOYMENT_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-        working-directory: .
-
-      - name: Docker compose down
-        run: docker compose down
+      - name: Matchstick tests
+        run: nix develop -c subgraph-test
