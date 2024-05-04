@@ -5,9 +5,7 @@
     "author": "rainlanguage",
     "license": "CAL",
     "dependencies": {
-        "@graphprotocol/graph-ts": "=0.32.0"
-    },
-    "devDependencies": {
+        "@graphprotocol/graph-ts": "=0.32.0",
         "matchstick-as": "^0.6.0"
     }
 }
