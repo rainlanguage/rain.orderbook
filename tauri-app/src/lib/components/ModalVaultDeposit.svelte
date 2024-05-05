@@ -3,7 +3,11 @@
   import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
   import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
-  import { vaultDeposit, vaultDepositApproveCalldata, vaultDepositCalldata } from '$lib/services/vault';
+  import {
+    vaultDeposit,
+    vaultDepositApproveCalldata,
+    vaultDepositCalldata,
+  } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
@@ -29,7 +33,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(vault.vault_id, vault.token.id, amount);
+      await vaultDeposit(BigInt(vault.vault_id), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -40,20 +44,28 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      if (!$orderbookAddress) throw Error("Select an orderbook to deposit");
+      if (!$orderbookAddress) throw Error('Select an orderbook to deposit');
       const allowance = await checkAllowance(vault.token.id, $orderbookAddress);
       if (allowance.lt(amount)) {
-        const approveCalldata = await vaultDepositApproveCalldata(vault.vault_id, vault.token.id, amount, allowance.toBigInt()) as Uint8Array;
+        const approveCalldata = (await vaultDepositApproveCalldata(
+          BigInt(vault.vault_id),
+          vault.token.id,
+          amount,
+          allowance.toBigInt(),
+        )) as Uint8Array;
         const approveTx = await ethersExecute(approveCalldata, vault.token.id);
-        toasts.success("Approve Transaction sent successfully!");
+        toasts.success('Approve Transaction sent successfully!');
         await approveTx.wait(1);
       }
 
-      const depositCalldata = await vaultDepositCalldata(vault.vault_id, vault.token.id, amount) as Uint8Array;
+      const depositCalldata = (await vaultDepositCalldata(
+        BigInt(vault.vault_id),
+        vault.token.id,
+        amount,
+      )) as Uint8Array;
       const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
-      toasts.success("Transaction sent successfully!");
+      toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
-
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
@@ -118,7 +130,13 @@
     </div>
     <div class="flex w-full justify-end space-x-4">
       <Button color="alternative" on:click={reset} disabled={isSubmitting}>Cancel</Button>
-      <Button on:click={() => {selectWallet = true; open = false;}} disabled={!amount || amount === 0n || isSubmitting}>
+      <Button
+        on:click={() => {
+          selectWallet = true;
+          open = false;
+        }}
+        disabled={!amount || amount === 0n || isSubmitting}
+      >
         Proceed
       </Button>
     </div>
@@ -127,10 +145,10 @@
 
 <ModalExecute
   bind:open={selectWallet}
-  onBack={() => open = true}
+  onBack={() => (open = true)}
   title="Deposit to Vault"
   execButtonLabel="Deposit"
   {executeLedger}
   {executeWalletconnect}
-  bind:isSubmitting={isSubmitting}
+  bind:isSubmitting
 />

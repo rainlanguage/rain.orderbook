@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Spinner } from "flowbite-svelte";
+  import { Button, Spinner } from 'flowbite-svelte';
 
   export let loading = false;
   export let disabled = false;

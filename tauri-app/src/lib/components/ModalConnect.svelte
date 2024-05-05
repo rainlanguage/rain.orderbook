@@ -15,7 +15,7 @@
     ? `${$walletconnectAccount.slice(0, 5)}...${$walletconnectAccount.slice(-5)}`
     : $ledgerWalletAddress
       ? `${$ledgerWalletAddress.slice(0, 5)}...${$ledgerWalletAddress.slice(-5)}`
-      : "Connect to Wallet";
+      : 'Connect to Wallet';
 
   function reset() {
     open = false;
@@ -46,9 +46,11 @@
     </div>
   {:else if selectedLedger || $ledgerWalletAddress}
     <InputLedgerWallet />
-    <div class="flex justify-between space-x-4">
-      <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
-    </div>
+    {#if !$ledgerWalletAddress}
+      <div class="flex justify-between space-x-4">
+        <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
+      </div>
+    {/if}
   {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
     {#if !$walletconnectAccount}

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { toasts } from "$lib/stores/toasts";
+  import { toasts } from '$lib/stores/toasts';
   import { Tooltip } from 'flowbite-svelte';
-  import { WalletOutline, FingerprintOutline, ClipboardListOutline } from "flowbite-svelte-icons";
-  import { HashType } from "$lib/types/hash";
+  import { WalletOutline, FingerprintOutline, ClipboardListOutline } from 'flowbite-svelte-icons';
+  import { HashType } from '$lib/types/hash';
 
   export let value: string;
   export let type: HashType | undefined = undefined;
@@ -11,21 +11,27 @@
   export let copyOnClick = true;
 
   $: id = shorten ? `hash-${value}` : undefined;
-  $: displayValue = value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
+  $: displayValue =
+    value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
 
-  function copy(e) {
-    if(copyOnClick) {
+  function copy(e: MouseEvent) {
+    if (copyOnClick) {
       e.stopPropagation();
       navigator.clipboard.writeText(value);
-      toasts.success("Copied to clipboard");
+      toasts.success('Copied to clipboard');
     }
   }
 </script>
 
-<button type="button" {id} class="inline-block flex justify-start items-center space-x-2 text-left" on:click={copy}>
-  {#if type === HashType.Wallet }
+<button
+  type="button"
+  {id}
+  class="inline-block flex items-center justify-start space-x-2 text-left"
+  on:click={copy}
+>
+  {#if type === HashType.Wallet}
     <WalletOutline size="sm" />
-  {:else if type === HashType.Identifier }
+  {:else if type === HashType.Identifier}
     <FingerprintOutline size="sm" />
   {:else if type === HashType.Transaction}
     <ClipboardListOutline size="sm" />
@@ -35,10 +41,10 @@
 
 {#if shorten}
   <Tooltip triggeredBy={`#${id}`} class="z-20">
-    <div class="inline-block flex justify-start items-center space-x-2">
-      {#if type === HashType.Wallet }
+    <div class="inline-block flex items-center justify-start space-x-2">
+      {#if type === HashType.Wallet}
         <WalletOutline size="sm" />
-      {:else if type === HashType.Identifier }
+      {:else if type === HashType.Identifier}
         <FingerprintOutline size="sm" />
       {:else if type === HashType.Transaction}
         <ClipboardListOutline size="sm" />
