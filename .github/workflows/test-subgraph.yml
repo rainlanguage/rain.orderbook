@@ -1,4 +1,4 @@
-name: MetaBoard Subgraph CI
+name: Subgraph unit tests
 on: [push]
 
 jobs:
