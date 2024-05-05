@@ -40,15 +40,6 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: nix develop --command rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command i9r-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop --command rainix-sol-prelude
-        working-directory: lib/rain.metadata
-
-      - run: nix develop --command rainix-sol-prelude
       - run: nix develop --command rainix-rs-prelude
       - run: nix develop --command raindex-prelude
 
