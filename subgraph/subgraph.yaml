@@ -21,4 +21,4 @@ dataSources:
     eventHandlers:
     - event: Deposit(address,address,uint256,uint256)
       handler: handleDeposit
-    file: './deposit.ts'
+    file: './src/deposit.ts'
