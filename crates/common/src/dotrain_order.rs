@@ -136,12 +136,9 @@ impl DotrainOrder {
             .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network_name.clone()))?
             .clone();
 
-        let authoring_meta_v2 = AuthoringMetaV2::fetch_for_contract(
-            pragma.clone(),
-            rpc.to_string(),
-            metaboard.to_string(),
-        )
-        .await?;
+        let authoring_meta_v2 =
+            AuthoringMetaV2::fetch_for_contract(*pragma, rpc.to_string(), metaboard.to_string())
+                .await?;
 
         Ok(authoring_meta_v2)
     }
