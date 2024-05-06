@@ -139,3 +139,92 @@ test('shows error message when error is present', async () => {
   const errorMsg = screen.getByTestId('error-msg');
   expect(errorMsg).toHaveTextContent('Test error');
 });
+
+const authoringMetaWithScenarioError: ScenarioAuthoringMeta[] = [
+  {
+    scenario_name: 'scenario1',
+    result: {
+      type: 'Error',
+      data: 'Test error',
+    },
+  },
+];
+
+test('shows error message when error is present in authoring meta', async () => {
+  render(Words, { authoringMetas: authoringMetaWithScenarioError, error: undefined });
+
+  await userEvent.click(screen.getByText('scenario1'));
+
+  const errorMsg = screen.getByTestId('scenario-error-msg');
+  expect(errorMsg).toHaveTextContent('Test error');
+});
+
+const authoringMetaWithPragmaError: ScenarioAuthoringMeta[] = [
+  {
+    scenario_name: 'scenario1',
+    result: {
+      type: 'Success',
+      data: {
+        deployer: {
+          address: '0x4567',
+          result: {
+            type: 'Success',
+            data: {
+              words: [
+                { word: 'dog', description: 'an animal' },
+                { word: 'cat', description: 'another animal' },
+                { word: 'fish', description: 'yet another animal' },
+              ],
+            },
+          },
+        },
+        pragmas: [
+          {
+            address: '0x0123',
+            result: {
+              type: 'Error',
+              data: 'Test error',
+            },
+          },
+        ],
+      },
+    },
+  },
+];
+
+test('shows error message when error is present in pragma', async () => {
+  render(Words, { authoringMetas: authoringMetaWithPragmaError, error: undefined });
+
+  await userEvent.click(screen.getByText('scenario1'));
+
+  const errorMsg = screen.getByTestId('pragma-error-msg');
+  expect(errorMsg).toHaveTextContent('Test error');
+});
+
+const authoringMetaWithDeployerError: ScenarioAuthoringMeta[] = [
+  {
+    scenario_name: 'scenario1',
+    result: {
+      type: 'Success',
+      data: {
+        deployer: {
+          address: '0x4567',
+          result: {
+            type: 'Error',
+            data: 'Test error',
+          },
+        },
+        pragmas: [],
+      },
+    },
+  },
+];
+
+test('shows error message when error is present in deployer', async () => {
+  render(Words, { authoringMetas: authoringMetaWithDeployerError, error: undefined });
+
+  await userEvent.click(screen.getByText('scenario1'));
+
+  const errorMsg = screen.getByTestId('deployer-error-msg');
+  expect(errorMsg).toHaveTextContent('Test error');
+});

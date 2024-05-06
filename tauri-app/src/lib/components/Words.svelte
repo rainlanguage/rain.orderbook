@@ -24,6 +24,7 @@
               />
             {:else if scenario.result.data.deployer.result.type === 'Error'}
               <div
+                data-testid="deployer-error-msg"
                 class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
               >
                 <p>Error getting words for this deployer:</p>
@@ -36,6 +37,7 @@
               {:else if pragma.result.type === 'Error'}
                 <div
                   class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
+                  data-testid="pragma-error-msg"
                 >
                   <p>Error getting words for the pragma {pragma.address}:</p>
                   <p>{pragma.result.data}</p>
@@ -45,6 +47,7 @@
           {:else if scenario.result.type === 'Error'}
             <div
               class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
+              data-testid="scenario-error-msg"
             >
               <p>Error getting words for this scenario:</p>
               <p>{scenario.result.data}</p>
