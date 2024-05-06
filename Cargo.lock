@@ -185,6 +185,28 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4#75a5cb9a9e845c06a82a6b89bc484b2c9e112db4"
+dependencies = [
+ "alloy-dyn-abi 0.6.4",
+ "alloy-json-abi 0.6.4",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
+ "async-trait",
+ "derive_builder 0.12.0",
+ "ethers",
+ "once_cell",
+ "rain-error-decoding",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "alloy-ethers-typecast"
+version = "0.2.0"
 source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=a6bcb86b9b61a56d2440d33313f024297ce737bb#a6bcb86b9b61a56d2440d33313f024297ce737bb"
 dependencies = [
  "alloy-primitives 0.6.4",
@@ -5810,6 +5832,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
+name = "rain-error-decoding"
+version = "0.1.0"
+source = "git+https://github.com/rainlanguage/rain.error?rev=6763061d89cfc084c81e01f75f6118881fa5b77b#6763061d89cfc084c81e01f75f6118881fa5b77b"
+dependencies = [
+ "alloy-dyn-abi 0.6.4",
+ "alloy-json-abi 0.6.4",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
+ "ethers",
+ "once_cell",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "rain-interpreter-env"
 version = "0.0.0"
 dependencies = [
@@ -5856,7 +5895,7 @@ dependencies = [
 name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
@@ -5945,7 +5984,7 @@ dependencies = [
 name = "rain_interpreter_dispair"
 version = "0.1.0"
 dependencies = [
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=a6bcb86b9b61a56d2440d33313f024297ce737bb)",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "ethers",
@@ -5962,7 +6001,7 @@ dependencies = [
 name = "rain_interpreter_parser"
 version = "0.1.0"
 dependencies = [
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=a6bcb86b9b61a56d2440d33313f024297ce737bb)",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "ethers",
@@ -6004,7 +6043,7 @@ dependencies = [
 name = "rain_orderbook_cli"
 version = "0.0.4"
 dependencies = [
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "anyhow",
@@ -6029,7 +6068,7 @@ name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
  "alloy-dyn-abi 0.6.4",
- "alloy-ethers-typecast",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
  "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
