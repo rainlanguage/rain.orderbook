@@ -2,38 +2,21 @@ use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use alloy_primitives::Address;
 use dotrain::{error::ComposeError, RainDocument};
 use rain_interpreter_parser::{ParserError, ParserV2};
-use rain_metadata::types::authoring::v2::*;
+pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::{
     config_source::{ConfigSource, ConfigSourceError},
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
-use std::collections::HashMap;
 use thiserror::Error;
-use typeshare::typeshare;
 
 use crate::rainlang::compose_to_rainlang;
 
+#[derive(Clone)]
 pub struct DotrainOrder {
     pub config: Config,
     pub dotrain: String,
 }
-
-#[typeshare]
-pub struct ExtAuthoringMetaV2Word {
-    pub word: String,
-    pub description: String,
-}
-#[typeshare]
-pub struct ExtAuthoringMetaV2 {
-    pub words: Vec<ExtAuthoringMetaV2Word>,
-}
-
-#[typeshare(serialized_as = "HashMap<String, ExtAuthoringMetaV2>")]
-pub type PragmasAuthoringMeta = HashMap<Address, AuthoringMetaV2>;
-
-#[typeshare]
-pub type ScenariosAuthoringMeta = HashMap<String, PragmasAuthoringMeta>;
 
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
@@ -106,32 +89,31 @@ impl DotrainOrder {
 
     pub async fn get_pragmas_for_scenario(
         &self,
-        scenario: String,
+        scenario: &String,
     ) -> Result<Vec<Address>, DotrainOrderError> {
         let deployer = &self
             .config
             .scenarios
-            .get(&scenario)
+            .get(scenario)
             .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
             .deployer;
         let parser: ParserV2 = deployer.address.into();
-        let rainlang = self.compose_scenario_to_rainlang(scenario).await?;
+        let rainlang = self.compose_scenario_to_rainlang(scenario.clone()).await?;
 
         let client = ReadableClient::new_from_url(deployer.network.rpc.clone().to_string())?;
-        let mut pragmas = parser.parse_pragma_text(&rainlang, client).await?;
-        pragmas.push(deployer.address);
-
+        let pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         Ok(pragmas)
     }
 
-    pub async fn get_authoring_meta_v2_for_scenario(
+    pub async fn get_authoring_meta_v2_for_scenario_pragma(
         &self,
-        scenario: String,
-    ) -> Result<PragmasAuthoringMeta, DotrainOrderError> {
+        scenario: &String,
+        pragma: &Address,
+    ) -> Result<AuthoringMetaV2, DotrainOrderError> {
         let rpc = self
             .config
             .scenarios
-            .get(&scenario)
+            .get(scenario)
             .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
             .deployer
             .network
@@ -141,7 +123,7 @@ impl DotrainOrder {
         let network_name = &self
             .config
             .scenarios
-            .get(&scenario)
+            .get(scenario)
             .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
             .deployer
             .network
@@ -154,33 +136,14 @@ impl DotrainOrder {
             .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network_name.clone()))?
             .clone();
 
-        let pragmas = self.get_pragmas_for_scenario(scenario).await?;
+        let authoring_meta_v2 = AuthoringMetaV2::fetch_for_contract(
+            pragma.clone(),
+            rpc.to_string(),
+            metaboard.to_string(),
+        )
+        .await?;
 
-        let mut authoring_metas_for_pragmas = HashMap::new();
-
-        for pragma in pragmas {
-            let authoring_meta_v2 =
-                AuthoringMetaV2::fetch_for_contract(pragma, rpc.to_string(), metaboard.to_string())
-                    .await?;
-            authoring_metas_for_pragmas.insert(pragma, authoring_meta_v2);
-        }
-
-        Ok(authoring_metas_for_pragmas)
-    }
-
-    pub async fn get_authoring_metas_for_all_scenarios(
-        &self,
-    ) -> Result<ScenariosAuthoringMeta, DotrainOrderError> {
-        let mut authoring_metas: ScenariosAuthoringMeta = HashMap::new();
-
-        for scenario in self.config.scenarios.keys() {
-            let authoring_meta_v2: PragmasAuthoringMeta = self
-                .get_authoring_meta_v2_for_scenario(scenario.clone())
-                .await?;
-            authoring_metas.insert(scenario.clone(), authoring_meta_v2);
-        }
-
-        Ok(authoring_metas)
+        Ok(authoring_meta_v2)
     }
 }
 
@@ -333,7 +296,7 @@ _ _: 0 0;
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
         let pragmas = dotrain_order
-            .get_pragmas_for_scenario("sepolia".to_string())
+            .get_pragmas_for_scenario(&"sepolia".to_string())
             .await
             .unwrap();
 

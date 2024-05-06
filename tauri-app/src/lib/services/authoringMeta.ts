@@ -1,7 +1,8 @@
-import type { ScenariosAuthoringMeta } from '$lib/typeshare/dotrainOrder';
+import type { ScenarioAuthoringMeta } from '$lib/typeshare/authoringMeta';
 import { invoke } from '@tauri-apps/api';
 
-export const getAuthoringMetas = async (
+export const getAuthoringMetaV2ForScenarios = async (
   dotrain: string,
-  settings: string,
-): Promise<ScenariosAuthoringMeta> => invoke('get_authoring_metas', { dotrain, settings });
+  settings?: string,
+): Promise<ScenarioAuthoringMeta[]> =>
+  invoke('get_authoring_meta_v2_for_scenarios', { dotrain, settings });
