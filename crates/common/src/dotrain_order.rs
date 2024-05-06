@@ -300,42 +300,49 @@ _ _: 0 0;
             .await
             .unwrap();
 
-        println!("{:?}", pragmas);
-
         assert_eq!(pragmas.len(), 2);
     }
 
     #[tokio::test]
-    async fn test_get_authoring_meta_for_all_scenarios() {
+    async fn test_get_get_authoring_meta_v2_for_scenario_pragma() {
         let dotrain = format!(
             r#"
-networks:
-    sepolia:
-        rpc: {rpc_url}
-        chain-id: 0
-deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
-scenarios:
-    sepolia:
-metaboards:
-    sepolia: {metaboard_url}
----
-#calculate-io
-using-words-from 0x8f037f2a3fF2dee510486D9C63A47A245991a4C1
-_: order-hash(),
-_ _: 0 0;
-#handle-io
-:;"#,
+    networks:
+        sepolia:
+            rpc: {rpc_url}
+            chain-id: 0
+    deployers:
+        sepolia:
+            address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    scenarios:
+        sepolia:
+    metaboards:
+        sepolia: {metaboard_url}
+    ---
+    #calculate-io
+    using-words-from 0x8f037f2a3fF2dee510486D9C63A47A245991a4C1
+    _: order-hash(),
+    _ _: 0 0;
+    #handle-io
+    :;"#,
             rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL,
             metaboard_url = rain_orderbook_env::CI_SEPOLIA_METABOARD_URL,
         );
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
-        let _authoring_metas = dotrain_order
-            .get_authoring_metas_for_all_scenarios()
+        let pragmas = dotrain_order
+            .get_pragmas_for_scenario(&"sepolia".to_string())
             .await
             .unwrap();
+
+        println!("{:?}", pragmas);
+
+        let authoring_meta_v2 = dotrain_order
+            .get_authoring_meta_v2_for_scenario_pragma(&"sepolia".to_string(), &pragmas[0])
+            .await
+            .unwrap();
+
+        println!("{:?}", authoring_meta_v2);
     }
 }
