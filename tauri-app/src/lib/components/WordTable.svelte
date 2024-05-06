@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ExtAuthoringMetaV2 } from '$lib/typeshare/dotrainOrder';
+  import type { ExtAuthoringMetaV2 } from '$lib/typeshare/authoringMeta';
   import {
     Input,
     Table,

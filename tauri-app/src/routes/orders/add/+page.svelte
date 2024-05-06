@@ -34,7 +34,7 @@
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
-  import { getAuthoringMetas } from '$lib/services/authoringMeta';
+  import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -67,7 +67,7 @@
     debouncedFn: debounceGetAuthoringMetas,
     result: authoringMetasResult,
     error: authoringMetasError,
-  } = useDebouncedFn(getAuthoringMetas, 500);
+  } = useDebouncedFn(getAuthoringMetaV2ForScenarios, 500);
 
   $: debounceGetAuthoringMetas($globalDotrainFile.text, $settingsText);
 
