@@ -3,35 +3,35 @@ import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 import { mergeDotrainConfigWithSettings, parseConfigSource } from './config';
 
 export async function parseConfigSourceProblems(text: string) {
-    const problems: Problem[] = [];
+  const problems: Problem[] = [];
 
-    try {
-      await parseConfigSource(text);
-    } catch(e) {
-      reportErrorToSentry(e, SentrySeverityLevel.Info);
-      problems.push(convertErrorToProblem(e));
-    }
-
-    return problems;
+  try {
+    await parseConfigSource(text);
+  } catch (e) {
+    reportErrorToSentry(e, SentrySeverityLevel.Info);
+    problems.push(convertErrorToProblem(e));
   }
 
-  export async function mergeDotrainConfigWithSettingsProblems(dotrain: string) {
-    const problems: Problem[] = [];
+  return problems;
+}
 
-    try {
-      await mergeDotrainConfigWithSettings(dotrain);
-    } catch(e) {
-      reportErrorToSentry(e, SentrySeverityLevel.Info);
-      problems.push(convertErrorToProblem(e));
-    }
+export async function mergeDotrainConfigWithSettingsProblems(dotrain: string) {
+  const problems: Problem[] = [];
 
-    return problems;
+  try {
+    await mergeDotrainConfigWithSettings(dotrain);
+  } catch (e) {
+    reportErrorToSentry(e, SentrySeverityLevel.Info);
+    problems.push(convertErrorToProblem(e));
   }
 
-  function convertErrorToProblem(e: unknown) {
-    return {
-      msg: typeof e === "string" ? e : e instanceof Error ? e.message : "something went wrong!",
-      position: [0, 0],
-      code: ErrorCode.InvalidRainDocument
-    } as Problem
-  }
+  return problems;
+}
+
+function convertErrorToProblem(e: unknown) {
+  return {
+    msg: typeof e === 'string' ? e : e instanceof Error ? e.message : 'something went wrong!',
+    position: [0, 0],
+    code: ErrorCode.InvalidRainDocument,
+  } as Problem;
+}

@@ -187,6 +187,9 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
 
     /// Vault balances MUST NOT silently overflow.
     function testDepositOverflow(address depositor, uint256 vaultId, uint256 amountOne, uint256 amountTwo) external {
+        amountOne = bound(amountOne, type(uint128).max, type(uint256).max);
+        amountTwo = bound(amountTwo, type(uint128).max, type(uint256).max);
+
         bool didOverflow = false;
         assembly {
             didOverflow := lt(add(amountOne, amountTwo), amountOne)
