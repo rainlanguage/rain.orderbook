@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import WordTable from './WordTable.svelte';
-import type { ExtAuthoringMetaV2 } from '$lib/typeshare/dotrainOrder';
+import type { ExtAuthoringMetaV2 } from '$lib/typeshare/authoringMeta';
 import { expect } from '$lib/test/matchers';
 import userEvent from '@testing-library/user-event';
 
