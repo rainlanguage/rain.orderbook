@@ -6,8 +6,7 @@ import {RainterpreterNPE2} from "rain.interpreter/concrete/RainterpreterNPE2.sol
 import {RainterpreterStoreNPE2} from "rain.interpreter/concrete/RainterpreterStoreNPE2.sol";
 import {
     RainterpreterExpressionDeployerNPE2,
-    RainterpreterExpressionDeployerNPE2ConstructionConfig,
-    CONSTRUCTION_META_HASH as DEPLOYER_CALLER_META_HASH
+    RainterpreterExpressionDeployerNPE2ConstructionConfigV2
 } from "rain.interpreter/concrete/RainterpreterExpressionDeployerNPE2.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
@@ -21,8 +20,6 @@ import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
-
-string constant DEPLOYER_META_PATH = "lib/rain.interpreter/meta/RainterpreterExpressionDeployerNPE2.rain.meta";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
     IExpressionDeployerV3 internal immutable iDeployer;
@@ -48,19 +45,11 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         vm.mockCall(
             address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
         );
-        bytes memory deployerMeta = vm.readFileBinary(DEPLOYER_META_PATH);
-        bytes32 deployerMetaHash = keccak256(deployerMeta);
-        if (deployerMetaHash != DEPLOYER_CALLER_META_HASH) {
-            console2.log("deployer meta hash:");
-            console2.logBytes32(deployerMetaHash);
-            console2.log("expected deployer meta hash:");
-            console2.logBytes32(DEPLOYER_CALLER_META_HASH);
-        }
         iDeployer = IExpressionDeployerV3(
             address(
                 new RainterpreterExpressionDeployerNPE2(
-                    RainterpreterExpressionDeployerNPE2ConstructionConfig(
-                        address(iInterpreter), address(iStore), address(iParser), deployerMeta
+                    RainterpreterExpressionDeployerNPE2ConstructionConfigV2(
+                        address(iInterpreter), address(iStore), address(iParser)
                     )
                 )
             )
