@@ -5842,6 +5842,7 @@ name = "rain-metaboard-subgraph"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives 0.6.4",
+ "async-trait",
  "cynic",
  "cynic-codegen",
  "httpmock",
