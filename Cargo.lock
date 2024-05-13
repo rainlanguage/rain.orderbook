@@ -5903,6 +5903,7 @@ dependencies = [
  "deflate",
  "futures",
  "graphql_client",
+ "httpmock",
  "inflate",
  "itertools 0.10.5",
  "once_cell",
