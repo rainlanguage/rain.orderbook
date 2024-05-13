@@ -205,23 +205,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alloy-ethers-typecast"
-version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=a6bcb86b9b61a56d2440d33313f024297ce737bb#a6bcb86b9b61a56d2440d33313f024297ce737bb"
-dependencies = [
- "alloy-primitives 0.6.4",
- "alloy-sol-types 0.6.4",
- "async-trait",
- "derive_builder 0.12.0",
- "ethers",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "alloy-genesis"
 version = "0.1.0"
 source = "git+https://github.com/alloy-rs/alloy?rev=8808d21#8808d21677ed9a05ff04000ac7f4acdd2fde94e3"
@@ -3381,14 +3364,14 @@ dependencies = [
 
 [[package]]
 name = "foundry-block-explorers"
-version = "0.2.7"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "351c6be2db0090c6c5ae214a7e768a1a61d7d46ff70ab9e7ee45c8f34e6c3c60"
+checksum = "b64cb03e297eb85b9f84a195fec7390a5e9805d9b82b11b2af57f65fc6d4ceb7"
 dependencies = [
  "alloy-chains",
  "alloy-json-abi 0.7.2",
  "alloy-primitives 0.7.2",
- "foundry-compilers 0.4.1",
+ "foundry-compilers",
  "reqwest 0.12.4",
  "semver 1.0.23",
  "serde",
@@ -3417,7 +3400,7 @@ dependencies = [
  "eyre",
  "foundry-cheatcodes-spec",
  "foundry-common",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-config",
  "foundry-evm-core",
  "foundry-wallets",
@@ -3473,7 +3456,7 @@ dependencies = [
  "dunce",
  "eyre",
  "foundry-block-explorers",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-config",
  "foundry-linking",
  "glob",
@@ -3530,37 +3513,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "foundry-compilers"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f97f9de33410d0daf13834f818a8594c0ed277c848af750e40a9f28e67d62e3a"
-dependencies = [
- "alloy-json-abi 0.7.2",
- "alloy-primitives 0.7.2",
- "auto_impl",
- "cfg-if",
- "dirs",
- "dunce",
- "home",
- "itertools 0.12.1",
- "md-5",
- "memmap2",
- "once_cell",
- "path-slash",
- "rayon",
- "regex",
- "semver 1.0.23",
- "serde",
- "serde_json",
- "solang-parser",
- "svm-rs 0.5.2",
- "thiserror",
- "tracing",
- "walkdir",
- "yansi 1.0.1",
-]
-
-[[package]]
 name = "foundry-config"
 version = "0.2.0"
 source = "git+https://github.com/foundry-rs/foundry?rev=26e6e57527497a90af1a5409484c01b5e7702a02#26e6e57527497a90af1a5409484c01b5e7702a02"
@@ -3573,7 +3525,7 @@ dependencies = [
  "eyre",
  "figment",
  "foundry-block-explorers",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "globset",
  "number_prefix",
  "once_cell",
@@ -3607,7 +3559,7 @@ dependencies = [
  "eyre",
  "foundry-cheatcodes",
  "foundry-common",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-config",
  "foundry-evm-core",
  "foundry-evm-coverage",
@@ -3641,7 +3593,7 @@ dependencies = [
  "eyre",
  "foundry-cheatcodes-spec",
  "foundry-common",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-config",
  "foundry-macros",
  "futures",
@@ -3667,7 +3619,7 @@ dependencies = [
  "alloy-primitives 0.7.2",
  "eyre",
  "foundry-common",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-evm-core",
  "revm",
  "rustc-hash",
@@ -3685,7 +3637,7 @@ dependencies = [
  "alloy-primitives 0.7.2",
  "eyre",
  "foundry-common",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-config",
  "foundry-evm-core",
  "foundry-evm-coverage",
@@ -3714,7 +3666,7 @@ dependencies = [
  "eyre",
  "foundry-block-explorers",
  "foundry-common",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "foundry-config",
  "foundry-evm-core",
  "futures",
@@ -3733,7 +3685,7 @@ version = "0.2.0"
 source = "git+https://github.com/foundry-rs/foundry?rev=26e6e57527497a90af1a5409484c01b5e7702a02#26e6e57527497a90af1a5409484c01b5e7702a02"
 dependencies = [
  "alloy-primitives 0.7.2",
- "foundry-compilers 0.3.20",
+ "foundry-compilers",
  "semver 1.0.23",
  "thiserror",
 ]
@@ -5941,7 +5893,7 @@ dependencies = [
 name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
+ "alloy-ethers-typecast",
  "alloy-json-abi 0.5.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
@@ -6030,7 +5982,7 @@ dependencies = [
 name = "rain_interpreter_dispair"
 version = "0.1.0"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
+ "alloy-ethers-typecast",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "ethers",
@@ -6047,7 +5999,7 @@ dependencies = [
 name = "rain_interpreter_parser"
 version = "0.1.0"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
+ "alloy-ethers-typecast",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "ethers",
@@ -6089,7 +6041,7 @@ dependencies = [
 name = "rain_orderbook_cli"
 version = "0.0.4"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
+ "alloy-ethers-typecast",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "anyhow",
@@ -6114,7 +6066,7 @@ name = "rain_orderbook_common"
 version = "0.0.1"
 dependencies = [
  "alloy-dyn-abi 0.6.4",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4)",
+ "alloy-ethers-typecast",
  "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
