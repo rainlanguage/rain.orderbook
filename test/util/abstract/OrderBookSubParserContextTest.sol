@@ -2,7 +2,6 @@
 pragma solidity =0.8.19;
 
 import {StackAllocationMismatch} from "rain.interpreter/error/ErrIntegrity.sol";
-import {DEPLOYER_META_PATH} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {OpTest} from "rain.interpreter/../test/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
@@ -12,10 +11,6 @@ abstract contract OrderBookSubParserContextTest is OpTest {
     using Strings for address;
 
     function word() internal pure virtual returns (string memory);
-
-    function constructionMetaPath() internal view virtual override returns (string memory) {
-        return DEPLOYER_META_PATH;
-    }
 
     function testSubParserContextHappy() external {
         string memory w = word();

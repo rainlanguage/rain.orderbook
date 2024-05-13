@@ -19,9 +19,6 @@
 [submodule "lib/rain.solmem"]
 	path = lib/rain.solmem
 	url = https://github.com/rainprotocol/rain.solmem
-[submodule "lib/rain.intorastring"]
-	path = lib/rain.intorastring
-	url = https://github.com/rainlanguage/rain.intorastring
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
