@@ -32,6 +32,8 @@ pub struct Order {
     pub valid_inputs: Option<Vec<Io>>,
     pub valid_outputs: Option<Vec<Io>>,
     pub meta: Option<RainMetaV1>,
+    #[cynic(rename = "orderJSONString")]
+    pub order_json: String,
 }
 
 #[typeshare]
