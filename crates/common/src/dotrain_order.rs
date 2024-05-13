@@ -42,6 +42,9 @@ pub enum DotrainOrderError {
     AuthoringMetaV2Error(#[from] AuthoringMetaV2Error),
 
     #[error(transparent)]
+    FetchAuthoringMetaV2WordError(#[from] FetchAuthoringMetaV2WordError),
+
+    #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
 
     #[error(transparent)]
