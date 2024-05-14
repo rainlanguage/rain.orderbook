@@ -70,7 +70,7 @@ impl AddOrderArgs {
             if let Some(decimals) = input.token.decimals {
                 inputs.push(IO {
                     token: input.token.address,
-                    vaultId: input.vault_id,
+                    vaultId: input.vault_id.unwrap_or(random_u256()),
                     decimals,
                 });
             } else {
@@ -83,7 +83,7 @@ impl AddOrderArgs {
                 let decimals = client.read(parameters).await?._0;
                 inputs.push(IO {
                     token: input.token.address,
-                    vaultId: input.vault_id,
+                    vaultId: input.vault_id.unwrap_or(random_u256()),
                     decimals,
                 });
             }
@@ -94,7 +94,7 @@ impl AddOrderArgs {
             if let Some(decimals) = output.token.decimals {
                 outputs.push(IO {
                     token: output.token.address,
-                    vaultId: output.vault_id,
+                    vaultId: output.vault_id.unwrap_or(random_u256()),
                     decimals,
                 });
             } else {
@@ -108,7 +108,7 @@ impl AddOrderArgs {
                 let decimals = client.read(parameters).await?._0;
                 outputs.push(IO {
                     token: output.token.address,
-                    vaultId: output.vault_id,
+                    vaultId: output.vault_id.unwrap_or(random_u256()),
                     decimals,
                 });
             }
@@ -232,9 +232,20 @@ impl AddOrderArgs {
     }
 }
 
+pub fn random_u256() -> U256 {
+    rand::random()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_random_u256() {
+        let random1 = random_u256();
+        let random2 = random_u256();
+        assert_ne!(random1, random2);
+    }
 
     #[test]
     fn test_try_generate_meta() {

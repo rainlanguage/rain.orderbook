@@ -125,7 +125,7 @@ pub struct DeploymentConfigSource {
 pub struct IOString {
     pub token: TokenRef,
     #[typeshare(typescript(type = "bigint"))]
-    pub vault_id: U256,
+    pub vault_id: Option<U256>,
 }
 
 #[typeshare]
@@ -269,9 +269,7 @@ orders:
     buyETH:
         inputs:
             - token: eth
-              vault-id: 2
             - token: dai
-              vault-id: 0x1
         outputs:
             - token: dai
               vault-id: 3
@@ -384,5 +382,36 @@ sentry: true"#
             config.networks.get("matic").unwrap().label,
             Some("Polygon Mainnet".into())
         );
+
+        let expected_order = OrderConfigSource {
+            inputs: vec![
+                IOString {
+                    token: "eth".to_string(),
+                    vault_id: None,
+                },
+                IOString {
+                    token: "dai".to_string(),
+                    vault_id: None,
+                },
+            ],
+            outputs: vec![IOString {
+                token: "dai".to_string(),
+                vault_id: Some(U256::from(3)),
+            }],
+            deployer: Some("mainDeployer".to_string()),
+            orderbook: Some("mainnetOrderbook".to_string()),
+        };
+        let order = config.orders.get("buyETH").unwrap();
+        assert_eq!(order.inputs[0].token, expected_order.inputs[0].token);
+        assert_eq!(order.inputs[0].vault_id, expected_order.inputs[0].vault_id);
+        assert_eq!(order.inputs[1].token, expected_order.inputs[1].token);
+        assert_eq!(order.inputs[1].vault_id, expected_order.inputs[1].vault_id);
+        assert_eq!(order.outputs[0].token, expected_order.outputs[0].token);
+        assert_eq!(
+            order.outputs[0].vault_id,
+            expected_order.outputs[0].vault_id
+        );
+        assert_eq!(order.deployer, expected_order.deployer);
+        assert_eq!(order.orderbook, expected_order.orderbook);
     }
 }
