@@ -70,6 +70,9 @@ impl DotrainAddOrderLsp {
         if !top_problems.is_empty() {
             bindings_problems.extend(top_problems.to_vec());
             bindings_problems
+                .into_iter()
+                .filter(|v| v.code != ErrorCode::ElidedBinding)
+                .collect()
         } else {
             let rainlang = match rain_document.compose(&ORDERBOOK_ORDER_ENTRYPOINTS) {
                 Ok(v) => v,
@@ -80,7 +83,10 @@ impl DotrainAddOrderLsp {
                             position: [0, 0],
                             code: ErrorCode::NativeParserError,
                         });
-                        return bindings_problems;
+                        return bindings_problems
+                            .into_iter()
+                            .filter(|v| v.code != ErrorCode::ElidedBinding)
+                            .collect();
                     }
                     ComposeError::Problems(problems) => {
                         for p in problems {
@@ -88,7 +94,10 @@ impl DotrainAddOrderLsp {
                                 bindings_problems.push(p)
                             }
                         }
-                        return bindings_problems;
+                        return bindings_problems
+                            .into_iter()
+                            .filter(|v| v.code != ErrorCode::ElidedBinding)
+                            .collect();
                     }
                 },
             };
@@ -111,6 +120,45 @@ impl DotrainAddOrderLsp {
                 });
             }
             bindings_problems
+                .into_iter()
+                .filter(|v| v.code != ErrorCode::ElidedBinding)
+                .collect()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use url::Url;
+
+    #[tokio::test]
+    async fn test_add_order_problems() {
+        let dotrain = r#"
+some frontmatter
+---
+#elided-binding ! some msg
+#main
+_ _: 0 elided-binding;"#;
+
+        let text_document = TextDocumentItem {
+            text: dotrain.to_string(),
+            uri: Url::parse("file:///untitled.rain").unwrap(),
+            language_id: "rainlang".to_string(),
+            version: 0,
+        };
+
+        let dotrain_lsp_struct = DotrainAddOrderLsp::new(text_document, HashMap::new());
+        let result = dotrain_lsp_struct
+            .problems(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL, None, None)
+            .await;
+
+        let expected = vec![Problem {
+            msg: "undefined identifier: calculate-io".to_string(),
+            code: ErrorCode::NativeParserError,
+            position: [0, 0],
+        }];
+
+        assert_eq!(result, expected);
     }
 }
