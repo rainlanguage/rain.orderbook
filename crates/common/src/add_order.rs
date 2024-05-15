@@ -65,12 +65,13 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: Deployment,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
+        let random_vault_id = random_u256();
         let mut inputs = vec![];
         for input in &deployment.order.inputs {
             if let Some(decimals) = input.token.decimals {
                 inputs.push(IO {
                     token: input.token.address,
-                    vaultId: input.vault_id.unwrap_or(random_u256()),
+                    vaultId: input.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
             } else {
@@ -83,7 +84,7 @@ impl AddOrderArgs {
                 let decimals = client.read(parameters).await?._0;
                 inputs.push(IO {
                     token: input.token.address,
-                    vaultId: input.vault_id.unwrap_or(random_u256()),
+                    vaultId: input.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
             }
@@ -94,7 +95,7 @@ impl AddOrderArgs {
             if let Some(decimals) = output.token.decimals {
                 outputs.push(IO {
                     token: output.token.address,
-                    vaultId: output.vault_id.unwrap_or(random_u256()),
+                    vaultId: output.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
             } else {
@@ -108,7 +109,7 @@ impl AddOrderArgs {
                 let decimals = client.read(parameters).await?._0;
                 outputs.push(IO {
                     token: output.token.address,
-                    vaultId: output.vault_id.unwrap_or(random_u256()),
+                    vaultId: output.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
             }
@@ -238,6 +239,16 @@ pub fn random_u256() -> U256 {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use rain_orderbook_app_settings::deployer::Deployer;
+    use rain_orderbook_app_settings::network::Network;
+    use rain_orderbook_app_settings::order::{Order, OrderIO};
+    use rain_orderbook_app_settings::scenario::Scenario;
+    use rain_orderbook_app_settings::token::Token;
+    use rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL;
+    use url::Url;
+
     use super::*;
 
     #[test]
@@ -335,5 +346,95 @@ price: 2e18;
         assert_eq!(order_config_v2.evaluableConfig.bytecode, bytecode);
         assert_eq!(order_config_v2.evaluableConfig.constants, constants);
         assert_eq!(order_config_v2.meta, meta.clone());
+    }
+
+    #[tokio::test]
+    async fn test_add_order_random_vault_id_generation() {
+        let network = Network {
+            name: "test-network".to_string(),
+            rpc: Url::parse(CI_DEPLOY_POLYGON_RPC_URL).unwrap(),
+            chain_id: 137,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+        let network_arc = Arc::new(network);
+        let deployer = Deployer {
+            network: network_arc.clone(),
+            address: Address::default(),
+            label: None,
+        };
+        let deployer_arc = Arc::new(deployer);
+        let scenario = Scenario {
+            name: "test-scenario".to_string(),
+            bindings: HashMap::new(),
+            runs: None,
+            deployer: deployer_arc.clone(),
+        };
+        let token1 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token1".to_string()),
+        };
+        let token2 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token2".to_string()),
+        };
+        let token3 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token3".to_string()),
+        };
+        let token1_arc = Arc::new(token1);
+        let token2_arc = Arc::new(token2);
+        let token3_arc = Arc::new(token3);
+        let known_vault_id = U256::from(1);
+        let order = Order {
+            inputs: vec![
+                OrderIO {
+                    token: token1_arc.clone(),
+                    vault_id: None,
+                },
+                OrderIO {
+                    token: token2_arc.clone(),
+                    vault_id: Some(known_vault_id),
+                },
+            ],
+            outputs: vec![OrderIO {
+                token: token3_arc.clone(),
+                vault_id: None,
+            }],
+            network: network_arc.clone(),
+            deployer: None,
+            orderbook: None,
+        };
+        let deployment = Deployment {
+            scenario: Arc::new(scenario),
+            order: Arc::new(order),
+        };
+
+        let dotrain = r#"
+some front matter
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#;
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+
+        // input1 vault id should be same as known_vault_id
+        assert_eq!(result.inputs[1].vaultId, known_vault_id);
+
+        // input0 and output0 vaults should be the same random value
+        assert_eq!(result.inputs[0].vaultId, result.outputs[0].vaultId);
     }
 }
