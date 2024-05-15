@@ -16,7 +16,9 @@
 
 <WindowDraggableArea />
 
-<div class="mb-10 flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
+<div
+  class="mb-10 flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+>
   <Sidebar />
 
   <main class="ml-64 h-full w-full grow overflow-x-auto p-8">
@@ -34,6 +36,6 @@
     {/each}
   </div>
 </div>
-<div class="fixed bottom-0 left-64 right-0 bg-primary-400 p-2 text-center text-white">
+<div class="bg-primary-400 fixed bottom-0 left-64 right-0 p-2 text-center text-white">
   The Raindex app is still early alpha - have fun but use at your own risk!
 </div>
