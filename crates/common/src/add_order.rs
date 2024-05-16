@@ -65,7 +65,7 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: Deployment,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        let random_vault_id = random_u256();
+        let random_vault_id: U256 = rand::random();
         let mut inputs = vec![];
         for input in &deployment.order.inputs {
             if let Some(decimals) = input.token.decimals {
@@ -233,10 +233,6 @@ impl AddOrderArgs {
     }
 }
 
-pub fn random_u256() -> U256 {
-    rand::random()
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -250,13 +246,6 @@ mod tests {
     use url::Url;
 
     use super::*;
-
-    #[test]
-    fn test_random_u256() {
-        let random1 = random_u256();
-        let random2 = random_u256();
-        assert_ne!(random1, random2);
-    }
 
     #[test]
     fn test_try_generate_meta() {
