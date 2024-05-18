@@ -12,17 +12,12 @@
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
-  import DropdownActiveNetwork from '$lib/components/DropdownActiveNetwork.svelte';
-  import DropdownActiveOrderbook from '$lib/components/DropdownActiveOrderbook.svelte';
-
-  export let hasRequiredSettings = false;
-
-  $: nonActiveClass = !hasRequiredSettings
-    ? 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white/25 '
-    : 'flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600';
+  import { PlusSolid } from 'flowbite-svelte-icons';
+  import IconTelegram from '$lib/components/IconTelegram.svelte';
+  import ModalConnect from '$lib/components/ModalConnect.svelte';
 </script>
 
-<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed">
+<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
   <SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
     <SidebarGroup ulClass="">
       <div class="block dark:hidden">
@@ -51,21 +46,19 @@
       </div>
     </SidebarGroup>
     <SidebarGroup border>
-      <SidebarItem
-        label="Orders"
-        href={hasRequiredSettings ? '/orders' : undefined}
-        {nonActiveClass}
-      >
+      <SidebarItem label="New Order" href={'/orders/add'}>
+        <svelte:fragment slot="icon">
+          <PlusSolid class="h-5 w-5" />
+          <span data-testid="sidebar-new-order"></span>
+        </svelte:fragment>
+      </SidebarItem>
+      <SidebarItem label="Orders" href="/orders">
         <svelte:fragment slot="icon">
           <ReceiptSolid class="h-5 w-5" />
           <span data-testid="sidebar-orders"></span>
         </svelte:fragment>
       </SidebarItem>
-      <SidebarItem
-        label="Vaults"
-        href={hasRequiredSettings ? '/vaults' : undefined}
-        {nonActiveClass}
-      >
+      <SidebarItem label="Vaults" href="/vaults">
         <svelte:fragment slot="icon">
           <WalletSolid class="h-5 w-5" />
           <span data-testid="sidebar-vaults"></span>
@@ -73,8 +66,7 @@
       </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border>
-      <DropdownActiveNetwork />
-      <DropdownActiveOrderbook />
+      <ModalConnect />
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="Settings" href="/settings">
@@ -83,14 +75,24 @@
           <span data-testid="sidebar-settings"></span>
         </svelte:fragment>
       </SidebarItem>
-      <SidebarItem label="Documentation" target="_blank" href="https://docs.rainlang.xyz/intro">
+      <SidebarItem
+        label="Documentation"
+        target="_blank"
+        href="https://docs.rainlang.xyz/raindex/overview"
+      >
         <svelte:fragment slot="icon">
           <IconExternalLink />
           <span data-testid="sidebar-documentation"></span>
         </svelte:fragment>
       </SidebarItem>
+      <SidebarItem label="Ask for help" target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
+        <svelte:fragment slot="icon">
+          <IconTelegram />
+          <span data-testid="sidebar-telegram"></span>
+        </svelte:fragment>
+      </SidebarItem>
     </SidebarGroup>
-    <SidebarGroup border class="flex justify-end">
+    <SidebarGroup border class="flex justify-start">
       <ButtonDarkMode />
     </SidebarGroup>
   </SidebarWrapper>

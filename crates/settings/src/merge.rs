@@ -10,6 +10,9 @@ pub enum MergeError {
     #[error("There is already a subgraph called {0}")]
     SubgraphCollision(String),
 
+    #[error("There is already a metaboard called {0}")]
+    MetaboardCollision(String),
+
     #[error("There is already an orderbook called {0}")]
     OrderbookCollision(String),
 
@@ -62,6 +65,15 @@ impl ConfigSource {
                 return Err(MergeError::SubgraphCollision(key));
             }
             subgraphs.insert(key, value);
+        }
+
+        // Metaboards
+        let metaboards = &mut self.metaboards;
+        for (key, value) in other.metaboards {
+            if metaboards.contains_key(&key) {
+                return Err(MergeError::MetaboardCollision(key));
+            }
+            metaboards.insert(key, value);
         }
 
         // Orderbooks
@@ -159,6 +171,15 @@ impl Config {
             subgraphs.insert(key, value.clone());
         }
 
+        // Metaboards
+        let metaboards = &mut self.metaboards;
+        for (key, value) in other.metaboards {
+            if metaboards.contains_key(&key) {
+                return Err(MergeError::MetaboardCollision(key));
+            }
+            metaboards.insert(key, value.clone());
+        }
+
         // Orderbooks
         let orderbooks = &mut self.orderbooks;
         for (key, value) in other.orderbooks {
@@ -245,6 +266,7 @@ mod tests {
         let mut config = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -259,6 +281,7 @@ mod tests {
         let other = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -278,6 +301,7 @@ mod tests {
         let mut config = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -292,6 +316,7 @@ mod tests {
         let mut other = ConfigSource {
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
             orderbooks: HashMap::new(),
             tokens: HashMap::new(),
             deployers: HashMap::new(),
@@ -317,6 +342,53 @@ mod tests {
         assert_eq!(
             config.merge(other),
             Err(MergeError::SubgraphCollision("subgraph1".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_successful_merge_metaboard() {
+        let mut config = ConfigSource {
+            using_networks_from: HashMap::new(),
+            subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
+            orderbooks: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
+            deployments: HashMap::new(),
+            sentry: None,
+        };
+
+        let mut other = ConfigSource {
+            using_networks_from: HashMap::new(),
+            subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
+            orderbooks: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
+            deployments: HashMap::new(),
+            sentry: None,
+        };
+
+        other.metaboards.insert(
+            "metaboard1".to_string(),
+            Url::parse("https://myurl").unwrap(),
+        );
+
+        assert!(config.metaboards.is_empty());
+
+        assert_eq!(config.merge(other), Ok(()));
+
+        assert_eq!(
+            config.metaboards.get("metaboard1"),
+            Some(&Url::parse("https://myurl").unwrap())
         );
     }
 }

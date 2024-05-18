@@ -6,6 +6,7 @@ pub mod toast;
 pub mod transaction_status;
 
 mod commands;
+use commands::authoring_meta::get_authoring_meta_v2_for_scenarios;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::make_charts;
 use commands::config::{convert_configstring_to_config, merge_configstrings, parse_configstring};
@@ -68,6 +69,7 @@ fn run_tauri_app() {
             vault_deposit_approve_calldata,
             vault_deposit_calldata,
             vault_withdraw_calldata,
+            get_authoring_meta_v2_for_scenarios,
             compose_from_scenario,
         ])
         .run(tauri::generate_context!())

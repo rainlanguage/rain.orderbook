@@ -29,10 +29,13 @@ strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
 dotrain-lsp = { workspace = true }
 rain-metadata = { workspace = true }
+rain-metaboard-subgraph = { workspace = true }
+rain-metadata-bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
 rain-interpreter-eval = { workspace = true }
+rain-orderbook-env = { workspace = true }
 serde_bytes = { workspace = true }
 tokio = { workspace = true }
 proptest = { workspace = true }
@@ -40,6 +43,7 @@ typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
+rand = "0.8.5"
 
 [dev-dependencies]
 tokio = { workspace = true }

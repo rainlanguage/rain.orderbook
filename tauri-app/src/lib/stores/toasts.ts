@@ -1,9 +1,9 @@
 import { derived, writable } from 'svelte/store';
-import { v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { listen } from '@tauri-apps/api/event';
-import  sortBy from 'lodash/sortBy';
+import sortBy from 'lodash/sortBy';
 
-import { ToastMessageType, type ToastPayload } from "$lib/typeshare/toast";
+import { ToastMessageType, type ToastPayload } from '$lib/typeshare/toast';
 
 export type ToastData = ToastPayload & { timestamp: Date; id: string };
 
@@ -25,7 +25,7 @@ function useToastsStore() {
     });
 
     // Only auto hide non-error toasts
-    if(payload.message_type !== ToastMessageType.Error) {
+    if (payload.message_type !== ToastMessageType.Error) {
       deleteAfterDelay(id);
     }
   }
@@ -43,7 +43,7 @@ function useToastsStore() {
     add({
       message_type: ToastMessageType.Error,
       text,
-      ...payload
+      ...payload,
     });
   }
 
@@ -51,7 +51,7 @@ function useToastsStore() {
     add({
       message_type: ToastMessageType.Success,
       text,
-      ...payload
+      ...payload,
     });
   }
 
@@ -59,10 +59,12 @@ function useToastsStore() {
     subscribe: toasts.subscribe,
     add,
     error,
-    success
-  }
+    success,
+  };
 }
 
 export const toasts = useToastsStore();
 
-export const toastsList = derived(toasts, (toasts) => sortBy(Object.values(toasts), [(val) => val.timestamp, (val) => val.id]))
+export const toastsList = derived(toasts, (toasts) =>
+  sortBy(Object.values(toasts), [(val) => val.timestamp, (val) => val.id]),
+);

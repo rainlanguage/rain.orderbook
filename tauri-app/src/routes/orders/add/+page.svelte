@@ -10,15 +10,14 @@
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import type { ChartData, Scenario } from '$lib/typeshare/config';
-  import { settingsText, activeNetworkRef, orderbookAddress } from '$lib/stores/settings';
+  import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
-  import { textFileStore } from '$lib/storesGeneric/textFileStore';
+  import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
   import type { Config } from '$lib/typeshare/config';
   import DropdownRadio from '$lib/components/DropdownRadio.svelte';
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/config';
-  import DropdownProperty from '$lib/components/DropdownProperty.svelte';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -26,19 +25,20 @@
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { promiseTimeout } from '$lib/utils/time';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
-  import { pickScenarios, pickDeployments } from '$lib/services/pickConfig';
+  import { pickScenarios } from '$lib/services/pickConfig';
   import {
     convertConfigstringToConfig,
     mergeDotrainConfigWithSettings,
-    mergeDotrainConfigWithSettingsProblems,
   } from '$lib/services/config';
+  import { mergeDotrainConfigWithSettingsProblems } from '$lib/services/configCodemirrorProblems';
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
+  import Words from '$lib/components/Words.svelte';
+  import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
 
   let isSubmitting = false;
   let isCharting = false;
   let chartData: ChartData;
-  let dotrainFile = textFileStore('Rain', ['rain']);
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
   let mergedConfigSource: ConfigSource | undefined = undefined;
@@ -47,17 +47,29 @@
 
   let composedRainlangForScenarios: Map<Scenario, string> = new Map();
 
-  $: deployments = pickDeployments(mergedConfigSource, mergedConfig, $activeNetworkRef);
-  $: deployment =
-    !isNil(deploymentRef) && !isNil(mergedConfig)
-      ? mergedConfig.deployments[deploymentRef]
-      : undefined;
+  $: deployments = mergedConfig?.deployments;
+  $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
+
+  // Resetting the selected deployment to undefined if it is not in the current
+  // strats deployment list anymore
+  $: if (deploymentRef && deployments && !Object.keys(deployments).includes(deploymentRef)) {
+    deploymentRef = undefined;
+  }
+
   $: bindings = deployment ? deployment.scenario.bindings : {};
-  $: $dotrainFile.text, updateMergedConfig();
+  $: $globalDotrainFile.text, updateMergedConfig();
 
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
   let openTab: Record<string, boolean> = {};
+
+  const {
+    debouncedFn: debounceGetAuthoringMetas,
+    result: authoringMetasResult,
+    error: authoringMetasError,
+  } = useDebouncedFn(getAuthoringMetaV2ForScenarios, 500);
+
+  $: debounceGetAuthoringMetas($globalDotrainFile.text, $settingsText);
 
   const {
     debouncedFn: debouncedGenerateRainlangStrings,
@@ -65,7 +77,7 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($dotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
 
   const rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -104,11 +116,6 @@
   });
 
   $: {
-    if (isNil(deploymentRef) && !isEmpty(deployments)) {
-      deploymentRef = Object.keys(deployments)[0];
-    }
-  }
-  $: {
     if (isNil(scenarioRef) && !isEmpty(scenarios)) {
       scenarioRef = Object.keys(scenarios)[0];
     }
@@ -116,7 +123,7 @@
 
   async function updateMergedConfig() {
     try {
-      mergedConfigSource = await mergeDotrainConfigWithSettings($dotrainFile.text);
+      mergedConfigSource = await mergeDotrainConfigWithSettings($globalDotrainFile.text);
       mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
     } catch (e) {
       reportErrorToSentry(e, SentrySeverityLevel.Info);
@@ -126,7 +133,7 @@
   async function chart() {
     isCharting = true;
     try {
-      chartData = await makeChartData($dotrainFile.text, $settingsText);
+      chartData = await makeChartData($globalDotrainFile.text, $settingsText);
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
@@ -138,8 +145,10 @@
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
+      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+        throw Error('No orderbook associated with scenario');
 
-      await orderAdd($dotrainFile.text, deployment);
+      await orderAdd($globalDotrainFile.text, deployment);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -149,10 +158,11 @@
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (!$orderbookAddress) throw Error('Select an orderbook to add order');
+      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+        throw Error('No orderbook associated with scenario');
 
-      const calldata = (await orderAddCalldata($dotrainFile.text, deployment)) as Uint8Array;
-      const tx = await ethersExecute(calldata, $orderbookAddress);
+      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
+      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
     } catch (e) {
@@ -189,10 +199,10 @@
 
 <PageHeader title="Add Order" />
 
-<FileTextarea textFile={dotrainFile} title="New Order">
+<FileTextarea textFile={globalDotrainFile} title="New Order">
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
-      bind:value={$dotrainFile.text}
+      bind:value={$globalDotrainFile.text}
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
       {rainlangExtension}
@@ -200,38 +210,30 @@
   </svelte:fragment>
 
   <svelte:fragment slot="additionalFields">
-    <div class="flex flex-col gap-y-2">
-      <Label>Select Deployment</Label>
+    <div class="flex items-center justify-end gap-x-4">
       {#if isEmpty(deployments)}
-        <span class="text-gray-500 dark:text-gray-400"
-          >No deployments found for the selected network</span
-        >
+        <span class="text-gray-500 dark:text-gray-400">No valid deployments found</span>
       {:else}
-        <div class="flex justify-end gap-x-2">
-          <div class="w-full">
-            <DropdownRadio options={deployments} bind:value={deploymentRef}>
-              <svelte:fragment slot="content" let:selectedRef>
-                <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
-              </svelte:fragment>
+        <Label class="whitespace-nowrap">Select deployment</Label>
+        <DropdownRadio options={deployments} bind:value={deploymentRef}>
+          <svelte:fragment slot="content" let:selectedRef>
+            <span>{!isNil(selectedRef) ? selectedRef : 'Select a deployment'}</span>
+          </svelte:fragment>
 
-              <svelte:fragment slot="option" let:ref let:option>
-                <div class="w-full overflow-hidden overflow-ellipsis">
-                  <div class="text-md break-word mb-2">{ref}</div>
-                  <DropdownProperty key="Scenario" value={option.scenario} />
-                  <DropdownProperty key="Order" value={option.order} />
-                </div>
-              </svelte:fragment>
-            </DropdownRadio>
-          </div>
-          <ButtonLoading
-            class="min-w-fit"
-            color="green"
-            loading={isSubmitting}
-            disabled={$dotrainFile.isEmpty}
-            on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
-          >
-        </div>
+          <svelte:fragment slot="option" let:ref>
+            <div class="w-full overflow-hidden overflow-ellipsis">
+              <div class="text-md break-word mb-2">{ref}</div>
+            </div>
+          </svelte:fragment>
+        </DropdownRadio>
       {/if}
+      <ButtonLoading
+        class="min-w-fit"
+        color="green"
+        loading={isSubmitting}
+        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef)}
+        on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
+      >
     </div>
   </svelte:fragment>
 </FileTextarea>
@@ -278,10 +280,14 @@
   <TabItem title="Charts">
     <Charts {chartData} />
   </TabItem>
+  <TabItem title="Words">
+    <Words authoringMetas={$authoringMetasResult} error={$authoringMetasError} />
+  </TabItem>
 </Tabs>
 
 <ModalExecute
   bind:open={openAddOrderModal}
+  overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
   {executeLedger}

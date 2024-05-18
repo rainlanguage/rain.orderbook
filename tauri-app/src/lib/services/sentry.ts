@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/sveltekit';
 import { enableSentry } from '$lib/stores/settings';
-import { get } from "svelte/store";
+import { get } from 'svelte/store';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 import { handleErrorWithSentry } from '@sentry/sveltekit';
 import { arch, platform, type, version } from '@tauri-apps/api/os';
@@ -8,16 +8,16 @@ import { getTauriVersion } from '@tauri-apps/api/app';
 
 // Copy of Sentry.SeverityLevel allowed string values as an enum (to avoid spreading magic strings)
 export enum SentrySeverityLevel {
-  Fatal = "fatal",
-  Error = "error",
-  Warning = "warning",
-  Log = "log",
-  Info = "info",
-  Debug = "debug"
+  Fatal = 'fatal',
+  Error = 'error',
+  Warning = 'warning',
+  Log = 'log',
+  Info = 'info',
+  Debug = 'debug',
 }
 
 export async function initSentry() {
-  if(import.meta.env.VITE_SENTRY_FORCE_DISABLED === 'true') return;
+  if (import.meta.env.VITE_SENTRY_FORCE_DISABLED === 'true') return;
 
   // Include system data in sentry issues, as both tags and context (for easy view & search)
   const [Arch, OsType, Platform, OsVersion, TauriVersion] = await Promise.all([
@@ -25,7 +25,7 @@ export async function initSentry() {
     type(),
     platform(),
     version(),
-    getTauriVersion()
+    getTauriVersion(),
   ]);
   const context = {
     Arch,
@@ -34,12 +34,12 @@ export async function initSentry() {
     OsVersion,
     TauriVersion,
   };
-  Sentry.setTag("Arch", context.Arch);
-  Sentry.setTag("OsType", context.OsType);
-  Sentry.setTag("Platform", context.Platform);
-  Sentry.setTag("OsVersion", context.OsVersion);
-  Sentry.setTag("TauriVersion", context.TauriVersion);
-  Sentry.setContext("System Context", context);
+  Sentry.setTag('Arch', context.Arch);
+  Sentry.setTag('OsType', context.OsType);
+  Sentry.setTag('Platform', context.Platform);
+  Sentry.setTag('OsVersion', context.OsVersion);
+  Sentry.setTag('TauriVersion', context.TauriVersion);
+  Sentry.setContext('System Context', context);
 
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -60,19 +60,24 @@ export async function initSentry() {
   });
 }
 
-export function handleErrorWithSentryIfEnabled<T extends HandleClientError | HandleServerError>(handleError: T) {
+export function handleErrorWithSentryIfEnabled<T extends HandleClientError | HandleServerError>(
+  handleError: T,
+) {
   const $enableSentry = get(enableSentry);
 
-  if($enableSentry) {
+  if ($enableSentry) {
     return handleErrorWithSentry(handleError);
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function reportErrorToSentry(e: any, level: SentrySeverityLevel = SentrySeverityLevel.Error) {
+export function reportErrorToSentry(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  e: any,
+  level: SentrySeverityLevel = SentrySeverityLevel.Error,
+) {
   const $enableSentry = get(enableSentry);
 
-  if($enableSentry) {
+  if ($enableSentry) {
     Sentry.withScope(function (scope) {
       scope.setLevel(level);
       Sentry.captureException(e);

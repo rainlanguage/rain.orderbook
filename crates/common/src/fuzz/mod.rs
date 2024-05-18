@@ -248,7 +248,7 @@ impl FuzzRunner {
                     deployer: deployer.address,
                     namespace: FullyQualifiedNamespace::default(),
                     context: vec![],
-                    decode_errors: false,
+                    decode_errors: true,
                 };
                 fork_clone
                     .fork_eval(args)
@@ -305,25 +305,20 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
 deployers:
-    mumbai:
-        address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
-    some-deployer:
-        address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
-        network: mumbai
+    sepolia:
+        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
 networks:
-    mumbai:
-        rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-        chain-id: 80001
+    sepolia:
+        rpc: {rpc_url}
+        chain-id: 137
 scenarios:
-    mumbai:
+    sepolia:
         runs: 500
         bindings:
             bound: 3
-    mainnet:
-        deployer: some-deployer
-        runs: 1
 ---
 #bound !bind it
 #fuzzed !fuzz it
@@ -332,18 +327,20 @@ a: bound,
 b: fuzzed;
 #handle-io
 :;
-    "#;
-        let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
+    "#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+        );
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
         let config = settings
             .try_into()
             .map_err(|e| println!("{:?}", e))
             .unwrap();
 
-        let mut runner = FuzzRunner::new(dotrain, config, None).await;
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("mumbai")
+            .run_scenario_by_name("sepolia")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -353,25 +350,20 @@ b: fuzzed;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_nested_flattened_fuzz() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
 deployers:
-    mumbai:
-        address: 0x122ff0445BaE2a88C6f5F344733029E0d669D624
-    some-deployer:
-        address: 0x83aA87e8773bBE65DD34c5C5895948ce9f6cd2af
-        network: mumbai
+    sepolia:
+        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
 networks:
-    mumbai:
-        rpc: https://polygon-mumbai.g.alchemy.com/v2/_i0186N-488iRU9wUwMQDreCAKy-MEXa
-        chain-id: 80001
+    sepolia:
+        rpc: {rpc_url}
+        chain-id: 137
 scenarios:
-    mumbai:
+    sepolia:
         runs: 500
         bindings:
             bound: 3
-    mainnet:
-        deployer: some-deployer
-        runs: 1
 ---
 #bound !bind it
 #fuzzed !fuzz it
@@ -389,18 +381,20 @@ c: 6,
 d: 4;
 #handle-io
 :;
-    "#;
-        let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
+    "#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+        );
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
         let config = settings
             .try_into()
             .map_err(|e| println!("{:?}", e))
             .unwrap();
 
-        let mut runner = FuzzRunner::new(dotrain, config, None).await;
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("mumbai")
+            .run_scenario_by_name("sepolia")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();

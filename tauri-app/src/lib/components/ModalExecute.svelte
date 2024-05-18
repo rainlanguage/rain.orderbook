@@ -1,13 +1,14 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { ledgerWalletDerivationIndex, ledgerWalletAddress } from '$lib/stores/wallets';
+  import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
-  import { walletconnectAccount } from '$lib/stores/walletconnect';
-  import { isNil } from 'lodash';
+  import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import IconLedger from './IconLedger.svelte';
   import IconWalletConnect from './IconWalletConnect.svelte';
+  import { activeNetworkRef, chainId as globalChainId } from '$lib/stores/settings';
+  import type { Network } from '$lib/typeshare/config';
 
   export let open = false;
   export let title: string;
@@ -16,6 +17,9 @@
   export let executeWalletconnect: () => Promise<void>;
   export let isSubmitting = false;
   export let onBack: (() => void) | undefined = undefined;
+
+  export let overrideNetwork: Network | undefined = undefined;
+  $: chainId = overrideNetwork?.['chain-id'] || $globalChainId;
 
   let selectedLedger = false;
   let selectedWalletconnect = false;
@@ -30,15 +34,15 @@
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
-  {#if !selectedLedger && !selectedWalletconnect}
+  {#if !selectedLedger && !selectedWalletconnect && !$walletconnectAccount && !$ledgerWalletAddress}
     <div class="flex justify-center space-x-4">
-      <Button class="text-lg" on:click={() => selectedLedger = true}>
+      <Button class="text-lg" on:click={() => (selectedLedger = true)}>
         <div class="mr-4">
           <IconLedger />
         </div>
         Ledger Wallet
       </Button>
-      <Button class="text-lg" on:click={() => selectedWalletconnect = true}>
+      <Button class="text-lg" on:click={() => (selectedWalletconnect = true)}>
         <div class="mr-3">
           <IconWalletConnect />
         </div>
@@ -48,29 +52,55 @@
 
     <div class="flex justify-end space-x-4">
       {#if onBack}
-        <Button color="alternative" on:click={() => {onBack?.(); reset();}}>Back</Button>
+        <Button
+          color="alternative"
+          on:click={() => {
+            onBack?.();
+            reset();
+          }}>Back</Button
+        >
       {/if}
     </div>
-  {:else if selectedLedger}
-    <InputLedgerWallet
-      bind:derivationIndex={$ledgerWalletDerivationIndex}
-      bind:walletAddress={$ledgerWalletAddress.value}
-    />
-
-    <div class="flex justify-end space-x-4">
-      <Button color="alternative" on:click={() => selectedLedger = false}>Back</Button>
-      <ButtonLoading on:click={() => executeLedger().finally(() => reset())} disabled={isSubmitting || !$ledgerWalletAddress || isNil($ledgerWalletDerivationIndex) || isNil($ledgerWalletDerivationIndex)} loading={isSubmitting}>
+  {:else if selectedLedger || $ledgerWalletAddress}
+    <InputLedgerWallet />
+    <div
+      class={!$ledgerWalletAddress
+        ? 'flex justify-between space-x-4'
+        : 'flex justify-end space-x-4'}
+    >
+      {#if !$ledgerWalletAddress}
+        <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
+      {/if}
+      <ButtonLoading
+        on:click={() => executeLedger().finally(() => reset())}
+        disabled={isSubmitting || !$ledgerWalletAddress}
+        loading={isSubmitting}
+      >
         {execButtonLabel}
       </ButtonLoading>
     </div>
-  {:else if selectedWalletconnect}
+  {:else if selectedWalletconnect || $walletconnectAccount}
     <InputWalletConnect />
-
-    <div class="flex justify-end space-x-4">
-      <Button color="alternative" on:click={() => selectedWalletconnect = false}>Back</Button>
-      <ButtonLoading on:click={() => executeWalletconnect().finally(() => reset())} disabled={isSubmitting || !$walletconnectAccount} loading={isSubmitting}>
+    <div
+      class={!$walletconnectAccount
+        ? 'flex items-center justify-between space-x-4'
+        : 'flex items-center justify-end space-x-4'}
+    >
+      {#if !$walletconnectAccount}
+        <Button color="alternative" on:click={() => (selectedWalletconnect = false)}>Back</Button>
+      {/if}
+      <ButtonLoading
+        on:click={() => executeWalletconnect().finally(() => reset())}
+        disabled={isSubmitting || !$walletconnectAccount || $walletConnectNetwork !== chainId}
+        loading={isSubmitting}
+      >
         {execButtonLabel}
       </ButtonLoading>
+      {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
+        <div class="text-red-500">
+          Please connect your wallet to {overrideNetwork?.name || $activeNetworkRef} network
+        </div>
+      {/if}
     </div>
   {/if}
 </Modal>

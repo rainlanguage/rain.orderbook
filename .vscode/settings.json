@@ -1,22 +1,48 @@
 {
   "editor.rulers": [80],
   "svelte.enable-ts-plugin": true,
+
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file"
   },
-  "[javascript][svelte][typescript]": {
+
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit",
-      "eslint.lintTask.enable": "explicit"
+      "source.fixAll.eslint": "explicit"
     }
   },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
   "eslint.validate": [
     "javascript",
     "javascriptreact",
     "typescript",
     "typescriptreact",
     "svelte"
-  ]
+  ],
+  "rust-analyzer.server.extraEnv": {
+    "CI_DEPLOY_POLYGON_RPC_URL": "",
+    "CI_DEPLOY_SEPOLIA_RPC_URL": "",
+    "CI_SEPOLIA_METABOARD_URL": "",
+    "RPC_URL_ETHEREUM_FORK": "",
+    "CI_FORK_SEPOLIA_DEPLOYER_ADDRESS": "",
+    "CI_FORK_SEPOLIA_BLOCK_NUMBER": ""
+  }
 }

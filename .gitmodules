@@ -1,6 +1,3 @@
-[submodule "lib/rain.metadata"]
-	path = lib/rain.metadata
-	url = https://github.com/rainprotocol/rain.metadata
 [submodule "lib/rain.erc1820"]
 	path = lib/rain.erc1820
 	url = https://github.com/rainprotocol/rain.erc1820
@@ -19,24 +16,15 @@
 [submodule "lib/rain.solmem"]
 	path = lib/rain.solmem
 	url = https://github.com/rainprotocol/rain.solmem
-[submodule "lib/rain.factory"]
-	path = lib/rain.factory
-	url = https://github.com/rainprotocol/rain.factory
-[submodule "lib/rain.intorastring"]
-	path = lib/rain.intorastring
-	url = https://github.com/rainlanguage/rain.intorastring
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "subgraph/rain.subgraph.docker"]
-	path = subgraph/rain.subgraph.docker
-	url = https://github.com/rainlanguage/rain.subgraph.docker.git
 [submodule "lib/rain.interpreter"]
 	path = lib/rain.interpreter
 	url = https://github.com/rainlanguage/rain.interpreter
-[submodule "lib/rain.interpreter.interface"]
-	path = lib/rain.interpreter.interface
-	url = https://github.com/rainlanguage/rain.interpreter.interface
 [submodule "lib/rain.orderbook.interface"]
 	path = lib/rain.orderbook.interface
 	url = https://github.com/rainlanguage/rain.orderbook.interface
+[submodule "lib/rain.metadata"]
+	path = lib/rain.metadata
+	url = https://github.com/rainlanguage/rain.metadata

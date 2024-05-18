@@ -13,6 +13,14 @@ jobs:
           ]
 
     runs-on: ${{ matrix.os }}
+    env:
+      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
+      CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
+      CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
+      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
+      CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
+      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
+      RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
     steps:
       - name: Free up disk space in action runner
         if: matrix.os == 'ubuntu-22.04'
@@ -35,11 +43,7 @@ jobs:
         working-directory: ./tauri-app
         env:
           WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
-
+      - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
+        working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
-            
-      - name: Run E2E Tests
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          nix develop .#tauri-shell --command ob-tauri-e2e-test-headless

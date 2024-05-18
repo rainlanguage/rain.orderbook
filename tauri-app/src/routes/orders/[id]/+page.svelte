@@ -1,6 +1,6 @@
 <script lang="ts">
   import CardProperty from './../../../lib/components/CardProperty.svelte';
-  import { Button, TabItem, TableBodyCell, TableHeadCell, Tabs } from 'flowbite-svelte';
+  import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { orderDetail, useOrderTakesList } from '$lib/stores/order';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
@@ -10,7 +10,6 @@
   import { page } from '$app/stores';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
-  import AppTable from '$lib/components/AppTable.svelte';
   import { sortBy } from 'lodash';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
@@ -26,6 +25,8 @@
     prepareHistoricalOrderChartData,
     type HistoricalOrderChartData,
   } from '$lib/services/historicalOrderCharts';
+  import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import TakeOrdersTable from '$lib/components/TakeOrdersTable.svelte';
 
   let openOrderRemoveModal = false;
   let isSubmitting = false;
@@ -61,11 +62,7 @@
       await tx.wait(1);
     } catch (e) {
       reportErrorToSentry(e);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeof e === 'object' && (e as any)?.reason) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        toasts.error(`Transaction failed, reason: ${(e as any).reason}`);
-      } else toasts.error('Transaction failed!');
+      toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
   }
@@ -151,40 +148,7 @@
         {/if}
       </TabItem>
       <TabItem title="Trades">
-        <AppTable listStore={orderTakesList} emptyMessage="No trades found" rowHoverable={false}>
-          <svelte:fragment slot="head">
-            <TableHeadCell padding="p-4">Date</TableHeadCell>
-            <TableHeadCell padding="p-0">Sender</TableHeadCell>
-            <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
-            <TableHeadCell padding="p-0">Output</TableHeadCell>
-            <TableHeadCell padding="p-0">Input</TableHeadCell>
-            <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
-          </svelte:fragment>
-
-          <svelte:fragment slot="bodyRow" let:item>
-            <TableBodyCell tdClass="px-4 py-2">
-              {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2 min-w-32">
-              <Hash type={HashType.Wallet} value={item.sender.id} />
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2 min-w-32">
-              <Hash type={HashType.Transaction} value={item.transaction.id} />
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2">
-              {item.input_display}
-              {item.input_token.symbol}
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2">
-              {item.output_display}
-              {item.output_token.symbol}
-            </TableBodyCell>
-            <TableBodyCell tdClass="break-all py-2">
-              {item.ioratio}
-              {item.input_token.symbol}/{item.output_token.symbol}
-            </TableBodyCell>
-          </svelte:fragment>
-        </AppTable>
+        <TakeOrdersTable {orderTakesList} />
       </TabItem>
     </Tabs>
   </svelte:fragment>
