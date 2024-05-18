@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {RouteProcessorOrderBookV3ArbOrderTakerTest} from
     "test/util/abstract/RouteProcessorOrderBookV3ArbOrderTakerTest.sol";
