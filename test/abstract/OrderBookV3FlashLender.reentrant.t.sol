@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
@@ -101,8 +101,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     /// Can reenter and add an order from within a flash loan.
     function testReenterAddOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:max-value() 1;:;");
         config.evaluableConfig.bytecode = bytecode;
         config.evaluableConfig.constants = constants;
         // Create a flash borrower.
@@ -121,8 +120,7 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
     /// Can reenter and take orders.
     function testReenterTakeOrder(uint256 loanAmount, OrderConfigV2 memory config) external {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:max-value() 1;:;");
         config.evaluableConfig.bytecode = bytecode;
         config.evaluableConfig.constants = constants;
 
@@ -154,13 +152,12 @@ contract OrderBookV3FlashLenderReentrant is OrderBookExternalRealTest {
         vm.assume(alice != bob);
 
         LibTestAddOrder.conformConfig(aliceConfig, iDeployer);
-        (bytes memory bytecode, uint256[] memory constants) =
-            IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:max-value() 1;:;");
         aliceConfig.evaluableConfig.bytecode = bytecode;
         aliceConfig.evaluableConfig.constants = constants;
 
         LibTestAddOrder.conformConfig(bobConfig, iDeployer);
-        (bytecode, constants) = IParserV1(address(iParser)).parse("_ _:max-int-value() 1e18;:;");
+        (bytecode, constants) = IParserV1(address(iParser)).parse("_ _:max-value() 1;:;");
         bobConfig.evaluableConfig.bytecode = bytecode;
         bobConfig.evaluableConfig.constants = constants;
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
@@ -116,7 +116,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// Inputs for handle io errors. Tests one input.
     function testAddOrderRealHandleIOInputsReverts1(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:1e18 1e18;i:;");
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:1 1;i:;");
         config.evaluableConfig.constants = constants;
         config.evaluableConfig.bytecode = bytecode;
         vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 1));
@@ -127,7 +127,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// Inputs for handle io errors. Tests two inputs.
     function testAddOrderRealHandleIOInputsReverts2(address owner, OrderConfigV2 memory config) public {
         LibTestAddOrder.conformConfig(config, iDeployer);
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:1e18 1e18;i0 i1:;");
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:1 1;i0 i1:;");
         config.evaluableConfig.constants = constants;
         config.evaluableConfig.bytecode = bytecode;
         vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 2));

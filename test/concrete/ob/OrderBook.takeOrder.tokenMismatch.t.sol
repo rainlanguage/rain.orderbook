@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {OrderV2, IO, TakeOrderConfigV2, TakeOrdersConfigV2} from "rain.orderbook.interface/interface/IOrderBookV3.sol";

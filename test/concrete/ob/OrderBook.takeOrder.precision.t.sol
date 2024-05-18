@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Test.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
@@ -67,7 +67,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
 
     function testTakeOrderPrecisionKnownBad01() public {
         // Older versions of OB had precision issues with this IO setup.
-        bytes memory knownBad = "output-max io-ratio:157116365680491867129910 318235466963885;:;";
+        bytes memory knownBad = "output-max io-ratio:157116365680491867129910e-18 318235466963885e-18;:;";
         // Start with both tokens having 18 decimals.
         // This gives the best precision for both.
         checkPrecision(knownBad, 18, 18, 157116365680491867129910, 49999999999999844580);

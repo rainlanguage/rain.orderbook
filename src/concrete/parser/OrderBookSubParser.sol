@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {
     LibParseOperand,
@@ -52,7 +52,7 @@ bytes constant SUB_PARSER_PARSE_META =
 bytes constant SUB_PARSER_WORD_PARSERS =
     hex"1000101f103010411051106210731084109510a610b710c710d810e910fa110b111c112c113c";
 bytes constant SUB_PARSER_OPERAND_HANDLERS =
-    hex"1281128112811281128112811281128112811281128112811281128112811281128112c61385";
+    hex"1281128112811281128112811281128112811281128112811281128112811281128112c61355";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];

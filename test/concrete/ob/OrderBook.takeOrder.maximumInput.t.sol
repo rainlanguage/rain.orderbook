@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
@@ -159,7 +159,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 expectedTakerOutput = expectedTakerInput * 2;
 
         TestOrder[] memory testOrders = new TestOrder[](1);
-        testOrders[0] = TestOrder(owner, "_ _:max-decimal18-value() 2e18;:;");
+        testOrders[0] = TestOrder(owner, "_ _:max-value() 2;:;");
 
         TestVault[] memory testVaults = new TestVault[](2);
         testVaults[0] = TestVault(owner, address(iToken1), expectedTakerInput, 0);
@@ -177,7 +177,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 expectedTakerOutput = expectedTakerInput * 2;
 
         TestOrder[] memory testOrders = new TestOrder[](1);
-        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+        testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
 
         TestVault[] memory testVaults = new TestVault[](2);
         testVaults[0] = TestVault(owner, address(iToken1), expectedTakerInput, 0);
@@ -200,7 +200,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 expectedTakerOutput = expectedTakerInput * 2;
 
         TestOrder[] memory testOrders = new TestOrder[](1);
-        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+        testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
 
         TestVault[] memory testVaults = new TestVault[](2);
         testVaults[0] = TestVault(owner, address(iToken1), ownerDepositAmount, 0);
@@ -218,7 +218,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 orderLimit = 1000;
 
         TestOrder[] memory testOrders = new TestOrder[](1);
-        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
+        testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
 
         maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
         // The expected input is the minimum of the maximum input and the order
@@ -243,8 +243,8 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 orderLimit = 1500;
 
         TestOrder[] memory testOrders = new TestOrder[](2);
-        testOrders[0] = TestOrder(owner, "_ _:1000 2e18;:;");
-        testOrders[1] = TestOrder(owner, "_ _:500 2e18;:;");
+        testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
+        testOrders[1] = TestOrder(owner, "_ _:5e-16 2;:;");
 
         maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
         // The expected input is the minimum of the maximum input and the order
@@ -276,8 +276,8 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         address ownerTwo = address(uint160(uint256(keccak256("ownerTwo.rain.test"))));
 
         TestOrder[] memory testOrders = new TestOrder[](2);
-        testOrders[0] = TestOrder(ownerOne, "_ _:1000 2e18;:;");
-        testOrders[1] = TestOrder(ownerTwo, "_ _:500 2e18;:;");
+        testOrders[0] = TestOrder(ownerOne, "_ _:1e-15 2;:;");
+        testOrders[1] = TestOrder(ownerTwo, "_ _:5e-16 2;:;");
 
         maximumTakerInput = bound(maximumTakerInput, 1, type(uint256).max);
 
