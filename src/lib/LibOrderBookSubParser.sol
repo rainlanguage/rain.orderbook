@@ -47,13 +47,13 @@ bytes constant WORD_CALCULATED_IO_RATIO = "calculated-io-ratio";
 bytes constant WORD_INPUT_TOKEN = "input-token";
 bytes constant WORD_INPUT_TOKEN_DECIMALS = "input-token-decimals";
 bytes constant WORD_INPUT_VAULT_ID = "input-vault-id";
-bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "input-vault-balance-before";
-bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "input-vault-balance-increase";
+bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "uint256-input-vault-before";
+bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "uint256-input-vault-increase";
 bytes constant WORD_OUTPUT_TOKEN = "output-token";
 bytes constant WORD_OUTPUT_TOKEN_DECIMALS = "output-token-decimals";
 bytes constant WORD_OUTPUT_VAULT_ID = "output-vault-id";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "output-vault-balance-before";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "output-vault-balance-decrease";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "uint256-output-vault-before";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "uint256-output-vault-decrease";
 
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
@@ -251,11 +251,11 @@ library LibOrderBookSubParser {
         AuthoringMetaV2[] memory contextCalculationsMeta = new AuthoringMetaV2[](CONTEXT_CALCULATIONS_ROWS);
         contextCalculationsMeta[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = AuthoringMetaV2(
             bytes32(WORD_CALCULATED_MAX_OUTPUT),
-            "The maximum output of the order, i.e. the maximum amount of the output token that the order will send. This is normalized to 18 decimal fixed point regardless of the decimals of the underlying token. This is 0 before calculations have been run."
+            "The maximum output of the order, i.e. the maximum amount of the output token that the order will send. This is 0 before calculations have been run."
         );
         contextCalculationsMeta[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = AuthoringMetaV2(
             bytes32(WORD_CALCULATED_IO_RATIO),
-            "The ratio of the input to output token, i.e. the amount of the input token that the order will receive for each unit of the output token that it sends. This is normalized to 18 decimal fixed point regardless of the decimals of the underlying tokens. This is 0 before calculations have been run."
+            "The ratio of the input to output token, i.e. the amount of the input token that the order will receive for each unit of the output token that it sends. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextVaultInputsMeta = new AuthoringMetaV2[](CONTEXT_VAULT_IO_ROWS);
@@ -267,11 +267,11 @@ library LibOrderBookSubParser {
             bytes32(WORD_INPUT_VAULT_ID), "The ID of the input vault that incoming tokens are received into."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
-            bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE), "The balance of the input vault before the order is cleared."
+            bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE), "The balance of the input vault before the order is cleared as a uint256 value."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
             bytes32(WORD_INPUT_VAULT_BALANCE_INCREASE),
-            "The difference in the balance of the input vault after the order is cleared. This is always positive so it must be added to the input balance before to get the final vault balance. This is 0 before calculations have been run."
+            "The difference in the balance of the input vault after the order is cleared as a uint256 value. This is always positive so it must be added to the input balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextVaultOutputsMeta = new AuthoringMetaV2[](CONTEXT_VAULT_IO_ROWS);
@@ -284,11 +284,11 @@ library LibOrderBookSubParser {
             bytes32(WORD_OUTPUT_VAULT_ID), "The ID of the output vault that outgoing tokens are sent from."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
-            bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE), "The balance of the output vault before the order is cleared."
+            bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE), "The balance of the output vault before the order is cleared as a uint256 value."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
             bytes32(WORD_OUTPUT_VAULT_BALANCE_DECREASE),
-            "The difference in the balance of the output vault after the order is cleared. This is always positive so it must be subtracted from the output balance before to get the final vault balance. This is 0 before calculations have been run."
+            "The difference in the balance of the output vault after the order is cleared as a uint256 value. This is always positive so it must be subtracted from the output balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextSignersMeta = new AuthoringMetaV2[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
