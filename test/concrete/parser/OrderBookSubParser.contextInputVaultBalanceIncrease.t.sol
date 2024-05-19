@@ -5,6 +5,6 @@ import {OrderBookSubParserContextTest} from "test/util/abstract/OrderBookSubPars
 
 contract OrderBookSubParserContextInputVaultBalanceIncreaseTest is OrderBookSubParserContextTest {
     function word() internal pure override returns (string memory) {
-        return "input-vault-balance-increase";
+        return "uint256-input-vault-increase";
     }
 }
