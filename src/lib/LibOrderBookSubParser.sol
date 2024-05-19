@@ -267,7 +267,8 @@ library LibOrderBookSubParser {
             bytes32(WORD_INPUT_VAULT_ID), "The ID of the input vault that incoming tokens are received into."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
-            bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE), "The balance of the input vault before the order is cleared as a uint256 value."
+            bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE),
+            "The balance of the input vault before the order is cleared as a uint256 value."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
             bytes32(WORD_INPUT_VAULT_BALANCE_INCREASE),
@@ -284,7 +285,8 @@ library LibOrderBookSubParser {
             bytes32(WORD_OUTPUT_VAULT_ID), "The ID of the output vault that outgoing tokens are sent from."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
-            bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE), "The balance of the output vault before the order is cleared as a uint256 value."
+            bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE),
+            "The balance of the output vault before the order is cleared as a uint256 value."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
             bytes32(WORD_OUTPUT_VAULT_BALANCE_DECREASE),
