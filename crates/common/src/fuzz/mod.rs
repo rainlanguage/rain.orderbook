@@ -242,12 +242,16 @@ impl FuzzRunner {
                     Some(final_bindings),
                 )?;
 
+                // create a 50x50 grid of zero values for context - later we'll
+                // replace these with sane values based on Orderbook context
+                let context = vec![vec![U256::from(0); 50]; 50];
+
                 let args = ForkEvalArgs {
                     rainlang_string,
                     source_index: 0,
                     deployer: deployer.address,
                     namespace: FullyQualifiedNamespace::default(),
-                    context: vec![],
+                    context,
                     decode_errors: true,
                 };
                 fork_clone
@@ -411,5 +415,93 @@ d: 4;
             .get(column_index.unwrap())
             .unwrap();
         assert!(value == &U256::from(6));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_context_happy() {
+        let dotrain = format!(
+            r#"
+deployers:
+    sepolia:
+        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+networks:
+    sepolia:
+        rpc: {rpc_url}
+        chain-id: 137
+scenarios:
+    sepolia:
+        runs: 500
+---
+#calculate-io
+_: context<0 0>(),
+_: context<49 49>();
+#handle-io
+:;
+    "#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+        );
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
+        let config = settings
+            .try_into()
+            .map_err(|e| println!("{:?}", e))
+            .unwrap();
+
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
+
+        let res = runner
+            .run_scenario_by_name("sepolia")
+            .await
+            .map_err(|e| println!("{:#?}", e))
+            .unwrap();
+
+        let flattened = res.flatten_traces().unwrap();
+
+        for row in flattened.data.iter() {
+            for col in row.iter() {
+                assert!(col == &U256::from(0));
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_context_unhappy() {
+        // if we try to access a context value that is out of bounds, we should get an error
+
+        let dotrain = format!(
+            r#"
+deployers:
+    sepolia:
+        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+networks:
+    sepolia:
+        rpc: {rpc_url}
+        chain-id: 137
+scenarios:
+    sepolia:
+        runs: 500
+---
+#calculate-io
+_: context<50 50>();
+#handle-io
+:;
+    "#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+        );
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
+        let config = settings
+            .try_into()
+            .map_err(|e| println!("{:?}", e))
+            .unwrap();
+
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
+
+        let res = runner
+            .run_scenario_by_name("sepolia")
+            .await
+            .map_err(|e| println!("{:#?}", e));
+
+        assert!(res.is_err());
     }
 }
