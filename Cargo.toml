@@ -37,8 +37,8 @@ chrono = "0.4.31"
 typeshare = { git = "https://github.com/tomjw64/typeshare", rev = "556b44aafd5304eedf17206800f69834e3820b7c" }
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = "6.0.1-alpha.17"
-dotrain-lsp = "6.0.1-alpha.17"
+dotrain = "6.0.1-alpha.18"
+dotrain-lsp = "6.0.1-alpha.18"
 rain-metadata = { path = "lib/rain.metadata/crates/cli" }
 rain-metadata-bindings = { path = "lib/rain.metadata/crates/bindings" }
 rain-metaboard-subgraph = { path = "lib/rain.metadata/crates/metaboard" }
