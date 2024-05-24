@@ -242,7 +242,7 @@ impl FuzzRunner {
                     Some(final_bindings),
                 )?;
 
-                // create a 50x50 grid of zero values for context - later we'll
+                // create a 5x5 grid of zero values for context - later we'll
                 // replace these with sane values based on Orderbook context
                 let context = vec![vec![U256::from(0); 5]; 5];
 
