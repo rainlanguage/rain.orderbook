@@ -15,6 +15,7 @@ use rain_orderbook_app_settings::config::*;
 use rain_orderbook_app_settings::scenario::Scenario;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::ops::Range;
 use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
@@ -29,7 +30,10 @@ pub struct ChartData {
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: Vec<RainEvalResult>,
+    pub blocks: Option<Range<u64>>,
+
+    pub runs: u64,
+    pub results: Vec<RainEvalResult>,
 }
 
 #[typeshare]
@@ -45,7 +49,7 @@ impl FuzzResult {
     pub fn collect_data_by_path(&self, path: &str) -> Result<Vec<U256>, TraceSearchError> {
         let mut collection: Vec<U256> = vec![];
         // loop over the runs and search_trace_by_path for each
-        for run in self.runs.iter() {
+        for run in self.results.iter() {
             let stack = run.search_trace_by_path(path)?;
             collection.push(stack);
         }
@@ -57,7 +61,7 @@ impl FuzzResult {
         let mut source_paths: Vec<String> = vec![];
 
         let first_run_traces = &self
-            .runs
+            .results
             .first()
             .ok_or(FuzzRunnerError::ScenarioNoRuns)?
             .traces;
@@ -90,7 +94,7 @@ impl FuzzResult {
 
         let mut data: Vec<Vec<U256>> = vec![];
 
-        for run in self.runs.iter() {
+        for run in self.results.iter() {
             let mut run_data: Vec<U256> = vec![];
             for trace in run.traces.iter() {
                 let mut stack = trace.stack.clone();
@@ -170,7 +174,6 @@ impl FuzzRunner {
     ) -> Result<FuzzResult, FuzzRunnerError> {
         // if the scenario doesn't have runs, return an error
         let no_of_runs = scenario.runs.ok_or(FuzzRunnerError::ScenarioNoRuns)?;
-
         let deployer = scenario.deployer.clone();
 
         // create a fork
@@ -178,7 +181,7 @@ impl FuzzRunner {
             .add_or_select(
                 NewForkedEvm {
                     fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: None,
+                    fork_block_number: scenario.blocks.clone().map(|r| r.start),
                 },
                 None,
             )
@@ -211,67 +214,74 @@ impl FuzzRunner {
                 .collect::<Vec<String>>(),
         );
 
-        let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
-        let dotrain = Arc::new(self.dotrain.clone());
         let mut handles = vec![];
 
-        for _ in 0..no_of_runs {
-            let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
-            let elided_binding_keys = Arc::clone(&elided_binding_keys);
-            let deployer = Arc::clone(&deployer);
-            let scenario_bindings = scenario_bindings.clone();
-            let dotrain = Arc::clone(&dotrain);
+        for block_no in scenario.blocks.clone().unwrap() {
+            let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
+            let dotrain = Arc::new(self.dotrain.clone());
 
-            let mut final_bindings: Vec<Rebind> = vec![];
+            for _ in 0..no_of_runs {
+                let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
+                let elided_binding_keys = Arc::clone(&elided_binding_keys);
+                let deployer = Arc::clone(&deployer);
+                let scenario_bindings = scenario_bindings.clone();
+                let dotrain = Arc::clone(&dotrain);
 
-            // for each scenario.fuzz_binds, add a random value
-            for elided_binding in elided_binding_keys.as_slice() {
-                let mut val: [u8; 32] = [0; 32];
-                self.rng.fill_bytes(&mut val);
-                let hex = format!("0x{}", alloy_primitives::hex::encode(val));
-                final_bindings.push(Rebind(elided_binding.to_string(), hex));
+                let mut final_bindings: Vec<Rebind> = vec![];
+
+                // for each scenario.fuzz_binds, add a random value
+                for elided_binding in elided_binding_keys.as_slice() {
+                    let mut val: [u8; 32] = [0; 32];
+                    self.rng.fill_bytes(&mut val);
+                    let hex = format!("0x{}", alloy_primitives::hex::encode(val));
+                    final_bindings.push(Rebind(elided_binding.to_string(), hex));
+                }
+
+                let handle = tokio::spawn(async move {
+                    final_bindings.extend(scenario_bindings.clone());
+
+                    let rainlang_string = RainDocument::compose_text(
+                        &dotrain,
+                        &ORDERBOOK_ORDER_ENTRYPOINTS,
+                        None,
+                        Some(final_bindings),
+                    )?;
+
+                    // create a 5x5 grid of zero values for context - later we'll
+                    // replace these with sane values based on Orderbook context
+                    let context = vec![vec![U256::from(0); 5]; 5];
+
+                    let args = ForkEvalArgs {
+                        rainlang_string,
+                        source_index: 0,
+                        deployer: deployer.address,
+                        namespace: FullyQualifiedNamespace::default(),
+                        context,
+                        decode_errors: true,
+                    };
+                    fork_clone
+                        .fork_eval(args)
+                        .map_err(FuzzRunnerError::ForkCallError)
+                        .await
+                });
+                handles.push(handle);
             }
 
-            let handle = tokio::spawn(async move {
-                final_bindings.extend(scenario_bindings.clone());
-
-                let rainlang_string = RainDocument::compose_text(
-                    &dotrain,
-                    &ORDERBOOK_ORDER_ENTRYPOINTS,
-                    None,
-                    Some(final_bindings),
-                )?;
-
-                // create a 5x5 grid of zero values for context - later we'll
-                // replace these with sane values based on Orderbook context
-                let context = vec![vec![U256::from(0); 5]; 5];
-
-                let args = ForkEvalArgs {
-                    rainlang_string,
-                    source_index: 0,
-                    deployer: deployer.address,
-                    namespace: FullyQualifiedNamespace::default(),
-                    context,
-                    decode_errors: true,
-                };
-                fork_clone
-                    .fork_eval(args)
-                    .map_err(FuzzRunnerError::ForkCallError)
-                    .await
-            });
-            handles.push(handle);
+            self.forker.roll_fork(Some(block_no + 1), None);
         }
 
-        let mut runs: Vec<RainEvalResult> = Vec::new();
+        let mut results: Vec<RainEvalResult> = Vec::new();
 
         for handle in handles {
             let res = handle.await??;
-            runs.push(res.into());
+            results.push(res.into());
         }
 
         Ok(FuzzResult {
             scenario: scenario.name.clone(),
-            runs,
+            blocks: scenario.blocks.clone(),
+            runs: no_of_runs,
+            results,
         })
     }
 
@@ -349,7 +359,7 @@ b: fuzzed;
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 500);
+        assert!(res.results.len() == 500);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
