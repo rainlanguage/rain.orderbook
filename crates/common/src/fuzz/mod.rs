@@ -60,6 +60,8 @@ impl FuzzResult {
         let mut column_names: Vec<String> = vec![];
         let mut source_paths: Vec<String> = vec![];
 
+        column_names.push(format!("{}", "block"));
+
         let first_run_traces = &self
             .results
             .first()
@@ -94,8 +96,23 @@ impl FuzzResult {
 
         let mut data: Vec<Vec<U256>> = vec![];
 
-        for run in self.results.iter() {
+        let mut block_index = 0;
+
+        for (i, run) in self.results.iter().enumerate() {
             let mut run_data: Vec<U256> = vec![];
+
+            if i > 0 && (i as u64 % self.runs == 0) {
+                block_index += 1;
+            }
+
+            if self.blocks.is_some() {
+                let block_height: U256 = (self.blocks.clone().unwrap().start + block_index)
+                    .try_into()
+                    .unwrap();
+
+                run_data.push(block_height);
+            }
+
             for trace in run.traces.iter() {
                 let mut stack = trace.stack.clone();
                 stack.reverse();
@@ -129,6 +146,8 @@ pub enum FuzzRunnerError {
     ScenarioNoRuns,
     #[error("Corrupt traces")]
     CorruptTraces,
+    #[error("Fork roll error")]
+    RollFailure,
     #[error("{0} is not a testable scenario")]
     ScenarioNotTestable(String),
     #[error(transparent)]
