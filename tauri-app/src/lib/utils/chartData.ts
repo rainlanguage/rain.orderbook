@@ -10,8 +10,13 @@ export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndForm
   }
   return fuzzResult.data.map((row) => {
     const rowObject: TransformedHexAndFormattedData = {};
+
     fuzzResult.column_names.forEach((columnName, index) => {
-      rowObject[columnName] = [+formatUnits(hexToBigInt(row[index] as Hex), 18), row[index] as Hex];
+      if (columnName == 'block') {
+        rowObject[columnName] = row[0];
+      } else {
+        rowObject[columnName] = [+formatUnits(hexToBigInt(row[index] as Hex), 18), row[index] as Hex];
+      }
     });
     return rowObject;
   });
@@ -25,8 +30,11 @@ export const transformDataForPlot = (fuzzResult: FuzzResultFlat): TransformedPlo
   }
   return fuzzResult.data.map((row) => {
     const rowObject: TransformedPlotData = {};
+
     fuzzResult.column_names.forEach((columnName, index) => {
-      rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
+      if (columnName != 'block') {
+        rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
+      }
     });
     return rowObject;
   });
@@ -36,29 +44,34 @@ if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
 
   it('data transforms correctly and errors are caught', () => {
-    const fuzzResult = {
+    const fuzzResultBlocks = {
       data: [
-        ['0xDE0B6B3A7640000', '0x29A2241AF62C0000'],
-        ['0x1BC16D674EC80000', '0x3782DACE9D900000'],
-        ['0x29A2241AF62C0000', '0x5678'],
-        ['0x1234', '0x5678'],
+        ['14334', '0xDE0B6B3A7640000', '0x29A2241AF62C0000'],
+        ['14334', '0x1BC16D674EC80000', '0x3782DACE9D900000'],
+        ['14335', '0x29A2241AF62C0000', '0x5678'],
+        ['14335', '0x1234', '0x5678'],
       ],
-      column_names: ['col1', 'col2'],
+      column_names: ['block', 'col1', 'col2'],
       scenario: 'test',
     };
 
-    const transformedData = transformData(fuzzResult);
+    const transformedBlockData = transformData(fuzzResult);
 
-    expect(transformedData.length).toEqual(4);
-    expect(transformedData[0].col1[0]).toEqual(1);
-    expect(transformedData[0].col2[0]).toEqual(3);
-    expect(transformedData[1].col1[0]).toEqual(2);
-    expect(transformedData[1].col2[0]).toEqual(4);
+    expect(transformedBlockData.length).toEqual(4);
+    expect(transformedBlockData[0].block).toEqual(14334);
+    expect(transformedBlockData[1].block).toEqual(14334);
+    expect(transformedBlockData[2].block).toEqual(14335);
+    expect(transformedBlockData[3].block).toEqual(14335);
 
-    expect(transformedData[0].col1[1]).toEqual('0xDE0B6B3A7640000');
-    expect(transformedData[0].col2[1]).toEqual('0x29A2241AF62C0000');
-    expect(transformedData[1].col1[1]).toEqual('0x1BC16D674EC80000');
-    expect(transformedData[1].col2[1]).toEqual('0x3782DACE9D900000');
+    expect(transformedBlockData[0].col1[0]).toEqual(1);
+    expect(transformedBlockData[0].col2[0]).toEqual(3);
+    expect(transformedBlockData[1].col1[0]).toEqual(2);
+    expect(transformedBlockData[1].col2[0]).toEqual(4);
+
+    expect(transformedBlockData[0].col1[1]).toEqual('0xDE0B6B3A7640000');
+    expect(transformedBlockData[0].col2[1]).toEqual('0x29A2241AF62C0000');
+    expect(transformedBlockData[1].col1[1]).toEqual('0x1BC16D674EC80000');
+    expect(transformedBlockData[1].col2[1]).toEqual('0x3782DACE9D900000');
 
     const fuzzResult3 = {
       data: [

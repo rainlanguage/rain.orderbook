@@ -1,6 +1,6 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, num::ParseIntError, sync::Arc};
+use std::{collections::HashMap, num::ParseIntError, ops::Range, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
@@ -12,6 +12,9 @@ pub struct Scenario {
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
+
+    /// Blocks specifies the range of blocks (exclusive) which the scenario should run over.
+    pub blocks: Option<Range<u64>>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
 }
@@ -91,6 +94,7 @@ impl ScenarioConfigSource {
         let parent_scenario = Arc::new(Scenario {
             name: name.clone(),
             bindings: bindings.clone(),
+            blocks: None,
             runs: self.runs,
             deployer: deployer_ref.clone(),
         });

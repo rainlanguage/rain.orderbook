@@ -358,6 +358,7 @@ price: 2e18;
             name: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
+            blocks: None,
             deployer: deployer_arc.clone(),
         };
         let token1 = Token {

@@ -21,6 +21,7 @@
         <span>{scenario.scenario}</span>
         <Table divClass="cursor-pointer rounded-lg overflow-hidden dark:border-none border">
           <TableHead>
+            <TableHeadCell>Block</TableHeadCell>
             <TableHeadCell>Stack item</TableHeadCell>
             <TableHeadCell>Value</TableHeadCell>
             <TableHeadCell>Hex</TableHeadCell>
@@ -31,6 +32,7 @@
                 <TableBodyCell>{key}</TableBodyCell>
                 <TableBodyCell>{value[0]}</TableBodyCell>
                 <TableBodyCell>{value[1]}</TableBodyCell>
+                <TableBodyCell>{value[2]}</TableBodyCell>
               </TableBodyRow>
             {/each}
           </TableBody>
