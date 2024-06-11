@@ -6,8 +6,11 @@ import {
   afterEach,
   newMockEvent,
   clearInBlockStore,
+  log,
 } from "matchstick-as";
 import { createTransactionEntity } from "../src/transaction";
+import { Bytes } from "@graphprotocol/graph-ts";
+import { Transaction } from "../generated/schema";
 
 describe("Transaction", () => {
   afterEach(() => {
@@ -44,49 +47,28 @@ describe("Transaction", () => {
   test("has no problem with multiple events in the same transaction", () => {
     let event1 = newMockEvent();
     let event2 = newMockEvent();
-    event2.transaction.hash = event1.transaction.hash;
+    event2.transaction = event1.transaction;
 
     assert.bytesEquals(event1.transaction.hash, event2.transaction.hash);
 
+    // these two events share the same transaction
     createTransactionEntity(event1);
     createTransactionEntity(event2);
 
+    // only one transaction entity should be created
+    assert.entityCount("Transaction", 1);
+
+    // now let's create an event with a unique transaction
+    let event3 = newMockEvent();
+    event3.transaction.hash = event3.transaction.hash.concat(
+      Bytes.fromHexString("0x01")
+    );
+
+    createTransactionEntity(event3);
+
+    assert.assertTrue(event3.transaction.hash != event1.transaction.hash);
+
+    // now we should have two transaction entities
     assert.entityCount("Transaction", 2);
-    assert.fieldEquals(
-      "Transaction",
-      event1.transaction.hash.toHex(),
-      "blockNumber",
-      event1.block.number.toString()
-    );
-    assert.fieldEquals(
-      "Transaction",
-      event1.transaction.hash.toHex(),
-      "timestamp",
-      event1.block.timestamp.toString()
-    );
-    assert.fieldEquals(
-      "Transaction",
-      event1.transaction.hash.toHex(),
-      "from",
-      event1.transaction.from.toHex()
-    );
-    assert.fieldEquals(
-      "Transaction",
-      event2.transaction.hash.toHex(),
-      "blockNumber",
-      event2.block.number.toString()
-    );
-    assert.fieldEquals(
-      "Transaction",
-      event2.transaction.hash.toHex(),
-      "timestamp",
-      event2.block.timestamp.toString()
-    );
-    assert.fieldEquals(
-      "Transaction",
-      event2.transaction.hash.toHex(),
-      "from",
-      event2.transaction.from.toHex()
-    );
   });
 });

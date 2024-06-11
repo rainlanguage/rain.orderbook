@@ -5,7 +5,7 @@
     "author": "rainlanguage",
     "license": "CAL",
     "scripts": {
-        "test": "graph test"
+        "test": "graph test -d"
     },
     "dependencies": {
         "@graphprotocol/graph-cli": "^0.63.0",

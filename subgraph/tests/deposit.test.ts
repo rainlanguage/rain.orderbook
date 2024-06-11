@@ -20,7 +20,7 @@ describe("Deposits", () => {
   test("createDepositEntity()", () => {
     let event = createDepositEvent(
       Address.fromString("0x1234567890123456789012345678901234567890"),
-      Address.fromString("0xabcdefABCDEFabcdefABCDEFabcdefABCDEFabcdef"),
+      Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       BigInt.fromI32(100)
     );
@@ -41,7 +41,7 @@ describe("Deposits", () => {
       "Deposit",
       id,
       "token",
-      "0xabcdefABCDEFabcdefABCDEFabcdefABCDEFabcdef"
+      "0x0987654321098765432109876543210987654321"
     );
     assert.fieldEquals(
       "Deposit",
