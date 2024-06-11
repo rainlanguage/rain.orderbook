@@ -11,6 +11,21 @@ type Deposit implements Event @entity {
   transaction: Transaction!
 }
 
+type Withdrawal implements Event @entity {
+  id: ID!
+  "The token that was withdrawn"
+  token: Bytes!
+  "The vaultId that was withdrawn from"
+  vaultId: BigInt!
+  "The amount that was being targeted to be withdrawn"
+  targetAmount: BigInt!
+  "The amount that was actually withdrawn"
+  amount: BigInt!
+  "The msg.sender of this withdrawal"
+  sender: Bytes!
+  transaction: Transaction!
+}
+
 type Transaction @entity(immutable: true) {
   id: ID!
   timestamp: BigInt!

@@ -1,4 +1,4 @@
-import { Deposit } from "../generated/Deposit/OrderBook";
+import { Deposit } from "../generated/OrderBook/OrderBook";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { createTransactionEntity } from "./transaction";
 
