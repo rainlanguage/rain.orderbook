@@ -8,7 +8,7 @@ export function handleWithdraw(event: Withdraw): void {
 
 export function createWithdrawalEntity(event: Withdraw): void {
   let withdraw = new Withdrawal(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+    event.transaction.hash.concatI32(event.logIndex.toI32())
   );
   withdraw.amount = event.params.amount;
   withdraw.targetAmount = event.params.targetAmount;

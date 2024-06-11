@@ -27,42 +27,42 @@ describe("Withdrawals", () => {
     );
     createWithdrawalEntity(event);
 
-    let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+    let id = event.transaction.hash.concatI32(event.logIndex.toI32());
 
     assert.entityCount("Withdrawal", 1);
     assert.fieldEquals(
       "Withdrawal",
-      id,
+      id.toHexString(),
       "amount",
       BigInt.fromI32(100).toString()
     );
     assert.fieldEquals(
       "Withdrawal",
-      id,
+      id.toHexString(),
       "targetAmount",
       BigInt.fromI32(200).toString()
     );
     assert.fieldEquals(
       "Withdrawal",
-      id,
+      id.toHexString(),
       "sender",
       "0x1234567890123456789012345678901234567890"
     );
     assert.fieldEquals(
       "Withdrawal",
-      id,
+      id.toHexString(),
       "vaultId",
       BigInt.fromI32(1).toString()
     );
     assert.fieldEquals(
       "Withdrawal",
-      id,
+      id.toHexString(),
       "token",
       "0x0987654321098765432109876543210987654321"
     );
     assert.fieldEquals(
       "Withdrawal",
-      id,
+      id.toHexString(),
       "transaction",
       event.transaction.hash.toHex()
     );

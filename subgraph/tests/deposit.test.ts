@@ -26,26 +26,36 @@ describe("Deposits", () => {
     );
     createDepositEntity(event);
 
-    let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+    let id = event.transaction.hash.concatI32(event.logIndex.toI32());
 
     assert.entityCount("Deposit", 1);
-    assert.fieldEquals("Deposit", id, "amount", BigInt.fromI32(100).toString());
     assert.fieldEquals(
       "Deposit",
-      id,
+      id.toHexString(),
+      "amount",
+      BigInt.fromI32(100).toString()
+    );
+    assert.fieldEquals(
+      "Deposit",
+      id.toHexString(),
       "sender",
       "0x1234567890123456789012345678901234567890"
     );
-    assert.fieldEquals("Deposit", id, "vaultId", BigInt.fromI32(1).toString());
     assert.fieldEquals(
       "Deposit",
-      id,
+      id.toHexString(),
+      "vaultId",
+      BigInt.fromI32(1).toString()
+    );
+    assert.fieldEquals(
+      "Deposit",
+      id.toHexString(),
       "token",
       "0x0987654321098765432109876543210987654321"
     );
     assert.fieldEquals(
       "Deposit",
-      id,
+      id.toHexString(),
       "transaction",
       event.transaction.hash.toHex()
     );
