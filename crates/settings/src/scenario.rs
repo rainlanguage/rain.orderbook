@@ -1,4 +1,5 @@
 use crate::*;
+use blocks::Blocks;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, num::ParseIntError, sync::Arc};
 use thiserror::Error;
@@ -12,6 +13,8 @@ pub struct Scenario {
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
+    #[typeshare(typescript(type = "Blocks"))]
+    pub blocks: Option<Blocks>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
 }
@@ -163,6 +166,7 @@ mod tests {
             ScenarioConfigSource {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(2),
+                blocks: None,
                 deployer: None,
                 scenarios: None, // No further nesting
             },
@@ -174,6 +178,7 @@ mod tests {
             ScenarioConfigSource {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(5),
+                blocks: None,
                 deployer: None,
                 scenarios: Some(nested_scenario2), // Include nested_scenario2
             },
@@ -186,6 +191,7 @@ mod tests {
             ScenarioConfigSource {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(10),
+                blocks: None,
                 deployer: Some("mainnet".to_string()),
                 scenarios: Some(nested_scenario1), // Include nested_scenario1
             },
@@ -256,6 +262,7 @@ mod tests {
         let child_scenario = ScenarioConfigSource {
             bindings: child_bindings,
             runs: None,
+            blocks: None,
             deployer: None,
             scenarios: None,
         };
