@@ -229,12 +229,12 @@ impl FuzzRunner {
                 .collect::<Vec<String>>(),
         );
 
+        let dotrain = Arc::new(self.dotrain.clone());
         let mut handles = vec![];
 
         for block_number in blocks {
             self.forker.roll_fork(Some(block_number), None)?;
             let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
-            let dotrain = Arc::new(self.dotrain.clone());
 
             for _ in 0..no_of_runs {
                 let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
@@ -413,13 +413,10 @@ _: block-number();
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        println!("{:#?}", res.runs.len());
-
         assert!(res.runs.len() == 11);
 
         res.runs.iter().enumerate().for_each(|(i, run)| {
-            println!("{:#?}", run.traces[0].stack[0]);
-            // assert!(run.traces[0].stack[0] == U256::from(5789000 + i as u64 * 10));
+            assert!(run.traces[0].stack[0] == U256::from(5789000 + i as u64 * 10));
         });
     }
 
