@@ -102,7 +102,6 @@ impl<'de> Visitor<'de> for BlockRangeVisitor {
         let mut range_string = String::new();
 
         while let Some(elem) = seq.next_element::<String>()? {
-            println!("elem: {}", elem);
             range_string.push_str(&elem);
         }
 
