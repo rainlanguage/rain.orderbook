@@ -95,6 +95,7 @@ impl ScenarioConfigSource {
             name: name.clone(),
             bindings: bindings.clone(),
             runs: self.runs,
+            blocks: self.blocks.clone(),
             deployer: deployer_ref.clone(),
         });
 
