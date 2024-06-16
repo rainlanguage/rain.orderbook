@@ -249,7 +249,7 @@ impl FuzzRunner {
                 for elided_binding in elided_binding_keys.as_slice() {
                     let mut val: [u8; 32] = [0; 32];
                     self.rng.fill_bytes(&mut val);
-                    let hex = format!("0x{:0>64}", alloy_primitives::hex::encode(val));
+                    let hex = alloy_primitives::hex::encode_prefixed(val);
                     final_bindings.push(Rebind(elided_binding.to_string(), hex));
                 }
 
