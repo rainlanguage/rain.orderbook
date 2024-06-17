@@ -142,7 +142,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(
-            borrower, abi.encodeWithSelector(IOrderBookV4.addOrder2.selector, config, new ActionV1[](0)), loanAmount
+            borrower, abi.encodeWithSelector(IOrderBookV4.takeOrders2.selector, takeOrdersConfig), loanAmount
         );
     }
 

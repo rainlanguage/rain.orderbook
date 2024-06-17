@@ -4,7 +4,8 @@ pragma solidity =0.8.25;
 import {
     LibParseOperand,
     BaseRainterpreterSubParserNPE2,
-    Operand
+    Operand,
+    IParserToolingV1
 } from "rain.interpreter/abstract/BaseRainterpreterSubParserNPE2.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
@@ -73,7 +74,13 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         return SUB_PARSER_OPERAND_HANDLERS;
     }
 
-    function buildSubParserOperandHandlers() external pure returns (bytes memory) {
+    /// @inheritdoc IParserToolingV1
+    function buildLiteralParserFunctionPointers() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /// @inheritdoc IParserToolingV1
+    function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
         function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
             new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2);

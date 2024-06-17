@@ -29,7 +29,7 @@ contract OrderBookSubParserPointersTest is Test {
 
     function testSubParserOperandParsers() external {
         OrderBookSubParser extern = new OrderBookSubParser();
-        bytes memory expected = extern.buildSubParserOperandHandlers();
+        bytes memory expected = extern.buildOperandHandlerFunctionPointers();
         bytes memory actual = SUB_PARSER_OPERAND_HANDLERS;
         assertEq(actual, expected);
     }

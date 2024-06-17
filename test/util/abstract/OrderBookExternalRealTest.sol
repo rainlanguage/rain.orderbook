@@ -31,6 +31,13 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
         iInterpreter = IInterpreterV3(new RainterpreterNPE2());
         iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
         address parser = address(new RainterpreterParserNPE2());
+        iParserV2 = new RainterpreterExpressionDeployerNPE2(
+            RainterpreterExpressionDeployerNPE2ConstructionConfigV2({
+                interpreter: address(iInterpreter),
+                store: address(iStore),
+                parser: parser
+            })
+        );
 
         // Deploy the expression deployer.
         vm.etch(address(IERC1820_REGISTRY), REVERTING_MOCK_BYTECODE);
