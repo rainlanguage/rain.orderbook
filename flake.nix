@@ -29,7 +29,7 @@
                 -t cbor \
                 -e deflate \
                 -l none \
-                -o meta/OrderBookSubParserDescribedByMetaV1.rain.meta \
+                -o meta/OrderBookSubParser.rain.meta \
                 ;
             '';
           };
