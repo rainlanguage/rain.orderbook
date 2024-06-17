@@ -6,7 +6,7 @@ import {
     IERC3156FlashBorrower,
     ON_FLASH_LOAN_CALLBACK_SUCCESS
 } from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /// @title OrderBookV4FlashLenderMockSuccessTest
 /// Show that if the receiver is `OrderBookV4FlashBorrower` and the token
