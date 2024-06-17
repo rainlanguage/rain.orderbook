@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {stdError} from "forge-std/Test.sol";
 import {REVERTING_MOCK_BYTECODE, CONSOLE_ADDRESS} from "test/util/lib/LibTestConstants.sol";

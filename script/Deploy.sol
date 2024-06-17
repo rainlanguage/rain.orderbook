@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
 import {OrderBook, EvaluableV3} from "src/concrete/ob/OrderBook.sol";

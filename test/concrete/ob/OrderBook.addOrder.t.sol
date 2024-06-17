@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
@@ -102,21 +102,39 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// Inputs for handle io errors. Tests one input.
+<<<<<<< HEAD
     /// Deploys because this is a runtime check.
     function testAddOrderRealHandleIOInputsReverts1(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_ _:1e18 1e18;i:;");
         config.evaluable.bytecode = bytecode;
+=======
+    function testAddOrderRealHandleIOInputsReverts1(address owner, OrderConfigV2 memory config) public {
+        LibTestAddOrder.conformConfig(config, iDeployer);
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:1 1;i:;");
+        config.evaluableConfig.constants = constants;
+        config.evaluableConfig.bytecode = bytecode;
+        vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 1));
+>>>>>>> 6ab862c5aa5f36bebc6f9342ab1c40f246bacdbe
         vm.prank(owner);
         iOrderbook.addOrder2(config, new ActionV1[](0));
     }
 
     /// Inputs for handle io errors. Tests two inputs.
+<<<<<<< HEAD
     /// Deploys because this is a runtime check.
     function testAddOrderRealHandleIOInputsReverts2(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_ _:1e18 1e18;i0 i1:;");
         config.evaluable.bytecode = bytecode;
+=======
+    function testAddOrderRealHandleIOInputsReverts2(address owner, OrderConfigV2 memory config) public {
+        LibTestAddOrder.conformConfig(config, iDeployer);
+        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse("_ _:1 1;i0 i1:;");
+        config.evaluableConfig.constants = constants;
+        config.evaluableConfig.bytecode = bytecode;
+        vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 2));
+>>>>>>> 6ab862c5aa5f36bebc6f9342ab1c40f246bacdbe
         vm.prank(owner);
         iOrderbook.addOrder2(config, new ActionV1[](0));
     }

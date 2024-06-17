@@ -12,7 +12,7 @@ pub struct OrderIO {
     #[typeshare(typescript(type = "Token"))]
     pub token: Arc<Token>,
     #[typeshare(typescript(type = "string"))]
-    pub vault_id: U256,
+    pub vault_id: Option<U256>,
 }
 
 #[typeshare]
@@ -206,11 +206,11 @@ mod tests {
             orderbook: Some("Orderbook1".to_string()),
             inputs: vec![IOString {
                 token: "Token1".to_string(),
-                vault_id: U256::from(1),
+                vault_id: Some(U256::from(1)),
             }],
             outputs: vec![IOString {
                 token: "Token2".to_string(),
-                vault_id: U256::from(2),
+                vault_id: Some(U256::from(2)),
             }],
         };
 
@@ -300,7 +300,7 @@ mod tests {
             orderbook: None,
             inputs: vec![IOString {
                 token: "Nonexistent Token".to_string(),
-                vault_id: U256::from(1),
+                vault_id: Some(U256::from(1)),
             }],
             outputs: vec![],
         };
