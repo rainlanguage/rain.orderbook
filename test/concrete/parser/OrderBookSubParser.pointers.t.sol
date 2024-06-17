@@ -9,7 +9,7 @@ import {
     SUB_PARSER_OPERAND_HANDLERS,
     OrderBookSubParser
 } from "src/concrete/parser/OrderBookSubParser.sol";
-import {LibParseMeta} from "rain.interpreter/lib/parse/LibParseMeta.sol";
+import {LibGenParseMeta} from "rain.sol.codegen/lib/LibGenParseMeta.sol";
 
 contract OrderBookSubParserPointersTest is Test {
     function testSubParserParseMeta() external {
