@@ -36,6 +36,8 @@ remappings = [
   "rain.metadata/=lib/rain.interpreter/lib/rain.metadata/src/",
   "rain.interpreter.interface/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/src/",
   "rain.intorastring/=lib/rain.interpreter/lib/rain.intorastring/",
+  "openzeppelin-contracts/=lib/rain.interpreter/lib/openzeppelin-contracts/",
+  "forge-std/=lib/rain.interpreter/lib/forge-std/src/",
 ]
 
 [fuzz]

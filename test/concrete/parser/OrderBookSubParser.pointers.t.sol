@@ -15,7 +15,7 @@ contract OrderBookSubParserPointersTest is Test {
     function testSubParserParseMeta() external {
         bytes memory authoringMetaBytes = LibOrderBookSubParser.authoringMetaV2();
         AuthoringMetaV2[] memory authoringMeta = abi.decode(authoringMetaBytes, (AuthoringMetaV2[]));
-        bytes memory expected = LibParseMeta.buildParseMetaV2(authoringMeta, 2);
+        bytes memory expected = LibGenParseMeta.buildParseMetaV2(authoringMeta, 2);
         bytes memory actual = SUB_PARSER_PARSE_META;
         assertEq(actual, expected);
     }

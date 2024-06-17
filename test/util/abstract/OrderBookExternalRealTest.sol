@@ -19,14 +19,8 @@ import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
 
-<<<<<<< HEAD
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     IInterpreterV3 internal immutable iInterpreter;
-=======
-abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
-    IExpressionDeployerV3 internal immutable iDeployer;
-    IInterpreterV2 internal immutable iInterpreter;
->>>>>>> 6ab862c5aa5f36bebc6f9342ab1c40f246bacdbe
     IInterpreterStoreV2 internal immutable iStore;
     IParserV2 internal immutable iParserV2;
     IOrderBookV4 internal immutable iOrderbook;
@@ -47,23 +41,6 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         );
         vm.mockCall(
             address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
-        );
-<<<<<<< HEAD
-        iParserV2 = IParserV2(
-            address(
-                new RainterpreterExpressionDeployerNPE2(
-                    RainterpreterExpressionDeployerNPE2ConstructionConfigV2(
-                        address(iInterpreter), address(iStore), address(parser)
-=======
-        iDeployer = IExpressionDeployerV3(
-            address(
-                new RainterpreterExpressionDeployerNPE2(
-                    RainterpreterExpressionDeployerNPE2ConstructionConfigV2(
-                        address(iInterpreter), address(iStore), address(iParser)
->>>>>>> 6ab862c5aa5f36bebc6f9342ab1c40f246bacdbe
-                    )
-                )
-            )
         );
         iOrderbook = IOrderBookV4(address(new OrderBook()));
 

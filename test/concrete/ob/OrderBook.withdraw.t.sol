@@ -1,24 +1,13 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.25;
 
-<<<<<<< HEAD
-import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-
-import {
-    OrderBookExternalMockTest,
-    IERC20,
-    REVERTING_MOCK_BYTECODE
-} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
-import {ActionV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-=======
 import {Test} from "lib/forge-std/src/Test.sol";
 
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
->>>>>>> 6ab862c5aa5f36bebc6f9342ab1c40f246bacdbe
+import {ActionV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
