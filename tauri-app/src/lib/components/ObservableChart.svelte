@@ -3,9 +3,6 @@
   import * as Plot from '@observablehq/plot';
   import camelcaseKeys from 'camelcase-keys';
   import type { TransformedPlotData } from '$lib/utils/chartData';
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  import { html } from 'htl';
 
   export let plot: PlotT;
   export let data: TransformedPlotData[];
@@ -15,14 +12,10 @@
 
   $: if (div && data) {
     try {
-      const plotData = getPlotOptions(plot);
       div?.firstChild?.remove(); // remove old chart, if any
       div.append(
         Plot.plot({
-          ...plotData,
-          subtitle: plotData.subtitle
-            ? html`<div class="text-xs">${plotData.subtitle}</div>`
-            : undefined,
+          ...getPlotOptions(plot),
           marks: plot.marks.map((mark) => buildMark(data, mark)),
         }),
       );
@@ -85,5 +78,10 @@
 {#if error}
   <div class="w-full border p-4 text-red-500">{error}</div>
 {:else}
-  <div bind:this={div} role="img" class="w-full border p-4"></div>
+  <div
+    bind:this={div}
+    role="img"
+    class="w-full border p-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-sm"
+    data-testid="chart"
+  ></div>
 {/if}
