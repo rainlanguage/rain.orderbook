@@ -5,11 +5,7 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {OrderConfigV3, EvaluableV3, ActionV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/unstable/IParserV2.sol";
-import {
-    UnsupportedCalculateOutputs,
-    UnsupportedCalculateInputs,
-    UnsupportedHandleInputs
-} from "src/concrete/ob/OrderBook.sol";
+import {UnsupportedCalculateOutputs, UnsupportedCalculateInputs} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookAddOrderTest
 /// @notice A test harness for testing the OrderBook addOrder function.
@@ -97,26 +93,6 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i:;i:;");
         config.evaluable.bytecode = bytecode;
-        vm.prank(owner);
-        iOrderbook.addOrder2(config, new ActionV1[](0));
-    }
-
-    /// Inputs for handle io errors. Tests one input.
-    function testAddOrderRealHandleIOInputsReverts1(address owner, OrderConfigV3 memory config) public {
-        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        config.evaluable.bytecode = iParserV2.parse2("_ _:1 1;i:;");
-
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 1));
-        vm.prank(owner);
-        iOrderbook.addOrder2(config, new ActionV1[](0));
-    }
-
-    /// Inputs for handle io errors. Tests two inputs.
-    function testAddOrderRealHandleIOInputsReverts2(address owner, OrderConfigV3 memory config) public {
-        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        config.evaluable.bytecode = iParserV2.parse2("_ _:1 1;i0 i1:;");
-
-        vm.expectRevert(abi.encodeWithSelector(UnsupportedHandleInputs.selector, 2));
         vm.prank(owner);
         iOrderbook.addOrder2(config, new ActionV1[](0));
     }

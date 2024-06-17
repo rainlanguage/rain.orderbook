@@ -173,7 +173,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     /// but the canonical interpreter will.
     function testTakeOrderNoHandleIORevert0() external {
         bytes[] memory configs = new bytes[](1);
-        configs[0] = "_ _:1e18 1e18;";
+        configs[0] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
@@ -185,8 +185,8 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     /// but the canonical interpreter will.
     function testTakeOrderNoHandleIORevert1() external {
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
@@ -198,8 +198,8 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     /// but the canonical interpreter will.
     function testTakeOrderNoHandleIORevert2() external {
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;";
-        configs[1] = "_ _:1e18 1e18;:;";
+        configs[0] = "_ _:1 1;";
+        configs[1] = "_ _:1 1;:;";
         checkTakeOrderHandleIO(
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),

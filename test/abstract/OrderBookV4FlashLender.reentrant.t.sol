@@ -98,7 +98,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         checkFlashLoanNotRevert(
             borrower,
             abi.encodeWithSelector(
-                IOrderBookV4.withdraw2.selector, address(iToken0), vaultId, withdrawAmount, new EvaluableV3[](0)
+                IOrderBookV4.withdraw2.selector, address(iToken0), vaultId, withdrawAmount, new ActionV1[](0)
             ),
             loanAmount
         );
@@ -111,7 +111,9 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
-        checkFlashLoanNotRevert(borrower, abi.encodeWithSelector(IOrderBookV4.addOrder2.selector, config), loanAmount);
+        checkFlashLoanNotRevert(
+            borrower, abi.encodeWithSelector(IOrderBookV4.addOrder2.selector, config, new ActionV1[](0)), loanAmount
+        );
     }
 
     /// Can reenter and remove an order from within a flash loan.
@@ -132,7 +134,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         vm.recordLogs();
         iOrderbook.addOrder2(config, new ActionV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, OrderV3 memory order,) = abi.decode(entries[2].data, (address, address, OrderV3, bytes32));
+        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));

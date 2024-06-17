@@ -92,10 +92,6 @@ error UnsupportedCalculateInputs(uint256 inputs);
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
 
-/// Thrown when handle IO expression wants inputs.
-/// @param inputs The inputs the expression wants.
-error UnsupportedHandleInputs(uint256 inputs);
-
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
