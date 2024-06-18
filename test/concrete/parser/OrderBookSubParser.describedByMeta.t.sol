@@ -6,7 +6,7 @@ import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 
 contract OrderBookSubParserDescribedByMetaV1Test is Test {
     function testOrderBookSubParserDescribedByMetaV1Happy() external {
-        bytes memory describedByMeta = vm.readFileBinary("meta/OrderBookSubParserDescribedByMetaV1.rain.meta");
+        bytes memory describedByMeta = vm.readFileBinary("meta/OrderBookSubParser.rain.meta");
         OrderBookSubParser subParser = new OrderBookSubParser();
 
         assertEq(keccak256(describedByMeta), subParser.describedByMetaV1());
