@@ -21,9 +21,6 @@ nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-pre
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prelude)'
 (cd lib/rain.interpreter && nix develop -i ${keep[@]} -c bash -c i9r-prelude)
 
-# Run commands in lib/rain.metadata
-nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.metadata && rainix-sol-prelude)'
-
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-unit-test
 
