@@ -434,7 +434,7 @@ scenarios:
 ---
 #calculate-io
 _: context<0 0>(),
-_: context<49 49>();
+_: context<4 4>();
 #handle-io
 :;
     "#,
