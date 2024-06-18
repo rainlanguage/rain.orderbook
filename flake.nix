@@ -161,10 +161,7 @@
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
                 otool -L lib/libcharset.1.dylib
 
-                cp ${pkgs.libiconv}/lib/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
-                chmod +w lib/libiconv-nocharset.dylib
-                install_name_tool -id @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
-                otool -L lib/libiconv-nocharset.dylib
+               
 
                 cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
                 chmod +w lib/libiconv.dylib
@@ -195,7 +192,7 @@
               ls src-tauri/target/release
 
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
 
