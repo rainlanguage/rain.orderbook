@@ -27,6 +27,9 @@ describe("Deposits", () => {
     createDepositEntity(event);
 
     let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let vaultEntityId = event.params.token.concatI32(
+      event.params.vaultId.toI32()
+    );
 
     assert.entityCount("Deposit", 1);
     assert.fieldEquals(
@@ -44,8 +47,8 @@ describe("Deposits", () => {
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
+      "vault",
+      vaultEntityId.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
@@ -83,7 +86,7 @@ describe("Deposits", () => {
 });
 
 // event Deposit(address sender, address token, uint256 vaultId, uint256 amount);
-function createDepositEvent(
+export function createDepositEvent(
   sender: Address,
   token: Address,
   vaultId: BigInt,

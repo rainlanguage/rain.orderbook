@@ -25,4 +25,4 @@ dataSources:
           handler: handleDeposit
         - event: Withdraw(address,address,uint256,uint256,uint256)
           handler: handleWithdraw
-      file: "./src/mappings.ts"
+      file: "./src/handlers.ts"

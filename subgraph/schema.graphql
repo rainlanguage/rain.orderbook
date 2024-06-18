@@ -1,29 +1,45 @@
-type Deposit implements Event @entity {
+type Vault @entity {
+  id: Bytes!
+  "The token that this vault is for"
+  token: Bytes!
+  "The owner of this vault"
+  owner: Bytes!
+  "The vaultId of this vault"
+  vaultId: BigInt!
+  "The amount of the token that is in this vault"
+  balance: BigInt!
+}
+
+type Deposit implements Event @entity(immutable: true) {
   id: Bytes!
   "The token that was deposited"
   token: Bytes!
-  "The vaultId that was deposited into"
-  vaultId: BigInt!
+  "The vault that was deposited into"
+  vault: Vault!
   "The amount that was deposited"
   amount: BigInt!
-  "The msg.sender of this deposit"
-  sender: Bytes!
+
+  # For Event
   transaction: Transaction!
+  "The msg.sender of this withdrawal"
+  sender: Bytes!
 }
 
-type Withdrawal implements Event @entity {
+type Withdrawal implements Event @entity(immutable: true) {
   id: Bytes!
   "The token that was withdrawn"
   token: Bytes!
-  "The vaultId that was withdrawn from"
-  vaultId: BigInt!
+  "The vault that was withdrawn from"
+  vault: Vault!
   "The amount that was being targeted to be withdrawn"
   targetAmount: BigInt!
   "The amount that was actually withdrawn"
   amount: BigInt!
+
+  # For Event
+  transaction: Transaction!
   "The msg.sender of this withdrawal"
   sender: Bytes!
-  transaction: Transaction!
 }
 
 type Transaction @entity(immutable: true) {
@@ -35,7 +51,6 @@ type Transaction @entity(immutable: true) {
 }
 
 interface Event {
-  id: Bytes!
   "Transaction this event was emitted in"
   transaction: Transaction!
   "msg.sender for the event"

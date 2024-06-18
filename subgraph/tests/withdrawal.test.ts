@@ -28,6 +28,9 @@ describe("Withdrawals", () => {
     createWithdrawalEntity(event);
 
     let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let vaultEntityId = event.params.token.concatI32(
+      event.params.vaultId.toI32()
+    );
 
     assert.entityCount("Withdrawal", 1);
     assert.fieldEquals(
@@ -51,8 +54,8 @@ describe("Withdrawals", () => {
     assert.fieldEquals(
       "Withdrawal",
       id.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
+      "vault",
+      vaultEntityId.toHexString()
     );
     assert.fieldEquals(
       "Withdrawal",
@@ -84,7 +87,7 @@ describe("Withdrawals", () => {
 });
 
 // event Withdraw(address sender, address token, uint256 vaultId, uint256 targetAmount, uint256 amount);
-function createWithdrawalEvent(
+export function createWithdrawalEvent(
   sender: Address,
   token: Address,
   vaultId: BigInt,
