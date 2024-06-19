@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
@@ -73,74 +73,74 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     function testTakeOrderHandleIO0() external {
         bytes[] memory configs = new bytes[](1);
-        configs[0] = "_ _:max-int-value() 1e18;:ensure(0 \"err\");";
+        configs[0] = "_ _:max-value() 1;:ensure(0 \"err\");";
         checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO1() external {
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;:ensure(0 \"err\");";
-        configs[1] = "_ _:1e18 1e18;:;";
+        configs[0] = "_ _:1 1;:ensure(0 \"err\");";
+        configs[1] = "_ _:1 1;:;";
         checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO2() external {
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err\");";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;:ensure(0 \"err\");";
         checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO3() external {
         bytes[] memory configs = new bytes[](3);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err\");";
-        configs[2] = "_ _:1e18 1e18;:;";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;:ensure(0 \"err\");";
+        configs[2] = "_ _:1 1;:;";
         checkTakeOrderHandleIO(configs, "err", type(uint256).max);
     }
 
     function testTakeOrderHandleIO4() external {
         bytes[] memory configs = new bytes[](3);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err 1\");";
-        configs[2] = "_ _:1e18 1e18;:ensure(0 \"err 2\");";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;:ensure(0 \"err 1\");";
+        configs[2] = "_ _:1 1;:ensure(0 \"err 2\");";
         checkTakeOrderHandleIO(configs, "err 1", type(uint256).max);
     }
 
     function testTakeOrderHandleIO5() external {
         bytes[] memory configs = new bytes[](3);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:ensure(0 \"err 2\");";
-        configs[2] = "_ _:1e18 1e18;:ensure(0 \"err 1\");";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;:ensure(0 \"err 2\");";
+        configs[2] = "_ _:1 1;:ensure(0 \"err 1\");";
         checkTakeOrderHandleIO(configs, "err 2", type(uint256).max);
     }
 
     function testTakeOrderHandleIO6() external {
         bytes[] memory configs = new bytes[](3);
-        configs[0] = "_ _:1e18 1e18;:ensure(0 \"err 2\");";
-        configs[1] = "_ _:1e18 1e18;:;";
-        configs[2] = "_ _:1e18 1e18;:ensure(0 \"err 1\");";
+        configs[0] = "_ _:1 1;:ensure(0 \"err 2\");";
+        configs[1] = "_ _:1 1;:;";
+        configs[2] = "_ _:1 1;:ensure(0 \"err 1\");";
         checkTakeOrderHandleIO(configs, "err 2", type(uint256).max);
     }
 
     function testTakeOrderHandleIO7(uint256 toClear) external {
         toClear = bound(toClear, 3e18 + 1, type(uint256).max);
         bytes[] memory configs = new bytes[](4);
-        configs[0] = "_ _:1e18 1e18;:set(0 1);";
-        configs[1] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
-        configs[2] = "_ _:1e18 1e18;:set(0 0);";
-        configs[3] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        configs[0] = "_ _:1 1;:set(0 1);";
+        configs[1] = "_ _:1 1;:ensure(get(0) \"err 1\");";
+        configs[2] = "_ _:1 1;:set(0 0);";
+        configs[3] = "_ _:1 1;:ensure(get(0) \"err 2\");";
         checkTakeOrderHandleIO(configs, "err 2", toClear);
     }
 
     function testTakeOrderHandleIO8(uint256 toClear) external {
         toClear = bound(toClear, 4e18 + 1, type(uint256).max);
         bytes[] memory configs = new bytes[](5);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:set(0 1);";
-        configs[2] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
-        configs[3] = "_ _:1e18 1e18;:set(0 0);";
-        configs[4] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;:set(0 1);";
+        configs[2] = "_ _:1 1;:ensure(get(0) \"err 1\");";
+        configs[3] = "_ _:1 1;:set(0 0);";
+        configs[4] = "_ _:1 1;:ensure(get(0) \"err 2\");";
         checkTakeOrderHandleIO(configs, "err 2", toClear);
     }
 
@@ -149,11 +149,11 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     function testTakeOrderHandleIO9(uint256 toClear) external {
         toClear = bound(toClear, 1, 4e18);
         bytes[] memory configs = new bytes[](5);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;:set(0 1);";
-        configs[2] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
-        configs[3] = "_ _:1e18 1e18;:set(0 0);";
-        configs[4] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;:set(0 1);";
+        configs[2] = "_ _:1 1;:ensure(get(0) \"err 1\");";
+        configs[3] = "_ _:1 1;:set(0 0);";
+        configs[4] = "_ _:1 1;:ensure(get(0) \"err 2\");";
         checkTakeOrderHandleIO(configs, "", toClear);
     }
 
@@ -162,10 +162,10 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     function testTakeOrderHandleIO10(uint256 toClear) external {
         toClear = bound(toClear, 1, 3e18);
         bytes[] memory configs = new bytes[](4);
-        configs[0] = "_ _:1e18 1e18;:set(0 1);";
-        configs[1] = "_ _:1e18 1e18;:ensure(get(0) \"err 1\");";
-        configs[2] = "_ _:1e18 1e18;:set(0 0);";
-        configs[3] = "_ _:1e18 1e18;:ensure(get(0) \"err 2\");";
+        configs[0] = "_ _:1 1;:set(0 1);";
+        configs[1] = "_ _:1 1;:ensure(get(0) \"err 1\");";
+        configs[2] = "_ _:1 1;:set(0 0);";
+        configs[3] = "_ _:1 1;:ensure(get(0) \"err 2\");";
         checkTakeOrderHandleIO(configs, "", toClear);
     }
 
@@ -173,7 +173,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     /// but the canonical interpreter will.
     function testTakeOrderNoHandleIORevert0() external {
         bytes[] memory configs = new bytes[](1);
-        configs[0] = "_ _:1e18 1e18;";
+        configs[0] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
@@ -185,8 +185,8 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     /// but the canonical interpreter will.
     function testTakeOrderNoHandleIORevert1() external {
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;:;";
-        configs[1] = "_ _:1e18 1e18;";
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
@@ -198,8 +198,8 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
     /// but the canonical interpreter will.
     function testTakeOrderNoHandleIORevert2() external {
         bytes[] memory configs = new bytes[](2);
-        configs[0] = "_ _:1e18 1e18;";
-        configs[1] = "_ _:1e18 1e18;:;";
+        configs[0] = "_ _:1 1;";
+        configs[1] = "_ _:1 1;:;";
         checkTakeOrderHandleIO(
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),

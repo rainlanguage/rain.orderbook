@@ -29,7 +29,7 @@
                 -t cbor \
                 -e deflate \
                 -l none \
-                -o meta/OrderBookSubParserDescribedByMetaV1.rain.meta \
+                -o meta/OrderBookSubParser.rain.meta \
                 ;
             '';
           };
@@ -66,7 +66,7 @@
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               typeshare crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
-              typeshare crates/common/src/dotrain_order.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/dotrainOrder.ts;
+              typeshare tauri-app/src-tauri/src/commands/authoring_meta.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
 
@@ -161,10 +161,7 @@
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
                 otool -L lib/libcharset.1.dylib
 
-                cp ${pkgs.libiconv}/lib/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
-                chmod +w lib/libiconv-nocharset.dylib
-                install_name_tool -id @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv-nocharset.dylib
-                otool -L lib/libiconv-nocharset.dylib
+               
 
                 cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
                 chmod +w lib/libiconv.dylib
@@ -195,7 +192,7 @@
               ls src-tauri/target/release
 
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
 

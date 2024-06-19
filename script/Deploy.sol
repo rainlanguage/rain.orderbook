@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
 import {OrderBook, EvaluableV3} from "src/concrete/ob/OrderBook.sol";
@@ -30,7 +30,7 @@ bytes constant ROUTE_PROCESSOR_3_2_CREATION_CODE =
 contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParserDescribedByMetaV1.rain.meta");
+        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParser.rain.meta");
         IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
 
         vm.startBroadcast(deployerPrivateKey);

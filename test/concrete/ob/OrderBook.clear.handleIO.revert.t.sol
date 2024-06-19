@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
@@ -86,29 +86,29 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     }
 
     function testClearOrderHandleIO0() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
+        bytes memory aliceString = "_ _:max-value() 1;:ensure(0 \"alice err\");";
+        bytes memory bobString = "_ _:max-value() 1;:ensure(0 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, "alice err", "bob err");
     }
 
     function testClearOrderHandleIO1() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
+        bytes memory aliceString = "_ _:max-value() 1;:;";
+        bytes memory bobString = "_ _:max-value() 1;:ensure(0 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, "bob err", "bob err");
     }
 
     function testClearOrderHandleIO2() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:;";
+        bytes memory aliceString = "_ _:max-value() 1;:ensure(0 \"alice err\");";
+        bytes memory bobString = "_ _:max-value() 1;:;";
 
         checkClearOrderHandleIO(aliceString, bobString, "alice err", "alice err");
     }
 
     function testClearOrderHandleIO3() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(0 \"alice err\");";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(0 \"bob err\");";
+        bytes memory aliceString = "_ _:max-value() 1;:ensure(0 \"alice err\");";
+        bytes memory bobString = "_ _:max-value() 1;:ensure(0 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, "alice err", "bob err");
     }
@@ -117,8 +117,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:ensure(1 \"alice err\");";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:ensure(1 \"bob err\");";
+        bytes memory aliceString = "_ _:max-value() 1;:ensure(1 \"alice err\");";
+        bytes memory bobString = "_ _:max-value() 1;:ensure(1 \"bob err\");";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -127,8 +127,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         bytes memory aliceErr = "";
         bytes memory bobErr = "";
 
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:;";
+        bytes memory aliceString = "_ _:max-value() 1;:;";
+        bytes memory bobString = "_ _:max-value() 1;:;";
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -136,15 +136,15 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     /// Note that this error comes from the i9r so it is possible for a different
     /// i9r to not have this error.
     function testClearOrderAliceNoHandleIORevert() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;";
-        bytes memory bobString = "_ _:max-int-value() 1e18;:;";
+        bytes memory aliceString = "_ _:max-value() 1;";
+        bytes memory bobString = "_ _:max-value() 1;:;";
 
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -152,15 +152,15 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     /// Note that this error comes from the i9r so it is possible for a different
     /// i9r to not have this error.
     function testClearOrderBobNoHandleIORevert() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;:;";
-        bytes memory bobString = "_ _:max-int-value() 1e18;";
+        bytes memory aliceString = "_ _:max-value() 1;:;";
+        bytes memory bobString = "_ _:max-value() 1;";
 
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -168,15 +168,15 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     /// Note that this error comes from the i9r so it is possible for a different
     /// i9r to not have this error.
     function testClearOrderBothNoHandleIORevert() external {
-        bytes memory aliceString = "_ _:max-int-value() 1e18;";
-        bytes memory bobString = "_ _:max-int-value() 1e18;";
+        bytes memory aliceString = "_ _:max-value() 1;";
+        bytes memory bobString = "_ _:max-value() 1;";
 
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021510000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
