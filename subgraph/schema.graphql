@@ -63,6 +63,39 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   sender: Bytes!
 }
 
+type AddOrder implements Event @entity {
+  id: Bytes!
+  "The order that was added"
+  order: Order!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this add order call"
+  sender: Bytes!
+}
+
+type RemoveOrder implements Event @entity {
+  id: Bytes!
+  "The order that was removed"
+  order: Order!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this remove order call"
+  sender: Bytes!
+}
+
+type Order @entity {
+  id: Bytes!
+  active: Boolean!
+  orderHash: Bytes!
+  owner: Bytes!
+  inputs: [Vault!]!
+  outputs: [Vault!]!
+  nonce: Bytes!
+  orderStructEncoded: Bytes!
+}
+
 type Transaction @entity(immutable: true) {
   id: Bytes!
   timestamp: BigInt!
