@@ -18,23 +18,23 @@ interface VaultBalanceChange {
   "The amount that was changed - this is unsigned"
   amount: BigInt!
   "The balance of the vault before the change"
-  oldBalance: BigInt!
+  oldVaultBalance: BigInt!
   "The balance of the vault after the change"
-  newBalance: BigInt!
+  newVaultBalance: BigInt!
 }
 
 type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
   "The token that was deposited"
   token: Bytes!
+
+  # For VaultBalanceChange
   "The vault that was deposited into"
   vault: Vault!
   "The amount that was deposited"
   amount: BigInt!
-
-  # For VaultBalanceChange
-  oldBalance: BigInt!
-  newBalance: BigInt!
+  oldVaultBalance: BigInt!
+  newVaultBalance: BigInt!
 
   # For Event
   transaction: Transaction!
@@ -46,16 +46,16 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
   "The token that was withdrawn"
   token: Bytes!
-  "The vault that was withdrawn from"
-  vault: Vault!
   "The amount that was being targeted to be withdrawn"
   targetAmount: BigInt!
-  "The amount that was actually withdrawn"
-  amount: BigInt!
 
   # For VaultBalanceChange
-  oldBalance: BigInt!
-  newBalance: BigInt!
+  "The vault that was withdrawn from"
+  vault: Vault!
+  "The amount that was actually withdrawn"
+  amount: BigInt!
+  oldVaultBalance: BigInt!
+  newVaultBalance: BigInt!
 
   # For Event
   transaction: Transaction!

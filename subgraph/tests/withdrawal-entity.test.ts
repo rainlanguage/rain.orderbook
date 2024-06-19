@@ -4,12 +4,11 @@ import {
   clearStore,
   describe,
   afterEach,
-  newMockEvent,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, ethereum, Address } from "@graphprotocol/graph-ts";
-import { Withdraw } from "../generated/OrderBook/OrderBook";
+import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { createWithdrawalEntity } from "../src/withdraw";
+import { createWithdrawEvent } from "./event-mocks.test";
 
 describe("Withdrawals", () => {
   afterEach(() => {
@@ -18,14 +17,16 @@ describe("Withdrawals", () => {
   });
 
   test("createWithdrawalEntity()", () => {
-    let event = createWithdrawalEvent(
+    let event = createWithdrawEvent(
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       BigInt.fromI32(200),
       BigInt.fromI32(100)
     );
-    createWithdrawalEntity(event);
+
+    let oldVaultBalance = BigInt.fromI32(300);
+    createWithdrawalEntity(event, oldVaultBalance);
 
     let id = event.transaction.hash.concatI32(event.logIndex.toI32());
     let vaultEntityId = event.params.token.concatI32(
@@ -69,6 +70,18 @@ describe("Withdrawals", () => {
       "transaction",
       event.transaction.hash.toHex()
     );
+    assert.fieldEquals(
+      "Withdrawal",
+      id.toHexString(),
+      "oldVaultBalance",
+      BigInt.fromI32(300).toString()
+    );
+    assert.fieldEquals(
+      "Withdrawal",
+      id.toHexString(),
+      "newVaultBalance",
+      BigInt.fromI32(200).toString()
+    );
 
     assert.entityCount("Transaction", 1);
     assert.fieldEquals(
@@ -85,47 +98,3 @@ describe("Withdrawals", () => {
     );
   });
 });
-
-// event Withdraw(address sender, address token, uint256 vaultId, uint256 targetAmount, uint256 amount);
-export function createWithdrawalEvent(
-  sender: Address,
-  token: Address,
-  vaultId: BigInt,
-  targetAmount: BigInt,
-  amount: BigInt
-): Withdraw {
-  let mockEvent = newMockEvent();
-  let withdrawalEvent = new Withdraw(
-    mockEvent.address,
-    mockEvent.logIndex,
-    mockEvent.transactionLogIndex,
-    mockEvent.logType,
-    mockEvent.block,
-    mockEvent.transaction,
-    mockEvent.parameters,
-    null
-  );
-  withdrawalEvent.parameters = new Array();
-  withdrawalEvent.parameters.push(
-    new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
-  );
-  withdrawalEvent.parameters.push(
-    new ethereum.EventParam("token", ethereum.Value.fromAddress(token))
-  );
-  withdrawalEvent.parameters.push(
-    new ethereum.EventParam(
-      "vaultId",
-      ethereum.Value.fromUnsignedBigInt(vaultId)
-    )
-  );
-  withdrawalEvent.parameters.push(
-    new ethereum.EventParam(
-      "targetAmount",
-      ethereum.Value.fromUnsignedBigInt(targetAmount)
-    )
-  );
-  withdrawalEvent.parameters.push(
-    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
-  );
-  return withdrawalEvent;
-}
