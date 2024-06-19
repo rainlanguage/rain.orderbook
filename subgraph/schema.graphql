@@ -8,9 +8,22 @@ type Vault @entity {
   vaultId: BigInt!
   "The amount of the token that is in this vault"
   balance: BigInt!
+  "All balance changes for this vault"
+  balanceChanges: [VaultBalanceChange!]! @derivedFrom(field: "vault")
 }
 
-type Deposit implements Event @entity(immutable: true) {
+interface VaultBalanceChange {
+  "The vault that was affected"
+  vault: Vault!
+  "The amount that was changed - this is unsigned"
+  amount: BigInt!
+  "The balance of the vault before the change"
+  oldBalance: BigInt!
+  "The balance of the vault after the change"
+  newBalance: BigInt!
+}
+
+type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
   "The token that was deposited"
   token: Bytes!
@@ -19,13 +32,17 @@ type Deposit implements Event @entity(immutable: true) {
   "The amount that was deposited"
   amount: BigInt!
 
+  # For VaultBalanceChange
+  oldBalance: BigInt!
+  newBalance: BigInt!
+
   # For Event
   transaction: Transaction!
   "The msg.sender of this withdrawal"
   sender: Bytes!
 }
 
-type Withdrawal implements Event @entity(immutable: true) {
+type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
   "The token that was withdrawn"
   token: Bytes!
@@ -35,6 +52,10 @@ type Withdrawal implements Event @entity(immutable: true) {
   targetAmount: BigInt!
   "The amount that was actually withdrawn"
   amount: BigInt!
+
+  # For VaultBalanceChange
+  oldBalance: BigInt!
+  newBalance: BigInt!
 
   # For Event
   transaction: Transaction!
