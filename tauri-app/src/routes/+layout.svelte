@@ -16,7 +16,9 @@
 
 <WindowDraggableArea />
 
-<div class="mb-10 flex min-h-screen w-full justify-start bg-white dark:bg-gray-900">
+<div
+  class="mb-10 flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+>
   <Sidebar />
 
   <main class="ml-64 h-full w-full grow overflow-x-auto p-8">

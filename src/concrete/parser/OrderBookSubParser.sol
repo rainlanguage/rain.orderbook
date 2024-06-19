@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {
     LibParseOperand,
     BaseRainterpreterSubParserNPE2,
-    Operand
+    Operand,
+    IParserToolingV1
 } from "rain.interpreter/abstract/BaseRainterpreterSubParserNPE2.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
@@ -44,15 +45,12 @@ import {
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW,
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
 } from "../../lib/LibOrderBook.sol";
-
-bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xfe7bea3190d31ff72603776aa71c86a5fee565ab974b1d291dd5a69eb38e7a80);
-
-bytes constant SUB_PARSER_PARSE_META =
-    hex"01004800040040020200110000000000001006102008000020040000000100000090088de69a0b015d8302c9be1f116682f50584c8d406bbcde60fb5f425102ce8cf1283156f0109ac300398cd200ab1aeaf0ea9bcef075e0bc300d3b4e80de78f2e0c9fc5d509a7e6560427db4a";
-bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"1000101f103010411051106210731084109510a610b710c710d810e910fa110b111c112c113c";
-bytes constant SUB_PARSER_OPERAND_HANDLERS =
-    hex"1281128112811281128112811281128112811281128112811281128112811281128112c61385";
+import {
+    DESCRIBED_BY_META_HASH,
+    PARSE_META as SUB_PARSER_PARSE_META,
+    SUB_PARSER_WORD_PARSERS,
+    OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
+} from "../../generated/OrderBookSubParser.pointers.sol";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
@@ -73,7 +71,13 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         return SUB_PARSER_OPERAND_HANDLERS;
     }
 
-    function buildSubParserOperandHandlers() external pure returns (bytes memory) {
+    /// @inheritdoc IParserToolingV1
+    function buildLiteralParserFunctionPointers() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /// @inheritdoc IParserToolingV1
+    function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
         function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
             new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2);

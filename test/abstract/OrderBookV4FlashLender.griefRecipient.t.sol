@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {
     IERC3156FlashBorrower,
     ON_FLASH_LOAN_CALLBACK_SUCCESS
 } from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {FlashLenderCallbackFailed} from "src/abstract/OrderBookV4FlashLender.sol";
 
 /// @title OrderBookV4FlashLenderGriefRecipientTest
