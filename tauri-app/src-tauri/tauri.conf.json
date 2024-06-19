@@ -56,7 +56,6 @@
           "../lib/libintl.8.dylib",
           "../lib/libiconv.dylib",
           "../lib/libcharset.1.dylib",
-          "../lib/libiconv-nocharset.dylib",
           "../lib/libusb-1.0.0.dylib"
         ]
       }

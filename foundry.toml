@@ -5,7 +5,7 @@ libs = ['lib']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
-solc = "0.8.19"
+solc = "0.8.25"
 
 # optimizer settings for debugging
 # via_ir = false
@@ -28,13 +28,17 @@ fs_permissions = [
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterStoreNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" },
-  { access = "read-write", path = "./meta/OrderBookSubParserAuthoringMeta.rain.meta"}
+  { access = "read-write", path = "./meta/OrderBookSubParserAuthoringMeta.rain.meta"},
+  { access = "read-write", path = "src/generated" },
 ]
 
 remappings = [
   "rain.interpreter/=lib/rain.interpreter/src/",
   "rain.metadata/=lib/rain.interpreter/lib/rain.metadata/src/",
   "rain.interpreter.interface/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/src/",
+  "rain.intorastring/=lib/rain.interpreter/lib/rain.intorastring/",
+  "openzeppelin-contracts/=lib/rain.interpreter/lib/openzeppelin-contracts/",
+  "forge-std/=lib/rain.interpreter/lib/forge-std/src/",
 ]
 
 [fuzz]

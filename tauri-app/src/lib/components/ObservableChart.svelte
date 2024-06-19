@@ -78,5 +78,10 @@
 {#if error}
   <div class="w-full border p-4 text-red-500">{error}</div>
 {:else}
-  <div bind:this={div} role="img" class="w-full border p-4"></div>
+  <div
+    bind:this={div}
+    role="img"
+    class="w-full border p-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-sm"
+    data-testid="chart"
+  ></div>
 {/if}

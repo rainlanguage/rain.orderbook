@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
@@ -91,10 +91,6 @@ error UnsupportedCalculateInputs(uint256 inputs);
 /// Thrown when calculate order expression offers too few outputs.
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
-
-/// Thrown when handle IO expression wants inputs.
-/// @param inputs The inputs the expression wants.
-error UnsupportedHandleInputs(uint256 inputs);
 
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.

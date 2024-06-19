@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CAL
-pragma solidity =0.8.19;
+pragma solidity =0.8.25;
 
 import {Test, Vm, console2} from "forge-std/Test.sol";
 import {RainterpreterNPE2} from "rain.interpreter/concrete/RainterpreterNPE2.sol";
@@ -31,6 +31,13 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
         iInterpreter = IInterpreterV3(new RainterpreterNPE2());
         iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
         address parser = address(new RainterpreterParserNPE2());
+        iParserV2 = new RainterpreterExpressionDeployerNPE2(
+            RainterpreterExpressionDeployerNPE2ConstructionConfigV2({
+                interpreter: address(iInterpreter),
+                store: address(iStore),
+                parser: parser
+            })
+        );
 
         // Deploy the expression deployer.
         vm.etch(address(IERC1820_REGISTRY), REVERTING_MOCK_BYTECODE);
@@ -41,15 +48,6 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
         );
         vm.mockCall(
             address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
-        );
-        iParserV2 = IParserV2(
-            address(
-                new RainterpreterExpressionDeployerNPE2(
-                    RainterpreterExpressionDeployerNPE2ConstructionConfigV2(
-                        address(iInterpreter), address(iStore), address(parser)
-                    )
-                )
-            )
         );
         iOrderbook = IOrderBookV4(address(new OrderBook()));
 
