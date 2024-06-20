@@ -1,4 +1,5 @@
-import { Deposit } from "../generated/OrderBook/OrderBook";
+import { Bytes } from "@graphprotocol/graph-ts";
+import { Deposit } from "../generated/Deposit/OrderBook";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { createTransactionEntity } from "./transaction";
 
@@ -8,7 +9,9 @@ export function handleDeposit(event: Deposit): void {
 
 export function createDepositEntity(event: Deposit): void {
   let deposit = new DepositEntity(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
+    event.transaction.hash.concat(
+      Bytes.fromByteArray(Bytes.fromBigInt(event.logIndex))
+    )
   );
   deposit.amount = event.params.amount;
   deposit.sender = event.params.sender;
