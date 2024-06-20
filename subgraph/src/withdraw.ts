@@ -5,6 +5,7 @@ import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
 import { vaultEntityId } from "./vault";
 
+//
 export function createWithdrawalEntity(
   event: Withdraw,
   oldVaultBalance: BigInt
