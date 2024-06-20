@@ -6,7 +6,7 @@ import { createWithdrawalEntity } from "./withdraw";
 import { eventId } from "./interfaces/event";
 
 export function vaultEntityId(vaultId: BigInt, token: Bytes): Bytes {
-  return token.concatI32(vaultId.toI32());
+  return token.concat(Bytes.fromByteArray(Bytes.fromBigInt(vaultId)));
 }
 
 export function handleVaultBalanceChange(
