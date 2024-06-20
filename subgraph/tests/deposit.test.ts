@@ -26,7 +26,9 @@ describe("Deposits", () => {
     );
     createDepositEntity(event);
 
-    let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+    let id = event.transaction.hash
+      .concatI32(event.logIndex.toI32())
+      .toHexString();
 
     assert.entityCount("Deposit", 1);
     assert.fieldEquals("Deposit", id, "amount", BigInt.fromI32(100).toString());

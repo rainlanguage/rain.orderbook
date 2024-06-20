@@ -8,7 +8,7 @@ export function handleDeposit(event: Deposit): void {
 
 export function createDepositEntity(event: Deposit): void {
   let deposit = new DepositEntity(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+    event.transaction.hash.concatI32(event.logIndex.toI32())
   );
   deposit.amount = event.params.amount;
   deposit.sender = event.params.sender;

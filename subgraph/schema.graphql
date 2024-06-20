@@ -1,5 +1,5 @@
 type Deposit implements Event @entity {
-  id: ID!
+  id: Bytes!
   "The token that was deposited"
   token: Bytes!
   "The vaultId that was deposited into"
@@ -12,7 +12,7 @@ type Deposit implements Event @entity {
 }
 
 type Transaction @entity(immutable: true) {
-  id: ID!
+  id: Bytes!
   timestamp: BigInt!
   blockNumber: BigInt!
   from: Bytes!
@@ -20,7 +20,7 @@ type Transaction @entity(immutable: true) {
 }
 
 interface Event {
-  id: ID!
+  id: Bytes!
   "Transaction this event was emitted in"
   transaction: Transaction!
   "msg.sender for the event"
