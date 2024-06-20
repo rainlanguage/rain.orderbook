@@ -1,3 +1,4 @@
+import { Bytes } from "@graphprotocol/graph-ts";
 import { Withdraw } from "../generated/OrderBook/OrderBook";
 import { Withdrawal } from "../generated/schema";
 import { createTransactionEntity } from "./transaction";
@@ -8,7 +9,9 @@ export function handleWithdraw(event: Withdraw): void {
 
 export function createWithdrawalEntity(event: Withdraw): void {
   let withdraw = new Withdrawal(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
+    event.transaction.hash.concat(
+      Bytes.fromByteArray(Bytes.fromBigInt(event.logIndex))
+    )
   );
   withdraw.amount = event.params.amount;
   withdraw.targetAmount = event.params.targetAmount;
