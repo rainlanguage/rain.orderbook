@@ -6,6 +6,10 @@ type Vault @entity {
   owner: Bytes!
   "The vaultId of this vault"
   vaultId: BigInt!
+  "Orders this vault is an input for"
+  ordersAsInput: [Order!]! @derivedFrom(field: "inputs")
+  "Orders this vault is an output for"
+  ordersAsOuput: [Order!]! @derivedFrom(field: "outputs")
   "The amount of the token that is in this vault"
   balance: BigInt!
   "All balance changes for this vault"
