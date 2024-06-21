@@ -6,6 +6,10 @@ type Vault @entity {
   owner: Bytes!
   "The vaultId of this vault"
   vaultId: BigInt!
+  "Orders this vault is an input for"
+  ordersAsInput: [Order!]! @derivedFrom(field: "inputs")
+  "Orders this vault is an output for"
+  ordersAsOuput: [Order!]! @derivedFrom(field: "outputs")
   "The amount of the token that is in this vault"
   balance: BigInt!
   "All balance changes for this vault"
@@ -60,6 +64,50 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   # For Event
   transaction: Transaction!
   "The msg.sender of this withdrawal"
+  sender: Bytes!
+}
+
+type Order @entity {
+  id: Bytes!
+  "Whether this order is active or not"
+  active: Boolean!
+  "The hash of the order"
+  orderHash: Bytes!
+  "The owner of the order"
+  owner: Bytes!
+  "The vaults that are inputs to this order"
+  inputs: [Vault!]!
+  "The vaults that are outputs to this order"
+  outputs: [Vault!]!
+  "A nonce for this order"
+  nonce: Bytes!
+  "The ABI encoded bytes for the Order struct"
+  orderBytes: Bytes!
+  "AddOrder events for this order"
+  addEvents: [AddOrder!]! @derivedFrom(field: "order")
+  "RemoveOrder events for this order"
+  removeEvents: [RemoveOrder!]! @derivedFrom(field: "order")
+}
+
+type AddOrder implements Event @entity {
+  id: Bytes!
+  "The order that was added"
+  order: Order!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this add order call"
+  sender: Bytes!
+}
+
+type RemoveOrder implements Event @entity {
+  id: Bytes!
+  "The order that was removed"
+  order: Order!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this remove order call"
   sender: Bytes!
 }
 

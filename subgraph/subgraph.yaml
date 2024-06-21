@@ -25,4 +25,8 @@ dataSources:
           handler: handleDeposit
         - event: Withdraw(address,address,uint256,uint256,uint256)
           handler: handleWithdraw
+        - event: AddOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))
+          handler: handleAddOrder
+        - event: RemoveOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))
+          handler: handleRemoveOrder
       file: "./src/handlers.ts"
