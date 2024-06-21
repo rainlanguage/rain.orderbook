@@ -8,9 +8,9 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
-#[serde(tag = "type", content = "value")]
 #[typeshare]
 pub enum Block {
+    #[typeshare(skip)]
     Number(BlockNumber),
     Genesis,
     Latest,
