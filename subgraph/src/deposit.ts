@@ -1,7 +1,7 @@
 import { Bytes } from "@graphprotocol/graph-ts";
-import { Deposit } from "../generated/Deposit/OrderBook";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { createTransactionEntity } from "./transaction";
+import { Deposit } from "../generated/OrderBook/OrderBook";
 
 export function handleDeposit(event: Deposit): void {
   createDepositEntity(event);
