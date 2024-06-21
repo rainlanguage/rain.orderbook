@@ -7,8 +7,9 @@ use std::fmt;
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
+#[serde(tag = "type", content = "value")]
 #[typeshare]
-#[derive(Debug, PartialEq, Clone)]
 pub enum Block {
     Number(BlockNumber),
     Genesis,
@@ -126,7 +127,7 @@ fn parse_range(s: &str) -> Result<BlockRange, String> {
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
-#[serde(untagged)]
+#[serde(tag = "type", content = "value")]
 #[typeshare]
 pub enum Blocks {
     RangeWithInterval { range: BlockRange, interval: u32 },
