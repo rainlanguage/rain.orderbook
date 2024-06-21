@@ -1,5 +1,5 @@
 use alloy_ethers_typecast::{
-    client::{HDPath, LedgerClient, LedgerClientError},
+    client::{LedgerClient, LedgerClientError},
     gas_fee_middleware::GasFeeSpeed,
     transaction::{
         ReadableClientError, ReadableClientHttp, WritableClientError, WriteContractParameters,
