@@ -9,6 +9,7 @@ import {
 import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { createWithdrawalEntity } from "../src/withdraw";
 import { createWithdrawEvent } from "./event-mocks.test";
+import { vaultEntityId } from "../src/vault";
 
 describe("Withdrawals", () => {
   afterEach(() => {
@@ -29,8 +30,10 @@ describe("Withdrawals", () => {
     createWithdrawalEntity(event, oldVaultBalance);
 
     let id = event.transaction.hash.concatI32(event.logIndex.toI32());
-    let vaultEntityId = event.params.token.concatI32(
-      event.params.vaultId.toI32()
+    let vaultId = vaultEntityId(
+      Address.fromString("0x1234567890123456789012345678901234567890"),
+      BigInt.fromI32(1),
+      Address.fromString("0x0987654321098765432109876543210987654321")
     );
 
     assert.entityCount("Withdrawal", 1);
@@ -56,7 +59,7 @@ describe("Withdrawals", () => {
       "Withdrawal",
       id.toHexString(),
       "vault",
-      vaultEntityId.toHexString()
+      vaultId.toHexString()
     );
     assert.fieldEquals(
       "Withdrawal",

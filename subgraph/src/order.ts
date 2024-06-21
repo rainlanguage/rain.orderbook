@@ -24,12 +24,27 @@ export function createOrderEntity(event: AddOrderV2): void {
   order.active = true;
   order.orderHash = event.params.orderHash;
   order.owner = event.params.sender;
-  order.inputs = event.params.order.validInputs.map<Bytes>((input) =>
-    vaultEntityId(input.vaultId, input.token)
-  );
-  order.outputs = event.params.order.validOutputs.map<Bytes>((output) =>
-    vaultEntityId(output.vaultId, output.token)
-  );
+  let sender = event.params.sender;
+
+  order.inputs = [];
+  order.outputs = [];
+
+  for (let i = 0; i < event.params.order.validInputs.length; i++) {
+    let input = event.params.order.validInputs[i];
+    let vaultId = input.vaultId;
+    let token = input.token;
+    let vault = vaultEntityId(sender, vaultId, token);
+    order.inputs.push(vault);
+  }
+
+  for (let i = 0; i < event.params.order.validOutputs.length; i++) {
+    let output = event.params.order.validOutputs[i];
+    let vaultId = output.vaultId;
+    let token = output.token;
+    let vault = vaultEntityId(sender, vaultId, token);
+    order.outputs.push(vault);
+  }
+
   order.nonce = event.params.order.nonce;
   order.orderBytes = ethereum.encode(event.parameters[2].value)!;
   order.save();

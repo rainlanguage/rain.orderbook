@@ -31,7 +31,11 @@ describe("Handle deposit", () => {
 
     // check vault entity
     let vault = Vault.load(
-      vaultEntityId(event.params.vaultId, event.params.token)
+      vaultEntityId(
+        event.params.sender,
+        event.params.vaultId,
+        event.params.token
+      )
     );
 
     assert.assertNotNull(vault);
@@ -67,8 +71,13 @@ describe("Handle deposit", () => {
     handleDeposit(event);
 
     // check vault entity
-    vault = Vault.load(vaultEntityId(event.params.vaultId, event.params.token));
-
+    vault = Vault.load(
+      vaultEntityId(
+        event.params.sender,
+        event.params.vaultId,
+        event.params.token
+      )
+    );
     assert.assertNotNull(vault);
     if (vault == null) {
       return;
@@ -102,8 +111,13 @@ describe("Handle deposit", () => {
     handleDeposit(event);
 
     // check vault entity
-    vault = Vault.load(vaultEntityId(event.params.vaultId, event.params.token));
-
+    vault = Vault.load(
+      vaultEntityId(
+        event.params.sender,
+        event.params.vaultId,
+        event.params.token
+      )
+    );
     assert.assertNotNull(vault);
     if (vault == null) {
       return;
