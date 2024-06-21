@@ -81,7 +81,8 @@ impl TransactionArgs {
         match self.chain_id {
             Some(chain_id) => {
                 let client = LedgerClient::new(
-                    self.derivation_index.map(HDPath::LedgerLive),
+                    self.derivation_index
+                        .map(alloy_ethers_typecast::client::HDPath::LedgerLive),
                     chain_id,
                     self.rpc_url.clone(),
                     self.gas_fee_speed,

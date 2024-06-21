@@ -1,3 +1,4 @@
+pub mod blocks;
 pub mod chart;
 pub mod config;
 pub mod config_source;

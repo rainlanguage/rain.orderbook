@@ -1,5 +1,5 @@
 use crate::error::CommandResult;
-use alloy_ethers_typecast::{client::{LedgerClient, HDPath}, ethers_address_to_alloy};
+use alloy_ethers_typecast::{client::LedgerClient, ethers_address_to_alloy, client::HDPath};
 use alloy_primitives::Address;
 
 #[tauri::command]

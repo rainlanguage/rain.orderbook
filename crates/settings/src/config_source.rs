@@ -1,3 +1,4 @@
+use crate::blocks::Blocks;
 use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
 use crate::{Metric, Plot};
 use alloy_primitives::{Address, U256};
@@ -146,6 +147,7 @@ pub struct ScenarioConfigSource {
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
+    pub blocks: Option<Blocks>,
     pub deployer: Option<DeployerRef>,
     pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
 }
