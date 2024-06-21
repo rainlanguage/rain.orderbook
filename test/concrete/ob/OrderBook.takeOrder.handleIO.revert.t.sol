@@ -5,14 +5,16 @@ import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     ClearConfig,
-    OrderV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
     IO,
-    OrderConfigV2,
-    TakeOrdersConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+    OrderConfigV3,
+    TakeOrdersConfigV3,
+    EvaluableV3,
+    SignedContextV1,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
@@ -23,7 +25,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
-        OrderConfigV2 memory config;
+        OrderConfigV3 memory config;
         IO[] memory validOutputs;
         IO[] memory validInputs;
         {
@@ -39,30 +41,30 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             vm.mockCall(outputToken, "", abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new ActionV1[](0));
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](configs.length);
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](configs.length);
 
         for (uint256 i = 0; i < configs.length; i++) {
-            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(configs[i]);
-            EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-            config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
+            bytes memory bytecode = iParserV2.parse2(configs[i]);
+            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
+            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
 
             vm.recordLogs();
-            iOrderbook.addOrder(config);
+            iOrderbook.addOrder2(config, new ActionV1[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
-            assertEq(entries.length, 3);
-            (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+            assertEq(entries.length, 1);
+            (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
-            orders[i] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
+            orders[i] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV2 memory takeOrdersConfig = TakeOrdersConfigV2(0, maxInput, type(uint256).max, orders, "");
+        TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3(0, maxInput, type(uint256).max, orders, "");
 
         if (err.length > 0) {
             vm.expectRevert(err);
         }
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);
         // We don't really care about the outputs as the tests are basically just
         // trying to show that the IO handler is running or not running by simple
         // reverts.
@@ -165,5 +167,43 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[2] = "_ _:1 1;:set(0 0);";
         configs[3] = "_ _:1 1;:ensure(get(0) \"err 2\");";
         checkTakeOrderHandleIO(configs, "", toClear);
+    }
+
+    /// Note that a different interpreter MAY NOT revert if handle io is missing,
+    /// but the canonical interpreter will.
+    function testTakeOrderNoHandleIORevert0() external {
+        bytes[] memory configs = new bytes[](1);
+        configs[0] = "_ _:1 1;";
+        checkTakeOrderHandleIO(
+            configs,
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            type(uint256).max
+        );
+    }
+
+    /// Note that a different interpreter MAY NOT revert if handle io is missing,
+    /// but the canonical interpreter will.
+    function testTakeOrderNoHandleIORevert1() external {
+        bytes[] memory configs = new bytes[](2);
+        configs[0] = "_ _:1 1;:;";
+        configs[1] = "_ _:1 1;";
+        checkTakeOrderHandleIO(
+            configs,
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            type(uint256).max
+        );
+    }
+
+    /// Note that a different interpreter MAY NOT revert if handle io is missing,
+    /// but the canonical interpreter will.
+    function testTakeOrderNoHandleIORevert2() external {
+        bytes[] memory configs = new bytes[](2);
+        configs[0] = "_ _:1 1;";
+        configs[1] = "_ _:1 1;:;";
+        checkTakeOrderHandleIO(
+            configs,
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            type(uint256).max
+        );
     }
 }

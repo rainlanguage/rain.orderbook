@@ -9,13 +9,13 @@ import {
     SUB_PARSER_OPERAND_HANDLERS,
     OrderBookSubParser
 } from "src/concrete/parser/OrderBookSubParser.sol";
-import {LibParseMeta} from "rain.interpreter/lib/parse/LibParseMeta.sol";
+import {LibGenParseMeta} from "rain.sol.codegen/lib/LibGenParseMeta.sol";
 
 contract OrderBookSubParserPointersTest is Test {
     function testSubParserParseMeta() external {
         bytes memory authoringMetaBytes = LibOrderBookSubParser.authoringMetaV2();
         AuthoringMetaV2[] memory authoringMeta = abi.decode(authoringMetaBytes, (AuthoringMetaV2[]));
-        bytes memory expected = LibParseMeta.buildParseMetaV2(authoringMeta, 2);
+        bytes memory expected = LibGenParseMeta.buildParseMetaV2(authoringMeta, 2);
         bytes memory actual = SUB_PARSER_PARSE_META;
         assertEq(actual, expected);
     }
@@ -29,7 +29,7 @@ contract OrderBookSubParserPointersTest is Test {
 
     function testSubParserOperandParsers() external {
         OrderBookSubParser extern = new OrderBookSubParser();
-        bytes memory expected = extern.buildSubParserOperandHandlers();
+        bytes memory expected = extern.buildOperandHandlerFunctionPointers();
         bytes memory actual = SUB_PARSER_OPERAND_HANDLERS;
         assertEq(actual, expected);
     }

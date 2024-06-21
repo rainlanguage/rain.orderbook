@@ -2,7 +2,7 @@ use crate::types::order_detail;
 use crate::utils::base10_str_to_u256;
 use alloy_primitives::U256;
 use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address};
-use rain_orderbook_bindings::IOrderBookV3::{EvaluableV2, OrderV2, IO};
+use rain_orderbook_bindings::IOrderBookV4::{EvaluableV3, OrderV3, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
 
@@ -35,18 +35,17 @@ impl TryInto<IO> for order_detail::Io {
     }
 }
 
-impl TryInto<OrderV2> for order_detail::Order {
+impl TryInto<OrderV3> for order_detail::Order {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<OrderV2, Self::Error> {
+    fn try_into(self) -> Result<OrderV3, Self::Error> {
         let parsed: serde_json::Value = serde_json::from_str(&self.order_json)?;
-        Ok(OrderV2 {
+        Ok(OrderV3 {
             owner: parsed["owner"]
                 .as_str()
                 .unwrap_or_default()
                 .parse::<Address>()?,
-            handleIO: parsed["handleIo"].as_bool().unwrap_or_default(),
-            evaluable: EvaluableV2 {
+            evaluable: EvaluableV3 {
                 interpreter: parsed["evaluable"]["interpreter"]
                     .as_str()
                     .unwrap_or_default()
@@ -55,10 +54,7 @@ impl TryInto<OrderV2> for order_detail::Order {
                     .as_str()
                     .unwrap_or_default()
                     .parse::<Address>()?,
-                expression: parsed["evaluable"]["expression"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .parse::<Address>()?,
+                bytecode: vec![],
             },
             validInputs: parsed["validInputs"]
                 .as_array()
@@ -84,12 +80,15 @@ impl TryInto<OrderV2> for order_detail::Order {
                     })
                 })
                 .collect::<Result<Vec<IO>, OrderDetailError>>()?,
+            nonce: U256::from(0).into(),
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
     use crate::types::order_detail::{
         Account, BigInt, Bytes, Erc20, Io, RainMetaV1, TokenVault, Vault,
@@ -153,7 +152,7 @@ mod tests {
             order_json: "{\"owner\":\"0x77199602114bdecb272ac9d5038d7e01cccec362\",\"handleIo\":true,\"evaluable\":{\"interpreter\":\"0xa10ac76b0681d3e8ca826b0a10299b99b2eb2452\",\"store\":\"0x948533c15d2d9eba8cec4deb0b72662cf57d4db1\",\"expression\":\"0x3c7e0efd0cf9bd539221eb15d9da4b9d97f8837b\"},\"validInputs\":[{\"token\":\"0x96b41289d90444b8add57e6f265db5ae8651df29\",\"decimals\":\"6\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"},{\"token\":\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"decimals\":\"18\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"}],\"validOutputs\":[{\"token\":\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"decimals\":\"18\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"},{\"token\":\"0x96b41289d90444b8add57e6f265db5ae8651df29\",\"decimals\":\"6\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"}]}".into()
         };
 
-        let order_v2: OrderV2 = order_detail.try_into().unwrap();
+        let order_v2: OrderV3 = order_detail.try_into().unwrap();
 
         assert_eq!(
             order_v2.owner,
@@ -161,7 +160,6 @@ mod tests {
                 .parse::<Address>()
                 .unwrap()
         );
-        assert!(order_v2.handleIO);
         assert_eq!(
             order_v2.evaluable.interpreter,
             "0xa10ac76b0681d3e8ca826b0a10299b99b2eb2452"
@@ -171,12 +169,6 @@ mod tests {
         assert_eq!(
             order_v2.evaluable.store,
             "0x948533c15d2d9eba8cec4deb0b72662cf57d4db1"
-                .parse::<Address>()
-                .unwrap()
-        );
-        assert_eq!(
-            order_v2.evaluable.expression,
-            "0x3c7e0efd0cf9bd539221eb15d9da4b9d97f8837b"
                 .parse::<Address>()
                 .unwrap()
         );

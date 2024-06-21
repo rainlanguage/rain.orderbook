@@ -214,10 +214,10 @@ _ _: 0 0;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. calculate-io */
+            r#"/* 0. calculate-io */ 
 _ _: 0 0;
 
-/* 1. handle-io */
+/* 1. handle-io */ 
 :;"#
         );
     }
@@ -300,7 +300,7 @@ _ _: 0 0;
             .await
             .unwrap();
 
-        assert_eq!(pragmas.len(), 2);
+        assert_eq!(pragmas.len(), 1);
     }
 
     #[tokio::test]

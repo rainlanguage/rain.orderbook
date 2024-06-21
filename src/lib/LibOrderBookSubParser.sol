@@ -36,6 +36,7 @@ import {
 } from "./LibOrderBook.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
+uint8 constant EXTERN_PARSE_META_BUILD_DEPTH = 1;
 
 bytes constant WORD_ORDER_CLEARER = "order-clearer";
 bytes constant WORD_ORDERBOOK = "orderbook";

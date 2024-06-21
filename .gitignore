@@ -5,3 +5,5 @@ meta
 target
 .DS_Store
 .env
+subgraph/tests/.docker
+subgraph/tests/.latest.json

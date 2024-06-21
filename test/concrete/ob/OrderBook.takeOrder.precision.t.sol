@@ -4,14 +4,15 @@ pragma solidity =0.8.25;
 import {Vm} from "forge-std/Test.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderV2,
-    TakeOrdersConfigV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrdersConfigV3,
+    TakeOrderConfigV3,
     IO,
-    OrderConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+    OrderConfigV3,
+    EvaluableV3,
+    SignedContextV1,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -26,7 +27,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         uint256 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
-        OrderConfigV2 memory config;
+        OrderConfigV3 memory config;
         {
             IO[] memory validInputs = new IO[](1);
             validInputs[0] = IO(inputToken, inputTokenDecimals, vaultId);
@@ -34,9 +35,9 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
-            (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
-            EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-            config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
+            bytes memory bytecode = iParserV2.parse2(rainString);
+            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
+            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
             vm.etch(inputToken, hex"fe");
@@ -46,20 +47,20 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             vm.mockCall(inputToken, "", abi.encode(true));
         }
         if (expectedTakerTotalInput > 0) {
-            iOrderbook.deposit(outputToken, vaultId, expectedTakerTotalInput);
+            iOrderbook.deposit2(outputToken, vaultId, expectedTakerTotalInput, new ActionV1[](0));
         }
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), expectedTakerTotalInput);
         vm.recordLogs();
-        iOrderbook.addOrder(config);
+        iOrderbook.addOrder2(config, new ActionV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 3);
-        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+        assertEq(entries.length, 1);
+        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
-        orders[0] = TakeOrderConfigV2(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV2 memory takeOrdersConfig =
-            TakeOrdersConfigV2(0, type(uint256).max, type(uint256).max, orders, "");
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(takeOrdersConfig);
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
+        TakeOrdersConfigV3 memory takeOrdersConfig =
+            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);
         assertEq(totalTakerInput, expectedTakerTotalInput);
         assertEq(totalTakerOutput, expectedTakerTotalOutput);
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), 0);

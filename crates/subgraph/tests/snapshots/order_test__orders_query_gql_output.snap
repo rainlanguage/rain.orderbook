@@ -60,7 +60,6 @@ query OrderDetailQuery($id: ID!) {
         contentLanguage
       }
     }
+    orderJSONString
   }
 }
-
-

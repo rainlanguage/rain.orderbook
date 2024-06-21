@@ -2,7 +2,13 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV2, OrderV2, IO} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {
+    OrderConfigV3,
+    OrderV3,
+    IO,
+    EvaluableV3,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotRainMetaV1, META_MAGIC_NUMBER_V1} from "rain.metadata/interface/IMetaV1.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
@@ -11,41 +17,39 @@ import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpre
 /// @title OrderBookAddOrderMockTest
 /// @notice Tests the addOrder function of the OrderBook contract.
 contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
-    /// Adding an order without calculations MUST revert.
-    function testAddOrderWithoutCalculationsReverts(address owner, OrderConfigV2 memory config) public {
+    /// Adding an order without calculations does not revert.
+    /// This is a runtime error.
+    function testAddOrderWithoutCalculationsDeploys(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
-        config.evaluableConfig.bytecode = "";
-        vm.expectRevert(abi.encodeWithSelector(OrderNoSources.selector));
-        iOrderbook.addOrder(config);
-        (OrderV2 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+        config.evaluable.bytecode = "";
+        iOrderbook.addOrder2(config, new ActionV1[](0));
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
-        assertTrue(!iOrderbook.orderExists(orderHash));
+        assertTrue(iOrderbook.orderExists(orderHash));
     }
 
-    /// Adding an order without inputs MUST revert.
-    function testAddOrderWithoutInputsReverts(address owner, OrderConfigV2 memory config) public {
+    /// Adding an order without inputs reverts.
+    function testAddOrderWithoutInputsReverts(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        config.evaluable.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
-        iOrderbook.addOrder(config);
-        (OrderV2 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
 
-    /// Adding an order without outputs MUST revert.
-    function testAddOrderWithoutOutputsReverts(address owner, OrderConfigV2 memory config) public {
+    /// Adding an order without token outputs reverts.
+    function testAddOrderWithoutOutputsReverts(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         config.validOutputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
-        iOrderbook.addOrder(config);
-        (OrderV2 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, address(0));
+        iOrderbook.addOrder2(config, new ActionV1[](0));
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -55,51 +59,44 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// MUST be emitted. This test assumes empty meta.
     function testAddOrderWithCalculationsInputsAndOutputsSucceeds(
         address owner,
-        OrderConfigV2 memory config,
-        address expression
+        OrderConfigV3 memory config,
+        bytes memory expression
     ) public {
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         config.meta = new bytes(0);
-        (OrderV2 memory order, bytes32 orderhash) = addOrderWithChecks(owner, config, expression);
+        (OrderV3 memory order, bytes32 orderhash) = addOrderWithChecks(owner, config, expression);
         (order);
         (orderhash);
     }
 
     /// Adding a valid order with a non-empty meta MUST revert if the meta is
     /// not self describing as a rain meta document.
-    function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfigV2 memory config, address expression)
-        public
-    {
+    function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfigV3 memory config, bytes memory) public {
         vm.prank(owner);
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+        config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         vm.assume(!LibMeta.isRainMetaV1(config.meta));
         vm.assume(config.meta.length > 0);
 
-        config.evaluableConfig.deployer = iDeployer;
-        vm.mockCall(
-            address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, expression, hex"00020000")
-        );
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
-        iOrderbook.addOrder(config);
+        iOrderbook.addOrder2(config, new ActionV1[](0));
 
-        (OrderV2 memory order, bytes32 orderHash) =
-            LibTestAddOrder.expectedOrder(owner, config, iInterpreter, iStore, expression);
+        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
 
     /// Adding a valid order with a non-empty meta MUST emit MetaV1 if the meta
     /// is self describing as a rain meta document.
-    function testAddOrderWithNonEmptyMetaEmitsMetaV1(address owner, OrderConfigV2 memory config, address expression)
-        public
-    {
-        config.evaluableConfig.bytecode = hex"02000000040000000000000000";
+    function testAddOrderWithNonEmptyMetaEmitsMetaV1(
+        address owner,
+        OrderConfigV3 memory config,
+        bytes memory expression
+    ) public {
+        config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         vm.assume(config.meta.length > 0);
@@ -108,7 +105,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         // meta document.
         config.meta = abi.encodePacked(META_MAGIC_NUMBER_V1, config.meta);
 
-        (OrderV2 memory order, bytes32 orderHash) = addOrderWithChecks(owner, config, expression);
+        (OrderV3 memory order, bytes32 orderHash) = addOrderWithChecks(owner, config, expression);
         (order);
         (orderHash);
     }
@@ -118,13 +115,13 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderTwoAccountsWithSameConfig(
         address alice,
         address bob,
-        OrderConfigV2 memory config,
-        address expression
+        OrderConfigV3 memory config,
+        bytes memory expression
     ) public {
         vm.assume(alice != bob);
-        LibTestAddOrder.conformConfig(config, iDeployer);
-        (OrderV2 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
-        (OrderV2 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+        (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
+        (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
         (aliceOrder);
         (bobOrder);
         assertTrue(aliceOrderHash != bobOrderHash);
@@ -135,16 +132,16 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderTwoAccountsWithDifferentConfig(
         address alice,
         address bob,
-        OrderConfigV2 memory aliceConfig,
-        OrderConfigV2 memory bobConfig,
-        address aliceExpression,
-        address bobExpression
+        OrderConfigV3 memory aliceConfig,
+        OrderConfigV3 memory bobConfig,
+        bytes memory aliceExpression,
+        bytes memory bobExpression
     ) public {
         vm.assume(alice != bob);
-        LibTestAddOrder.conformConfig(aliceConfig, iDeployer);
-        LibTestAddOrder.conformConfig(bobConfig, iDeployer);
-        (OrderV2 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
-        (OrderV2 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, bobExpression);
+        LibTestAddOrder.conformConfig(aliceConfig, iInterpreter, iStore);
+        LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
+        (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
+        (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, bobExpression);
         (aliceOrder);
         (bobOrder);
         assertTrue(aliceOrderHash != bobOrderHash);
@@ -154,22 +151,22 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// be different.
     function testAddOrderSameAccountWithDifferentConfig(
         address alice,
-        OrderConfigV2 memory configOne,
-        OrderConfigV2 memory configTwo,
-        address expressionOne,
-        address expressionTwo
+        OrderConfigV3 memory configOne,
+        OrderConfigV3 memory configTwo,
+        bytes memory expressionOne,
+        bytes memory expressionTwo
     ) public {
-        LibTestAddOrder.conformConfig(configOne, iDeployer);
-        LibTestAddOrder.conformConfig(configTwo, iDeployer);
-        (OrderV2 memory expectedOrderOne, bytes32 expectedOrderOneHash) =
-            LibTestAddOrder.expectedOrder(alice, configOne, iInterpreter, iStore, expressionOne);
-        (OrderV2 memory expectedOrderTwo, bytes32 expectedOrderTwoHash) =
-            LibTestAddOrder.expectedOrder(alice, configTwo, iInterpreter, iStore, expressionTwo);
+        LibTestAddOrder.conformConfig(configOne, iInterpreter, iStore);
+        LibTestAddOrder.conformConfig(configTwo, iInterpreter, iStore);
+        (OrderV3 memory expectedOrderOne, bytes32 expectedOrderOneHash) =
+            LibTestAddOrder.expectedOrder(alice, configOne);
+        (OrderV3 memory expectedOrderTwo, bytes32 expectedOrderTwoHash) =
+            LibTestAddOrder.expectedOrder(alice, configTwo);
         (expectedOrderOne);
         (expectedOrderTwo);
         assertTrue(expectedOrderOneHash != expectedOrderTwoHash);
-        (OrderV2 memory orderOne, bytes32 orderOneHash) = addOrderWithChecks(alice, configOne, expressionOne);
-        (OrderV2 memory orderTwo, bytes32 orderTwoHash) = addOrderWithChecks(alice, configTwo, expressionTwo);
+        (OrderV3 memory orderOne, bytes32 orderOneHash) = addOrderWithChecks(alice, configOne, expressionOne);
+        (OrderV3 memory orderTwo, bytes32 orderTwoHash) = addOrderWithChecks(alice, configTwo, expressionTwo);
         (orderOne);
         (orderTwo);
         assertTrue(orderOneHash != orderTwoHash);

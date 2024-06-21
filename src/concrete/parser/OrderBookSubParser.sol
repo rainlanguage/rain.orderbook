@@ -4,7 +4,8 @@ pragma solidity =0.8.25;
 import {
     LibParseOperand,
     BaseRainterpreterSubParserNPE2,
-    Operand
+    Operand,
+    IParserToolingV1
 } from "rain.interpreter/abstract/BaseRainterpreterSubParserNPE2.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
@@ -44,15 +45,12 @@ import {
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW,
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
 } from "../../lib/LibOrderBook.sol";
-
-bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd049627a3a1f49857ec6a26c8bcc6da98b05bd4696);
-
-bytes constant SUB_PARSER_PARSE_META =
-    hex"01004800040040420204100000000000001806000008000020840000000100000010088de69a02c9be1f116682f50b6f6a660584c8d406bbcde61283156f0109ac301087b0c70398cd200ea9bcef0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
-bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"1000101f103010411051106210731084109510a610b710c710d810e910fa110b111c112c113c";
-bytes constant SUB_PARSER_OPERAND_HANDLERS =
-    hex"1281128112811281128112811281128112811281128112811281128112811281128112c61355";
+import {
+    DESCRIBED_BY_META_HASH,
+    PARSE_META as SUB_PARSER_PARSE_META,
+    SUB_PARSER_WORD_PARSERS,
+    OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
+} from "../../generated/OrderBookSubParser.pointers.sol";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
@@ -73,7 +71,13 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         return SUB_PARSER_OPERAND_HANDLERS;
     }
 
-    function buildSubParserOperandHandlers() external pure returns (bytes memory) {
+    /// @inheritdoc IParserToolingV1
+    function buildLiteralParserFunctionPointers() external pure returns (bytes memory) {
+        return "";
+    }
+
+    /// @inheritdoc IParserToolingV1
+    function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
         function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
             new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2);
