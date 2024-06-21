@@ -1,22 +1,22 @@
-import { Bytes } from "@graphprotocol/graph-ts";
+import { BigInt } from "@graphprotocol/graph-ts";
 import { Deposit as DepositEntity } from "../generated/schema";
+import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
+import { vaultEntityId } from "./vault";
 import { Deposit } from "../generated/OrderBook/OrderBook";
 
-export function handleDeposit(event: Deposit): void {
-  createDepositEntity(event);
-}
-
-export function createDepositEntity(event: Deposit): void {
-  let deposit = new DepositEntity(
-    event.transaction.hash.concat(
-      Bytes.fromByteArray(Bytes.fromBigInt(event.logIndex))
-    )
-  );
+//
+export function createDepositEntity(
+  event: Deposit,
+  oldVaultBalance: BigInt
+): void {
+  let deposit = new DepositEntity(eventId(event));
   deposit.amount = event.params.amount;
   deposit.sender = event.params.sender;
-  deposit.vaultId = event.params.vaultId;
+  deposit.vault = vaultEntityId(event.params.vaultId, event.params.token);
   deposit.token = event.params.token;
   deposit.transaction = createTransactionEntity(event);
+  deposit.oldVaultBalance = oldVaultBalance;
+  deposit.newVaultBalance = oldVaultBalance.plus(event.params.amount);
   deposit.save();
 }

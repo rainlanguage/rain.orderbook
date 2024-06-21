@@ -4,12 +4,11 @@ import {
   clearStore,
   describe,
   afterEach,
-  newMockEvent,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, ethereum, Address } from "@graphprotocol/graph-ts";
-import { Deposit } from "../generated/OrderBook/OrderBook";
+import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { createDepositEntity } from "../src/deposit";
+import { createDepositEvent } from "./event-mocks.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -24,9 +23,13 @@ describe("Deposits", () => {
       BigInt.fromI32(1),
       BigInt.fromI32(100)
     );
-    createDepositEntity(event);
+    let newVaultBalance = BigInt.fromI32(0);
+    createDepositEntity(event, newVaultBalance);
 
     let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let vaultEntityId = event.params.token.concatI32(
+      event.params.vaultId.toI32()
+    );
 
     assert.entityCount("Deposit", 1);
     assert.fieldEquals(
@@ -44,8 +47,8 @@ describe("Deposits", () => {
     assert.fieldEquals(
       "Deposit",
       id.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
+      "vault",
+      vaultEntityId.toHexString()
     );
     assert.fieldEquals(
       "Deposit",
@@ -58,6 +61,18 @@ describe("Deposits", () => {
       id.toHexString(),
       "transaction",
       event.transaction.hash.toHex()
+    );
+    assert.fieldEquals(
+      "Deposit",
+      id.toHexString(),
+      "oldVaultBalance",
+      BigInt.fromI32(0).toString()
+    );
+    assert.fieldEquals(
+      "Deposit",
+      id.toHexString(),
+      "newVaultBalance",
+      BigInt.fromI32(100).toString()
     );
 
     assert.entityCount("Transaction", 1);
@@ -81,40 +96,3 @@ describe("Deposits", () => {
     );
   });
 });
-
-// event Deposit(address sender, address token, uint256 vaultId, uint256 amount);
-function createDepositEvent(
-  sender: Address,
-  token: Address,
-  vaultId: BigInt,
-  amount: BigInt
-): Deposit {
-  let mockEvent = newMockEvent();
-  let depositEvent = new Deposit(
-    mockEvent.address,
-    mockEvent.logIndex,
-    mockEvent.transactionLogIndex,
-    mockEvent.logType,
-    mockEvent.block,
-    mockEvent.transaction,
-    mockEvent.parameters,
-    null
-  );
-  depositEvent.parameters = new Array();
-  depositEvent.parameters.push(
-    new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
-  );
-  depositEvent.parameters.push(
-    new ethereum.EventParam("token", ethereum.Value.fromAddress(token))
-  );
-  depositEvent.parameters.push(
-    new ethereum.EventParam(
-      "vaultId",
-      ethereum.Value.fromUnsignedBigInt(vaultId)
-    )
-  );
-  depositEvent.parameters.push(
-    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
-  );
-  return depositEvent;
-}

@@ -6,11 +6,9 @@ import {
   afterEach,
   newMockEvent,
   clearInBlockStore,
-  log,
 } from "matchstick-as";
 import { createTransactionEntity } from "../src/transaction";
 import { Bytes } from "@graphprotocol/graph-ts";
-import { Transaction } from "../generated/schema";
 
 describe("Transaction", () => {
   afterEach(() => {
