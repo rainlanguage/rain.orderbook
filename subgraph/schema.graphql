@@ -1,3 +1,28 @@
-type Order @entity {
-  id: ID!
+type Deposit implements Event @entity {
+  id: Bytes!
+  "The token that was deposited"
+  token: Bytes!
+  "The vaultId that was deposited into"
+  vaultId: BigInt!
+  "The amount that was deposited"
+  amount: BigInt!
+  "The msg.sender of this deposit"
+  sender: Bytes!
+  transaction: Transaction!
+}
+
+type Transaction @entity(immutable: true) {
+  id: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  from: Bytes!
+  events: [Event!] @derivedFrom(field: "transaction")
+}
+
+interface Event {
+  id: Bytes!
+  "Transaction this event was emitted in"
+  transaction: Transaction!
+  "msg.sender for the event"
+  sender: Bytes!
 }
