@@ -52,7 +52,7 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
         IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
-        bytes32 suite = keccak256(bytes(vm.envString("DEPLOYMENT_SUITE")));
+        bytes32 suite = keccak256(bytes(vm.envOr("DEPLOYMENT_SUITE", "all")));
 
         vm.startBroadcast(deployerPrivateKey);
 
