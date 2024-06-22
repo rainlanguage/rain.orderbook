@@ -265,7 +265,9 @@ impl FuzzRunner {
 
                     // Create a 5x5 grid of zero values for context - later we'll
                     // replace these with sane values based on Orderbook context
-                    let context = vec![vec![U256::from(0); 5]; 5];
+                    let mut context = vec![vec![U256::from(0); 5]; 5];
+                    // set random hash for context order hash cell
+                    context[1][0] = rand::random();
 
                     let args = ForkEvalArgs {
                         rainlang_string,
@@ -571,5 +573,57 @@ _: context<50 50>();
             .map_err(|e| println!("{:#?}", e));
 
         assert!(res.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_context_random_order_hash() {
+        // random order hash is at <1 0> context cell, ie column1 row0
+        let dotrain = format!(
+            r#"
+deployers:
+    sepolia:
+        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+networks:
+    sepolia:
+        rpc: {rpc_url}
+        chain-id: 137
+scenarios:
+    sepolia:
+        runs: 100
+---
+#calculate-io
+_: context<1 0>();
+#handle-io
+:;
+    "#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+        );
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
+        let config = settings
+            .try_into()
+            .map_err(|e| println!("{:?}", e))
+            .unwrap();
+
+        let mut runner = FuzzRunner::new(&dotrain, config, None).await;
+
+        let res = runner
+            .run_scenario_by_name("sepolia")
+            .await
+            .map_err(|e| println!("{:#?}", e))
+            .unwrap();
+
+        let flattened = res.flatten_traces().unwrap();
+
+        // flatten the result and check all context order id hashes
+        // dont match each oher, ie ensuring their randomness
+        let result = flattened.data.into_iter().flatten().collect::<Vec<_>>();
+        for (i, cell_value) in result.iter().enumerate() {
+            for (j, other_cell_value) in result.iter().enumerate() {
+                if i != j {
+                    assert!(cell_value != other_cell_value);
+                }
+            }
+        }
     }
 }
