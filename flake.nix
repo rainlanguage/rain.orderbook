@@ -161,12 +161,11 @@
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
                 otool -L lib/libcharset.1.dylib
 
-                cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
-                chmod +w lib/libiconv.dylib
-                install_name_tool -id @executable_path/../Frameworks/libiconv.dylib lib/libiconv.dylib
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv-nocharset.dylib @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv.dylib
-                install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.dylib
-                otool -L lib/libiconv.dylib
+                cp ${pkgs.libiconv}/lib/libiconv.2.dylib lib/libiconv.2.dylib
+                chmod +w lib/libiconv.2.dylib
+                install_name_tool -id @executable_path/../Frameworks/libiconv.2.dylib lib/libiconv.2.dylib
+                install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.2.dylib
+                otool -L lib/libiconv.2.dylib
 
                 cp ${pkgs.gettext}/lib/libintl.8.dylib lib/libintl.8.dylib
                 chmod +w lib/libintl.8.dylib
