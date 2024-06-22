@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.25;
 
-import "lib/forge-std/src/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import "src/lib/LibOrder.sol";
+import {LibOrder, OrderV2} from "src/lib/LibOrder.sol";
 
 /// @title LibOrderTest
 /// Exercises the LibOrder library.

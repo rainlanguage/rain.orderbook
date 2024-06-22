@@ -41,8 +41,7 @@ uint8 constant PARSE_META_BUILD_DEPTH = 1;
 /// bytecode that dials back into this contract at eval time, and mapping
 /// to things that happen entirely on the interpreter such as well known
 /// constants and references to the context grid.
-bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"102710461057106810781089109a10ab10bc10cd10de10ee10ff111011211132114311531163";
+bytes constant SUB_PARSER_WORD_PARSERS = hex"102710461057106810781089109a10ab10bc10cd10de10ee10ff111011211132114311531163";
 
 /// @dev Every two bytes is a function pointer for an operand handler.
 /// These positional indexes all map to the same indexes looked up in the parse
