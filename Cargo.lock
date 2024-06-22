@@ -5830,6 +5830,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
+name = "rain-erc"
+version = "0.0.0"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=f857ce56e27e53c0bad11b1f05851b95e904c2b5#f857ce56e27e53c0bad11b1f05851b95e904c2b5"
+dependencies = [
+ "alloy-ethers-typecast",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
+ "thiserror",
+]
+
+[[package]]
 name = "rain-error-decoding"
 version = "0.1.0"
 source = "git+https://github.com/rainlanguage/rain.error?rev=6763061d89cfc084c81e01f75f6118881fa5b77b#6763061d89cfc084c81e01f75f6118881fa5b77b"
@@ -5907,6 +5918,7 @@ dependencies = [
  "inflate",
  "itertools 0.10.5",
  "once_cell",
+ "rain-erc",
  "rain-metaboard-subgraph",
  "rain-metadata-bindings",
  "regex",
