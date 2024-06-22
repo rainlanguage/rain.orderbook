@@ -12,6 +12,9 @@ import {OrderBookV3ArbConfigV1} from "src/abstract/OrderBookV3ArbCommon.sol";
 import {IMetaBoardV1} from "rain.metadata/interface/IMetaBoardV1.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 
+bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
+bytes32 constant DEPLOYMENT_SUITE_SUBPARSER = keccak256("subparser");
+
 /// @dev Exact bytecode taken from sushiswap deployments list in github.
 /// https://github.com/sushiswap/sushiswap/blob/master/protocols/route-processor/deployments/ethereum/RouteProcessor3_2.json#L330
 ///
@@ -27,25 +30,41 @@ bytes constant ROUTE_PROCESSOR_3_2_CREATION_CODE =
 /// @notice A script that deploys all contracts. This is intended to be run on
 /// every commit by CI to a testnet such as mumbai.
 contract Deploy is Script {
-    function run() external {
-        uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParserDescribedByMetaV1.rain.meta");
-        IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
+    function deployOrderbook() internal returns (OrderBook) {
+        return new OrderBook();
+    }
 
-        vm.startBroadcast(deployerPrivateKey);
-
-        // OB.
-        OrderBook orderbook = new OrderBook();
-
-        // Subparsers.
+    function deploySubParser(IMetaBoardV1 metaboard) internal {
         OrderBookSubParser subParser = new OrderBookSubParser();
+        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParserDescribedByMetaV1.rain.meta");
         LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
+    }
 
+    function deployRouter() internal returns (address) {
         bytes memory routeProcessor3_2Code = ROUTE_PROCESSOR_3_2_CREATION_CODE;
         address routeProcessor3_2;
         assembly ("memory-safe") {
             routeProcessor3_2 := create(0, add(routeProcessor3_2Code, 0x20), mload(routeProcessor3_2Code))
         }
+        return routeProcessor3_2;
+    }
+
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
+        IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
+        bytes32 suite = keccak256(bytes(vm.envString("DEPLOYMENT_SUITE")));
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        deploySubParser(metaboard);
+        // Real simple short circuit for subparser deployment.
+        // If we get more suites this will need to be refactored into a switch.
+        if (suite == DEPLOYMENT_SUITE_SUBPARSER) {
+            return;
+        }
+
+        OrderBook orderbook = deployOrderbook();
+        address routeProcessor3_2 = deployRouter();
 
         // Order takers.
         new GenericPoolOrderBookV3ArbOrderTaker(
