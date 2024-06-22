@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity =0.8.25;
 
-import {Address} from "lib/openzeppelin-contracts/contracts/utils/Address.sol";
+import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {
     IERC3156FlashBorrower,
     ON_FLASH_LOAN_CALLBACK_SUCCESS

@@ -20,6 +20,14 @@ on:
           - sepolia
           - songbird
 
+      suite:
+        description: 'Suite to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - subparser
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -41,13 +49,14 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - run: nix develop --command rainix-sol-prelude
-      - run: nix develop --command rainix-rs-prelude
-      - run: nix develop --command raindex-prelude
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
 
       - name: deploy to ${{ inputs.network }}
-        run: nix develop --command rainix-sol-artifacts
+        run: nix develop -c rainix-sol-artifacts
         env:
+          DEPLOYMENT_SUITE: ${{ inputs.suite }}
           DEPLOY_BROADCAST: '1'
           DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
           ETH_RPC_URL: ${{ secrets[env.rpc_secret_name] || vars[env.rpc_secret_name] || '' }}
