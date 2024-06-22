@@ -54,6 +54,7 @@ thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-orderbook-env = { path = "crates/env" }
+rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "f857ce56e27e53c0bad11b1f05851b95e904c2b5" }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
