@@ -44,6 +44,7 @@ csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rand = "0.8.5"
+rain-error-decoding = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

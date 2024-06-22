@@ -6,7 +6,7 @@ use dotrain::error::ComposeError;
 use dotrain::RainDocument;
 use dotrain::Rebind;
 use once_cell::sync::Lazy;
-use rain_interpreter_eval::error::AbiDecodedErrorType;
+use rain_error_decoding::AbiDecodedErrorType;
 use rain_interpreter_eval::error::ForkCallError;
 use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::Forker;
@@ -25,18 +25,13 @@ pub enum ForkParseError {
     #[error(transparent)]
     ForkerError(ForkCallError),
     #[error("Fork Call Reverted: {0}")]
-    ForkCallReverted(AbiDecodedErrorType),
+    ForkCallReverted(#[from] AbiDecodedErrorType),
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
     #[error("Failed to read Parser address from deployer")]
     ReadParserAddressFailed,
 }
 
-impl From<AbiDecodedErrorType> for ForkParseError {
-    fn from(value: AbiDecodedErrorType) -> Self {
-        Self::ForkCallReverted(value)
-    }
-}
 impl From<ForkCallError> for ForkParseError {
     fn from(value: ForkCallError) -> Self {
         match value {
