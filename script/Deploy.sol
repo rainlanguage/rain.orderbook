@@ -36,7 +36,7 @@ contract Deploy is Script {
 
     function deploySubParser(IMetaBoardV1 metaboard) internal {
         OrderBookSubParser subParser = new OrderBookSubParser();
-        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParserDescribedByMetaV1.rain.meta");
+        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParser.rain.meta");
         LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
     }
 
