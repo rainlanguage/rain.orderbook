@@ -15,12 +15,12 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   let order = event.params.config.order;
 
   // Debit the output vault
-  let orderOutputIO =
+  let orderOutput =
     order.validOutputs[event.params.config.outputIOIndex.toU32()];
 
   let oldOutputVaultBalance = handleVaultBalanceChange(
-    orderOutputIO.vaultId,
-    orderOutputIO.token,
+    orderOutput.vaultId,
+    orderOutput.token,
     event.params.input, // input for the taker is the output amount for the vault
     order.owner,
     VaultBalanceChangeType.DEBIT
@@ -28,19 +28,18 @@ export function handleTakeOrder(event: TakeOrderV2): void {
 
   let outputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
-    vaultEntityId(order.owner, orderOutputIO.vaultId, orderOutputIO.token),
+    vaultEntityId(order.owner, orderOutput.vaultId, orderOutput.token),
     oldOutputVaultBalance,
     event.params.input,
     VaultBalanceChangeType.DEBIT
   );
 
-  let orderInputIO =
-    order.validInputs[event.params.config.inputIOIndex.toU32()];
-
   // Credit the input vault
+  let orderInput = order.validInputs[event.params.config.inputIOIndex.toU32()];
+
   let oldInputVaultBalance = handleVaultBalanceChange(
-    orderInputIO.vaultId,
-    orderInputIO.token,
+    orderInput.vaultId,
+    orderInput.token,
     event.params.output, // output for the taker is the input amount for the vault
     order.owner,
     VaultBalanceChangeType.CREDIT
@@ -48,7 +47,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
 
   let inputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
-    vaultEntityId(order.owner, orderInputIO.vaultId, orderInputIO.token),
+    vaultEntityId(order.owner, orderInput.vaultId, orderInput.token),
     oldInputVaultBalance,
     event.params.output,
     VaultBalanceChangeType.CREDIT

@@ -7,11 +7,11 @@ import {
 import { Withdraw } from "../generated/OrderBook/OrderBook";
 import { handleDeposit as _handleDeposit } from "./deposit";
 import { handleWithdraw as _handleWithdraw } from "./withdraw";
-
 import {
   handleAddOrder as _handleAddOrder,
   handleRemoveOrder as _handleRemoveOrder,
 } from "./order";
+import { handleTakeOrder as _handleTakeOrder } from "./takeorder";
 
 export function handleDeposit(event: Deposit): void {
   _handleDeposit(event);
@@ -30,5 +30,5 @@ export function handleRemoveOrder(event: RemoveOrderV2): void {
 }
 
 export function handleTakeOrder(event: TakeOrderV2): void {
-  // _handleTakeOrder(event);
+  _handleTakeOrder(event);
 }
