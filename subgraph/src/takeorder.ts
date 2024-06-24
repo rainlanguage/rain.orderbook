@@ -1,4 +1,4 @@
-import { Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { ethereum } from "@graphprotocol/graph-ts";
 import { TakeOrderV2 } from "../generated/OrderBook/OrderBook";
 import { TakeOrder } from "../generated/schema";
 import { eventId } from "./interfaces/event";
@@ -10,6 +10,7 @@ import {
 } from "./vault";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
 import { createTradeEntity } from "./trade";
+import { crypto } from "@graphprotocol/graph-ts";
 
 export function handleTakeOrder(event: TakeOrderV2): void {
   let order = event.params.config.order;
@@ -53,9 +54,14 @@ export function handleTakeOrder(event: TakeOrderV2): void {
     VaultBalanceChangeType.CREDIT
   );
 
+  // hashing the raw bytes of the OrderV3
+  let orderHash = crypto.keccak256(
+    ethereum.encode(event.parameters[1].value.toTuple()[0])!
+  );
+
   createTradeEntity(
     event,
-    Bytes.empty(),
+    orderHash,
     inputVaultBalanceChange,
     outputVaultBalanceChange
   );
