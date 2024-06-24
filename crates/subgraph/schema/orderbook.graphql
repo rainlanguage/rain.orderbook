@@ -1,71 +1,17 @@
-type Account {
+type AddOrder implements Event {
   id: Bytes!
-  orders(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Order_orderBy
-    orderDirection: OrderDirection
-    where: Order_filter
-  ): [Order!]
-  withdraws(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: VaultWithdraw_orderBy
-    orderDirection: OrderDirection
-    where: VaultWithdraw_filter
-  ): [VaultWithdraw!]
-  deposits(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: VaultDeposit_orderBy
-    orderDirection: OrderDirection
-    where: VaultDeposit_filter
-  ): [VaultDeposit!]
-  ordersCleared(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderClear_orderBy
-    orderDirection: OrderDirection
-    where: OrderClear_filter
-  ): [OrderClear!]
-  bounties(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Bounty_orderBy
-    orderDirection: OrderDirection
-    where: Bounty_filter
-  ): [Bounty!]
-  takeOrderEntities(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: TakeOrderEntity_orderBy
-    orderDirection: OrderDirection
-    where: TakeOrderEntity_filter
-  ): [TakeOrderEntity!]
-  vaults(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Vault_orderBy
-    orderDirection: OrderDirection
-    where: Vault_filter
-  ): [Vault!]
-  tokenVaults(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: TokenVault_orderBy
-    orderDirection: OrderDirection
-    where: TokenVault_filter
-  ): [TokenVault!]
-  events(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Event_orderBy
-    orderDirection: OrderDirection
-    where: Event_filter
-  ): [Event!]
+  """
+  The order that was added
+  """
+  order: Order!
+  transaction: Transaction!
+  """
+  The msg.sender of this add order call
+  """
+  sender: Bytes!
 }
 
-input Account_filter {
+input AddOrder_filter {
   id: Bytes
   id_not: Bytes
   id_gt: Bytes
@@ -76,34 +22,86 @@ input Account_filter {
   id_not_in: [Bytes!]
   id_contains: Bytes
   id_not_contains: Bytes
-  orders_: Order_filter
-  withdraws_: VaultWithdraw_filter
-  deposits_: VaultDeposit_filter
-  ordersCleared_: OrderClear_filter
-  bounties_: Bounty_filter
-  takeOrderEntities_: TakeOrderEntity_filter
-  vaults_: Vault_filter
-  tokenVaults_: TokenVault_filter
-  events_: Event_filter
+  order: String
+  order_not: String
+  order_gt: String
+  order_lt: String
+  order_gte: String
+  order_lte: String
+  order_in: [String!]
+  order_not_in: [String!]
+  order_contains: String
+  order_contains_nocase: String
+  order_not_contains: String
+  order_not_contains_nocase: String
+  order_starts_with: String
+  order_starts_with_nocase: String
+  order_not_starts_with: String
+  order_not_starts_with_nocase: String
+  order_ends_with: String
+  order_ends_with_nocase: String
+  order_not_ends_with: String
+  order_not_ends_with_nocase: String
+  order_: Order_filter
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [Account_filter]
-  or: [Account_filter]
+  and: [AddOrder_filter]
+  or: [AddOrder_filter]
 }
 
-enum Account_orderBy {
+enum AddOrder_orderBy {
   id
-  orders
-  withdraws
-  deposits
-  ordersCleared
-  bounties
-  takeOrderEntities
-  vaults
-  tokenVaults
-  events
+  order
+  order__id
+  order__active
+  order__orderHash
+  order__owner
+  order__nonce
+  order__orderBytes
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
+  sender
+}
+
+enum Aggregation_interval {
+  hour
+  day
 }
 
 scalar BigDecimal
@@ -120,556 +118,32 @@ input Block_height {
   number_gte: Int
 }
 
-type Bounty {
-  id: ID!
-  """
-  The clearer who received this bounty
-  """
-  clearer: Account!
-  """
-  The Clear event that paid this bounty
-  """
-  orderClear: OrderClear!
-  """
-  The Vault that bounty token A was deposited into
-  """
-  bountyVaultA: Vault!
-  """
-  The Vault that bounty token B was deposited into
-  """
-  bountyVaultB: Vault!
-  """
-  The A token for the bounty
-  """
-  bountyTokenA: ERC20!
-  """
-  The B token for the bounty
-  """
-  bountyTokenB: ERC20!
-  """
-  The amount paid for bounty token A
-  """
-  bountyAmountA: BigInt
-  bountyAmountADisplay: BigDecimal
-  """
-  The amount paid for bounty token B
-  """
-  bountyAmountB: BigInt
-  bountyAmountBDisplay: BigDecimal
-  transaction: Transaction!
-  emitter: Account!
-  timestamp: BigInt!
-}
-
-input Bounty_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  clearer: String
-  clearer_not: String
-  clearer_gt: String
-  clearer_lt: String
-  clearer_gte: String
-  clearer_lte: String
-  clearer_in: [String!]
-  clearer_not_in: [String!]
-  clearer_contains: String
-  clearer_contains_nocase: String
-  clearer_not_contains: String
-  clearer_not_contains_nocase: String
-  clearer_starts_with: String
-  clearer_starts_with_nocase: String
-  clearer_not_starts_with: String
-  clearer_not_starts_with_nocase: String
-  clearer_ends_with: String
-  clearer_ends_with_nocase: String
-  clearer_not_ends_with: String
-  clearer_not_ends_with_nocase: String
-  clearer_: Account_filter
-  orderClear: String
-  orderClear_not: String
-  orderClear_gt: String
-  orderClear_lt: String
-  orderClear_gte: String
-  orderClear_lte: String
-  orderClear_in: [String!]
-  orderClear_not_in: [String!]
-  orderClear_contains: String
-  orderClear_contains_nocase: String
-  orderClear_not_contains: String
-  orderClear_not_contains_nocase: String
-  orderClear_starts_with: String
-  orderClear_starts_with_nocase: String
-  orderClear_not_starts_with: String
-  orderClear_not_starts_with_nocase: String
-  orderClear_ends_with: String
-  orderClear_ends_with_nocase: String
-  orderClear_not_ends_with: String
-  orderClear_not_ends_with_nocase: String
-  orderClear_: OrderClear_filter
-  bountyVaultA: String
-  bountyVaultA_not: String
-  bountyVaultA_gt: String
-  bountyVaultA_lt: String
-  bountyVaultA_gte: String
-  bountyVaultA_lte: String
-  bountyVaultA_in: [String!]
-  bountyVaultA_not_in: [String!]
-  bountyVaultA_contains: String
-  bountyVaultA_contains_nocase: String
-  bountyVaultA_not_contains: String
-  bountyVaultA_not_contains_nocase: String
-  bountyVaultA_starts_with: String
-  bountyVaultA_starts_with_nocase: String
-  bountyVaultA_not_starts_with: String
-  bountyVaultA_not_starts_with_nocase: String
-  bountyVaultA_ends_with: String
-  bountyVaultA_ends_with_nocase: String
-  bountyVaultA_not_ends_with: String
-  bountyVaultA_not_ends_with_nocase: String
-  bountyVaultA_: Vault_filter
-  bountyVaultB: String
-  bountyVaultB_not: String
-  bountyVaultB_gt: String
-  bountyVaultB_lt: String
-  bountyVaultB_gte: String
-  bountyVaultB_lte: String
-  bountyVaultB_in: [String!]
-  bountyVaultB_not_in: [String!]
-  bountyVaultB_contains: String
-  bountyVaultB_contains_nocase: String
-  bountyVaultB_not_contains: String
-  bountyVaultB_not_contains_nocase: String
-  bountyVaultB_starts_with: String
-  bountyVaultB_starts_with_nocase: String
-  bountyVaultB_not_starts_with: String
-  bountyVaultB_not_starts_with_nocase: String
-  bountyVaultB_ends_with: String
-  bountyVaultB_ends_with_nocase: String
-  bountyVaultB_not_ends_with: String
-  bountyVaultB_not_ends_with_nocase: String
-  bountyVaultB_: Vault_filter
-  bountyTokenA: String
-  bountyTokenA_not: String
-  bountyTokenA_gt: String
-  bountyTokenA_lt: String
-  bountyTokenA_gte: String
-  bountyTokenA_lte: String
-  bountyTokenA_in: [String!]
-  bountyTokenA_not_in: [String!]
-  bountyTokenA_contains: String
-  bountyTokenA_contains_nocase: String
-  bountyTokenA_not_contains: String
-  bountyTokenA_not_contains_nocase: String
-  bountyTokenA_starts_with: String
-  bountyTokenA_starts_with_nocase: String
-  bountyTokenA_not_starts_with: String
-  bountyTokenA_not_starts_with_nocase: String
-  bountyTokenA_ends_with: String
-  bountyTokenA_ends_with_nocase: String
-  bountyTokenA_not_ends_with: String
-  bountyTokenA_not_ends_with_nocase: String
-  bountyTokenA_: ERC20_filter
-  bountyTokenB: String
-  bountyTokenB_not: String
-  bountyTokenB_gt: String
-  bountyTokenB_lt: String
-  bountyTokenB_gte: String
-  bountyTokenB_lte: String
-  bountyTokenB_in: [String!]
-  bountyTokenB_not_in: [String!]
-  bountyTokenB_contains: String
-  bountyTokenB_contains_nocase: String
-  bountyTokenB_not_contains: String
-  bountyTokenB_not_contains_nocase: String
-  bountyTokenB_starts_with: String
-  bountyTokenB_starts_with_nocase: String
-  bountyTokenB_not_starts_with: String
-  bountyTokenB_not_starts_with_nocase: String
-  bountyTokenB_ends_with: String
-  bountyTokenB_ends_with_nocase: String
-  bountyTokenB_not_ends_with: String
-  bountyTokenB_not_ends_with_nocase: String
-  bountyTokenB_: ERC20_filter
-  bountyAmountA: BigInt
-  bountyAmountA_not: BigInt
-  bountyAmountA_gt: BigInt
-  bountyAmountA_lt: BigInt
-  bountyAmountA_gte: BigInt
-  bountyAmountA_lte: BigInt
-  bountyAmountA_in: [BigInt!]
-  bountyAmountA_not_in: [BigInt!]
-  bountyAmountADisplay: BigDecimal
-  bountyAmountADisplay_not: BigDecimal
-  bountyAmountADisplay_gt: BigDecimal
-  bountyAmountADisplay_lt: BigDecimal
-  bountyAmountADisplay_gte: BigDecimal
-  bountyAmountADisplay_lte: BigDecimal
-  bountyAmountADisplay_in: [BigDecimal!]
-  bountyAmountADisplay_not_in: [BigDecimal!]
-  bountyAmountB: BigInt
-  bountyAmountB_not: BigInt
-  bountyAmountB_gt: BigInt
-  bountyAmountB_lt: BigInt
-  bountyAmountB_gte: BigInt
-  bountyAmountB_lte: BigInt
-  bountyAmountB_in: [BigInt!]
-  bountyAmountB_not_in: [BigInt!]
-  bountyAmountBDisplay: BigDecimal
-  bountyAmountBDisplay_not: BigDecimal
-  bountyAmountBDisplay_gt: BigDecimal
-  bountyAmountBDisplay_lt: BigDecimal
-  bountyAmountBDisplay_gte: BigDecimal
-  bountyAmountBDisplay_lte: BigDecimal
-  bountyAmountBDisplay_in: [BigDecimal!]
-  bountyAmountBDisplay_not_in: [BigDecimal!]
-  transaction: String
-  transaction_not: String
-  transaction_gt: String
-  transaction_lt: String
-  transaction_gte: String
-  transaction_lte: String
-  transaction_in: [String!]
-  transaction_not_in: [String!]
-  transaction_contains: String
-  transaction_contains_nocase: String
-  transaction_not_contains: String
-  transaction_not_contains_nocase: String
-  transaction_starts_with: String
-  transaction_starts_with_nocase: String
-  transaction_not_starts_with: String
-  transaction_not_starts_with_nocase: String
-  transaction_ends_with: String
-  transaction_ends_with_nocase: String
-  transaction_not_ends_with: String
-  transaction_not_ends_with_nocase: String
-  transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [Bounty_filter]
-  or: [Bounty_filter]
-}
-
-enum Bounty_orderBy {
-  id
-  clearer
-  clearer__id
-  orderClear
-  orderClear__id
-  orderClear__aInputIOIndex
-  orderClear__aOutputIOIndex
-  orderClear__bInputIOIndex
-  orderClear__bOutputIOIndex
-  orderClear__timestamp
-  bountyVaultA
-  bountyVaultA__id
-  bountyVaultA__vaultId
-  bountyVaultB
-  bountyVaultB__id
-  bountyVaultB__vaultId
-  bountyTokenA
-  bountyTokenA__id
-  bountyTokenA__name
-  bountyTokenA__symbol
-  bountyTokenA__totalSupply
-  bountyTokenA__totalSupplyDisplay
-  bountyTokenA__decimals
-  bountyTokenB
-  bountyTokenB__id
-  bountyTokenB__name
-  bountyTokenB__symbol
-  bountyTokenB__totalSupply
-  bountyTokenB__totalSupplyDisplay
-  bountyTokenB__decimals
-  bountyAmountA
-  bountyAmountADisplay
-  bountyAmountB
-  bountyAmountBDisplay
-  transaction
-  transaction__id
-  transaction__timestamp
-  transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
-}
-
 scalar Bytes
 
-type ClearOrderConfig {
-  id: ID!
-  orderClearId: OrderClear!
-  tokenVaultBountyAlice: TokenVault!
-  tokenVaultBountyBob: TokenVault!
-  aliceTokenVaultInput: String!
-  aliceTokenVaultOutput: String!
-  bobTokenVaultInput: String!
-  bobTokenVaultOutput: String!
-}
-
-input ClearOrderConfig_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  orderClearId: String
-  orderClearId_not: String
-  orderClearId_gt: String
-  orderClearId_lt: String
-  orderClearId_gte: String
-  orderClearId_lte: String
-  orderClearId_in: [String!]
-  orderClearId_not_in: [String!]
-  orderClearId_contains: String
-  orderClearId_contains_nocase: String
-  orderClearId_not_contains: String
-  orderClearId_not_contains_nocase: String
-  orderClearId_starts_with: String
-  orderClearId_starts_with_nocase: String
-  orderClearId_not_starts_with: String
-  orderClearId_not_starts_with_nocase: String
-  orderClearId_ends_with: String
-  orderClearId_ends_with_nocase: String
-  orderClearId_not_ends_with: String
-  orderClearId_not_ends_with_nocase: String
-  orderClearId_: OrderClear_filter
-  tokenVaultBountyAlice: String
-  tokenVaultBountyAlice_not: String
-  tokenVaultBountyAlice_gt: String
-  tokenVaultBountyAlice_lt: String
-  tokenVaultBountyAlice_gte: String
-  tokenVaultBountyAlice_lte: String
-  tokenVaultBountyAlice_in: [String!]
-  tokenVaultBountyAlice_not_in: [String!]
-  tokenVaultBountyAlice_contains: String
-  tokenVaultBountyAlice_contains_nocase: String
-  tokenVaultBountyAlice_not_contains: String
-  tokenVaultBountyAlice_not_contains_nocase: String
-  tokenVaultBountyAlice_starts_with: String
-  tokenVaultBountyAlice_starts_with_nocase: String
-  tokenVaultBountyAlice_not_starts_with: String
-  tokenVaultBountyAlice_not_starts_with_nocase: String
-  tokenVaultBountyAlice_ends_with: String
-  tokenVaultBountyAlice_ends_with_nocase: String
-  tokenVaultBountyAlice_not_ends_with: String
-  tokenVaultBountyAlice_not_ends_with_nocase: String
-  tokenVaultBountyAlice_: TokenVault_filter
-  tokenVaultBountyBob: String
-  tokenVaultBountyBob_not: String
-  tokenVaultBountyBob_gt: String
-  tokenVaultBountyBob_lt: String
-  tokenVaultBountyBob_gte: String
-  tokenVaultBountyBob_lte: String
-  tokenVaultBountyBob_in: [String!]
-  tokenVaultBountyBob_not_in: [String!]
-  tokenVaultBountyBob_contains: String
-  tokenVaultBountyBob_contains_nocase: String
-  tokenVaultBountyBob_not_contains: String
-  tokenVaultBountyBob_not_contains_nocase: String
-  tokenVaultBountyBob_starts_with: String
-  tokenVaultBountyBob_starts_with_nocase: String
-  tokenVaultBountyBob_not_starts_with: String
-  tokenVaultBountyBob_not_starts_with_nocase: String
-  tokenVaultBountyBob_ends_with: String
-  tokenVaultBountyBob_ends_with_nocase: String
-  tokenVaultBountyBob_not_ends_with: String
-  tokenVaultBountyBob_not_ends_with_nocase: String
-  tokenVaultBountyBob_: TokenVault_filter
-  aliceTokenVaultInput: String
-  aliceTokenVaultInput_not: String
-  aliceTokenVaultInput_gt: String
-  aliceTokenVaultInput_lt: String
-  aliceTokenVaultInput_gte: String
-  aliceTokenVaultInput_lte: String
-  aliceTokenVaultInput_in: [String!]
-  aliceTokenVaultInput_not_in: [String!]
-  aliceTokenVaultInput_contains: String
-  aliceTokenVaultInput_contains_nocase: String
-  aliceTokenVaultInput_not_contains: String
-  aliceTokenVaultInput_not_contains_nocase: String
-  aliceTokenVaultInput_starts_with: String
-  aliceTokenVaultInput_starts_with_nocase: String
-  aliceTokenVaultInput_not_starts_with: String
-  aliceTokenVaultInput_not_starts_with_nocase: String
-  aliceTokenVaultInput_ends_with: String
-  aliceTokenVaultInput_ends_with_nocase: String
-  aliceTokenVaultInput_not_ends_with: String
-  aliceTokenVaultInput_not_ends_with_nocase: String
-  aliceTokenVaultOutput: String
-  aliceTokenVaultOutput_not: String
-  aliceTokenVaultOutput_gt: String
-  aliceTokenVaultOutput_lt: String
-  aliceTokenVaultOutput_gte: String
-  aliceTokenVaultOutput_lte: String
-  aliceTokenVaultOutput_in: [String!]
-  aliceTokenVaultOutput_not_in: [String!]
-  aliceTokenVaultOutput_contains: String
-  aliceTokenVaultOutput_contains_nocase: String
-  aliceTokenVaultOutput_not_contains: String
-  aliceTokenVaultOutput_not_contains_nocase: String
-  aliceTokenVaultOutput_starts_with: String
-  aliceTokenVaultOutput_starts_with_nocase: String
-  aliceTokenVaultOutput_not_starts_with: String
-  aliceTokenVaultOutput_not_starts_with_nocase: String
-  aliceTokenVaultOutput_ends_with: String
-  aliceTokenVaultOutput_ends_with_nocase: String
-  aliceTokenVaultOutput_not_ends_with: String
-  aliceTokenVaultOutput_not_ends_with_nocase: String
-  bobTokenVaultInput: String
-  bobTokenVaultInput_not: String
-  bobTokenVaultInput_gt: String
-  bobTokenVaultInput_lt: String
-  bobTokenVaultInput_gte: String
-  bobTokenVaultInput_lte: String
-  bobTokenVaultInput_in: [String!]
-  bobTokenVaultInput_not_in: [String!]
-  bobTokenVaultInput_contains: String
-  bobTokenVaultInput_contains_nocase: String
-  bobTokenVaultInput_not_contains: String
-  bobTokenVaultInput_not_contains_nocase: String
-  bobTokenVaultInput_starts_with: String
-  bobTokenVaultInput_starts_with_nocase: String
-  bobTokenVaultInput_not_starts_with: String
-  bobTokenVaultInput_not_starts_with_nocase: String
-  bobTokenVaultInput_ends_with: String
-  bobTokenVaultInput_ends_with_nocase: String
-  bobTokenVaultInput_not_ends_with: String
-  bobTokenVaultInput_not_ends_with_nocase: String
-  bobTokenVaultOutput: String
-  bobTokenVaultOutput_not: String
-  bobTokenVaultOutput_gt: String
-  bobTokenVaultOutput_lt: String
-  bobTokenVaultOutput_gte: String
-  bobTokenVaultOutput_lte: String
-  bobTokenVaultOutput_in: [String!]
-  bobTokenVaultOutput_not_in: [String!]
-  bobTokenVaultOutput_contains: String
-  bobTokenVaultOutput_contains_nocase: String
-  bobTokenVaultOutput_not_contains: String
-  bobTokenVaultOutput_not_contains_nocase: String
-  bobTokenVaultOutput_starts_with: String
-  bobTokenVaultOutput_starts_with_nocase: String
-  bobTokenVaultOutput_not_starts_with: String
-  bobTokenVaultOutput_not_starts_with_nocase: String
-  bobTokenVaultOutput_ends_with: String
-  bobTokenVaultOutput_ends_with_nocase: String
-  bobTokenVaultOutput_not_ends_with: String
-  bobTokenVaultOutput_not_ends_with_nocase: String
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [ClearOrderConfig_filter]
-  or: [ClearOrderConfig_filter]
-}
-
-enum ClearOrderConfig_orderBy {
-  id
-  orderClearId
-  orderClearId__id
-  orderClearId__aInputIOIndex
-  orderClearId__aOutputIOIndex
-  orderClearId__bInputIOIndex
-  orderClearId__bOutputIOIndex
-  orderClearId__timestamp
-  tokenVaultBountyAlice
-  tokenVaultBountyAlice__id
-  tokenVaultBountyAlice__vaultId
-  tokenVaultBountyAlice__balance
-  tokenVaultBountyAlice__balanceDisplay
-  tokenVaultBountyBob
-  tokenVaultBountyBob__id
-  tokenVaultBountyBob__vaultId
-  tokenVaultBountyBob__balance
-  tokenVaultBountyBob__balanceDisplay
-  aliceTokenVaultInput
-  aliceTokenVaultOutput
-  bobTokenVaultInput
-  bobTokenVaultOutput
-}
-
-type ContentMetaV1 {
-  """
-  The hash of this meta, this basically is the hash of 'rawBytes' field
-  """
+type Deposit implements Event & VaultBalanceChange {
   id: Bytes!
   """
-  The cbor map item bytes.
+  The token that was deposited
   """
-  rawBytes: Bytes!
+  token: Bytes!
   """
-  The magic number associated with this meta
+  The vault that was deposited into
   """
-  magicNumber: BigInt!
+  vault: Vault!
   """
-  The payload of this content
+  The amount that was deposited
   """
-  payload: Bytes!
+  amount: BigInt!
+  oldVaultBalance: BigInt!
+  newVaultBalance: BigInt!
+  transaction: Transaction!
   """
-  The RainMeta records that have this cbor map as part of their sequence
+  The msg.sender of this withdrawal
   """
-  parents(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: RainMetaV1_orderBy
-    orderDirection: OrderDirection
-    where: RainMetaV1_filter
-  ): [RainMetaV1!]!
-  """
-  The header name info for Content-Type
-  """
-  contentType: String
-  """
-  The header name info for Content-Encoding. It's optional
-  """
-  contentEncoding: String
-  """
-  The header name info for Content-Language. It's optional
-  """
-  contentLanguage: String
+  sender: Bytes!
 }
 
-input ContentMetaV1_filter {
+input Deposit_filter {
   id: Bytes
   id_not: Bytes
   id_gt: Bytes
@@ -680,539 +154,16 @@ input ContentMetaV1_filter {
   id_not_in: [Bytes!]
   id_contains: Bytes
   id_not_contains: Bytes
-  rawBytes: Bytes
-  rawBytes_not: Bytes
-  rawBytes_gt: Bytes
-  rawBytes_lt: Bytes
-  rawBytes_gte: Bytes
-  rawBytes_lte: Bytes
-  rawBytes_in: [Bytes!]
-  rawBytes_not_in: [Bytes!]
-  rawBytes_contains: Bytes
-  rawBytes_not_contains: Bytes
-  magicNumber: BigInt
-  magicNumber_not: BigInt
-  magicNumber_gt: BigInt
-  magicNumber_lt: BigInt
-  magicNumber_gte: BigInt
-  magicNumber_lte: BigInt
-  magicNumber_in: [BigInt!]
-  magicNumber_not_in: [BigInt!]
-  payload: Bytes
-  payload_not: Bytes
-  payload_gt: Bytes
-  payload_lt: Bytes
-  payload_gte: Bytes
-  payload_lte: Bytes
-  payload_in: [Bytes!]
-  payload_not_in: [Bytes!]
-  payload_contains: Bytes
-  payload_not_contains: Bytes
-  parents: [String!]
-  parents_not: [String!]
-  parents_contains: [String!]
-  parents_contains_nocase: [String!]
-  parents_not_contains: [String!]
-  parents_not_contains_nocase: [String!]
-  parents_: RainMetaV1_filter
-  contentType: String
-  contentType_not: String
-  contentType_gt: String
-  contentType_lt: String
-  contentType_gte: String
-  contentType_lte: String
-  contentType_in: [String!]
-  contentType_not_in: [String!]
-  contentType_contains: String
-  contentType_contains_nocase: String
-  contentType_not_contains: String
-  contentType_not_contains_nocase: String
-  contentType_starts_with: String
-  contentType_starts_with_nocase: String
-  contentType_not_starts_with: String
-  contentType_not_starts_with_nocase: String
-  contentType_ends_with: String
-  contentType_ends_with_nocase: String
-  contentType_not_ends_with: String
-  contentType_not_ends_with_nocase: String
-  contentEncoding: String
-  contentEncoding_not: String
-  contentEncoding_gt: String
-  contentEncoding_lt: String
-  contentEncoding_gte: String
-  contentEncoding_lte: String
-  contentEncoding_in: [String!]
-  contentEncoding_not_in: [String!]
-  contentEncoding_contains: String
-  contentEncoding_contains_nocase: String
-  contentEncoding_not_contains: String
-  contentEncoding_not_contains_nocase: String
-  contentEncoding_starts_with: String
-  contentEncoding_starts_with_nocase: String
-  contentEncoding_not_starts_with: String
-  contentEncoding_not_starts_with_nocase: String
-  contentEncoding_ends_with: String
-  contentEncoding_ends_with_nocase: String
-  contentEncoding_not_ends_with: String
-  contentEncoding_not_ends_with_nocase: String
-  contentLanguage: String
-  contentLanguage_not: String
-  contentLanguage_gt: String
-  contentLanguage_lt: String
-  contentLanguage_gte: String
-  contentLanguage_lte: String
-  contentLanguage_in: [String!]
-  contentLanguage_not_in: [String!]
-  contentLanguage_contains: String
-  contentLanguage_contains_nocase: String
-  contentLanguage_not_contains: String
-  contentLanguage_not_contains_nocase: String
-  contentLanguage_starts_with: String
-  contentLanguage_starts_with_nocase: String
-  contentLanguage_not_starts_with: String
-  contentLanguage_not_starts_with_nocase: String
-  contentLanguage_ends_with: String
-  contentLanguage_ends_with_nocase: String
-  contentLanguage_not_ends_with: String
-  contentLanguage_not_ends_with_nocase: String
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [ContentMetaV1_filter]
-  or: [ContentMetaV1_filter]
-}
-
-enum ContentMetaV1_orderBy {
-  id
-  rawBytes
-  magicNumber
-  payload
-  parents
-  contentType
-  contentEncoding
-  contentLanguage
-}
-
-type ContextEntity {
-  id: ID!
-  """
-  Base caller
-  """
-  caller: Account!
-  """
-  Contextual data available to both calculate order and handle IO
-  """
-  callingContext: [BigInt!]
-  """
-  Contains the DECIMAL RESCALED calculations
-  """
-  calculationsContext: [BigInt!]
-  """
-  The inputs context data
-  """
-  vaultInputsContext: [BigInt!]
-  """
-  The outputs context data
-  """
-  vaultOutputsContext: [BigInt!]
-  """
-  Optional signed context relevant to the transaction
-  """
-  signedContext(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: SignedContext_orderBy
-    orderDirection: OrderDirection
-    where: SignedContext_filter
-  ): [SignedContext!]
-  """
-  Transaction where this event was emitted.
-  """
-  transaction: Transaction!
-  """
-  Account that sent the transaction this event was emitted in.
-  """
-  emitter: Account!
-  timestamp: BigInt!
-}
-
-input ContextEntity_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  caller: String
-  caller_not: String
-  caller_gt: String
-  caller_lt: String
-  caller_gte: String
-  caller_lte: String
-  caller_in: [String!]
-  caller_not_in: [String!]
-  caller_contains: String
-  caller_contains_nocase: String
-  caller_not_contains: String
-  caller_not_contains_nocase: String
-  caller_starts_with: String
-  caller_starts_with_nocase: String
-  caller_not_starts_with: String
-  caller_not_starts_with_nocase: String
-  caller_ends_with: String
-  caller_ends_with_nocase: String
-  caller_not_ends_with: String
-  caller_not_ends_with_nocase: String
-  caller_: Account_filter
-  callingContext: [BigInt!]
-  callingContext_not: [BigInt!]
-  callingContext_contains: [BigInt!]
-  callingContext_contains_nocase: [BigInt!]
-  callingContext_not_contains: [BigInt!]
-  callingContext_not_contains_nocase: [BigInt!]
-  calculationsContext: [BigInt!]
-  calculationsContext_not: [BigInt!]
-  calculationsContext_contains: [BigInt!]
-  calculationsContext_contains_nocase: [BigInt!]
-  calculationsContext_not_contains: [BigInt!]
-  calculationsContext_not_contains_nocase: [BigInt!]
-  vaultInputsContext: [BigInt!]
-  vaultInputsContext_not: [BigInt!]
-  vaultInputsContext_contains: [BigInt!]
-  vaultInputsContext_contains_nocase: [BigInt!]
-  vaultInputsContext_not_contains: [BigInt!]
-  vaultInputsContext_not_contains_nocase: [BigInt!]
-  vaultOutputsContext: [BigInt!]
-  vaultOutputsContext_not: [BigInt!]
-  vaultOutputsContext_contains: [BigInt!]
-  vaultOutputsContext_contains_nocase: [BigInt!]
-  vaultOutputsContext_not_contains: [BigInt!]
-  vaultOutputsContext_not_contains_nocase: [BigInt!]
-  signedContext: [String!]
-  signedContext_not: [String!]
-  signedContext_contains: [String!]
-  signedContext_contains_nocase: [String!]
-  signedContext_not_contains: [String!]
-  signedContext_not_contains_nocase: [String!]
-  signedContext_: SignedContext_filter
-  transaction: String
-  transaction_not: String
-  transaction_gt: String
-  transaction_lt: String
-  transaction_gte: String
-  transaction_lte: String
-  transaction_in: [String!]
-  transaction_not_in: [String!]
-  transaction_contains: String
-  transaction_contains_nocase: String
-  transaction_not_contains: String
-  transaction_not_contains_nocase: String
-  transaction_starts_with: String
-  transaction_starts_with_nocase: String
-  transaction_not_starts_with: String
-  transaction_not_starts_with_nocase: String
-  transaction_ends_with: String
-  transaction_ends_with_nocase: String
-  transaction_not_ends_with: String
-  transaction_not_ends_with_nocase: String
-  transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [ContextEntity_filter]
-  or: [ContextEntity_filter]
-}
-
-enum ContextEntity_orderBy {
-  id
-  caller
-  caller__id
-  callingContext
-  calculationsContext
-  vaultInputsContext
-  vaultOutputsContext
-  signedContext
-  transaction
-  transaction__id
-  transaction__timestamp
-  transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
-}
-
-type ERC20 {
-  id: ID!
-  name: String!
-  symbol: String!
-  totalSupply: BigInt!
-  totalSupplyDisplay: BigDecimal!
-  decimals: Int!
-}
-
-input ERC20_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  name: String
-  name_not: String
-  name_gt: String
-  name_lt: String
-  name_gte: String
-  name_lte: String
-  name_in: [String!]
-  name_not_in: [String!]
-  name_contains: String
-  name_contains_nocase: String
-  name_not_contains: String
-  name_not_contains_nocase: String
-  name_starts_with: String
-  name_starts_with_nocase: String
-  name_not_starts_with: String
-  name_not_starts_with_nocase: String
-  name_ends_with: String
-  name_ends_with_nocase: String
-  name_not_ends_with: String
-  name_not_ends_with_nocase: String
-  symbol: String
-  symbol_not: String
-  symbol_gt: String
-  symbol_lt: String
-  symbol_gte: String
-  symbol_lte: String
-  symbol_in: [String!]
-  symbol_not_in: [String!]
-  symbol_contains: String
-  symbol_contains_nocase: String
-  symbol_not_contains: String
-  symbol_not_contains_nocase: String
-  symbol_starts_with: String
-  symbol_starts_with_nocase: String
-  symbol_not_starts_with: String
-  symbol_not_starts_with_nocase: String
-  symbol_ends_with: String
-  symbol_ends_with_nocase: String
-  symbol_not_ends_with: String
-  symbol_not_ends_with_nocase: String
-  totalSupply: BigInt
-  totalSupply_not: BigInt
-  totalSupply_gt: BigInt
-  totalSupply_lt: BigInt
-  totalSupply_gte: BigInt
-  totalSupply_lte: BigInt
-  totalSupply_in: [BigInt!]
-  totalSupply_not_in: [BigInt!]
-  totalSupplyDisplay: BigDecimal
-  totalSupplyDisplay_not: BigDecimal
-  totalSupplyDisplay_gt: BigDecimal
-  totalSupplyDisplay_lt: BigDecimal
-  totalSupplyDisplay_gte: BigDecimal
-  totalSupplyDisplay_lte: BigDecimal
-  totalSupplyDisplay_in: [BigDecimal!]
-  totalSupplyDisplay_not_in: [BigDecimal!]
-  decimals: Int
-  decimals_not: Int
-  decimals_gt: Int
-  decimals_lt: Int
-  decimals_gte: Int
-  decimals_lte: Int
-  decimals_in: [Int!]
-  decimals_not_in: [Int!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [ERC20_filter]
-  or: [ERC20_filter]
-}
-
-enum ERC20_orderBy {
-  id
-  name
-  symbol
-  totalSupply
-  totalSupplyDisplay
-  decimals
-}
-
-interface Event {
-  id: ID!
-  """
-  Transaction this event was emitted in.
-  """
-  transaction: Transaction!
-  """
-  Account that sent the transaction this event was emitted in.
-  """
-  emitter: Account!
-  timestamp: BigInt!
-}
-
-input Event_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  transaction: String
-  transaction_not: String
-  transaction_gt: String
-  transaction_lt: String
-  transaction_gte: String
-  transaction_lte: String
-  transaction_in: [String!]
-  transaction_not_in: [String!]
-  transaction_contains: String
-  transaction_contains_nocase: String
-  transaction_not_contains: String
-  transaction_not_contains_nocase: String
-  transaction_starts_with: String
-  transaction_starts_with_nocase: String
-  transaction_not_starts_with: String
-  transaction_not_starts_with_nocase: String
-  transaction_ends_with: String
-  transaction_ends_with_nocase: String
-  transaction_not_ends_with: String
-  transaction_not_ends_with_nocase: String
-  transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [Event_filter]
-  or: [Event_filter]
-}
-
-enum Event_orderBy {
-  id
-  transaction
-  transaction__id
-  transaction__timestamp
-  transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
-}
-
-type IO {
-  id: ID!
-  token: ERC20!
-  decimals: Int!
-  vault: Vault!
-  vaultId: BigInt!
-  order: Order!
-  tokenVault: TokenVault!
-  index: Int!
-}
-
-input IO_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  token: String
-  token_not: String
-  token_gt: String
-  token_lt: String
-  token_gte: String
-  token_lte: String
-  token_in: [String!]
-  token_not_in: [String!]
-  token_contains: String
-  token_contains_nocase: String
-  token_not_contains: String
-  token_not_contains_nocase: String
-  token_starts_with: String
-  token_starts_with_nocase: String
-  token_not_starts_with: String
-  token_not_starts_with_nocase: String
-  token_ends_with: String
-  token_ends_with_nocase: String
-  token_not_ends_with: String
-  token_not_ends_with_nocase: String
-  token_: ERC20_filter
-  decimals: Int
-  decimals_not: Int
-  decimals_gt: Int
-  decimals_lt: Int
-  decimals_gte: Int
-  decimals_lte: Int
-  decimals_in: [Int!]
-  decimals_not_in: [Int!]
+  token: Bytes
+  token_not: Bytes
+  token_gt: Bytes
+  token_lt: Bytes
+  token_gte: Bytes
+  token_lte: Bytes
+  token_in: [Bytes!]
+  token_not_in: [Bytes!]
+  token_contains: Bytes
+  token_not_contains: Bytes
   vault: String
   vault_not: String
   vault_gt: String
@@ -1234,552 +185,30 @@ input IO_filter {
   vault_not_ends_with: String
   vault_not_ends_with_nocase: String
   vault_: Vault_filter
-  vaultId: BigInt
-  vaultId_not: BigInt
-  vaultId_gt: BigInt
-  vaultId_lt: BigInt
-  vaultId_gte: BigInt
-  vaultId_lte: BigInt
-  vaultId_in: [BigInt!]
-  vaultId_not_in: [BigInt!]
-  order: String
-  order_not: String
-  order_gt: String
-  order_lt: String
-  order_gte: String
-  order_lte: String
-  order_in: [String!]
-  order_not_in: [String!]
-  order_contains: String
-  order_contains_nocase: String
-  order_not_contains: String
-  order_not_contains_nocase: String
-  order_starts_with: String
-  order_starts_with_nocase: String
-  order_not_starts_with: String
-  order_not_starts_with_nocase: String
-  order_ends_with: String
-  order_ends_with_nocase: String
-  order_not_ends_with: String
-  order_not_ends_with_nocase: String
-  order_: Order_filter
-  tokenVault: String
-  tokenVault_not: String
-  tokenVault_gt: String
-  tokenVault_lt: String
-  tokenVault_gte: String
-  tokenVault_lte: String
-  tokenVault_in: [String!]
-  tokenVault_not_in: [String!]
-  tokenVault_contains: String
-  tokenVault_contains_nocase: String
-  tokenVault_not_contains: String
-  tokenVault_not_contains_nocase: String
-  tokenVault_starts_with: String
-  tokenVault_starts_with_nocase: String
-  tokenVault_not_starts_with: String
-  tokenVault_not_starts_with_nocase: String
-  tokenVault_ends_with: String
-  tokenVault_ends_with_nocase: String
-  tokenVault_not_ends_with: String
-  tokenVault_not_ends_with_nocase: String
-  tokenVault_: TokenVault_filter
-  index: Int
-  index_not: Int
-  index_gt: Int
-  index_lt: Int
-  index_gte: Int
-  index_lte: Int
-  index_in: [Int!]
-  index_not_in: [Int!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [IO_filter]
-  or: [IO_filter]
-}
-
-enum IO_orderBy {
-  id
-  token
-  token__id
-  token__name
-  token__symbol
-  token__totalSupply
-  token__totalSupplyDisplay
-  token__decimals
-  decimals
-  vault
-  vault__id
-  vault__vaultId
-  vaultId
-  order
-  order__id
-  order__orderHash
-  order__interpreter
-  order__interpreterStore
-  order__expressionDeployer
-  order__expression
-  order__orderActive
-  order__handleIO
-  order__orderJSONString
-  order__expressionJSONString
-  order__timestamp
-  tokenVault
-  tokenVault__id
-  tokenVault__vaultId
-  tokenVault__balance
-  tokenVault__balanceDisplay
-  index
-}
-
-"""
-8 bytes signed integer
-
-"""
-scalar Int8
-
-type Order implements Event {
-  """
-  The hash of the order
-  """
-  id: ID!
-  """
-  The hash of the order
-  """
-  orderHash: Bytes!
-  """
-  The address that added the order
-  """
-  owner: Account!
-  """
-  The IInterpreter address that is used to add the order
-  """
-  interpreter: Bytes!
-  """
-  The IInterpreterStore address that is used to add the order
-  """
-  interpreterStore: Bytes!
-  """
-  The IExpressionDeployer contract address that is used to add the order
-  """
-  expressionDeployer: Bytes!
-  """
-  The address to the rain expression for the Order
-  """
-  expression: Bytes!
-  """
-  Whether the order is active or inactive
-  """
-  orderActive: Boolean!
-  """
-  Flag that check if there is a handle_IO entrypoint to run. If false the order book MAY skip calling the interpreter to save gas
-  """
-  handleIO: Boolean!
-  meta: RainMetaV1
-  """
-  validInputs
-  """
-  validInputs(skip: Int = 0, first: Int = 100, orderBy: IO_orderBy, orderDirection: OrderDirection, where: IO_filter): [IO!]
-  """
-  validOutputs
-  """
-  validOutputs(skip: Int = 0, first: Int = 100, orderBy: IO_orderBy, orderDirection: OrderDirection, where: IO_filter): [IO!]
-  orderJSONString: String!
-  expressionJSONString: String
-  """
-  Timestamp when the order was added
-  """
-  transaction: Transaction!
-  emitter: Account!
-  timestamp: BigInt!
-  """
-  Take Order entities that use this order
-  """
-  takeOrders(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: TakeOrderEntity_orderBy
-    orderDirection: OrderDirection
-    where: TakeOrderEntity_filter
-  ): [TakeOrderEntity!]
-  """
-  Order Clear entities that use this order
-  """
-  ordersClears(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderClear_orderBy
-    orderDirection: OrderDirection
-    where: OrderClear_filter
-  ): [OrderClear!]
-}
-
-type OrderBook {
-  id: Bytes!
-  deployer: Bytes
-  address: Bytes!
-  """
-  The RainMetaV1 decode information
-  """
-  meta: RainMetaV1
-}
-
-input OrderBook_filter {
-  id: Bytes
-  id_not: Bytes
-  id_gt: Bytes
-  id_lt: Bytes
-  id_gte: Bytes
-  id_lte: Bytes
-  id_in: [Bytes!]
-  id_not_in: [Bytes!]
-  id_contains: Bytes
-  id_not_contains: Bytes
-  deployer: Bytes
-  deployer_not: Bytes
-  deployer_gt: Bytes
-  deployer_lt: Bytes
-  deployer_gte: Bytes
-  deployer_lte: Bytes
-  deployer_in: [Bytes!]
-  deployer_not_in: [Bytes!]
-  deployer_contains: Bytes
-  deployer_not_contains: Bytes
-  address: Bytes
-  address_not: Bytes
-  address_gt: Bytes
-  address_lt: Bytes
-  address_gte: Bytes
-  address_lte: Bytes
-  address_in: [Bytes!]
-  address_not_in: [Bytes!]
-  address_contains: Bytes
-  address_not_contains: Bytes
-  meta: String
-  meta_not: String
-  meta_gt: String
-  meta_lt: String
-  meta_gte: String
-  meta_lte: String
-  meta_in: [String!]
-  meta_not_in: [String!]
-  meta_contains: String
-  meta_contains_nocase: String
-  meta_not_contains: String
-  meta_not_contains_nocase: String
-  meta_starts_with: String
-  meta_starts_with_nocase: String
-  meta_not_starts_with: String
-  meta_not_starts_with_nocase: String
-  meta_ends_with: String
-  meta_ends_with_nocase: String
-  meta_not_ends_with: String
-  meta_not_ends_with_nocase: String
-  meta_: RainMetaV1_filter
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [OrderBook_filter]
-  or: [OrderBook_filter]
-}
-
-enum OrderBook_orderBy {
-  id
-  deployer
-  address
-  meta
-  meta__id
-  meta__metaBytes
-}
-
-type OrderClear implements Event {
-  id: ID!
-  """
-  The sender address who cleared the Orders
-  """
-  sender: Account!
-  """
-  The clearer address who cleared this order
-  """
-  clearer: Account!
-  """
-  Order A being cleared
-  """
-  orderA: Order!
-  """
-  Order B being cleared
-  """
-  orderB: Order!
-  """
-  The owners of the Orders that were cleared [Order A, Order B]
-  """
-  owners(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Account_orderBy
-    orderDirection: OrderDirection
-    where: Account_filter
-  ): [Account!]
-  """
-  The token input index cleared into Order A
-  """
-  aInputIOIndex: BigInt!
-  """
-  The token output index cleared into Order A
-  """
-  aOutputIOIndex: BigInt!
-  """
-  The token input index cleared into Order B
-  """
-  bInputIOIndex: BigInt!
-  """
-  The token output index cleared into Order B
-  """
-  bOutputIOIndex: BigInt!
-  """
-  The bounty paid when this order was cleared
-  """
-  bounty: Bounty!
-  """
-  The state change that occurred because of this Clear
-  """
-  stateChange: OrderClearStateChange!
-  transaction: Transaction!
-  emitter: Account!
-  timestamp: BigInt!
-}
-
-type OrderClearStateChange {
-  id: ID!
-  orderClear: OrderClear!
-  aOutput: BigInt!
-  bOutput: BigInt!
-  aInput: BigInt!
-  bInput: BigInt!
-}
-
-input OrderClearStateChange_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  orderClear: String
-  orderClear_not: String
-  orderClear_gt: String
-  orderClear_lt: String
-  orderClear_gte: String
-  orderClear_lte: String
-  orderClear_in: [String!]
-  orderClear_not_in: [String!]
-  orderClear_contains: String
-  orderClear_contains_nocase: String
-  orderClear_not_contains: String
-  orderClear_not_contains_nocase: String
-  orderClear_starts_with: String
-  orderClear_starts_with_nocase: String
-  orderClear_not_starts_with: String
-  orderClear_not_starts_with_nocase: String
-  orderClear_ends_with: String
-  orderClear_ends_with_nocase: String
-  orderClear_not_ends_with: String
-  orderClear_not_ends_with_nocase: String
-  orderClear_: OrderClear_filter
-  aOutput: BigInt
-  aOutput_not: BigInt
-  aOutput_gt: BigInt
-  aOutput_lt: BigInt
-  aOutput_gte: BigInt
-  aOutput_lte: BigInt
-  aOutput_in: [BigInt!]
-  aOutput_not_in: [BigInt!]
-  bOutput: BigInt
-  bOutput_not: BigInt
-  bOutput_gt: BigInt
-  bOutput_lt: BigInt
-  bOutput_gte: BigInt
-  bOutput_lte: BigInt
-  bOutput_in: [BigInt!]
-  bOutput_not_in: [BigInt!]
-  aInput: BigInt
-  aInput_not: BigInt
-  aInput_gt: BigInt
-  aInput_lt: BigInt
-  aInput_gte: BigInt
-  aInput_lte: BigInt
-  aInput_in: [BigInt!]
-  aInput_not_in: [BigInt!]
-  bInput: BigInt
-  bInput_not: BigInt
-  bInput_gt: BigInt
-  bInput_lt: BigInt
-  bInput_gte: BigInt
-  bInput_lte: BigInt
-  bInput_in: [BigInt!]
-  bInput_not_in: [BigInt!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [OrderClearStateChange_filter]
-  or: [OrderClearStateChange_filter]
-}
-
-enum OrderClearStateChange_orderBy {
-  id
-  orderClear
-  orderClear__id
-  orderClear__aInputIOIndex
-  orderClear__aOutputIOIndex
-  orderClear__bInputIOIndex
-  orderClear__bOutputIOIndex
-  orderClear__timestamp
-  aOutput
-  bOutput
-  aInput
-  bInput
-}
-
-input OrderClear_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  sender: String
-  sender_not: String
-  sender_gt: String
-  sender_lt: String
-  sender_gte: String
-  sender_lte: String
-  sender_in: [String!]
-  sender_not_in: [String!]
-  sender_contains: String
-  sender_contains_nocase: String
-  sender_not_contains: String
-  sender_not_contains_nocase: String
-  sender_starts_with: String
-  sender_starts_with_nocase: String
-  sender_not_starts_with: String
-  sender_not_starts_with_nocase: String
-  sender_ends_with: String
-  sender_ends_with_nocase: String
-  sender_not_ends_with: String
-  sender_not_ends_with_nocase: String
-  sender_: Account_filter
-  clearer: String
-  clearer_not: String
-  clearer_gt: String
-  clearer_lt: String
-  clearer_gte: String
-  clearer_lte: String
-  clearer_in: [String!]
-  clearer_not_in: [String!]
-  clearer_contains: String
-  clearer_contains_nocase: String
-  clearer_not_contains: String
-  clearer_not_contains_nocase: String
-  clearer_starts_with: String
-  clearer_starts_with_nocase: String
-  clearer_not_starts_with: String
-  clearer_not_starts_with_nocase: String
-  clearer_ends_with: String
-  clearer_ends_with_nocase: String
-  clearer_not_ends_with: String
-  clearer_not_ends_with_nocase: String
-  clearer_: Account_filter
-  orderA: String
-  orderA_not: String
-  orderA_gt: String
-  orderA_lt: String
-  orderA_gte: String
-  orderA_lte: String
-  orderA_in: [String!]
-  orderA_not_in: [String!]
-  orderA_contains: String
-  orderA_contains_nocase: String
-  orderA_not_contains: String
-  orderA_not_contains_nocase: String
-  orderA_starts_with: String
-  orderA_starts_with_nocase: String
-  orderA_not_starts_with: String
-  orderA_not_starts_with_nocase: String
-  orderA_ends_with: String
-  orderA_ends_with_nocase: String
-  orderA_not_ends_with: String
-  orderA_not_ends_with_nocase: String
-  orderA_: Order_filter
-  orderB: String
-  orderB_not: String
-  orderB_gt: String
-  orderB_lt: String
-  orderB_gte: String
-  orderB_lte: String
-  orderB_in: [String!]
-  orderB_not_in: [String!]
-  orderB_contains: String
-  orderB_contains_nocase: String
-  orderB_not_contains: String
-  orderB_not_contains_nocase: String
-  orderB_starts_with: String
-  orderB_starts_with_nocase: String
-  orderB_not_starts_with: String
-  orderB_not_starts_with_nocase: String
-  orderB_ends_with: String
-  orderB_ends_with_nocase: String
-  orderB_not_ends_with: String
-  orderB_not_ends_with_nocase: String
-  orderB_: Order_filter
-  owners: [String!]
-  owners_not: [String!]
-  owners_contains: [String!]
-  owners_contains_nocase: [String!]
-  owners_not_contains: [String!]
-  owners_not_contains_nocase: [String!]
-  owners_: Account_filter
-  aInputIOIndex: BigInt
-  aInputIOIndex_not: BigInt
-  aInputIOIndex_gt: BigInt
-  aInputIOIndex_lt: BigInt
-  aInputIOIndex_gte: BigInt
-  aInputIOIndex_lte: BigInt
-  aInputIOIndex_in: [BigInt!]
-  aInputIOIndex_not_in: [BigInt!]
-  aOutputIOIndex: BigInt
-  aOutputIOIndex_not: BigInt
-  aOutputIOIndex_gt: BigInt
-  aOutputIOIndex_lt: BigInt
-  aOutputIOIndex_gte: BigInt
-  aOutputIOIndex_lte: BigInt
-  aOutputIOIndex_in: [BigInt!]
-  aOutputIOIndex_not_in: [BigInt!]
-  bInputIOIndex: BigInt
-  bInputIOIndex_not: BigInt
-  bInputIOIndex_gt: BigInt
-  bInputIOIndex_lt: BigInt
-  bInputIOIndex_gte: BigInt
-  bInputIOIndex_lte: BigInt
-  bInputIOIndex_in: [BigInt!]
-  bInputIOIndex_not_in: [BigInt!]
-  bOutputIOIndex: BigInt
-  bOutputIOIndex_not: BigInt
-  bOutputIOIndex_gt: BigInt
-  bOutputIOIndex_lt: BigInt
-  bOutputIOIndex_gte: BigInt
-  bOutputIOIndex_lte: BigInt
-  bOutputIOIndex_in: [BigInt!]
-  bOutputIOIndex_not_in: [BigInt!]
-  bounty_: Bounty_filter
-  stateChange_: OrderClearStateChange_filter
+  amount: BigInt
+  amount_not: BigInt
+  amount_gt: BigInt
+  amount_lt: BigInt
+  amount_gte: BigInt
+  amount_lte: BigInt
+  amount_in: [BigInt!]
+  amount_not_in: [BigInt!]
+  oldVaultBalance: BigInt
+  oldVaultBalance_not: BigInt
+  oldVaultBalance_gt: BigInt
+  oldVaultBalance_lt: BigInt
+  oldVaultBalance_gte: BigInt
+  oldVaultBalance_lte: BigInt
+  oldVaultBalance_in: [BigInt!]
+  oldVaultBalance_not_in: [BigInt!]
+  newVaultBalance: BigInt
+  newVaultBalance_not: BigInt
+  newVaultBalance_gt: BigInt
+  newVaultBalance_lt: BigInt
+  newVaultBalance_gte: BigInt
+  newVaultBalance_lte: BigInt
+  newVaultBalance_in: [BigInt!]
+  newVaultBalance_not_in: [BigInt!]
   transaction: String
   transaction_not: String
   transaction_gt: String
@@ -1801,98 +230,182 @@ input OrderClear_filter {
   transaction_not_ends_with: String
   transaction_not_ends_with_nocase: String
   transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [OrderClear_filter]
-  or: [OrderClear_filter]
+  and: [Deposit_filter]
+  or: [Deposit_filter]
 }
 
-enum OrderClear_orderBy {
+enum Deposit_orderBy {
   id
-  sender
-  sender__id
-  clearer
-  clearer__id
-  orderA
-  orderA__id
-  orderA__orderHash
-  orderA__interpreter
-  orderA__interpreterStore
-  orderA__expressionDeployer
-  orderA__expression
-  orderA__orderActive
-  orderA__handleIO
-  orderA__orderJSONString
-  orderA__expressionJSONString
-  orderA__timestamp
-  orderB
-  orderB__id
-  orderB__orderHash
-  orderB__interpreter
-  orderB__interpreterStore
-  orderB__expressionDeployer
-  orderB__expression
-  orderB__orderActive
-  orderB__handleIO
-  orderB__orderJSONString
-  orderB__expressionJSONString
-  orderB__timestamp
-  owners
-  aInputIOIndex
-  aOutputIOIndex
-  bInputIOIndex
-  bOutputIOIndex
-  bounty
-  bounty__id
-  bounty__bountyAmountA
-  bounty__bountyAmountADisplay
-  bounty__bountyAmountB
-  bounty__bountyAmountBDisplay
-  bounty__timestamp
-  stateChange
-  stateChange__id
-  stateChange__aOutput
-  stateChange__bOutput
-  stateChange__aInput
-  stateChange__bInput
+  token
+  vault
+  vault__id
+  vault__token
+  vault__owner
+  vault__vaultId
+  vault__balance
+  amount
+  oldVaultBalance
+  newVaultBalance
   transaction
   transaction__id
   transaction__timestamp
   transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
+  transaction__from
+  sender
+}
+
+interface Event {
+  """
+  Transaction this event was emitted in
+  """
+  transaction: Transaction!
+  """
+  msg.sender for the event
+  """
+  sender: Bytes!
+}
+
+input Event_filter {
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
+  """
+  Filter for the block changed event.
+  """
+  _change_block: BlockChangedFilter
+  and: [Event_filter]
+  or: [Event_filter]
+}
+
+enum Event_orderBy {
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
+  sender
+}
+
+"""
+8 bytes signed integer
+
+"""
+scalar Int8
+
+type Order {
+  id: Bytes!
+  """
+  Whether this order is active or not
+  """
+  active: Boolean!
+  """
+  The hash of the order
+  """
+  orderHash: Bytes!
+  """
+  The owner of the order
+  """
+  owner: Bytes!
+  """
+  The vaults that are inputs to this order
+  """
+  inputs(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Vault_orderBy
+    orderDirection: OrderDirection
+    where: Vault_filter
+  ): [Vault!]!
+  """
+  The vaults that are outputs to this order
+  """
+  outputs(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Vault_orderBy
+    orderDirection: OrderDirection
+    where: Vault_filter
+  ): [Vault!]!
+  """
+  A nonce for this order
+  """
+  nonce: Bytes!
+  """
+  The ABI encoded bytes for the Order struct
+  """
+  orderBytes: Bytes!
+  """
+  AddOrder events for this order
+  """
+  addEvents(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: AddOrder_orderBy
+    orderDirection: OrderDirection
+    where: AddOrder_filter
+  ): [AddOrder!]!
+  """
+  RemoveOrder events for this order
+  """
+  removeEvents(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: RemoveOrder_orderBy
+    orderDirection: OrderDirection
+    where: RemoveOrder_filter
+  ): [RemoveOrder!]!
+  """
+  Trades for this order
+  """
+  trades(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Trade_orderBy
+    orderDirection: OrderDirection
+    where: Trade_filter
+  ): [Trade!]!
 }
 
 """
@@ -1904,838 +417,6 @@ enum OrderDirection {
 }
 
 input Order_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  orderHash: Bytes
-  orderHash_not: Bytes
-  orderHash_gt: Bytes
-  orderHash_lt: Bytes
-  orderHash_gte: Bytes
-  orderHash_lte: Bytes
-  orderHash_in: [Bytes!]
-  orderHash_not_in: [Bytes!]
-  orderHash_contains: Bytes
-  orderHash_not_contains: Bytes
-  owner: String
-  owner_not: String
-  owner_gt: String
-  owner_lt: String
-  owner_gte: String
-  owner_lte: String
-  owner_in: [String!]
-  owner_not_in: [String!]
-  owner_contains: String
-  owner_contains_nocase: String
-  owner_not_contains: String
-  owner_not_contains_nocase: String
-  owner_starts_with: String
-  owner_starts_with_nocase: String
-  owner_not_starts_with: String
-  owner_not_starts_with_nocase: String
-  owner_ends_with: String
-  owner_ends_with_nocase: String
-  owner_not_ends_with: String
-  owner_not_ends_with_nocase: String
-  owner_: Account_filter
-  interpreter: Bytes
-  interpreter_not: Bytes
-  interpreter_gt: Bytes
-  interpreter_lt: Bytes
-  interpreter_gte: Bytes
-  interpreter_lte: Bytes
-  interpreter_in: [Bytes!]
-  interpreter_not_in: [Bytes!]
-  interpreter_contains: Bytes
-  interpreter_not_contains: Bytes
-  interpreterStore: Bytes
-  interpreterStore_not: Bytes
-  interpreterStore_gt: Bytes
-  interpreterStore_lt: Bytes
-  interpreterStore_gte: Bytes
-  interpreterStore_lte: Bytes
-  interpreterStore_in: [Bytes!]
-  interpreterStore_not_in: [Bytes!]
-  interpreterStore_contains: Bytes
-  interpreterStore_not_contains: Bytes
-  expressionDeployer: Bytes
-  expressionDeployer_not: Bytes
-  expressionDeployer_gt: Bytes
-  expressionDeployer_lt: Bytes
-  expressionDeployer_gte: Bytes
-  expressionDeployer_lte: Bytes
-  expressionDeployer_in: [Bytes!]
-  expressionDeployer_not_in: [Bytes!]
-  expressionDeployer_contains: Bytes
-  expressionDeployer_not_contains: Bytes
-  expression: Bytes
-  expression_not: Bytes
-  expression_gt: Bytes
-  expression_lt: Bytes
-  expression_gte: Bytes
-  expression_lte: Bytes
-  expression_in: [Bytes!]
-  expression_not_in: [Bytes!]
-  expression_contains: Bytes
-  expression_not_contains: Bytes
-  orderActive: Boolean
-  orderActive_not: Boolean
-  orderActive_in: [Boolean!]
-  orderActive_not_in: [Boolean!]
-  handleIO: Boolean
-  handleIO_not: Boolean
-  handleIO_in: [Boolean!]
-  handleIO_not_in: [Boolean!]
-  meta: String
-  meta_not: String
-  meta_gt: String
-  meta_lt: String
-  meta_gte: String
-  meta_lte: String
-  meta_in: [String!]
-  meta_not_in: [String!]
-  meta_contains: String
-  meta_contains_nocase: String
-  meta_not_contains: String
-  meta_not_contains_nocase: String
-  meta_starts_with: String
-  meta_starts_with_nocase: String
-  meta_not_starts_with: String
-  meta_not_starts_with_nocase: String
-  meta_ends_with: String
-  meta_ends_with_nocase: String
-  meta_not_ends_with: String
-  meta_not_ends_with_nocase: String
-  meta_: RainMetaV1_filter
-  validInputs: [String!]
-  validInputs_not: [String!]
-  validInputs_contains: [String!]
-  validInputs_contains_nocase: [String!]
-  validInputs_not_contains: [String!]
-  validInputs_not_contains_nocase: [String!]
-  validInputs_: IO_filter
-  validOutputs: [String!]
-  validOutputs_not: [String!]
-  validOutputs_contains: [String!]
-  validOutputs_contains_nocase: [String!]
-  validOutputs_not_contains: [String!]
-  validOutputs_not_contains_nocase: [String!]
-  validOutputs_: IO_filter
-  orderJSONString: String
-  orderJSONString_not: String
-  orderJSONString_gt: String
-  orderJSONString_lt: String
-  orderJSONString_gte: String
-  orderJSONString_lte: String
-  orderJSONString_in: [String!]
-  orderJSONString_not_in: [String!]
-  orderJSONString_contains: String
-  orderJSONString_contains_nocase: String
-  orderJSONString_not_contains: String
-  orderJSONString_not_contains_nocase: String
-  orderJSONString_starts_with: String
-  orderJSONString_starts_with_nocase: String
-  orderJSONString_not_starts_with: String
-  orderJSONString_not_starts_with_nocase: String
-  orderJSONString_ends_with: String
-  orderJSONString_ends_with_nocase: String
-  orderJSONString_not_ends_with: String
-  orderJSONString_not_ends_with_nocase: String
-  expressionJSONString: String
-  expressionJSONString_not: String
-  expressionJSONString_gt: String
-  expressionJSONString_lt: String
-  expressionJSONString_gte: String
-  expressionJSONString_lte: String
-  expressionJSONString_in: [String!]
-  expressionJSONString_not_in: [String!]
-  expressionJSONString_contains: String
-  expressionJSONString_contains_nocase: String
-  expressionJSONString_not_contains: String
-  expressionJSONString_not_contains_nocase: String
-  expressionJSONString_starts_with: String
-  expressionJSONString_starts_with_nocase: String
-  expressionJSONString_not_starts_with: String
-  expressionJSONString_not_starts_with_nocase: String
-  expressionJSONString_ends_with: String
-  expressionJSONString_ends_with_nocase: String
-  expressionJSONString_not_ends_with: String
-  expressionJSONString_not_ends_with_nocase: String
-  transaction: String
-  transaction_not: String
-  transaction_gt: String
-  transaction_lt: String
-  transaction_gte: String
-  transaction_lte: String
-  transaction_in: [String!]
-  transaction_not_in: [String!]
-  transaction_contains: String
-  transaction_contains_nocase: String
-  transaction_not_contains: String
-  transaction_not_contains_nocase: String
-  transaction_starts_with: String
-  transaction_starts_with_nocase: String
-  transaction_not_starts_with: String
-  transaction_not_starts_with_nocase: String
-  transaction_ends_with: String
-  transaction_ends_with_nocase: String
-  transaction_not_ends_with: String
-  transaction_not_ends_with_nocase: String
-  transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
-  takeOrders_: TakeOrderEntity_filter
-  ordersClears: [String!]
-  ordersClears_not: [String!]
-  ordersClears_contains: [String!]
-  ordersClears_contains_nocase: [String!]
-  ordersClears_not_contains: [String!]
-  ordersClears_not_contains_nocase: [String!]
-  ordersClears_: OrderClear_filter
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [Order_filter]
-  or: [Order_filter]
-}
-
-enum Order_orderBy {
-  id
-  orderHash
-  owner
-  owner__id
-  interpreter
-  interpreterStore
-  expressionDeployer
-  expression
-  orderActive
-  handleIO
-  meta
-  meta__id
-  meta__metaBytes
-  validInputs
-  validOutputs
-  orderJSONString
-  expressionJSONString
-  transaction
-  transaction__id
-  transaction__timestamp
-  transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
-  takeOrders
-  ordersClears
-}
-
-type Query {
-  orderBook(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): OrderBook
-  orderBooks(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderBook_orderBy
-    orderDirection: OrderDirection
-    where: OrderBook_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [OrderBook!]!
-  rainMetaV1(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): RainMetaV1
-  rainMetaV1S(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: RainMetaV1_orderBy
-    orderDirection: OrderDirection
-    where: RainMetaV1_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [RainMetaV1!]!
-  contentMetaV1(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ContentMetaV1
-  contentMetaV1S(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ContentMetaV1_orderBy
-    orderDirection: OrderDirection
-    where: ContentMetaV1_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ContentMetaV1!]!
-  order(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Order
-  orders(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Order_orderBy
-    orderDirection: OrderDirection
-    where: Order_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Order!]!
-  io(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): IO
-  ios(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: IO_orderBy
-    orderDirection: OrderDirection
-    where: IO_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [IO!]!
-  vault(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Vault
-  vaults(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Vault_orderBy
-    orderDirection: OrderDirection
-    where: Vault_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Vault!]!
-  tokenVault(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): TokenVault
-  tokenVaults(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: TokenVault_orderBy
-    orderDirection: OrderDirection
-    where: TokenVault_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [TokenVault!]!
-  tokenVaultTakeOrder(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): TokenVaultTakeOrder
-  tokenVaultTakeOrders(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: TokenVaultTakeOrder_orderBy
-    orderDirection: OrderDirection
-    where: TokenVaultTakeOrder_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [TokenVaultTakeOrder!]!
-  vaultDeposit(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): VaultDeposit
-  vaultDeposits(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: VaultDeposit_orderBy
-    orderDirection: OrderDirection
-    where: VaultDeposit_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [VaultDeposit!]!
-  vaultWithdraw(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): VaultWithdraw
-  vaultWithdraws(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: VaultWithdraw_orderBy
-    orderDirection: OrderDirection
-    where: VaultWithdraw_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [VaultWithdraw!]!
-  erc20(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ERC20
-  erc20S(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ERC20_orderBy
-    orderDirection: OrderDirection
-    where: ERC20_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ERC20!]!
-  orderClear(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): OrderClear
-  orderClears(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderClear_orderBy
-    orderDirection: OrderDirection
-    where: OrderClear_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [OrderClear!]!
-  bounty(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Bounty
-  bounties(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Bounty_orderBy
-    orderDirection: OrderDirection
-    where: Bounty_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Bounty!]!
-  takeOrderEntity(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): TakeOrderEntity
-  takeOrderEntities(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: TakeOrderEntity_orderBy
-    orderDirection: OrderDirection
-    where: TakeOrderEntity_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [TakeOrderEntity!]!
-  orderClearStateChange(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): OrderClearStateChange
-  orderClearStateChanges(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderClearStateChange_orderBy
-    orderDirection: OrderDirection
-    where: OrderClearStateChange_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [OrderClearStateChange!]!
-  clearOrderConfig(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ClearOrderConfig
-  clearOrderConfigs(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ClearOrderConfig_orderBy
-    orderDirection: OrderDirection
-    where: ClearOrderConfig_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ClearOrderConfig!]!
-  account(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Account
-  accounts(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Account_orderBy
-    orderDirection: OrderDirection
-    where: Account_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Account!]!
-  transaction(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Transaction
-  transactions(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Transaction_orderBy
-    orderDirection: OrderDirection
-    where: Transaction_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Transaction!]!
-  contextEntity(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ContextEntity
-  contextEntities(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ContextEntity_orderBy
-    orderDirection: OrderDirection
-    where: ContextEntity_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ContextEntity!]!
-  signedContext(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): SignedContext
-  signedContexts(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: SignedContext_orderBy
-    orderDirection: OrderDirection
-    where: SignedContext_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [SignedContext!]!
-  event(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Event
-  events(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Event_orderBy
-    orderDirection: OrderDirection
-    where: Event_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Event!]!
-  """
-  Access to subgraph metadata
-  """
-  _meta(block: Block_height): _Meta_
-}
-
-type RainMetaV1 {
-  """
-  Hash of the meta directly emitted by the contract
-  """
-  id: Bytes!
-  """
-  Original meta bytes directly emitted from the contract
-  """
-  metaBytes: Bytes!
-  """
-  The meta content V1 decoded from the meta bytes emitted
-  """
-  content(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ContentMetaV1_orderBy
-    orderDirection: OrderDirection
-    where: ContentMetaV1_filter
-  ): [ContentMetaV1!]!
-}
-
-input RainMetaV1_filter {
   id: Bytes
   id_not: Bytes
   id_gt: Bytes
@@ -2746,213 +427,90 @@ input RainMetaV1_filter {
   id_not_in: [Bytes!]
   id_contains: Bytes
   id_not_contains: Bytes
-  metaBytes: Bytes
-  metaBytes_not: Bytes
-  metaBytes_gt: Bytes
-  metaBytes_lt: Bytes
-  metaBytes_gte: Bytes
-  metaBytes_lte: Bytes
-  metaBytes_in: [Bytes!]
-  metaBytes_not_in: [Bytes!]
-  metaBytes_contains: Bytes
-  metaBytes_not_contains: Bytes
-  content: [String!]
-  content_not: [String!]
-  content_contains: [String!]
-  content_contains_nocase: [String!]
-  content_not_contains: [String!]
-  content_not_contains_nocase: [String!]
-  content_: ContentMetaV1_filter
+  active: Boolean
+  active_not: Boolean
+  active_in: [Boolean!]
+  active_not_in: [Boolean!]
+  orderHash: Bytes
+  orderHash_not: Bytes
+  orderHash_gt: Bytes
+  orderHash_lt: Bytes
+  orderHash_gte: Bytes
+  orderHash_lte: Bytes
+  orderHash_in: [Bytes!]
+  orderHash_not_in: [Bytes!]
+  orderHash_contains: Bytes
+  orderHash_not_contains: Bytes
+  owner: Bytes
+  owner_not: Bytes
+  owner_gt: Bytes
+  owner_lt: Bytes
+  owner_gte: Bytes
+  owner_lte: Bytes
+  owner_in: [Bytes!]
+  owner_not_in: [Bytes!]
+  owner_contains: Bytes
+  owner_not_contains: Bytes
+  inputs: [String!]
+  inputs_not: [String!]
+  inputs_contains: [String!]
+  inputs_contains_nocase: [String!]
+  inputs_not_contains: [String!]
+  inputs_not_contains_nocase: [String!]
+  inputs_: Vault_filter
+  outputs: [String!]
+  outputs_not: [String!]
+  outputs_contains: [String!]
+  outputs_contains_nocase: [String!]
+  outputs_not_contains: [String!]
+  outputs_not_contains_nocase: [String!]
+  outputs_: Vault_filter
+  nonce: Bytes
+  nonce_not: Bytes
+  nonce_gt: Bytes
+  nonce_lt: Bytes
+  nonce_gte: Bytes
+  nonce_lte: Bytes
+  nonce_in: [Bytes!]
+  nonce_not_in: [Bytes!]
+  nonce_contains: Bytes
+  nonce_not_contains: Bytes
+  orderBytes: Bytes
+  orderBytes_not: Bytes
+  orderBytes_gt: Bytes
+  orderBytes_lt: Bytes
+  orderBytes_gte: Bytes
+  orderBytes_lte: Bytes
+  orderBytes_in: [Bytes!]
+  orderBytes_not_in: [Bytes!]
+  orderBytes_contains: Bytes
+  orderBytes_not_contains: Bytes
+  addEvents_: AddOrder_filter
+  removeEvents_: RemoveOrder_filter
+  trades_: Trade_filter
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [RainMetaV1_filter]
-  or: [RainMetaV1_filter]
+  and: [Order_filter]
+  or: [Order_filter]
 }
 
-enum RainMetaV1_orderBy {
+enum Order_orderBy {
   id
-  metaBytes
-  content
+  active
+  orderHash
+  owner
+  inputs
+  outputs
+  nonce
+  orderBytes
+  addEvents
+  removeEvents
+  trades
 }
 
-type SignedContext {
-  id: ID!
-  signer: Bytes!
-  context: [BigInt!]
-}
-
-input SignedContext_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  signer: Bytes
-  signer_not: Bytes
-  signer_gt: Bytes
-  signer_lt: Bytes
-  signer_gte: Bytes
-  signer_lte: Bytes
-  signer_in: [Bytes!]
-  signer_not_in: [Bytes!]
-  signer_contains: Bytes
-  signer_not_contains: Bytes
-  context: [BigInt!]
-  context_not: [BigInt!]
-  context_contains: [BigInt!]
-  context_contains_nocase: [BigInt!]
-  context_not_contains: [BigInt!]
-  context_not_contains_nocase: [BigInt!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [SignedContext_filter]
-  or: [SignedContext_filter]
-}
-
-enum SignedContext_orderBy {
-  id
-  signer
-  context
-}
-
-type Subscription {
-  orderBook(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): OrderBook
-  orderBooks(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderBook_orderBy
-    orderDirection: OrderDirection
-    where: OrderBook_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [OrderBook!]!
-  rainMetaV1(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): RainMetaV1
-  rainMetaV1S(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: RainMetaV1_orderBy
-    orderDirection: OrderDirection
-    where: RainMetaV1_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [RainMetaV1!]!
-  contentMetaV1(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ContentMetaV1
-  contentMetaV1S(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ContentMetaV1_orderBy
-    orderDirection: OrderDirection
-    where: ContentMetaV1_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ContentMetaV1!]!
-  order(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Order
-  orders(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Order_orderBy
-    orderDirection: OrderDirection
-    where: Order_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Order!]!
-  io(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): IO
-  ios(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: IO_orderBy
-    orderDirection: OrderDirection
-    where: IO_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [IO!]!
+type Query {
   vault(
     id: ID!
     """
@@ -2979,7 +537,7 @@ type Subscription {
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
   ): [Vault!]!
-  tokenVault(
+  deposit(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -2989,13 +547,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): TokenVault
-  tokenVaults(
+  ): Deposit
+  deposits(
     skip: Int = 0
     first: Int = 100
-    orderBy: TokenVault_orderBy
+    orderBy: Deposit_orderBy
     orderDirection: OrderDirection
-    where: TokenVault_filter
+    where: Deposit_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3004,8 +562,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [TokenVault!]!
-  tokenVaultTakeOrder(
+  ): [Deposit!]!
+  withdrawal(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3015,13 +573,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): TokenVaultTakeOrder
-  tokenVaultTakeOrders(
+  ): Withdrawal
+  withdrawals(
     skip: Int = 0
     first: Int = 100
-    orderBy: TokenVaultTakeOrder_orderBy
+    orderBy: Withdrawal_orderBy
     orderDirection: OrderDirection
-    where: TokenVaultTakeOrder_filter
+    where: Withdrawal_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3030,8 +588,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [TokenVaultTakeOrder!]!
-  vaultDeposit(
+  ): [Withdrawal!]!
+  tradeVaultBalanceChange(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3041,13 +599,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): VaultDeposit
-  vaultDeposits(
+  ): TradeVaultBalanceChange
+  tradeVaultBalanceChanges(
     skip: Int = 0
     first: Int = 100
-    orderBy: VaultDeposit_orderBy
+    orderBy: TradeVaultBalanceChange_orderBy
     orderDirection: OrderDirection
-    where: VaultDeposit_filter
+    where: TradeVaultBalanceChange_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3056,8 +614,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [VaultDeposit!]!
-  vaultWithdraw(
+  ): [TradeVaultBalanceChange!]!
+  order(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3067,13 +625,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): VaultWithdraw
-  vaultWithdraws(
+  ): Order
+  orders(
     skip: Int = 0
     first: Int = 100
-    orderBy: VaultWithdraw_orderBy
+    orderBy: Order_orderBy
     orderDirection: OrderDirection
-    where: VaultWithdraw_filter
+    where: Order_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3082,8 +640,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [VaultWithdraw!]!
-  erc20(
+  ): [Order!]!
+  addOrder(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3093,13 +651,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ERC20
-  erc20S(
+  ): AddOrder
+  addOrders(
     skip: Int = 0
     first: Int = 100
-    orderBy: ERC20_orderBy
+    orderBy: AddOrder_orderBy
     orderDirection: OrderDirection
-    where: ERC20_filter
+    where: AddOrder_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3108,8 +666,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ERC20!]!
-  orderClear(
+  ): [AddOrder!]!
+  removeOrder(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3119,13 +677,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): OrderClear
-  orderClears(
+  ): RemoveOrder
+  removeOrders(
     skip: Int = 0
     first: Int = 100
-    orderBy: OrderClear_orderBy
+    orderBy: RemoveOrder_orderBy
     orderDirection: OrderDirection
-    where: OrderClear_filter
+    where: RemoveOrder_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3134,8 +692,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [OrderClear!]!
-  bounty(
+  ): [RemoveOrder!]!
+  trade(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3145,13 +703,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Bounty
-  bounties(
+  ): Trade
+  trades(
     skip: Int = 0
     first: Int = 100
-    orderBy: Bounty_orderBy
+    orderBy: Trade_orderBy
     orderDirection: OrderDirection
-    where: Bounty_filter
+    where: Trade_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3160,8 +718,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Bounty!]!
-  takeOrderEntity(
+  ): [Trade!]!
+  takeOrder(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3171,13 +729,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): TakeOrderEntity
-  takeOrderEntities(
+  ): TakeOrder
+  takeOrders(
     skip: Int = 0
     first: Int = 100
-    orderBy: TakeOrderEntity_orderBy
+    orderBy: TakeOrder_orderBy
     orderDirection: OrderDirection
-    where: TakeOrderEntity_filter
+    where: TakeOrder_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3186,85 +744,7 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [TakeOrderEntity!]!
-  orderClearStateChange(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): OrderClearStateChange
-  orderClearStateChanges(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: OrderClearStateChange_orderBy
-    orderDirection: OrderDirection
-    where: OrderClearStateChange_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [OrderClearStateChange!]!
-  clearOrderConfig(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ClearOrderConfig
-  clearOrderConfigs(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: ClearOrderConfig_orderBy
-    orderDirection: OrderDirection
-    where: ClearOrderConfig_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ClearOrderConfig!]!
-  account(
-    id: ID!
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): Account
-  accounts(
-    skip: Int = 0
-    first: Int = 100
-    orderBy: Account_orderBy
-    orderDirection: OrderDirection
-    where: Account_filter
-    """
-    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
-    """
-    block: Block_height
-    """
-    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
-    """
-    subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [Account!]!
+  ): [TakeOrder!]!
   transaction(
     id: ID!
     """
@@ -3291,7 +771,7 @@ type Subscription {
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
   ): [Transaction!]!
-  contextEntity(
+  vaultBalanceChange(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3301,13 +781,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): ContextEntity
-  contextEntities(
+  ): VaultBalanceChange
+  vaultBalanceChanges(
     skip: Int = 0
     first: Int = 100
-    orderBy: ContextEntity_orderBy
+    orderBy: VaultBalanceChange_orderBy
     orderDirection: OrderDirection
-    where: ContextEntity_filter
+    where: VaultBalanceChange_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3316,8 +796,8 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [ContextEntity!]!
-  signedContext(
+  ): [VaultBalanceChange!]!
+  tradeEvent(
     id: ID!
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
@@ -3327,13 +807,13 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): SignedContext
-  signedContexts(
+  ): TradeEvent
+  tradeEvents(
     skip: Int = 0
     first: Int = 100
-    orderBy: SignedContext_orderBy
+    orderBy: TradeEvent_orderBy
     orderDirection: OrderDirection
-    where: SignedContext_filter
+    where: TradeEvent_filter
     """
     The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
     """
@@ -3342,7 +822,7 @@ type Subscription {
     Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
     """
     subgraphError: _SubgraphErrorPolicy_! = deny
-  ): [SignedContext!]!
+  ): [TradeEvent!]!
   event(
     id: ID!
     """
@@ -3375,76 +855,30 @@ type Subscription {
   _meta(block: Block_height): _Meta_
 }
 
-type TakeOrderEntity implements Event {
-  id: ID!
-  sender: Account!
+type RemoveOrder implements Event {
+  id: Bytes!
+  """
+  The order that was removed
+  """
   order: Order!
-  """
-  The input amount from the perspective of sender
-  """
-  input: BigInt!
-  inputDisplay: BigDecimal!
-  """
-  The output amount from the perspective of sender
-  """
-  output: BigInt!
-  outputDisplay: BigDecimal!
-  """
-  IO Ratio
-  """
-  IORatio: BigDecimal!
-  """
-  The index of the input token in order to match with the take order output
-  """
-  inputIOIndex: BigInt!
-  """
-  The index of the output token in order to match with the take order input.
-  """
-  outputIOIndex: BigInt!
-  """
-  Input token from the perspective of the order taker
-  """
-  inputToken: ERC20!
-  """
-  Output token from the perspective of the order taker
-  """
-  outputToken: ERC20!
   transaction: Transaction!
-  emitter: Account!
-  timestamp: BigInt!
-  context: ContextEntity
+  """
+  The msg.sender of this remove order call
+  """
+  sender: Bytes!
 }
 
-input TakeOrderEntity_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  sender: String
-  sender_not: String
-  sender_gt: String
-  sender_lt: String
-  sender_gte: String
-  sender_lte: String
-  sender_in: [String!]
-  sender_not_in: [String!]
-  sender_contains: String
-  sender_contains_nocase: String
-  sender_not_contains: String
-  sender_not_contains_nocase: String
-  sender_starts_with: String
-  sender_starts_with_nocase: String
-  sender_not_starts_with: String
-  sender_not_starts_with_nocase: String
-  sender_ends_with: String
-  sender_ends_with_nocase: String
-  sender_not_ends_with: String
-  sender_not_ends_with_nocase: String
-  sender_: Account_filter
+input RemoveOrder_filter {
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
   order: String
   order_not: String
   order_gt: String
@@ -3466,104 +900,6 @@ input TakeOrderEntity_filter {
   order_not_ends_with: String
   order_not_ends_with_nocase: String
   order_: Order_filter
-  input: BigInt
-  input_not: BigInt
-  input_gt: BigInt
-  input_lt: BigInt
-  input_gte: BigInt
-  input_lte: BigInt
-  input_in: [BigInt!]
-  input_not_in: [BigInt!]
-  inputDisplay: BigDecimal
-  inputDisplay_not: BigDecimal
-  inputDisplay_gt: BigDecimal
-  inputDisplay_lt: BigDecimal
-  inputDisplay_gte: BigDecimal
-  inputDisplay_lte: BigDecimal
-  inputDisplay_in: [BigDecimal!]
-  inputDisplay_not_in: [BigDecimal!]
-  output: BigInt
-  output_not: BigInt
-  output_gt: BigInt
-  output_lt: BigInt
-  output_gte: BigInt
-  output_lte: BigInt
-  output_in: [BigInt!]
-  output_not_in: [BigInt!]
-  outputDisplay: BigDecimal
-  outputDisplay_not: BigDecimal
-  outputDisplay_gt: BigDecimal
-  outputDisplay_lt: BigDecimal
-  outputDisplay_gte: BigDecimal
-  outputDisplay_lte: BigDecimal
-  outputDisplay_in: [BigDecimal!]
-  outputDisplay_not_in: [BigDecimal!]
-  IORatio: BigDecimal
-  IORatio_not: BigDecimal
-  IORatio_gt: BigDecimal
-  IORatio_lt: BigDecimal
-  IORatio_gte: BigDecimal
-  IORatio_lte: BigDecimal
-  IORatio_in: [BigDecimal!]
-  IORatio_not_in: [BigDecimal!]
-  inputIOIndex: BigInt
-  inputIOIndex_not: BigInt
-  inputIOIndex_gt: BigInt
-  inputIOIndex_lt: BigInt
-  inputIOIndex_gte: BigInt
-  inputIOIndex_lte: BigInt
-  inputIOIndex_in: [BigInt!]
-  inputIOIndex_not_in: [BigInt!]
-  outputIOIndex: BigInt
-  outputIOIndex_not: BigInt
-  outputIOIndex_gt: BigInt
-  outputIOIndex_lt: BigInt
-  outputIOIndex_gte: BigInt
-  outputIOIndex_lte: BigInt
-  outputIOIndex_in: [BigInt!]
-  outputIOIndex_not_in: [BigInt!]
-  inputToken: String
-  inputToken_not: String
-  inputToken_gt: String
-  inputToken_lt: String
-  inputToken_gte: String
-  inputToken_lte: String
-  inputToken_in: [String!]
-  inputToken_not_in: [String!]
-  inputToken_contains: String
-  inputToken_contains_nocase: String
-  inputToken_not_contains: String
-  inputToken_not_contains_nocase: String
-  inputToken_starts_with: String
-  inputToken_starts_with_nocase: String
-  inputToken_not_starts_with: String
-  inputToken_not_starts_with_nocase: String
-  inputToken_ends_with: String
-  inputToken_ends_with_nocase: String
-  inputToken_not_ends_with: String
-  inputToken_not_ends_with_nocase: String
-  inputToken_: ERC20_filter
-  outputToken: String
-  outputToken_not: String
-  outputToken_gt: String
-  outputToken_lt: String
-  outputToken_gte: String
-  outputToken_lte: String
-  outputToken_in: [String!]
-  outputToken_not_in: [String!]
-  outputToken_contains: String
-  outputToken_contains_nocase: String
-  outputToken_not_contains: String
-  outputToken_not_contains_nocase: String
-  outputToken_starts_with: String
-  outputToken_starts_with_nocase: String
-  outputToken_not_starts_with: String
-  outputToken_not_starts_with_nocase: String
-  outputToken_ends_with: String
-  outputToken_ends_with_nocase: String
-  outputToken_not_ends_with: String
-  outputToken_not_ends_with_nocase: String
-  outputToken_: ERC20_filter
   transaction: String
   transaction_not: String
   transaction_gt: String
@@ -3585,285 +921,671 @@ input TakeOrderEntity_filter {
   transaction_not_ends_with: String
   transaction_not_ends_with_nocase: String
   transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
-  context: String
-  context_not: String
-  context_gt: String
-  context_lt: String
-  context_gte: String
-  context_lte: String
-  context_in: [String!]
-  context_not_in: [String!]
-  context_contains: String
-  context_contains_nocase: String
-  context_not_contains: String
-  context_not_contains_nocase: String
-  context_starts_with: String
-  context_starts_with_nocase: String
-  context_not_starts_with: String
-  context_not_starts_with_nocase: String
-  context_ends_with: String
-  context_ends_with_nocase: String
-  context_not_ends_with: String
-  context_not_ends_with_nocase: String
-  context_: ContextEntity_filter
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [TakeOrderEntity_filter]
-  or: [TakeOrderEntity_filter]
+  and: [RemoveOrder_filter]
+  or: [RemoveOrder_filter]
 }
 
-enum TakeOrderEntity_orderBy {
+enum RemoveOrder_orderBy {
   id
-  sender
-  sender__id
   order
   order__id
+  order__active
   order__orderHash
-  order__interpreter
-  order__interpreterStore
-  order__expressionDeployer
-  order__expression
-  order__orderActive
-  order__handleIO
-  order__orderJSONString
-  order__expressionJSONString
-  order__timestamp
-  input
-  inputDisplay
-  output
-  outputDisplay
-  IORatio
-  inputIOIndex
-  outputIOIndex
-  inputToken
-  inputToken__id
-  inputToken__name
-  inputToken__symbol
-  inputToken__totalSupply
-  inputToken__totalSupplyDisplay
-  inputToken__decimals
-  outputToken
-  outputToken__id
-  outputToken__name
-  outputToken__symbol
-  outputToken__totalSupply
-  outputToken__totalSupplyDisplay
-  outputToken__decimals
+  order__owner
+  order__nonce
+  order__orderBytes
   transaction
   transaction__id
   transaction__timestamp
   transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
-  context
-  context__id
-  context__timestamp
+  transaction__from
+  sender
 }
 
-type TokenVault {
-  id: ID!
-  """
-  The owner of this Vault
-  """
-  owner: Account!
-  """
-  The id of this vault
-  """
-  vault: Vault!
-  vaultId: BigInt!
-  """
-  The token that has a balance for this vault and owner.
-  """
-  token: ERC20!
-  """
-  The balance of this token, for this vault, for this owner
-  """
-  balance: BigInt!
-  balanceDisplay: BigDecimal!
-  """
-  Orders that reference this vault, owner and token
-  """
+type Subscription {
+  vault(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Vault
+  vaults(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Vault_orderBy
+    orderDirection: OrderDirection
+    where: Vault_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Vault!]!
+  deposit(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Deposit
+  deposits(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Deposit_orderBy
+    orderDirection: OrderDirection
+    where: Deposit_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Deposit!]!
+  withdrawal(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Withdrawal
+  withdrawals(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Withdrawal_orderBy
+    orderDirection: OrderDirection
+    where: Withdrawal_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Withdrawal!]!
+  tradeVaultBalanceChange(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): TradeVaultBalanceChange
+  tradeVaultBalanceChanges(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: TradeVaultBalanceChange_orderBy
+    orderDirection: OrderDirection
+    where: TradeVaultBalanceChange_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [TradeVaultBalanceChange!]!
+  order(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Order
   orders(
     skip: Int = 0
     first: Int = 100
     orderBy: Order_orderBy
     orderDirection: OrderDirection
     where: Order_filter
-  ): [Order!]
-  orderClears(
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Order!]!
+  addOrder(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): AddOrder
+  addOrders(
     skip: Int = 0
     first: Int = 100
-    orderBy: OrderClear_orderBy
+    orderBy: AddOrder_orderBy
     orderDirection: OrderDirection
-    where: OrderClear_filter
-  ): [OrderClear!]
+    where: AddOrder_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [AddOrder!]!
+  removeOrder(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): RemoveOrder
+  removeOrders(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: RemoveOrder_orderBy
+    orderDirection: OrderDirection
+    where: RemoveOrder_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [RemoveOrder!]!
+  trade(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Trade
+  trades(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Trade_orderBy
+    orderDirection: OrderDirection
+    where: Trade_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Trade!]!
+  takeOrder(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): TakeOrder
   takeOrders(
     skip: Int = 0
     first: Int = 100
-    orderBy: TokenVaultTakeOrder_orderBy
+    orderBy: TakeOrder_orderBy
     orderDirection: OrderDirection
-    where: TokenVaultTakeOrder_filter
-  ): [TokenVaultTakeOrder!]
+    where: TakeOrder_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [TakeOrder!]!
+  transaction(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Transaction
+  transactions(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Transaction_orderBy
+    orderDirection: OrderDirection
+    where: Transaction_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Transaction!]!
+  vaultBalanceChange(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): VaultBalanceChange
+  vaultBalanceChanges(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: VaultBalanceChange_orderBy
+    orderDirection: OrderDirection
+    where: VaultBalanceChange_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [VaultBalanceChange!]!
+  tradeEvent(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): TradeEvent
+  tradeEvents(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: TradeEvent_orderBy
+    orderDirection: OrderDirection
+    where: TradeEvent_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [TradeEvent!]!
+  event(
+    id: ID!
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): Event
+  events(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Event_orderBy
+    orderDirection: OrderDirection
+    where: Event_filter
+    """
+    The block at which the query should be executed. Can either be a `{ hash: Bytes }` value containing a block hash, a `{ number: Int }` containing the block number, or a `{ number_gte: Int }` containing the minimum block number. In the case of `number_gte`, the query will be executed on the latest block only if the subgraph has progressed to or past the minimum block number. Defaults to the latest block when omitted.
+    """
+    block: Block_height
+    """
+    Set to `allow` to receive data even if the subgraph has skipped over errors while syncing.
+    """
+    subgraphError: _SubgraphErrorPolicy_! = deny
+  ): [Event!]!
+  """
+  Access to subgraph metadata
+  """
+  _meta(block: Block_height): _Meta_
 }
 
-type TokenVaultTakeOrder {
-  id: ID!
-  wasOutput: Boolean!
-  wasInput: Boolean!
-  takeOrder: TakeOrderEntity!
-  tokenVault: TokenVault!
+type TakeOrder implements TradeEvent {
+  id: Bytes!
+  """
+  The input amount from the perspective of the taker
+  """
+  inputAmount: BigInt!
+  """
+  The output amount from the perspective of the taker
+  """
+  outputAmount: BigInt!
+  """
+  The ABI encoded bytes for the TakeOrderConfig struct
+  """
+  takeOrderConfigBytes: Bytes!
+  """
+  The trades that occured in this event
+  """
+  trades(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Trade_orderBy
+    orderDirection: OrderDirection
+    where: Trade_filter
+  ): [Trade!]!
+  transaction: Transaction!
+  """
+  The msg.sender of this trade
+  """
+  sender: Bytes!
 }
 
-input TokenVaultTakeOrder_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  wasOutput: Boolean
-  wasOutput_not: Boolean
-  wasOutput_in: [Boolean!]
-  wasOutput_not_in: [Boolean!]
-  wasInput: Boolean
-  wasInput_not: Boolean
-  wasInput_in: [Boolean!]
-  wasInput_not_in: [Boolean!]
-  takeOrder: String
-  takeOrder_not: String
-  takeOrder_gt: String
-  takeOrder_lt: String
-  takeOrder_gte: String
-  takeOrder_lte: String
-  takeOrder_in: [String!]
-  takeOrder_not_in: [String!]
-  takeOrder_contains: String
-  takeOrder_contains_nocase: String
-  takeOrder_not_contains: String
-  takeOrder_not_contains_nocase: String
-  takeOrder_starts_with: String
-  takeOrder_starts_with_nocase: String
-  takeOrder_not_starts_with: String
-  takeOrder_not_starts_with_nocase: String
-  takeOrder_ends_with: String
-  takeOrder_ends_with_nocase: String
-  takeOrder_not_ends_with: String
-  takeOrder_not_ends_with_nocase: String
-  takeOrder_: TakeOrderEntity_filter
-  tokenVault: String
-  tokenVault_not: String
-  tokenVault_gt: String
-  tokenVault_lt: String
-  tokenVault_gte: String
-  tokenVault_lte: String
-  tokenVault_in: [String!]
-  tokenVault_not_in: [String!]
-  tokenVault_contains: String
-  tokenVault_contains_nocase: String
-  tokenVault_not_contains: String
-  tokenVault_not_contains_nocase: String
-  tokenVault_starts_with: String
-  tokenVault_starts_with_nocase: String
-  tokenVault_not_starts_with: String
-  tokenVault_not_starts_with_nocase: String
-  tokenVault_ends_with: String
-  tokenVault_ends_with_nocase: String
-  tokenVault_not_ends_with: String
-  tokenVault_not_ends_with_nocase: String
-  tokenVault_: TokenVault_filter
+input TakeOrder_filter {
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
+  inputAmount: BigInt
+  inputAmount_not: BigInt
+  inputAmount_gt: BigInt
+  inputAmount_lt: BigInt
+  inputAmount_gte: BigInt
+  inputAmount_lte: BigInt
+  inputAmount_in: [BigInt!]
+  inputAmount_not_in: [BigInt!]
+  outputAmount: BigInt
+  outputAmount_not: BigInt
+  outputAmount_gt: BigInt
+  outputAmount_lt: BigInt
+  outputAmount_gte: BigInt
+  outputAmount_lte: BigInt
+  outputAmount_in: [BigInt!]
+  outputAmount_not_in: [BigInt!]
+  takeOrderConfigBytes: Bytes
+  takeOrderConfigBytes_not: Bytes
+  takeOrderConfigBytes_gt: Bytes
+  takeOrderConfigBytes_lt: Bytes
+  takeOrderConfigBytes_gte: Bytes
+  takeOrderConfigBytes_lte: Bytes
+  takeOrderConfigBytes_in: [Bytes!]
+  takeOrderConfigBytes_not_in: [Bytes!]
+  takeOrderConfigBytes_contains: Bytes
+  takeOrderConfigBytes_not_contains: Bytes
+  trades_: Trade_filter
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [TokenVaultTakeOrder_filter]
-  or: [TokenVaultTakeOrder_filter]
+  and: [TakeOrder_filter]
+  or: [TakeOrder_filter]
 }
 
-enum TokenVaultTakeOrder_orderBy {
+enum TakeOrder_orderBy {
   id
-  wasOutput
-  wasInput
-  takeOrder
-  takeOrder__id
-  takeOrder__input
-  takeOrder__inputDisplay
-  takeOrder__output
-  takeOrder__outputDisplay
-  takeOrder__IORatio
-  takeOrder__inputIOIndex
-  takeOrder__outputIOIndex
-  takeOrder__timestamp
-  tokenVault
-  tokenVault__id
-  tokenVault__vaultId
-  tokenVault__balance
-  tokenVault__balanceDisplay
+  inputAmount
+  outputAmount
+  takeOrderConfigBytes
+  trades
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
+  sender
 }
 
-input TokenVault_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  owner: String
-  owner_not: String
-  owner_gt: String
-  owner_lt: String
-  owner_gte: String
-  owner_lte: String
-  owner_in: [String!]
-  owner_not_in: [String!]
-  owner_contains: String
-  owner_contains_nocase: String
-  owner_not_contains: String
-  owner_not_contains_nocase: String
-  owner_starts_with: String
-  owner_starts_with_nocase: String
-  owner_not_starts_with: String
-  owner_not_starts_with_nocase: String
-  owner_ends_with: String
-  owner_ends_with_nocase: String
-  owner_not_ends_with: String
-  owner_not_ends_with_nocase: String
-  owner_: Account_filter
+"""
+A string representation of microseconds UNIX timestamp (16 digits)
+
+"""
+scalar Timestamp
+
+type Trade {
+  id: Bytes!
+  """
+  The order that was traded
+  """
+  order: Order!
+  """
+  Input vault balance change
+  """
+  inputVaultBalanceChange: TradeVaultBalanceChange!
+  """
+  Output vault balance change
+  """
+  outputVaultBalanceChange: TradeVaultBalanceChange!
+  """
+  The event in which this trade occured
+  """
+  tradeEvent: TradeEvent!
+}
+
+interface TradeEvent {
+  id: Bytes!
+  """
+  The trades that occured in this event
+  """
+  trades(
+    skip: Int = 0
+    first: Int = 100
+    orderBy: Trade_orderBy
+    orderDirection: OrderDirection
+    where: Trade_filter
+  ): [Trade!]!
+  transaction: Transaction!
+  """
+  The msg.sender of this trade
+  """
+  sender: Bytes!
+}
+
+input TradeEvent_filter {
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
+  trades_: Trade_filter
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
+  """
+  Filter for the block changed event.
+  """
+  _change_block: BlockChangedFilter
+  and: [TradeEvent_filter]
+  or: [TradeEvent_filter]
+}
+
+enum TradeEvent_orderBy {
+  id
+  trades
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
+  sender
+}
+
+type TradeVaultBalanceChange implements VaultBalanceChange {
+  id: Bytes!
+  """
+  The trade that this balance change is for
+  """
+  trade: Trade!
+  """
+  The vault that was affected
+  """
+  vault: Vault!
+  """
+  The amount that was changed - this is unsigned
+  """
+  amount: BigInt!
+  """
+  The balance of the vault before the change
+  """
+  oldVaultBalance: BigInt!
+  """
+  The balance of the vault after the change
+  """
+  newVaultBalance: BigInt!
+}
+
+input TradeVaultBalanceChange_filter {
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
+  trade: String
+  trade_not: String
+  trade_gt: String
+  trade_lt: String
+  trade_gte: String
+  trade_lte: String
+  trade_in: [String!]
+  trade_not_in: [String!]
+  trade_contains: String
+  trade_contains_nocase: String
+  trade_not_contains: String
+  trade_not_contains_nocase: String
+  trade_starts_with: String
+  trade_starts_with_nocase: String
+  trade_not_starts_with: String
+  trade_not_starts_with_nocase: String
+  trade_ends_with: String
+  trade_ends_with_nocase: String
+  trade_not_ends_with: String
+  trade_not_ends_with_nocase: String
+  trade_: Trade_filter
   vault: String
   vault_not: String
   vault_gt: String
@@ -3885,100 +1607,185 @@ input TokenVault_filter {
   vault_not_ends_with: String
   vault_not_ends_with_nocase: String
   vault_: Vault_filter
-  vaultId: BigInt
-  vaultId_not: BigInt
-  vaultId_gt: BigInt
-  vaultId_lt: BigInt
-  vaultId_gte: BigInt
-  vaultId_lte: BigInt
-  vaultId_in: [BigInt!]
-  vaultId_not_in: [BigInt!]
-  token: String
-  token_not: String
-  token_gt: String
-  token_lt: String
-  token_gte: String
-  token_lte: String
-  token_in: [String!]
-  token_not_in: [String!]
-  token_contains: String
-  token_contains_nocase: String
-  token_not_contains: String
-  token_not_contains_nocase: String
-  token_starts_with: String
-  token_starts_with_nocase: String
-  token_not_starts_with: String
-  token_not_starts_with_nocase: String
-  token_ends_with: String
-  token_ends_with_nocase: String
-  token_not_ends_with: String
-  token_not_ends_with_nocase: String
-  token_: ERC20_filter
-  balance: BigInt
-  balance_not: BigInt
-  balance_gt: BigInt
-  balance_lt: BigInt
-  balance_gte: BigInt
-  balance_lte: BigInt
-  balance_in: [BigInt!]
-  balance_not_in: [BigInt!]
-  balanceDisplay: BigDecimal
-  balanceDisplay_not: BigDecimal
-  balanceDisplay_gt: BigDecimal
-  balanceDisplay_lt: BigDecimal
-  balanceDisplay_gte: BigDecimal
-  balanceDisplay_lte: BigDecimal
-  balanceDisplay_in: [BigDecimal!]
-  balanceDisplay_not_in: [BigDecimal!]
-  orders: [String!]
-  orders_not: [String!]
-  orders_contains: [String!]
-  orders_contains_nocase: [String!]
-  orders_not_contains: [String!]
-  orders_not_contains_nocase: [String!]
-  orders_: Order_filter
-  orderClears: [String!]
-  orderClears_not: [String!]
-  orderClears_contains: [String!]
-  orderClears_contains_nocase: [String!]
-  orderClears_not_contains: [String!]
-  orderClears_not_contains_nocase: [String!]
-  orderClears_: OrderClear_filter
-  takeOrders_: TokenVaultTakeOrder_filter
+  amount: BigInt
+  amount_not: BigInt
+  amount_gt: BigInt
+  amount_lt: BigInt
+  amount_gte: BigInt
+  amount_lte: BigInt
+  amount_in: [BigInt!]
+  amount_not_in: [BigInt!]
+  oldVaultBalance: BigInt
+  oldVaultBalance_not: BigInt
+  oldVaultBalance_gt: BigInt
+  oldVaultBalance_lt: BigInt
+  oldVaultBalance_gte: BigInt
+  oldVaultBalance_lte: BigInt
+  oldVaultBalance_in: [BigInt!]
+  oldVaultBalance_not_in: [BigInt!]
+  newVaultBalance: BigInt
+  newVaultBalance_not: BigInt
+  newVaultBalance_gt: BigInt
+  newVaultBalance_lt: BigInt
+  newVaultBalance_gte: BigInt
+  newVaultBalance_lte: BigInt
+  newVaultBalance_in: [BigInt!]
+  newVaultBalance_not_in: [BigInt!]
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [TokenVault_filter]
-  or: [TokenVault_filter]
+  and: [TradeVaultBalanceChange_filter]
+  or: [TradeVaultBalanceChange_filter]
 }
 
-enum TokenVault_orderBy {
+enum TradeVaultBalanceChange_orderBy {
   id
-  owner
-  owner__id
+  trade
+  trade__id
   vault
   vault__id
+  vault__token
+  vault__owner
   vault__vaultId
-  vaultId
-  token
-  token__id
-  token__name
-  token__symbol
-  token__totalSupply
-  token__totalSupplyDisplay
-  token__decimals
-  balance
-  balanceDisplay
-  orders
-  orderClears
-  takeOrders
+  vault__balance
+  amount
+  oldVaultBalance
+  newVaultBalance
+}
+
+input Trade_filter {
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
+  order: String
+  order_not: String
+  order_gt: String
+  order_lt: String
+  order_gte: String
+  order_lte: String
+  order_in: [String!]
+  order_not_in: [String!]
+  order_contains: String
+  order_contains_nocase: String
+  order_not_contains: String
+  order_not_contains_nocase: String
+  order_starts_with: String
+  order_starts_with_nocase: String
+  order_not_starts_with: String
+  order_not_starts_with_nocase: String
+  order_ends_with: String
+  order_ends_with_nocase: String
+  order_not_ends_with: String
+  order_not_ends_with_nocase: String
+  order_: Order_filter
+  inputVaultBalanceChange: String
+  inputVaultBalanceChange_not: String
+  inputVaultBalanceChange_gt: String
+  inputVaultBalanceChange_lt: String
+  inputVaultBalanceChange_gte: String
+  inputVaultBalanceChange_lte: String
+  inputVaultBalanceChange_in: [String!]
+  inputVaultBalanceChange_not_in: [String!]
+  inputVaultBalanceChange_contains: String
+  inputVaultBalanceChange_contains_nocase: String
+  inputVaultBalanceChange_not_contains: String
+  inputVaultBalanceChange_not_contains_nocase: String
+  inputVaultBalanceChange_starts_with: String
+  inputVaultBalanceChange_starts_with_nocase: String
+  inputVaultBalanceChange_not_starts_with: String
+  inputVaultBalanceChange_not_starts_with_nocase: String
+  inputVaultBalanceChange_ends_with: String
+  inputVaultBalanceChange_ends_with_nocase: String
+  inputVaultBalanceChange_not_ends_with: String
+  inputVaultBalanceChange_not_ends_with_nocase: String
+  inputVaultBalanceChange_: TradeVaultBalanceChange_filter
+  outputVaultBalanceChange: String
+  outputVaultBalanceChange_not: String
+  outputVaultBalanceChange_gt: String
+  outputVaultBalanceChange_lt: String
+  outputVaultBalanceChange_gte: String
+  outputVaultBalanceChange_lte: String
+  outputVaultBalanceChange_in: [String!]
+  outputVaultBalanceChange_not_in: [String!]
+  outputVaultBalanceChange_contains: String
+  outputVaultBalanceChange_contains_nocase: String
+  outputVaultBalanceChange_not_contains: String
+  outputVaultBalanceChange_not_contains_nocase: String
+  outputVaultBalanceChange_starts_with: String
+  outputVaultBalanceChange_starts_with_nocase: String
+  outputVaultBalanceChange_not_starts_with: String
+  outputVaultBalanceChange_not_starts_with_nocase: String
+  outputVaultBalanceChange_ends_with: String
+  outputVaultBalanceChange_ends_with_nocase: String
+  outputVaultBalanceChange_not_ends_with: String
+  outputVaultBalanceChange_not_ends_with_nocase: String
+  outputVaultBalanceChange_: TradeVaultBalanceChange_filter
+  tradeEvent: String
+  tradeEvent_not: String
+  tradeEvent_gt: String
+  tradeEvent_lt: String
+  tradeEvent_gte: String
+  tradeEvent_lte: String
+  tradeEvent_in: [String!]
+  tradeEvent_not_in: [String!]
+  tradeEvent_contains: String
+  tradeEvent_contains_nocase: String
+  tradeEvent_not_contains: String
+  tradeEvent_not_contains_nocase: String
+  tradeEvent_starts_with: String
+  tradeEvent_starts_with_nocase: String
+  tradeEvent_not_starts_with: String
+  tradeEvent_not_starts_with_nocase: String
+  tradeEvent_ends_with: String
+  tradeEvent_ends_with_nocase: String
+  tradeEvent_not_ends_with: String
+  tradeEvent_not_ends_with_nocase: String
+  tradeEvent_: TradeEvent_filter
+  """
+  Filter for the block changed event.
+  """
+  _change_block: BlockChangedFilter
+  and: [Trade_filter]
+  or: [Trade_filter]
+}
+
+enum Trade_orderBy {
+  id
+  order
+  order__id
+  order__active
+  order__orderHash
+  order__owner
+  order__nonce
+  order__orderBytes
+  inputVaultBalanceChange
+  inputVaultBalanceChange__id
+  inputVaultBalanceChange__amount
+  inputVaultBalanceChange__oldVaultBalance
+  inputVaultBalanceChange__newVaultBalance
+  outputVaultBalanceChange
+  outputVaultBalanceChange__id
+  outputVaultBalanceChange__amount
+  outputVaultBalanceChange__oldVaultBalance
+  outputVaultBalanceChange__newVaultBalance
+  tradeEvent
+  tradeEvent__id
+  tradeEvent__sender
 }
 
 type Transaction {
-  id: ID!
+  id: Bytes!
   timestamp: BigInt!
   blockNumber: BigInt!
+  from: Bytes!
   events(
     skip: Int = 0
     first: Int = 100
@@ -3989,14 +1796,16 @@ type Transaction {
 }
 
 input Transaction_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
   timestamp: BigInt
   timestamp_not: BigInt
   timestamp_gt: BigInt
@@ -4013,6 +1822,16 @@ input Transaction_filter {
   blockNumber_lte: BigInt
   blockNumber_in: [BigInt!]
   blockNumber_not_in: [BigInt!]
+  from: Bytes
+  from_not: Bytes
+  from_gt: Bytes
+  from_lt: Bytes
+  from_gte: Bytes
+  from_lte: Bytes
+  from_in: [Bytes!]
+  from_not_in: [Bytes!]
+  from_contains: Bytes
+  from_not_contains: Bytes
   events_: Event_filter
   """
   Filter for the block changed event.
@@ -4026,139 +1845,80 @@ enum Transaction_orderBy {
   id
   timestamp
   blockNumber
+  from
   events
 }
 
 type Vault {
-  id: ID!
+  id: Bytes!
+  """
+  The token that this vault is for
+  """
+  token: Bytes!
+  """
+  The owner of this vault
+  """
+  owner: Bytes!
+  """
+  The vaultId of this vault
+  """
   vaultId: BigInt!
   """
-  The owner of this Vault
+  Orders this vault is an input for
   """
-  owner: Account!
-  """
-  Tokens in this Vault
-  """
-  tokenVaults(
+  ordersAsInput(
     skip: Int = 0
     first: Int = 100
-    orderBy: TokenVault_orderBy
+    orderBy: Order_orderBy
     orderDirection: OrderDirection
-    where: TokenVault_filter
-  ): [TokenVault!]
+    where: Order_filter
+  ): [Order!]!
   """
-  Deposits into this Vault
+  Orders this vault is an output for
   """
-  deposits(
+  ordersAsOuput(
     skip: Int = 0
     first: Int = 100
-    orderBy: VaultDeposit_orderBy
+    orderBy: Order_orderBy
     orderDirection: OrderDirection
-    where: VaultDeposit_filter
-  ): [VaultDeposit!]
+    where: Order_filter
+  ): [Order!]!
   """
-  Withdrawals from this Vault
+  The amount of the token that is in this vault
   """
-  withdraws(
+  balance: BigInt!
+  """
+  All balance changes for this vault
+  """
+  balanceChanges(
     skip: Int = 0
     first: Int = 100
-    orderBy: VaultWithdraw_orderBy
+    orderBy: VaultBalanceChange_orderBy
     orderDirection: OrderDirection
-    where: VaultWithdraw_filter
-  ): [VaultWithdraw!]
+    where: VaultBalanceChange_filter
+  ): [VaultBalanceChange!]!
 }
 
-type VaultDeposit implements Event {
-  id: ID!
+interface VaultBalanceChange {
   """
-  The transaction sender of this deposit
-  """
-  sender: Account!
-  """
-  The token that was deposited
-  """
-  token: ERC20!
-  """
-  The vaultId that was deposited into
-  """
-  vaultId: BigInt!
-  """
-  The Vault that was deposited into
+  The vault that was affected
   """
   vault: Vault!
   """
-  The amount that was deposited
+  The amount that was changed - this is unsigned
   """
   amount: BigInt!
-  amountDisplay: BigDecimal!
   """
-  The current balance of this token for this Vault
+  The balance of the vault before the change
   """
-  tokenVault: TokenVault!
-  transaction: Transaction!
-  emitter: Account!
-  timestamp: BigInt!
+  oldVaultBalance: BigInt!
+  """
+  The balance of the vault after the change
+  """
+  newVaultBalance: BigInt!
 }
 
-input VaultDeposit_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  sender: String
-  sender_not: String
-  sender_gt: String
-  sender_lt: String
-  sender_gte: String
-  sender_lte: String
-  sender_in: [String!]
-  sender_not_in: [String!]
-  sender_contains: String
-  sender_contains_nocase: String
-  sender_not_contains: String
-  sender_not_contains_nocase: String
-  sender_starts_with: String
-  sender_starts_with_nocase: String
-  sender_not_starts_with: String
-  sender_not_starts_with_nocase: String
-  sender_ends_with: String
-  sender_ends_with_nocase: String
-  sender_not_ends_with: String
-  sender_not_ends_with_nocase: String
-  sender_: Account_filter
-  token: String
-  token_not: String
-  token_gt: String
-  token_lt: String
-  token_gte: String
-  token_lte: String
-  token_in: [String!]
-  token_not_in: [String!]
-  token_contains: String
-  token_contains_nocase: String
-  token_not_contains: String
-  token_not_contains_nocase: String
-  token_starts_with: String
-  token_starts_with_nocase: String
-  token_not_starts_with: String
-  token_not_starts_with_nocase: String
-  token_ends_with: String
-  token_ends_with_nocase: String
-  token_not_ends_with: String
-  token_not_ends_with_nocase: String
-  token_: ERC20_filter
-  vaultId: BigInt
-  vaultId_not: BigInt
-  vaultId_gt: BigInt
-  vaultId_lt: BigInt
-  vaultId_gte: BigInt
-  vaultId_lte: BigInt
-  vaultId_in: [BigInt!]
-  vaultId_not_in: [BigInt!]
+input VaultBalanceChange_filter {
   vault: String
   vault_not: String
   vault_gt: String
@@ -4188,394 +1948,73 @@ input VaultDeposit_filter {
   amount_lte: BigInt
   amount_in: [BigInt!]
   amount_not_in: [BigInt!]
-  amountDisplay: BigDecimal
-  amountDisplay_not: BigDecimal
-  amountDisplay_gt: BigDecimal
-  amountDisplay_lt: BigDecimal
-  amountDisplay_gte: BigDecimal
-  amountDisplay_lte: BigDecimal
-  amountDisplay_in: [BigDecimal!]
-  amountDisplay_not_in: [BigDecimal!]
-  tokenVault: String
-  tokenVault_not: String
-  tokenVault_gt: String
-  tokenVault_lt: String
-  tokenVault_gte: String
-  tokenVault_lte: String
-  tokenVault_in: [String!]
-  tokenVault_not_in: [String!]
-  tokenVault_contains: String
-  tokenVault_contains_nocase: String
-  tokenVault_not_contains: String
-  tokenVault_not_contains_nocase: String
-  tokenVault_starts_with: String
-  tokenVault_starts_with_nocase: String
-  tokenVault_not_starts_with: String
-  tokenVault_not_starts_with_nocase: String
-  tokenVault_ends_with: String
-  tokenVault_ends_with_nocase: String
-  tokenVault_not_ends_with: String
-  tokenVault_not_ends_with_nocase: String
-  tokenVault_: TokenVault_filter
-  transaction: String
-  transaction_not: String
-  transaction_gt: String
-  transaction_lt: String
-  transaction_gte: String
-  transaction_lte: String
-  transaction_in: [String!]
-  transaction_not_in: [String!]
-  transaction_contains: String
-  transaction_contains_nocase: String
-  transaction_not_contains: String
-  transaction_not_contains_nocase: String
-  transaction_starts_with: String
-  transaction_starts_with_nocase: String
-  transaction_not_starts_with: String
-  transaction_not_starts_with_nocase: String
-  transaction_ends_with: String
-  transaction_ends_with_nocase: String
-  transaction_not_ends_with: String
-  transaction_not_ends_with_nocase: String
-  transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
+  oldVaultBalance: BigInt
+  oldVaultBalance_not: BigInt
+  oldVaultBalance_gt: BigInt
+  oldVaultBalance_lt: BigInt
+  oldVaultBalance_gte: BigInt
+  oldVaultBalance_lte: BigInt
+  oldVaultBalance_in: [BigInt!]
+  oldVaultBalance_not_in: [BigInt!]
+  newVaultBalance: BigInt
+  newVaultBalance_not: BigInt
+  newVaultBalance_gt: BigInt
+  newVaultBalance_lt: BigInt
+  newVaultBalance_gte: BigInt
+  newVaultBalance_lte: BigInt
+  newVaultBalance_in: [BigInt!]
+  newVaultBalance_not_in: [BigInt!]
   """
   Filter for the block changed event.
   """
   _change_block: BlockChangedFilter
-  and: [VaultDeposit_filter]
-  or: [VaultDeposit_filter]
+  and: [VaultBalanceChange_filter]
+  or: [VaultBalanceChange_filter]
 }
 
-enum VaultDeposit_orderBy {
-  id
-  sender
-  sender__id
-  token
-  token__id
-  token__name
-  token__symbol
-  token__totalSupply
-  token__totalSupplyDisplay
-  token__decimals
-  vaultId
+enum VaultBalanceChange_orderBy {
   vault
   vault__id
+  vault__token
+  vault__owner
   vault__vaultId
+  vault__balance
   amount
-  amountDisplay
-  tokenVault
-  tokenVault__id
-  tokenVault__vaultId
-  tokenVault__balance
-  tokenVault__balanceDisplay
-  transaction
-  transaction__id
-  transaction__timestamp
-  transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
-}
-
-type VaultWithdraw implements Event {
-  id: ID!
-  """
-  The transaction sender of this withdrawal
-  """
-  sender: Account!
-  """
-  The token that was withdrawn
-  """
-  token: ERC20!
-  """
-  The vaultId that was withdrawn from
-  """
-  vaultId: BigInt!
-  """
-  The Vault that was withdrawn from
-  """
-  vault: Vault!
-  """
-  The amount that was requested be withdrawn
-  """
-  requestedAmount: BigInt!
-  requestedAmountDisplay: BigDecimal!
-  """
-  The amount that was withdrawn
-  """
-  amount: BigInt!
-  amountDisplay: BigDecimal!
-  """
-  The current balance of this token for this Vault
-  """
-  tokenVault: TokenVault!
-  transaction: Transaction!
-  emitter: Account!
-  timestamp: BigInt!
-}
-
-input VaultWithdraw_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
-  sender: String
-  sender_not: String
-  sender_gt: String
-  sender_lt: String
-  sender_gte: String
-  sender_lte: String
-  sender_in: [String!]
-  sender_not_in: [String!]
-  sender_contains: String
-  sender_contains_nocase: String
-  sender_not_contains: String
-  sender_not_contains_nocase: String
-  sender_starts_with: String
-  sender_starts_with_nocase: String
-  sender_not_starts_with: String
-  sender_not_starts_with_nocase: String
-  sender_ends_with: String
-  sender_ends_with_nocase: String
-  sender_not_ends_with: String
-  sender_not_ends_with_nocase: String
-  sender_: Account_filter
-  token: String
-  token_not: String
-  token_gt: String
-  token_lt: String
-  token_gte: String
-  token_lte: String
-  token_in: [String!]
-  token_not_in: [String!]
-  token_contains: String
-  token_contains_nocase: String
-  token_not_contains: String
-  token_not_contains_nocase: String
-  token_starts_with: String
-  token_starts_with_nocase: String
-  token_not_starts_with: String
-  token_not_starts_with_nocase: String
-  token_ends_with: String
-  token_ends_with_nocase: String
-  token_not_ends_with: String
-  token_not_ends_with_nocase: String
-  token_: ERC20_filter
-  vaultId: BigInt
-  vaultId_not: BigInt
-  vaultId_gt: BigInt
-  vaultId_lt: BigInt
-  vaultId_gte: BigInt
-  vaultId_lte: BigInt
-  vaultId_in: [BigInt!]
-  vaultId_not_in: [BigInt!]
-  vault: String
-  vault_not: String
-  vault_gt: String
-  vault_lt: String
-  vault_gte: String
-  vault_lte: String
-  vault_in: [String!]
-  vault_not_in: [String!]
-  vault_contains: String
-  vault_contains_nocase: String
-  vault_not_contains: String
-  vault_not_contains_nocase: String
-  vault_starts_with: String
-  vault_starts_with_nocase: String
-  vault_not_starts_with: String
-  vault_not_starts_with_nocase: String
-  vault_ends_with: String
-  vault_ends_with_nocase: String
-  vault_not_ends_with: String
-  vault_not_ends_with_nocase: String
-  vault_: Vault_filter
-  requestedAmount: BigInt
-  requestedAmount_not: BigInt
-  requestedAmount_gt: BigInt
-  requestedAmount_lt: BigInt
-  requestedAmount_gte: BigInt
-  requestedAmount_lte: BigInt
-  requestedAmount_in: [BigInt!]
-  requestedAmount_not_in: [BigInt!]
-  requestedAmountDisplay: BigDecimal
-  requestedAmountDisplay_not: BigDecimal
-  requestedAmountDisplay_gt: BigDecimal
-  requestedAmountDisplay_lt: BigDecimal
-  requestedAmountDisplay_gte: BigDecimal
-  requestedAmountDisplay_lte: BigDecimal
-  requestedAmountDisplay_in: [BigDecimal!]
-  requestedAmountDisplay_not_in: [BigDecimal!]
-  amount: BigInt
-  amount_not: BigInt
-  amount_gt: BigInt
-  amount_lt: BigInt
-  amount_gte: BigInt
-  amount_lte: BigInt
-  amount_in: [BigInt!]
-  amount_not_in: [BigInt!]
-  amountDisplay: BigDecimal
-  amountDisplay_not: BigDecimal
-  amountDisplay_gt: BigDecimal
-  amountDisplay_lt: BigDecimal
-  amountDisplay_gte: BigDecimal
-  amountDisplay_lte: BigDecimal
-  amountDisplay_in: [BigDecimal!]
-  amountDisplay_not_in: [BigDecimal!]
-  tokenVault: String
-  tokenVault_not: String
-  tokenVault_gt: String
-  tokenVault_lt: String
-  tokenVault_gte: String
-  tokenVault_lte: String
-  tokenVault_in: [String!]
-  tokenVault_not_in: [String!]
-  tokenVault_contains: String
-  tokenVault_contains_nocase: String
-  tokenVault_not_contains: String
-  tokenVault_not_contains_nocase: String
-  tokenVault_starts_with: String
-  tokenVault_starts_with_nocase: String
-  tokenVault_not_starts_with: String
-  tokenVault_not_starts_with_nocase: String
-  tokenVault_ends_with: String
-  tokenVault_ends_with_nocase: String
-  tokenVault_not_ends_with: String
-  tokenVault_not_ends_with_nocase: String
-  tokenVault_: TokenVault_filter
-  transaction: String
-  transaction_not: String
-  transaction_gt: String
-  transaction_lt: String
-  transaction_gte: String
-  transaction_lte: String
-  transaction_in: [String!]
-  transaction_not_in: [String!]
-  transaction_contains: String
-  transaction_contains_nocase: String
-  transaction_not_contains: String
-  transaction_not_contains_nocase: String
-  transaction_starts_with: String
-  transaction_starts_with_nocase: String
-  transaction_not_starts_with: String
-  transaction_not_starts_with_nocase: String
-  transaction_ends_with: String
-  transaction_ends_with_nocase: String
-  transaction_not_ends_with: String
-  transaction_not_ends_with_nocase: String
-  transaction_: Transaction_filter
-  emitter: String
-  emitter_not: String
-  emitter_gt: String
-  emitter_lt: String
-  emitter_gte: String
-  emitter_lte: String
-  emitter_in: [String!]
-  emitter_not_in: [String!]
-  emitter_contains: String
-  emitter_contains_nocase: String
-  emitter_not_contains: String
-  emitter_not_contains_nocase: String
-  emitter_starts_with: String
-  emitter_starts_with_nocase: String
-  emitter_not_starts_with: String
-  emitter_not_starts_with_nocase: String
-  emitter_ends_with: String
-  emitter_ends_with_nocase: String
-  emitter_not_ends_with: String
-  emitter_not_ends_with_nocase: String
-  emitter_: Account_filter
-  timestamp: BigInt
-  timestamp_not: BigInt
-  timestamp_gt: BigInt
-  timestamp_lt: BigInt
-  timestamp_gte: BigInt
-  timestamp_lte: BigInt
-  timestamp_in: [BigInt!]
-  timestamp_not_in: [BigInt!]
-  """
-  Filter for the block changed event.
-  """
-  _change_block: BlockChangedFilter
-  and: [VaultWithdraw_filter]
-  or: [VaultWithdraw_filter]
-}
-
-enum VaultWithdraw_orderBy {
-  id
-  sender
-  sender__id
-  token
-  token__id
-  token__name
-  token__symbol
-  token__totalSupply
-  token__totalSupplyDisplay
-  token__decimals
-  vaultId
-  vault
-  vault__id
-  vault__vaultId
-  requestedAmount
-  requestedAmountDisplay
-  amount
-  amountDisplay
-  tokenVault
-  tokenVault__id
-  tokenVault__vaultId
-  tokenVault__balance
-  tokenVault__balanceDisplay
-  transaction
-  transaction__id
-  transaction__timestamp
-  transaction__blockNumber
-  emitter
-  emitter__id
-  timestamp
+  oldVaultBalance
+  newVaultBalance
 }
 
 input Vault_filter {
-  id: ID
-  id_not: ID
-  id_gt: ID
-  id_lt: ID
-  id_gte: ID
-  id_lte: ID
-  id_in: [ID!]
-  id_not_in: [ID!]
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
+  token: Bytes
+  token_not: Bytes
+  token_gt: Bytes
+  token_lt: Bytes
+  token_gte: Bytes
+  token_lte: Bytes
+  token_in: [Bytes!]
+  token_not_in: [Bytes!]
+  token_contains: Bytes
+  token_not_contains: Bytes
+  owner: Bytes
+  owner_not: Bytes
+  owner_gt: Bytes
+  owner_lt: Bytes
+  owner_gte: Bytes
+  owner_lte: Bytes
+  owner_in: [Bytes!]
+  owner_not_in: [Bytes!]
+  owner_contains: Bytes
+  owner_not_contains: Bytes
   vaultId: BigInt
   vaultId_not: BigInt
   vaultId_gt: BigInt
@@ -4584,30 +2023,17 @@ input Vault_filter {
   vaultId_lte: BigInt
   vaultId_in: [BigInt!]
   vaultId_not_in: [BigInt!]
-  owner: String
-  owner_not: String
-  owner_gt: String
-  owner_lt: String
-  owner_gte: String
-  owner_lte: String
-  owner_in: [String!]
-  owner_not_in: [String!]
-  owner_contains: String
-  owner_contains_nocase: String
-  owner_not_contains: String
-  owner_not_contains_nocase: String
-  owner_starts_with: String
-  owner_starts_with_nocase: String
-  owner_not_starts_with: String
-  owner_not_starts_with_nocase: String
-  owner_ends_with: String
-  owner_ends_with_nocase: String
-  owner_not_ends_with: String
-  owner_not_ends_with_nocase: String
-  owner_: Account_filter
-  tokenVaults_: TokenVault_filter
-  deposits_: VaultDeposit_filter
-  withdraws_: VaultWithdraw_filter
+  ordersAsInput_: Order_filter
+  ordersAsOuput_: Order_filter
+  balance: BigInt
+  balance_not: BigInt
+  balance_gt: BigInt
+  balance_lt: BigInt
+  balance_gte: BigInt
+  balance_lte: BigInt
+  balance_in: [BigInt!]
+  balance_not_in: [BigInt!]
+  balanceChanges_: VaultBalanceChange_filter
   """
   Filter for the block changed event.
   """
@@ -4618,12 +2044,174 @@ input Vault_filter {
 
 enum Vault_orderBy {
   id
-  vaultId
+  token
   owner
-  owner__id
-  tokenVaults
-  deposits
-  withdraws
+  vaultId
+  ordersAsInput
+  ordersAsOuput
+  balance
+  balanceChanges
+}
+
+type Withdrawal implements Event & VaultBalanceChange {
+  id: Bytes!
+  """
+  The token that was withdrawn
+  """
+  token: Bytes!
+  """
+  The amount that was being targeted to be withdrawn
+  """
+  targetAmount: BigInt!
+  """
+  The vault that was withdrawn from
+  """
+  vault: Vault!
+  """
+  The amount that was actually withdrawn
+  """
+  amount: BigInt!
+  oldVaultBalance: BigInt!
+  newVaultBalance: BigInt!
+  transaction: Transaction!
+  """
+  The msg.sender of this withdrawal
+  """
+  sender: Bytes!
+}
+
+input Withdrawal_filter {
+  id: Bytes
+  id_not: Bytes
+  id_gt: Bytes
+  id_lt: Bytes
+  id_gte: Bytes
+  id_lte: Bytes
+  id_in: [Bytes!]
+  id_not_in: [Bytes!]
+  id_contains: Bytes
+  id_not_contains: Bytes
+  token: Bytes
+  token_not: Bytes
+  token_gt: Bytes
+  token_lt: Bytes
+  token_gte: Bytes
+  token_lte: Bytes
+  token_in: [Bytes!]
+  token_not_in: [Bytes!]
+  token_contains: Bytes
+  token_not_contains: Bytes
+  targetAmount: BigInt
+  targetAmount_not: BigInt
+  targetAmount_gt: BigInt
+  targetAmount_lt: BigInt
+  targetAmount_gte: BigInt
+  targetAmount_lte: BigInt
+  targetAmount_in: [BigInt!]
+  targetAmount_not_in: [BigInt!]
+  vault: String
+  vault_not: String
+  vault_gt: String
+  vault_lt: String
+  vault_gte: String
+  vault_lte: String
+  vault_in: [String!]
+  vault_not_in: [String!]
+  vault_contains: String
+  vault_contains_nocase: String
+  vault_not_contains: String
+  vault_not_contains_nocase: String
+  vault_starts_with: String
+  vault_starts_with_nocase: String
+  vault_not_starts_with: String
+  vault_not_starts_with_nocase: String
+  vault_ends_with: String
+  vault_ends_with_nocase: String
+  vault_not_ends_with: String
+  vault_not_ends_with_nocase: String
+  vault_: Vault_filter
+  amount: BigInt
+  amount_not: BigInt
+  amount_gt: BigInt
+  amount_lt: BigInt
+  amount_gte: BigInt
+  amount_lte: BigInt
+  amount_in: [BigInt!]
+  amount_not_in: [BigInt!]
+  oldVaultBalance: BigInt
+  oldVaultBalance_not: BigInt
+  oldVaultBalance_gt: BigInt
+  oldVaultBalance_lt: BigInt
+  oldVaultBalance_gte: BigInt
+  oldVaultBalance_lte: BigInt
+  oldVaultBalance_in: [BigInt!]
+  oldVaultBalance_not_in: [BigInt!]
+  newVaultBalance: BigInt
+  newVaultBalance_not: BigInt
+  newVaultBalance_gt: BigInt
+  newVaultBalance_lt: BigInt
+  newVaultBalance_gte: BigInt
+  newVaultBalance_lte: BigInt
+  newVaultBalance_in: [BigInt!]
+  newVaultBalance_not_in: [BigInt!]
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
+  sender: Bytes
+  sender_not: Bytes
+  sender_gt: Bytes
+  sender_lt: Bytes
+  sender_gte: Bytes
+  sender_lte: Bytes
+  sender_in: [Bytes!]
+  sender_not_in: [Bytes!]
+  sender_contains: Bytes
+  sender_not_contains: Bytes
+  """
+  Filter for the block changed event.
+  """
+  _change_block: BlockChangedFilter
+  and: [Withdrawal_filter]
+  or: [Withdrawal_filter]
+}
+
+enum Withdrawal_orderBy {
+  id
+  token
+  targetAmount
+  vault
+  vault__id
+  vault__token
+  vault__owner
+  vault__vaultId
+  vault__balance
+  amount
+  oldVaultBalance
+  newVaultBalance
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
+  sender
 }
 
 type _Block_ {
@@ -4639,6 +2227,10 @@ type _Block_ {
   Integer representation of the timestamp stored in blocks for the chain
   """
   timestamp: Int
+  """
+  The hash of the parent block
+  """
+  parentHash: Bytes
 }
 
 """
