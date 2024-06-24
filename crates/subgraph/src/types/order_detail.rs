@@ -1,19 +1,23 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
-#[derive(cynic::QueryVariables, Debug)]
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
 pub struct OrderDetailQueryVariables {
     pub id: Bytes,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "OrderDetailQueryVariables")]
+#[typeshare]
 pub struct OrderDetailQuery {
     #[arguments(id: $id)]
     pub order: Option<Order>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Order {
     pub order_bytes: Bytes,
     pub order_hash: Bytes,
@@ -25,26 +29,30 @@ pub struct Order {
     pub add_events: Vec<AddOrder>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Vault {
     pub token: Bytes,
     pub balance: BigInt,
     pub vault_id: BigInt,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct AddOrder {
     pub transaction: Transaction,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Transaction {
     pub block_number: BigInt,
     pub timestamp: BigInt,
 }
 
-#[derive(cynic::Enum, Clone, Copy, Debug)]
+#[derive(cynic::Enum, Copy, Debug, Clone)]
 #[cynic(graphql_type = "AddOrder_orderBy")]
+#[typeshare]
 pub enum AddOrderOrderBy {
     #[cynic(rename = "id")]
     Id,
@@ -76,7 +84,8 @@ pub enum AddOrderOrderBy {
     Sender,
 }
 
-#[derive(cynic::Enum, Clone, Copy, Debug)]
+#[derive(cynic::Enum, Copy, Debug, Clone)]
+#[typeshare]
 pub enum OrderDirection {
     #[cynic(rename = "asc")]
     Asc,
@@ -85,7 +94,9 @@ pub enum OrderDirection {
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct Bytes(pub String);

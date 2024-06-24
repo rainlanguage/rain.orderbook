@@ -1,23 +1,27 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
-#[derive(cynic::QueryVariables, Debug)]
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
 pub struct VaultBalanceChangesListQueryVariables<'a> {
     pub first: Option<i32>,
     pub id: &'a str,
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(
     graphql_type = "Query",
     variables = "VaultBalanceChangesListQueryVariables"
 )]
+#[typeshare]
 pub struct VaultBalanceChangesListQuery {
     #[arguments(orderDirection: "desc", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
     pub vault_balance_changes: Vec<VaultBalanceChange>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct VaultBalanceChange {
     pub __typename: String,
     pub amount: BigInt,
@@ -26,12 +30,14 @@ pub struct VaultBalanceChange {
     pub vault: Vault,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Vault {
     pub id: Bytes,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
+#[typeshare]
 pub enum OrderDirection {
     #[cynic(rename = "asc")]
     Asc,
@@ -40,7 +46,9 @@ pub enum OrderDirection {
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct Bytes(pub String);

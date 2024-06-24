@@ -1,20 +1,24 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
-#[derive(cynic::QueryVariables, Debug)]
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
 pub struct VaultsListQueryVariables {
     pub first: Option<i32>,
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "VaultsListQueryVariables")]
+#[typeshare]
 pub struct VaultsListQuery {
     #[arguments(orderBy: "id", orderDirection: "desc", skip: $skip, first: $first)]
     pub vaults: Vec<Vault>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Vault {
     pub id: Bytes,
     pub owner: Bytes,
@@ -24,12 +28,14 @@ pub struct Vault {
     pub orders_as_ouput: Vec<Order>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Order {
     pub order_hash: Bytes,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
+#[typeshare]
 pub enum OrderDirection {
     #[cynic(rename = "asc")]
     Asc,
@@ -39,6 +45,7 @@ pub enum OrderDirection {
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Vault_orderBy")]
+#[typeshare]
 pub enum VaultOrderBy {
     #[cynic(rename = "id")]
     Id,
@@ -59,7 +66,10 @@ pub enum VaultOrderBy {
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
+
 pub struct Bytes(pub String);

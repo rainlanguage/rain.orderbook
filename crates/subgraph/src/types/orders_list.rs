@@ -1,20 +1,24 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
 
-#[derive(cynic::QueryVariables, Debug)]
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
 pub struct OrdersListQueryVariables {
     pub first: Option<i32>,
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
+#[typeshare]
 pub struct OrdersListQuery {
     #[arguments(orderDirection: "desc", skip: $skip, first: $first)]
     pub orders: Vec<Order>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Order {
     pub order_bytes: Bytes,
     pub order_hash: Bytes,
@@ -26,19 +30,22 @@ pub struct Order {
     pub add_events: Vec<AddOrder>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Vault {
     pub token: Bytes,
     pub balance: BigInt,
     pub vault_id: BigInt,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct AddOrder {
     pub transaction: Transaction,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Transaction {
     pub block_number: BigInt,
     pub timestamp: BigInt,
@@ -46,6 +53,7 @@ pub struct Transaction {
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "AddOrder_orderBy")]
+#[typeshare]
 pub enum AddOrderOrderBy {
     #[cynic(rename = "id")]
     Id,
@@ -78,6 +86,7 @@ pub enum AddOrderOrderBy {
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
+#[typeshare]
 pub enum OrderDirection {
     #[cynic(rename = "asc")]
     Asc,
@@ -86,7 +95,9 @@ pub enum OrderDirection {
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct Bytes(pub String);

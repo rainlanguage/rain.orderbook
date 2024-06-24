@@ -1,20 +1,24 @@
 use crate::schema;
+use serde::Serialize;
 use typeshare::typeshare;
-#[derive(cynic::QueryVariables, Debug)]
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
 pub struct OrderTakesListQueryVariables<'a> {
     pub first: Option<i32>,
     pub id: &'a cynic::Id,
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "OrderTakesListQueryVariables")]
+#[typeshare]
 pub struct OrderTakesListQuery {
-    #[arguments(orderBy: "timestamp", orderDirection: "desc", skip: $skip, first: $first, where: { order_: { id: $id } })]
+    #[arguments(skip: $skip, first: $first, where: { order_: { id: $id } })]
     pub trades: Vec<Trade>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Trade {
     pub trade_event: TradeEvent,
     pub output_vault_balance_change: TradeVaultBalanceChange,
@@ -22,42 +26,49 @@ pub struct Trade {
     pub input_vault_balance_change: TradeVaultBalanceChange2,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "TradeVaultBalanceChange")]
+#[typeshare]
 pub struct TradeVaultBalanceChange2 {
     pub vault: Vault,
     pub amount: BigInt,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct TradeVaultBalanceChange {
     pub amount: BigInt,
     pub vault: Vault,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Vault {
     pub token: Bytes,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct TradeEvent {
     pub transaction: Transaction,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Transaction {
     pub id: Bytes,
     pub from: Bytes,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Order {
     pub id: Bytes,
     pub order_hash: Bytes,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
+#[typeshare]
 pub enum OrderDirection {
     #[cynic(rename = "asc")]
     Asc,
@@ -67,6 +78,7 @@ pub enum OrderDirection {
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Trade_orderBy")]
+#[typeshare]
 pub enum TradeOrderBy {
     #[cynic(rename = "id")]
     Id,
@@ -113,7 +125,9 @@ pub enum TradeOrderBy {
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct Bytes(pub String);
