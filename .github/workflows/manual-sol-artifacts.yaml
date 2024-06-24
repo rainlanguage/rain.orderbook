@@ -30,6 +30,14 @@ on:
           - subparser
           - route-processor
           - arb
+      obaddress:
+        description: 'orderbook address'
+        required: false
+        type: string
+      rp4address:
+        description: 'rp4 address'
+        required: false
+        type: string
 
 jobs:
   deploy:
@@ -68,3 +76,5 @@ jobs:
           DEPLOY_VERIFIER: ${{ secrets[env.verifier_secret_name] || vars[env.verifier_secret_name] || '' }}
           DEPLOY_VERIFIER_URL: ${{ secrets[env.verifier_url_secret_name] || vars[env.verifier_url_secret_name] || '' }}
           DEPLOY_METABOARD_ADDRESS: ${{ secrets[env.metaboard_address_secret_name] || vars[env.metaboard_address_secret_name] || '' }}
+          DEPLOY_RAINDEX_ADDRESS: ${{ inputs.obaddress }}
+          DEPLOY_ROUTE_PROCESSOR_4_ADDRESS: ${{ inputs.rp4address }}
