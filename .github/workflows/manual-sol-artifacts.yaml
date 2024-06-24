@@ -26,7 +26,10 @@ on:
         type: choice
         options:
           - all
+          - raindex
           - subparser
+          - route-processor
+          - arb
 
 jobs:
   deploy:
