@@ -18,14 +18,14 @@ import {IOrderBookV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol"
 import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
+import {IParserV1View} from "rain.interpreter.interface/interface/unstable/IParserV1View.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
     IExpressionDeployerV3 internal immutable iDeployer;
     IInterpreterV2 internal immutable iInterpreter;
     IInterpreterStoreV2 internal immutable iStore;
-    IParserV1 internal immutable iParser;
+    IParserV1View internal immutable iParser;
     IOrderBookV3 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
@@ -33,7 +33,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
     constructor() {
         iInterpreter = IInterpreterV2(new RainterpreterNPE2());
         iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
-        iParser = IParserV1(new RainterpreterParserNPE2());
+        iParser = IParserV1View(new RainterpreterParserNPE2());
 
         // Deploy the expression deployer.
         vm.etch(address(IERC1820_REGISTRY), REVERTING_MOCK_BYTECODE);
