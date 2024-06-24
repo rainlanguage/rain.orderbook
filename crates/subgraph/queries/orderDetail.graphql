@@ -1,59 +1,23 @@
-query OrderDetailQuery($id: ID!) {
+query OrderDetailQuery($id: Bytes!) {
   order(id: $id) {
-    id
-    owner {
-      id
+    orderBytes
+    orderHash
+    owner
+    outputs {
+      token
+      balance
+      vaultId
     }
-    orderActive
-    interpreter
-    interpreterStore
-    expressionDeployer
-    expression
-    timestamp
-    handleIO
-   	validInputs {
-      tokenVault {
-        id
-        vaultId
-        vault {
-          owner {
-            id
-          }
-        }
-        token {
-          id
-          name
-          symbol
-          decimals
-        }
-      }
+    inputs {
+      token
+      balance
+      vaultId
     }
-    validOutputs {
-      tokenVault {
-        id
-        vaultId
-        vault {
-          owner {
-            id
-          }
-        }
-        token {
-          id
-          name
-          symbol
-          decimals
-        }
-      }
-    }
-    meta {
-      metaBytes
-      content {
-        id
-        payload
-        magicNumber
-        contentType
-        contentEncoding
-        contentLanguage
+    active
+    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+      transaction {
+        blockNumber
+        timestamp
       }
     }
   }

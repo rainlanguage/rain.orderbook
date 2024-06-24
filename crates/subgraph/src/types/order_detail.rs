@@ -1,95 +1,87 @@
 use crate::schema;
-use serde::Serialize;
 use typeshare::typeshare;
 
-#[typeshare]
 #[derive(cynic::QueryVariables, Debug)]
-pub struct OrderDetailQueryVariables<'a> {
-    pub id: &'a cynic::Id,
+pub struct OrderDetailQueryVariables {
+    pub id: Bytes,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "OrderDetailQueryVariables")]
 pub struct OrderDetailQuery {
     #[arguments(id: $id)]
     pub order: Option<Order>,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug)]
 pub struct Order {
-    pub id: cynic::Id,
-    pub owner: Account,
-    pub order_active: bool,
-    pub interpreter: Bytes,
-    pub interpreter_store: Bytes,
-    pub expression_deployer: Bytes,
-    pub expression: Bytes,
-    pub timestamp: BigInt,
-    #[cynic(rename = "handleIO")]
-    pub handle_io: bool,
-    pub valid_inputs: Option<Vec<Io>>,
-    pub valid_outputs: Option<Vec<Io>>,
-    pub meta: Option<RainMetaV1>,
-    #[cynic(rename = "orderJSONString")]
-    pub order_json: String,
+    pub order_bytes: Bytes,
+    pub order_hash: Bytes,
+    pub owner: Bytes,
+    pub outputs: Vec<Vault>,
+    pub inputs: Vec<Vault>,
+    pub active: bool,
+    #[arguments(first: 1, orderBy: "transaction__timestamp", orderDirection: "desc")]
+    pub add_events: Vec<AddOrder>,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct RainMetaV1 {
-    pub meta_bytes: Bytes,
-    pub content: Vec<ContentMetaV1>,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "IO")]
-pub struct Io {
-    pub token_vault: TokenVault,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct TokenVault {
-    pub id: cynic::Id,
-    pub vault_id: BigInt,
-    pub vault: Vault,
-    pub token: Erc20,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug)]
 pub struct Vault {
-    pub owner: Account,
+    pub token: Bytes,
+    pub balance: BigInt,
+    pub vault_id: BigInt,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "ERC20")]
-pub struct Erc20 {
-    pub id: cynic::Id,
-    pub name: String,
-    pub symbol: String,
-    pub decimals: i32,
+#[derive(cynic::QueryFragment, Debug)]
+pub struct AddOrder {
+    pub transaction: Transaction,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct ContentMetaV1 {
-    pub id: Bytes,
-    pub payload: Bytes,
-    pub magic_number: BigInt,
-    pub content_type: Option<String>,
-    pub content_encoding: Option<String>,
-    pub content_language: Option<String>,
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Transaction {
+    pub block_number: BigInt,
+    pub timestamp: BigInt,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct Account {
-    pub id: Bytes,
+#[derive(cynic::Enum, Clone, Copy, Debug)]
+#[cynic(graphql_type = "AddOrder_orderBy")]
+pub enum AddOrderOrderBy {
+    #[cynic(rename = "id")]
+    Id,
+    #[cynic(rename = "order")]
+    Order,
+    #[cynic(rename = "order__id")]
+    OrderId,
+    #[cynic(rename = "order__active")]
+    OrderActive,
+    #[cynic(rename = "order__orderHash")]
+    OrderOrderHash,
+    #[cynic(rename = "order__owner")]
+    OrderOwner,
+    #[cynic(rename = "order__nonce")]
+    OrderNonce,
+    #[cynic(rename = "order__orderBytes")]
+    OrderOrderBytes,
+    #[cynic(rename = "transaction")]
+    Transaction,
+    #[cynic(rename = "transaction__id")]
+    TransactionId,
+    #[cynic(rename = "transaction__timestamp")]
+    TransactionTimestamp,
+    #[cynic(rename = "transaction__blockNumber")]
+    TransactionBlockNumber,
+    #[cynic(rename = "transaction__from")]
+    TransactionFrom,
+    #[cynic(rename = "sender")]
+    Sender,
+}
+
+#[derive(cynic::Enum, Clone, Copy, Debug)]
+pub enum OrderDirection {
+    #[cynic(rename = "asc")]
+    Asc,
+    #[cynic(rename = "desc")]
+    Desc,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
