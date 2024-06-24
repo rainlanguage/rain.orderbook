@@ -60,11 +60,11 @@ contract Deploy is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        address orderbook = address(0);
+        address raindex = address(0);
         address routeProcessor = address(0);
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
-            deployRaindex();
+            raindex = address(deployRaindex());
         }
 
         if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {
@@ -72,12 +72,12 @@ contract Deploy is Script {
         }
 
         if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || suite == DEPLOYMENT_SUITE_ALL) {
-            deployRouter();
+            routeProcessor = deployRouter();
         }
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
-            if (orderbook == address(0)) {
-                orderbook = vm.envAddress("DEPLOY_ORDERBOOK_ADDRESS");
+            if (raindex == address(0)) {
+                raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
             }
             if (routeProcessor == address(0)) {
                 routeProcessor = vm.envAddress("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS");
@@ -86,13 +86,13 @@ contract Deploy is Script {
             // Order takers.
             new GenericPoolOrderBookV3ArbOrderTaker(
                 OrderBookV3ArbConfigV1(
-                    orderbook, EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
+                    raindex, EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
                 )
             );
 
             new RouteProcessorOrderBookV3ArbOrderTaker(
                 OrderBookV3ArbConfigV1(
-                    orderbook,
+                    raindex,
                     EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
                     abi.encode(routeProcessor)
                 )
@@ -101,7 +101,7 @@ contract Deploy is Script {
             // Flash borrowers.
             new GenericPoolOrderBookV3FlashBorrower(
                 OrderBookV3ArbConfigV1(
-                    orderbook, EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
+                    raindex, EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
                 )
             );
         }
