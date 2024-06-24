@@ -1,5 +1,4 @@
 import { BigInt } from "@graphprotocol/graph-ts";
-import { Deposit } from "../generated/OrderBook/OrderBook";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
@@ -8,6 +7,7 @@ import {
   handleVaultBalanceChange,
   vaultEntityId,
 } from "./vault";
+import { Deposit } from "../generated/OrderBook/OrderBook";
 
 export function handleDeposit(event: Deposit): void {
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
