@@ -7,15 +7,7 @@ import {
   clearInBlockStore,
 } from "matchstick-as";
 import { BigInt, Address, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { createDepositEntity } from "../src/deposit";
-import {
-  Evaluable,
-  IO,
-  createAddOrderEvent,
-  createDepositEvent,
-  createTakeOrderEvent,
-} from "./event-mocks.test";
-import { vaultEntityId } from "../src/vault";
+import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
 import { createTakeOrderEntity } from "../src/takeorder";
 import { eventId } from "../src/interfaces/event";
 
