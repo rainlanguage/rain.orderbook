@@ -3,9 +3,9 @@ use serde::Serialize;
 use typeshare::typeshare;
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
-pub struct OrderTakesListQueryVariables<'a> {
+pub struct OrderTakesListQueryVariables {
     pub first: Option<i32>,
-    pub id: &'a cynic::Id,
+    pub id: Bytes,
     pub skip: Option<i32>,
 }
 

@@ -11,12 +11,12 @@ pub struct TokenVaultFlattened {
     pub token_symbol: String,
     pub token_decimals: i32,
     pub token_address: String,
-    pub balance_display: vaults_list::BigDecimal,
+    pub balance_display: vaults_list::BigInt,
     pub balance: vaults_list::BigInt,
 }
 
-impl From<vaults_list::TokenVault> for TokenVaultFlattened {
-    fn from(val: vaults_list::TokenVault) -> Self {
+impl From<vaults_list::Vault> for TokenVaultFlattened {
+    fn from(val: vaults_list::Vault) -> Self {
         Self {
             id: val.id.into_inner(),
             owner: val.owner.id,

@@ -3,9 +3,9 @@ use serde::Serialize;
 use typeshare::typeshare;
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
-pub struct VaultBalanceChangesListQueryVariables<'a> {
+pub struct VaultBalanceChangesListQueryVariables {
     pub first: Option<i32>,
-    pub id: &'a str,
+    pub id: Bytes,
     pub skip: Option<i32>,
 }
 

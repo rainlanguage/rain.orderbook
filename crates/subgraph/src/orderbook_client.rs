@@ -1,5 +1,6 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
+use crate::types::vault_balance_changes_list::Bytes;
 use crate::types::{
     order_detail,
     order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
@@ -56,9 +57,7 @@ impl OrderbookSubgraphClient {
         id: Id,
     ) -> Result<order_detail::Order, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrderDetailQuery, OrderDetailQueryVariables>(OrderDetailQueryVariables {
-                id: &id,
-            })
+            .query::<OrderDetailQuery, OrderDetailQueryVariables>(OrderDetailQueryVariables { id })
             .await?;
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -115,9 +114,7 @@ impl OrderbookSubgraphClient {
                 OrderTakeDetailQueryVariables { id: &id },
             )
             .await?;
-        let order_take = data
-            .take_order_entity
-            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        let order_take = data.trade.ok_or(OrderbookSubgraphClientError::Empty)?;
 
         Ok(order_take)
     }
@@ -132,14 +129,14 @@ impl OrderbookSubgraphClient {
         let data = self
             .query::<OrderTakesListQuery, OrderTakesListQueryVariables>(
                 OrderTakesListQueryVariables {
-                    id: &order_id,
+                    id: order_takes_list::Bytes(order_id.inner().to_string()),
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
                 },
             )
             .await?;
 
-        Ok(data.take_order_entities)
+        Ok(data.trades)
     }
 
     /// Fetch all pages of order_takes_list query
@@ -176,13 +173,9 @@ impl OrderbookSubgraphClient {
         id: Id,
     ) -> Result<vault_detail::Vault, OrderbookSubgraphClientError> {
         let data = self
-            .query::<VaultDetailQuery, VaultDetailQueryVariables>(VaultDetailQueryVariables {
-                id: &id,
-            })
+            .query::<VaultDetailQuery, VaultDetailQueryVariables>(VaultDetailQueryVariables { id })
             .await?;
-        let vault = data
-            .token_vault
-            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        let vault = data.vault.ok_or(OrderbookSubgraphClientError::Empty)?;
 
         Ok(vault)
     }
@@ -200,7 +193,7 @@ impl OrderbookSubgraphClient {
             })
             .await?;
 
-        Ok(data.token_vaults)
+        Ok(data.vaults)
     }
 
     /// Fetch all pages of vaults_list query
@@ -239,7 +232,7 @@ impl OrderbookSubgraphClient {
                 pagination_vars,
                 VaultBalanceChangesListPageQueryClient::new(self.url.clone()),
                 VaultBalanceChangesListQueryVariables {
-                    id: &id,
+                    id: Bytes(id.inner().to_string()),
                     skip: Some(0),
                     first: Some(200),
                 },

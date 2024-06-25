@@ -36,30 +36,24 @@ impl TryFrom<orders_list::Order> for OrderFlattened {
             interpreter: val.interpreter,
             interpreter_store: val.interpreter_store,
             transaction: val.transaction.id.into_inner(),
-            valid_inputs_vaults: val.valid_inputs.clone().map_or(
-                "".into(),
-                |v: Vec<orders_list::Io>| {
-                    v.into_iter()
-                        .map(|io| io.token_vault.id.into_inner())
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                },
-            ),
+            valid_inputs_vaults: val.valid_inputs.clone().map_or("".into(), |v| {
+                v.into_iter()
+                    .map(|io| io.token_vault.id.into_inner())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            }),
             valid_outputs_vaults: val.valid_outputs.clone().map_or("".into(), |v| {
                 v.into_iter()
                     .map(|io| io.token_vault.id.into_inner())
                     .collect::<Vec<String>>()
                     .join(", ")
             }),
-            valid_inputs_token_symbols_display: val.valid_inputs.map_or(
-                "".into(),
-                |v: Vec<orders_list::Io>| {
-                    v.into_iter()
-                        .map(|io| io.token.symbol)
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                },
-            ),
+            valid_inputs_token_symbols_display: val.valid_inputs.map_or("".into(), |v| {
+                v.into_iter()
+                    .map(|io| io.token.symbol)
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            }),
             valid_outputs_token_symbols_display: val.valid_outputs.map_or("".into(), |v| {
                 v.into_iter()
                     .map(|io| io.token.symbol)

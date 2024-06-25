@@ -13,23 +13,23 @@ pub struct OrderTakeFlattened {
     pub transaction: Id,
     pub sender: order_takes_list::Bytes,
     pub order_id: Id,
-    pub ioratio: order_takes_list::BigDecimal,
+    pub ioratio: order_takes_list::BigInt,
     pub input: order_takes_list::BigInt,
-    pub input_display: order_takes_list::BigDecimal,
+    pub input_display: String,
     pub input_token_id: Id,
     pub input_token_symbol: String,
     pub input_ioindex: order_takes_list::BigInt,
     pub output: order_takes_list::BigInt,
-    pub output_display: order_takes_list::BigDecimal,
+    pub output_display: String,
     pub output_token_id: Id,
     pub output_token_symbol: String,
     pub output_ioindex: order_takes_list::BigInt,
 }
 
-impl TryFrom<order_takes_list::TakeOrderEntity> for OrderTakeFlattened {
+impl TryFrom<order_takes_list::Trade> for OrderTakeFlattened {
     type Error = FormatTimestampDisplayError;
 
-    fn try_from(val: order_takes_list::TakeOrderEntity) -> Result<Self, Self::Error> {
+    fn try_from(val: order_takes_list::Trade) -> Result<Self, Self::Error> {
         Ok(Self {
             id: val.id.into_inner(),
             timestamp: val.timestamp.clone(),

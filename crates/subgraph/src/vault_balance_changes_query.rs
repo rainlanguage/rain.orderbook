@@ -4,9 +4,9 @@ use crate::types::vault_balance_changes_list::VaultBalanceChange;
 use crate::types::vault_balance_changes_list::{
     VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
 };
-use chrono::DateTime;
+// use chrono::DateTime;
 use reqwest::Url;
-use std::cmp::Reverse;
+// use std::cmp::Reverse;
 
 pub struct VaultBalanceChangesListPageQueryClient {
     pub url: Url,
@@ -24,12 +24,12 @@ impl CynicClient for VaultBalanceChangesListPageQueryClient {
     }
 }
 
-impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables<'a>>
+impl PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables>
     for VaultBalanceChangesListPageQueryClient
 {
     async fn query_page(
         &self,
-        variables: VaultBalanceChangesListQueryVariables<'a>,
+        variables: VaultBalanceChangesListQueryVariables,
     ) -> Result<Vec<VaultBalanceChange>, CynicClientError> {
         let res: Result<VaultBalanceChangesListQuery, CynicClientError> = self
             .query::<VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables>(variables)
@@ -42,25 +42,25 @@ impl<'a> PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariabl
 
     /// Sort by timestamp, descending
     fn sort_results(results: Vec<VaultBalanceChange>) -> Vec<VaultBalanceChange> {
-        let mut sorted_results = results.clone();
-        sorted_results.sort_by_key(|r| {
-            let timestamp = "0"; // @TODO: Get timestamp from VaultBalanceChange
-            Reverse(DateTime::from_timestamp(
-                timestamp.parse::<i64>().unwrap_or(0),
-                0,
-            ))
-        });
+        let sorted_results = results.clone();
+        // sorted_results.sort_by_key(|r| {
+        //     let timestamp = "0"; // @TODO: Get timestamp from VaultBalanceChange
+        //     Reverse(DateTime::from_timestamp(
+        //         timestamp.parse::<i64>().unwrap_or(0),
+        //         0,
+        //     ))
+        // });
 
         sorted_results
     }
 }
 
-impl<'a> PageQueryVariables for VaultBalanceChangesListQueryVariables<'a> {
+impl<'a> PageQueryVariables for VaultBalanceChangesListQueryVariables {
     fn with_pagination(&self, skip: Option<i32>, first: Option<i32>) -> Self {
         Self {
             skip,
             first,
-            id: self.id,
+            id: self.id.clone(),
         }
     }
 }

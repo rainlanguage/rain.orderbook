@@ -1,7 +1,11 @@
 use crate::types::order_detail;
 use crate::utils::base10_str_to_u256;
-use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address};
-use alloy_sol_types::types::value::SolValue;
+use alloy_primitives::{
+    hex::{decode, FromHexError},
+    ruint::ParseError,
+    Address,
+};
+use alloy_sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
@@ -18,6 +22,8 @@ pub enum OrderDetailError {
     ParseError(#[from] ParseError),
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
+    #[error(transparent)]
+    AbiDecode(#[from] alloy_sol_types::Error),
 }
 
 impl TryInto<IO> for order_detail::Vault {
@@ -39,8 +45,10 @@ impl TryInto<OrderV3> for order_detail::Order {
     type Error = OrderDetailError;
 
     fn try_into(self) -> Result<OrderV3, Self::Error> {
-        let order =
-            rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(self.order_bytes.0.parse()?);
+        let order = rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(
+            &decode(self.order_bytes.0)?,
+            true,
+        )?;
         Ok(order)
     }
 }

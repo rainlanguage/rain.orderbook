@@ -3,7 +3,7 @@ use crate::{
     utils::timestamp::{format_bigint_timestamp_display, FormatTimestampDisplayError},
 };
 use rain_orderbook_subgraph_client::types::{
-    vault_balance_change::VaultBalanceChange, vault_balance_changes_list,
+    vault_balance_changes_list, vault_balance_changes_list::VaultBalanceChange,
 };
 use serde::{Deserialize, Serialize};
 
@@ -13,10 +13,10 @@ pub struct VaultBalanceChangeFlattened {
     pub timestamp: vault_balance_changes_list::BigInt,
     pub timestamp_display: String,
     pub sender: vault_balance_changes_list::Bytes,
-    pub amount: vault_balance_changes_list::BigDecimal,
+    pub amount: vault_balance_changes_list::BigInt,
     pub amount_display_signed: String,
     pub change_type_display: String,
-    pub balance: vault_balance_changes_list::BigDecimal,
+    pub balance: vault_balance_changes_list::BigInt,
 }
 
 impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {

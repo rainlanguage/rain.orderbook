@@ -5,7 +5,7 @@ use typeshare::typeshare;
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
 pub struct OrderDetailQueryVariables {
-    pub id: Bytes,
+    pub id: cynic::Id,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
