@@ -19,8 +19,12 @@ export function handleRemoveOrder(event: RemoveOrderV2): void {
   createRemoveOrderEntity(event);
 }
 
+export function makeOrderId(orderHash: Bytes): Bytes {
+  return orderHash;
+}
+
 export function createOrderEntity(event: AddOrderV2): void {
-  let order = new Order(event.params.orderHash);
+  let order = new Order(makeOrderId(event.params.orderHash));
   order.active = true;
   order.orderHash = event.params.orderHash;
   order.owner = event.params.sender;
