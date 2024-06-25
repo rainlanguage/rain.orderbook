@@ -111,6 +111,7 @@ describe("Handle withdraw", () => {
     assert.bigIntEquals(withdraw.amount, BigInt.fromI32(200));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(900));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(700));
+    assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
 
     // deposit different token, same vaultId
     depositEvent = createDepositEvent(
@@ -162,5 +163,6 @@ describe("Handle withdraw", () => {
     assert.bigIntEquals(withdraw.amount, BigInt.fromI32(200));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(300));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(100));
+    assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
   });
 });

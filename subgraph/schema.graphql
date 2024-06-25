@@ -27,6 +27,8 @@ interface VaultBalanceChange {
   newVaultBalance: BigInt!
   "The timestamp this balance change was executed"
   timestamp: BigInt!
+  "The transaction in which this balance change was executed"
+  transaction: Transaction!
 }
 
 type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
@@ -41,6 +43,8 @@ type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
   amount: BigInt!
   oldVaultBalance: BigInt!
   newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
 
   # For Event
   transaction: Transaction!
@@ -62,6 +66,8 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   amount: BigInt!
   oldVaultBalance: BigInt!
   newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
 
   # For Event
   transaction: Transaction!
@@ -81,6 +87,10 @@ type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: tr
   oldVaultBalance: BigInt!
   "The balance of the vault after the change"
   newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
+  "The transaction in which this balance change was executed"
+  transaction: Transaction!
 }
 
 type Order @entity {

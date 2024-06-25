@@ -152,6 +152,12 @@ describe("Add and remove orders", () => {
       "nonce",
       "0x1234567890123456789012345678901234567890"
     );
+    assert.fieldEquals(
+      "Order",
+      "0x0987654321098765432109876543210987654321",
+      "timestampAdded",
+      event.block.timestamp.toString()
+    );
   });
 
   test("createAddOrderEntity()", () => {

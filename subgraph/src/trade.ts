@@ -17,5 +17,6 @@ export function createTradeEntity(
   trade.inputVaultBalanceChange = inputVaultBalanceChange.id;
   trade.outputVaultBalanceChange = outputVaultBalanceChange.id;
   trade.tradeEvent = eventId(event);
+  trade.timestamp = event.block.timestamp;
   trade.save();
 }

@@ -37,5 +37,6 @@ export function createWithdrawalEntity(
   withdraw.transaction = createTransactionEntity(event);
   withdraw.oldVaultBalance = oldVaultBalance;
   withdraw.newVaultBalance = oldVaultBalance.minus(event.params.amount);
+  withdraw.timestamp = event.block.timestamp;
   withdraw.save();
 }

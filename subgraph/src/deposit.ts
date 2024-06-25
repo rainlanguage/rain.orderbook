@@ -35,5 +35,6 @@ export function createDepositEntity(
   deposit.transaction = createTransactionEntity(event);
   deposit.oldVaultBalance = oldVaultBalance;
   deposit.newVaultBalance = oldVaultBalance.plus(event.params.amount);
+  deposit.timestamp = event.block.timestamp;
   deposit.save();
 }
