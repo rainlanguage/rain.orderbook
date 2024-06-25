@@ -18,6 +18,7 @@ import {
 import { VaultBalanceChangeType, vaultEntityId } from "../src/vault";
 import { orderHashFromTakeOrderEvent } from "../src/takeorder";
 import { makeTradeId } from "../src/trade";
+import { createMockERC20Functions } from "./erc20.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -48,6 +49,13 @@ describe("Deposits", () => {
   });
 
   test("createTradeVaultBalanceChangeEntity()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x3333333333333333333333333333333333333333")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x4444444444444444444444444444444444444444")
+    );
+
     let owner = Address.fromString(
       "0x1111111111111111111111111111111111111111"
     );

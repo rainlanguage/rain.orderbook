@@ -10,6 +10,7 @@ import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { createWithdrawalEntity } from "../src/withdraw";
 import { createWithdrawEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
+import { createMockERC20Functions } from "./erc20.test";
 
 describe("Withdrawals", () => {
   afterEach(() => {
@@ -18,6 +19,10 @@ describe("Withdrawals", () => {
   });
 
   test("createWithdrawalEntity()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x0987654321098765432109876543210987654321")
+    );
+
     let event = createWithdrawEvent(
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
@@ -60,12 +65,6 @@ describe("Withdrawals", () => {
       id.toHexString(),
       "vault",
       vaultId.toHexString()
-    );
-    assert.fieldEquals(
-      "Withdrawal",
-      id.toHexString(),
-      "token",
-      "0x0987654321098765432109876543210987654321"
     );
     assert.fieldEquals(
       "Withdrawal",
