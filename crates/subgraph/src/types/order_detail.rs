@@ -16,6 +16,9 @@ pub struct OrderDetailQuery {
     pub order: Option<Order>,
 }
 
+#[typeshare]
+pub type RainMetaV1 = Bytes;
+
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Order {
@@ -27,6 +30,7 @@ pub struct Order {
     pub active: bool,
     #[arguments(first: 1, orderBy: "transaction__timestamp", orderDirection: "desc")]
     pub add_events: Vec<AddOrder>,
+    pub meta: Option<RainMetaV1>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -82,6 +86,8 @@ pub enum AddOrderOrderBy {
     TransactionFrom,
     #[cynic(rename = "sender")]
     Sender,
+    #[cynic(rename = "order__meta")]
+    Meta,
 }
 
 #[derive(cynic::Enum, Copy, Debug, Clone)]

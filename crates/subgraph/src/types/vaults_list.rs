@@ -21,6 +21,7 @@ pub struct VaultsListQuery {
 #[typeshare]
 pub struct Vault {
     pub id: Bytes,
+    pub vault_id: BigInt,
     pub owner: Bytes,
     pub token: Bytes,
     pub balance: BigInt,

@@ -20,6 +20,7 @@ pub struct OrderTakesListQuery {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Trade {
+    pub id: Bytes,
     pub trade_event: TradeEvent,
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: Order,
@@ -51,6 +52,7 @@ pub struct Vault {
 #[typeshare]
 pub struct TradeEvent {
     pub transaction: Transaction,
+    pub sender: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -122,6 +124,8 @@ pub enum TradeOrderBy {
     TradeEventId,
     #[cynic(rename = "tradeEvent__sender")]
     TradeEventSender,
+    #[cynic(rename = "order__meta")]
+    Meta,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]

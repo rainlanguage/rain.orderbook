@@ -23,28 +23,16 @@ impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {
     type Error = FormatTimestampDisplayError;
 
     fn try_from(val: VaultBalanceChange) -> Result<Self, Self::Error> {
-        match val {
-            VaultBalanceChange::Deposit(v) => Ok(Self {
-                id: v.id.into_inner(),
-                timestamp: v.timestamp.clone(),
-                timestamp_display: format_bigint_timestamp_display(v.timestamp.0)?,
-                sender: v.sender.id,
-                amount: v.amount_display.clone(),
-                amount_display_signed: v.amount_display.0,
-                change_type_display: String::from("Deposit"),
-                balance: v.token_vault.balance_display,
-            }),
-            VaultBalanceChange::Withdraw(v) => Ok(Self {
-                id: v.id.into_inner(),
-                timestamp: v.timestamp.clone(),
-                timestamp_display: format_bigint_timestamp_display(v.timestamp.0)?,
-                sender: v.sender.id,
-                amount: v.amount_display.clone(),
-                amount_display_signed: format!("-{}", v.amount_display.0),
-                change_type_display: String::from("Withdraw"),
-                balance: v.token_vault.balance_display,
-            }),
-        }
+        Ok(Self {
+            id: v.id,
+            timestamp: v.timestamp.clone(),
+            timestamp_display: format_bigint_timestamp_display(v.timestamp.0)?,
+            sender: v.sender.id,
+            amount: v.amount_display.clone(),
+            amount_display_signed: format!("-{}", v.amount_display.0),
+            change_type_display: String::from("Withdraw"),
+            balance: v.token_vault.balance_display,
+        })
     }
 }
 

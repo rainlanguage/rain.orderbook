@@ -20,6 +20,7 @@ pub struct OrdersListQuery {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Order {
+    pub id: Bytes,
     pub order_bytes: Bytes,
     pub order_hash: Bytes,
     pub owner: Bytes,
@@ -47,6 +48,7 @@ pub struct AddOrder {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Transaction {
+    pub id: Bytes,
     pub block_number: BigInt,
     pub timestamp: BigInt,
 }
@@ -83,6 +85,8 @@ pub enum AddOrderOrderBy {
     TransactionFrom,
     #[cynic(rename = "sender")]
     Sender,
+    #[cynic(rename = "order__meta")]
+    Meta,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]

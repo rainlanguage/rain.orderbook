@@ -91,6 +91,7 @@ enum AddOrder_orderBy {
   order__owner
   order__nonce
   order__orderBytes
+  order__meta
   transaction
   transaction__id
   transaction__timestamp
@@ -406,6 +407,10 @@ type Order {
     orderDirection: OrderDirection
     where: Trade_filter
   ): [Trade!]!
+  """
+  Meta emitted for this order
+  """
+  meta: Bytes
 }
 
 """
@@ -488,6 +493,16 @@ input Order_filter {
   addEvents_: AddOrder_filter
   removeEvents_: RemoveOrder_filter
   trades_: Trade_filter
+  meta: Bytes
+  meta_not: Bytes
+  meta_gt: Bytes
+  meta_lt: Bytes
+  meta_gte: Bytes
+  meta_lte: Bytes
+  meta_in: [Bytes!]
+  meta_not_in: [Bytes!]
+  meta_contains: Bytes
+  meta_not_contains: Bytes
   """
   Filter for the block changed event.
   """
@@ -508,6 +523,7 @@ enum Order_orderBy {
   addEvents
   removeEvents
   trades
+  meta
 }
 
 type Query {
@@ -948,6 +964,7 @@ enum RemoveOrder_orderBy {
   order__owner
   order__nonce
   order__orderBytes
+  order__meta
   transaction
   transaction__id
   transaction__timestamp
@@ -1766,6 +1783,7 @@ enum Trade_orderBy {
   order__owner
   order__nonce
   order__orderBytes
+  order__meta
   inputVaultBalanceChange
   inputVaultBalanceChange__id
   inputVaultBalanceChange__amount

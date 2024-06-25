@@ -1,25 +1,25 @@
 use crate::csv::TryIntoCsv;
-use rain_orderbook_subgraph_client::types::vaults_list;
+use rain_orderbook_subgraph_client::types::vaults_list::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TokenVaultFlattened {
     pub id: String,
-    pub owner: vaults_list::Bytes,
-    pub vault_id: vaults_list::BigInt,
+    pub owner: Bytes,
+    pub vault_id: BigInt,
     pub token_name: String,
     pub token_symbol: String,
     pub token_decimals: i32,
     pub token_address: String,
-    pub balance_display: vaults_list::BigInt,
-    pub balance: vaults_list::BigInt,
+    pub balance_display: BigInt,
+    pub balance: BigInt,
 }
 
-impl From<vaults_list::Vault> for TokenVaultFlattened {
-    fn from(val: vaults_list::Vault) -> Self {
+impl From<Vault> for TokenVaultFlattened {
+    fn from(val: Vault) -> Self {
         Self {
-            id: val.id.into_inner(),
-            owner: val.owner.id,
+            id: val.id.0,
+            owner: val.owner,
             vault_id: val.vault_id,
             token_name: val.token.name,
             token_symbol: val.token.symbol,
