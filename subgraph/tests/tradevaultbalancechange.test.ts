@@ -116,5 +116,17 @@ describe("Deposits", () => {
       "trade",
       makeTradeId(event, orderHash).toHexString()
     );
+    assert.fieldEquals(
+      "TradeVaultBalanceChange",
+      id,
+      "timestamp",
+      event.block.timestamp.toString()
+    );
+    assert.fieldEquals(
+      "TradeVaultBalanceChange",
+      id,
+      "transaction",
+      event.transaction.hash.toHex()
+    );
   });
 });

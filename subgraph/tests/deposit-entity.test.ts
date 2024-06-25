@@ -77,6 +77,12 @@ describe("Deposits", () => {
       "newVaultBalance",
       BigInt.fromI32(100).toString()
     );
+    assert.fieldEquals(
+      "Deposit",
+      id.toHexString(),
+      "timestamp",
+      event.block.timestamp.toString()
+    );
 
     assert.entityCount("Transaction", 1);
     assert.fieldEquals(

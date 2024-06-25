@@ -17,7 +17,7 @@ import {
 import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
 import { eventId } from "../src/interfaces/event";
-import { createTradeEntity } from "../src/trade";
+import { createTradeEntity, makeTradeId } from "../src/trade";
 import { TradeVaultBalanceChange } from "../generated/schema";
 import { tradeVaultBalanceChangeId } from "../src/tradevaultbalancechange";
 
@@ -109,6 +109,14 @@ describe("Deposits", () => {
       outputVaultBalanceChange
     );
 
+    let id = makeTradeId(event, orderHash).toHexString();
+
     assert.entityCount("Trade", 1);
+    assert.fieldEquals(
+      "Trade",
+      id,
+      "timestamp",
+      event.block.timestamp.toString()
+    );
   });
 });
