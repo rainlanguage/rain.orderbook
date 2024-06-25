@@ -9,7 +9,7 @@ type Vault @entity {
   "Orders this vault is an input for"
   ordersAsInput: [Order!]! @derivedFrom(field: "inputs")
   "Orders this vault is an output for"
-  ordersAsOuput: [Order!]! @derivedFrom(field: "outputs")
+  ordersAsOutput: [Order!]! @derivedFrom(field: "outputs")
   "The amount of the token that is in this vault"
   balance: BigInt!
   "All balance changes for this vault"
@@ -25,6 +25,8 @@ interface VaultBalanceChange {
   oldVaultBalance: BigInt!
   "The balance of the vault after the change"
   newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
 }
 
 type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
@@ -105,6 +107,8 @@ type Order @entity {
   trades: [Trade!]! @derivedFrom(field: "order")
   "Meta emitted for this order"
   meta: Bytes
+  "The timestamp this order was first added"
+  timestampAdded: BigInt!
 }
 
 type AddOrder implements Event @entity(immutable: true) {
@@ -139,6 +143,8 @@ type Trade @entity(immutable: true) {
   outputVaultBalanceChange: TradeVaultBalanceChange!
   "The event in which this trade occured"
   tradeEvent: TradeEvent!
+  "The timestamp this trade was executed"
+  timestamp: BigInt!
 }
 
 type TakeOrder implements TradeEvent @entity(immutable: true) {
