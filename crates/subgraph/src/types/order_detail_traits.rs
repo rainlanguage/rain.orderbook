@@ -1,6 +1,7 @@
 use crate::types::order_detail;
 use crate::utils::base10_str_to_u256;
 use alloy_primitives::{hex::FromHexError, ruint::ParseError, Address};
+use alloy_sol_types::types::value::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
@@ -24,8 +25,8 @@ impl TryInto<IO> for order_detail::Vault {
 
     fn try_into(self) -> Result<IO, OrderDetailError> {
         Ok(IO {
-            token: self.token.into_inner().parse::<Address>()?,
-            decimals: self.decimals.try_into()?,
+            token: self.token.0.parse::<Address>()?,
+            decimals: 0.try_into()?, // @TODO - get decimals from the subgraph
 
             // Vault ID returned from the subgraph is the base-10 value in a string *without* a "0x" prefix
             // See https://github.com/rainlanguage/rain.orderbook/issues/315

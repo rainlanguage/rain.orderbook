@@ -9,7 +9,7 @@ use crate::types::{
     order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
     orders_list,
     orders_list::{OrdersListQuery, OrdersListQueryVariables},
-    vault_balance_change::VaultBalanceChange,
+    vault_balance_changes_list::VaultBalanceChange,
     vault_balance_changes_list::VaultBalanceChangesListQueryVariables,
     vault_detail,
     vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
@@ -109,7 +109,7 @@ impl OrderbookSubgraphClient {
     pub async fn order_take_detail(
         &self,
         id: Id,
-    ) -> Result<order_take_detail::TakeOrderEntity, OrderbookSubgraphClientError> {
+    ) -> Result<order_take_detail::Trade, OrderbookSubgraphClientError> {
         let data = self
             .query::<OrderTakeDetailQuery, OrderTakeDetailQueryVariables>(
                 OrderTakeDetailQueryVariables { id: &id },
@@ -127,7 +127,7 @@ impl OrderbookSubgraphClient {
         &self,
         order_id: cynic::Id,
         pagination_args: PaginationArgs,
-    ) -> Result<Vec<order_takes_list::TakeOrderEntity>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<order_takes_list::Trade>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
             .query::<OrderTakesListQuery, OrderTakesListQueryVariables>(
@@ -146,7 +146,7 @@ impl OrderbookSubgraphClient {
     pub async fn order_takes_list_all(
         &self,
         order_id: cynic::Id,
-    ) -> Result<Vec<order_takes_list::TakeOrderEntity>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<order_takes_list::Trade>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
@@ -174,7 +174,7 @@ impl OrderbookSubgraphClient {
     pub async fn vault_detail(
         &self,
         id: Id,
-    ) -> Result<vault_detail::TokenVault, OrderbookSubgraphClientError> {
+    ) -> Result<vault_detail::Vault, OrderbookSubgraphClientError> {
         let data = self
             .query::<VaultDetailQuery, VaultDetailQueryVariables>(VaultDetailQueryVariables {
                 id: &id,
@@ -191,7 +191,7 @@ impl OrderbookSubgraphClient {
     pub async fn vaults_list(
         &self,
         pagination_args: PaginationArgs,
-    ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<vaults_list::Vault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
             .query::<VaultsListQuery, VaultsListQueryVariables>(VaultsListQueryVariables {
@@ -206,7 +206,7 @@ impl OrderbookSubgraphClient {
     /// Fetch all pages of vaults_list query
     pub async fn vaults_list_all(
         &self,
-    ) -> Result<Vec<vaults_list::TokenVault>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<vaults_list::Vault>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 

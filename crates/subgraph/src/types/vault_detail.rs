@@ -67,6 +67,7 @@ pub struct Deposit {
 
 #[derive(cynic::InlineFragments, Debug, Clone, Serialize)]
 #[typeshare]
+#[serde(tag = "__typename", content = "data")]
 pub enum VaultBalanceChange {
     Withdrawal(Withdrawal),
     TradeVaultBalanceChange(TradeVaultBalanceChange),

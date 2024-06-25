@@ -1,4 +1,4 @@
-query OrderTakeDetailQuery($id: ID!) {
+query OrderTakeDetailQuery($id: Bytes!) {
   trade(id: $id) {
     tradeEvent {
       transaction {
