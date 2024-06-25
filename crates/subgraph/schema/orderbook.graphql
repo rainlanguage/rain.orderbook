@@ -92,6 +92,7 @@ enum AddOrder_orderBy {
   order__nonce
   order__orderBytes
   order__meta
+  order__timestampAdded
   transaction
   transaction__id
   transaction__timestamp
@@ -137,6 +138,10 @@ type Deposit implements Event & VaultBalanceChange {
   amount: BigInt!
   oldVaultBalance: BigInt!
   newVaultBalance: BigInt!
+  """
+  The timestamp this balance change was executed
+  """
+  timestamp: BigInt!
   transaction: Transaction!
   """
   The msg.sender of this withdrawal
@@ -210,6 +215,14 @@ input Deposit_filter {
   newVaultBalance_lte: BigInt
   newVaultBalance_in: [BigInt!]
   newVaultBalance_not_in: [BigInt!]
+  timestamp: BigInt
+  timestamp_not: BigInt
+  timestamp_gt: BigInt
+  timestamp_lt: BigInt
+  timestamp_gte: BigInt
+  timestamp_lte: BigInt
+  timestamp_in: [BigInt!]
+  timestamp_not_in: [BigInt!]
   transaction: String
   transaction_not: String
   transaction_gt: String
@@ -261,6 +274,7 @@ enum Deposit_orderBy {
   amount
   oldVaultBalance
   newVaultBalance
+  timestamp
   transaction
   transaction__id
   transaction__timestamp
@@ -411,6 +425,10 @@ type Order {
   Meta emitted for this order
   """
   meta: Bytes
+  """
+  The timestamp this order was first added
+  """
+  timestampAdded: BigInt!
 }
 
 """
@@ -503,6 +521,14 @@ input Order_filter {
   meta_not_in: [Bytes!]
   meta_contains: Bytes
   meta_not_contains: Bytes
+  timestampAdded: BigInt
+  timestampAdded_not: BigInt
+  timestampAdded_gt: BigInt
+  timestampAdded_lt: BigInt
+  timestampAdded_gte: BigInt
+  timestampAdded_lte: BigInt
+  timestampAdded_in: [BigInt!]
+  timestampAdded_not_in: [BigInt!]
   """
   Filter for the block changed event.
   """
@@ -524,6 +550,7 @@ enum Order_orderBy {
   removeEvents
   trades
   meta
+  timestampAdded
 }
 
 type Query {
@@ -965,6 +992,7 @@ enum RemoveOrder_orderBy {
   order__nonce
   order__orderBytes
   order__meta
+  order__timestampAdded
   transaction
   transaction__id
   transaction__timestamp
@@ -1464,6 +1492,10 @@ type Trade {
   The event in which this trade occured
   """
   tradeEvent: TradeEvent!
+  """
+  The timestamp this trade was executed
+  """
+  timestamp: BigInt!
 }
 
 interface TradeEvent {
@@ -1569,6 +1601,14 @@ type TradeVaultBalanceChange implements VaultBalanceChange {
   The balance of the vault after the change
   """
   newVaultBalance: BigInt!
+  """
+  The timestamp this balance change was executed
+  """
+  timestamp: BigInt!
+  """
+  The transaction in which this balance change was executed
+  """
+  transaction: Transaction!
 }
 
 input TradeVaultBalanceChange_filter {
@@ -1648,6 +1688,35 @@ input TradeVaultBalanceChange_filter {
   newVaultBalance_lte: BigInt
   newVaultBalance_in: [BigInt!]
   newVaultBalance_not_in: [BigInt!]
+  timestamp: BigInt
+  timestamp_not: BigInt
+  timestamp_gt: BigInt
+  timestamp_lt: BigInt
+  timestamp_gte: BigInt
+  timestamp_lte: BigInt
+  timestamp_in: [BigInt!]
+  timestamp_not_in: [BigInt!]
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
   """
   Filter for the block changed event.
   """
@@ -1660,6 +1729,7 @@ enum TradeVaultBalanceChange_orderBy {
   id
   trade
   trade__id
+  trade__timestamp
   vault
   vault__id
   vault__token
@@ -1669,6 +1739,12 @@ enum TradeVaultBalanceChange_orderBy {
   amount
   oldVaultBalance
   newVaultBalance
+  timestamp
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
 }
 
 input Trade_filter {
@@ -1766,6 +1842,14 @@ input Trade_filter {
   tradeEvent_not_ends_with: String
   tradeEvent_not_ends_with_nocase: String
   tradeEvent_: TradeEvent_filter
+  timestamp: BigInt
+  timestamp_not: BigInt
+  timestamp_gt: BigInt
+  timestamp_lt: BigInt
+  timestamp_gte: BigInt
+  timestamp_lte: BigInt
+  timestamp_in: [BigInt!]
+  timestamp_not_in: [BigInt!]
   """
   Filter for the block changed event.
   """
@@ -1784,19 +1868,23 @@ enum Trade_orderBy {
   order__nonce
   order__orderBytes
   order__meta
+  order__timestampAdded
   inputVaultBalanceChange
   inputVaultBalanceChange__id
   inputVaultBalanceChange__amount
   inputVaultBalanceChange__oldVaultBalance
   inputVaultBalanceChange__newVaultBalance
+  inputVaultBalanceChange__timestamp
   outputVaultBalanceChange
   outputVaultBalanceChange__id
   outputVaultBalanceChange__amount
   outputVaultBalanceChange__oldVaultBalance
   outputVaultBalanceChange__newVaultBalance
+  outputVaultBalanceChange__timestamp
   tradeEvent
   tradeEvent__id
   tradeEvent__sender
+  timestamp
 }
 
 type Transaction {
@@ -1894,7 +1982,7 @@ type Vault {
   """
   Orders this vault is an output for
   """
-  ordersAsOuput(
+  ordersAsOutput(
     skip: Int = 0
     first: Int = 100
     orderBy: Order_orderBy
@@ -1934,6 +2022,14 @@ interface VaultBalanceChange {
   The balance of the vault after the change
   """
   newVaultBalance: BigInt!
+  """
+  The timestamp this balance change was executed
+  """
+  timestamp: BigInt!
+  """
+  The transaction in which this balance change was executed
+  """
+  transaction: Transaction!
 }
 
 input VaultBalanceChange_filter {
@@ -1982,6 +2078,35 @@ input VaultBalanceChange_filter {
   newVaultBalance_lte: BigInt
   newVaultBalance_in: [BigInt!]
   newVaultBalance_not_in: [BigInt!]
+  timestamp: BigInt
+  timestamp_not: BigInt
+  timestamp_gt: BigInt
+  timestamp_lt: BigInt
+  timestamp_gte: BigInt
+  timestamp_lte: BigInt
+  timestamp_in: [BigInt!]
+  timestamp_not_in: [BigInt!]
+  transaction: String
+  transaction_not: String
+  transaction_gt: String
+  transaction_lt: String
+  transaction_gte: String
+  transaction_lte: String
+  transaction_in: [String!]
+  transaction_not_in: [String!]
+  transaction_contains: String
+  transaction_contains_nocase: String
+  transaction_not_contains: String
+  transaction_not_contains_nocase: String
+  transaction_starts_with: String
+  transaction_starts_with_nocase: String
+  transaction_not_starts_with: String
+  transaction_not_starts_with_nocase: String
+  transaction_ends_with: String
+  transaction_ends_with_nocase: String
+  transaction_not_ends_with: String
+  transaction_not_ends_with_nocase: String
+  transaction_: Transaction_filter
   """
   Filter for the block changed event.
   """
@@ -2000,6 +2125,12 @@ enum VaultBalanceChange_orderBy {
   amount
   oldVaultBalance
   newVaultBalance
+  timestamp
+  transaction
+  transaction__id
+  transaction__timestamp
+  transaction__blockNumber
+  transaction__from
 }
 
 input Vault_filter {
@@ -2042,7 +2173,7 @@ input Vault_filter {
   vaultId_in: [BigInt!]
   vaultId_not_in: [BigInt!]
   ordersAsInput_: Order_filter
-  ordersAsOuput_: Order_filter
+  ordersAsOutput_: Order_filter
   balance: BigInt
   balance_not: BigInt
   balance_gt: BigInt
@@ -2066,7 +2197,7 @@ enum Vault_orderBy {
   owner
   vaultId
   ordersAsInput
-  ordersAsOuput
+  ordersAsOutput
   balance
   balanceChanges
 }
@@ -2091,6 +2222,10 @@ type Withdrawal implements Event & VaultBalanceChange {
   amount: BigInt!
   oldVaultBalance: BigInt!
   newVaultBalance: BigInt!
+  """
+  The timestamp this balance change was executed
+  """
+  timestamp: BigInt!
   transaction: Transaction!
   """
   The msg.sender of this withdrawal
@@ -2172,6 +2307,14 @@ input Withdrawal_filter {
   newVaultBalance_lte: BigInt
   newVaultBalance_in: [BigInt!]
   newVaultBalance_not_in: [BigInt!]
+  timestamp: BigInt
+  timestamp_not: BigInt
+  timestamp_gt: BigInt
+  timestamp_lt: BigInt
+  timestamp_gte: BigInt
+  timestamp_lte: BigInt
+  timestamp_in: [BigInt!]
+  timestamp_not_in: [BigInt!]
   transaction: String
   transaction_not: String
   transaction_gt: String
@@ -2224,6 +2367,7 @@ enum Withdrawal_orderBy {
   amount
   oldVaultBalance
   newVaultBalance
+  timestamp
   transaction
   transaction__id
   transaction__timestamp

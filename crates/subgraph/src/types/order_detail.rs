@@ -88,6 +88,8 @@ pub enum AddOrderOrderBy {
     Sender,
     #[cynic(rename = "order__meta")]
     Meta,
+    #[cynic(rename = "order__timestampAdded")]
+    Timestamp,
 }
 
 #[derive(cynic::Enum, Copy, Debug, Clone)]

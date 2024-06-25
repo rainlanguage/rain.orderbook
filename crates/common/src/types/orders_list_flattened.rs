@@ -31,8 +31,8 @@ impl TryFrom<Order> for OrderFlattened {
         let order = OrderV3::abi_decode(&decode(&val.order_bytes.0)?, true)?;
         Ok(Self {
             id: val.id.0,
-            timestamp: val.timestamp.clone(),
-            timestamp_display: format_bigint_timestamp_display(val.timestamp.0)?,
+            timestamp: val.timestamp_added.clone(),
+            timestamp_display: format_bigint_timestamp_display(val.timestamp_added.0)?,
             owner: val.owner,
             order_active: val.active,
             interpreter: Bytes(encode(order.evaluable.interpreter.0)),
@@ -52,18 +52,18 @@ impl TryFrom<Order> for OrderFlattened {
                 .map(|v| v.vault_id.0)
                 .collect::<Vec<String>>()
                 .join(", "),
-            valid_inputs_token_symbols_display: val.valid_inputs.map_or("".into(), |v| {
-                v.into_iter()
-                    .map(|io| io.token.symbol)
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            }),
-            valid_outputs_token_symbols_display: val.valid_outputs.map_or("".into(), |v| {
-                v.into_iter()
-                    .map(|io| io.token.symbol)
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            }),
+            valid_inputs_token_symbols_display: val
+                .inputs
+                .into_iter()
+                .map(|vault| vault.token.0)
+                .collect::<Vec<String>>()
+                .join(", "),
+            valid_outputs_token_symbols_display: val
+                .outputs
+                .into_iter()
+                .map(|vault| vault.token.0)
+                .collect::<Vec<String>>()
+                .join(", "),
         })
     }
 }

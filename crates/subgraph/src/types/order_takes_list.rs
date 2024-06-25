@@ -25,6 +25,7 @@ pub struct Trade {
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: Order,
     pub input_vault_balance_change: TradeVaultBalanceChange2,
+    pub timestamp: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -126,6 +127,14 @@ pub enum TradeOrderBy {
     TradeEventSender,
     #[cynic(rename = "order__meta")]
     Meta,
+    #[cynic(rename = "order__timestampAdded")]
+    OrderTimestampAdded,
+    #[cynic(rename = "inputVaultBalanceChange__timestamp")]
+    InputVaultBalanceChangeTimestamp,
+    #[cynic(rename = "outputVaultBalanceChange__timestamp")]
+    OutputVaultBalanceChangeTimestamp,
+    #[cynic(rename = "timestamp")]
+    Timestamp,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]

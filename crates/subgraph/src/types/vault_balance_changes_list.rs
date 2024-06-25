@@ -28,6 +28,15 @@ pub struct VaultBalanceChange {
     pub new_vault_balance: BigInt,
     pub old_vault_balance: BigInt,
     pub vault: Vault,
+    pub timestamp: BigInt,
+    pub transaction: Transaction,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Transaction {
+    pub id: Bytes,
+    pub from: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]

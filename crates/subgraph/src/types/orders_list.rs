@@ -29,6 +29,7 @@ pub struct Order {
     pub active: bool,
     #[arguments(first: 1, orderBy: "transaction__timestamp", orderDirection: "desc")]
     pub add_events: Vec<AddOrder>,
+    pub timestamp_added: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -87,6 +88,8 @@ pub enum AddOrderOrderBy {
     Sender,
     #[cynic(rename = "order__meta")]
     Meta,
+    #[cynic(rename = "order__timestampAdded")]
+    OrderTimestampAdded,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]

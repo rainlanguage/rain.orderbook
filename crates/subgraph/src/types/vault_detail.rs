@@ -42,7 +42,7 @@ pub struct Vault {
     pub vault_id: BigInt,
     pub token: Bytes,
     pub owner: Bytes,
-    pub orders_as_ouput: Vec<Order>,
+    pub orders_as_output: Vec<Order>,
     pub orders_as_input: Vec<Order>,
     pub balance_changes: Vec<VaultBalanceChange>,
     pub balance: BigInt,
