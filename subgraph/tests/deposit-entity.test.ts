@@ -9,6 +9,7 @@ import {
 import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { createDepositEntity } from "../src/deposit";
 import { createDepositEvent } from "./event-mocks.test";
+import { vaultEntityId } from "../src/vault";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -27,8 +28,10 @@ describe("Deposits", () => {
     createDepositEntity(event, newVaultBalance);
 
     let id = event.transaction.hash.concatI32(event.logIndex.toI32());
-    let vaultEntityId = event.params.token.concatI32(
-      event.params.vaultId.toI32()
+    let vaultId = vaultEntityId(
+      Address.fromString("0x1234567890123456789012345678901234567890"),
+      BigInt.fromI32(1),
+      Address.fromString("0x0987654321098765432109876543210987654321")
     );
 
     assert.entityCount("Deposit", 1);
@@ -48,7 +51,7 @@ describe("Deposits", () => {
       "Deposit",
       id.toHexString(),
       "vault",
-      vaultEntityId.toHexString()
+      vaultId.toHexString()
     );
     assert.fieldEquals(
       "Deposit",

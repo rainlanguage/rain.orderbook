@@ -5,8 +5,14 @@ import { createDepositEntity } from "./deposit";
 import { createWithdrawalEntity } from "./withdraw";
 import { eventId } from "./interfaces/event";
 
-export function vaultEntityId(vaultId: BigInt, token: Bytes): Bytes {
-  return token.concat(Bytes.fromByteArray(Bytes.fromBigInt(vaultId)));
+export function vaultEntityId(
+  owner: Bytes,
+  vaultId: BigInt,
+  token: Bytes
+): Bytes {
+  return owner.concat(
+    token.concat(Bytes.fromByteArray(Bytes.fromBigInt(vaultId)))
+  );
 }
 
 export function handleVaultBalanceChange(
@@ -17,9 +23,9 @@ export function handleVaultBalanceChange(
   direction: VaultBalanceChangeType
 ): BigInt {
   let oldVaultBalance: BigInt;
-  let vault = Vault.load(vaultEntityId(vaultId, token));
+  let vault = Vault.load(vaultEntityId(owner, vaultId, token));
   if (vault == null) {
-    vault = new Vault(vaultEntityId(vaultId, token));
+    vault = new Vault(vaultEntityId(owner, vaultId, token));
     vault.vaultId = vaultId;
     vault.token = token;
     vault.owner = owner;
@@ -36,29 +42,7 @@ export function handleVaultBalanceChange(
   return oldVaultBalance;
 }
 
-export function handleVaultDeposit(event: Deposit): void {
-  let oldVaultBalance: BigInt = handleVaultBalanceChange(
-    event.params.vaultId,
-    event.params.token,
-    event.params.amount,
-    event.params.sender,
-    VaultBalanceChangeType.CREDIT
-  );
-  createDepositEntity(event, oldVaultBalance);
-}
-
-export function handleVaultWithdraw(event: Withdraw): void {
-  let oldVaultBalance: BigInt = handleVaultBalanceChange(
-    event.params.vaultId,
-    event.params.token,
-    event.params.amount,
-    event.params.sender,
-    VaultBalanceChangeType.DEBIT
-  );
-  createWithdrawalEntity(event, oldVaultBalance);
-}
-
-enum VaultBalanceChangeType {
+export enum VaultBalanceChangeType {
   CREDIT,
   DEBIT,
 }

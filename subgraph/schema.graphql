@@ -67,6 +67,20 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   sender: Bytes!
 }
 
+type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: true) {
+  id: Bytes!
+  "The trade that this balance change is for"
+  trade: Trade!
+  "The vault that was affected"
+  vault: Vault!
+  "The amount that was changed - this is unsigned"
+  amount: BigInt!
+  "The balance of the vault before the change"
+  oldVaultBalance: BigInt!
+  "The balance of the vault after the change"
+  newVaultBalance: BigInt!
+}
+
 type Order @entity {
   id: Bytes!
   "Whether this order is active or not"
@@ -87,9 +101,11 @@ type Order @entity {
   addEvents: [AddOrder!]! @derivedFrom(field: "order")
   "RemoveOrder events for this order"
   removeEvents: [RemoveOrder!]! @derivedFrom(field: "order")
+  "Trades for this order"
+  trades: [Trade!]! @derivedFrom(field: "order")
 }
 
-type AddOrder implements Event @entity {
+type AddOrder implements Event @entity(immutable: true) {
   id: Bytes!
   "The order that was added"
   order: Order!
@@ -100,7 +116,7 @@ type AddOrder implements Event @entity {
   sender: Bytes!
 }
 
-type RemoveOrder implements Event @entity {
+type RemoveOrder implements Event @entity(immutable: true) {
   id: Bytes!
   "The order that was removed"
   order: Order!
@@ -108,6 +124,47 @@ type RemoveOrder implements Event @entity {
   # For Event
   transaction: Transaction!
   "The msg.sender of this remove order call"
+  sender: Bytes!
+}
+
+type Trade @entity(immutable: true) {
+  id: Bytes!
+  "The order that was traded"
+  order: Order!
+  "Input vault balance change"
+  inputVaultBalanceChange: TradeVaultBalanceChange!
+  "Output vault balance change"
+  outputVaultBalanceChange: TradeVaultBalanceChange!
+  "The event in which this trade occured"
+  tradeEvent: TradeEvent!
+}
+
+type TakeOrder implements TradeEvent @entity(immutable: true) {
+  id: Bytes!
+
+  "The input amount from the perspective of the taker"
+  inputAmount: BigInt!
+  "The output amount from the perspective of the taker"
+  outputAmount: BigInt!
+  "The ABI encoded bytes for the TakeOrderConfig struct"
+  takeOrderConfigBytes: Bytes!
+
+  # For TradeEvent
+  "The trades that occured in this event"
+  trades: [Trade!]! @derivedFrom(field: "tradeEvent")
+  transaction: Transaction!
+  "The msg.sender of this trade"
+  sender: Bytes!
+}
+
+interface TradeEvent implements Event {
+  id: Bytes!
+  "The trades that occured in this event"
+  trades: [Trade!]! @derivedFrom(field: "tradeEvent")
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this trade"
   sender: Bytes!
 }
 

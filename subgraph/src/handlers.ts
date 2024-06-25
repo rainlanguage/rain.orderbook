@@ -2,20 +2,23 @@ import {
   AddOrderV2,
   Deposit,
   RemoveOrderV2,
+  TakeOrderV2,
 } from "../generated/OrderBook/OrderBook";
 import { Withdraw } from "../generated/OrderBook/OrderBook";
-import { handleVaultDeposit, handleVaultWithdraw } from "./vault";
+import { handleDeposit as _handleDeposit } from "./deposit";
+import { handleWithdraw as _handleWithdraw } from "./withdraw";
 import {
   handleAddOrder as _handleAddOrder,
   handleRemoveOrder as _handleRemoveOrder,
 } from "./order";
+import { handleTakeOrder as _handleTakeOrder } from "./takeorder";
 
 export function handleDeposit(event: Deposit): void {
-  handleVaultDeposit(event);
+  _handleDeposit(event);
 }
 
 export function handleWithdraw(event: Withdraw): void {
-  handleVaultWithdraw(event);
+  _handleWithdraw(event);
 }
 
 export function handleAddOrder(event: AddOrderV2): void {
@@ -24,4 +27,8 @@ export function handleAddOrder(event: AddOrderV2): void {
 
 export function handleRemoveOrder(event: RemoveOrderV2): void {
   _handleRemoveOrder(event);
+}
+
+export function handleTakeOrder(event: TakeOrderV2): void {
+  _handleTakeOrder(event);
 }

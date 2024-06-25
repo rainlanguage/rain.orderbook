@@ -10,6 +10,7 @@ import {
   AddOrderV2,
   Deposit,
   RemoveOrderV2,
+  TakeOrderV2,
 } from "../generated/OrderBook/OrderBook";
 import { Withdraw } from "../generated/OrderBook/OrderBook";
 
@@ -230,4 +231,61 @@ export function createRemoveOrderEvent(
     new ethereum.EventParam("order", ethereum.Value.fromTuple(order))
   );
   return removeOrderEvent;
+}
+
+// event TakeOrderV2(address sender, TakeOrderConfigV3 config, uint256 input, uint256 output);
+export function createTakeOrderEvent(
+  sender: Address,
+  owner: Address,
+  validInputs: Array<IO>,
+  validOutputs: Array<IO>,
+  nonce: Bytes,
+  evaluable: Evaluable,
+  input: BigInt,
+  output: BigInt
+): TakeOrderV2 {
+  let mockEvent = newMockEvent();
+  let takeOrderEvent = new TakeOrderV2(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters,
+    null
+  );
+  takeOrderEvent.parameters = new Array();
+
+  takeOrderEvent.parameters.push(
+    new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
+  );
+
+  let config = new ethereum.Tuple();
+
+  let signedContext = new ethereum.Tuple();
+  signedContext.push(ethereum.Value.fromAddress(sender));
+  signedContext.push(ethereum.Value.fromUnsignedBigIntArray([]));
+  signedContext.push(ethereum.Value.fromBytes(Bytes.fromHexString("0x")));
+
+  let signedContextArray = new Array<ethereum.Tuple>();
+  signedContextArray.push(signedContext);
+
+  let order = createOrder(owner, evaluable, validInputs, validOutputs, nonce);
+
+  config.push(ethereum.Value.fromTuple(order));
+  config.push(ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)));
+  config.push(ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)));
+  config.push(ethereum.Value.fromTupleArray(signedContextArray));
+
+  takeOrderEvent.parameters.push(
+    new ethereum.EventParam("config", ethereum.Value.fromTuple(config))
+  );
+  takeOrderEvent.parameters.push(
+    new ethereum.EventParam("input", ethereum.Value.fromUnsignedBigInt(input))
+  );
+  takeOrderEvent.parameters.push(
+    new ethereum.EventParam("output", ethereum.Value.fromUnsignedBigInt(output))
+  );
+  return takeOrderEvent;
 }
