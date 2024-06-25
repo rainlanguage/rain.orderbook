@@ -103,6 +103,8 @@ type Order @entity {
   removeEvents: [RemoveOrder!]! @derivedFrom(field: "order")
   "Trades for this order"
   trades: [Trade!]! @derivedFrom(field: "order")
+  "Meta emitted for this order"
+  meta: Bytes
 }
 
 type AddOrder implements Event @entity(immutable: true) {
