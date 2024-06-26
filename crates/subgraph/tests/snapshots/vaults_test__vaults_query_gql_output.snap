@@ -3,24 +3,23 @@ source: crates/subgraph/tests/vaults_test.rs
 expression: request_body.query
 ---
 query VaultsListQuery($first: Int, $skip: Int) {
-  tokenVaults(orderBy: id, orderDirection: desc, skip: $skip, first: $first) {
+  vaults(orderBy: id, orderDirection: desc, skip: $skip, first: $first) {
     id
-    owner {
-      id
-    }
     vaultId
+    owner
     token {
       id
+      address
       name
       symbol
       decimals
     }
-    balanceDisplay
     balance
-    orders(orderBy: id, orderDirection: desc) {
-      id
+    ordersAsInput {
+      orderHash
+    }
+    ordersAsOutput {
+      orderHash
     }
   }
 }
-
-

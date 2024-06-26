@@ -10,6 +10,8 @@ use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
 
+use super::order_detail::BigInt;
+
 #[derive(Error, Debug)]
 pub enum OrderDetailError {
     #[error(transparent)]
@@ -31,8 +33,13 @@ impl TryInto<IO> for order_detail::Vault {
 
     fn try_into(self) -> Result<IO, OrderDetailError> {
         Ok(IO {
-            token: self.token.0.parse::<Address>()?,
-            decimals: 0.try_into()?, // @TODO - get decimals from the subgraph
+            token: self.token.address.0.parse::<Address>()?,
+            decimals: self
+                .token
+                .decimals
+                .unwrap_or(BigInt("0".into()))
+                .0
+                .parse::<u8>()?,
 
             // Vault ID returned from the subgraph is the base-10 value in a string *without* a "0x" prefix
             // See https://github.com/rainlanguage/rain.orderbook/issues/315

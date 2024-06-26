@@ -23,10 +23,20 @@ pub struct Vault {
     pub id: Bytes,
     pub vault_id: BigInt,
     pub owner: Bytes,
-    pub token: Bytes,
+    pub token: ERC20,
     pub balance: BigInt,
     pub orders_as_input: Vec<Order>,
     pub orders_as_output: Vec<Order>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct ERC20 {
+    pub id: Bytes,
+    pub address: Bytes,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub decimals: Option<BigInt>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -64,6 +74,16 @@ pub enum VaultOrderBy {
     Balance,
     #[cynic(rename = "balanceChanges")]
     BalanceChanges,
+    #[cynic(rename = "token__address")]
+    TokenAddress,
+    #[cynic(rename = "token__decimals")]
+    TokenDecimals,
+    #[cynic(rename = "token__id")]
+    TokenId,
+    #[cynic(rename = "token__name")]
+    TokenName,
+    #[cynic(rename = "token__symbol")]
+    TokenSymbol,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]

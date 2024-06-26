@@ -40,12 +40,22 @@ pub struct VaultDetailQuery {
 #[typeshare]
 pub struct Vault {
     pub vault_id: BigInt,
-    pub token: Bytes,
+    pub token: ERC20,
     pub owner: Bytes,
     pub orders_as_output: Vec<Order>,
     pub orders_as_input: Vec<Order>,
     pub balance_changes: Vec<VaultBalanceChange>,
     pub balance: BigInt,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct ERC20 {
+    pub id: Bytes,
+    pub address: Bytes,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub decimals: Option<BigInt>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]

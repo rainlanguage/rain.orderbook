@@ -1,12 +1,11 @@
-use crate::{
-    csv::TryIntoCsv,
-    utils::timestamp::{format_bigint_timestamp_display, FormatTimestampDisplayError},
-};
+use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy_dyn_abi::SolType;
 use alloy_primitives::hex::{encode, hex::decode};
 use rain_orderbook_bindings::IOrderBookV4::OrderV3;
 use rain_orderbook_subgraph_client::types::orders_list::*;
 use serde::{Deserialize, Serialize};
+
+use super::FlattenError;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OrderFlattened {
@@ -25,7 +24,7 @@ pub struct OrderFlattened {
 }
 
 impl TryFrom<Order> for OrderFlattened {
-    type Error = FormatTimestampDisplayError;
+    type Error = FlattenError;
 
     fn try_from(val: Order) -> Result<Self, Self::Error> {
         let order = OrderV3::abi_decode(&decode(&val.order_bytes.0)?, true)?;
@@ -37,7 +36,7 @@ impl TryFrom<Order> for OrderFlattened {
             order_active: val.active,
             interpreter: Bytes(encode(order.evaluable.interpreter.0)),
             interpreter_store: Bytes(encode(order.evaluable.store.0)),
-            transaction: val.add_events[0].transaction.id.0,
+            transaction: val.add_events[0].clone().transaction.id.0,
             valid_inputs_vaults: val
                 .inputs
                 .clone()
@@ -55,13 +54,13 @@ impl TryFrom<Order> for OrderFlattened {
             valid_inputs_token_symbols_display: val
                 .inputs
                 .into_iter()
-                .map(|vault| vault.token.0)
+                .map(|vault| vault.token.symbol.unwrap_or("No symbol".into()))
                 .collect::<Vec<String>>()
                 .join(", "),
             valid_outputs_token_symbols_display: val
                 .outputs
                 .into_iter()
-                .map(|vault| vault.token.0)
+                .map(|vault| vault.token.symbol.unwrap_or("No symbol".into()))
                 .collect::<Vec<String>>()
                 .join(", "),
         })

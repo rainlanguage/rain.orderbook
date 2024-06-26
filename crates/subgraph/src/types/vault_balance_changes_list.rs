@@ -43,6 +43,17 @@ pub struct Transaction {
 #[typeshare]
 pub struct Vault {
     pub id: Bytes,
+    pub token: ERC20,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct ERC20 {
+    pub id: Bytes,
+    pub address: Bytes,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub decimals: Option<BigInt>,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
