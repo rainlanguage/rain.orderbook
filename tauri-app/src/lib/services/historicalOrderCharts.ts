@@ -1,19 +1,18 @@
-import type { TakeOrderEntity } from '$lib/typeshare/orderTakesList';
+import type { Trade } from '$lib/typeshare/orderTakesList';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
 import { sortBy } from 'lodash';
 
 export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; color?: string }[];
 
-export function prepareHistoricalOrderChartData(
-  takeOrderEntities: TakeOrderEntity[],
-  colorTheme: string,
-) {
+export function prepareHistoricalOrderChartData(takeOrderEntities: Trade[], colorTheme: string) {
   const transformedData = takeOrderEntities.map((d) => ({
-    value: parseFloat(d.ioratio),
+    value:
+      parseFloat(d.output_vault_balance_change.amount) /
+      parseFloat(d.input_vault_balance_change.amount),
     time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
     color: colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
-    outputAmount: +d.output_display,
+    outputAmount: +d.output_vault_balance_change.amount,
   }));
 
   // if we have multiple object in the array with the same timestamp, we need to merge them
@@ -47,54 +46,129 @@ if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
 
   it('transforms and sorts data as expected', () => {
-    const takeOrderEntities: TakeOrderEntity[] = [
+    const takeOrderEntities: Trade[] = [
       {
         id: '1',
-        transaction: { id: '1' },
-        sender: { id: '1' },
         timestamp: '1632000000',
-        order: { id: '1' },
-        ioratio: '0.1',
-        input: '1',
-        input_display: '1',
-        input_token: { id: '1', name: '1', symbol: '1', decimals: 1 },
-        input_ioindex: '1',
-        output: '1',
-        output_display: '1',
-        output_token: { id: '1', name: '1', symbol: '1', decimals: 1 },
-        output_ioindex: '1',
+        trade_event: {
+          sender: 'sender_address',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+          },
+        },
+        output_vault_balance_change: {
+          amount: '100',
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+        },
+        order: {
+          id: 'order_id',
+          order_hash: 'order_hash',
+          timestamp_added: '1632000000',
+        },
+        input_vault_balance_change: {
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+          amount: '50',
+        },
       },
       {
         id: '2',
-        transaction: { id: '2' },
-        sender: { id: '2' },
-        timestamp: '1630000000',
-        order: { id: '2' },
-        ioratio: '0.2',
-        input: '2',
-        input_display: '2',
-        input_token: { id: '2', name: '2', symbol: '2', decimals: 2 },
-        input_ioindex: '2',
-        output: '2',
-        output_display: '2',
-        output_token: { id: '2', name: '2', symbol: '2', decimals: 2 },
-        output_ioindex: '2',
+        timestamp: '1631000000',
+        trade_event: {
+          sender: 'sender_address',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1631000000',
+          },
+        },
+        output_vault_balance_change: {
+          amount: '100',
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+        },
+        order: {
+          id: 'order_id',
+          order_hash: 'order_hash',
+          timestamp_added: '1631000000',
+        },
+        input_vault_balance_change: {
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+          amount: '50',
+        },
       },
       {
         id: '3',
-        transaction: { id: '3' },
-        sender: { id: '3' },
-        timestamp: '1631000000',
-        order: { id: '3' },
-        ioratio: '0.3',
-        input: '3',
-        input_display: '3',
-        input_token: { id: '3', name: '3', symbol: '3', decimals: 3 },
-        input_ioindex: '3',
-        output: '3',
-        output_display: '3',
-        output_token: { id: '3', name: '3', symbol: '3', decimals: 3 },
-        output_ioindex: '3',
+        timestamp: '1630000000',
+        trade_event: {
+          sender: 'sender_address',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1630000000',
+          },
+        },
+        output_vault_balance_change: {
+          amount: '100',
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+        },
+        order: {
+          id: 'order_id',
+          order_hash: 'order_hash',
+          timestamp_added: '1630000000',
+        },
+        input_vault_balance_change: {
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+          amount: '50',
+        },
       },
     ];
 
@@ -114,55 +188,130 @@ if (import.meta.vitest) {
     expect(result[2].color).toEqual('#5178FF');
   });
 
-  it('handles the case where multiple takeOrderEntities have the same timestamp', () => {
-    const takeOrderEntities: TakeOrderEntity[] = [
+  it('handles the case where multiple trades have the same timestamp', () => {
+    const takeOrderEntities: Trade[] = [
       {
         id: '1',
-        transaction: { id: '1' },
-        sender: { id: '1' },
-        timestamp: '1630000000',
-        order: { id: '1' },
-        ioratio: '0.1',
-        input: '1',
-        input_display: '1',
-        input_token: { id: '1', name: '1', symbol: '1', decimals: 1 },
-        input_ioindex: '1',
-        output: '1',
-        output_display: '1',
-        output_token: { id: '1', name: '1', symbol: '1', decimals: 1 },
-        output_ioindex: '1',
+        timestamp: '1632000000',
+        trade_event: {
+          sender: 'sender_address',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+          },
+        },
+        output_vault_balance_change: {
+          amount: '100',
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+        },
+        order: {
+          id: 'order_id',
+          order_hash: 'order_hash',
+          timestamp_added: '1632000000',
+        },
+        input_vault_balance_change: {
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+          amount: '50',
+        },
       },
       {
         id: '2',
-        transaction: { id: '2' },
-        sender: { id: '2' },
-        timestamp: '1630000000',
-        order: { id: '2' },
-        ioratio: '0.2',
-        input: '2',
-        input_display: '2',
-        input_token: { id: '2', name: '2', symbol: '2', decimals: 2 },
-        input_ioindex: '2',
-        output: '2',
-        output_display: '2',
-        output_token: { id: '2', name: '2', symbol: '2', decimals: 2 },
-        output_ioindex: '2',
+        timestamp: '1632000000',
+        trade_event: {
+          sender: 'sender_address',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+          },
+        },
+        output_vault_balance_change: {
+          amount: '100',
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+        },
+        order: {
+          id: 'order_id',
+          order_hash: 'order_hash',
+          timestamp_added: '1632000000',
+        },
+        input_vault_balance_change: {
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+          amount: '50',
+        },
       },
       {
         id: '3',
-        transaction: { id: '3' },
-        sender: { id: '3' },
-        timestamp: '1630000000',
-        order: { id: '3' },
-        ioratio: '0.3',
-        input: '3',
-        input_display: '3',
-        input_token: { id: '3', name: '3', symbol: '3', decimals: 3 },
-        input_ioindex: '3',
-        output: '3',
-        output_display: '3',
-        output_token: { id: '3', name: '3', symbol: '3', decimals: 3 },
-        output_ioindex: '3',
+        timestamp: '1632000000',
+        trade_event: {
+          sender: 'sender_address',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+          },
+        },
+        output_vault_balance_change: {
+          amount: '100',
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+        },
+        order: {
+          id: 'order_id',
+          order_hash: 'order_hash',
+          timestamp_added: '1632000000',
+        },
+        input_vault_balance_change: {
+          vault: {
+            token: {
+              id: 'output_token',
+              address: 'output_token',
+              name: 'output_token',
+              symbol: 'output_token',
+              decimals: '1',
+            },
+          },
+          amount: '50',
+        },
       },
     ];
 

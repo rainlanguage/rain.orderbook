@@ -2895,9 +2895,9 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.15"
+version = "6.0.1-alpha.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c87a4f19a456549866a219abb85443b9f076d5721611c115f60c56831429e8"
+checksum = "7248386b0e64509e6ab2cb398417067dd8a749e43278983d654519d8843e662d"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -2916,9 +2916,9 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.15"
+version = "6.0.1-alpha.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9491938d3d50e8f1161c57bc54a0919958553f9a9c04bfbf78ef1cbf8d4082bd"
+checksum = "694dd7441354ec83a35e7546154752a33deaab0c36330d8078b2d18de1a6f232"
 dependencies = [
  "alloy-primitives 0.6.4",
  "anyhow",
@@ -7168,6 +7168,7 @@ name = "rain-metaboard-subgraph"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives 0.6.4",
+ "async-trait",
  "cynic",
  "cynic-codegen",
  "reqwest 0.11.27",
@@ -7349,6 +7350,7 @@ dependencies = [
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
+ "rand 0.8.5",
  "reqwest 0.11.27",
  "serde",
  "serde_bytes",
@@ -7367,12 +7369,14 @@ name = "rain_orderbook_subgraph_client"
 version = "0.0.1"
 dependencies = [
  "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
  "chrono",
  "cynic",
  "cynic-codegen",
  "rain_orderbook_bindings",
  "reqwest 0.11.27",
  "serde",
+ "serde_json",
  "thiserror",
  "typeshare 1.0.1",
 ]

@@ -42,6 +42,7 @@ pub struct ERC20 {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Order {
+    pub id: Bytes,
     pub order_hash: Bytes,
 }
 

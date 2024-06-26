@@ -71,6 +71,7 @@ pub struct TradeEvent {
 pub struct Transaction {
     pub id: Bytes,
     pub from: Bytes,
+    pub timestamp: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -78,6 +79,7 @@ pub struct Transaction {
 pub struct Order {
     pub id: Bytes,
     pub order_hash: Bytes,
+    pub timestamp_added: BigInt,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]

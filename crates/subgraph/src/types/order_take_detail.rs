@@ -72,6 +72,7 @@ pub struct Transaction {
 #[typeshare]
 pub struct Order {
     pub order_hash: Bytes,
+    pub timestamp_added: BigInt,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]

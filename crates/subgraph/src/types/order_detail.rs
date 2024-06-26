@@ -22,6 +22,7 @@ pub type RainMetaV1 = Bytes;
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Order {
+    pub id: Bytes,
     pub order_bytes: Bytes,
     pub order_hash: Bytes,
     pub owner: Bytes,
@@ -31,11 +32,13 @@ pub struct Order {
     #[arguments(first: 1, orderBy: "transaction__timestamp", orderDirection: "desc")]
     pub add_events: Vec<AddOrder>,
     pub meta: Option<RainMetaV1>,
+    pub timestamp_added: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Vault {
+    pub id: Bytes,
     pub token: ERC20,
     pub balance: BigInt,
     pub vault_id: BigInt,
