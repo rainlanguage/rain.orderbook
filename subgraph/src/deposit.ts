@@ -8,6 +8,7 @@ import {
   vaultEntityId,
 } from "./vault";
 import { Deposit } from "../generated/OrderBook/OrderBook";
+import { getERC20Entity } from "./erc20";
 
 export function handleDeposit(event: Deposit): void {
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
@@ -31,7 +32,6 @@ export function createDepositEntity(
     event.params.vaultId,
     event.params.token
   );
-  deposit.token = event.params.token;
   deposit.transaction = createTransactionEntity(event);
   deposit.oldVaultBalance = oldVaultBalance;
   deposit.newVaultBalance = oldVaultBalance.plus(event.params.amount);

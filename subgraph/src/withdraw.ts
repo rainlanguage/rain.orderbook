@@ -33,7 +33,6 @@ export function createWithdrawalEntity(
     event.params.vaultId,
     event.params.token
   );
-  withdraw.token = event.params.token;
   withdraw.transaction = createTransactionEntity(event);
   withdraw.oldVaultBalance = oldVaultBalance;
   withdraw.newVaultBalance = oldVaultBalance.minus(event.params.amount);

@@ -20,6 +20,9 @@ dataSources:
       abis:
         - name: OrderBook
           file: "../out/OrderBook.sol/OrderBook.json"
+        - name: ERC20
+          file: "../out/ERC20.sol/ERC20.json"
+
       eventHandlers:
         - event: Deposit(address,address,uint256,uint256)
           handler: handleDeposit

@@ -1,9 +1,6 @@
 import { Bytes, BigInt } from "@graphprotocol/graph-ts";
-import { Withdraw, Deposit } from "../generated/OrderBook/OrderBook";
 import { Vault } from "../generated/schema";
-import { createDepositEntity } from "./deposit";
-import { createWithdrawalEntity } from "./withdraw";
-import { eventId } from "./interfaces/event";
+import { getERC20Entity } from "./erc20";
 
 export function vaultEntityId(
   owner: Bytes,
@@ -27,7 +24,7 @@ export function handleVaultBalanceChange(
   if (vault == null) {
     vault = new Vault(vaultEntityId(owner, vaultId, token));
     vault.vaultId = vaultId;
-    vault.token = token;
+    vault.token = getERC20Entity(token);
     vault.owner = owner;
     vault.balance = BigInt.fromI32(0);
   }

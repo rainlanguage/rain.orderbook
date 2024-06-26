@@ -10,6 +10,7 @@ import { BigInt, Address, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
 import { createTakeOrderEntity } from "../src/takeorder";
 import { eventId } from "../src/interfaces/event";
+import { createMockERC20Functions } from "./erc20.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -18,6 +19,14 @@ describe("Deposits", () => {
   });
 
   test("createTakeOrderEvent()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x3333333333333333333333333333333333333333")
+    );
+
+    createMockERC20Functions(
+      Address.fromString("0x4444444444444444444444444444444444444444")
+    );
+
     let event = createTakeOrderEvent(
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),
@@ -88,6 +97,14 @@ describe("Deposits", () => {
   });
 
   test("createTakeOrderEntity()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x3333333333333333333333333333333333333333")
+    );
+
+    createMockERC20Functions(
+      Address.fromString("0x4444444444444444444444444444444444444444")
+    );
+
     let event = createTakeOrderEvent(
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),

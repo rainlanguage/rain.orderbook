@@ -7,14 +7,9 @@ import {
   assert,
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
-import {
-  Evaluable,
-  IO,
-  createAddOrderEvent,
-  createTakeOrderEvent,
-} from "../event-mocks.test";
-import { handleAddOrder } from "../../src/order";
+import { Evaluable, IO, createTakeOrderEvent } from "../event-mocks.test";
 import { handleTakeOrder } from "../../src/takeorder";
+import { createMockERC20Functions } from "../erc20.test";
 
 describe("Add and remove orders", () => {
   afterEach(() => {
@@ -23,6 +18,13 @@ describe("Add and remove orders", () => {
   });
 
   test("handleTakeOrder()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x3333333333333333333333333333333333333333")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x4444444444444444444444444444444444444444")
+    );
+
     let event = createTakeOrderEvent(
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),

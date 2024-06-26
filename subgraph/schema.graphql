@@ -1,7 +1,7 @@
 type Vault @entity {
   id: Bytes!
   "The token that this vault is for"
-  token: Bytes!
+  token: ERC20!
   "The owner of this vault"
   owner: Bytes!
   "The vaultId of this vault"
@@ -33,8 +33,6 @@ interface VaultBalanceChange {
 
 type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
-  "The token that was deposited"
-  token: Bytes!
 
   # For VaultBalanceChange
   "The vault that was deposited into"
@@ -54,8 +52,6 @@ type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
 
 type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
-  "The token that was withdrawn"
-  token: Bytes!
   "The amount that was being targeted to be withdrawn"
   targetAmount: BigInt!
 
@@ -199,4 +195,16 @@ interface Event {
   transaction: Transaction!
   "msg.sender for the event"
   sender: Bytes!
+}
+
+type ERC20 @entity(immutable: true) {
+  id: Bytes!
+  "The address of the ERC20 token"
+  address: Bytes!
+  "The name of the ERC20 token"
+  name: String
+  "The symbol of the ERC20 token"
+  symbol: String
+  "The number of decimals of the ERC20 token"
+  decimals: BigInt
 }
