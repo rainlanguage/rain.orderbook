@@ -27,7 +27,6 @@ pub struct Order {
     pub outputs: Vec<Vault>,
     pub inputs: Vec<Vault>,
     pub active: bool,
-    #[arguments(first: 1, orderBy: "transaction__timestamp", orderDirection: "desc")]
     pub add_events: Vec<AddOrder>,
     pub timestamp_added: BigInt,
 }
