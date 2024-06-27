@@ -59,6 +59,7 @@ describe("Handle deposit", () => {
     assert.bigIntEquals(deposit.amount, BigInt.fromI32(100));
     assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(0));
     assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(100));
+    assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, same token, same vaultId
     event = createDepositEvent(
@@ -99,6 +100,7 @@ describe("Handle deposit", () => {
     assert.bigIntEquals(deposit.amount, BigInt.fromI32(200));
     assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(100));
     assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(300));
+    assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, different token, same vaultId
     event = createDepositEvent(
@@ -139,5 +141,6 @@ describe("Handle deposit", () => {
     assert.bigIntEquals(deposit.amount, BigInt.fromI32(300));
     assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(0));
     assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(300));
+    assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
   });
 });

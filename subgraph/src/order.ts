@@ -51,6 +51,7 @@ export function createOrderEntity(event: AddOrderV2): void {
 
   order.nonce = event.params.order.nonce;
   order.orderBytes = ethereum.encode(event.parameters[2].value)!;
+  order.timestampAdded = event.block.timestamp;
   order.save();
 }
 

@@ -3,7 +3,6 @@ import { TradeVaultBalanceChange } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { VaultBalanceChangeType } from "./vault";
 import { makeTradeId } from "./trade";
-import { orderHashFromTakeOrderEvent } from "./takeorder";
 
 export function tradeVaultBalanceChangeId(
   event: ethereum.Event,
@@ -32,6 +31,8 @@ export function createTradeVaultBalanceChangeEntity(
   }
   tradeVaultBalanceChange.vault = vaultEntityId;
   tradeVaultBalanceChange.trade = makeTradeId(event, orderHash);
+  tradeVaultBalanceChange.timestamp = event.block.timestamp;
+  tradeVaultBalanceChange.transaction = event.transaction.hash;
   tradeVaultBalanceChange.save();
   return tradeVaultBalanceChange;
 }
