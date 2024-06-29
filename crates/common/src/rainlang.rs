@@ -6,7 +6,7 @@ use dotrain::error::ComposeError;
 use dotrain::RainDocument;
 use dotrain::Rebind;
 use once_cell::sync::Lazy;
-use rain_interpreter_eval::error::AbiDecodedErrorType;
+use rain_error_decoding::AbiDecodedErrorType;
 use rain_interpreter_eval::error::ForkCallError;
 use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::Forker;
@@ -25,18 +25,13 @@ pub enum ForkParseError {
     #[error(transparent)]
     ForkerError(ForkCallError),
     #[error("Fork Call Reverted: {0}")]
-    ForkCallReverted(AbiDecodedErrorType),
+    ForkCallReverted(#[from] AbiDecodedErrorType),
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
     #[error("Failed to read Parser address from deployer")]
     ReadParserAddressFailed,
 }
 
-impl From<AbiDecodedErrorType> for ForkParseError {
-    fn from(value: AbiDecodedErrorType) -> Self {
-        Self::ForkCallReverted(value)
-    }
-}
 impl From<ForkCallError> for ForkParseError {
     fn from(value: ForkCallError) -> Self {
         match value {
@@ -45,9 +40,6 @@ impl From<ForkCallError> for ForkParseError {
         }
     }
 }
-
-/// Arbitrary address used to call from
-pub const SENDER_ADDRESS: Address = Address::repeat_byte(0x1);
 
 /// checks the front matter validity and parses the given rainlang string
 /// with the deployer parsed from the front matter
@@ -91,15 +83,12 @@ pub fn compose_to_rainlang(
 ) -> Result<String, ComposeError> {
     let meta_store = LANG_SERVICES.meta_store();
 
-    let mut rebinds = None;
-    if !bindings.is_empty() {
-        rebinds = Some(
-            bindings
-                .iter()
-                .map(|(key, value)| Rebind(key.clone(), value.clone()))
-                .collect(),
-        );
-    };
+    let rebinds = (!bindings.is_empty()).then_some(
+        bindings
+            .iter()
+            .map(|(k, v)| Rebind(k.clone(), v.clone()))
+            .collect(),
+    );
     let rain_document = RainDocument::create(
         dotrain.clone(),
         Some(meta_store.clone()),
@@ -107,28 +96,21 @@ pub fn compose_to_rainlang(
         rebinds.clone(),
     );
 
-    let mut final_bindings: Vec<Rebind> = vec![];
+    // search the namespace hash map for NamespaceItems that are elided
+    // to set them to 0 and finally merge main bindings into them
+    let final_bindings = rain_document
+        .namespace()
+        .iter()
+        .filter_map(|(k, v)| {
+            v.is_elided_binding().then_some(Rebind(
+                k.clone(),
+                alloy_primitives::hex::encode_prefixed([0; 32]),
+            ))
+        })
+        .chain(rebinds.unwrap_or(vec![]))
+        .collect::<Vec<Rebind>>();
 
-    // search the name space hash map for NamespaceItems that are elided and make a vec of the keys
-    let elided_binding_keys = Arc::new(
-        rain_document
-            .namespace()
-            .iter()
-            .filter(|(_, v)| v.is_elided_binding())
-            .map(|(k, _)| k.clone())
-            .collect::<Vec<String>>(),
-    );
-
-    // for each scenario elided bindings, set 0
-    for elided_binding in elided_binding_keys.as_slice() {
-        let hex = format!("0x{}", alloy_primitives::hex::encode([0; 32]));
-        final_bindings.push(Rebind(elided_binding.to_string(), hex));
-    }
-    if let Some(main_bindings) = rebinds {
-        final_bindings.extend(main_bindings);
-    }
-
-    let rain_document = RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings));
-
-    rain_document.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)
+    // compose a new RainDocument with final injected bindings
+    RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings))
+        .compose(&ORDERBOOK_ORDER_ENTRYPOINTS)
 }
