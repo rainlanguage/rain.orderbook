@@ -7,15 +7,14 @@ import {
   newMockEvent,
   assert,
 } from "matchstick-as";
-import { BigInt, Address, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
 import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
 import { eventId } from "../src/interfaces/event";
-import { TradeVaultBalanceChange } from "../generated/schema";
 import {
   createTradeVaultBalanceChangeEntity,
   tradeVaultBalanceChangeId,
 } from "../src/tradevaultbalancechange";
-import { VaultBalanceChangeType, vaultEntityId } from "../src/vault";
+import { vaultEntityId } from "../src/vault";
 import { orderHashFromTakeOrderEvent } from "../src/takeorder";
 import { makeTradeId } from "../src/trade";
 import { createMockERC20Functions } from "./erc20.test";
@@ -101,8 +100,7 @@ describe("Deposits", () => {
       orderHash,
       _vaultEntityId,
       oldVaultBalance,
-      BigInt.fromI32(1),
-      VaultBalanceChangeType.CREDIT
+      BigInt.fromI32(1)
     );
 
     assert.entityCount("TradeVaultBalanceChange", 1);

@@ -26,8 +26,7 @@ describe("Vault balance changes", () => {
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      0
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
     );
 
     let vaultId = vaultEntityId(
@@ -78,8 +77,7 @@ describe("Vault balance changes", () => {
       event.params.vaultId,
       event.params.token,
       event.params.amount,
-      event.params.sender,
-      0
+      event.params.sender
     );
 
     let vaultId = vaultEntityId(
@@ -132,8 +130,7 @@ describe("Vault balance changes", () => {
       depositEvent.params.vaultId,
       depositEvent.params.token,
       depositEvent.params.amount,
-      depositEvent.params.sender,
-      0
+      depositEvent.params.sender
     );
 
     // then we withdraw
@@ -147,9 +144,8 @@ describe("Vault balance changes", () => {
     handleVaultBalanceChange(
       event.params.vaultId,
       event.params.token,
-      event.params.amount,
-      event.params.sender,
-      1
+      event.params.amount.neg(),
+      event.params.sender
     );
 
     let vaultId = vaultEntityId(
@@ -198,12 +194,12 @@ describe("Vault balance changes", () => {
       BigInt.fromI32(1),
       BigInt.fromI32(100)
     );
+
     handleVaultBalanceChange(
       event.params.vaultId,
       event.params.token,
       event.params.amount,
-      event.params.sender,
-      0
+      event.params.sender
     );
 
     let vaultId = vaultEntityId(
@@ -247,8 +243,7 @@ describe("Vault balance changes", () => {
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      0
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
     );
 
     assert.bigIntEquals(oldBalance, BigInt.fromI32(0));
@@ -263,16 +258,14 @@ describe("Vault balance changes", () => {
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      0
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
     );
 
     let oldBalance = handleVaultBalanceChange(
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      0
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
     );
 
     assert.bigIntEquals(oldBalance, BigInt.fromI32(100));

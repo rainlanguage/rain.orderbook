@@ -5,7 +5,6 @@ import {
   afterEach,
   clearInBlockStore,
   assert,
-  log,
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import {
@@ -14,9 +13,9 @@ import {
   createAddOrderEvent,
   createMetaEvent,
 } from "../event-mocks.test";
-import { createOrderEntity, handleAddOrder } from "../../src/order";
+import { handleAddOrder } from "../../src/order";
 import { handleMeta } from "../../src/handlers";
-import { Order } from "../../generated/schema";
+import { createMockERC20Functions } from "../erc20.test";
 
 describe("Add and remove orders", () => {
   afterEach(() => {
@@ -40,6 +39,10 @@ describe("Add and remove orders", () => {
   });
 
   test("handleMeta() should update the meta field of an order", () => {
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+
     let orderHash = Bytes.fromHexString(
       "0x0987654321098765432109876543210987654321"
     );
