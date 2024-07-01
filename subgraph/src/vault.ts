@@ -12,34 +12,37 @@ export function vaultEntityId(
   );
 }
 
+export function createEmptyVault(
+  owner: Bytes,
+  vaultId: BigInt,
+  token: Bytes
+): Vault {
+  let vault = new Vault(vaultEntityId(owner, vaultId, token));
+  vault.vaultId = vaultId;
+  vault.token = getERC20Entity(token);
+  vault.owner = owner;
+  vault.balance = BigInt.fromI32(0);
+  vault.save();
+  return vault;
+}
+
+export function getVault(owner: Bytes, vaultId: BigInt, token: Bytes): Vault {
+  let vault = Vault.load(vaultEntityId(owner, vaultId, token));
+  if (vault == null) {
+    vault = createEmptyVault(owner, vaultId, token);
+  }
+  return vault;
+}
+
 export function handleVaultBalanceChange(
   vaultId: BigInt,
   token: Bytes,
   amount: BigInt,
-  owner: Bytes,
-  direction: VaultBalanceChangeType
+  owner: Bytes
 ): BigInt {
-  let oldVaultBalance: BigInt;
-  let vault = Vault.load(vaultEntityId(owner, vaultId, token));
-  if (vault == null) {
-    vault = new Vault(vaultEntityId(owner, vaultId, token));
-    vault.vaultId = vaultId;
-    vault.token = getERC20Entity(token);
-    vault.owner = owner;
-    vault.balance = BigInt.fromI32(0);
-  }
-  oldVaultBalance = vault.balance;
-  if (direction == VaultBalanceChangeType.CREDIT) {
-    vault.balance = vault.balance.plus(amount);
-  }
-  if (direction == VaultBalanceChangeType.DEBIT) {
-    vault.balance = vault.balance.minus(amount);
-  }
+  let vault = getVault(owner, vaultId, token);
+  let oldVaultBalance = vault.balance;
+  vault.balance = vault.balance.plus(amount);
   vault.save();
   return oldVaultBalance;
-}
-
-export enum VaultBalanceChangeType {
-  CREDIT,
-  DEBIT,
 }

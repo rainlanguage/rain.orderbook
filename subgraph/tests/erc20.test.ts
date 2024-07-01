@@ -8,9 +8,6 @@ import {
   createMockedFunction,
 } from "matchstick-as";
 import { BigInt, Address, ethereum, Bytes } from "@graphprotocol/graph-ts";
-import { createDepositEntity } from "../src/deposit";
-import { createDepositEvent } from "./event-mocks.test";
-import { vaultEntityId } from "../src/vault";
 import { createERC20Entity } from "../src/erc20";
 
 describe("Deposits", () => {

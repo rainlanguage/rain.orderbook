@@ -2,21 +2,15 @@ import { BigInt } from "@graphprotocol/graph-ts";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
-import {
-  VaultBalanceChangeType,
-  handleVaultBalanceChange,
-  vaultEntityId,
-} from "./vault";
+import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { Deposit } from "../generated/OrderBook/OrderBook";
-import { getERC20Entity } from "./erc20";
 
 export function handleDeposit(event: Deposit): void {
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
     event.params.vaultId,
     event.params.token,
     event.params.amount,
-    event.params.sender,
-    VaultBalanceChangeType.CREDIT
+    event.params.sender
   );
   createDepositEntity(event, oldVaultBalance);
 }

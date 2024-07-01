@@ -5,7 +5,6 @@ import {
   afterEach,
   clearInBlockStore,
   assert,
-  log,
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import {
@@ -18,10 +17,10 @@ import {
   createAddOrderEntity,
   createOrderEntity,
   createRemoveOrderEntity,
-  handleAddOrder,
-  handleRemoveOrder,
 } from "../src/order";
-import { eventId, eventId } from "../src/interfaces/event";
+import { eventId } from "../src/interfaces/event";
+import { Order } from "../generated/schema";
+import { createMockERC20Functions } from "./erc20.test";
 
 describe("Add and remove orders", () => {
   afterEach(() => {
@@ -100,6 +99,13 @@ describe("Add and remove orders", () => {
   });
 
   test("createOrderEntity()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+
     let event = createAddOrderEvent(
       Address.fromString("0x1234567890123456789012345678901234567890"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
@@ -158,6 +164,13 @@ describe("Add and remove orders", () => {
       "timestampAdded",
       event.block.timestamp.toString()
     );
+    let order = Order.load(
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+    )!;
+    let inputs = order.inputs;
+    assert.i32Equals(inputs.length, 1, "inputs length");
+    let outputs = order.outputs;
+    assert.i32Equals(outputs.length, 1, "outputs length");
   });
 
   test("createAddOrderEntity()", () => {
