@@ -5,7 +5,6 @@ import {
   describe,
   afterEach,
   clearInBlockStore,
-  log,
 } from "matchstick-as";
 import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { createDepositEvent, createWithdrawEvent } from "../event-mocks.test";
@@ -13,6 +12,7 @@ import { handleDeposit, handleWithdraw } from "../../src/handlers";
 import { vaultEntityId } from "../../src/vault";
 import { Withdrawal, Vault } from "../../generated/schema";
 import { eventId } from "../../src/interfaces/event";
+import { createMockERC20Functions } from "../erc20.test";
 
 describe("Handle withdraw", () => {
   afterEach(() => {
@@ -21,6 +21,10 @@ describe("Handle withdraw", () => {
   });
 
   test("handleWithdraw()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+
     // first we make a deposit
     let depositEvent = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
@@ -66,7 +70,6 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bytesEquals(withdraw.token, event.params.token);
     assert.bigIntEquals(withdraw.amount, BigInt.fromI32(100));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(1000));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(900));
@@ -107,11 +110,14 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bytesEquals(withdraw.token, event.params.token);
     assert.bigIntEquals(withdraw.amount, BigInt.fromI32(200));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(900));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(700));
     assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
+
+    createMockERC20Functions(
+      Address.fromString("0x0987654321098765432109876543210987654321")
+    );
 
     // deposit different token, same vaultId
     depositEvent = createDepositEvent(
@@ -159,7 +165,6 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bytesEquals(withdraw.token, event.params.token);
     assert.bigIntEquals(withdraw.amount, BigInt.fromI32(200));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(300));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(100));

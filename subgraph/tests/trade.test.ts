@@ -20,6 +20,7 @@ import { eventId } from "../src/interfaces/event";
 import { createTradeEntity, makeTradeId } from "../src/trade";
 import { TradeVaultBalanceChange } from "../generated/schema";
 import { tradeVaultBalanceChangeId } from "../src/tradevaultbalancechange";
+import { createMockERC20Functions } from "./erc20.test";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -49,6 +50,13 @@ describe("Deposits", () => {
   });
 
   test("createTradeEntity()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x3333333333333333333333333333333333333333")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x4444444444444444444444444444444444444444")
+    );
+
     let event = createTakeOrderEvent(
       Address.fromString("0x1111111111111111111111111111111111111111"),
       Address.fromString("0x2222222222222222222222222222222222222222"),

@@ -12,6 +12,7 @@ import { handleDeposit } from "../../src/handlers";
 import { vaultEntityId } from "../../src/vault";
 import { Deposit, Vault } from "../../generated/schema";
 import { eventId } from "../../src/interfaces/event";
+import { createMockERC20Functions } from "../erc20.test";
 
 describe("Handle deposit", () => {
   afterEach(() => {
@@ -20,6 +21,10 @@ describe("Handle deposit", () => {
   });
 
   test("handleDeposit()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+
     let event = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x1234567890123456789012345678901234567890"),
@@ -55,7 +60,6 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bytesEquals(deposit.token, event.params.token);
     assert.bigIntEquals(deposit.amount, BigInt.fromI32(100));
     assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(0));
     assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(100));
@@ -96,13 +100,16 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bytesEquals(deposit.token, event.params.token);
     assert.bigIntEquals(deposit.amount, BigInt.fromI32(200));
     assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(100));
     assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(300));
     assert.bigIntEquals(deposit.timestamp, event.block.timestamp);
 
     // make another deposit, different token, same vaultId
+    createMockERC20Functions(
+      Address.fromString("0x0987654321098765432109876543210987654321")
+    );
+
     event = createDepositEvent(
       Address.fromString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
@@ -137,7 +144,6 @@ describe("Handle deposit", () => {
       return;
     }
     assert.bytesEquals(deposit.sender, event.params.sender);
-    assert.bytesEquals(deposit.token, event.params.token);
     assert.bigIntEquals(deposit.amount, BigInt.fromI32(300));
     assert.bigIntEquals(deposit.oldVaultBalance, BigInt.fromI32(0));
     assert.bigIntEquals(deposit.newVaultBalance, BigInt.fromI32(300));
