@@ -1,9 +1,10 @@
-import { Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { Bytes, ethereum, crypto } from "@graphprotocol/graph-ts";
 import { Trade, TradeVaultBalanceChange } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 
 export function makeTradeId(event: ethereum.Event, orderHash: Bytes): Bytes {
-  return eventId(event).concat(orderHash);
+  let bytes = eventId(event).concat(orderHash);
+  return crypto.keccak256(bytes);
 }
 
 export function createTradeEntity(

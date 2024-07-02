@@ -6,7 +6,10 @@ import { makeOrderId } from "./order";
 export function handleMeta(event: MetaV1): void {
   // The order should already exist by the time the MetaV1 event is handled
   let order = Order.load(
-    makeOrderId(Bytes.fromByteArray(Bytes.fromBigInt(event.params.subject)))
+    makeOrderId(
+      event.address,
+      Bytes.fromByteArray(Bytes.fromBigInt(event.params.subject))
+    )
   );
   if (order != null) {
     order.meta = event.params.meta;

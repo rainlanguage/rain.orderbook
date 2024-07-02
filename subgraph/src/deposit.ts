@@ -7,6 +7,7 @@ import { Deposit } from "../generated/OrderBook/OrderBook";
 
 export function handleDeposit(event: Deposit): void {
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
+    event.address,
     event.params.vaultId,
     event.params.token,
     event.params.amount,
@@ -22,6 +23,7 @@ export function createDepositEntity(
   deposit.amount = event.params.amount;
   deposit.sender = event.params.sender;
   deposit.vault = vaultEntityId(
+    event.address,
     event.params.sender,
     event.params.vaultId,
     event.params.token

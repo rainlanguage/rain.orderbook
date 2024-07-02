@@ -7,6 +7,7 @@ import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 
 export function handleWithdraw(event: Withdraw): void {
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
+    event.address,
     event.params.vaultId,
     event.params.token,
     event.params.amount.neg(),
@@ -24,6 +25,7 @@ export function createWithdrawalEntity(
   withdraw.targetAmount = event.params.targetAmount;
   withdraw.sender = event.params.sender;
   withdraw.vault = vaultEntityId(
+    event.address,
     event.params.sender,
     event.params.vaultId,
     event.params.token
