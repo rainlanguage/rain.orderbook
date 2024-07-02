@@ -4,8 +4,10 @@ import { Withdrawal } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
+import { createOrderbookEntity } from "./orderbook";
 
 export function handleWithdraw(event: Withdraw): void {
+  createOrderbookEntity(event);
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
     event.address,
     event.params.vaultId,

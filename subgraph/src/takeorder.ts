@@ -7,6 +7,7 @@ import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
 import { createTradeEntity } from "./trade";
 import { crypto } from "@graphprotocol/graph-ts";
+import { createOrderbookEntity } from "./orderbook";
 
 export function orderHashFromTakeOrderEvent(event: TakeOrderV2): Bytes {
   let orderHash = crypto.keccak256(
@@ -16,6 +17,8 @@ export function orderHashFromTakeOrderEvent(event: TakeOrderV2): Bytes {
 }
 
 export function handleTakeOrder(event: TakeOrderV2): void {
+  createOrderbookEntity(event);
+
   let order = event.params.config.order;
   let orderHash = orderHashFromTakeOrderEvent(event);
 

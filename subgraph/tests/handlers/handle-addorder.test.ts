@@ -55,6 +55,15 @@ describe("Add and remove orders", () => {
 
     handleAddOrder(event);
 
+    // we should have an orderbook entity
+    assert.entityCount("Orderbook", 1);
+    assert.fieldEquals(
+      "Orderbook",
+      event.address.toHexString(),
+      "id",
+      event.address.toHexString()
+    );
+
     let id = makeOrderId(
       event.address,
       Bytes.fromHexString("0x0987654321098765432109876543210987654321")

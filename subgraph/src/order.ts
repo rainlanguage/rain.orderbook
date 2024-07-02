@@ -4,13 +4,16 @@ import { AddOrder, Order, RemoveOrder } from "../generated/schema";
 import { getVault } from "./vault";
 import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
+import { createOrderbookEntity } from "./orderbook";
 
 export function handleAddOrder(event: AddOrderV2): void {
+  createOrderbookEntity(event);
   createOrderEntity(event);
   createAddOrderEntity(event);
 }
 
 export function handleRemoveOrder(event: RemoveOrderV2): void {
+  createOrderbookEntity(event);
   let order = Order.load(makeOrderId(event.address, event.params.orderHash));
   if (order != null) {
     order.active = false;

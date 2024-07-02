@@ -87,6 +87,15 @@ describe("Add and remove orders", () => {
 
     handleMeta(metaEvent);
 
+    // we should have an orderbook entity
+    assert.entityCount("Orderbook", 1);
+    assert.fieldEquals(
+      "Orderbook",
+      event.address.toHexString(),
+      "id",
+      event.address.toHexString()
+    );
+
     let id = makeOrderId(metaEvent.address, orderHash);
 
     // meta field on order should be updated
