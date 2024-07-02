@@ -1,5 +1,5 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy_primitives::{utils::format_units, I256, U256};
+use alloy_primitives::{utils::format_units, I256};
 use rain_orderbook_subgraph_client::types::vault_balance_changes_list::{
     self, BigInt, VaultBalanceChange,
 };
