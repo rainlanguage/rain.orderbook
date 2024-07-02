@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { TokenVault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
-  import type { TokenVault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
+  import type { Vault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
+  import type { Vault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import {
     vaultDeposit,
@@ -100,7 +100,7 @@
         Owner
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.owner.id}
+        {vault.owner}
       </p>
     </div>
 
@@ -109,7 +109,7 @@
         Balance
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.balance_display}
+        {vault.balance}
       </p>
     </div>
 
@@ -124,7 +124,7 @@
         <InputTokenAmount
           bind:value={amount}
           symbol={vault.token.symbol}
-          decimals={vault.token.decimals}
+          decimals={Number(vault.token.decimals) ?? 0}
         />
       </ButtonGroup>
     </div>

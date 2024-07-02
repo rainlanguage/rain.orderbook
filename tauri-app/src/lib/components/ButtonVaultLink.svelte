@@ -1,9 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import type { TokenVault } from '$lib/typeshare/orderDetail';
+  import type { Vault } from '$lib/typeshare/orderDetail';
   import { bigintStringToHex } from '$lib/utils/hex';
 
-  export let tokenVault: TokenVault;
+  export let tokenVault: Vault;
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->

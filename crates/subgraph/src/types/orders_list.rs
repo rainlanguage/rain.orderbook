@@ -2,130 +2,87 @@ use crate::schema;
 use serde::Serialize;
 use typeshare::typeshare;
 
+#[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
-#[derive(cynic::QueryVariables, Debug)]
 pub struct OrdersListQueryVariables {
     pub first: Option<i32>,
     pub skip: Option<i32>,
 }
 
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
+#[typeshare]
 pub struct OrdersListQuery {
-    #[arguments(orderBy: "timestamp", orderDirection: "desc", skip: $skip, first: $first)]
+    #[arguments(orderDirection: "desc", skip: $skip, first: $first)]
     pub orders: Vec<Order>,
 }
 
-#[typeshare]
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct Order {
-    pub id: cynic::Id,
-    pub timestamp: BigInt,
-    #[cynic(rename = "handleIO")]
-    pub handle_io: bool,
-    #[cynic(rename = "orderJSONString")]
-    pub order_jsonstring: String,
-    pub owner: Account,
-    pub order_active: bool,
-    pub expression: Bytes,
-    pub interpreter: Bytes,
-    pub interpreter_store: Bytes,
-    pub transaction: Transaction,
-    pub valid_inputs: Option<Vec<Io>>,
-    pub valid_outputs: Option<Vec<Io>>,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct Transaction {
-    pub id: cynic::Id,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "IO")]
-pub struct Io {
-    pub token: Erc20,
-    pub token_vault: TokenVault,
-    pub vault: Vault,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct Vault {
-    pub id: cynic::Id,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct TokenVault {
-    pub id: cynic::Id,
-    pub balance: BigInt,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "ERC20")]
-pub struct Erc20 {
-    pub id: cynic::Id,
-    pub symbol: String,
-    pub decimals: i32,
-}
-
-#[typeshare]
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-pub struct Account {
     pub id: Bytes,
+    pub order_bytes: Bytes,
+    pub order_hash: Bytes,
+    pub owner: Bytes,
+    pub outputs: Vec<Vault>,
+    pub inputs: Vec<Vault>,
+    pub active: bool,
+    pub add_events: Vec<AddOrder>,
+    pub timestamp_added: BigInt,
 }
 
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
-#[derive(cynic::Enum, Clone, Copy, Debug)]
-pub enum OrderDirection {
-    #[cynic(rename = "asc")]
-    Asc,
-    #[cynic(rename = "desc")]
-    Desc,
+pub struct Vault {
+    pub token: ERC20,
+    pub balance: BigInt,
+    pub vault_id: BigInt,
 }
 
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
+pub struct ERC20 {
+    pub id: Bytes,
+    pub address: Bytes,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub decimals: Option<BigInt>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct AddOrder {
+    pub transaction: Transaction,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Transaction {
+    pub id: Bytes,
+    pub block_number: BigInt,
+    pub timestamp: BigInt,
+}
+
 #[derive(cynic::Enum, Clone, Copy, Debug)]
-#[cynic(graphql_type = "Order_orderBy")]
-pub enum OrderOrderBy {
+#[cynic(graphql_type = "AddOrder_orderBy")]
+#[typeshare]
+pub enum AddOrderOrderBy {
     #[cynic(rename = "id")]
     Id,
-    #[cynic(rename = "orderHash")]
-    OrderHash,
-    #[cynic(rename = "owner")]
-    Owner,
-    #[cynic(rename = "owner__id")]
-    OwnerId,
-    #[cynic(rename = "interpreter")]
-    Interpreter,
-    #[cynic(rename = "interpreterStore")]
-    InterpreterStore,
-    #[cynic(rename = "expressionDeployer")]
-    ExpressionDeployer,
-    #[cynic(rename = "expression")]
-    Expression,
-    #[cynic(rename = "orderActive")]
+    #[cynic(rename = "order")]
+    Order,
+    #[cynic(rename = "order__id")]
+    OrderId,
+    #[cynic(rename = "order__active")]
     OrderActive,
-    #[cynic(rename = "handleIO")]
-    HandleIo,
-    #[cynic(rename = "meta")]
-    Meta,
-    #[cynic(rename = "meta__id")]
-    MetaId,
-    #[cynic(rename = "meta__metaBytes")]
-    MetaMetaBytes,
-    #[cynic(rename = "validInputs")]
-    ValidInputs,
-    #[cynic(rename = "validOutputs")]
-    ValidOutputs,
-    #[cynic(rename = "orderJSONString")]
-    OrderJsonstring,
-    #[cynic(rename = "expressionJSONString")]
-    ExpressionJsonstring,
+    #[cynic(rename = "order__orderHash")]
+    OrderOrderHash,
+    #[cynic(rename = "order__owner")]
+    OrderOwner,
+    #[cynic(rename = "order__nonce")]
+    OrderNonce,
+    #[cynic(rename = "order__orderBytes")]
+    OrderOrderBytes,
     #[cynic(rename = "transaction")]
     Transaction,
     #[cynic(rename = "transaction__id")]
@@ -134,20 +91,29 @@ pub enum OrderOrderBy {
     TransactionTimestamp,
     #[cynic(rename = "transaction__blockNumber")]
     TransactionBlockNumber,
-    #[cynic(rename = "emitter")]
-    Emitter,
-    #[cynic(rename = "emitter__id")]
-    EmitterId,
-    #[cynic(rename = "timestamp")]
-    Timestamp,
-    #[cynic(rename = "takeOrders")]
-    TakeOrders,
-    #[cynic(rename = "ordersClears")]
-    OrdersClears,
+    #[cynic(rename = "transaction__from")]
+    TransactionFrom,
+    #[cynic(rename = "sender")]
+    Sender,
+    #[cynic(rename = "order__meta")]
+    Meta,
+    #[cynic(rename = "order__timestampAdded")]
+    OrderTimestampAdded,
+}
+
+#[derive(cynic::Enum, Clone, Copy, Debug)]
+#[typeshare]
+pub enum OrderDirection {
+    #[cynic(rename = "asc")]
+    Asc,
+    #[cynic(rename = "desc")]
+    Desc,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone)]
+#[typeshare]
 pub struct Bytes(pub String);

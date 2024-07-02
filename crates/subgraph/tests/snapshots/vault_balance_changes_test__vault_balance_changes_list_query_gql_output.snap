@@ -2,57 +2,26 @@
 source: crates/subgraph/tests/vault_balance_changes_test.rs
 expression: request_body.query
 ---
-query VaultBalanceChangesListQuery($first: Int, $id: ID!, $skip: Int) {
-  vaultDeposits(orderBy: timestamp, orderDirection: desc, where: {tokenVault_: {id: $id, }, }, skip: $skip, first: $first) {
-    id
-    vaultId
-    timestamp
+query VaultBalanceChangesListQuery($first: Int, $id: Bytes!, $skip: Int) {
+  vaultBalanceChanges(orderDirection: desc, where: {vault_: {id: $id, }, }, skip: $skip, first: $first) {
+    __typename
     amount
-    amountDisplay
-    sender {
-      id
-    }
-    transaction {
-      id
-    }
-    tokenVault {
+    newVaultBalance
+    oldVaultBalance
+    vault {
       id
       token {
         id
+        address
         name
         symbol
         decimals
       }
-      balance
-      balanceDisplay
     }
-  }
-  vaultWithdraws(orderBy: timestamp, orderDirection: desc, where: {tokenVault_: {id: $id, }, }, skip: $skip, first: $first) {
-    id
-    vaultId
     timestamp
-    amount
-    amountDisplay
-    sender {
-      id
-    }
     transaction {
       id
+      from
     }
-    tokenVault {
-      id
-      token {
-        id
-        name
-        symbol
-        decimals
-      }
-      balance
-      balanceDisplay
-    }
-    requestedAmount
-    requestedAmountDisplay
   }
 }
-
-

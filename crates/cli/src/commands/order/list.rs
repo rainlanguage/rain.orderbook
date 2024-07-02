@@ -6,8 +6,9 @@ use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::{
-    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderFlattened,
-    utils::timestamp::FormatTimestampDisplayError,
+    csv::TryIntoCsv,
+    subgraph::SubgraphArgs,
+    types::{FlattenError, OrderFlattened},
 };
 use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
@@ -31,11 +32,11 @@ impl Execute for CliOrderListArgs {
                 .await?
                 .orders_list_all()
                 .await?;
-            let orders_flattened: Vec<OrderFlattened> =
-                orders
-                    .into_iter()
-                    .map(|o| o.try_into())
-                    .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
+            let orders_flattened: Vec<OrderFlattened> = orders
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderFlattened>, FlattenError>>(
+            )?;
 
             let csv_text = orders_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -46,11 +47,11 @@ impl Execute for CliOrderListArgs {
                 .await?
                 .orders_list(pagination_args)
                 .await?;
-            let orders_flattened: Vec<OrderFlattened> =
-                orders
-                    .into_iter()
-                    .map(|o| o.try_into())
-                    .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
+            let orders_flattened: Vec<OrderFlattened> = orders
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<OrderFlattened>, FlattenError>>(
+            )?;
 
             let table = build_table(orders_flattened)?;
             info!("\n{}", table);

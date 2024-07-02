@@ -6,8 +6,9 @@ use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::{
-    csv::TryIntoCsv, subgraph::SubgraphArgs, types::VaultBalanceChangeFlattened,
-    utils::timestamp::FormatTimestampDisplayError,
+    csv::TryIntoCsv,
+    subgraph::SubgraphArgs,
+    types::{FlattenError, VaultBalanceChangeFlattened},
 };
 use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
@@ -38,7 +39,7 @@ impl Execute for CliVaultBalanceChangesList {
                 vault_balance_changes
                     .into_iter()
                     .map(|o| o.try_into())
-                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FlattenError>>()?;
 
             let csv_text = vault_balance_changes_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -53,7 +54,7 @@ impl Execute for CliVaultBalanceChangesList {
                 vault_balance_changes
                     .into_iter()
                     .map(|o| o.try_into())
-                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
+                    .collect::<Result<Vec<VaultBalanceChangeFlattened>, FlattenError>>()?;
 
             let table = build_table(vault_balance_changes_flattened)?;
             info!("\n{}", table);
@@ -69,7 +70,6 @@ fn build_table(balance_change: Vec<VaultBalanceChangeFlattened>) -> Result<Table
         .load_preset(comfy_table::presets::UTF8_FULL)
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
         .set_header(vec![
-            "ID",
             "Changed At",
             "Sender",
             "Balance Change",
@@ -78,9 +78,8 @@ fn build_table(balance_change: Vec<VaultBalanceChangeFlattened>) -> Result<Table
 
     for balance_change in balance_change.into_iter() {
         table.add_row(vec![
-            balance_change.id,
             balance_change.timestamp_display,
-            balance_change.sender.0,
+            balance_change.from.0,
             balance_change.amount_display_signed,
             balance_change.change_type_display,
         ]);

@@ -5,7 +5,11 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::{csv::TryIntoCsv, subgraph::SubgraphArgs, types::TokenVaultFlattened};
+use rain_orderbook_common::{
+    csv::TryIntoCsv,
+    subgraph::SubgraphArgs,
+    types::{FlattenError, TokenVaultFlattened},
+};
 use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
@@ -28,8 +32,10 @@ impl Execute for CliVaultListArgs {
                 .await?
                 .vaults_list_all()
                 .await?;
-            let vaults_flattened: Vec<TokenVaultFlattened> =
-                vaults.into_iter().map(|o| o.into()).collect();
+            let vaults_flattened: Vec<TokenVaultFlattened> = vaults
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<TokenVaultFlattened>, FlattenError>>()?;
 
             let csv_text = vaults_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -40,8 +46,10 @@ impl Execute for CliVaultListArgs {
                 .await?
                 .vaults_list(pagination_args)
                 .await?;
-            let vaults_flattened: Vec<TokenVaultFlattened> =
-                vaults.into_iter().map(|o| o.into()).collect();
+            let vaults_flattened: Vec<TokenVaultFlattened> = vaults
+                .into_iter()
+                .map(|o| o.try_into())
+                .collect::<Result<Vec<TokenVaultFlattened>, FlattenError>>()?;
 
             let table = build_table(vaults_flattened)?;
             info!("\n{}", table);
@@ -61,9 +69,13 @@ fn build_table(vaults: Vec<TokenVaultFlattened>) -> Result<Table> {
     for vault in vaults.iter() {
         table.add_row(vec![
             vault.id.clone(),
-            format!("{}", vault.owner.0),
-            vault.token_symbol.clone(),
-            format!("{}", vault.balance_display.0),
+            format!("{}", vault.clone().owner.0),
+            vault
+                .clone()
+                .token_symbol
+                .unwrap_or("Unknown".into())
+                .clone(),
+            format!("{}", vault.balance_display),
         ]);
     }
 

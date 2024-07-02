@@ -3,10 +3,9 @@ use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLoc
 use alloy_primitives::Bytes;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv, remove_order::RemoveOrderArgs,
-    subgraph::SubgraphArgs, transaction::TransactionArgs, types::OrderDetailExtended,
-    types::OrderFlattened, utils::timestamp::FormatTimestampDisplayError,
-    rainlang::compose_to_rainlang
+    add_order::AddOrderArgs, csv::TryIntoCsv, rainlang::compose_to_rainlang,
+    remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
+    types::OrderDetailExtended, types::OrderFlattened, types::FlattenError
 };
 use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
 use std::fs;
@@ -39,7 +38,7 @@ pub async fn orders_list_write_csv(
     let orders_flattened: Vec<OrderFlattened> = orders
         .into_iter()
         .map(|o| o.try_into())
-        .collect::<Result<Vec<OrderFlattened>, FormatTimestampDisplayError>>()?;
+        .collect::<Result<Vec<OrderFlattened>, FlattenError>>()?;
     let csv_text = orders_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 
@@ -126,7 +125,8 @@ pub async fn order_add_calldata(
     transaction_args: TransactionArgs,
 ) -> CommandResult<Bytes> {
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
-    let calldata = add_order_args.get_add_order_calldata(transaction_args)
+    let calldata = add_order_args
+        .get_add_order_calldata(transaction_args)
         .await
         .map_err(|e| {
             toast_error(app_handle.clone(), e.to_string());
@@ -168,9 +168,6 @@ pub async fn order_remove_calldata(
 }
 
 #[tauri::command]
-pub async fn compose_from_scenario(
-    dotrain: String,
-    scenario: Scenario,
-) -> CommandResult<String> {
+pub async fn compose_from_scenario(dotrain: String, scenario: Scenario) -> CommandResult<String> {
     Ok(compose_to_rainlang(dotrain, scenario.bindings)?)
 }

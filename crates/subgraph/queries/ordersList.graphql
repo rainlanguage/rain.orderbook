@@ -1,44 +1,23 @@
 query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
-  orders(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first) {
-    id
-    timestamp
-    handleIO
-    orderJSONString
-    owner {
-      id
+  orders(orderDirection: desc, skip: $skip, first: $first) {
+    orderBytes
+    orderHash
+    owner
+    outputs {
+      token
+      balance
+      vaultId
     }
-    orderActive
-    expression
-    interpreter
-    interpreterStore
-    transaction {
-      id
+    inputs {
+      token
+      balance
+      vaultId
     }
-    validInputs {
-      token {
-        id
-        symbol
-        decimals
-      }
-      tokenVault {
-        id
-        balance
-      }
-      vault {
-        id
-      }
-    }
-    validOutputs {
-      token {
-        id
-        symbol
-        decimals
-      }
-      tokenVault {
-        balance
-      }
-      vault {
-        id
+    active
+    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+      transaction {
+        blockNumber
+        timestamp
       }
     }
   }

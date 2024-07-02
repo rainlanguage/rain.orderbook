@@ -4,7 +4,7 @@ import { subgraphUrl } from '$lib/stores/settings';
 import { detailStore } from '$lib/storesGeneric/detailStore';
 import type { Order } from '$lib/typeshare/ordersList';
 import { listStore } from '$lib/storesGeneric/listStore';
-import type { TakeOrderEntity } from '$lib/typeshare/orderTakesList';
+import type { Trade } from '$lib/typeshare/orderTakesList';
 import { asyncDerived } from '@square/svelte-store';
 
 export const ordersList = asyncDerived(subgraphUrl, async () => {
@@ -30,7 +30,7 @@ export const orderDetail = detailStore<OrderDetailExtended>(
 );
 
 export const useOrderTakesList = (orderId: string) =>
-  listStore<TakeOrderEntity>(
+  listStore<Trade>(
     `orderTakesList-${orderId}`,
     async (page) => {
       const url = await subgraphUrl.load();

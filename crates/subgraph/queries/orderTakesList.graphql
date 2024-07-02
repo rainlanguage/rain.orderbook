@@ -1,44 +1,30 @@
-query OrderTakesListQuery($id: ID!, $skip: Int = 0, $first: Int = 25) {
-  takeOrderEntities(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first, where: {
+query OrderTakesListQuery($id: Bytes!, $skip: Int = 0, $first: Int = 25) {
+  trades(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first, where: {
     order_: {
       id: $id
     }
   }) {
-    id
-    transaction {
-      id
+    tradeEvent {
+      transaction {
+        id
+        from
+      }
     }
-    sender {
-      id
+    outputVaultBalanceChange {
+      amount
+      vault {
+        token
+      }
     }
-    timestamp
     order {
       id
+      orderHash
     }
-    IORatio
-    input
-    inputDisplay
-    inputToken {
-      id
-      name
-      symbol
-      decimals
-    }
-    inputIOIndex
-    output
-    outputDisplay
-    outputToken {
-      id
-      name
-      symbol
-      decimals
-    }
-    outputIOIndex
-    context {
-      callingContext
-      calculationsContext
-      vaultInputsContext
-      vaultOutputsContext
+    inputVaultBalanceChange {
+      vault {
+        token
+      }
+      amount
     }
   }
 }

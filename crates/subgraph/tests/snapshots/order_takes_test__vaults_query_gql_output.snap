@@ -2,45 +2,44 @@
 source: crates/subgraph/tests/order_takes_test.rs
 expression: request_body.query
 ---
-query OrderTakesListQuery($first: Int, $id: ID!, $skip: Int) {
-  takeOrderEntities(orderBy: timestamp, orderDirection: desc, skip: $skip, first: $first, where: {order_: {id: $id, }, }) {
+query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
+  trades(skip: $skip, first: $first, where: {order_: {id: $id, }, }) {
     id
-    transaction {
-      id
+    tradeEvent {
+      transaction {
+        id
+        from
+      }
+      sender
     }
-    sender {
-      id
+    outputVaultBalanceChange {
+      amount
+      vault {
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
     }
-    timestamp
     order {
       id
+      orderHash
     }
-    IORatio
-    input
-    inputDisplay
-    inputToken {
-      id
-      name
-      symbol
-      decimals
+    inputVaultBalanceChange {
+      vault {
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
+      amount
     }
-    inputIOIndex
-    output
-    outputDisplay
-    outputToken {
-      id
-      name
-      symbol
-      decimals
-    }
-    outputIOIndex
-    context {
-      callingContext
-      calculationsContext
-      vaultInputsContext
-      vaultOutputsContext
-    }
+    timestamp
   }
 }
-
-

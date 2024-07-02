@@ -3,13 +3,13 @@ import { subgraphUrl } from '$lib/stores/settings';
 import { listStore } from '$lib/storesGeneric/listStore';
 import type { VaultBalanceChange } from '$lib/typeshare/vaultBalanceChangesList';
 import { detailStore } from '$lib/storesGeneric/detailStore';
-import type { TokenVault } from '$lib/typeshare/vaultsList';
+import type { Vault } from '$lib/typeshare/vaultsList';
 import { asyncDerived } from '@square/svelte-store';
 
 export const vaultsList = asyncDerived(subgraphUrl, async () => {
   const url = await subgraphUrl.load();
 
-  return listStore<TokenVault>(
+  return listStore<Vault>(
     `${url}.vaultsList`,
     (page) =>
       invoke('vaults_list', {
@@ -20,7 +20,7 @@ export const vaultsList = asyncDerived(subgraphUrl, async () => {
   );
 });
 
-export const vaultDetail = detailStore<TokenVault>('vaults.vaultsDetail', async (id: string) => {
+export const vaultDetail = detailStore<Vault>('vaults.vaultsDetail', async (id: string) => {
   const url = await subgraphUrl.load();
   return invoke('vault_detail', { id, subgraphArgs: { url } });
 });
