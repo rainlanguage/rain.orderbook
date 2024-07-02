@@ -20,6 +20,7 @@
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
+  import { formatUnits } from 'viem';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -29,12 +30,9 @@
 
   function prepareChartData() {
     const transformedData = $vaultBalanceChangesList.all.map((d) => ({
-      value:
-        d.__typename === 'Withdrawal'
-          ? bigintToFloat(BigInt(-1) * BigInt(d.amount), Number(vault.token.decimals ?? 0))
-          : bigintToFloat(BigInt(d.amount), Number(vault.token.decimals ?? 0)),
+      value: bigintToFloat(BigInt(d.amount), Number(vault.token.decimals ?? 0)),
       time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-      color: d.__typename === 'Withdrawal' ? '#4E4AF6' : '#046C4E',
+      color: BigInt(d.amount) < 0n ? '#4E4AF6' : '#046C4E',
     }));
 
     return sortBy(transformedData, (d) => d.time);
@@ -91,7 +89,10 @@
 
     <CardProperty>
       <svelte:fragment slot="key">Balance</svelte:fragment>
-      <svelte:fragment slot="value">{vault.balance} {vault.token.symbol}</svelte:fragment>
+      <svelte:fragment slot="value"
+        >{formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
+        {vault.token.symbol}</svelte:fragment
+      >
     </CardProperty>
 
     <CardProperty>
@@ -150,7 +151,7 @@
           <Hash type={HashType.Transaction} value={item.transaction.id} />
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-0 text-left">
-          {item.amount}
+          {formatUnits(BigInt(item.amount), Number(item.vault.token.decimals ?? 0))}
           {item.vault.token.symbol}
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-0 text-left">

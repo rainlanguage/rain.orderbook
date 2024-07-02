@@ -16,7 +16,7 @@ pub struct VaultBalanceChangesListQueryVariables {
 )]
 #[typeshare]
 pub struct VaultBalanceChangesListQuery {
-    #[arguments(orderDirection: "desc", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
+    #[arguments(orderDirection: "desc", orderBy: "timestamp", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
     pub vault_balance_changes: Vec<VaultBalanceChange>,
 }
 

@@ -1,5 +1,5 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy_primitives::{utils::format_units, U256};
+use alloy_primitives::{utils::format_units, I256, U256};
 use rain_orderbook_subgraph_client::types::order_takes_list::*;
 use serde::{Deserialize, Serialize};
 
@@ -30,8 +30,8 @@ impl TryFrom<Trade> for OrderTakeFlattened {
         let timestamp = val.timestamp.clone();
         let input_vault_balance_change = val.input_vault_balance_change.clone();
         let output_vault_balance_change = val.output_vault_balance_change.clone();
-        let input_amount = input_vault_balance_change.amount.0.parse::<U256>()?;
-        let output_amount = output_vault_balance_change.amount.0.parse::<U256>()?;
+        let input_amount = input_vault_balance_change.amount.0.parse::<I256>()?;
+        let output_amount = output_vault_balance_change.amount.0.parse::<I256>()?;
         let input_decimals = input_vault_balance_change
             .vault
             .token

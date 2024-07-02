@@ -1,5 +1,5 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy_primitives::{utils::format_units, U256};
+use alloy_primitives::{utils::format_units, I256, U256};
 use rain_orderbook_subgraph_client::types::vault_balance_changes_list::{
     self, BigInt, VaultBalanceChange,
 };
@@ -22,8 +22,8 @@ impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {
     type Error = FlattenError;
 
     fn try_from(val: VaultBalanceChange) -> Result<Self, Self::Error> {
-        let amount_display = format_units(
-            val.amount.0.parse::<U256>()?,
+        let amount_display_signed = format_units(
+            val.amount.0.parse::<I256>()?,
             val.vault
                 .token
                 .decimals
@@ -31,21 +31,13 @@ impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {
                 .0
                 .parse::<u8>()?,
         )?;
-        // if val.new_vault_balance < val.old_vault_balance then it's a negative sign
-        let sign = if val.new_vault_balance.0.parse::<U256>()?
-            < val.old_vault_balance.0.parse::<U256>()?
-        {
-            "-"
-        } else {
-            ""
-        };
 
         Ok(Self {
             timestamp: val.timestamp.clone(),
             timestamp_display: format_bigint_timestamp_display(val.timestamp.0)?,
             from: val.transaction.from,
             amount: val.amount,
-            amount_display_signed: format!("-{}{}", sign, amount_display),
+            amount_display_signed,
             change_type_display: val.__typename,
             balance: val.new_vault_balance.clone(),
         })

@@ -4,9 +4,9 @@ use crate::types::vault_balance_changes_list::VaultBalanceChange;
 use crate::types::vault_balance_changes_list::{
     VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
 };
-// use chrono::DateTime;
+use chrono::DateTime;
 use reqwest::Url;
-// use std::cmp::Reverse;
+use std::cmp::Reverse;
 
 pub struct VaultBalanceChangesListPageQueryClient {
     pub url: Url,
@@ -42,14 +42,13 @@ impl PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables>
 
     /// Sort by timestamp, descending
     fn sort_results(results: Vec<VaultBalanceChange>) -> Vec<VaultBalanceChange> {
-        let sorted_results = results.clone();
-        // sorted_results.sort_by_key(|r| {
-        //     let timestamp = "0"; // @TODO: Get timestamp from VaultBalanceChange
-        //     Reverse(DateTime::from_timestamp(
-        //         timestamp.parse::<i64>().unwrap_or(0),
-        //         0,
-        //     ))
-        // });
+        let mut sorted_results = results.clone();
+        sorted_results.sort_by_key(|r| {
+            Reverse(DateTime::from_timestamp(
+                r.timestamp.0.parse::<i64>().unwrap_or(0),
+                0,
+            ))
+        });
 
         sorted_results
     }

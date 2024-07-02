@@ -1731,7 +1731,7 @@ type TradeVaultBalanceChange implements VaultBalanceChange {
   """
   vault: Vault!
   """
-  The amount that was changed - this is unsigned
+  The amount that was changed - this is signed
   """
   amount: BigInt!
   """
@@ -2151,7 +2151,7 @@ interface VaultBalanceChange {
   """
   vault: Vault!
   """
-  The amount that was changed - this is unsigned
+  The amount changed - this is signed
   """
   amount: BigInt!
   """
@@ -2368,7 +2368,7 @@ type Withdrawal implements Event & VaultBalanceChange {
   """
   vault: Vault!
   """
-  The amount that was actually withdrawn
+  The amount that was actually withdrawn - this will be negative
   """
   amount: BigInt!
   oldVaultBalance: BigInt!

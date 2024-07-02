@@ -8,8 +8,8 @@ export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; colo
 export function prepareHistoricalOrderChartData(takeOrderEntities: Trade[], colorTheme: string) {
   const transformedData = takeOrderEntities.map((d) => ({
     value:
-      parseFloat(d.output_vault_balance_change.amount) /
-      parseFloat(d.input_vault_balance_change.amount),
+      parseFloat(d.input_vault_balance_change.amount) /
+      parseFloat(d.output_vault_balance_change.amount),
     time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
     color: colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
     outputAmount: +d.output_vault_balance_change.amount,
@@ -175,11 +175,11 @@ if (import.meta.vitest) {
     const result = prepareHistoricalOrderChartData(takeOrderEntities, 'dark');
 
     expect(result.length).toEqual(3);
-    expect(result[0].value).toEqual(0.2);
+    expect(result[0].value).toEqual(0.5);
     expect(result[0].time).toEqual(1630000000);
-    expect(result[1].value).toEqual(0.3);
+    expect(result[1].value).toEqual(0.5);
     expect(result[1].time).toEqual(1631000000);
-    expect(result[2].value).toEqual(0.1);
+    expect(result[2].value).toEqual(0.5);
     expect(result[2].time).toEqual(1632000000);
 
     // check the color
@@ -243,7 +243,7 @@ if (import.meta.vitest) {
           },
         },
         output_vault_balance_change: {
-          amount: '100',
+          amount: '200',
           vault: {
             token: {
               id: 'output_token',
@@ -284,7 +284,7 @@ if (import.meta.vitest) {
           },
         },
         output_vault_balance_change: {
-          amount: '100',
+          amount: '400',
           vault: {
             token: {
               id: 'output_token',
@@ -318,8 +318,8 @@ if (import.meta.vitest) {
     const result = prepareHistoricalOrderChartData(takeOrderEntities, 'dark');
 
     // calculate the weighted average of the ioratio values
-    const ioratioSum = 0.1 * 1 + 0.2 * 2 + 0.3 * 3;
-    const outputAmountSum = 1 + 2 + 3;
+    const ioratioSum = 0.5 * 100 + 0.25 * 200 + 0.125 * 400;
+    const outputAmountSum = 100 + 200 + 400;
     const ioratioAverage = ioratioSum / outputAmountSum;
 
     expect(result.length).toEqual(1);
