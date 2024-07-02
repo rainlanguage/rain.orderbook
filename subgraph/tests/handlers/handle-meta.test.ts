@@ -13,7 +13,7 @@ import {
   createAddOrderEvent,
   createMetaEvent,
 } from "../event-mocks.test";
-import { handleAddOrder } from "../../src/order";
+import { handleAddOrder, makeOrderId } from "../../src/order";
 import { handleMeta } from "../../src/handlers";
 import { createMockERC20Functions } from "../erc20.test";
 
@@ -87,10 +87,12 @@ describe("Add and remove orders", () => {
 
     handleMeta(metaEvent);
 
+    let id = makeOrderId(metaEvent.address, orderHash);
+
     // meta field on order should be updated
     assert.fieldEquals(
       "Order",
-      orderHash.toHexString(),
+      id.toHexString(),
       "meta",
       "0x1234567890abcdef1234567890abcdef12345678"
     );

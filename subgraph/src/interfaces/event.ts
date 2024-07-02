@@ -6,5 +6,5 @@ export function eventId(event: ethereum.Event): Bytes {
       Bytes.fromByteArray(Bytes.fromBigInt(event.logIndex))
     )
   );
-  return crypto.keccak256(bytes);
+  return Bytes.fromByteArray(crypto.keccak256(bytes));
 }

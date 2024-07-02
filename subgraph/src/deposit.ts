@@ -20,6 +20,7 @@ export function createDepositEntity(
   oldVaultBalance: BigInt
 ): void {
   let deposit = new DepositEntity(eventId(event));
+  deposit.orderbook = event.address;
   deposit.amount = event.params.amount;
   deposit.sender = event.params.sender;
   deposit.vault = vaultEntityId(

@@ -82,6 +82,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
 
 export function createTakeOrderEntity(event: TakeOrderV2): void {
   let takeOrder = new TakeOrder(eventId(event));
+  takeOrder.orderbook = event.address;
   takeOrder.inputAmount = event.params.input;
   takeOrder.outputAmount = event.params.output;
   takeOrder.sender = event.params.sender;

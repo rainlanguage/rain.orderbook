@@ -11,7 +11,7 @@ export function handleAddOrder(event: AddOrderV2): void {
 }
 
 export function handleRemoveOrder(event: RemoveOrderV2): void {
-  let order = Order.load(event.params.orderHash);
+  let order = Order.load(makeOrderId(event.address, event.params.orderHash));
   if (order != null) {
     order.active = false;
     order.save();
@@ -21,11 +21,12 @@ export function handleRemoveOrder(event: RemoveOrderV2): void {
 
 export function makeOrderId(orderbook: Bytes, orderHash: Bytes): Bytes {
   let bytes = orderbook.concat(orderHash);
-  return crypto.keccak256(bytes);
+  return Bytes.fromByteArray(crypto.keccak256(bytes));
 }
 
 export function createOrderEntity(event: AddOrderV2): void {
   let order = new Order(makeOrderId(event.address, event.params.orderHash));
+  order.orderbook = event.address;
   order.active = true;
   order.orderHash = event.params.orderHash;
   order.owner = event.params.sender;
@@ -63,6 +64,7 @@ export function createOrderEntity(event: AddOrderV2): void {
 export function createAddOrderEntity(event: AddOrderV2): void {
   let addOrder = new AddOrder(event.transaction.hash);
   addOrder.id = eventId(event);
+  addOrder.orderbook = event.address;
   addOrder.order = event.params.orderHash;
   addOrder.sender = event.params.sender;
   addOrder.transaction = createTransactionEntity(event);
@@ -72,6 +74,7 @@ export function createAddOrderEntity(event: AddOrderV2): void {
 export function createRemoveOrderEntity(event: RemoveOrderV2): void {
   let removeOrder = new RemoveOrder(event.transaction.hash);
   removeOrder.id = eventId(event);
+  removeOrder.orderbook = event.address;
   removeOrder.order = event.params.orderHash;
   removeOrder.sender = event.params.sender;
   removeOrder.transaction = createTransactionEntity(event);

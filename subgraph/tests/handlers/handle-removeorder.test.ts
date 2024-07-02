@@ -13,7 +13,11 @@ import {
   createAddOrderEvent,
   createRemoveOrderEvent,
 } from "../event-mocks.test";
-import { handleAddOrder, handleRemoveOrder } from "../../src/order";
+import {
+  handleAddOrder,
+  handleRemoveOrder,
+  makeOrderId,
+} from "../../src/order";
 import { createMockERC20Functions } from "../erc20.test";
 
 describe("Add and remove orders", () => {
@@ -56,6 +60,10 @@ describe("Add and remove orders", () => {
       )
     );
 
+    event.address = Address.fromString(
+      "0x1234567890123456789012345678901234567890"
+    );
+
     handleAddOrder(event);
 
     // Now we can remove the order
@@ -85,14 +93,25 @@ describe("Add and remove orders", () => {
       )
     );
 
+    removeEvent.address = Address.fromString(
+      "0x1234567890123456789012345678901234567890"
+    );
+
     handleRemoveOrder(removeEvent);
 
     assert.entityCount("Order", 1);
+
+    let id = makeOrderId(
+      removeEvent.address,
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+    );
+
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "active",
-      "false"
+      "false",
+      "Order should be inactive after removeOrder event"
     );
 
     // if we add the order again, it should be active
@@ -102,9 +121,10 @@ describe("Add and remove orders", () => {
 
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "active",
-      "true"
+      "true",
+      "Order should be active after second addOrder event"
     );
 
     // if we remove the order again, it should be inactive
@@ -115,9 +135,10 @@ describe("Add and remove orders", () => {
 
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "active",
-      "false"
+      "false",
+      "Order should be inactive after second removeOrder event"
     );
   });
 });

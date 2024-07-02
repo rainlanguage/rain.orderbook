@@ -8,7 +8,7 @@ export function tradeVaultBalanceChangeId(
   vaultEntityId: Bytes
 ): Bytes {
   let bytes = eventId(event).concat(vaultEntityId);
-  return crypto.keccak256(bytes);
+  return Bytes.fromByteArray(crypto.keccak256(bytes));
 }
 
 export function createTradeVaultBalanceChangeEntity(
@@ -21,6 +21,7 @@ export function createTradeVaultBalanceChangeEntity(
   let tradeVaultBalanceChange = new TradeVaultBalanceChange(
     tradeVaultBalanceChangeId(event, vaultEntityId)
   );
+  tradeVaultBalanceChange.orderbook = event.address;
   tradeVaultBalanceChange.amount = amount;
   tradeVaultBalanceChange.oldVaultBalance = oldVaultBalance;
   tradeVaultBalanceChange.newVaultBalance = oldVaultBalance.plus(amount);

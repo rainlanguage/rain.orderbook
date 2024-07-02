@@ -21,6 +21,7 @@ export function createWithdrawalEntity(
   oldVaultBalance: BigInt
 ): void {
   let withdraw = new Withdrawal(eventId(event));
+  withdraw.orderbook = event.address;
   withdraw.amount = event.params.amount.neg();
   withdraw.targetAmount = event.params.targetAmount;
   withdraw.sender = event.params.sender;

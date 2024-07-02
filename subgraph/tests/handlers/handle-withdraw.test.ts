@@ -48,6 +48,7 @@ describe("Handle withdraw", () => {
     // check vault entity
     let vault = Vault.load(
       vaultEntityId(
+        event.address,
         event.params.sender,
         event.params.vaultId,
         event.params.token
@@ -88,6 +89,7 @@ describe("Handle withdraw", () => {
     // check vault entity
     vault = Vault.load(
       vaultEntityId(
+        event.address,
         event.params.sender,
         event.params.vaultId,
         event.params.token
@@ -143,6 +145,7 @@ describe("Handle withdraw", () => {
     // check vault entity
     vault = Vault.load(
       vaultEntityId(
+        event.address,
         event.params.sender,
         event.params.vaultId,
         event.params.token
