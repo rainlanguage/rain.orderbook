@@ -54,7 +54,7 @@ impl PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables>
     }
 }
 
-impl<'a> PageQueryVariables for VaultBalanceChangesListQueryVariables {
+impl PageQueryVariables for VaultBalanceChangesListQueryVariables {
     fn with_pagination(&self, skip: Option<i32>, first: Option<i32>) -> Self {
         Self {
             skip,
