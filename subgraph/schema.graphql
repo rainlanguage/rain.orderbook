@@ -19,7 +19,7 @@ type Vault @entity {
 interface VaultBalanceChange {
   "The vault that was affected"
   vault: Vault!
-  "The amount that was changed - this is unsigned"
+  "The amount changed - this is signed"
   amount: BigInt!
   "The balance of the vault before the change"
   oldVaultBalance: BigInt!
@@ -58,7 +58,7 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   # For VaultBalanceChange
   "The vault that was withdrawn from"
   vault: Vault!
-  "The amount that was actually withdrawn"
+  "The amount that was actually withdrawn - this will be negative"
   amount: BigInt!
   oldVaultBalance: BigInt!
   newVaultBalance: BigInt!
@@ -77,7 +77,7 @@ type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: tr
   trade: Trade!
   "The vault that was affected"
   vault: Vault!
-  "The amount that was changed - this is unsigned"
+  "The amount that was changed - this is signed"
   amount: BigInt!
   "The balance of the vault before the change"
   oldVaultBalance: BigInt!

@@ -42,18 +42,8 @@ describe("Withdrawals", () => {
     );
 
     assert.entityCount("Withdrawal", 1);
-    assert.fieldEquals(
-      "Withdrawal",
-      id.toHexString(),
-      "amount",
-      BigInt.fromI32(100).toString()
-    );
-    assert.fieldEquals(
-      "Withdrawal",
-      id.toHexString(),
-      "targetAmount",
-      BigInt.fromI32(200).toString()
-    );
+    assert.fieldEquals("Withdrawal", id.toHexString(), "amount", "-100");
+    assert.fieldEquals("Withdrawal", id.toHexString(), "targetAmount", "200");
     assert.fieldEquals(
       "Withdrawal",
       id.toHexString(),
