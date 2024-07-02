@@ -70,7 +70,7 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(100));
+    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(-100));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(1000));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(900));
 
@@ -110,7 +110,7 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(200));
+    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(-200));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(900));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(700));
     assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
@@ -165,7 +165,7 @@ describe("Handle withdraw", () => {
       return;
     }
     assert.bytesEquals(withdraw.sender, event.params.sender);
-    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(200));
+    assert.bigIntEquals(withdraw.amount, BigInt.fromI32(-200));
     assert.bigIntEquals(withdraw.oldVaultBalance, BigInt.fromI32(300));
     assert.bigIntEquals(withdraw.newVaultBalance, BigInt.fromI32(100));
     assert.bigIntEquals(withdraw.timestamp, event.block.timestamp);
