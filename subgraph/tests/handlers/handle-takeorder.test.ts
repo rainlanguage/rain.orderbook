@@ -64,5 +64,14 @@ describe("Add and remove orders", () => {
     assert.entityCount("Vault", 2);
     assert.entityCount("TradeVaultBalanceChange", 2);
     assert.entityCount("Trade", 1);
+
+    // we should have an orderbook entity
+    assert.entityCount("Orderbook", 1);
+    assert.fieldEquals(
+      "Orderbook",
+      event.address.toHexString(),
+      "id",
+      event.address.toHexString()
+    );
   });
 });

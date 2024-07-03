@@ -1,23 +1,27 @@
-import { Bytes, BigInt } from "@graphprotocol/graph-ts";
+import { Bytes, BigInt, crypto } from "@graphprotocol/graph-ts";
 import { Vault } from "../generated/schema";
 import { getERC20Entity } from "./erc20";
 
 export function vaultEntityId(
+  orderbook: Bytes,
   owner: Bytes,
   vaultId: BigInt,
   token: Bytes
 ): Bytes {
-  return owner.concat(
-    token.concat(Bytes.fromByteArray(Bytes.fromBigInt(vaultId)))
+  let bytes = orderbook.concat(
+    owner.concat(token.concat(Bytes.fromByteArray(Bytes.fromBigInt(vaultId))))
   );
+  return Bytes.fromByteArray(crypto.keccak256(bytes));
 }
 
 export function createEmptyVault(
+  orderbook: Bytes,
   owner: Bytes,
   vaultId: BigInt,
   token: Bytes
 ): Vault {
-  let vault = new Vault(vaultEntityId(owner, vaultId, token));
+  let vault = new Vault(vaultEntityId(orderbook, owner, vaultId, token));
+  vault.orderbook = orderbook;
   vault.vaultId = vaultId;
   vault.token = getERC20Entity(token);
   vault.owner = owner;
@@ -26,21 +30,27 @@ export function createEmptyVault(
   return vault;
 }
 
-export function getVault(owner: Bytes, vaultId: BigInt, token: Bytes): Vault {
-  let vault = Vault.load(vaultEntityId(owner, vaultId, token));
+export function getVault(
+  orderbook: Bytes,
+  owner: Bytes,
+  vaultId: BigInt,
+  token: Bytes
+): Vault {
+  let vault = Vault.load(vaultEntityId(orderbook, owner, vaultId, token));
   if (vault == null) {
-    vault = createEmptyVault(owner, vaultId, token);
+    vault = createEmptyVault(orderbook, owner, vaultId, token);
   }
   return vault;
 }
 
 export function handleVaultBalanceChange(
+  orderbook: Bytes,
   vaultId: BigInt,
   token: Bytes,
   amount: BigInt,
   owner: Bytes
 ): BigInt {
-  let vault = getVault(owner, vaultId, token);
+  let vault = getVault(orderbook, owner, vaultId, token);
   let oldVaultBalance = vault.balance;
   vault.balance = vault.balance.plus(amount);
   vault.save();

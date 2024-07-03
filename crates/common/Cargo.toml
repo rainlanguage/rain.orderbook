@@ -43,6 +43,7 @@ typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
+rain-error-decoding = { workspace = true }
 rand = "0.8.5"
 
 [dev-dependencies]

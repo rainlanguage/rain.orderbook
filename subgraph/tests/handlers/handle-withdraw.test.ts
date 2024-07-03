@@ -45,9 +45,19 @@ describe("Handle withdraw", () => {
 
     handleWithdraw(event);
 
+    // we should have an orderbook entity
+    assert.entityCount("Orderbook", 1);
+    assert.fieldEquals(
+      "Orderbook",
+      event.address.toHexString(),
+      "id",
+      event.address.toHexString()
+    );
+
     // check vault entity
     let vault = Vault.load(
       vaultEntityId(
+        event.address,
         event.params.sender,
         event.params.vaultId,
         event.params.token
@@ -88,6 +98,7 @@ describe("Handle withdraw", () => {
     // check vault entity
     vault = Vault.load(
       vaultEntityId(
+        event.address,
         event.params.sender,
         event.params.vaultId,
         event.params.token
@@ -143,6 +154,7 @@ describe("Handle withdraw", () => {
     // check vault entity
     vault = Vault.load(
       vaultEntityId(
+        event.address,
         event.params.sender,
         event.params.vaultId,
         event.params.token

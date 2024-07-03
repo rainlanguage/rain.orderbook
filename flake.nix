@@ -64,7 +64,7 @@
               typeshare crates/subgraph/src/types/order_take_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakeDetail.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              typeshare crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
               typeshare tauri-app/src-tauri/src/commands/authoring_meta.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
@@ -161,19 +161,16 @@
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
                 otool -L lib/libcharset.1.dylib
 
-               
-
-                cp ${pkgs.libiconv}/lib/libiconv.dylib lib/libiconv.dylib
-                chmod +w lib/libiconv.dylib
-                install_name_tool -id @executable_path/../Frameworks/libiconv.dylib lib/libiconv.dylib
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv-nocharset.dylib @executable_path/../Frameworks/libiconv-nocharset.dylib lib/libiconv.dylib
-                install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.dylib
-                otool -L lib/libiconv.dylib
+                cp ${pkgs.libiconv}/lib/libiconv.2.dylib lib/libiconv.2.dylib
+                chmod +w lib/libiconv.2.dylib
+                install_name_tool -id @executable_path/../Frameworks/libiconv.2.dylib lib/libiconv.2.dylib
+                install_name_tool -change ${pkgs.libiconv}/lib/libcharset.1.dylib @executable_path/../Frameworks/libcharset.1.dylib lib/libiconv.2.dylib
+                otool -L lib/libiconv.2.dylib
 
                 cp ${pkgs.gettext}/lib/libintl.8.dylib lib/libintl.8.dylib
                 chmod +w lib/libintl.8.dylib
                 install_name_tool -id @executable_path/../Frameworks/libintl.8.dylib lib/libintl.8.dylib
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.dylib @executable_path/../Frameworks/libiconv.dylib lib/libintl.8.dylib
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib lib/libintl.8.dylib
                 otool -L lib/libintl.8.dylib
 
                 cp ${pkgs.libusb}/lib/libusb-1.0.0.dylib lib/libusb-1.0.0.dylib
@@ -192,7 +189,7 @@
               ls src-tauri/target/release
 
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
-                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
 

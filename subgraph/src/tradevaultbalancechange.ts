@@ -1,4 +1,4 @@
-import { BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, ethereum, crypto } from "@graphprotocol/graph-ts";
 import { TradeVaultBalanceChange } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { makeTradeId } from "./trade";
@@ -7,7 +7,8 @@ export function tradeVaultBalanceChangeId(
   event: ethereum.Event,
   vaultEntityId: Bytes
 ): Bytes {
-  return vaultEntityId.concat(eventId(event));
+  let bytes = eventId(event).concat(vaultEntityId);
+  return Bytes.fromByteArray(crypto.keccak256(bytes));
 }
 
 export function createTradeVaultBalanceChangeEntity(
@@ -20,6 +21,7 @@ export function createTradeVaultBalanceChangeEntity(
   let tradeVaultBalanceChange = new TradeVaultBalanceChange(
     tradeVaultBalanceChangeId(event, vaultEntityId)
   );
+  tradeVaultBalanceChange.orderbook = event.address;
   tradeVaultBalanceChange.amount = amount;
   tradeVaultBalanceChange.oldVaultBalance = oldVaultBalance;
   tradeVaultBalanceChange.newVaultBalance = oldVaultBalance.plus(amount);

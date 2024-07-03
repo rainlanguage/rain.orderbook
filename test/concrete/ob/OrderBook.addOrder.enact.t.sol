@@ -6,11 +6,15 @@ import {
     OrderConfigV3,
     EvaluableV3,
     ActionV1,
+    OrderV3,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
+import {LibOrder} from "src/lib/LibOrder.sol";
 
 contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
+    using LibOrder for OrderV3;
+
     mapping(bytes32 => bool) nonces;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
@@ -37,11 +41,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(owner);
-        ActionV1[] memory actions = new ActionV1[](evalStrings.length);
-        for (uint256 i = 0; i < evalStrings.length; i++) {
-            actions[i] =
-                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
-        }
+        ActionV1[] memory actions = evalsToActions(evalStrings);
         vm.record();
         bool stateChanged = iOrderbook.addOrder2(config, actions);
         assert(stateChanged != nonces[config.nonce]);
@@ -135,5 +135,24 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         bytes[] memory evals1 = new bytes[](1);
         evals1[0] = bytes(":ensure(0 \"always error\");");
         checkAddOrder(alice, config, evals1, 0, 0);
+    }
+
+    /// A revert in the action prevents the order being added.
+    /// forge-config: default.assertions_revert = false
+    /// forge-config: default.legacy_assertions = true
+    function testAddLiveOrderRevertNoAdd(address alice, OrderConfigV3 memory config) external {
+        bytes[] memory evals0 = new bytes[](1);
+        evals0[0] = bytes(":ensure(0 \"always revert\");");
+
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+        vm.startPrank(alice);
+        ActionV1[] memory actions = evalsToActions(evals0);
+        vm.expectRevert("always revert");
+        bool stateChanged = iOrderbook.addOrder2(config, actions);
+        assert(!stateChanged);
+
+        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+
+        assert(!iOrderbook.orderExists(order.hash()));
     }
 }

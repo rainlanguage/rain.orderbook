@@ -4,9 +4,12 @@ import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { Deposit } from "../generated/OrderBook/OrderBook";
+import { createOrderbookEntity } from "./orderbook";
 
 export function handleDeposit(event: Deposit): void {
+  createOrderbookEntity(event);
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
+    event.address,
     event.params.vaultId,
     event.params.token,
     event.params.amount,
@@ -19,9 +22,11 @@ export function createDepositEntity(
   oldVaultBalance: BigInt
 ): void {
   let deposit = new DepositEntity(eventId(event));
+  deposit.orderbook = event.address;
   deposit.amount = event.params.amount;
   deposit.sender = event.params.sender;
   deposit.vault = vaultEntityId(
+    event.address,
     event.params.sender,
     event.params.vaultId,
     event.params.token

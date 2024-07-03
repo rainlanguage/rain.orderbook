@@ -6,7 +6,7 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Address, crypto } from "@graphprotocol/graph-ts";
 import { createDepositEntity } from "../src/deposit";
 import { createDepositEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
@@ -32,8 +32,13 @@ describe("Deposits", () => {
     let newVaultBalance = BigInt.fromI32(0);
     createDepositEntity(event, newVaultBalance);
 
-    let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let id = crypto.keccak256(
+      event.address.concat(
+        event.transaction.hash.concatI32(event.logIndex.toI32())
+      )
+    );
     let vaultId = vaultEntityId(
+      event.address,
       Address.fromString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(1),
       Address.fromString("0x0987654321098765432109876543210987654321")

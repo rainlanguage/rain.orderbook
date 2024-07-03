@@ -10,8 +10,11 @@ import {
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
+import {LibOrder} from "src/lib/LibOrder.sol";
 
 contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
+    using LibOrder for OrderV3;
+
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
@@ -128,5 +131,34 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"always error\");");
         checkRemoveOrder(alice, config, evals, 0, 0, false);
+    }
+
+    /// A revert in the action prevents the order being removed.
+    /// forge-config: default.assertions_revert = false
+    /// forge-config: default.legacy_assertions = true
+    function testRemoveOrderRevertInAction(address alice, OrderConfigV3 memory config) external {
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+        vm.startPrank(alice);
+        bytes[] memory evals0 = new bytes[](1);
+        evals0[0] = bytes(":;");
+        ActionV1[] memory actions = evalsToActions(evals0);
+        bool stateChanged = iOrderbook.addOrder2(config, actions);
+        assert(stateChanged);
+
+        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+
+        assert(iOrderbook.orderExists(order.hash()));
+
+        bytes[] memory evals1 = new bytes[](1);
+        evals1[0] = bytes(":ensure(0 \"always revert\");");
+
+        ActionV1[] memory actions1 = evalsToActions(evals1);
+
+        vm.expectRevert("always revert");
+        bool stateChanged2 = iOrderbook.removeOrder2(order, actions1);
+
+        assert(!stateChanged2);
+
+        assert(iOrderbook.orderExists(order.hash()));
     }
 }

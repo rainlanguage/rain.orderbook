@@ -7,6 +7,7 @@ import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
 import { createTradeEntity } from "./trade";
 import { crypto } from "@graphprotocol/graph-ts";
+import { createOrderbookEntity } from "./orderbook";
 
 export function orderHashFromTakeOrderEvent(event: TakeOrderV2): Bytes {
   let orderHash = crypto.keccak256(
@@ -16,6 +17,8 @@ export function orderHashFromTakeOrderEvent(event: TakeOrderV2): Bytes {
 }
 
 export function handleTakeOrder(event: TakeOrderV2): void {
+  createOrderbookEntity(event);
+
   let order = event.params.config.order;
   let orderHash = orderHashFromTakeOrderEvent(event);
 
@@ -24,6 +27,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
     order.validOutputs[event.params.config.outputIOIndex.toU32()];
 
   let oldOutputVaultBalance = handleVaultBalanceChange(
+    event.address,
     orderOutput.vaultId,
     orderOutput.token,
     // input for the taker is a debit for the vault
@@ -34,7 +38,12 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   let outputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
     orderHash,
-    vaultEntityId(order.owner, orderOutput.vaultId, orderOutput.token),
+    vaultEntityId(
+      event.address,
+      order.owner,
+      orderOutput.vaultId,
+      orderOutput.token
+    ),
     oldOutputVaultBalance,
     event.params.input.neg() // change is negative
   );
@@ -43,6 +52,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   let orderInput = order.validInputs[event.params.config.inputIOIndex.toU32()];
 
   let oldInputVaultBalance = handleVaultBalanceChange(
+    event.address,
     orderInput.vaultId,
     orderInput.token,
     // output for the taker is a credit for the vault
@@ -53,7 +63,12 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   let inputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
     orderHash,
-    vaultEntityId(order.owner, orderInput.vaultId, orderInput.token),
+    vaultEntityId(
+      event.address,
+      order.owner,
+      orderInput.vaultId,
+      orderInput.token
+    ),
     oldInputVaultBalance,
     event.params.output
   );
@@ -70,6 +85,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
 
 export function createTakeOrderEntity(event: TakeOrderV2): void {
   let takeOrder = new TakeOrder(eventId(event));
+  takeOrder.orderbook = event.address;
   takeOrder.inputAmount = event.params.input;
   takeOrder.outputAmount = event.params.output;
   takeOrder.sender = event.params.sender;

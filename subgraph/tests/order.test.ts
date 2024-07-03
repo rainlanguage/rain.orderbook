@@ -17,6 +17,7 @@ import {
   createAddOrderEntity,
   createOrderEntity,
   createRemoveOrderEntity,
+  makeOrderId,
 } from "../src/order";
 import { eventId } from "../src/interfaces/event";
 import { Order } from "../generated/schema";
@@ -131,42 +132,41 @@ describe("Add and remove orders", () => {
       )
     );
 
+    let id = makeOrderId(
+      event.address,
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
+    );
+
     createOrderEntity(event);
 
     assert.entityCount("Order", 1);
+    assert.fieldEquals("Order", id.toHexString(), "active", "true");
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
-      "active",
-      "true"
-    );
-    assert.fieldEquals(
-      "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "orderHash",
       "0x0987654321098765432109876543210987654321"
     );
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "owner",
       "0x1234567890123456789012345678901234567890"
     );
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "nonce",
       "0x1234567890123456789012345678901234567890"
     );
     assert.fieldEquals(
       "Order",
-      "0x0987654321098765432109876543210987654321",
+      id.toHexString(),
       "timestampAdded",
       event.block.timestamp.toString()
     );
-    let order = Order.load(
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
-    )!;
+
+    let order = Order.load(id)!;
     let inputs = order.inputs;
     assert.i32Equals(inputs.length, 1, "inputs length");
     let outputs = order.outputs;

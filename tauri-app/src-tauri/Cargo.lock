@@ -226,7 +226,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=75a5cb9a9e845c06a82a6b89bc484b2c9e112db4#75a5cb9a9e845c06a82a6b89bc484b2c9e112db4"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=05b6396271b77a4844c29bf840b7a587be388ff8#05b6396271b77a4844c29bf840b7a587be388ff8"
 dependencies = [
  "alloy-dyn-abi 0.6.4",
  "alloy-json-abi 0.6.4",

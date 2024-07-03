@@ -203,4 +203,38 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals[0] = bytes(":ensure(0 \"always fails\");");
         checkWithdraw(alice, vaultId, 0, withdrawAmount, evals, 0, 0);
     }
+
+    /// A revert in the action prevents withdraw from being enacted.
+    function testOrderBookWithdrawalEvalRevertInAction(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 withdrawAmount
+    ) external {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+
+        vm.startPrank(alice);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
+
+        vm.mockCall(
+            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
+        );
+
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes(":ensure(0 \"revert in action\");");
+        ActionV1[] memory actions = evalsToActions(evals);
+
+        assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+
+        vm.expectRevert("revert in action");
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, actions);
+
+        assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+    }
 }

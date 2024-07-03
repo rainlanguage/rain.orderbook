@@ -138,4 +138,27 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
         checkDeposit(bob, vaultId, amount, evals3, 4, 2);
     }
+
+    /// A revert in the action prevents the deposit from being enacted.
+    function testDepositRevertInAction(address alice, uint256 vaultId, uint256 amount) external {
+        vm.assume(amount != 0);
+        vm.startPrank(alice);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount),
+            abi.encode(true)
+        );
+
+        bytes[] memory evals = new bytes[](1);
+        evals[0] = bytes(":ensure(0 \"revert in action\");");
+
+        ActionV1[] memory actions = evalsToActions(evals);
+
+        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+
+        vm.expectRevert("revert in action");
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);
+
+        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+    }
 }
