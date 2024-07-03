@@ -32,15 +32,6 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         assert(writes[writes.length - 1] == bytes32(uint256(0)));
     }
 
-    function evalsToActions(bytes[] memory evals) internal view returns (ActionV1[] memory) {
-        ActionV1[] memory actions = new ActionV1[](evals.length);
-        for (uint256 i = 0; i < evals.length; i++) {
-            actions[i] =
-                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evals[i])), new SignedContextV1[](0));
-        }
-        return actions;
-    }
-
     function checkAddOrder(
         address owner,
         OrderConfigV3 memory config,
@@ -147,6 +138,8 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// A revert in the action prevents the order being added.
+    /// forge-config: default.assertions_revert = false
+    /// forge-config: default.legacy_assertions = true
     function testAddLiveOrderRevertNoAdd(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":ensure(0 \"always revert\");");
