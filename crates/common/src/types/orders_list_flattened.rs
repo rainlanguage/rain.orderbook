@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 
 use super::FlattenError;
 
+const LIST_DELIMITER: &str = ", ";
+const NO_SYMBOL: &str = "No symbol";
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OrderFlattened {
     pub id: String,
@@ -43,26 +46,26 @@ impl TryFrom<Order> for OrderFlattened {
                 .into_iter()
                 .map(|v| v.vault_id.0)
                 .collect::<Vec<String>>()
-                .join(", "),
+                .join(LIST_DELIMITER),
             valid_outputs_vaults: val
                 .outputs
                 .clone()
                 .into_iter()
                 .map(|v| v.vault_id.0)
                 .collect::<Vec<String>>()
-                .join(", "),
+                .join(LIST_DELIMITER),
             valid_inputs_token_symbols_display: val
                 .inputs
                 .into_iter()
-                .map(|vault| vault.token.symbol.unwrap_or("No symbol".into()))
+                .map(|vault| vault.token.symbol.unwrap_or(NO_SYMBOL.into()))
                 .collect::<Vec<String>>()
-                .join(", "),
+                .join(LIST_DELIMITER),
             valid_outputs_token_symbols_display: val
                 .outputs
                 .into_iter()
-                .map(|vault| vault.token.symbol.unwrap_or("No symbol".into()))
+                .map(|vault| vault.token.symbol.unwrap_or(NO_SYMBOL.into()))
                 .collect::<Vec<String>>()
-                .join(", "),
+                .join(LIST_DELIMITER),
         })
     }
 }
