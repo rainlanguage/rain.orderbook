@@ -23,6 +23,7 @@ describe("Vault balance changes", () => {
     );
 
     handleVaultBalanceChange(
+      Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
@@ -30,6 +31,7 @@ describe("Vault balance changes", () => {
     );
 
     let vaultId = vaultEntityId(
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
       Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Address.fromString("0x1234567890123456789012345678901234567890")
@@ -74,6 +76,7 @@ describe("Vault balance changes", () => {
       BigInt.fromI32(100)
     );
     handleVaultBalanceChange(
+      event.address,
       event.params.vaultId,
       event.params.token,
       event.params.amount,
@@ -81,6 +84,7 @@ describe("Vault balance changes", () => {
     );
 
     let vaultId = vaultEntityId(
+      event.address,
       Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Address.fromString("0x1234567890123456789012345678901234567890")
@@ -127,6 +131,7 @@ describe("Vault balance changes", () => {
     );
 
     handleVaultBalanceChange(
+      depositEvent.address,
       depositEvent.params.vaultId,
       depositEvent.params.token,
       depositEvent.params.amount,
@@ -142,6 +147,7 @@ describe("Vault balance changes", () => {
       BigInt.fromI32(100)
     );
     handleVaultBalanceChange(
+      event.address,
       event.params.vaultId,
       event.params.token,
       event.params.amount.neg(),
@@ -149,6 +155,7 @@ describe("Vault balance changes", () => {
     );
 
     let vaultId = vaultEntityId(
+      event.address,
       Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Address.fromString("0x1234567890123456789012345678901234567890")
@@ -196,6 +203,7 @@ describe("Vault balance changes", () => {
     );
 
     handleVaultBalanceChange(
+      event.address,
       event.params.vaultId,
       event.params.token,
       event.params.amount,
@@ -203,6 +211,7 @@ describe("Vault balance changes", () => {
     );
 
     let vaultId = vaultEntityId(
+      event.address,
       Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Address.fromString("0x1234567890123456789012345678901234567890")
@@ -240,6 +249,7 @@ describe("Vault balance changes", () => {
     );
 
     let oldBalance = handleVaultBalanceChange(
+      Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
@@ -255,6 +265,7 @@ describe("Vault balance changes", () => {
     );
 
     handleVaultBalanceChange(
+      Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),
@@ -262,6 +273,7 @@ describe("Vault balance changes", () => {
     );
 
     let oldBalance = handleVaultBalanceChange(
+      Address.fromString("0x0987654321098765432109876543210987654321"),
       BigInt.fromI32(1),
       Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(100),

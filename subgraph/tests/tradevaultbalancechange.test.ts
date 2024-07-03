@@ -7,7 +7,7 @@ import {
   newMockEvent,
   assert,
 } from "matchstick-as";
-import { BigInt, Address, Bytes } from "@graphprotocol/graph-ts";
+import { BigInt, Address, Bytes, crypto } from "@graphprotocol/graph-ts";
 import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
 import { eventId } from "../src/interfaces/event";
 import {
@@ -35,14 +35,14 @@ describe("Deposits", () => {
       "0x1234567890abcdef1234567890abcdef12345678"
     );
 
-    let tradeVaultBalanceChangeId = vaultEntityId.concat(eventId(event));
+    let tradeVaultBalanceChangeId = Bytes.fromByteArray(
+      crypto.keccak256(eventId(event).concat(vaultEntityId))
+    );
 
     assert.bytesEquals(
       tradeVaultBalanceChangeId,
       Bytes.fromHexString(
-        "0x1234567890abcdef1234567890abcdef123456781234567890abcdef" +
-          "1234567890abcdef1234567890abcdef1234567890abcdef" +
-          "02000000"
+        "0x417b9a4b4f93565a22e3d13b93f7f467b0e84ef8dddcb52a718298e4e17df26f"
       )
     );
   });
@@ -88,6 +88,7 @@ describe("Deposits", () => {
     let oldVaultBalance = BigInt.fromI32(10);
 
     let _vaultEntityId = vaultEntityId(
+      event.address,
       owner,
       BigInt.fromI32(1),
       Address.fromString("0x3333333333333333333333333333333333333333")

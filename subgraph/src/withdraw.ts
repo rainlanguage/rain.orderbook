@@ -4,9 +4,12 @@ import { Withdrawal } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
+import { createOrderbookEntity } from "./orderbook";
 
 export function handleWithdraw(event: Withdraw): void {
+  createOrderbookEntity(event);
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
+    event.address,
     event.params.vaultId,
     event.params.token,
     event.params.amount.neg(),
@@ -20,10 +23,12 @@ export function createWithdrawalEntity(
   oldVaultBalance: BigInt
 ): void {
   let withdraw = new Withdrawal(eventId(event));
+  withdraw.orderbook = event.address;
   withdraw.amount = event.params.amount.neg();
   withdraw.targetAmount = event.params.targetAmount;
   withdraw.sender = event.params.sender;
   withdraw.vault = vaultEntityId(
+    event.address,
     event.params.sender,
     event.params.vaultId,
     event.params.token

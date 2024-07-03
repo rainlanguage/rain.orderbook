@@ -39,12 +39,14 @@ describe("Deposits", () => {
       "0x3333333333333333333333333333333333333333"
     );
 
-    let tradeId = eventId(event).concat(orderHash);
+    let tradeId = Bytes.fromByteArray(
+      crypto.keccak256(eventId(event).concat(orderHash))
+    );
 
     assert.bytesEquals(
       tradeId,
       Bytes.fromHexString(
-        "0x1111111111111111111111111111111111111111111111111111111111111111020000003333333333333333333333333333333333333333"
+        "0x6e82bd6b67d3ab900f932bb0bd3cc4fb2c96e4a9e8cf0d4476271bea34bf226b"
       )
     );
   });
@@ -92,6 +94,7 @@ describe("Deposits", () => {
       tradeVaultBalanceChangeId(
         event,
         vaultEntityId(
+          event.address,
           Address.fromString("0x1111111111111111111111111111111111111111"),
           BigInt.fromU32(1),
           Address.fromString("0x3333333333333333333333333333333333333333")
@@ -103,6 +106,7 @@ describe("Deposits", () => {
       tradeVaultBalanceChangeId(
         event,
         vaultEntityId(
+          event.address,
           Address.fromString("0x1111111111111111111111111111111111111111"),
           BigInt.fromU32(1),
           Address.fromString("0x4444444444444444444444444444444444444444")

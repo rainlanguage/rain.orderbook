@@ -1,5 +1,31 @@
+type Orderbook @entity {
+  id: Bytes!
+  "All orders in the orderbook"
+  orders: [Order!]! @derivedFrom(field: "orderbook")
+  "All trades in the orderbook"
+  trades: [Trade!]! @derivedFrom(field: "orderbook")
+  "All vaults in the orderbook"
+  vaults: [Vault!]! @derivedFrom(field: "orderbook")
+  "All vault balance changes in the orderbook"
+  vaultBalanceChanges: [VaultBalanceChange!]! @derivedFrom(field: "orderbook")
+  "All deposit events in the orderbook"
+  deposits: [Deposit!]! @derivedFrom(field: "orderbook")
+  "All withdrawal events in the orderbook"
+  withdrawals: [Withdrawal!]! @derivedFrom(field: "orderbook")
+  "All add order events in the orderbook"
+  addOrders: [AddOrder!]! @derivedFrom(field: "orderbook")
+  "All remove order events in the orderbook"
+  removeOrders: [RemoveOrder!]! @derivedFrom(field: "orderbook")
+  "All take order events in the orderbook"
+  takeOrders: [TakeOrder!]! @derivedFrom(field: "orderbook")
+  "All trade events in the orderbook"
+  tradeEvents: [TradeEvent!]! @derivedFrom(field: "orderbook")
+}
+
 type Vault @entity {
   id: Bytes!
+  "The orderbook this vault is in"
+  orderbook: Orderbook!
   "The token that this vault is for"
   token: ERC20!
   "The owner of this vault"
@@ -17,6 +43,8 @@ type Vault @entity {
 }
 
 interface VaultBalanceChange {
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
   "The vault that was affected"
   vault: Vault!
   "The amount changed - this is signed"
@@ -35,6 +63,8 @@ type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
 
   # For VaultBalanceChange
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
   "The vault that was deposited into"
   vault: Vault!
   "The amount that was deposited"
@@ -56,6 +86,8 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
   targetAmount: BigInt!
 
   # For VaultBalanceChange
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
   "The vault that was withdrawn from"
   vault: Vault!
   "The amount that was actually withdrawn - this will be negative"
@@ -73,6 +105,8 @@ type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
 
 type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: true) {
   id: Bytes!
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
   "The trade that this balance change is for"
   trade: Trade!
   "The vault that was affected"
@@ -91,6 +125,8 @@ type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: tr
 
 type Order @entity {
   id: Bytes!
+  "The orderbook this order is in"
+  orderbook: Orderbook!
   "Whether this order is active or not"
   active: Boolean!
   "The hash of the order"
@@ -121,6 +157,8 @@ type AddOrder implements Event @entity(immutable: true) {
   id: Bytes!
   "The order that was added"
   order: Order!
+  "The orderbook this add order event is in"
+  orderbook: Orderbook!
 
   # For Event
   transaction: Transaction!
@@ -132,6 +170,8 @@ type RemoveOrder implements Event @entity(immutable: true) {
   id: Bytes!
   "The order that was removed"
   order: Order!
+  "The orderbook this remove order event is in"
+  orderbook: Orderbook!
 
   # For Event
   transaction: Transaction!
@@ -141,6 +181,8 @@ type RemoveOrder implements Event @entity(immutable: true) {
 
 type Trade @entity(immutable: true) {
   id: Bytes!
+  "The orderbook this trade is for"
+  orderbook: Orderbook!
   "The order that was traded"
   order: Order!
   "Input vault balance change"
@@ -164,6 +206,8 @@ type TakeOrder implements TradeEvent @entity(immutable: true) {
   takeOrderConfigBytes: Bytes!
 
   # For TradeEvent
+  "The orderbook this trade event is for"
+  orderbook: Orderbook!
   "The trades that occured in this event"
   trades: [Trade!]! @derivedFrom(field: "tradeEvent")
   transaction: Transaction!
@@ -173,6 +217,8 @@ type TakeOrder implements TradeEvent @entity(immutable: true) {
 
 interface TradeEvent implements Event {
   id: Bytes!
+  "The orderbook this trade event is for"
+  orderbook: Orderbook!
   "The trades that occured in this event"
   trades: [Trade!]! @derivedFrom(field: "tradeEvent")
 

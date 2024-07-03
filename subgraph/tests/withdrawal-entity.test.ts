@@ -6,7 +6,7 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import { BigInt, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Address, crypto } from "@graphprotocol/graph-ts";
 import { createWithdrawalEntity } from "../src/withdraw";
 import { createWithdrawEvent } from "./event-mocks.test";
 import { vaultEntityId } from "../src/vault";
@@ -34,8 +34,13 @@ describe("Withdrawals", () => {
     let oldVaultBalance = BigInt.fromI32(300);
     createWithdrawalEntity(event, oldVaultBalance);
 
-    let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let id = crypto.keccak256(
+      event.address.concat(
+        event.transaction.hash.concatI32(event.logIndex.toI32())
+      )
+    );
     let vaultId = vaultEntityId(
+      event.address,
       Address.fromString("0x1234567890123456789012345678901234567890"),
       BigInt.fromI32(1),
       Address.fromString("0x0987654321098765432109876543210987654321")
