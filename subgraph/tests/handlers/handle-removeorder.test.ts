@@ -14,6 +14,7 @@ import {
   createRemoveOrderEvent,
 } from "../event-mocks.test";
 import { handleAddOrder, handleRemoveOrder } from "../../src/order";
+import { createMockERC20Functions } from "../erc20.test";
 
 describe("Add and remove orders", () => {
   afterEach(() => {
@@ -22,6 +23,13 @@ describe("Add and remove orders", () => {
   });
 
   test("handleRemoveOrder()", () => {
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x1234567890123456789012345678901234567890")
+    );
+
     // First we need to add an order
     let event = createAddOrderEvent(
       Address.fromString("0x1234567890123456789012345678901234567890"),

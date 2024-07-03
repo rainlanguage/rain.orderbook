@@ -1,7 +1,7 @@
 import { Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { AddOrderV2, RemoveOrderV2 } from "../generated/OrderBook/OrderBook";
 import { AddOrder, Order, RemoveOrder } from "../generated/schema";
-import { vaultEntityId } from "./vault";
+import { getVault } from "./vault";
 import { eventId } from "./interfaces/event";
 import { createTransactionEntity } from "./transaction";
 
@@ -30,24 +30,28 @@ export function createOrderEntity(event: AddOrderV2): void {
   order.owner = event.params.sender;
   let sender = event.params.sender;
 
-  order.inputs = [];
-  order.outputs = [];
+  let inputs: Bytes[] = [];
+  let outputs: Bytes[] = [];
 
   for (let i = 0; i < event.params.order.validInputs.length; i++) {
     let input = event.params.order.validInputs[i];
     let vaultId = input.vaultId;
     let token = input.token;
-    let vault = vaultEntityId(sender, vaultId, token);
-    order.inputs.push(vault);
+    let vault = getVault(sender, vaultId, token).id;
+    inputs.push(vault);
   }
+
+  order.inputs = inputs;
 
   for (let i = 0; i < event.params.order.validOutputs.length; i++) {
     let output = event.params.order.validOutputs[i];
     let vaultId = output.vaultId;
     let token = output.token;
-    let vault = vaultEntityId(sender, vaultId, token);
-    order.outputs.push(vault);
+    let vault = getVault(sender, vaultId, token).id;
+    outputs.push(vault);
   }
+
+  order.outputs = outputs;
 
   order.nonce = event.params.order.nonce;
   order.orderBytes = ethereum.encode(event.parameters[2].value)!;

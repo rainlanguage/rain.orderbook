@@ -1,7 +1,6 @@
 import { BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { TradeVaultBalanceChange } from "../generated/schema";
 import { eventId } from "./interfaces/event";
-import { VaultBalanceChangeType } from "./vault";
 import { makeTradeId } from "./trade";
 
 export function tradeVaultBalanceChangeId(
@@ -16,19 +15,14 @@ export function createTradeVaultBalanceChangeEntity(
   orderHash: Bytes,
   vaultEntityId: Bytes,
   oldVaultBalance: BigInt,
-  amount: BigInt,
-  type: VaultBalanceChangeType
+  amount: BigInt
 ): TradeVaultBalanceChange {
   let tradeVaultBalanceChange = new TradeVaultBalanceChange(
     tradeVaultBalanceChangeId(event, vaultEntityId)
   );
   tradeVaultBalanceChange.amount = amount;
   tradeVaultBalanceChange.oldVaultBalance = oldVaultBalance;
-  if (type == VaultBalanceChangeType.CREDIT) {
-    tradeVaultBalanceChange.newVaultBalance = oldVaultBalance.plus(amount);
-  } else {
-    tradeVaultBalanceChange.newVaultBalance = oldVaultBalance.minus(amount);
-  }
+  tradeVaultBalanceChange.newVaultBalance = oldVaultBalance.plus(amount);
   tradeVaultBalanceChange.vault = vaultEntityId;
   tradeVaultBalanceChange.trade = makeTradeId(event, orderHash);
   tradeVaultBalanceChange.timestamp = event.block.timestamp;
