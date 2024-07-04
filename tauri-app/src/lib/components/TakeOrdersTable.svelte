@@ -16,8 +16,8 @@
     <TableHeadCell padding="p-4">Date</TableHeadCell>
     <TableHeadCell padding="p-0">Sender</TableHeadCell>
     <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
-    <TableHeadCell padding="p-0">Output</TableHeadCell>
     <TableHeadCell padding="p-0">Input</TableHeadCell>
+    <TableHeadCell padding="p-0">Output</TableHeadCell>
     <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
   </svelte:fragment>
 
@@ -46,18 +46,20 @@
       {item.output_vault_balance_change.vault.token.symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2" data-testid="io-ratio">
-      {Number(
-        formatUnits(
-          BigInt(item.input_vault_balance_change.amount),
-          Number(item.input_vault_balance_change.vault.token.decimals ?? 0),
-        ),
-      ) /
+      {Math.abs(
         Number(
           formatUnits(
-            BigInt(item.output_vault_balance_change.amount),
-            Number(item.output_vault_balance_change.vault.token.decimals ?? 0),
+            BigInt(item.input_vault_balance_change.amount),
+            Number(item.input_vault_balance_change.vault.token.decimals ?? 0),
           ),
-        )}
+        ) /
+          Number(
+            formatUnits(
+              BigInt(item.output_vault_balance_change.amount),
+              Number(item.output_vault_balance_change.vault.token.decimals ?? 0),
+            ),
+          ),
+      )}
       {item.input_vault_balance_change.vault.token.symbol}/{item.output_vault_balance_change.vault
         .token.symbol}
     </TableBodyCell>
