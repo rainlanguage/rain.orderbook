@@ -82,7 +82,7 @@ fn build_table(order_take: Vec<OrderTakeFlattened>) -> Result<Table> {
             format!(
                 "{} {}",
                 order_take.output_display,
-                order_take.output_token_symbol.unwrap_or("No symbol".into())
+                order_take.output_token_symbol.unwrap_or(NO_SYMBOL.into())
             ),
         ]);
     }
