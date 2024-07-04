@@ -60,144 +60,59 @@ impl TryInto<OrderV3> for order_detail::Order {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::vec;
+#[cfg(test)]
+mod tests {
+    use std::vec;
 
-//     use alloy_primitives::U256;
+    use alloy_primitives::U256;
 
-//     use super::*;
-//     use crate::types::order_detail::{BigInt, Bytes, Vault};
+    use super::*;
+    use crate::types::order_detail::{BigInt, Bytes};
 
-//     #[test]
-//     fn test_try_into_call() {
-//         let order_detail = order_detail::Order {
-//             // This is a dummy order detail object
-//             // All of these values are actually ignored by the conversion
-//             id: "1".into(),
-//             owner: Account {
-//                 id: Bytes("0x0000000000000000000000000000000000000001".into()),
-//             },
-//             order_active: true,
-//             interpreter: Bytes("0x0000000000000000000000000000000000000002".into()),
-//             interpreter_store: Bytes("0x0000000000000000000000000000000000000003".into()),
-//             expression_deployer: Bytes("".into()),
-//             expression: Bytes("0x0000000000000000000000000000000000000004".into()),
-//             timestamp: BigInt("".into()),
-//             handle_io: true,
-//             valid_inputs: Some(vec![Io {
-//                 token_vault: TokenVault {
-//                     id: "".into(),
-//                     vault_id: BigInt("1".into()),
-//                     vault: Vault {
-//                         owner: Account {
-//                             id: Bytes("".into()),
-//                         },
-//                     },
-//                     token: Erc20 {
-//                         id: cynic::Id::new("0x0000000000000000000000000000000000000005"),
-//                         name: "".into(),
-//                         symbol: "ABC".into(),
-//                         decimals: 18,
-//                     },
-//                 },
-//             }]),
-//             valid_outputs: Some(vec![Io {
-//                 token_vault: TokenVault {
-//                     id: "".into(),
-//                     vault_id: BigInt("2".into()),
-//                     vault: Vault {
-//                         owner: Account {
-//                             id: Bytes("".into()),
-//                         },
-//                     },
-//                     token: Erc20 {
-//                         id: cynic::Id::new("0x0000000000000000000000000000000000000006"),
-//                         name: "".into(),
-//                         symbol: "DEF".into(),
-//                         decimals: 18,
-//                     },
-//                 },
-//             }]),
-//             meta: Some(RainMetaV1 {
-//                 meta_bytes: Bytes("0x1".into()),
-//                 content: vec![],
-//             }),
-//             // This is the JSON string that will actually be used for the conversion
-//             order_json: "{\"owner\":\"0x77199602114bdecb272ac9d5038d7e01cccec362\",\"handleIo\":true,\"evaluable\":{\"interpreter\":\"0xa10ac76b0681d3e8ca826b0a10299b99b2eb2452\",\"store\":\"0x948533c15d2d9eba8cec4deb0b72662cf57d4db1\",\"expression\":\"0x3c7e0efd0cf9bd539221eb15d9da4b9d97f8837b\"},\"validInputs\":[{\"token\":\"0x96b41289d90444b8add57e6f265db5ae8651df29\",\"decimals\":\"6\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"},{\"token\":\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"decimals\":\"18\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"}],\"validOutputs\":[{\"token\":\"0x1d80c49bbbcd1c0911346656b529df9e5c2f783d\",\"decimals\":\"18\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"},{\"token\":\"0x96b41289d90444b8add57e6f265db5ae8651df29\",\"decimals\":\"6\",\"vaultId\":\"0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5\"}]}".into()
-//         };
+    #[test]
+    fn test_try_into_call() {
+        let order_detail = order_detail::Order {
+            // This is a dummy order detail object
+            // All of these values are actually ignored by the conversion
+            id: Bytes("1".into()),
+            order_hash: Bytes("".into()),
+            add_events: vec![],
+            timestamp_added: BigInt("0".into()),
+            owner: Bytes("".into()),
+            active: true,
+            inputs: vec![],
+            outputs: vec![],
+            meta: None,
+            // Only the order_bytes field is used for the conversion
+            order_bytes: Bytes("0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000006171c21b2e553c59a64d1337211b77c367cefe5d00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000379b966dc6b117dd47b5fc5308534256a4ab1bcc0000000000000000000000006e4b01603edbda617002a077420e98c86595748e000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000950000000000000000000000000000000000000000000000000000000000000002ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000b1a2bc2ec5000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000050c5725949a6f0c72e6c4a641f24049a917db0cb000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001".into()),
+        };
 
-//         let order_v3: OrderV3 = order_detail.try_into().unwrap();
+        let order_v3: OrderV3 = order_detail.try_into().unwrap();
 
-//         assert_eq!(
-//             order_v3.owner,
-//             "0x77199602114bdecb272ac9d5038d7e01cccec362"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(
-//             order_v3.evaluable.interpreter,
-//             "0xa10ac76b0681d3e8ca826b0a10299b99b2eb2452"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(
-//             order_v3.evaluable.store,
-//             "0x948533c15d2d9eba8cec4deb0b72662cf57d4db1"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(
-//             order_v3.validInputs[0].token,
-//             "0x96b41289d90444b8add57e6f265db5ae8651df29"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(order_v3.validInputs[0].decimals, 6);
-//         assert_eq!(
-//             order_v3.validInputs[0].vaultId,
-//             "0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5"
-//                 .parse::<U256>()
-//                 .unwrap()
-//         );
-//         assert_eq!(
-//             order_v3.validInputs[1].token,
-//             "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(order_v3.validInputs[1].decimals, 18);
-//         assert_eq!(
-//             order_v3.validInputs[1].vaultId,
-//             "0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5"
-//                 .parse::<U256>()
-//                 .unwrap()
-//         );
-//         assert_eq!(
-//             order_v3.validOutputs[0].token,
-//             "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(order_v3.validOutputs[0].decimals, 18);
-//         assert_eq!(
-//             order_v3.validOutputs[0].vaultId,
-//             "0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5"
-//                 .parse::<U256>()
-//                 .unwrap()
-//         );
-//         assert_eq!(
-//             order_v3.validOutputs[1].token,
-//             "0x96b41289d90444b8add57e6f265db5ae8651df29"
-//                 .parse::<Address>()
-//                 .unwrap()
-//         );
-//         assert_eq!(order_v3.validOutputs[1].decimals, 6);
-//         assert_eq!(
-//             order_v3.validOutputs[1].vaultId,
-//             "0xb39eed084711b7e383c97ae5a9e0aa76e01f7a641457726ebfd912fe33dd67f5"
-//                 .parse::<U256>()
-//                 .unwrap()
-//         );
-//     }
-// }
+        assert_eq!(
+            order_v3.owner,
+            "0x6171c21b2e553c59a64d1337211b77c367cefe5d"
+                .parse::<Address>()
+                .unwrap()
+        );
+
+        assert_eq!(
+            order_v3.validInputs[0].token,
+            "0x50c5725949a6f0c72e6c4a641f24049a917db0cb"
+                .parse::<Address>()
+                .unwrap()
+        );
+        assert_eq!(order_v3.validInputs[0].decimals, 18);
+        assert_eq!(order_v3.validInputs[0].vaultId, U256::from(1));
+
+        assert_eq!(
+            order_v3.validOutputs[0].token,
+            "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+                .parse::<Address>()
+                .unwrap()
+        );
+
+        assert_eq!(order_v3.validOutputs[0].decimals, 6);
+        assert_eq!(order_v3.validOutputs[0].vaultId, U256::from(1));
+    }
+}

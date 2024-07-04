@@ -8,7 +8,7 @@ use comfy_table::Table;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     subgraph::SubgraphArgs,
-    types::{FlattenError, TokenVaultFlattened},
+    types::{FlattenError, TokenVaultFlattened, NO_SYMBOL},
 };
 use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
@@ -73,7 +73,7 @@ fn build_table(vaults: Vec<TokenVaultFlattened>) -> Result<Table> {
             vault
                 .clone()
                 .token_symbol
-                .unwrap_or("Unknown".into())
+                .unwrap_or(NO_SYMBOL.into())
                 .clone(),
             format!("{}", vault.balance_display),
         ]);

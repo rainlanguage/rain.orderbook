@@ -1,3 +1,4 @@
+use crate::types::vault::NO_SYMBOL;
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy_dyn_abi::SolType;
 use alloy_primitives::hex::{encode, hex::decode};
@@ -8,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use super::FlattenError;
 
 const LIST_DELIMITER: &str = ", ";
-const NO_SYMBOL: &str = "No symbol";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OrderFlattened {

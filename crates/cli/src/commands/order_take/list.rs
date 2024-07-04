@@ -8,10 +8,11 @@ use comfy_table::Table;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     subgraph::SubgraphArgs,
-    types::{FlattenError, OrderTakeFlattened},
+    types::{FlattenError, OrderTakeFlattened, NO_SYMBOL},
 };
 use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
+
 #[derive(Args, Clone)]
 pub struct CliOrderTakesListArgs {
     #[arg(short = 'i', long, help = "ID of the Order")]
@@ -76,7 +77,7 @@ fn build_table(order_take: Vec<OrderTakeFlattened>) -> Result<Table> {
             format!(
                 "{} {}",
                 order_take.input_display,
-                order_take.input_token_symbol.unwrap_or("No symbol".into())
+                order_take.input_token_symbol.unwrap_or(NO_SYMBOL.into())
             ),
             format!(
                 "{} {}",
