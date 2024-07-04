@@ -2,14 +2,26 @@ import type { Trade } from '$lib/typeshare/orderTakesList';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
 import { sortBy } from 'lodash';
+import { formatUnits } from 'viem';
 
 export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; color?: string }[];
 
 export function prepareHistoricalOrderChartData(takeOrderEntities: Trade[], colorTheme: string) {
   const transformedData = takeOrderEntities.map((d) => ({
-    value:
-      parseFloat(d.input_vault_balance_change.amount) /
-      parseFloat(d.output_vault_balance_change.amount),
+    value: Math.abs(
+      Number(
+        formatUnits(
+          BigInt(d.input_vault_balance_change.amount),
+          Number(d.input_vault_balance_change.vault.token.decimals ?? 0),
+        ),
+      ) /
+        Number(
+          formatUnits(
+            BigInt(d.output_vault_balance_change.amount),
+            Number(d.output_vault_balance_change.vault.token.decimals ?? 0),
+          ),
+        ),
+    ),
     time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
     color: colorTheme == 'dark' ? '#5178FF' : '#4E4AF6',
     outputAmount: +d.output_vault_balance_change.amount,

@@ -79,7 +79,7 @@
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       <div class="flex gap-x-2">
         <span class="font-light">Order</span>
-        <Hash shorten value={order.id} />
+        <Hash shorten value={order.order_hash} />
       </div>
       <BadgeActive active={order.active} large />
     </div>
