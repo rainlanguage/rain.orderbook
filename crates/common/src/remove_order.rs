@@ -5,7 +5,7 @@ use alloy_ethers_typecast::transaction::{
 use alloy_primitives::hex::FromHexError;
 
 use alloy_sol_types::SolCall;
-use rain_orderbook_bindings::IOrderBookV3::removeOrderCall;
+use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
 use rain_orderbook_subgraph_client::types::{
     order_detail::Order, order_detail_traits::OrderDetailError,
 };
@@ -35,25 +35,26 @@ impl From<Order> for RemoveOrderArgs {
     }
 }
 
-impl TryInto<removeOrderCall> for RemoveOrderArgs {
+impl TryInto<removeOrder2Call> for RemoveOrderArgs {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<removeOrderCall, OrderDetailError> {
-        Ok(removeOrderCall {
+    fn try_into(self) -> Result<removeOrder2Call, OrderDetailError> {
+        Ok(removeOrder2Call {
             order: self.order.try_into()?,
+            post: vec![],
         })
     }
 }
 
 impl RemoveOrderArgs {
-    pub async fn execute<S: Fn(WriteTransactionStatus<removeOrderCall>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder2Call>)>(
         self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), RemoveOrderArgsError> {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
-        let remove_order_call: removeOrderCall = self.try_into()?;
+        let remove_order_call: removeOrder2Call = self.try_into()?;
         let params = transaction_args
             .try_into_write_contract_parameters(
                 remove_order_call,
@@ -69,7 +70,7 @@ impl RemoveOrderArgs {
     }
 
     pub async fn get_rm_order_calldata(self) -> Result<Vec<u8>, RemoveOrderArgsError> {
-        let remove_order_call: removeOrderCall = self.try_into()?;
+        let remove_order_call: removeOrder2Call = self.try_into()?;
         Ok(remove_order_call.abi_encode())
     }
 }

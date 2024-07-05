@@ -15,12 +15,12 @@
   import LightweightChartHistogram from '$lib/components/LightweightChartHistogram.svelte';
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import { sortBy } from 'lodash';
-  import { VaultBalanceChangeType } from '$lib/types/vaultBalanceChange';
   import { bigintToFloat } from '$lib/utils/number';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
+  import { formatUnits } from 'viem';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
@@ -30,12 +30,9 @@
 
   function prepareChartData() {
     const transformedData = $vaultBalanceChangesList.all.map((d) => ({
-      value:
-        d.type === VaultBalanceChangeType.Withdraw
-          ? bigintToFloat(BigInt(-1) * BigInt(d.content.amount), vault.token.decimals)
-          : bigintToFloat(BigInt(d.content.amount), vault.token.decimals),
-      time: timestampSecondsToUTCTimestamp(BigInt(d.content.timestamp)),
-      color: d.type === VaultBalanceChangeType.Withdraw ? '#4E4AF6' : '#046C4E',
+      value: bigintToFloat(BigInt(d.amount), Number(vault.token.decimals ?? 0)),
+      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+      color: BigInt(d.amount) < 0n ? '#4E4AF6' : '#046C4E',
     }));
 
     return sortBy(transformedData, (d) => d.time);
@@ -60,7 +57,7 @@
       {vault.token.name}
     </div>
     <div>
-      {#if vault && $walletAddressMatchesOrBlank(vault.owner.id)}
+      {#if vault && $walletAddressMatchesOrBlank(vault.owner)}
         <Button color="dark" on:click={() => (showDepositModal = !showDepositModal)}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
@@ -79,7 +76,7 @@
     <CardProperty>
       <svelte:fragment slot="key">Owner Address</svelte:fragment>
       <svelte:fragment slot="value">
-        <Hash type={HashType.Wallet} value={vault.owner.id} />
+        <Hash type={HashType.Wallet} value={vault.owner} />
       </svelte:fragment>
     </CardProperty>
 
@@ -92,15 +89,18 @@
 
     <CardProperty>
       <svelte:fragment slot="key">Balance</svelte:fragment>
-      <svelte:fragment slot="value">{vault.balance_display} {vault.token.symbol}</svelte:fragment>
+      <svelte:fragment slot="value"
+        >{formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
+        {vault.token.symbol}</svelte:fragment
+      >
     </CardProperty>
 
     <CardProperty>
       <svelte:fragment slot="key">Orders</svelte:fragment>
       <svelte:fragment slot="value">
-        {#if vault.orders && vault.orders.length > 0}
+        {#if vault.orders_as_output && vault.orders_as_output.length > 0}
           <p class="flex flex-wrap justify-start">
-            {#each vault.orders as order}
+            {#each vault.orders_as_output as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color="alternative"
@@ -142,20 +142,20 @@
 
       <svelte:fragment slot="bodyRow" let:item>
         <TableBodyCell tdClass="px-4 py-2">
-          {formatTimestampSecondsAsLocal(BigInt(item.content.timestamp))}
+          {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
         </TableBodyCell>
         <TableBodyCell tdClass="break-all py-2 min-w-48">
-          <Hash type={HashType.Wallet} value={item.content.sender.id} />
+          <Hash type={HashType.Wallet} value={item.transaction.from} />
         </TableBodyCell>
         <TableBodyCell tdClass="break-all py-2 min-w-48">
-          <Hash type={HashType.Transaction} value={item.content.transaction.id} />
+          <Hash type={HashType.Transaction} value={item.transaction.id} />
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-0 text-left">
-          {item.type === VaultBalanceChangeType.Withdraw ? '-' : ''}{item.content.amount_display}
-          {item.content.token_vault.token.symbol}
+          {formatUnits(BigInt(item.amount), Number(item.vault.token.decimals ?? 0))}
+          {item.vault.token.symbol}
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-0 text-left">
-          {item.type}
+          {item.__typename}
         </TableBodyCell>
       </svelte:fragment>
     </AppTable>

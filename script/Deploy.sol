@@ -2,15 +2,16 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook} from "src/concrete/ob/OrderBook.sol";
+import {OrderBook, EvaluableV3} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
-import {GenericPoolOrderBookV3ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV3ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV3ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV3ArbOrderTaker.sol";
-import {GenericPoolOrderBookV3FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV3FlashBorrower.sol";
-import {EvaluableConfigV3, IExpressionDeployerV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {OrderBookV3ArbConfigV1} from "src/abstract/OrderBookV3ArbCommon.sol";
+import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
+import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
+import {OrderBookV4ArbConfigV1} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {IMetaBoardV1} from "rain.metadata/interface/IMetaBoardV1.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
+import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 
 bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
@@ -84,24 +85,24 @@ contract Deploy is Script {
             }
 
             // Order takers.
-            new GenericPoolOrderBookV3ArbOrderTaker(
-                OrderBookV3ArbConfigV1(
-                    raindex, EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
+            new GenericPoolOrderBookV4ArbOrderTaker(
+                OrderBookV4ArbConfigV1(
+                    address(raindex), EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""), ""
                 )
             );
 
-            new RouteProcessorOrderBookV3ArbOrderTaker(
-                OrderBookV3ArbConfigV1(
-                    raindex,
-                    EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)),
+            new RouteProcessorOrderBookV4ArbOrderTaker(
+                OrderBookV4ArbConfigV1(
+                    address(raindex),
+                    EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
                     abi.encode(routeProcessor)
                 )
             );
 
             // Flash borrowers.
-            new GenericPoolOrderBookV3FlashBorrower(
-                OrderBookV3ArbConfigV1(
-                    raindex, EvaluableConfigV3(IExpressionDeployerV3(address(0)), "", new uint256[](0)), ""
+            new GenericPoolOrderBookV4FlashBorrower(
+                OrderBookV4ArbConfigV1(
+                    raindex, EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""), ""
                 )
             );
         }

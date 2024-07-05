@@ -1,3 +1,256 @@
+type Orderbook @entity {
+  id: Bytes!
+  "All orders in the orderbook"
+  orders: [Order!]! @derivedFrom(field: "orderbook")
+  "All trades in the orderbook"
+  trades: [Trade!]! @derivedFrom(field: "orderbook")
+  "All vaults in the orderbook"
+  vaults: [Vault!]! @derivedFrom(field: "orderbook")
+  "All vault balance changes in the orderbook"
+  vaultBalanceChanges: [VaultBalanceChange!]! @derivedFrom(field: "orderbook")
+  "All deposit events in the orderbook"
+  deposits: [Deposit!]! @derivedFrom(field: "orderbook")
+  "All withdrawal events in the orderbook"
+  withdrawals: [Withdrawal!]! @derivedFrom(field: "orderbook")
+  "All add order events in the orderbook"
+  addOrders: [AddOrder!]! @derivedFrom(field: "orderbook")
+  "All remove order events in the orderbook"
+  removeOrders: [RemoveOrder!]! @derivedFrom(field: "orderbook")
+  "All take order events in the orderbook"
+  takeOrders: [TakeOrder!]! @derivedFrom(field: "orderbook")
+  "All trade events in the orderbook"
+  tradeEvents: [TradeEvent!]! @derivedFrom(field: "orderbook")
+}
+
+type Vault @entity {
+  id: Bytes!
+  "The orderbook this vault is in"
+  orderbook: Orderbook!
+  "The token that this vault is for"
+  token: ERC20!
+  "The owner of this vault"
+  owner: Bytes!
+  "The vaultId of this vault"
+  vaultId: BigInt!
+  "Orders this vault is an input for"
+  ordersAsInput: [Order!]! @derivedFrom(field: "inputs")
+  "Orders this vault is an output for"
+  ordersAsOutput: [Order!]! @derivedFrom(field: "outputs")
+  "The amount of the token that is in this vault"
+  balance: BigInt!
+  "All balance changes for this vault"
+  balanceChanges: [VaultBalanceChange!]! @derivedFrom(field: "vault")
+}
+
+interface VaultBalanceChange {
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
+  "The vault that was affected"
+  vault: Vault!
+  "The amount changed - this is signed"
+  amount: BigInt!
+  "The balance of the vault before the change"
+  oldVaultBalance: BigInt!
+  "The balance of the vault after the change"
+  newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
+  "The transaction in which this balance change was executed"
+  transaction: Transaction!
+}
+
+type Deposit implements Event & VaultBalanceChange @entity(immutable: true) {
+  id: Bytes!
+
+  # For VaultBalanceChange
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
+  "The vault that was deposited into"
+  vault: Vault!
+  "The amount that was deposited"
+  amount: BigInt!
+  oldVaultBalance: BigInt!
+  newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this withdrawal"
+  sender: Bytes!
+}
+
+type Withdrawal implements Event & VaultBalanceChange @entity(immutable: true) {
+  id: Bytes!
+  "The amount that was being targeted to be withdrawn"
+  targetAmount: BigInt!
+
+  # For VaultBalanceChange
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
+  "The vault that was withdrawn from"
+  vault: Vault!
+  "The amount that was actually withdrawn - this will be negative"
+  amount: BigInt!
+  oldVaultBalance: BigInt!
+  newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this withdrawal"
+  sender: Bytes!
+}
+
+type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: true) {
+  id: Bytes!
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
+  "The trade that this balance change is for"
+  trade: Trade!
+  "The vault that was affected"
+  vault: Vault!
+  "The amount that was changed - this is signed"
+  amount: BigInt!
+  "The balance of the vault before the change"
+  oldVaultBalance: BigInt!
+  "The balance of the vault after the change"
+  newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
+  "The transaction in which this balance change was executed"
+  transaction: Transaction!
+}
+
 type Order @entity {
-  id: ID!
+  id: Bytes!
+  "The orderbook this order is in"
+  orderbook: Orderbook!
+  "Whether this order is active or not"
+  active: Boolean!
+  "The hash of the order"
+  orderHash: Bytes!
+  "The owner of the order"
+  owner: Bytes!
+  "The vaults that are inputs to this order"
+  inputs: [Vault!]!
+  "The vaults that are outputs to this order"
+  outputs: [Vault!]!
+  "A nonce for this order"
+  nonce: Bytes!
+  "The ABI encoded bytes for the Order struct"
+  orderBytes: Bytes!
+  "AddOrder events for this order"
+  addEvents: [AddOrder!]! @derivedFrom(field: "order")
+  "RemoveOrder events for this order"
+  removeEvents: [RemoveOrder!]! @derivedFrom(field: "order")
+  "Trades for this order"
+  trades: [Trade!]! @derivedFrom(field: "order")
+  "Meta emitted for this order"
+  meta: Bytes
+  "The timestamp this order was first added"
+  timestampAdded: BigInt!
+}
+
+type AddOrder implements Event @entity(immutable: true) {
+  id: Bytes!
+  "The order that was added"
+  order: Order!
+  "The orderbook this add order event is in"
+  orderbook: Orderbook!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this add order call"
+  sender: Bytes!
+}
+
+type RemoveOrder implements Event @entity(immutable: true) {
+  id: Bytes!
+  "The order that was removed"
+  order: Order!
+  "The orderbook this remove order event is in"
+  orderbook: Orderbook!
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this remove order call"
+  sender: Bytes!
+}
+
+type Trade @entity(immutable: true) {
+  id: Bytes!
+  "The orderbook this trade is for"
+  orderbook: Orderbook!
+  "The order that was traded"
+  order: Order!
+  "Input vault balance change"
+  inputVaultBalanceChange: TradeVaultBalanceChange!
+  "Output vault balance change"
+  outputVaultBalanceChange: TradeVaultBalanceChange!
+  "The event in which this trade occured"
+  tradeEvent: TradeEvent!
+  "The timestamp this trade was executed"
+  timestamp: BigInt!
+}
+
+type TakeOrder implements TradeEvent @entity(immutable: true) {
+  id: Bytes!
+
+  "The input amount from the perspective of the taker"
+  inputAmount: BigInt!
+  "The output amount from the perspective of the taker"
+  outputAmount: BigInt!
+  "The ABI encoded bytes for the TakeOrderConfig struct"
+  takeOrderConfigBytes: Bytes!
+
+  # For TradeEvent
+  "The orderbook this trade event is for"
+  orderbook: Orderbook!
+  "The trades that occured in this event"
+  trades: [Trade!]! @derivedFrom(field: "tradeEvent")
+  transaction: Transaction!
+  "The msg.sender of this trade"
+  sender: Bytes!
+}
+
+interface TradeEvent implements Event {
+  id: Bytes!
+  "The orderbook this trade event is for"
+  orderbook: Orderbook!
+  "The trades that occured in this event"
+  trades: [Trade!]! @derivedFrom(field: "tradeEvent")
+
+  # For Event
+  transaction: Transaction!
+  "The msg.sender of this trade"
+  sender: Bytes!
+}
+
+type Transaction @entity(immutable: true) {
+  id: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  from: Bytes!
+  events: [Event!] @derivedFrom(field: "transaction")
+}
+
+interface Event {
+  "Transaction this event was emitted in"
+  transaction: Transaction!
+  "msg.sender for the event"
+  sender: Bytes!
+}
+
+type ERC20 @entity(immutable: true) {
+  id: Bytes!
+  "The address of the ERC20 token"
+  address: Bytes!
+  "The name of the ERC20 token"
+  name: String
+  "The symbol of the ERC20 token"
+  symbol: String
+  "The number of decimals of the ERC20 token"
+  decimals: BigInt
 }

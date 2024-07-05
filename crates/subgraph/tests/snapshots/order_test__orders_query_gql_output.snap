@@ -4,63 +4,38 @@ expression: request_body.query
 ---
 query OrderDetailQuery($id: ID!) {
   order(id: $id) {
-    id
-    owner {
-      id
-    }
-    orderActive
-    interpreter
-    interpreterStore
-    expressionDeployer
-    expression
-    timestamp
-    handleIO
-    validInputs {
-      tokenVault {
+    orderBytes
+    orderHash
+    owner
+    outputs {
+      token {
         id
-        vaultId
-        vault {
-          owner {
-            id
-          }
-        }
-        token {
-          id
-          name
-          symbol
-          decimals
-        }
+        address
+        name
+        symbol
+        decimals
+      }
+      balance
+      vaultId
+    }
+    inputs {
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
+      balance
+      vaultId
+    }
+    active
+    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+      transaction {
+        blockNumber
+        timestamp
       }
     }
-    validOutputs {
-      tokenVault {
-        id
-        vaultId
-        vault {
-          owner {
-            id
-          }
-        }
-        token {
-          id
-          name
-          symbol
-          decimals
-        }
-      }
-    }
-    meta {
-      metaBytes
-      content {
-        id
-        payload
-        magicNumber
-        contentType
-        contentEncoding
-        contentLanguage
-      }
-    }
+    meta
   }
 }
-
-

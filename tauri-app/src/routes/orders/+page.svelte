@@ -100,7 +100,7 @@
 
     <svelte:fragment slot="bodyRow" let:item>
       <TableBodyCell tdClass="px-4 py-2">
-        {#if item.order_active}
+        {#if item.active}
           <Badge color="green">Active</Badge>
         {:else}
           <Badge color="yellow">Inactive</Badge>
@@ -110,19 +110,19 @@
         ><Hash type={HashType.Identifier} value={item.id} /></TableBodyCell
       >
       <TableBodyCell tdClass="break-all px-4 py-2"
-        ><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell
+        ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
       >
       <TableBodyCell tdClass="break-word px-4 py-2">
-        {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+        {formatTimestampSecondsAsLocal(BigInt(item.timestamp_added))}
       </TableBodyCell>
       <TableBodyCell tdClass="break-word p-2">
-        {item.valid_inputs?.map((t) => t.token.symbol)}
+        {item.inputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
       <TableBodyCell tdClass="break-word p-2">
-        {item.valid_outputs?.map((t) => t.token.symbol)}
+        {item.outputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
       <TableBodyCell tdClass="px-0 text-right">
-        {#if $walletAddressMatchesOrBlank(item.owner.id) && item.order_active}
+        {#if $walletAddressMatchesOrBlank(item.owner) && item.active}
           <Button
             color="alternative"
             outline={false}
@@ -136,7 +136,7 @@
           </Button>
         {/if}
       </TableBodyCell>
-      {#if $walletAddressMatchesOrBlank(item.owner.id) && item.order_active}
+      {#if $walletAddressMatchesOrBlank(item.owner) && item.active}
         <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
           <DropdownItem
             on:click={(e) => {

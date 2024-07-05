@@ -15,7 +15,7 @@
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
-  import type { TokenVault } from '$lib/typeshare/vaultsList';
+  import type { Order, Vault } from '$lib/typeshare/vaultsList';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
@@ -39,10 +39,19 @@
   let showDepositModal = false;
   let showWithdrawModal = false;
   let showDepositGenericModal = false;
-  let depositModalVault: TokenVault;
-  let withdrawModalVault: TokenVault;
+  let depositModalVault: Vault;
+  let withdrawModalVault: Vault;
 
   $: $subgraphUrl, $vaultsList?.fetchFirst();
+
+  const dedupeOrders = (vault: Vault): Order[] => {
+    return Object.values(
+      [...vault.orders_as_input, ...vault.orders_as_output].reduce(
+        (acc, order) => ({ ...acc, [order.id]: order }),
+        {},
+      ),
+    );
+  };
 </script>
 
 <PageHeader title="Vaults" />
@@ -87,30 +96,35 @@
       <TableBodyCell tdClass="break-all px-4 py-4">{bigintStringToHex(item.vault_id)}</TableBodyCell
       >
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"
-        ><Hash type={HashType.Wallet} value={item.owner.id} /></TableBodyCell
+        ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
       >
       <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {item.balance_display}
+        {item.balance}
         {item.token.symbol}
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {#if item.orders}
+        {@const dedupedOrders = dedupeOrders(item)}
+        {#if dedupedOrders.length > 0}
           <div class="flex flex-wrap items-end justify-start">
-            {#each item.orders.slice(0, 3) as order}
+            {#each dedupedOrders.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color="alternative"
                 on:click={() => goto(`/orders/${order.id}`)}
-                ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
+                ><Hash
+                  type={HashType.Identifier}
+                  value={order.order_hash}
+                  copyOnClick={false}
+                /></Button
               >
             {/each}
-            {#if item.orders.length > 3}...{/if}
+            {#if dedupedOrders.length > 3}...{/if}
           </div>
         {/if}
       </TableBodyCell>
       <TableBodyCell tdClass="px-0 text-right">
-        {#if $walletAddressMatchesOrBlank(item.owner.id)}
+        {#if $walletAddressMatchesOrBlank(item.owner)}
           <Button
             color="alternative"
             outline={false}
@@ -124,7 +138,7 @@
           </Button>
         {/if}
       </TableBodyCell>
-      {#if $walletAddressMatchesOrBlank(item.owner.id)}
+      {#if $walletAddressMatchesOrBlank(item.owner)}
         <Dropdown placement="bottom-end" triggeredBy={`#vault-menu-${item.id}`}>
           <DropdownItem
             on:click={(e) => {

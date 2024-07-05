@@ -7,12 +7,12 @@ use rain_orderbook_common::{
     deposit::DepositArgs,
     subgraph::SubgraphArgs,
     transaction::TransactionArgs,
-    types::{TokenVaultFlattened, VaultBalanceChangeFlattened},
-    utils::timestamp::FormatTimestampDisplayError,
+    types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
     withdraw::WithdrawArgs,
 };
+use rain_orderbook_subgraph_client::types::vault_balance_changes_list::VaultBalanceChange;
 use rain_orderbook_subgraph_client::{
-    types::{vault_balance_change::VaultBalanceChange, vault_detail, vaults_list},
+    types::{vault_detail, vaults_list},
     PaginationArgs,
 };
 use std::fs;
@@ -23,7 +23,7 @@ use tauri::AppHandle;
 pub async fn vaults_list(
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<vaults_list::TokenVault>> {
+) -> CommandResult<Vec<vaults_list::Vault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
         .await?
@@ -42,7 +42,11 @@ pub async fn vaults_list_write_csv(
         .await?
         .vaults_list_all()
         .await?;
-    let vaults_flattened: Vec<TokenVaultFlattened> = vaults.into_iter().map(|o| o.into()).collect();
+    let vaults_flattened: Vec<TokenVaultFlattened> =
+        vaults
+            .into_iter()
+            .map(|o| o.try_into())
+            .collect::<Result<Vec<TokenVaultFlattened>, FlattenError>>()?;
     let csv_text = vaults_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 
@@ -77,7 +81,7 @@ pub async fn vault_balance_changes_list_write_csv(
     let data_flattened: Vec<VaultBalanceChangeFlattened> =
         data.into_iter()
             .map(|o| o.try_into())
-            .collect::<Result<Vec<VaultBalanceChangeFlattened>, FormatTimestampDisplayError>>()?;
+            .collect::<Result<Vec<VaultBalanceChangeFlattened>, FlattenError>>()?;
     let csv_text = data_flattened.try_into_csv()?;
     fs::write(path, csv_text)?;
 
@@ -88,7 +92,7 @@ pub async fn vault_balance_changes_list_write_csv(
 pub async fn vault_detail(
     id: String,
     subgraph_args: SubgraphArgs,
-) -> CommandResult<vault_detail::TokenVault> {
+) -> CommandResult<vault_detail::Vault> {
     let vault = subgraph_args
         .to_subgraph_client()
         .await?
@@ -104,9 +108,8 @@ pub async fn vault_deposit(
     deposit_args: DepositArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
-    let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Approve ERC20 token transfer".into()
-    );
+    let tx_status_notice =
+        TransactionStatusNoticeRwLock::new("Approve ERC20 token transfer".into());
     let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
@@ -116,9 +119,7 @@ pub async fn vault_deposit(
             tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
         });
 
-    let tx_status_notice = TransactionStatusNoticeRwLock::new(
-        "Deposit tokens into vault".into()
-    );
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Deposit tokens into vault".into());
     let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
@@ -153,13 +154,10 @@ pub async fn vault_deposit_calldata(
     app_handle: AppHandle,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = deposit_args
-        .get_deposit_calldata()
-        .await
-        .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
-            e
-        })?;
+    let calldata = deposit_args.get_deposit_calldata().await.map_err(|e| {
+        toast_error(app_handle.clone(), e.to_string());
+        e
+    })?;
 
     Ok(Bytes::from(calldata))
 }
@@ -170,8 +168,7 @@ pub async fn vault_withdraw(
     withdraw_args: WithdrawArgs,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
-    let tx_status_notice =
-        TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into());
+    let tx_status_notice = TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into());
     let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
             tx_status_notice.update_status_and_emit(app_handle.clone(), status);
@@ -189,13 +186,10 @@ pub async fn vault_withdraw_calldata(
     app_handle: AppHandle,
     withdraw_args: WithdrawArgs,
 ) -> CommandResult<Bytes> {
-    let calldata = withdraw_args
-        .get_withdraw_calldata()
-        .await
-        .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
-            e
-        })?;
+    let calldata = withdraw_args.get_withdraw_calldata().await.map_err(|e| {
+        toast_error(app_handle.clone(), e.to_string());
+        e
+    })?;
 
     Ok(Bytes::from(calldata))
 }

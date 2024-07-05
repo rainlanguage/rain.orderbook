@@ -10,30 +10,40 @@ import {
 } from "rain.interpreter/concrete/RainterpreterExpressionDeployerNPE2.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IOrderBookV3Stub} from "test/util/abstract/IOrderBookV3Stub.sol";
-import {IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
-import {IOrderBookV3} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+import {IParserV2} from "rain.interpreter.interface/interface/unstable/IParserV2.sol";
+import {
+    IOrderBookV4,
+    IInterpreterV3,
+    ActionV1,
+    EvaluableV3,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
-import {IParserV1View} from "rain.interpreter.interface/interface/unstable/IParserV1View.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
 
-abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
-    IExpressionDeployerV3 internal immutable iDeployer;
-    IInterpreterV2 internal immutable iInterpreter;
+abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
+    IInterpreterV3 internal immutable iInterpreter;
     IInterpreterStoreV2 internal immutable iStore;
-    IParserV1View internal immutable iParser;
-    IOrderBookV3 internal immutable iOrderbook;
+    IParserV2 internal immutable iParserV2;
+    IOrderBookV4 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
 
     constructor() {
-        iInterpreter = IInterpreterV2(new RainterpreterNPE2());
+        iInterpreter = IInterpreterV3(new RainterpreterNPE2());
         iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
-        iParser = IParserV1View(new RainterpreterParserNPE2());
+        address parser = address(new RainterpreterParserNPE2());
+        iParserV2 = new RainterpreterExpressionDeployerNPE2(
+            RainterpreterExpressionDeployerNPE2ConstructionConfigV2({
+                interpreter: address(iInterpreter),
+                store: address(iStore),
+                parser: parser
+            })
+        );
 
         // Deploy the expression deployer.
         vm.etch(address(IERC1820_REGISTRY), REVERTING_MOCK_BYTECODE);
@@ -45,20 +55,20 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV3Stub {
         vm.mockCall(
             address(IERC1820_REGISTRY), abi.encodeWithSelector(IERC1820Registry.setInterfaceImplementer.selector), ""
         );
-        iDeployer = IExpressionDeployerV3(
-            address(
-                new RainterpreterExpressionDeployerNPE2(
-                    RainterpreterExpressionDeployerNPE2ConstructionConfigV2(
-                        address(iInterpreter), address(iStore), address(iParser)
-                    )
-                )
-            )
-        );
-        iOrderbook = IOrderBookV3(address(new OrderBook()));
+        iOrderbook = IOrderBookV4(address(new OrderBook()));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
         iToken1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
+    }
+
+    function evalsToActions(bytes[] memory evals) internal view returns (ActionV1[] memory) {
+        ActionV1[] memory actions = new ActionV1[](evals.length);
+        for (uint256 i = 0; i < evals.length; i++) {
+            actions[i] =
+                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evals[i])), new SignedContextV1[](0));
+        }
+        return actions;
     }
 }

@@ -79,11 +79,11 @@
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       <div class="flex gap-x-2">
         <span class="font-light">Order</span>
-        <Hash shorten value={order.id} />
+        <Hash shorten value={order.order_hash} />
       </div>
-      <BadgeActive active={order.order_active} large />
+      <BadgeActive active={order.active} large />
     </div>
-    {#if order && $walletAddressMatchesOrBlank(order.owner.id) && order.order_active}
+    {#if order && $walletAddressMatchesOrBlank(order.owner) && order.active}
       <Button color="dark" on:click={() => (openOrderRemoveModal = true)}>Remove</Button>
     {/if}
   </svelte:fragment>
@@ -92,22 +92,22 @@
       <CardProperty>
         <svelte:fragment slot="key">Owner</svelte:fragment>
         <svelte:fragment slot="value">
-          <Hash type={HashType.Wallet} shorten={false} value={order.owner.id} />
+          <Hash type={HashType.Wallet} shorten={false} value={order.owner} />
         </svelte:fragment>
       </CardProperty>
 
       <CardProperty>
         <svelte:fragment slot="key">Created</svelte:fragment>
         <svelte:fragment slot="value">
-          {formatTimestampSecondsAsLocal(BigInt(order.timestamp))}
+          {formatTimestampSecondsAsLocal(BigInt(order.timestamp_added))}
         </svelte:fragment>
       </CardProperty>
 
       <CardProperty>
         <svelte:fragment slot="key">Input vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          {#each order.valid_inputs || [] as t}
-            <ButtonVaultLink tokenVault={t.token_vault} />
+          {#each order.inputs || [] as t}
+            <ButtonVaultLink tokenVault={t} />
           {/each}
         </svelte:fragment>
       </CardProperty>
@@ -115,8 +115,8 @@
       <CardProperty>
         <svelte:fragment slot="key">Output vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          {#each order.valid_outputs || [] as t}
-            <ButtonVaultLink tokenVault={t.token_vault} />
+          {#each order.outputs || [] as t}
+            <ButtonVaultLink tokenVault={t} />
           {/each}
         </svelte:fragment>
       </CardProperty>

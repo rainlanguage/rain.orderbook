@@ -4,31 +4,31 @@ pragma solidity =0.8.25;
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderV2,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3,
     ZeroMaximumInput,
     IO,
-    EvaluableConfigV3,
-    OrderConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
+    EvaluableV3,
+    OrderConfigV3,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// If there is some live order(s) but the maxTakerInput is zero we error as
     /// the caller has full control over this, and it would cause none of the
     /// orders to be taken.
-    function testTakeOrderNoopZeroMaxTakerInput(OrderV2 memory order, SignedContextV1 memory signedContext) external {
+    function testTakeOrderNoopZeroMaxTakerInput(OrderV3 memory order, SignedContextV1 memory signedContext) external {
         vm.assume(order.validInputs.length > 0);
         vm.assume(order.validOutputs.length > 0);
-        TakeOrderConfigV2[] memory orders = new TakeOrderConfigV2[](1);
+        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
-        orders[0] = TakeOrderConfigV2(order, 0, 0, signedContexts);
-        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, 0, type(uint256).max, orders, "");
+        orders[0] = TakeOrderConfigV3(order, 0, 0, signedContexts);
+        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, 0, type(uint256).max, orders, "");
         vm.expectRevert(ZeroMaximumInput.selector);
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -54,28 +54,27 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
         uint256 vaultId = 0;
 
-        OrderV2[] memory orders = new OrderV2[](testOrders.length);
+        OrderV3[] memory orders = new OrderV3[](testOrders.length);
 
         for (uint256 i = 0; i < testOrders.length; i++) {
             {
-                OrderConfigV2 memory orderConfig;
+                OrderConfigV3 memory orderConfig;
                 {
-                    (bytes memory bytecode, uint256[] memory constants) =
-                        IParserV1(address(iParser)).parse(testOrders[i].orderString);
+                    bytes memory bytecode = iParserV2.parse2(testOrders[i].orderString);
                     IO[] memory inputs = new IO[](1);
                     inputs[0] = IO(address(iToken0), 18, vaultId);
                     IO[] memory outputs = new IO[](1);
                     outputs[0] = IO(address(iToken1), 18, vaultId);
-                    EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-                    orderConfig = OrderConfigV2(inputs, outputs, evaluableConfig, "");
+                    EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
+                    orderConfig = OrderConfigV3(evaluable, inputs, outputs, bytes32(0), bytes32(0), "");
                 }
 
                 vm.prank(testOrders[i].owner);
                 vm.recordLogs();
-                iOrderbook.addOrder(orderConfig);
+                iOrderbook.addOrder2(orderConfig, new ActionV1[](0));
                 Vm.Log[] memory entries = vm.getRecordedLogs();
-                assertEq(entries.length, 3);
-                (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+                assertEq(entries.length, 1);
+                (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
                 orders[i] = order;
             }
         }
@@ -99,7 +98,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 );
                 uint256 balanceBefore = iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId);
                 vm.prank(testVaults[i].owner);
-                iOrderbook.deposit(testVaults[i].token, vaultId, testVaults[i].deposit);
+                iOrderbook.deposit2(testVaults[i].token, vaultId, testVaults[i].deposit, new ActionV1[](0));
                 assertEq(
                     iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId),
                     balanceBefore + testVaults[i].deposit,
@@ -108,11 +107,11 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             }
         }
 
-        TakeOrderConfigV2[] memory takeOrders = new TakeOrderConfigV2[](orders.length);
+        TakeOrderConfigV3[] memory takeOrders = new TakeOrderConfigV3[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            takeOrders[i] = TakeOrderConfigV2(orders[i], 0, 0, new SignedContextV1[](0));
+            takeOrders[i] = TakeOrderConfigV3(orders[i], 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV2 memory config = TakeOrdersConfigV2(0, maximumTakerInput, type(uint256).max, takeOrders, "");
+        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maximumTakerInput, type(uint256).max, takeOrders, "");
 
         // Mock and expect the token transfers.
         vm.mockCall(
@@ -137,7 +136,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         );
 
         vm.prank(bob);
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders(config);
+        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         assertEq(totalTakerInput, expectedTakerInput, "totalTakerInput");
         assertEq(totalTakerOutput, expectedTakerOutput, "totalTakerOutput");
 

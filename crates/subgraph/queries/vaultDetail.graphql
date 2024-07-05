@@ -1,52 +1,31 @@
-query VaultDetailQuery($id: ID!) {
-  tokenVault(id: $id) {
-    id
-    owner {
-      id
+query VaultDetailQuery($id: Bytes!) {
+  vault(id: $id) {
+   vaultId
+    token
+    owner
+    ordersAsOuput {
+      orderHash
+      active
+    }
+    ordersAsInput {
+      orderHash
+      active
+    }
+    balanceChanges {
+      __typename
+      amount
+      oldVaultBalance
+      newVaultBalance
+      ... on Withdrawal {
+        id
+      }
+      ... on TradeVaultBalanceChange {
+        id
+      }
+      ... on Deposit {
+        id
+      }
     }
     balance
-    balanceDisplay
-    token {
-      id
-      name
-      symbol
-      decimals
-    }
-    vaultId
-    vault {
-      id
-      deposits(where: {tokenVault_: {id: $id, }, }) {
-        id
-        transaction {
-          id
-        }
-        timestamp
-        sender {
-          id
-        }
-        amount
-        amountDisplay
-      }
-      withdraws(where: {tokenVault_: {id: $id, }, }) {
-        id
-        sender {
-          id
-        }
-        transaction {
-          id
-        }
-        timestamp
-        amount
-        amountDisplay
-        requestedAmount
-        requestedAmountDisplay
-        tokenVault {
-          balanceDisplay
-        }
-      }
-    }
-    orders(orderBy: id, orderDirection:desc) {
-      id
-    }
   }
 }

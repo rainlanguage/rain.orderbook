@@ -5,13 +5,15 @@ import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     ClearConfig,
-    OrderV2,
-    TakeOrderConfigV2,
+    OrderV3,
+    TakeOrderConfigV3,
     IO,
-    OrderConfigV2
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {SignedContextV1, EvaluableConfigV3} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
+    OrderConfigV3,
+    EvaluableV3,
+    SignedContextV1,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookClearHandleIORevertTest
 /// @notice A test harness for testing the OrderBook clear function will run
@@ -19,11 +21,11 @@ import {IParserV1} from "rain.interpreter.interface/interface/IParserV1.sol";
 contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     function userDeposit(bytes memory rainString, address owner, address inputToken, address outputToken)
         internal
-        returns (OrderV2 memory)
+        returns (OrderV3 memory)
     {
         uint256 vaultId = 0;
 
-        OrderConfigV2 memory config;
+        OrderConfigV3 memory config;
         IO[] memory validOutputs;
         IO[] memory validInputs;
         {
@@ -41,19 +43,19 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit(outputToken, vaultId, type(uint256).max);
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new ActionV1[](0));
         assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
 
-        (bytes memory bytecode, uint256[] memory constants) = IParserV1(address(iParser)).parse(rainString);
-        EvaluableConfigV3 memory evaluableConfig = EvaluableConfigV3(iDeployer, bytecode, constants);
-        config = OrderConfigV2(validInputs, validOutputs, evaluableConfig, "");
+        bytes memory bytecode = iParserV2.parse2(rainString);
+        EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
+        config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
 
         vm.prank(owner);
         vm.recordLogs();
-        iOrderbook.addOrder(config);
+        iOrderbook.addOrder2(config, new ActionV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 3);
-        (,, OrderV2 memory order,) = abi.decode(entries[2].data, (address, address, OrderV2, bytes32));
+        assertEq(entries.length, 1);
+        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         return order;
     }
@@ -69,18 +71,18 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         address alice = address(0x102);
         address bob = address(0x103);
 
-        OrderV2 memory aliceOrder = userDeposit(aliceString, alice, aliceInputToken, aliceOutputToken);
-        OrderV2 memory bobOrder = userDeposit(bobString, bob, aliceOutputToken, aliceInputToken);
+        OrderV3 memory aliceOrder = userDeposit(aliceString, alice, aliceInputToken, aliceOutputToken);
+        OrderV3 memory bobOrder = userDeposit(bobString, bob, aliceOutputToken, aliceInputToken);
         ClearConfig memory clearConfig = ClearConfig(0, 0, 0, 0, 0, 0);
         if (aliceErr.length > 0) {
             vm.expectRevert(aliceErr);
         }
-        iOrderbook.clear(aliceOrder, bobOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
+        iOrderbook.clear2(aliceOrder, bobOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
 
         if (bobErr.length > 0) {
             vm.expectRevert(bobErr);
         }
-        iOrderbook.clear(bobOrder, aliceOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
+        iOrderbook.clear2(bobOrder, aliceOrder, clearConfig, new SignedContextV1[](0), new SignedContextV1[](0));
     }
 
     function testClearOrderHandleIO0() external {
@@ -127,6 +129,54 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
 
         bytes memory aliceString = "_ _:max-value() 1;:;";
         bytes memory bobString = "_ _:max-value() 1;:;";
+
+        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+    }
+
+    /// Note that this error comes from the i9r so it is possible for a different
+    /// i9r to not have this error.
+    function testClearOrderAliceNoHandleIORevert() external {
+        bytes memory aliceString = "_ _:max-value() 1;";
+        bytes memory bobString = "_ _:max-value() 1;:;";
+
+        // This is a bit fragile but the error message includes the inner
+        // executable bytecode only, not the outer parsed bytecode.
+        bytes memory aliceErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+        bytes memory bobErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+
+        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+    }
+
+    /// Note that this error comes from the i9r so it is possible for a different
+    /// i9r to not have this error.
+    function testClearOrderBobNoHandleIORevert() external {
+        bytes memory aliceString = "_ _:max-value() 1;:;";
+        bytes memory bobString = "_ _:max-value() 1;";
+
+        // This is a bit fragile but the error message includes the inner
+        // executable bytecode only, not the outer parsed bytecode.
+        bytes memory aliceErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+        bytes memory bobErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+
+        checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
+    }
+
+    /// Note that this error comes from the i9r so it is possible for a different
+    /// i9r to not have this error.
+    function testClearOrderBothNoHandleIORevert() external {
+        bytes memory aliceString = "_ _:max-value() 1;";
+        bytes memory bobString = "_ _:max-value() 1;";
+
+        // This is a bit fragile but the error message includes the inner
+        // executable bytecode only, not the outer parsed bytecode.
+        bytes memory aliceErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+        bytes memory bobErr =
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }

@@ -6,11 +6,13 @@ use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
 use rain_orderbook_common::{
-    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderTakeFlattened,
-    utils::timestamp::FormatTimestampDisplayError,
+    csv::TryIntoCsv,
+    subgraph::SubgraphArgs,
+    types::{FlattenError, OrderTakeFlattened, NO_SYMBOL},
 };
 use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
+
 #[derive(Args, Clone)]
 pub struct CliOrderTakesListArgs {
     #[arg(short = 'i', long, help = "ID of the Order")]
@@ -36,7 +38,7 @@ impl Execute for CliOrderTakesListArgs {
             let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderTakeFlattened>, FormatTimestampDisplayError>>()?;
+                .collect::<Result<Vec<OrderTakeFlattened>, FlattenError>>()?;
 
             let csv_text = order_takes_flattened.try_into_csv()?;
             println!("{}", csv_text);
@@ -50,7 +52,7 @@ impl Execute for CliOrderTakesListArgs {
             let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderTakeFlattened>, FormatTimestampDisplayError>>()?;
+                .collect::<Result<Vec<OrderTakeFlattened>, FlattenError>>()?;
 
             let table = build_table(order_takes_flattened)?;
             info!("\n{}", table);
@@ -65,9 +67,7 @@ fn build_table(order_take: Vec<OrderTakeFlattened>) -> Result<Table> {
     table
         .load_preset(comfy_table::presets::UTF8_FULL)
         .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .set_header(vec![
-            "ID", "Taken At", "Sender", "Input", "Output", "IO Ratio",
-        ]);
+        .set_header(vec!["ID", "Taken At", "Sender", "Input", "Output"]);
 
     for order_take in order_take.into_iter() {
         table.add_row(vec![
@@ -76,15 +76,13 @@ fn build_table(order_take: Vec<OrderTakeFlattened>) -> Result<Table> {
             order_take.sender.0,
             format!(
                 "{} {}",
-                order_take.input_display.0, order_take.input_token_symbol
+                order_take.input_display,
+                order_take.input_token_symbol.unwrap_or(NO_SYMBOL.into())
             ),
             format!(
                 "{} {}",
-                order_take.output_display.0, order_take.output_token_symbol
-            ),
-            format!(
-                "{} {}/{}",
-                order_take.ioratio.0, order_take.input_token_symbol, order_take.output_token_symbol
+                order_take.output_display,
+                order_take.output_token_symbol.unwrap_or(NO_SYMBOL.into())
             ),
         ]);
     }

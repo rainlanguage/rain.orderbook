@@ -14,28 +14,34 @@ import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointD
 import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {SourceIndexV2, StateNamespace, IInterpreterV2} from "rain.interpreter.interface/interface/IInterpreterV2.sol";
+import {
+    SourceIndexV2,
+    StateNamespace,
+    IInterpreterV3
+} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {EvaluableV2} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
+import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 
 import {
-    IOrderBookV3,
+    IOrderBookV4,
     NoOrders,
-    OrderV2,
-    OrderConfigV2,
-    TakeOrderConfigV2,
-    TakeOrdersConfigV2,
+    OrderV3,
+    OrderConfigV3,
+    TakeOrderConfigV3,
+    TakeOrdersConfigV3,
     ClearConfig,
     ClearStateChange,
-    ZeroMaximumInput
-} from "rain.orderbook.interface/interface/IOrderBookV3.sol";
-import {IOrderBookV3OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV3OrderTaker.sol";
+    ZeroMaximumInput,
+    SignedContextV1,
+    EvaluableV3,
+    ActionV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV4OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
@@ -47,7 +53,7 @@ import {
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_IO_VAULT_ID
 } from "../../lib/LibOrderBook.sol";
-import {OrderBookV3FlashLender} from "../../abstract/OrderBookV3FlashLender.sol";
+import {OrderBookV4FlashLender} from "../../abstract/OrderBookV4FlashLender.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -85,10 +91,6 @@ error UnsupportedCalculateInputs(uint256 inputs);
 /// Thrown when calculate order expression offers too few outputs.
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
-
-/// Thrown when handle IO expression wants inputs.
-/// @param inputs The inputs the expression wants.
-error UnsupportedHandleInputs(uint256 inputs);
 
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
@@ -145,7 +147,7 @@ uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
 /// @param kvs KVs returned from calculate order entrypoint to pass to the store
 /// before calling handle IO entrypoint.
 struct OrderIOCalculationV2 {
-    OrderV2 order;
+    OrderV3 order;
     uint256 outputIOIndex;
     Output18Amount outputMax;
     //solhint-disable-next-line var-name-mixedcase
@@ -161,10 +163,10 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBookV3FlashLender {
+contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
-    using LibOrder for OrderV2;
+    using LibOrder for OrderV3;
     using LibUint256Array for uint256;
     using Math for uint256;
     using LibFixedPointDecimalScale for uint256;
@@ -189,18 +191,23 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
         sVaultBalances;
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     function orderExists(bytes32 orderHash) external view override returns (bool) {
         return sOrders[orderHash] == ORDER_LIVE;
     }
 
-    /// @inheritdoc IOrderBookV3
-    function deposit(address token, uint256 vaultId, uint256 amount) external nonReentrant {
+    /// @inheritdoc IOrderBookV4
+    function enact(ActionV1[] calldata post) external nonReentrant {
+        LibOrderBook.doPost(new uint256[][](0), post);
+    }
+
+    /// @inheritdoc IOrderBookV4
+    function deposit2(address token, uint256 vaultId, uint256 amount, ActionV1[] calldata post) external nonReentrant {
         if (amount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
@@ -211,10 +218,15 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         //slither-disable-next-line reentrancy-benign
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         sVaultBalances[msg.sender][token][vaultId] += amount;
+
+        LibOrderBook.doPost(new uint256[][](0), post);
     }
 
-    /// @inheritdoc IOrderBookV3
-    function withdraw(address token, uint256 vaultId, uint256 targetAmount) external nonReentrant {
+    /// @inheritdoc IOrderBookV4
+    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, ActionV1[] calldata post)
+        external
+        nonReentrant
+    {
         if (targetAmount == 0) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
@@ -228,86 +240,62 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
+
+            LibOrderBook.doPost(new uint256[][](0), post);
         }
     }
 
-    /// @inheritdoc IOrderBookV3
-    function addOrder(OrderConfigV2 calldata config) external nonReentrant returns (bool stateChanged) {
-        uint256 sourceCount = LibBytecode.sourceCount(config.evaluableConfig.bytecode);
-        if (sourceCount == 0) {
-            revert OrderNoSources();
-        }
-        if (sourceCount == 1) {
-            revert OrderNoHandleIO();
-        }
-        if (config.validInputs.length == 0) {
+    /// @inheritdoc IOrderBookV4
+    function addOrder2(OrderConfigV3 calldata orderConfig, ActionV1[] calldata post)
+        external
+        nonReentrant
+        returns (bool)
+    {
+        if (orderConfig.validInputs.length == 0) {
             revert OrderNoInputs();
         }
-        if (config.validOutputs.length == 0) {
+        if (orderConfig.validOutputs.length == 0) {
             revert OrderNoOutputs();
-        }
-        (IInterpreterV2 interpreter, IInterpreterStoreV2 store, address expression, bytes memory io) = config
-            .evaluableConfig
-            .deployer
-            .deployExpression2(config.evaluableConfig.bytecode, config.evaluableConfig.constants);
-        {
-            uint256 calculateInputs;
-            uint256 calculateOutputs;
-            uint256 handleInputs;
-            assembly ("memory-safe") {
-                let ioWord := mload(add(io, 0x20))
-                calculateInputs := byte(0, ioWord)
-                calculateOutputs := byte(1, ioWord)
-                handleInputs := byte(2, ioWord)
-            }
-
-            if (calculateInputs != 0) {
-                revert UnsupportedCalculateInputs(calculateInputs);
-            }
-
-            if (calculateOutputs < CALCULATE_ORDER_MIN_OUTPUTS) {
-                revert UnsupportedCalculateOutputs(calculateOutputs);
-            }
-
-            if (handleInputs != 0) {
-                revert UnsupportedHandleInputs(handleInputs);
-            }
         }
 
         // Merge our view on the sender/owner and handle IO emptiness with the
         // config and deployer's view on the `EvaluableV2` to produce the final
         // order.
-        OrderV2 memory order = OrderV2(
-            msg.sender,
-            LibBytecode.sourceOpsCount(config.evaluableConfig.bytecode, SourceIndexV2.unwrap(HANDLE_IO_ENTRYPOINT)) > 0,
-            EvaluableV2(interpreter, store, expression),
-            config.validInputs,
-            config.validOutputs
+        OrderV3 memory order = OrderV3(
+            msg.sender, orderConfig.evaluable, orderConfig.validInputs, orderConfig.validOutputs, orderConfig.nonce
         );
         bytes32 orderHash = order.hash();
 
-        // If the order is not dead we return early without state changes.
-        if (sOrders[orderHash] == ORDER_DEAD) {
-            stateChanged = true;
+        bool stateChange = sOrders[orderHash] == ORDER_DEAD;
 
+        // If the order is not dead we return early without state changes.
+        if (stateChange) {
             // This has to come after the external call to deploy the expression
             // because the order hash is derived from the expression and DISPair
             // addresses.
             //slither-disable-next-line reentrancy-benign
             sOrders[orderHash] = ORDER_LIVE;
-            emit AddOrder(msg.sender, config.evaluableConfig.deployer, order, orderHash);
+            emit AddOrderV2(order.owner, orderHash, order);
 
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
-            if (config.meta.length > 0) {
-                LibMeta.checkMetaUnhashedV1(config.meta);
-                emit MetaV1(msg.sender, uint256(orderHash), config.meta);
+            if (orderConfig.meta.length > 0) {
+                LibMeta.checkMetaUnhashedV1(orderConfig.meta);
+                emit MetaV1(order.owner, uint256(orderHash), orderConfig.meta);
             }
+
+            LibOrderBook.doPost(new uint256[][](0), post);
         }
+
+        return stateChange;
     }
 
-    /// @inheritdoc IOrderBookV3
-    function removeOrder(OrderV2 calldata order) external nonReentrant returns (bool stateChanged) {
+    /// @inheritdoc IOrderBookV4
+    function removeOrder2(OrderV3 calldata order, ActionV1[] calldata post)
+        external
+        nonReentrant
+        returns (bool stateChanged)
+    {
         if (msg.sender != order.owner) {
             revert NotOrderOwner(msg.sender, order.owner);
         }
@@ -315,15 +303,17 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         if (sOrders[orderHash] == ORDER_LIVE) {
             stateChanged = true;
             sOrders[orderHash] = ORDER_DEAD;
-            emit RemoveOrder(msg.sender, order, orderHash);
+            emit RemoveOrderV2(msg.sender, orderHash, order);
+
+            LibOrderBook.doPost(new uint256[][](0), post);
         }
     }
 
-    /// @inheritdoc IOrderBookV3
+    /// @inheritdoc IOrderBookV4
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
-    function takeOrders(TakeOrdersConfigV2 calldata config)
+    function takeOrders2(TakeOrdersConfigV3 calldata config)
         external
         nonReentrant
         returns (uint256 totalTakerInput, uint256 totalTakerOutput)
@@ -332,8 +322,8 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             revert NoOrders();
         }
 
-        TakeOrderConfigV2 memory takeOrderConfig;
-        OrderV2 memory order;
+        TakeOrderConfigV3 memory takeOrderConfig;
+        OrderV3 memory order;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
@@ -461,7 +451,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                         totalTakerOutput += takerOutput;
 
                         recordVaultIO(takerOutput, takerInput, orderIOCalculation);
-                        emit TakeOrder(msg.sender, takeOrderConfig, takerInput, takerOutput);
+                        emit TakeOrderV2(msg.sender, takeOrderConfig, takerInput, takerOutput);
 
                         // Add the pointer to the order IO calculation to the array
                         // of order IO calculations to handle. This is
@@ -506,7 +496,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
 
         if (config.data.length > 0) {
-            IOrderBookV3OrderTaker(msg.sender).onTakeOrders(
+            IOrderBookV4OrderTaker(msg.sender).onTakeOrders(
                 config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
                 config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
                 totalTakerInput,
@@ -528,10 +518,10 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
     }
 
-    /// @inheritdoc IOrderBookV3
-    function clear(
-        OrderV2 memory aliceOrder,
-        OrderV2 memory bobOrder,
+    /// @inheritdoc IOrderBookV4
+    function clear2(
+        OrderV3 memory aliceOrder,
+        OrderV3 memory bobOrder,
         ClearConfig calldata clearConfig,
         SignedContextV1[] memory aliceSignedContext,
         SignedContextV1[] memory bobSignedContext
@@ -593,7 +583,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             }
 
             // Emit the Clear event before `eval2`.
-            emit Clear(msg.sender, aliceOrder, bobOrder, clearConfig);
+            emit ClearV2(msg.sender, aliceOrder, bobOrder, clearConfig);
         }
         OrderIOCalculationV2 memory aliceOrderIOCalculation = calculateOrderIO(
             aliceOrder, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bobOrder.owner, bobSignedContext
@@ -640,7 +630,7 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     /// @param signedContext Any signed context provided by the clearer/taker
     /// that the order may need for its calculations.
     function calculateOrderIO(
-        OrderV2 memory order,
+        OrderV3 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         address counterparty,
@@ -689,13 +679,20 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             (uint256[] memory calculateOrderStack, uint256[] memory calculateOrderKVs) = order
                 .evaluable
                 .interpreter
-                .eval2(
+                .eval3(
                 order.evaluable.store,
                 LibNamespace.qualifyNamespace(namespace, address(this)),
-                _calculateOrderDispatch(order.evaluable.expression),
+                order.evaluable.bytecode,
+                CALCULATE_ORDER_ENTRYPOINT,
                 context,
                 new uint256[](0)
             );
+
+            // This is redundant with the array index checks implied by solidity
+            // but it's a much clearer error message.
+            if (calculateOrderStack.length < CALCULATE_ORDER_MIN_OUTPUTS) {
+                revert UnsupportedCalculateOutputs(calculateOrderStack.length);
+            }
 
             Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
             uint256 orderIORatio = calculateOrderStack[0];
@@ -779,39 +776,36 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, orderIOCalculation.kvs);
         }
 
-        // Only dispatch handle IO entrypoint if it is defined, otherwise it is
-        // a waste of gas to hit the interpreter a second time.
-        if (orderIOCalculation.order.handleIO) {
-            // The handle IO eval is run under the same namespace as the
-            // calculate order entrypoint.
-            // Slither false positive. External calls within loops are fine if
-            // the caller controls which orders are eval'd as they can drop
-            // failing calls and resubmit a new transaction.
+        // The handle IO eval is run under the same namespace as the
+        // calculate order entrypoint.
+        // Slither false positive. External calls within loops are fine if
+        // the caller controls which orders are eval'd as they can drop
+        // failing calls and resubmit a new transaction.
+        // https://github.com/crytic/slither/issues/880
+        //slither-disable-next-line calls-loop
+        (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = orderIOCalculation
+            .order
+            .evaluable
+            .interpreter
+            .eval3(
+            orderIOCalculation.order.evaluable.store,
+            LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
+            orderIOCalculation.order.evaluable.bytecode,
+            HANDLE_IO_ENTRYPOINT,
+            orderIOCalculation.context,
+            new uint256[](0)
+        );
+        // There's nothing to be done with the stack.
+        (handleIOStack);
+        // Apply state changes to the interpreter store from the handle IO
+        // entrypoint.
+        if (handleIOKVs.length > 0) {
+            // Slither false positive. External calls within loops are fine
+            // if the caller controls which orders are eval'd as they can
+            // drop failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
-            (uint256[] memory handleIOStack, uint256[] memory handleIOKVs) = orderIOCalculation
-                .order
-                .evaluable
-                .interpreter
-                .eval2(
-                orderIOCalculation.order.evaluable.store,
-                LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
-                _handleIODispatch(orderIOCalculation.order.evaluable.expression),
-                orderIOCalculation.context,
-                new uint256[](0)
-            );
-            // There's nothing to be done with the stack.
-            (handleIOStack);
-            // Apply state changes to the interpreter store from the handle IO
-            // entrypoint.
-            if (handleIOKVs.length > 0) {
-                // Slither false positive. External calls within loops are fine
-                // if the caller controls which orders are eval'd as they can
-                // drop failing calls and resubmit a new transaction.
-                // https://github.com/crytic/slither/issues/880
-                //slither-disable-next-line calls-loop
-                orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
-            }
+            orderIOCalculation.order.evaluable.store.set(orderIOCalculation.namespace, handleIOKVs);
         }
     }
 
@@ -872,13 +866,5 @@ contract OrderBook is IOrderBookV3, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         Input18Amount.unwrap(aliceInput18).scaleN(
             bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
         );
-    }
-
-    function _calculateOrderDispatch(address expression_) internal pure returns (EncodedDispatch) {
-        return LibEncodedDispatch.encode2(expression_, CALCULATE_ORDER_ENTRYPOINT, CALCULATE_ORDER_MAX_OUTPUTS);
-    }
-
-    function _handleIODispatch(address expression_) internal pure returns (EncodedDispatch) {
-        return LibEncodedDispatch.encode2(expression_, HANDLE_IO_ENTRYPOINT, HANDLE_IO_MAX_OUTPUTS);
     }
 }

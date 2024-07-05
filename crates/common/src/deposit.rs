@@ -9,7 +9,7 @@ use alloy_ethers_typecast::{
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::{
-    IOrderBookV3::depositCall,
+    IOrderBookV4::deposit2Call,
     IERC20::{allowanceCall, approveCall},
 };
 use serde::{Deserialize, Serialize};
@@ -40,12 +40,13 @@ pub struct DepositArgs {
     pub amount: U256,
 }
 
-impl From<DepositArgs> for depositCall {
+impl From<DepositArgs> for deposit2Call {
     fn from(val: DepositArgs) -> Self {
-        depositCall {
+        deposit2Call {
             token: val.token,
             vaultId: val.vault_id,
             amount: val.amount,
+            post: vec![],
         }
     }
 }
@@ -117,14 +118,14 @@ impl DepositArgs {
     }
 
     /// Execute OrderbookV3 deposit call
-    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<depositCall>)>(
+    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit2Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), DepositError> {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
-        let deposit_call: depositCall = self.clone().into();
+        let deposit_call: deposit2Call = self.clone().into();
         let params = transaction_args
             .try_into_write_contract_parameters(deposit_call, transaction_args.orderbook_address)
             .await?;
@@ -137,7 +138,7 @@ impl DepositArgs {
     }
 
     pub async fn get_deposit_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let deposit_call: depositCall = self.clone().into();
+        let deposit_call: deposit2Call = self.clone().into();
         Ok(deposit_call.abi_encode())
     }
 }
@@ -157,7 +158,7 @@ mod tests {
             amount: U256::from(100),
         };
 
-        let deposit_call: depositCall = args.into();
+        let deposit_call: deposit2Call = args.into();
 
         assert_eq!(
             deposit_call.token,

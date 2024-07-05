@@ -7369,6 +7369,7 @@ name = "rain_orderbook_subgraph_client"
 version = "0.0.1"
 dependencies = [
  "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
  "chrono",
  "cynic",
  "cynic-codegen",

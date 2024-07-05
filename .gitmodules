@@ -10,12 +10,12 @@
 [submodule "lib/rain.solmem"]
 	path = lib/rain.solmem
 	url = https://github.com/rainprotocol/rain.solmem
-[submodule "lib/rain.interpreter"]
-	path = lib/rain.interpreter
-	url = https://github.com/rainlanguage/rain.interpreter
 [submodule "lib/rain.orderbook.interface"]
 	path = lib/rain.orderbook.interface
 	url = https://github.com/rainlanguage/rain.orderbook.interface
 [submodule "lib/rain.metadata"]
 	path = lib/rain.metadata
 	url = https://github.com/rainlanguage/rain.metadata
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainlanguage/rain.interpreter
