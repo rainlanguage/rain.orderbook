@@ -157,6 +157,13 @@ struct OrderIOCalculationV2 {
     uint256[] kvs;
 }
 
+struct Quote {
+    OrderV3 order;
+    uint256 inputIOIndex;
+    uint256 outputIOIndex;
+    SignedContextV1[] signedContext;
+}
+
 type Output18Amount is uint256;
 
 type Input18Amount is uint256;
@@ -307,6 +314,23 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
 
             LibOrderBook.doPost(new uint256[][](0), post);
         }
+    }
+
+    function quote(Quote calldata quoteConfig) external view returns (bool, uint256, uint256) {
+        bytes32 orderHash = quoteConfig.order.hash();
+
+        if (sOrders[orderHash] != ORDER_LIVE) {
+            return (false, 0, 0);
+        }
+
+        OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(
+            quoteConfig.order,
+            quoteConfig.inputIOIndex,
+            quoteConfig.outputIOIndex,
+            msg.sender,
+            quoteConfig.signedContext
+        );
+        return (true, Output18Amount.unwrap(orderIOCalculation.outputMax), orderIOCalculation.IORatio);
     }
 
     /// @inheritdoc IOrderBookV4
@@ -726,9 +750,15 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             context[CONTEXT_CALCULATIONS_COLUMN] =
                 LibUint256Array.arrayFrom(Output18Amount.unwrap(orderOutputMax18), orderIORatio);
 
-            return OrderIOCalculationV2(
-                order, outputIOIndex, orderOutputMax18, orderIORatio, context, namespace, calculateOrderKVs
-            );
+            return OrderIOCalculationV2({
+                order: order,
+                outputIOIndex: outputIOIndex,
+                outputMax: orderOutputMax18,
+                IORatio: orderIORatio,
+                context: context,
+                namespace: namespace,
+                kvs: calculateOrderKVs
+            });
         }
     }
 
