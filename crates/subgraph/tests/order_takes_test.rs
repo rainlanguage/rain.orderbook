@@ -1,7 +1,7 @@
 use cynic::Id;
 use insta::assert_snapshot;
 use rain_orderbook_subgraph_client::types::order_takes_list::{
-    OrderTakesListQuery, OrderTakesListQueryVariables,
+    Bytes, OrderTakesListQuery, OrderTakesListQueryVariables,
 };
 
 #[test]
@@ -10,7 +10,7 @@ fn vaults_query_gql_output() {
 
     let id = Id::new("1234");
     let request_body = OrderTakesListQuery::build(OrderTakesListQueryVariables {
-        id: &id,
+        id: Bytes(id.inner().to_string()),
         skip: Some(0),
         first: Some(10),
     });
