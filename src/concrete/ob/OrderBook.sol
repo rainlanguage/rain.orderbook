@@ -39,7 +39,8 @@ import {
     ZeroMaximumInput,
     SignedContextV1,
     EvaluableV3,
-    ActionV1
+    ActionV1,
+    Quote
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV4OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
@@ -155,13 +156,6 @@ struct OrderIOCalculationV2 {
     uint256[][] context;
     StateNamespace namespace;
     uint256[] kvs;
-}
-
-struct Quote {
-    OrderV3 order;
-    uint256 inputIOIndex;
-    uint256 outputIOIndex;
-    SignedContextV1[] signedContext;
 }
 
 type Output18Amount is uint256;
@@ -316,6 +310,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         }
     }
 
+    /// @inheritdoc IOrderBookV4
     function quote(Quote calldata quoteConfig) external view returns (bool, uint256, uint256) {
         bytes32 orderHash = quoteConfig.order.hash();
 
