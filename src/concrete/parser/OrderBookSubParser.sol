@@ -51,22 +51,27 @@ import {
     SUB_PARSER_WORD_PARSERS,
     OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
 } from "../../generated/OrderBookSubParser.pointers.sol";
+import {IDescribedByMetaV1} from "rain.metadata/interface/unstable/IDescribedByMetaV1.sol";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     using LibUint256Matrix for uint256[][];
 
+    /// @inheritdoc IDescribedByMetaV1
     function describedByMetaV1() external pure returns (bytes32) {
         return DESCRIBED_BY_META_HASH;
     }
 
+    /// @inheritdoc BaseRainterpreterSubParserNPE2
     function subParserParseMeta() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_PARSE_META;
     }
 
+    /// @inheritdoc BaseRainterpreterSubParserNPE2
     function subParserWordParsers() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_WORD_PARSERS;
     }
 
+    /// @inheritdoc BaseRainterpreterSubParserNPE2
     function subParserOperandHandlers() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_OPERAND_HANDLERS;
     }
