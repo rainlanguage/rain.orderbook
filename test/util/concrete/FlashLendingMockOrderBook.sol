@@ -11,7 +11,8 @@ import {
     OrderConfigV3,
     ClearConfig,
     EvaluableV3,
-    ActionV1
+    ActionV1,
+    Quote
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
@@ -25,6 +26,11 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
     }
 
     function enact(ActionV1[] calldata) external pure {}
+
+    /// @inheritdoc IOrderBookV4
+    function quote(Quote calldata) external pure returns (bool, uint256, uint256) {
+        revert("quote");
+    }
 
     /// @inheritdoc IOrderBookV4
     function takeOrders2(TakeOrdersConfigV3 calldata) external pure returns (uint256, uint256) {

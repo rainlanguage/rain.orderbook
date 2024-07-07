@@ -9,7 +9,8 @@ import {
     SignedContextV1,
     TakeOrdersConfigV3,
     EvaluableV3,
-    ActionV1
+    ActionV1,
+    Quote
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
@@ -18,6 +19,11 @@ abstract contract IOrderBookV4Stub is IOrderBookV4 {
     /// @inheritdoc IOrderBookV4
     function enact(ActionV1[] calldata) external pure {
         revert("eval");
+    }
+
+    /// @inheritdoc IOrderBookV4
+    function quote(Quote calldata) external pure returns (bool, uint256, uint256) {
+        revert("quote");
     }
 
     /// @inheritdoc IOrderBookV4
