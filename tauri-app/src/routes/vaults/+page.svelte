@@ -1,14 +1,6 @@
 <script lang="ts">
-  import {
-    Button,
-    Dropdown,
-    DropdownItem,
-    Spinner,
-    TableBodyCell,
-    TableHeadCell,
-  } from 'flowbite-svelte';
+  import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
-  import { vaultsList } from '$lib/stores/vault';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
@@ -19,7 +11,6 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import AppTable from '$lib/components/AppTable.svelte';
   import {
     activeOrderbook,
     resetActiveNetworkRef,
@@ -28,6 +19,11 @@
   } from '$lib/stores/settings';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { onMount } from 'svelte';
+  import { createInfiniteQuery } from '@tanstack/svelte-query';
+  import { vaultBalanceList } from '$lib/queries/commands';
+  import TanstackAppTable from '$lib/components/TanstackAppTable.svelte';
+  import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
+  import { QKEY_VAULTS } from '$lib/queries/keys';
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -42,8 +38,6 @@
   let depositModalVault: Vault;
   let withdrawModalVault: Vault;
 
-  $: $subgraphUrl, $vaultsList?.fetchFirst();
-
   const dedupeOrders = (vault: Vault): Order[] => {
     return Object.values(
       [...vault.orders_as_input, ...vault.orders_as_output].reduce(
@@ -52,37 +46,47 @@
       ),
     );
   };
+
+  $: query = createInfiniteQuery({
+    queryKey: [QKEY_VAULTS],
+    queryFn: ({ pageParam }) => {
+      return vaultBalanceList($subgraphUrl || '', pageParam);
+    },
+    initialPageParam: 0,
+    getNextPageParam(lastPage, _allPages, lastPageParam) {
+      return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+    },
+    refetchInterval: 10000,
+    enabled: !!$subgraphUrl,
+  });
 </script>
 
 <PageHeader title="Vaults" />
 
-<div class="flex w-full justify-between py-4">
-  <div class="flex items-center gap-x-6">
-    <div class="text-3xl font-medium dark:text-white">Vaults</div>
-    <Button
-      disabled={!$activeOrderbook}
-      size="sm"
-      color="primary"
-      on:click={() => (showDepositGenericModal = true)}>New vault</Button
-    >
-  </div>
-  <div class="flex flex-col items-end gap-y-2">
-    <ListViewOrderbookSelector />
-  </div>
-</div>
-
-{#if $vaultsList === undefined}
-  <div class="flex h-16 w-full items-center justify-center">
-    <Spinner class="h-8 w-8" color="white" />
-  </div>
-{:else}
-  <AppTable
-    listStore={$vaultsList}
+{#if $query}
+  <TanstackAppTable
+    {query}
     emptyMessage="No Vaults Found"
     on:clickRow={(e) => {
       goto(`/vaults/${e.detail.item.id}`);
     }}
   >
+    <svelte:fragment slot="title">
+      <div class="flex w-full justify-between py-4">
+        <div class="flex items-center gap-x-6">
+          <div class="text-3xl font-medium dark:text-white">Vaults</div>
+          <Button
+            disabled={!$activeOrderbook}
+            size="sm"
+            color="primary"
+            on:click={() => (showDepositGenericModal = true)}>New vault</Button
+          >
+        </div>
+        <div class="flex flex-col items-end gap-y-2">
+          <ListViewOrderbookSelector />
+        </div>
+      </div>
+    </svelte:fragment>
     <svelte:fragment slot="head">
       <TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
       <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
@@ -157,7 +161,7 @@
         </Dropdown>
       {/if}
     </svelte:fragment>
-  </AppTable>
+  </TanstackAppTable>
 
   <ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
   <ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />

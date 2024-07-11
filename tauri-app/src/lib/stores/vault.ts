@@ -4,21 +4,6 @@ import { listStore } from '$lib/storesGeneric/listStore';
 import type { VaultBalanceChange } from '$lib/typeshare/vaultBalanceChangesList';
 import { detailStore } from '$lib/storesGeneric/detailStore';
 import type { Vault } from '$lib/typeshare/vaultsList';
-import { asyncDerived } from '@square/svelte-store';
-
-export const vaultsList = asyncDerived(subgraphUrl, async () => {
-  const url = await subgraphUrl.load();
-
-  return listStore<Vault>(
-    `${url}.vaultsList`,
-    (page) =>
-      invoke('vaults_list', {
-        subgraphArgs: { url },
-        paginationArgs: { page: page + 1, page_size: 10 },
-      }),
-    (path) => invoke('vaults_list_write_csv', { path, subgraphArgs: { url } }),
-  );
-});
 
 export const vaultDetail = detailStore<Vault>('vaults.vaultsDetail', async (id: string) => {
   const url = await subgraphUrl.load();
