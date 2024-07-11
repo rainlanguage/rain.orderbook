@@ -60,7 +60,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         aliceConfig.meta = "";
         bobConfig.meta = "";
 
-        // 2e18 tokens will be deposit for both (alice and bob)
         uint256 amount = 2e18;
 
         _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, amount);
@@ -95,21 +94,23 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken0), aliceBountyVaultId), 0);
         assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken1), bobBountyVaultId), 0);
 
-        // Clear the order using `bountyBot` address as caller clearer.
-        vm.prank(bountyBot);
-
         {
-            // -- Add two orders with similar IO tokens (swapped)
-            // Add alice order with a input token (iToken0) and output token (iToken1)
             (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, expression);
             assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
-            // Add bob order with a input token (iToken1) and output token (iToken0)
             (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, expression);
-
             assertTrue(iOrderbook.orderExists(bobOrderHash));
-            ClearConfig memory configClear = ClearConfig(0, 0, 0, 0, aliceBountyVaultId, bobBountyVaultId);
 
+            ClearConfig memory configClear = ClearConfig({
+                aliceInputIOIndex: 0,
+                aliceOutputIOIndex: 0,
+                bobInputIOIndex: 0,
+                bobOutputIOIndex: 0,
+                aliceBountyVaultId: aliceBountyVaultId,
+                bobBountyVaultId: bobBountyVaultId
+            });
+
+            vm.prank(bountyBot);
             iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
@@ -139,7 +140,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         iOrderbook.deposit2(token, vaultId, amount, new ActionV1[](0));
 
-        // Check that the vaultBalance was updated
         assertEq(iOrderbook.vaultBalance(depositor, token, vaultId), amount);
     }
 }
