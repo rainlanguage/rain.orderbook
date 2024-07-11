@@ -37,6 +37,9 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
     IInterpreterV3 immutable iInterpreter;
     IInterpreterStoreV2 immutable iStore;
     IExpressionDeployerV3 immutable iDeployer;
+    IInterpreterV3 immutable iInterpreter2;
+    IInterpreterStoreV2 immutable iStore2;
+    IExpressionDeployerV3 immutable iDeployer2;
     IOrderBookV4 immutable iOrderbook;
     IERC20 immutable iToken0;
     IERC20 immutable iToken1;
@@ -45,8 +48,12 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         vm.pauseGasMetering();
         iInterpreter = IInterpreterV3(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
+        iInterpreter2 = IInterpreterV3(address(uint160(uint256(keccak256("interpreter2.rain.test")))));
+        vm.etch(address(iInterpreter2), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV2(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
+        iStore2 = IInterpreterStoreV2(address(uint160(uint256(keccak256("store2.rain.test")))));
+        vm.etch(address(iStore2), REVERTING_MOCK_BYTECODE);
         iDeployer = IExpressionDeployerV3(address(uint160(uint256(keccak256("deployer.rain.test")))));
         // All non-mocked calls will revert.
         vm.etch(address(iDeployer), REVERTING_MOCK_BYTECODE);
@@ -54,6 +61,14 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
             address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
             abi.encode(iInterpreter, iStore, address(0), "00020000")
+        );
+        iDeployer2 = IExpressionDeployerV3(address(uint160(uint256(keccak256("deployer2.rain.test")))));
+        // All non-mocked calls will revert.
+        vm.etch(address(iDeployer2), REVERTING_MOCK_BYTECODE);
+        vm.mockCall(
+            address(iDeployer2),
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(iInterpreter2, iStore2, address(0), "00020000")
         );
         iOrderbook = IOrderBookV4(address(new OrderBook()));
 
