@@ -135,7 +135,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     }
 
     function checkVaultBalance(address owner, OrderV3 memory order, uint256 targetAmount) internal {
-        assertEq(iOrderbook.vaultBalance(owner, order.validOutputs[0].token, order.validOutputs[0].vaultId), targetAmount);
+        assertEq(
+            iOrderbook.vaultBalance(owner, order.validOutputs[0].token, order.validOutputs[0].vaultId), targetAmount
+        );
     }
 }
 
@@ -226,9 +228,9 @@ contract OrderBookClearTestWithFixedVaultIssue is OrderBookExternalMockTest {
         // at least one the bot's bounty vaults should be greater than 0
         assertTrue(
             iOrderbook.vaultBalance(bountyBot, address(iToken0), aliceBountyVaultId) > 0
-            || iOrderbook.vaultBalance(bountyBot, address(iToken1), aliceBountyVaultId) > 0
-            || iOrderbook.vaultBalance(bountyBot, address(iToken0), bobBountyVaultId) > 0
-            || iOrderbook.vaultBalance(bountyBot, address(iToken1), bobBountyVaultId) > 0
+                || iOrderbook.vaultBalance(bountyBot, address(iToken1), aliceBountyVaultId) > 0
+                || iOrderbook.vaultBalance(bountyBot, address(iToken0), bobBountyVaultId) > 0
+                || iOrderbook.vaultBalance(bountyBot, address(iToken1), bobBountyVaultId) > 0
         );
     }
 
@@ -269,7 +271,11 @@ contract OrderBookClearTestWithFixedVaultIssue is OrderBookExternalMockTest {
 
     /// Edit a given IO array to have only one index, with a given token and decimal.
     /// This is useful to make matched Orders to do clears.
-    function _helperBuildIO(IO[] memory io, address newToken, uint8 newDecimals, uint256 newVaultId) internal pure returns (IO[] memory) {
+    function _helperBuildIO(IO[] memory io, address newToken, uint8 newDecimals, uint256 newVaultId)
+        internal
+        pure
+        returns (IO[] memory)
+    {
         IO[] memory ioAux = new IO[](1);
 
         ioAux[0] = io[0];
@@ -281,6 +287,8 @@ contract OrderBookClearTestWithFixedVaultIssue is OrderBookExternalMockTest {
     }
 
     function checkVaultBalance(address owner, OrderV3 memory order, uint256 targetAmount) internal {
-        assertEq(iOrderbook.vaultBalance(owner, order.validOutputs[0].token, order.validOutputs[0].vaultId), targetAmount);
+        assertEq(
+            iOrderbook.vaultBalance(owner, order.validOutputs[0].token, order.validOutputs[0].vaultId), targetAmount
+        );
     }
 }
