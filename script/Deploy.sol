@@ -62,7 +62,7 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         address raindex = address(0);
-        address routeProcessor = address(0);
+        address routeProcessor = 0x4Aa9AEf59C7B63CD5C4B2eDE81F65A4225a99d9d;
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
             raindex = address(deployRaindex());
@@ -72,9 +72,9 @@ contract Deploy is Script {
             deploySubParser(metaboard);
         }
 
-        if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || suite == DEPLOYMENT_SUITE_ALL) {
-            routeProcessor = deployRouter();
-        }
+        // if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || suite == DEPLOYMENT_SUITE_ALL) {
+        //     routeProcessor = deployRouter();
+        // }
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
             if (raindex == address(0)) {
