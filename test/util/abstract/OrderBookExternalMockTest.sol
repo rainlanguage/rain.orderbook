@@ -87,11 +87,20 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
     {
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         assertTrue(!iOrderbook.orderExists(orderHash));
-        vm.mockCall(
-            address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, expression, hex"00020000")
-        );
+        if (address(config.evaluable.interpreter) == address(iInterpreter)) {
+            vm.mockCall(
+                address(iDeployer),
+                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+                abi.encode(iInterpreter, iStore, expression, hex"00020000")
+            );
+        } 
+        if (address(config.evaluable.interpreter) == address(iInterpreter2)) {
+            vm.mockCall(
+                address(iDeployer2),
+                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+                abi.encode(iInterpreter2, iStore2, expression, hex"00020000")
+            );
+        }
         vm.expectEmit(false, false, false, true);
         emit AddOrderV2(owner, orderHash, order);
         if (config.meta.length > 0) {
@@ -116,68 +125,20 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         // impossible to encounter for a real expression deployer, as the
         // deployer MAY NOT return the same address twice, but it is possible to
         // mock.
-        vm.mockCall(
-            address(iDeployer),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter, iStore, expression, hex"00020000")
-        );
-        vm.record();
-        vm.recordLogs();
-        vm.prank(owner);
-        assertFalse(iOrderbook.addOrder2(config, new ActionV1[](0)));
-        assertEq(vm.getRecordedLogs().length, 0);
-        (reads, writes) = vm.accesses(address(iOrderbook));
-        // 3x for reentrancy guard, 1x for dead order check.
-        assertEq(reads.length, 4);
-        // 2x for reentrancy guard.
-        assertEq(writes.length, 2);
-        assertTrue(iOrderbook.orderExists(orderHash));
-
-        return (order, orderHash);
-    }
-
-    /// Boilerplate to add an order with a mocked deployer and checks events and
-    /// storage accesses.
-    function addOrderWithChecks2(address owner, OrderConfigV3 memory config, bytes memory expression)
-        internal
-        returns (OrderV3 memory, bytes32)
-    {
-        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
-        assertTrue(!iOrderbook.orderExists(orderHash));
-        vm.mockCall(
-            address(iDeployer2),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter2, iStore2, expression, hex"00020000")
-        );
-        vm.expectEmit(false, false, false, true);
-        emit AddOrderV2(owner, orderHash, order);
-        if (config.meta.length > 0) {
-            vm.expectEmit(false, false, true, false);
-            // The subject of the meta is the order hash.
-            emit MetaV1(owner, uint256(orderHash), config.meta);
+        if (address(config.evaluable.interpreter) == address(iInterpreter)) {
+            vm.mockCall(
+                address(iDeployer),
+                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+                abi.encode(iInterpreter, iStore, expression, hex"00020000")
+            );
+        } 
+        if (address(config.evaluable.interpreter) == address(iInterpreter2)) {
+            vm.mockCall(
+                address(iDeployer2),
+                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+                abi.encode(iInterpreter2, iStore2, expression, hex"00020000")
+            );
         }
-        vm.record();
-        vm.recordLogs();
-        vm.prank(owner);
-        assertTrue(iOrderbook.addOrder2(config, new ActionV1[](0)));
-        // MetaV1 is NOT emitted if the meta is empty.
-        assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
-        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        // 3x for reentrancy guard, 1x for dead order check, 1x for live write.
-        assertEq(reads.length, 5);
-        // 2x for reentrancy guard, 1x for live write.
-        assertEq(writes.length, 3);
-        assertTrue(iOrderbook.orderExists(orderHash));
-
-        // Adding the same order again MUST NOT change state. This MAY be
-        // impossible to encounter for a real expression deployer, as the
-        // deployer MAY NOT return the same address twice, but it is possible to
-        // mock.
-        vm.mockCall(
-            address(iDeployer2),
-            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter2, iStore2, expression, hex"00020000")
-        );
         vm.record();
         vm.recordLogs();
         vm.prank(owner);

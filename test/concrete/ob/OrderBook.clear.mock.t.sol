@@ -110,7 +110,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, expression);
             assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
-            (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks2(bob, bobConfig, expression);
+            (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, expression);
             assertTrue(iOrderbook.orderExists(bobOrderHash));
 
             ClearConfig memory configClear = ClearConfig({
