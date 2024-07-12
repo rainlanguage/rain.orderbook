@@ -35,11 +35,9 @@ import {EvaluableV3} from "rain.interpreter.interface/interface/unstable/IInterp
 /// Implements IOrderBookV4 so that it has access to all the relevant events.
 abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
     IInterpreterV3 immutable iInterpreter;
+    IInterpreterV3 immutable iInterpreter2;
     IInterpreterStoreV2 immutable iStore;
     IExpressionDeployerV3 immutable iDeployer;
-    IInterpreterV3 immutable iInterpreter2;
-    IInterpreterStoreV2 immutable iStore2;
-    IExpressionDeployerV3 immutable iDeployer2;
     IOrderBookV4 immutable iOrderbook;
     IERC20 immutable iToken0;
     IERC20 immutable iToken1;
@@ -52,8 +50,6 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         vm.etch(address(iInterpreter2), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV2(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
-        iStore2 = IInterpreterStoreV2(address(uint160(uint256(keccak256("store2.rain.test")))));
-        vm.etch(address(iStore2), REVERTING_MOCK_BYTECODE);
         iDeployer = IExpressionDeployerV3(address(uint160(uint256(keccak256("deployer.rain.test")))));
         // All non-mocked calls will revert.
         vm.etch(address(iDeployer), REVERTING_MOCK_BYTECODE);
@@ -62,13 +58,10 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
             abi.encode(iInterpreter, iStore, address(0), "00020000")
         );
-        iDeployer2 = IExpressionDeployerV3(address(uint160(uint256(keccak256("deployer2.rain.test")))));
-        // All non-mocked calls will revert.
-        vm.etch(address(iDeployer2), REVERTING_MOCK_BYTECODE);
         vm.mockCall(
-            address(iDeployer2),
+            address(iDeployer),
             abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-            abi.encode(iInterpreter2, iStore2, address(0), "00020000")
+            abi.encode(iInterpreter2, iStore, address(0), "00020000")
         );
         iOrderbook = IOrderBookV4(address(new OrderBook()));
 
@@ -87,20 +80,11 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
     {
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         assertTrue(!iOrderbook.orderExists(orderHash));
-        if (address(config.evaluable.interpreter) == address(iInterpreter)) {
-            vm.mockCall(
-                address(iDeployer),
-                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-                abi.encode(iInterpreter, iStore, expression, hex"00020000")
-            );
-        } 
-        if (address(config.evaluable.interpreter) == address(iInterpreter2)) {
-            vm.mockCall(
-                address(iDeployer2),
-                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-                abi.encode(iInterpreter2, iStore2, expression, hex"00020000")
-            );
-        }
+        vm.mockCall(
+            address(iDeployer),
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(config.evaluable.interpreter, iStore, expression, hex"00020000")
+        );
         vm.expectEmit(false, false, false, true);
         emit AddOrderV2(owner, orderHash, order);
         if (config.meta.length > 0) {
@@ -125,20 +109,11 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         // impossible to encounter for a real expression deployer, as the
         // deployer MAY NOT return the same address twice, but it is possible to
         // mock.
-        if (address(config.evaluable.interpreter) == address(iInterpreter)) {
-            vm.mockCall(
-                address(iDeployer),
-                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-                abi.encode(iInterpreter, iStore, expression, hex"00020000")
-            );
-        } 
-        if (address(config.evaluable.interpreter) == address(iInterpreter2)) {
-            vm.mockCall(
-                address(iDeployer2),
-                abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
-                abi.encode(iInterpreter2, iStore2, expression, hex"00020000")
-            );
-        }
+        vm.mockCall(
+            address(iDeployer),
+            abi.encodeWithSelector(IExpressionDeployerV3.deployExpression2.selector),
+            abi.encode(config.evaluable.interpreter, iStore, expression, hex"00020000")
+        );
         vm.record();
         vm.recordLogs();
         vm.prank(owner);

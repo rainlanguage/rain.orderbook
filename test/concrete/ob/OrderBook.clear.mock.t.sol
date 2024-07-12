@@ -44,7 +44,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         aliceConfig.evaluable.store = iStore;
 
         bobConfig.evaluable.interpreter = iInterpreter2;
-        bobConfig.evaluable.store = iStore2;
+        bobConfig.evaluable.store = iStore;
 
         aliceConfig.validInputs[0].token = address(iToken0);
         aliceConfig.validOutputs[0].token = address(iToken1);
