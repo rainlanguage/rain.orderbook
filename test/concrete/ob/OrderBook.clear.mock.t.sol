@@ -43,8 +43,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         aliceConfig.evaluable.interpreter = iInterpreter;
         aliceConfig.evaluable.store = iStore;
 
-        bobConfig.evaluable.interpreter = iInterpreter;
-        bobConfig.evaluable.store = iStore;
+        bobConfig.evaluable.interpreter = iInterpreter2;
+        bobConfig.evaluable.store = iStore2;
 
         aliceConfig.validInputs[0].token = address(iToken0);
         aliceConfig.validOutputs[0].token = address(iToken1);
@@ -60,7 +60,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         aliceConfig.meta = "";
         bobConfig.meta = "";
 
-        uint256 amount = 2e18;
+        uint256 amount = 1e18;
 
         _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, amount);
         _depositInternal(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId, amount);
@@ -69,12 +69,24 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
             // Produce the stack output for OB
             uint256[] memory orderStack = new uint256[](2);
-            orderStack[0] = 1e18; // orderOutputMax
-            orderStack[1] = 1e18; // orderIORatio
+            orderStack[0] = 8e17; // orderIORatio
+            orderStack[1] = 1e18; // orderOutputMax
             vm.mockCall(
                 address(iInterpreter),
                 abi.encodeWithSelector(IInterpreterV3.eval3.selector),
                 abi.encode(orderStack, new uint256[](0))
+            );
+        }
+        {
+            // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
+            // Produce the stack output for OB
+            uint256[] memory orderStack2 = new uint256[](2);
+            orderStack2[0] = 4e17; // orderIORatio
+            orderStack2[1] = 1e18; // orderOutputMax
+            vm.mockCall(
+                address(iInterpreter2),
+                abi.encodeWithSelector(IInterpreterV3.eval3.selector),
+                abi.encode(orderStack2, new uint256[](0))
             );
         }
 
@@ -98,7 +110,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, expression);
             assertTrue(iOrderbook.orderExists(aliceOrderHash));
 
-            (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, expression);
+            (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks2(bob, bobConfig, expression);
             assertTrue(iOrderbook.orderExists(bobOrderHash));
 
             ClearConfig memory configClear = ClearConfig({
@@ -114,20 +126,20 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
-        // After the clear alice and bob have traded 1e18 tokens, so they each
-        // have 1e18 of each token. The bounty is 0 in this case.
+        // After the clear alice and bob have correct expected input and out vaults
         assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 1e18
+            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 32e16
         );
         assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId), 1e18
+            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId), 6e17
         );
 
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 1e18);
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), 1e18);
+        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 32e16);
+        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), 2e17);
 
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken0), aliceBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken1), bobBountyVaultId), 0);
+        // but bot has double bounty!
+        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken1), aliceBountyVaultId), 8e16);
+        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken0), bobBountyVaultId), 48e16);
     }
 
     /// Make a deposit to the OB mocking the internal transferFrom call.
