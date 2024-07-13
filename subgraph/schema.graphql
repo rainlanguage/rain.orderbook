@@ -11,8 +11,6 @@ type RainMetaV1 @entity {
   id: Bytes! # Include the RainMeta MagicNumber.
   "Original meta bytes directly emitted from the contract"
   metaBytes: Bytes! # Original meta bytes emitted from the contract
-  "The meta content V1 decoded from the meta bytes emitted"
-  content: [ContentMetaV1!]!
 }
 
 type ContentMetaV1 @entity {
