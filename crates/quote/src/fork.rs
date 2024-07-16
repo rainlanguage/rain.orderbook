@@ -1,5 +1,4 @@
-use crate::error::FailedQuote;
-use crate::quote::QuoteResult;
+use crate::{error::FailedQuote, quote::QuoteResult};
 use alloy_ethers_typecast::multicall::{
     IMulticall3::{aggregate3Call, Call3},
     MULTICALL3_ADDRESS,
@@ -22,7 +21,7 @@ pub async fn fork_signle_quote(
     orderbook: Address,
     rpc_url: &str,
     fork_block_number: Option<u64>,
-) -> Result<QuoteResult, ForkCallError> {
+) -> QuoteResult {
     let mut forker = FORKER.lock().await;
     forker
         .add_or_select(
@@ -48,17 +47,12 @@ pub async fn fork_signle_quote(
     match call_result {
         Ok(v) => {
             if v.typed_return.exists {
-                Ok(Ok(v.typed_return.into()))
+                Ok(v.typed_return.into())
             } else {
-                Ok(Err(FailedQuote::NonExistent))
+                Err(FailedQuote::NonExistent)
             }
         }
-        Err(e) => match e {
-            ForkCallError::AbiDecodeFailed(v) => Ok(Err(v.into())),
-            ForkCallError::AbiDecodedError(v) => Ok(Err(v.into())),
-            ForkCallError::TypedError(v) => Ok(Err(FailedQuote::CorruptReturnedData(v))),
-            other => Err(other)?,
-        },
+        Err(e) => Err(e)?,
     }
 }
 
@@ -102,7 +96,7 @@ pub async fn fork_multi_quote(
         )
         .await?;
 
-    let mut result = vec![];
+    let mut result: Vec<QuoteResult> = vec![];
     for res in call_result.typed_return.returnData {
         if res.success {
             match quoteCall::abi_decode_returns(&res.returnData, true) {
@@ -113,17 +107,23 @@ pub async fn fork_multi_quote(
                         result.push(Err(FailedQuote::NonExistent));
                     }
                 }
-                Err(e) => result.push(Err(FailedQuote::CorruptReturnedData(format!(
-                    "Call:{:?} Error:{:?} Raw:{:?}",
-                    std::any::type_name::<quoteCall>(),
-                    e,
-                    res.returnData
+                Err(e) => result.push(Err(FailedQuote::ForkCallError(ForkCallError::TypedError(
+                    format!(
+                        "Call:{:?} Error:{:?} Raw:{:?}",
+                        std::any::type_name::<quoteCall>(),
+                        e,
+                        res.returnData
+                    ),
                 )))),
             }
         } else {
             match AbiDecodedErrorType::selector_registry_abi_decode(&res.returnData).await {
-                Ok(v) => result.push(Err(v.into())),
-                Err(e) => result.push(Err(e.into())),
+                Ok(e) => result.push(Err(FailedQuote::ForkCallError(
+                    ForkCallError::AbiDecodedError(e),
+                ))),
+                Err(e) => result.push(Err(FailedQuote::ForkCallError(
+                    ForkCallError::AbiDecodeFailed(e),
+                ))),
             }
         }
     }
@@ -228,20 +228,17 @@ mod tests {
         let result = fork_signle_quote(&quote, orderbook, &rpc_url, Some(block_number))
             .await
             .unwrap();
-        let expected = QuoteResult::Ok(OrderQuote {
+        let expected = OrderQuote {
             max_output: U256::ZERO,
             ratio: U256::MAX,
-        });
+        };
         assert_eq!(result, expected);
 
         let quote = Quote {
             ..Default::default()
         };
-        let result = fork_signle_quote(&quote, orderbook, &rpc_url, Some(block_number))
-            .await
-            .unwrap();
-        let expected = QuoteResult::Err(FailedQuote::NonExistent);
-        assert_eq!(result, expected);
+        let result = fork_signle_quote(&quote, orderbook, &rpc_url, Some(block_number)).await;
+        matches!(result, Result::Err(FailedQuote::NonExistent));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -265,14 +262,19 @@ mod tests {
         let result = fork_multi_quote(&quotes, orderbook, &rpc_url, Some(block_number), None)
             .await
             .unwrap();
-        let expected = [
-            QuoteResult::Ok(OrderQuote {
+        let mut iter_result = result.into_iter();
+
+        assert_eq!(
+            iter_result.next().unwrap().unwrap(),
+            OrderQuote {
                 max_output: U256::ZERO,
                 ratio: U256::MAX,
-            }),
-            QuoteResult::Err(FailedQuote::NonExistent),
-        ];
-
-        assert_eq!(result, expected);
+            }
+        );
+        matches!(
+            iter_result.next().unwrap(),
+            Result::Err(FailedQuote::NonExistent)
+        );
+        assert!(iter_result.next().is_none());
     }
 }
