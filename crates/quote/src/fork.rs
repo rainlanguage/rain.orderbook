@@ -52,7 +52,12 @@ pub async fn fork_signle_quote(
                 Err(FailedQuote::NonExistent)
             }
         }
-        Err(e) => Err(e)?,
+        Err(e) => match e {
+            ForkCallError::AbiDecodedError(v) => Err(FailedQuote::RevertError(v)),
+            ForkCallError::AbiDecodeFailed(v) => Err(FailedQuote::RevertErrorDecodeFailed(v)),
+            ForkCallError::TypedError(v) => Err(FailedQuote::CorruptReturnData(v)),
+            other => Err(other)?,
+        },
     }
 }
 
@@ -107,23 +112,12 @@ pub async fn fork_multi_quote(
                         result.push(Err(FailedQuote::NonExistent));
                     }
                 }
-                Err(e) => result.push(Err(FailedQuote::ForkCallError(ForkCallError::TypedError(
-                    format!(
-                        "Call:{:?} Error:{:?} Raw:{:?}",
-                        std::any::type_name::<quoteCall>(),
-                        e,
-                        res.returnData
-                    ),
-                )))),
+                Err(e) => result.push(Err(FailedQuote::CorruptReturnData(e.to_string()))),
             }
         } else {
             match AbiDecodedErrorType::selector_registry_abi_decode(&res.returnData).await {
-                Ok(e) => result.push(Err(FailedQuote::ForkCallError(
-                    ForkCallError::AbiDecodedError(e),
-                ))),
-                Err(e) => result.push(Err(FailedQuote::ForkCallError(
-                    ForkCallError::AbiDecodeFailed(e),
-                ))),
+                Ok(e) => result.push(Err(FailedQuote::RevertError(e))),
+                Err(e) => result.push(Err(FailedQuote::RevertErrorDecodeFailed(e))),
             }
         }
     }
