@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Heading, Button, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
-  import { vaultDetail, useVaultBalanceChangesList } from '$lib/stores/vault';
   import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
   import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
@@ -10,7 +9,6 @@
   import { bigintStringToHex } from '$lib/utils/hex';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
-  import AppTable from '$lib/components/AppTable.svelte';
   import { goto } from '$app/navigation';
   import LightweightChartHistogram from '$lib/components/LightweightChartHistogram.svelte';
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
@@ -21,12 +19,38 @@
   import CardProperty from '$lib/components/CardProperty.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
   import { formatUnits } from 'viem';
+  import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
+  import { vaultBalanceChangesList, vaultDetail } from '$lib/queries/commands';
+  import { QKEY_VAULT, QKEY_VAULT_CHANGES } from '$lib/queries/keys';
+  import { subgraphUrl } from '$lib/stores/settings';
+  import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
+  import TanstackAppTable from '$lib/components/TanstackAppTable.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
 
+  $: balanceChangesQuery = createInfiniteQuery({
+    queryKey: [QKEY_VAULT_CHANGES + $page.params.id],
+    queryFn: ({ pageParam }) => {
+      return vaultBalanceChangesList($page.params.id, $subgraphUrl || '', pageParam);
+    },
+    initialPageParam: 0,
+    getNextPageParam(lastPage, _allPages, lastPageParam) {
+      return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+    },
+    refetchInterval: 10000,
+    enabled: !!$subgraphUrl,
+  });
+
+  $: vaultDetailQuery = createQuery({
+    queryKey: [QKEY_VAULT + $page.params.id],
+    queryFn: () => {
+      return vaultDetail($page.params.id, $subgraphUrl || '');
+    },
+    enabled: !!$subgraphUrl,
+  });
+
   let vaultBalanceChangesChartData: { value: number; time: UTCTimestamp; color?: string }[] = [];
-  const vaultBalanceChangesList = useVaultBalanceChangesList($page.params.id);
 
   function prepareChartData() {
     const transformedData = $vaultBalanceChangesList.all.map((d) => ({
@@ -38,17 +62,14 @@
     return sortBy(transformedData, (d) => d.time);
   }
 
-  $: vault = $vaultDetail.data[$page.params.id];
-  $: $vaultBalanceChangesList.all, (vaultBalanceChangesChartData = prepareChartData());
-
-  vaultDetail.refetch($page.params.id);
-  vaultBalanceChangesList.fetchAll(0);
+  $: vault = $vaultDetailQuery?.data;
+  $: $balanceChangesQuery.data?.pages.length, (vaultBalanceChangesChartData = prepareChartData());
 </script>
 
 <PageHeader title="Vault" />
 
 <PageContentDetail
-  isFetching={$vaultDetail.isFetching}
+  isFetching={$vaultDetailQuery.isFetched}
   isEmpty={vault === undefined}
   emptyMessage="Vault not found"
 >
@@ -119,7 +140,7 @@
       title="Deposits & Withdrawals"
       priceSymbol={vault.token.symbol}
       data={vaultBalanceChangesChartData}
-      loading={$vaultBalanceChangesList.isFetchingAll}
+      loading={$balanceChangesQuery.isLoading}
       emptyMessage="No deposits or withdrawals found"
     />
   </svelte:fragment>
@@ -127,8 +148,8 @@
   <svelte:fragment slot="below">
     <Heading tag="h5" class="mb-4 mt-6 font-normal">Deposits & Withdrawals</Heading>
 
-    <AppTable
-      listStore={vaultBalanceChangesList}
+    <TanstackAppTable
+      query={balanceChangesQuery}
       emptyMessage="No deposits or withdrawals found"
       rowHoverable={false}
     >
@@ -158,7 +179,7 @@
           {item.__typename}
         </TableBodyCell>
       </svelte:fragment>
-    </AppTable>
+    </TanstackAppTable>
   </svelte:fragment>
 </PageContentDetail>
 
