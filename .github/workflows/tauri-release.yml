@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 2024-07-16-appimage
 
 jobs:
   publish-tauri:
