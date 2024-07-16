@@ -68,7 +68,7 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tauriScript: "nix develop -i -k APPLE_CERTIFICATE -k APPLE_CERTIFICATE_PASSWORD -k APPLE_SIGNING_IDENTITY -k APPLE_ID -k APPLE_PASSWORD -k APPLE_TEAM_ID -k CI_DEPLOY_SEPOLIA_RPC_URL -k CI_FORK_SEPOLIA_DEPLOYER_ADDRESS -k CI_FORK_SEPOLIA_BLOCK_NUMBER -k CI_DEPLOY_POLYGON_RPC_URL -k CI_SEPOLIA_METABOARD_URL -k RPC_URL_ETHEREUM_FORK .#tauri-shell --command cargo tauri"
+          tauriScript: "nix develop -i -k APPLE_CERTIFICATE -k APPLE_CERTIFICATE_PASSWORD -k APPLE_SIGNING_IDENTITY -k APPLE_ID -k APPLE_PASSWORD -k APPLE_TEAM_ID -k CI_DEPLOY_SEPOLIA_RPC_URL -k CI_FORK_SEPOLIA_DEPLOYER_ADDRESS -k CI_FORK_SEPOLIA_BLOCK_NUMBER -k CI_DEPLOY_POLYGON_RPC_URL -k CI_SEPOLIA_METABOARD_URL -k RPC_URL_ETHEREUM_FORK .#tauri-shell --command cargo tauri --verbose"
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
