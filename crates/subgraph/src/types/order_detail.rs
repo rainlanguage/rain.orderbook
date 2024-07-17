@@ -16,7 +16,7 @@ pub struct OrderDetailQuery {
     pub order: Option<Order>,
 }
 
-#[derive(cynic::QueryVariables)]
+#[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
 pub struct MultiOrderDetailQueryVariables {
     pub filter: OrderFilter,
