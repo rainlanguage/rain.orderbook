@@ -1,4 +1,7 @@
-use crate::{error::FailedQuote, quote::QuoteResult};
+use crate::{
+    error::FailedQuote,
+    quote::{QuoteResult, QuoteTarget},
+};
 use alloy_ethers_typecast::multicall::{
     IMulticall3::{aggregate3Call, Call3},
     MULTICALL3_ADDRESS,
@@ -9,62 +12,15 @@ use once_cell::sync::Lazy;
 use rain_error_decoding::AbiDecodedErrorType;
 use rain_interpreter_eval::error::ForkCallError;
 use rain_interpreter_eval::fork::{Forker, NewForkedEvm};
-use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote};
+use rain_orderbook_bindings::IOrderBookV4::quoteCall;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub static FORKER: Lazy<Arc<Mutex<Forker>>> = Lazy::new(|| Arc::new(Mutex::new(Forker::new())));
 
-/// quotes a single order on a fork
-pub async fn fork_signle_quote(
-    quote: &Quote,
-    orderbook: Address,
-    rpc_url: &str,
-    fork_block_number: Option<u64>,
-) -> QuoteResult {
-    let mut forker = FORKER.lock().await;
-    forker
-        .add_or_select(
-            NewForkedEvm {
-                fork_url: rpc_url.to_string(),
-                fork_block_number,
-            },
-            None,
-        )
-        .await?;
-
-    let call_result = forker
-        .alloy_call(
-            Address::random(),
-            orderbook,
-            quoteCall {
-                quoteConfig: quote.clone(),
-            },
-            true,
-        )
-        .await;
-
-    match call_result {
-        Ok(v) => {
-            if v.typed_return.exists {
-                Ok(v.typed_return.into())
-            } else {
-                Err(FailedQuote::NonExistent)
-            }
-        }
-        Err(e) => match e {
-            ForkCallError::AbiDecodedError(v) => Err(FailedQuote::RevertError(v)),
-            ForkCallError::AbiDecodeFailed(v) => Err(FailedQuote::RevertErrorDecodeFailed(v)),
-            ForkCallError::TypedError(v) => Err(FailedQuote::CorruptReturnData(v)),
-            other => Err(other)?,
-        },
-    }
-}
-
 /// quotes array of given orders on a fork using multicall
 pub async fn fork_multi_quote(
-    quotes: &[Quote],
-    orderbook: Address,
+    quote_tagets: &[QuoteTarget],
     rpc_url: &str,
     fork_block_number: Option<u64>,
     multicall_address: Option<Address>,
@@ -85,13 +41,13 @@ pub async fn fork_multi_quote(
             Address::random(),
             multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
             aggregate3Call {
-                calls: quotes
+                calls: quote_tagets
                     .iter()
-                    .map(|quote| Call3 {
+                    .map(|quote_target| Call3 {
                         allowFailure: true,
-                        target: orderbook,
+                        target: quote_target.orderbook,
                         callData: quoteCall {
-                            quoteConfig: quote.clone(),
+                            quoteConfig: quote_target.quote.clone(),
                         }
                         .abi_encode(),
                     })
@@ -130,7 +86,7 @@ mod tests {
     use crate::quote::OrderQuote;
     use alloy_primitives::{hex::decode, U256};
     use rain_orderbook_bindings::IOrderBookV4::{
-        addOrder2Call, EvaluableV3, OrderConfigV3, OrderV3, IO,
+        addOrder2Call, EvaluableV3, OrderConfigV3, OrderV3, Quote, IO,
     };
 
     // helper fn to deploy an order on the fork
@@ -208,34 +164,6 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_fork_single_quote() {
-        let ratio = "f".repeat(64);
-        let max_output = "2".repeat(64);
-        let block_number = 26938000;
-        let (order, orderbook, rpc_url) =
-            deploy_order_helper(&ratio, &max_output, block_number).await;
-
-        let quote = Quote {
-            order,
-            ..Default::default()
-        };
-        let result = fork_signle_quote(&quote, orderbook, &rpc_url, Some(block_number))
-            .await
-            .unwrap();
-        let expected = OrderQuote {
-            max_output: U256::ZERO,
-            ratio: U256::MAX,
-        };
-        assert_eq!(result, expected);
-
-        let quote = Quote {
-            ..Default::default()
-        };
-        let result = fork_signle_quote(&quote, orderbook, &rpc_url, Some(block_number)).await;
-        matches!(result, Result::Err(FailedQuote::NonExistent));
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
     async fn test_fork_multi_quote() {
         let ratio = "f".repeat(64);
         let max_output = "2".repeat(64);
@@ -243,17 +171,23 @@ mod tests {
         let (order, orderbook, rpc_url) =
             deploy_order_helper(&ratio, &max_output, block_number).await;
 
-        let quotes = vec![
-            Quote {
-                order,
-                ..Default::default()
+        let quote_targets = vec![
+            QuoteTarget {
+                quote: Quote {
+                    order,
+                    ..Default::default()
+                },
+                orderbook,
             },
             // not exists
-            Quote {
-                ..Default::default()
+            QuoteTarget {
+                quote: Quote {
+                    ..Default::default()
+                },
+                orderbook,
             },
         ];
-        let result = fork_multi_quote(&quotes, orderbook, &rpc_url, Some(block_number), None)
+        let result = fork_multi_quote(&quote_targets, &rpc_url, Some(block_number), None)
             .await
             .unwrap();
         let mut iter_result = result.into_iter();
