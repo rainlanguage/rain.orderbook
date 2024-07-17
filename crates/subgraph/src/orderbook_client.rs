@@ -67,8 +67,8 @@ impl OrderbookSubgraphClient {
         Ok(order)
     }
 
-    /// Fetch multiple orders given their order id
-    pub async fn multi_order_detail(
+    /// Fetch batch orders given their order id
+    pub async fn batch_order_detail(
         &self,
         ids: Vec<OrderId>,
     ) -> Result<Vec<order_detail::Order>, OrderbookSubgraphClientError> {
