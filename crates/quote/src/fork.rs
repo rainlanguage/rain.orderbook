@@ -18,7 +18,7 @@ use tokio::sync::Mutex;
 
 pub static FORKER: Lazy<Arc<Mutex<Forker>>> = Lazy::new(|| Arc::new(Mutex::new(Forker::new())));
 
-/// quotes array of given orders on a fork using multicall
+/// Quotes array of given orders on a fork using multicall
 pub async fn fork_multi_quote(
     quote_targets: &[QuoteTarget],
     rpc_url: &str,
