@@ -20,7 +20,7 @@ pub static FORKER: Lazy<Arc<Mutex<Forker>>> = Lazy::new(|| Arc::new(Mutex::new(F
 
 /// quotes array of given orders on a fork using multicall
 pub async fn fork_multi_quote(
-    quote_tagets: &[QuoteTarget],
+    quote_targets: &[QuoteTarget],
     rpc_url: &str,
     fork_block_number: Option<u64>,
     multicall_address: Option<Address>,
@@ -41,7 +41,7 @@ pub async fn fork_multi_quote(
             Address::random(),
             multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
             aggregate3Call {
-                calls: quote_tagets
+                calls: quote_targets
                     .iter()
                     .map(|quote_target| Call3 {
                         allowFailure: true,
