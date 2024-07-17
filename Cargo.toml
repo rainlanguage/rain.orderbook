@@ -71,3 +71,6 @@ path = "crates/subgraph"
 
 [workspace.dependencies.rain_orderbook_app_settings]
 path = "crates/settings"
+
+[workspace.dependencies.rain_orderbook_quote]
+path = "crates/quote"

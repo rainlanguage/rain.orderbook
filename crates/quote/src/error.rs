@@ -1,3 +1,4 @@
+use alloy_ethers_typecast::transaction::ReadableClientError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_interpreter_eval::error::ForkCallError;
 use thiserror::Error;
@@ -14,4 +15,6 @@ pub enum FailedQuote {
     RevertErrorDecodeFailed(#[from] AbiDecodeFailedErrors),
     #[error(transparent)]
     ForkCallError(#[from] ForkCallError),
+    #[error(transparent)]
+    RpcCallError(#[from] ReadableClientError),
 }
