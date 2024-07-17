@@ -1,13 +1,16 @@
 ---
 source: crates/subgraph/tests/order_test.rs
+assertion_line: 14
 expression: request_body.query
 ---
 query OrderDetailQuery($id: ID!) {
   order(id: $id) {
+    id
     orderBytes
     orderHash
     owner
     outputs {
+      id
       token {
         id
         address
@@ -19,6 +22,7 @@ query OrderDetailQuery($id: ID!) {
       vaultId
     }
     inputs {
+      id
       token {
         id
         address
@@ -30,12 +34,13 @@ query OrderDetailQuery($id: ID!) {
       vaultId
     }
     active
-    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+    addEvents {
       transaction {
         blockNumber
         timestamp
       }
     }
     meta
+    timestampAdded
   }
 }

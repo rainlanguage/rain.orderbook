@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/order_takes_test.rs
+assertion_line: 18
 expression: request_body.query
 ---
 query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
@@ -9,6 +10,7 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       transaction {
         id
         from
+        timestamp
       }
       sender
     }
@@ -27,6 +29,7 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
     order {
       id
       orderHash
+      timestampAdded
     }
     inputVaultBalanceChange {
       vault {

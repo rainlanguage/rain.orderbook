@@ -1,15 +1,16 @@
 ---
-source: crates/subgraph/tests/orders_test.rs
+source: crates/subgraph/tests/multi_order_test.rs
 assertion_line: 15
 expression: request_body.query
 ---
-query OrdersListQuery($first: Int, $skip: Int) {
-  orders(orderDirection: desc, skip: $skip, first: $first) {
+query MultiOrderDetailQuery($filter: Order_filter!) {
+  orders(where: $filter) {
     id
     orderBytes
     orderHash
     owner
     outputs {
+      id
       token {
         id
         address
@@ -21,6 +22,7 @@ query OrdersListQuery($first: Int, $skip: Int) {
       vaultId
     }
     inputs {
+      id
       token {
         id
         address
@@ -34,11 +36,11 @@ query OrdersListQuery($first: Int, $skip: Int) {
     active
     addEvents {
       transaction {
-        id
         blockNumber
         timestamp
       }
     }
+    meta
     timestampAdded
   }
 }

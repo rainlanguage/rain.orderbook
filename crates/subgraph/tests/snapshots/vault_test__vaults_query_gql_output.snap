@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/vault_test.rs
+assertion_line: 14
 expression: request_body.query
 ---
 query VaultDetailQuery($id: ID!) {
@@ -14,10 +15,12 @@ query VaultDetailQuery($id: ID!) {
     }
     owner
     ordersAsOutput {
+      id
       orderHash
       active
     }
     ordersAsInput {
+      id
       orderHash
       active
     }
