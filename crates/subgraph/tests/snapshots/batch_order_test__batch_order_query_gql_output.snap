@@ -1,9 +1,9 @@
 ---
-source: crates/subgraph/tests/multi_order_test.rs
+source: crates/subgraph/tests/batch_order_test.rs
 expression: request_body.query
 ---
-query MultiOrderDetailQuery($filter: Order_filter!) {
-  orders(where: $filter) {
+query BatchOrderDetailQuery($id_list: Order_filter!) {
+  orders(where: $id_list) {
     id
     orderBytes
     orderHash

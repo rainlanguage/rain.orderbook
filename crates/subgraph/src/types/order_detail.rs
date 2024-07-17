@@ -18,15 +18,24 @@ pub struct OrderDetailQuery {
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
-pub struct MultiOrderDetailQueryVariables {
-    pub filter: OrderFilter,
+pub struct BatchOrderDetailQueryVariables {
+    #[cynic(rename = "id_list")]
+    pub id_list: OrderIdList,
+}
+
+#[derive(cynic::InputObject, Debug, Clone)]
+#[cynic(graphql_type = "Order_filter")]
+#[typeshare]
+pub struct OrderIdList {
+    #[cynic(rename = "id_in")]
+    pub id_in: Vec<Bytes>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "MultiOrderDetailQueryVariables")]
+#[cynic(graphql_type = "Query", variables = "BatchOrderDetailQueryVariables")]
 #[typeshare]
-pub struct MultiOrderDetailQuery {
-    #[arguments(where: $filter)]
+pub struct BatchOrderDetailQuery {
+    #[arguments(where: $id_list)]
     pub orders: Vec<Order>,
 }
 
@@ -125,15 +134,6 @@ pub enum OrderDirection {
     Asc,
     #[cynic(rename = "desc")]
     Desc,
-}
-
-#[derive(cynic::InputObject, Debug, Clone)]
-#[cynic(graphql_type = "Order_filter")]
-#[typeshare]
-pub struct OrderFilter {
-    #[cynic(rename = "id_in")]
-    pub id_in: Vec<Bytes>,
-    // .. other "Order_filter" fields can be added when needed
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]

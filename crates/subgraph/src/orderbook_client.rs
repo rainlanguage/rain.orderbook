@@ -4,8 +4,8 @@ use crate::types::vault_balance_changes_list::Bytes;
 use crate::types::{
     order_detail,
     order_detail::{
-        Bytes as OrderId, MultiOrderDetailQuery, MultiOrderDetailQueryVariables, OrderDetailQuery,
-        OrderDetailQueryVariables, OrderFilter,
+        BatchOrderDetailQuery, BatchOrderDetailQueryVariables, Bytes as OrderId, OrderDetailQuery,
+        OrderDetailQueryVariables, OrderIdList,
     },
     order_take_detail,
     order_take_detail::{OrderTakeDetailQuery, OrderTakeDetailQueryVariables},
@@ -70,12 +70,12 @@ impl OrderbookSubgraphClient {
     /// Fetch batch orders given their order id
     pub async fn batch_order_detail(
         &self,
-        ids: Vec<OrderId>,
+        id_list: Vec<OrderId>,
     ) -> Result<Vec<order_detail::Order>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<MultiOrderDetailQuery, MultiOrderDetailQueryVariables>(
-                MultiOrderDetailQueryVariables {
-                    filter: OrderFilter { id_in: ids },
+            .query::<BatchOrderDetailQuery, BatchOrderDetailQueryVariables>(
+                BatchOrderDetailQueryVariables {
+                    id_list: OrderIdList { id_in: id_list },
                 },
             )
             .await?;
