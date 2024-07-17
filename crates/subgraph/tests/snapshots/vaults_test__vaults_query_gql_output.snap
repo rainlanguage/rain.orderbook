@@ -1,6 +1,5 @@
 ---
 source: crates/subgraph/tests/vaults_test.rs
-assertion_line: 15
 expression: request_body.query
 ---
 query VaultsListQuery($first: Int, $skip: Int) {

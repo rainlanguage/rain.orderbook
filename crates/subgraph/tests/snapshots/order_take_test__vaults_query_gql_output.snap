@@ -1,6 +1,5 @@
 ---
 source: crates/subgraph/tests/order_take_test.rs
-assertion_line: 14
 expression: request_body.query
 ---
 query OrderTakeDetailQuery($id: ID!) {

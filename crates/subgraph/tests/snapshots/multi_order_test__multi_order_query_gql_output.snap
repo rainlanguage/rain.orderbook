@@ -1,6 +1,5 @@
 ---
 source: crates/subgraph/tests/multi_order_test.rs
-assertion_line: 15
 expression: request_body.query
 ---
 query MultiOrderDetailQuery($filter: Order_filter!) {
