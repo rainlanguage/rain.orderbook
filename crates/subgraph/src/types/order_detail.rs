@@ -16,6 +16,20 @@ pub struct OrderDetailQuery {
     pub order: Option<Order>,
 }
 
+#[derive(cynic::QueryVariables)]
+#[typeshare]
+pub struct MultiOrderDetailQueryVariables {
+    pub filter: OrderFilter,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(graphql_type = "Query", variables = "MultiOrderDetailQueryVariables")]
+#[typeshare]
+pub struct MultiOrderDetailQuery {
+    #[arguments(where: $filter)]
+    pub orders: Vec<Order>,
+}
+
 #[typeshare]
 pub type RainMetaV1 = Bytes;
 
@@ -111,6 +125,15 @@ pub enum OrderDirection {
     Asc,
     #[cynic(rename = "desc")]
     Desc,
+}
+
+#[derive(cynic::InputObject, Debug, Clone)]
+#[cynic(graphql_type = "Order_filter")]
+#[typeshare]
+pub struct OrderFilter {
+    #[cynic(rename = "id_in")]
+    pub id_in: Vec<Bytes>,
+    // .. other "Order_filter" fields can be added when needed
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]
