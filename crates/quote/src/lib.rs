@@ -1,4 +1,6 @@
 pub mod error;
 pub mod fork;
-pub mod quote;
+mod quote;
 pub mod rpc;
+
+pub use quote::*;

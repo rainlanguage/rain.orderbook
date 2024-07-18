@@ -1,7 +1,10 @@
 use alloy_ethers_typecast::transaction::ReadableClientError;
+use alloy_primitives::hex::FromHexError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_interpreter_eval::error::ForkCallError;
+use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;
+use url::ParseError;
 
 #[derive(Debug, Error)]
 pub enum FailedQuote {
@@ -13,8 +16,20 @@ pub enum FailedQuote {
     CorruptReturnData(String),
     #[error(transparent)]
     RevertErrorDecodeFailed(#[from] AbiDecodeFailedErrors),
+}
+
+#[derive(Debug, Error)]
+pub enum Error {
     #[error(transparent)]
     ForkCallError(#[from] ForkCallError),
     #[error(transparent)]
     RpcCallError(#[from] ReadableClientError),
+    #[error(transparent)]
+    UrlParseError(#[from] ParseError),
+    #[error(transparent)]
+    SubgraphClientError(#[from] OrderbookSubgraphClientError),
+    #[error(transparent)]
+    FromHexError(#[from] FromHexError),
+    #[error(transparent)]
+    AlloySolTypesError(#[from] alloy_sol_types::Error),
 }
