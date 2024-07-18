@@ -6119,7 +6119,6 @@ dependencies = [
  "httpmock",
  "once_cell",
  "rain-error-decoding",
- "rain-interpreter-eval",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "serde",
