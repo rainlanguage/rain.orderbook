@@ -236,7 +236,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "ethers",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=6763061d89cfc084c81e01f75f6118881fa5b77b)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -7147,6 +7147,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain-interpreter-env"
+version = "0.0.0"
+dependencies = [
+ "alloy-primitives 0.6.4",
+ "once_cell",
+]
+
+[[package]]
 name = "rain-interpreter-eval"
 version = "0.1.0"
 dependencies = [
@@ -7158,6 +7166,7 @@ dependencies = [
  "foundry-evm",
  "once_cell",
  "rain-error-decoding",
+ "rain-interpreter-env",
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm",
