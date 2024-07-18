@@ -64,9 +64,7 @@ impl QuoteTargetSpecifier {
         let url = Url::from_str(subgraph_url)?;
         let sg_client = OrderbookSubgraphClient::new(url);
         let order_detail = sg_client
-            .order_detail(Id::new(
-                encode_prefixed(self.id.to_be_bytes_vec()).to_ascii_lowercase(),
-            ))
+            .order_detail(Id::new(encode_prefixed(self.id.to_be_bytes_vec())))
             .await?;
 
         Ok(QuoteTarget {
@@ -103,7 +101,7 @@ impl BatchQuoteTargetSpecifier {
             .batch_order_detail(
                 self.0
                     .iter()
-                    .map(|v| Bytes(encode_prefixed(v.id.to_be_bytes_vec()).to_ascii_lowercase()))
+                    .map(|v| Bytes(encode_prefixed(v.id.to_be_bytes_vec())))
                     .collect(),
             )
             .await?;
@@ -114,9 +112,7 @@ impl BatchQuoteTargetSpecifier {
             .filter_map(|v| {
                 orders_details
                     .iter()
-                    .find(|e| {
-                        e.id.0 == encode_prefixed(v.id.to_be_bytes_vec()).to_ascii_lowercase()
-                    })
+                    .find(|e| e.id.0 == encode_prefixed(v.id.to_be_bytes_vec()))
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
                             id: v.id,
@@ -181,7 +177,7 @@ mod tests {
                             "decimals": order.validOutputs[0].decimals.to_string()
                         },
                         "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string().to_ascii_lowercase(),
+                        "vaultId": order.validOutputs[0].vaultId.to_string(),
                     }],
                     "inputs": [{
                         "id": encode_prefixed(Address::random().0.0),
@@ -193,7 +189,7 @@ mod tests {
                             "decimals": order.validInputs[0].decimals.to_string()
                         },
                         "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string().to_ascii_lowercase(),
+                        "vaultId": order.validInputs[0].vaultId.to_string(),
                     }],
                     "active": true,
                     "addEvents": [{
@@ -273,7 +269,7 @@ mod tests {
                             "decimals": order.validOutputs[0].decimals.to_string()
                         },
                         "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string().to_ascii_lowercase(),
+                        "vaultId": order.validOutputs[0].vaultId.to_string(),
                     }],
                     "inputs": [{
                         "id": encode_prefixed(Address::random().0.0),
@@ -285,7 +281,7 @@ mod tests {
                             "decimals": order.validInputs[0].decimals.to_string()
                         },
                         "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string().to_ascii_lowercase(),
+                        "vaultId": order.validInputs[0].vaultId.to_string(),
                     }],
                     "active": true,
                     "addEvents": [{

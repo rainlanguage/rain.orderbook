@@ -275,7 +275,7 @@ mod tests {
                             "decimals": order.validOutputs[0].decimals.to_string()
                         },
                         "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string().to_ascii_lowercase(),
+                        "vaultId": order.validOutputs[0].vaultId.to_string(),
                     }],
                     "inputs": [{
                         "id": encode_prefixed(Address::random().0.0),
@@ -287,7 +287,7 @@ mod tests {
                             "decimals": order.validInputs[0].decimals.to_string()
                         },
                         "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string().to_ascii_lowercase(),
+                        "vaultId": order.validInputs[0].vaultId.to_string(),
                     }],
                     "active": true,
                     "addEvents": [{
