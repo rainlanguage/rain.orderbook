@@ -236,7 +236,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "ethers",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=6763061d89cfc084c81e01f75f6118881fa5b77b)",
+ "rain-error-decoding",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
