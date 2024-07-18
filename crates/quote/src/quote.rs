@@ -13,7 +13,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClient,
 };
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{collections::VecDeque, str::FromStr};
 use url::Url;
 
 pub type QuoteResult = Result<OrderQuote, FailedQuote>;
@@ -37,7 +37,7 @@ impl From<quoteReturn> for OrderQuote {
 /// A quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QuoteTarget {
-    pub order_id: U256,
+    pub order_hash: U256,
     pub quote_config: Quote,
     pub orderbook: Address,
 }
@@ -46,7 +46,7 @@ pub struct QuoteTarget {
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QuoteTargetSpecifier {
-    pub order_id: U256,
+    pub order_hash: U256,
     pub input_io_index: U256,
     pub output_io_index: U256,
     pub signed_context: Vec<SignedContextV1>,
@@ -63,11 +63,11 @@ impl QuoteTargetSpecifier {
         let url = Url::from_str(subgraph_url)?;
         let sg_client = OrderbookSubgraphClient::new(url);
         let order_detail = sg_client
-            .order_detail(Id::new(encode_prefixed(self.order_id.to_be_bytes_vec())))
+            .order_detail(Id::new(encode_prefixed(self.order_hash.to_be_bytes_vec())))
             .await?;
 
         Ok(QuoteTarget {
-            order_id: self.order_id,
+            order_hash: self.order_hash,
             orderbook: self.orderbook,
             quote_config: Quote {
                 inputIOIndex: self.input_io_index,
@@ -88,19 +88,19 @@ pub struct BatchQuoteTargetSpecifier(pub Vec<QuoteTargetSpecifier>);
 impl BatchQuoteTargetSpecifier {
     /// Given a list of quote specifiers, will fetch their order details and
     /// returns their respective quote targets.
-    /// It will only return quote targets
-    /// fro those quote specifiers that were actually available on the given subgraph
+    /// Those specifiers that were not in the subgraph are returned as None in
+    /// in the resturning array
     pub async fn get_batch_quote_target_from_subgraph(
         &self,
         subgraph_url: &str,
-    ) -> Result<Vec<QuoteTarget>, Error> {
+    ) -> Result<Vec<Option<QuoteTarget>>, Error> {
         let url = Url::from_str(subgraph_url)?;
         let sg_client = OrderbookSubgraphClient::new(url);
         let orders_details = sg_client
             .batch_order_detail(
                 self.0
                     .iter()
-                    .map(|v| Bytes(encode_prefixed(v.order_id.to_be_bytes_vec())))
+                    .map(|v| Bytes(encode_prefixed(v.order_hash.to_be_bytes_vec())))
                     .collect(),
             )
             .await?;
@@ -108,13 +108,13 @@ impl BatchQuoteTargetSpecifier {
         Ok(self
             .0
             .iter()
-            .filter_map(|v| {
+            .map(|v| {
                 orders_details
                     .iter()
-                    .find(|e| e.id.0 == encode_prefixed(v.order_id.to_be_bytes_vec()))
+                    .find(|e| e.order_hash.0 == encode_prefixed(v.order_hash.to_be_bytes_vec()))
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
-                            order_id: v.order_id,
+                            order_hash: v.order_hash,
                             orderbook: v.orderbook,
                             quote_config: Quote {
                                 inputIOIndex: v.input_io_index,
@@ -141,18 +141,38 @@ impl Quoter {
     /// Given a list of quote specifiers and a subgraph url, will fetch the
     /// order details from the subgraph and then quotes them using the given
     /// rpc url
+    /// Those orders that are not found from subgraph are excluded from quoting,
+    /// and final result also leaves their place in the array as None
     pub async fn quote_from_subgraph(
         subgraph_url: &str,
         batch_quote_target_specifier: &BatchQuoteTargetSpecifier,
         rpc_url: &str,
         block_number: Option<u64>,
         multicall_address: Option<Address>,
-    ) -> Result<Vec<QuoteResult>, Error> {
-        let quote_targets = batch_quote_target_specifier
+    ) -> Result<Vec<Option<QuoteResult>>, Error> {
+        let opts_quote_targets = batch_quote_target_specifier
             .get_batch_quote_target_from_subgraph(subgraph_url)
             .await?;
 
-        batch_quote(&quote_targets, rpc_url, block_number, multicall_address).await
+        let quote_targets: Vec<QuoteTarget> = opts_quote_targets
+            .iter()
+            .filter_map(|v| v.is_some().then_some(v.clone().unwrap()))
+            .collect();
+
+        let mut quote_results = VecDeque::from(
+            batch_quote(&quote_targets, rpc_url, block_number, multicall_address).await?,
+        );
+
+        let mut result = vec![];
+        opts_quote_targets.iter().for_each(|v| {
+            if v.is_some() {
+                result.push(quote_results.pop_front());
+            } else {
+                result.push(None)
+            }
+        });
+
+        Ok(result)
     }
 
     /// Quotes the given targets on the given rpc url
@@ -264,7 +284,7 @@ mod tests {
         });
 
         let quote_target_specifier = QuoteTargetSpecifier {
-            order_id: order_id_u256,
+            order_hash: order_id_u256,
             input_io_index: U256::ZERO,
             output_io_index: U256::ZERO,
             signed_context: vec![],
@@ -276,7 +296,7 @@ mod tests {
             .unwrap();
 
         let expected = QuoteTarget {
-            order_id: order_id_u256,
+            order_hash: order_id_u256,
             orderbook,
             quote_config: Quote {
                 order,
@@ -303,7 +323,7 @@ mod tests {
 
         let batch_quote_targets_specifiers =
             BatchQuoteTargetSpecifier(vec![QuoteTargetSpecifier {
-                order_id: order_id_u256,
+                order_hash: order_id_u256,
                 input_io_index: U256::ZERO,
                 output_io_index: U256::ZERO,
                 signed_context: vec![],
@@ -314,8 +334,8 @@ mod tests {
             .await
             .unwrap();
 
-        let expected = vec![QuoteTarget {
-            order_id: order_id_u256,
+        let expected = vec![Some(QuoteTarget {
+            order_hash: order_id_u256,
             orderbook,
             quote_config: Quote {
                 order,
@@ -323,7 +343,7 @@ mod tests {
                 outputIOIndex: batch_quote_targets_specifiers.0[0].output_io_index,
                 signedContext: batch_quote_targets_specifiers.0[0].signed_context.clone(),
             },
-        }];
+        })];
 
         assert_eq!(result, expected);
     }
@@ -336,7 +356,7 @@ mod tests {
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(true);
 
         let quote_targets = vec![QuoteTarget {
-            order_id: order_id_u256,
+            order_hash: order_id_u256,
             quote_config: Quote {
                 order: order.clone(),
                 ..Default::default()
@@ -398,7 +418,7 @@ mod tests {
 
         let batch_quote_targets_specifiers =
             BatchQuoteTargetSpecifier(vec![QuoteTargetSpecifier {
-                order_id: order_id_u256,
+                order_hash: order_id_u256,
                 input_io_index: U256::ZERO,
                 output_io_index: U256::ZERO,
                 signed_context: vec![],
@@ -417,7 +437,7 @@ mod tests {
         let mut iter_result = result.into_iter();
 
         assert_eq!(
-            iter_result.next().unwrap().unwrap(),
+            iter_result.next().unwrap().unwrap().unwrap(),
             OrderQuote {
                 max_output: U256::from(1),
                 ratio: U256::from(2),
@@ -435,7 +455,7 @@ mod tests {
 
         let (orderbook, order, order_id_u256, _) = get_order_helper(false);
         let quote_targets = vec![QuoteTarget {
-            order_id: order_id_u256,
+            order_hash: order_id_u256,
             quote_config: Quote {
                 order: order.clone(),
                 ..Default::default()

@@ -89,21 +89,21 @@ mod tests {
         // build call data
         let quote_targets = vec![
             QuoteTarget {
-                order_id: U256::ZERO,
+                order_hash: U256::ZERO,
                 quote_config: Quote {
                     ..Default::default()
                 },
                 orderbook,
             },
             QuoteTarget {
-                order_id: U256::ZERO,
+                order_hash: U256::ZERO,
                 quote_config: Quote {
                     ..Default::default()
                 },
                 orderbook,
             },
             QuoteTarget {
-                order_id: U256::ZERO,
+                order_hash: U256::ZERO,
                 quote_config: Quote {
                     ..Default::default()
                 },
