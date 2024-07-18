@@ -76,39 +76,19 @@ mod tests {
     use alloy_primitives::{hex::encode_prefixed, U256};
     use alloy_sol_types::SolValue;
     use httpmock::{Method::POST, MockServer};
-    use rain_orderbook_bindings::IOrderBookV4::Quote;
     use serde_json::{from_str, Value};
 
     #[tokio::test]
     async fn test_batch_quote() {
         let rpc_server = MockServer::start_async().await;
 
-        let orderbook = Address::random();
         let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
 
         // build call data
         let quote_targets = vec![
-            QuoteTarget {
-                order_hash: U256::ZERO,
-                quote_config: Quote {
-                    ..Default::default()
-                },
-                orderbook,
-            },
-            QuoteTarget {
-                order_hash: U256::ZERO,
-                quote_config: Quote {
-                    ..Default::default()
-                },
-                orderbook,
-            },
-            QuoteTarget {
-                order_hash: U256::ZERO,
-                quote_config: Quote {
-                    ..Default::default()
-                },
-                orderbook,
-            },
+            QuoteTarget::default(),
+            QuoteTarget::default(),
+            QuoteTarget::default(),
         ];
         let call = aggregate3Call {
             calls: quote_targets

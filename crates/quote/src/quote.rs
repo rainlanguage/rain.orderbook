@@ -19,7 +19,7 @@ use url::Url;
 pub type QuoteResult = Result<OrderQuote, FailedQuote>;
 
 /// Holds quoted order max output and ratio
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct OrderQuote {
     pub max_output: U256,
     pub ratio: U256,
@@ -35,7 +35,7 @@ impl From<quoteReturn> for OrderQuote {
 }
 
 /// A quote target
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct QuoteTarget {
     pub order_hash: U256,
     pub quote_config: Quote,
@@ -44,7 +44,7 @@ pub struct QuoteTarget {
 
 /// A quote target specifier, where the order details need to be fetched from a
 /// source (such as subgraph) to build a [QuoteTarget] out of it
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct QuoteTargetSpecifier {
     pub order_hash: U256,
     pub input_io_index: U256,
@@ -54,7 +54,7 @@ pub struct QuoteTargetSpecifier {
 }
 
 impl QuoteTargetSpecifier {
-    /// Given a quote specifier will fetch its order details and returns the
+    /// Given a subgraph will fetch the order details and returns the
     /// respective quote target
     pub async fn get_quote_target_from_subgraph(
         &self,
@@ -82,13 +82,13 @@ impl QuoteTargetSpecifier {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct BatchQuoteTargetSpecifier(pub Vec<QuoteTargetSpecifier>);
 
 impl BatchQuoteTargetSpecifier {
-    /// Given a list of quote specifiers, will fetch their order details and
-    /// returns their respective quote targets.
-    /// Those specifiers that were not in the subgraph are returned as None in
+    /// Given a subgraph url, will fetch orders details and returns their
+    /// respective quote targets.
+    /// Those specifiers that were not in the subgraph are returned as None
     /// in the resturning array
     pub async fn get_batch_quote_target_from_subgraph(
         &self,
@@ -108,18 +108,21 @@ impl BatchQuoteTargetSpecifier {
         Ok(self
             .0
             .iter()
-            .map(|v| {
+            .map(|target| {
                 orders_details
                     .iter()
-                    .find(|e| e.order_hash.0 == encode_prefixed(v.order_hash.to_be_bytes_vec()))
+                    .find(|order_detail| {
+                        order_detail.order_hash.0
+                            == encode_prefixed(target.order_hash.to_be_bytes_vec())
+                    })
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
-                            order_hash: v.order_hash,
-                            orderbook: v.orderbook,
+                            order_hash: target.order_hash,
+                            orderbook: target.orderbook,
                             quote_config: Quote {
-                                inputIOIndex: v.input_io_index,
-                                outputIOIndex: v.output_io_index,
-                                signedContext: v.signed_context.clone(),
+                                inputIOIndex: target.input_io_index,
+                                outputIOIndex: target.output_io_index,
+                                signedContext: target.signed_context.clone(),
                                 order: OrderV3::abi_decode(
                                     decode(order_detail.order_bytes.0.as_str()).ok()?.as_slice(),
                                     true,
@@ -143,9 +146,9 @@ impl Quoter {
     /// rpc url
     /// Those orders that are not found from subgraph are excluded from quoting,
     /// and final result also leaves their place in the array as None
-    pub async fn quote_from_subgraph(
-        subgraph_url: &str,
+    pub async fn quote_with_subgraph(
         batch_quote_target_specifier: &BatchQuoteTargetSpecifier,
+        subgraph_url: &str,
         rpc_url: &str,
         block_number: Option<u64>,
         multicall_address: Option<Address>,
@@ -154,15 +157,17 @@ impl Quoter {
             .get_batch_quote_target_from_subgraph(subgraph_url)
             .await?;
 
+        // quote the valid quote targets
         let quote_targets: Vec<QuoteTarget> = opts_quote_targets
             .iter()
-            .filter_map(|v| v.is_some().then_some(v.clone().unwrap()))
+            .filter_map(|v| v.clone())
             .collect();
-
         let mut quote_results = VecDeque::from(
             batch_quote(&quote_targets, rpc_url, block_number, multicall_address).await?,
         );
 
+        // fill the array with quote results and invalid quote targets following
+        // their original order
         let mut result = vec![];
         opts_quote_targets.iter().for_each(|v| {
             if v.is_some() {
@@ -206,16 +211,13 @@ mod tests {
     fn get_order_helper(batch: bool) -> (Address, OrderV3, U256, Value) {
         let orderbook = Address::random();
         let order = OrderV3 {
-            validInputs: vec![IO {
-                ..Default::default()
-            }],
-            validOutputs: vec![IO {
-                ..Default::default()
-            }],
+            validInputs: vec![IO::default()],
+            validOutputs: vec![IO::default()],
             ..Default::default()
         };
-        let order_id_u256 = U256::from_be_bytes(keccak256(encode_prefixed(order.abi_encode())).0);
-        let order_id = encode_prefixed(keccak256(encode_prefixed(order.abi_encode())));
+        let order_hash_bytes = keccak256(order.abi_encode()).0;
+        let order_id_u256 = U256::from_be_bytes(order_hash_bytes);
+        let order_id = encode_prefixed(order_hash_bytes);
         let order_json = json!({
             "id": order_id,
             "orderBytes": encode_prefixed(order.abi_encode()),
@@ -277,7 +279,7 @@ mod tests {
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(false);
 
-        // mock rpc with call data and response data
+        // mock subgraph
         rpc_server.mock(|when, then| {
             when.method(POST).path("/");
             then.json_body_obj(&retrun_sg_data);
@@ -315,7 +317,7 @@ mod tests {
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(true);
 
-        // mock rpc with call data and response data
+        // mock subgraph
         rpc_server.mock(|when, then| {
             when.method(POST).path("/");
             then.json_body_obj(&retrun_sg_data);
@@ -410,7 +412,7 @@ mod tests {
             );
         });
 
-        // mock rpc with call data and response data
+        // mock subgraph
         rpc_server.mock(|when, then| {
             when.method(POST).path("/sg");
             then.json_body_obj(&retrun_sg_data);
@@ -425,9 +427,9 @@ mod tests {
                 orderbook,
             }]);
 
-        let result = Quoter::quote_from_subgraph(
-            rpc_server.url("/sg").as_str(),
+        let result = Quoter::quote_with_subgraph(
             &batch_quote_targets_specifiers,
+            rpc_server.url("/sg").as_str(),
             rpc_server.url("/rpc").as_str(),
             None,
             None,
