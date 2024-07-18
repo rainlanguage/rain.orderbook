@@ -183,10 +183,7 @@ mod tests {
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};
     use serde_json::{from_str, json, Value};
 
-    #[tokio::test]
-    async fn test_get_quote_target_from_subgraph() {
-        let rpc_server = MockServer::start_async().await;
-
+    fn get_order_helper(batch: bool) -> (Address, OrderV3, U256, Value) {
         let orderbook = Address::random();
         let order = OrderV3 {
             validInputs: vec![IO {
@@ -199,49 +196,66 @@ mod tests {
         };
         let order_id_u256 = U256::from_be_bytes(keccak256(encode_prefixed(order.abi_encode())).0);
         let order_id = encode_prefixed(keccak256(encode_prefixed(order.abi_encode())));
-        let retrun_sg_data = json!({
-            "data": {
-                "order": {
-                    "id": order_id,
-                    "orderBytes": encode_prefixed(order.abi_encode()),
-                    "orderHash": order_id,
-                    "owner": encode_prefixed(order.owner),
-                    "outputs": [{
-                        "id": encode_prefixed(Address::random().0.0),
-                        "token": {
-                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "name": "T1",
-                            "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
-                        },
-                        "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string(),
-                    }],
-                    "inputs": [{
-                        "id": encode_prefixed(Address::random().0.0),
-                        "token": {
-                            "id": encode_prefixed(order.validInputs[0].token.0.0),
-                            "address": encode_prefixed(order.validInputs[0].token.0.0),
-                            "name": "T2",
-                            "symbol": "T2",
-                            "decimals": order.validInputs[0].decimals.to_string()
-                        },
-                        "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string(),
-                    }],
-                    "active": true,
-                    "addEvents": [{
-                        "transaction": {
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                        }
-                    }],
-                    "meta": null,
-                    "timestampAdded": "0",
+        let order_json = json!({
+            "id": order_id,
+            "orderBytes": encode_prefixed(order.abi_encode()),
+            "orderHash": order_id,
+            "owner": encode_prefixed(order.owner),
+            "outputs": [{
+                "id": encode_prefixed(Address::random().0.0),
+                "token": {
+                    "id": encode_prefixed(order.validOutputs[0].token.0.0),
+                    "address": encode_prefixed(order.validOutputs[0].token.0.0),
+                    "name": "T1",
+                    "symbol": "T1",
+                    "decimals": order.validOutputs[0].decimals.to_string()
+                },
+                "balance": "0",
+                "vaultId": order.validOutputs[0].vaultId.to_string(),
+            }],
+            "inputs": [{
+                "id": encode_prefixed(Address::random().0.0),
+                "token": {
+                    "id": encode_prefixed(order.validInputs[0].token.0.0),
+                    "address": encode_prefixed(order.validInputs[0].token.0.0),
+                    "name": "T2",
+                    "symbol": "T2",
+                    "decimals": order.validInputs[0].decimals.to_string()
+                },
+                "balance": "0",
+                "vaultId": order.validInputs[0].vaultId.to_string(),
+            }],
+            "active": true,
+            "addEvents": [{
+                "transaction": {
+                    "blockNumber": "0",
+                    "timestamp": "0"
                 }
-            }
+            }],
+            "meta": null,
+            "timestampAdded": "0",
         });
+        let retrun_sg_data = if batch {
+            json!({
+                "data": {
+                    "orders": [order_json]
+                }
+            })
+        } else {
+            json!({
+                "data": {
+                    "order": order_json
+                }
+            })
+        };
+        (orderbook, order, order_id_u256, retrun_sg_data)
+    }
+
+    #[tokio::test]
+    async fn test_get_quote_target_from_subgraph() {
+        let rpc_server = MockServer::start_async().await;
+
+        let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(false);
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
@@ -279,61 +293,7 @@ mod tests {
     async fn test_get_batch_quote_target_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
-        let orderbook = Address::random();
-        let order = OrderV3 {
-            validInputs: vec![IO {
-                ..Default::default()
-            }],
-            validOutputs: vec![IO {
-                ..Default::default()
-            }],
-            ..Default::default()
-        };
-        let order_id_u256 = U256::from_be_bytes(keccak256(encode_prefixed(order.abi_encode())).0);
-        let order_id = encode_prefixed(keccak256(encode_prefixed(order.abi_encode())));
-        let retrun_sg_data = json!({
-            "data": {
-                "orders": [{
-                    "id": order_id,
-                    "orderBytes": encode_prefixed(order.abi_encode()),
-                    "orderHash": order_id,
-                    "owner": encode_prefixed(order.owner),
-                    "outputs": [{
-                        "id": encode_prefixed(Address::random().0.0),
-                        "token": {
-                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "name": "T1",
-                            "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
-                        },
-                        "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string(),
-                    }],
-                    "inputs": [{
-                        "id": encode_prefixed(Address::random().0.0),
-                        "token": {
-                            "id": encode_prefixed(order.validInputs[0].token.0.0),
-                            "address": encode_prefixed(order.validInputs[0].token.0.0),
-                            "name": "T2",
-                            "symbol": "T2",
-                            "decimals": order.validInputs[0].decimals.to_string()
-                        },
-                        "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string(),
-                    }],
-                    "active": true,
-                    "addEvents": [{
-                        "transaction": {
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                        }
-                    }],
-                    "meta": null,
-                    "timestampAdded": "0",
-                }]
-            }
-        });
+        let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(true);
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
@@ -372,23 +332,9 @@ mod tests {
     async fn test_quoter_quote_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
-        let orderbook = Address::random();
         let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
+        let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(true);
 
-        // build call data
-        let valid_inputs = vec![IO {
-            ..Default::default()
-        }];
-        let valid_outputs = vec![IO {
-            ..Default::default()
-        }];
-        let order = OrderV3 {
-            validInputs: valid_inputs,
-            validOutputs: valid_outputs,
-            ..Default::default()
-        };
-        let order_id_u256 = U256::from_be_bytes(keccak256(encode_prefixed(order.abi_encode())).0);
-        let order_id = encode_prefixed(keccak256(encode_prefixed(order.abi_encode())));
         let quote_targets = vec![QuoteTarget {
             order_id: order_id_u256,
             quote_config: Quote {
@@ -444,50 +390,6 @@ mod tests {
             );
         });
 
-        let retrun_sg_data = json!({
-            "data": {
-                "orders": [{
-                    "id": order_id,
-                    "orderBytes": encode_prefixed(order.abi_encode()),
-                    "orderHash": order_id,
-                    "owner": encode_prefixed(order.owner),
-                    "outputs": [{
-                        "id": encode_prefixed(Address::random().0.0),
-                        "token": {
-                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "name": "T1",
-                            "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
-                        },
-                        "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string(),
-                    }],
-                    "inputs": [{
-                        "id": encode_prefixed(Address::random().0.0),
-                        "token": {
-                            "id": encode_prefixed(order.validInputs[0].token.0.0),
-                            "address": encode_prefixed(order.validInputs[0].token.0.0),
-                            "name": "T2",
-                            "symbol": "T2",
-                            "decimals": order.validInputs[0].decimals.to_string()
-                        },
-                        "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string(),
-                    }],
-                    "active": true,
-                    "addEvents": [{
-                        "transaction": {
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                        }
-                    }],
-                    "meta": null,
-                    "timestampAdded": "0",
-                }]
-            }
-        });
-
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
             when.method(POST).path("/sg");
@@ -528,22 +430,10 @@ mod tests {
     async fn test_quoter_quote() {
         let rpc_server = MockServer::start_async().await;
 
-        let orderbook = Address::random();
+        // let orderbook = Address::random();
         let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
 
-        // build call data
-        let valid_inputs = vec![IO {
-            ..Default::default()
-        }];
-        let valid_outputs = vec![IO {
-            ..Default::default()
-        }];
-        let order = OrderV3 {
-            validInputs: valid_inputs,
-            validOutputs: valid_outputs,
-            ..Default::default()
-        };
-        let order_id_u256 = U256::from_be_bytes(keccak256(encode_prefixed(order.abi_encode())).0);
+        let (orderbook, order, order_id_u256, _) = get_order_helper(false);
         let quote_targets = vec![QuoteTarget {
             order_id: order_id_u256,
             quote_config: Quote {
