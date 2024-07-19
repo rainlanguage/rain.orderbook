@@ -12,7 +12,6 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain-error-decoding = { workspace = true }
-rain-interpreter-eval = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
