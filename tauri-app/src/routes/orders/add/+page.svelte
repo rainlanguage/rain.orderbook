@@ -3,9 +3,7 @@
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
-  import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
-  import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
+  import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
@@ -237,20 +235,6 @@
     </div>
   </svelte:fragment>
 </FileTextarea>
-
-<div class="my-8">
-  <Label class="mb-2">Parse at Block Number</Label>
-  <InputBlockNumber
-    bind:value={$forkBlockNumber.value}
-    isFetching={$forkBlockNumber.isFetching}
-    on:clickGetLatest={forkBlockNumber.fetch}
-    required={false}
-  />
-  <Helper class="mt-2 text-sm">
-    The block number at which to parse the rain while drafting. Resets to the latest block on app
-    launch.
-  </Helper>
-</div>
 
 <Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
   ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button
