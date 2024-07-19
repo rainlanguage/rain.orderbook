@@ -42,6 +42,40 @@ pub struct QuoteTarget {
     pub orderbook: Address,
 }
 
+impl QuoteTarget {
+    /// Quotes the target on the given rpc url
+    pub async fn quote(
+        &self,
+        rpc_url: &str,
+        block_number: Option<u64>,
+        multicall_address: Option<Address>,
+    ) -> Result<QuoteResult, Error> {
+        Ok(
+            batch_quote(&[self.clone()], rpc_url, block_number, multicall_address)
+                .await?
+                .into_iter()
+                .next()
+                .unwrap(),
+        )
+    }
+}
+
+/// Specifies a batch of [QuoteTarget]s
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
+
+impl BatchQuoteTarget {
+    /// Quotes the targets in batch on the given rpc url
+    pub async fn quote(
+        &self,
+        rpc_url: &str,
+        block_number: Option<u64>,
+        multicall_address: Option<Address>,
+    ) -> Result<Vec<QuoteResult>, Error> {
+        batch_quote(&self.0, rpc_url, block_number, multicall_address).await
+    }
+}
+
 /// A quote target specifier, where the order details need to be fetched from a
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -80,8 +114,25 @@ impl QuoteTargetSpecifier {
             },
         })
     }
+
+    /// Given a subgraph url, will fetch the order details from the subgraph and
+    /// then quotes it using the given rpc url.
+    pub async fn quote(
+        &self,
+        subgraph_url: &str,
+        rpc_url: &str,
+        block_number: Option<u64>,
+        multicall_address: Option<Address>,
+    ) -> Result<QuoteResult, Error> {
+        let quote_target = self.get_quote_target_from_subgraph(subgraph_url).await?;
+        let quote_result =
+            batch_quote(&[quote_target], rpc_url, block_number, multicall_address).await?;
+
+        Ok(quote_result.into_iter().next().unwrap())
+    }
 }
 
+/// specifies a batch of [QuoteTargetSpecifier]s
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct BatchQuoteTargetSpecifier(pub Vec<QuoteTargetSpecifier>);
 
@@ -134,26 +185,19 @@ impl BatchQuoteTargetSpecifier {
             })
             .collect())
     }
-}
 
-/// The main struct providing functionalities to easily quote orderbook orders
-#[derive(Debug, Clone)]
-pub struct Quoter;
-
-impl Quoter {
-    /// Given a list of quote specifiers and a subgraph url, will fetch the
-    /// order details from the subgraph and then quotes them using the given
-    /// rpc url
+    /// Given a subgraph url, will fetch the order details from the subgraph and
+    /// then quotes them using the given rpc url.
     /// Those orders that are not found from subgraph are excluded from quoting,
     /// and final result also leaves their place in the array as None
-    pub async fn quote_with_subgraph(
-        batch_quote_target_specifier: &BatchQuoteTargetSpecifier,
+    pub async fn quote(
+        &self,
         subgraph_url: &str,
         rpc_url: &str,
         block_number: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<Option<QuoteResult>>, Error> {
-        let opts_quote_targets = batch_quote_target_specifier
+        let opts_quote_targets = self
             .get_batch_quote_target_from_subgraph(subgraph_url)
             .await?;
 
@@ -179,28 +223,13 @@ impl Quoter {
 
         Ok(result)
     }
-
-    /// Quotes the given targets on the given rpc url
-    pub async fn quote(
-        quote_targets: &[QuoteTarget],
-        rpc_url: &str,
-        block_number: Option<u64>,
-        multicall_address: Option<Address>,
-    ) -> Result<Vec<QuoteResult>, Error> {
-        batch_quote(quote_targets, rpc_url, block_number, multicall_address).await
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
-    use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
-    use alloy_ethers_typecast::multicall::MULTICALL3_ADDRESS;
-    use alloy_ethers_typecast::request_shim::{AlloyTransactionRequest, TransactionRequestShim};
-    use alloy_ethers_typecast::rpc::eip2718::TypedTransaction;
-    use alloy_ethers_typecast::rpc::{BlockNumber, Request, Response};
-    use alloy_primitives::hex::FromHex;
+    use alloy_ethers_typecast::rpc::Response;
     use alloy_primitives::keccak256;
     use alloy_primitives::{hex::encode_prefixed, U256};
     use alloy_sol_types::{SolCall, SolValue};
@@ -208,7 +237,8 @@ mod tests {
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};
     use serde_json::{from_str, json, Value};
 
-    fn get_order_helper(batch: bool) -> (Address, OrderV3, U256, Value) {
+    // helper fn to build some test data
+    fn get_test_data(batch: bool) -> (Address, OrderV3, U256, Value) {
         let orderbook = Address::random();
         let order = OrderV3 {
             validInputs: vec![IO::default()],
@@ -277,7 +307,7 @@ mod tests {
     async fn test_get_quote_target_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
-        let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(false);
+        let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(false);
 
         // mock subgraph
         rpc_server.mock(|when, then| {
@@ -315,7 +345,7 @@ mod tests {
     async fn test_get_batch_quote_target_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
-        let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(true);
+        let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(true);
 
         // mock subgraph
         rpc_server.mock(|when, then| {
@@ -351,33 +381,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quoter_quote_from_subgraph() {
+    async fn test_quote_specifier() {
         let rpc_server = MockServer::start_async().await;
 
-        let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
-        let (orderbook, order, order_id_u256, retrun_sg_data) = get_order_helper(true);
-
-        let quote_targets = vec![QuoteTarget {
-            order_hash: order_id_u256,
-            quote_config: Quote {
-                order: order.clone(),
-                ..Default::default()
-            },
-            orderbook,
-        }];
-        let call = aggregate3Call {
-            calls: quote_targets
-                .iter()
-                .map(|quote_target| Call3 {
-                    allowFailure: true,
-                    target: quote_target.orderbook,
-                    callData: quoteCall {
-                        quoteConfig: quote_target.quote_config.clone(),
-                    }
-                    .abi_encode(),
-                })
-                .collect(),
-        };
+        let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
 
         // build response data
         let response_data = vec![MulticallResult {
@@ -388,20 +395,7 @@ mod tests {
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/rpc").json_body_partial(
-                Request::<(TypedTransaction, BlockNumber)>::eth_call_request(
-                    1,
-                    TypedTransaction::Eip1559(
-                        AlloyTransactionRequest::new()
-                            .with_to(Some(multicall))
-                            .with_data(Some(call.abi_encode()))
-                            .to_eip1559(),
-                    ),
-                    None,
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+            when.method(POST).path("/rpc");
             then.json_body_obj(
                 &from_str::<Value>(
                     &Response::new_success(1, encode_prefixed(response_data).as_str())
@@ -418,24 +412,87 @@ mod tests {
             then.json_body_obj(&retrun_sg_data);
         });
 
-        let batch_quote_targets_specifiers =
-            BatchQuoteTargetSpecifier(vec![QuoteTargetSpecifier {
+        let quote_target_specifier = QuoteTargetSpecifier {
+            order_hash: order_id_u256,
+            input_io_index: U256::ZERO,
+            output_io_index: U256::ZERO,
+            signed_context: vec![],
+            orderbook,
+        };
+
+        let result = quote_target_specifier
+            .quote(
+                rpc_server.url("/sg").as_str(),
+                rpc_server.url("/rpc").as_str(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            result.unwrap(),
+            OrderQuote {
+                max_output: U256::from(1),
+                ratio: U256::from(2),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_quote_batch_specifier() {
+        let rpc_server = MockServer::start_async().await;
+
+        let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(true);
+
+        // build response data
+        let response_data = vec![MulticallResult {
+            success: true,
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+        }]
+        .abi_encode();
+
+        // mock rpc with call data and response data
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(1, encode_prefixed(response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        // mock subgraph
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/sg");
+            then.json_body_obj(&retrun_sg_data);
+        });
+
+        let batch_quote_targets_specifiers = BatchQuoteTargetSpecifier(vec![
+            QuoteTargetSpecifier {
                 order_hash: order_id_u256,
                 input_io_index: U256::ZERO,
                 output_io_index: U256::ZERO,
                 signed_context: vec![],
                 orderbook,
-            }]);
+            },
+            // should be None in final result
+            QuoteTargetSpecifier::default(),
+            QuoteTargetSpecifier::default(),
+        ]);
 
-        let result = Quoter::quote_with_subgraph(
-            &batch_quote_targets_specifiers,
-            rpc_server.url("/sg").as_str(),
-            rpc_server.url("/rpc").as_str(),
-            None,
-            None,
-        )
-        .await
-        .unwrap();
+        let result = batch_quote_targets_specifiers
+            .quote(
+                rpc_server.url("/sg").as_str(),
+                rpc_server.url("/rpc").as_str(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         let mut iter_result = result.into_iter();
 
         assert_eq!(
@@ -445,37 +502,27 @@ mod tests {
                 ratio: U256::from(2),
             }
         );
+
+        // specifiers that were not present on subgraph were not quoted and are None
+        assert!(iter_result.next().unwrap().is_none());
+        assert!(iter_result.next().unwrap().is_none());
+
+        // all results should have been consumed by now
         assert!(iter_result.next().is_none());
     }
 
     #[tokio::test]
-    async fn test_quoter_quote() {
+    async fn test_quote() {
         let rpc_server = MockServer::start_async().await;
 
-        // let orderbook = Address::random();
-        let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
-
-        let (orderbook, order, order_id_u256, _) = get_order_helper(false);
-        let quote_targets = vec![QuoteTarget {
+        let (orderbook, order, order_id_u256, _) = get_test_data(false);
+        let quote_target = QuoteTarget {
             order_hash: order_id_u256,
             quote_config: Quote {
-                order: order.clone(),
+                order,
                 ..Default::default()
             },
             orderbook,
-        }];
-        let call = aggregate3Call {
-            calls: quote_targets
-                .iter()
-                .map(|quote_target| Call3 {
-                    allowFailure: true,
-                    target: quote_target.orderbook,
-                    callData: quoteCall {
-                        quoteConfig: quote_target.quote_config.clone(),
-                    }
-                    .abi_encode(),
-                })
-                .collect(),
         };
 
         // build response data
@@ -487,20 +534,7 @@ mod tests {
 
         // mock rpc with call data and response data
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/rpc").json_body_partial(
-                Request::<(TypedTransaction, BlockNumber)>::eth_call_request(
-                    1,
-                    TypedTransaction::Eip1559(
-                        AlloyTransactionRequest::new()
-                            .with_to(Some(multicall))
-                            .with_data(Some(call.abi_encode()))
-                            .to_eip1559(),
-                    ),
-                    None,
-                )
-                .to_json_string()
-                .unwrap(),
-            );
+            when.method(POST).path("/rpc");
             then.json_body_obj(
                 &from_str::<Value>(
                     &Response::new_success(1, encode_prefixed(response_data).as_str())
@@ -511,7 +545,56 @@ mod tests {
             );
         });
 
-        let result = Quoter::quote(&quote_targets, rpc_server.url("/rpc").as_str(), None, None)
+        let result = quote_target
+            .quote(rpc_server.url("/rpc").as_str(), None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            result.unwrap(),
+            OrderQuote {
+                max_output: U256::from(1),
+                ratio: U256::from(2),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_batch_quote() {
+        let rpc_server = MockServer::start_async().await;
+
+        let (orderbook, order, order_id_u256, _) = get_test_data(true);
+        let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
+            order_hash: order_id_u256,
+            quote_config: Quote {
+                order,
+                ..Default::default()
+            },
+            orderbook,
+        }]);
+
+        // build response data
+        let response_data = vec![MulticallResult {
+            success: true,
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+        }]
+        .abi_encode();
+
+        // mock rpc with call data and response data
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(1, encode_prefixed(response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        let result = quote_targets
+            .quote(rpc_server.url("/rpc").as_str(), None, None)
             .await
             .unwrap();
         let mut iter_result = result.into_iter();
