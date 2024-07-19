@@ -44,7 +44,7 @@ pub struct QuoteTarget {
 
 impl QuoteTarget {
     /// Quotes the target on the given rpc url
-    pub async fn quote(
+    pub async fn do_quote(
         &self,
         rpc_url: &str,
         block_number: Option<u64>,
@@ -66,7 +66,7 @@ pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
 
 impl BatchQuoteTarget {
     /// Quotes the targets in batch on the given rpc url
-    pub async fn quote(
+    pub async fn do_quote(
         &self,
         rpc_url: &str,
         block_number: Option<u64>,
@@ -117,7 +117,7 @@ impl QuoteTargetSpecifier {
 
     /// Given a subgraph url, will fetch the order details from the subgraph and
     /// then quotes it using the given rpc url.
-    pub async fn quote(
+    pub async fn do_quote(
         &self,
         subgraph_url: &str,
         rpc_url: &str,
@@ -190,7 +190,7 @@ impl BatchQuoteTargetSpecifier {
     /// then quotes them using the given rpc url.
     /// Those orders that are not found from subgraph are excluded from quoting,
     /// and final result also leaves their place in the array as None
-    pub async fn quote(
+    pub async fn do_quote(
         &self,
         subgraph_url: &str,
         rpc_url: &str,
@@ -421,7 +421,7 @@ mod tests {
         };
 
         let result = quote_target_specifier
-            .quote(
+            .do_quote(
                 rpc_server.url("/sg").as_str(),
                 rpc_server.url("/rpc").as_str(),
                 None,
@@ -485,7 +485,7 @@ mod tests {
         ]);
 
         let result = batch_quote_targets_specifiers
-            .quote(
+            .do_quote(
                 rpc_server.url("/sg").as_str(),
                 rpc_server.url("/rpc").as_str(),
                 None,
@@ -546,7 +546,7 @@ mod tests {
         });
 
         let result = quote_target
-            .quote(rpc_server.url("/rpc").as_str(), None, None)
+            .do_quote(rpc_server.url("/rpc").as_str(), None, None)
             .await
             .unwrap();
 
@@ -594,7 +594,7 @@ mod tests {
         });
 
         let result = quote_targets
-            .quote(rpc_server.url("/rpc").as_str(), None, None)
+            .do_quote(rpc_server.url("/rpc").as_str(), None, None)
             .await
             .unwrap();
         let mut iter_result = result.into_iter();
