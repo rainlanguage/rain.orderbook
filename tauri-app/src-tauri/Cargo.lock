@@ -7147,14 +7147,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rain-interpreter-env"
-version = "0.0.0"
-dependencies = [
- "alloy-primitives 0.6.4",
- "once_cell",
-]
-
-[[package]]
 name = "rain-interpreter-eval"
 version = "0.1.0"
 dependencies = [
@@ -7166,7 +7158,6 @@ dependencies = [
  "foundry-evm",
  "once_cell",
  "rain-error-decoding",
- "rain-interpreter-env",
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm",
