@@ -62,6 +62,7 @@ impl QuoteTarget {
 
 /// Specifies a batch of [QuoteTarget]s
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(transparent)]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
 
 impl BatchQuoteTarget {
@@ -134,6 +135,7 @@ impl QuoteTargetSpecifier {
 
 /// specifies a batch of [QuoteTargetSpecifier]s
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(transparent)]
 pub struct BatchQuoteTargetSpecifier(pub Vec<QuoteTargetSpecifier>);
 
 impl BatchQuoteTargetSpecifier {
