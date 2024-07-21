@@ -332,7 +332,6 @@ test('refetches data when refresh button is clicked', async () => {
     return async () => {
       const mockData = ['page' + count];
       count++;
-      console.log('count', count);
       await new Promise((resolve) => setTimeout(resolve, 10));
       return mockData;
     };
