@@ -1,0 +1,26 @@
+[package]
+name = "rain_orderbook_quote"
+version = "0.0.0"
+edition = "2021"
+license = "CAL-1.0"
+description = "Quote Rain Orderbook Orders"
+homepage = "https://github.com/rainprotocol/rain.orderbook"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rain_orderbook_bindings = { workspace = true }
+rain_orderbook_subgraph_client = { workspace = true }
+rain-error-decoding = { workspace = true }
+alloy-ethers-typecast = { workspace = true }
+alloy-primitives = { workspace = true }
+alloy-sol-types = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+once_cell = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+httpmock = "0.7.0"
+serde_json = { workspace = true }
