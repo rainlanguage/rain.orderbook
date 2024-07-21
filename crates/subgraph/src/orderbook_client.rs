@@ -3,7 +3,10 @@ use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError}
 use crate::types::vault_balance_changes_list::Bytes;
 use crate::types::{
     order_detail,
-    order_detail::{OrderDetailQuery, OrderDetailQueryVariables},
+    order_detail::{
+        BatchOrderDetailQuery, BatchOrderDetailQueryVariables, Bytes as OrderId, OrderDetailQuery,
+        OrderDetailQueryVariables, OrderIdList,
+    },
     order_take_detail,
     order_take_detail::{OrderTakeDetailQuery, OrderTakeDetailQueryVariables},
     order_takes_list,
@@ -62,6 +65,22 @@ impl OrderbookSubgraphClient {
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
 
         Ok(order)
+    }
+
+    /// Fetch batch orders given their order id
+    pub async fn batch_order_detail(
+        &self,
+        id_list: Vec<OrderId>,
+    ) -> Result<Vec<order_detail::Order>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<BatchOrderDetailQuery, BatchOrderDetailQueryVariables>(
+                BatchOrderDetailQueryVariables {
+                    id_list: OrderIdList { id_in: id_list },
+                },
+            )
+            .await?;
+
+        Ok(data.orders)
     }
 
     /// Fetch all orders, paginated

@@ -16,9 +16,11 @@ query VaultsListQuery($first: Int, $skip: Int) {
     }
     balance
     ordersAsInput {
+      id
       orderHash
     }
     ordersAsOutput {
+      id
       orderHash
     }
   }

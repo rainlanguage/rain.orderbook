@@ -14,10 +14,12 @@ query VaultDetailQuery($id: ID!) {
     }
     owner
     ordersAsOutput {
+      id
       orderHash
       active
     }
     ordersAsInput {
+      id
       orderHash
       active
     }
