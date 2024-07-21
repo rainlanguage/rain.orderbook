@@ -60,6 +60,7 @@
     "@observablehq/plot": "^0.6.13",
     "@sentry/sveltekit": "^7.107.0",
     "@square/svelte-store": "^1.0.18",
+    "@tanstack/svelte-query": "^5.50.3",
     "@tauri-apps/api": "^1.5.3",
     "@walletconnect/ethereum-provider": "^2.11.3",
     "@walletconnect/modal": "^2.6.2",
