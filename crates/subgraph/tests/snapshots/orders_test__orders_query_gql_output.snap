@@ -31,7 +31,7 @@ query OrdersListQuery($first: Int, $skip: Int) {
       vaultId
     }
     active
-    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+    addEvents {
       transaction {
         id
         blockNumber

@@ -9,6 +9,7 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       transaction {
         id
         from
+        timestamp
       }
       sender
     }
@@ -27,6 +28,7 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
     order {
       id
       orderHash
+      timestampAdded
     }
     inputVaultBalanceChange {
       vault {
