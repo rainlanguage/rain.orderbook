@@ -1,5 +1,5 @@
 use crate::{
-    error::FailedQuote,
+    error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
 use alloy_ethers_typecast::{
@@ -7,20 +7,20 @@ use alloy_ethers_typecast::{
         IMulticall3::{aggregate3Call, Call3},
         MULTICALL3_ADDRESS,
     },
-    transaction::{ReadContractParameters, ReadableClient, ReadableClientError},
+    transaction::{ReadContractParameters, ReadableClient},
 };
 use alloy_primitives::{hex::FromHex, Address, U64};
 use alloy_sol_types::SolCall;
 use rain_error_decoding::AbiDecodedErrorType;
 use rain_orderbook_bindings::IOrderBookV4::quoteCall;
 
-/// Quotes array of given orders using the given rpc url
-pub async fn multi_quote(
+/// Quotes array of given quote targets using the given rpc url
+pub async fn batch_quote(
     quote_targets: &[QuoteTarget],
     rpc: &str,
     block_number: Option<u64>,
     multicall_address: Option<Address>,
-) -> Result<Vec<QuoteResult>, ReadableClientError> {
+) -> Result<Vec<QuoteResult>, Error> {
     let client = ReadableClient::new_from_url(rpc.to_string())?;
     let parameters = ReadContractParameters {
         address: multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
@@ -32,7 +32,7 @@ pub async fn multi_quote(
                     allowFailure: true,
                     target: quote_target.orderbook,
                     callData: quoteCall {
-                        quoteConfig: quote_target.quote.clone(),
+                        quoteConfig: quote_target.quote_config.clone(),
                     }
                     .abi_encode(),
                 })
@@ -76,36 +76,19 @@ mod tests {
     use alloy_primitives::{hex::encode_prefixed, U256};
     use alloy_sol_types::SolValue;
     use httpmock::{Method::POST, MockServer};
-    use rain_orderbook_bindings::IOrderBookV4::Quote;
     use serde_json::{from_str, Value};
 
     #[tokio::test]
-    async fn test_multi_quote() {
+    async fn test_batch_quote() {
         let rpc_server = MockServer::start_async().await;
 
-        let orderbook = Address::random();
         let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
 
         // build call data
         let quote_targets = vec![
-            QuoteTarget {
-                quote: Quote {
-                    ..Default::default()
-                },
-                orderbook,
-            },
-            QuoteTarget {
-                quote: Quote {
-                    ..Default::default()
-                },
-                orderbook,
-            },
-            QuoteTarget {
-                quote: Quote {
-                    ..Default::default()
-                },
-                orderbook,
-            },
+            QuoteTarget::default(),
+            QuoteTarget::default(),
+            QuoteTarget::default(),
         ];
         let call = aggregate3Call {
             calls: quote_targets
@@ -114,7 +97,7 @@ mod tests {
                     allowFailure: true,
                     target: quote_target.orderbook,
                     callData: quoteCall {
-                        quoteConfig: quote_target.quote.clone(),
+                        quoteConfig: quote_target.quote_config.clone(),
                     }
                     .abi_encode(),
                 })
@@ -164,7 +147,7 @@ mod tests {
             );
         });
 
-        let result = multi_quote(&quote_targets, rpc_server.url("/").as_str(), None, None)
+        let result = batch_quote(&quote_targets, rpc_server.url("/").as_str(), None, None)
             .await
             .unwrap();
         let mut iter_result = result.into_iter();
