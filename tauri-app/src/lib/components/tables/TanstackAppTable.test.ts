@@ -1,32 +1,62 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import TanstackAppTableTest from './TanstackAppTable.test.svelte';
 import { QueryClient, createInfiniteQuery } from '@tanstack/svelte-query';
 import userEvent from '@testing-library/user-event';
 
-const createMockQuery = (maxPages?: number) => {
-  return async (pageParam: number) => {
-    if (maxPages && pageParam > maxPages) {
-      return [];
-    }
-    const mockData = ['page' + pageParam];
-    await new Promise((resolve) => setTimeout(resolve, 10));
+// A helper function to create a resolvable mock query.
+// This gives us more control over when each query resolves.
+const createResolvableMockQuery = (queryFn: (pageParam: number) => unknown) => {
+  const resolveQueue: Array<() => void> = [];
+  let currentPromise: Promise<void>;
+
+  const createNewPromise = () => {
+    currentPromise = new Promise<void>((res) => {
+      resolveQueue.push(res);
+    });
+  };
+
+  createNewPromise(); // Initialize the first promise
+
+  const resolvableQuery = async (pageParam: number) => {
+    const mockData = queryFn(pageParam);
+    await currentPromise;
+    createNewPromise(); // Create a new promise for the next call
     return mockData;
   };
+
+  const resolve = () => {
+    const resolver = resolveQueue.shift();
+    if (resolver) {
+      resolver();
+    }
+  };
+
+  return { queryFn: resolvableQuery, resolve };
 };
 
-test('shows head and title', async () => {
+// A helper function to create a Tanstack query that resolves when you call
+// the `resolve` function.
+const createResolvableInfiniteQuery = (
+  _queryFn: (pageParam: number) => unknown,
+  getNextPageParam: (
+    _lastPage: unknown,
+    _allPages: unknown[],
+    lastPageParam: number,
+  ) => number | undefined = (_lastPage: unknown, _allPages: unknown[], lastPageParam: number) =>
+    lastPageParam + 1,
+) => {
+  const { queryFn, resolve } = createResolvableMockQuery(_queryFn);
+
   const query = createInfiniteQuery(
     {
       queryKey: [],
       queryFn: ({ pageParam }) => {
-        return createMockQuery()(pageParam);
+        return queryFn(pageParam);
       },
       initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
+      getNextPageParam,
     },
     new QueryClient({
       defaultOptions: {
@@ -37,6 +67,14 @@ test('shows head and title', async () => {
     }),
   );
 
+  return { query, resolve };
+};
+
+test('shows head and title', async () => {
+  const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+    return ['page' + pageParam];
+  });
+
   render(TanstackAppTableTest, {
     query,
     emptyMessage: 'No rows',
@@ -44,34 +82,16 @@ test('shows head and title', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  resolve();
 
-  expect(screen.getByTestId('head')).toHaveTextContent('Test head');
-
+  await waitFor(() => expect(screen.getByTestId('head')).toHaveTextContent('Test head'));
   expect(screen.getByTestId('title')).toHaveTextContent('Test Table');
 });
 
 test('renders rows', async () => {
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: ({ pageParam }) => {
-        return createMockQuery()(pageParam);
-      },
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
+  const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+    return ['page' + pageParam];
+  });
 
   render(TanstackAppTableTest, {
     query,
@@ -80,33 +100,14 @@ test('renders rows', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
-
-  expect(screen.getByTestId('bodyRow')).toHaveTextContent('page0');
+  resolve();
+  await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('page0'));
 });
 
 test('shows empty message', async () => {
-  // creating a query that returns an empty array
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: () => {
-        return [];
-      },
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
+  const { query, resolve } = createResolvableInfiniteQuery(() => {
+    return [];
+  });
 
   render(TanstackAppTableTest, {
     query,
@@ -115,32 +116,15 @@ test('shows empty message', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  resolve();
 
-  expect(screen.getByTestId('emptyMessage')).toHaveTextContent('No rows');
+  await waitFor(() => expect(screen.getByTestId('emptyMessage')).toHaveTextContent('No rows'));
 });
 
 test('loads more rows', async () => {
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: ({ pageParam }) => {
-        return createMockQuery()(pageParam);
-      },
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
+  const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+    return ['page' + pageParam];
+  });
 
   render(TanstackAppTableTest, {
     query,
@@ -149,17 +133,19 @@ test('loads more rows', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
 
-  expect(screen.getByTestId('bodyRow')).toHaveTextContent('page0');
+  await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('page0'));
 
   // loading more rows
   const loadMoreButton = screen.getByTestId('loadMoreButton');
-  loadMoreButton.click();
+  await userEvent.click(loadMoreButton);
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId('bodyRow')).toHaveLength(2);
+  });
 
   let rows = screen.getAllByTestId('bodyRow');
 
@@ -168,10 +154,13 @@ test('loads more rows', async () => {
   expect(rows[1]).toHaveTextContent('page1');
 
   // loading more rows
-  loadMoreButton.click();
+  await userEvent.click(loadMoreButton);
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId('bodyRow')).toHaveLength(3);
+  });
 
   rows = screen.getAllByTestId('bodyRow');
 
@@ -181,26 +170,10 @@ test('loads more rows', async () => {
   expect(rows[2]).toHaveTextContent('page2');
 });
 
-test('load more buttton message changes when loading', async () => {
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: ({ pageParam }) => {
-        return createMockQuery()(pageParam);
-      },
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
+test('load more button message changes when loading', async () => {
+  const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+    return ['page' + pageParam];
+  });
 
   render(TanstackAppTableTest, {
     query,
@@ -209,45 +182,27 @@ test('load more buttton message changes when loading', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
 
-  expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Load More');
+  expect(await screen.findByTestId('loadMoreButton')).toHaveTextContent('Load More');
 
   // loading more rows
   const loadMoreButton = screen.getByTestId('loadMoreButton');
-  loadMoreButton.click();
+  await userEvent.click(loadMoreButton);
 
-  await new Promise((resolve) => setTimeout(resolve, 1));
+  expect(await screen.findByTestId('loadMoreButton')).toHaveTextContent('Loading more...');
 
-  expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Loading more...');
+  resolve();
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
-
-  expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Load More');
+  await waitFor(() => {
+    expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Load More');
+  });
 });
 
 test('load more buttton is disabled when loading', async () => {
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: ({ pageParam }) => {
-        return createMockQuery()(pageParam);
-      },
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
+  const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+    return ['page' + pageParam];
+  });
 
   render(TanstackAppTableTest, {
     query,
@@ -256,47 +211,31 @@ test('load more buttton is disabled when loading', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
 
-  expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled');
+  await waitFor(() => expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled'));
 
   // loading more rows
   const loadMoreButton = screen.getByTestId('loadMoreButton');
   loadMoreButton.click();
 
-  await new Promise((resolve) => setTimeout(resolve, 1));
+  await waitFor(() => expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled'));
 
-  expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled');
+  resolve();
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
-
-  expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled');
+  await waitFor(() => expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled'));
 });
 
 test('load more buttton is disabled when there are no more pages', async () => {
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: ({ pageParam }) => {
-        return createMockQuery(1)(pageParam);
-      },
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        if (lastPageParam > 0) {
-          return undefined;
-        }
-        return lastPageParam + 1;
-      },
+  const { query, resolve } = createResolvableInfiniteQuery(
+    (pageParam) => {
+      if (!pageParam) return ['page' + pageParam];
+      return [];
     },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
+    (_lastPage, _allPages, lastPageParam) => {
+      if (lastPageParam === 0) return 1;
+      return undefined;
+    },
   );
 
   render(TanstackAppTableTest, {
@@ -306,53 +245,29 @@ test('load more buttton is disabled when there are no more pages', async () => {
     head: 'Test head',
   });
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
 
-  expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled');
+  await waitFor(() => expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled'));
 
   // loading more rows
   const loadMoreButton = screen.getByTestId('loadMoreButton');
   loadMoreButton.click();
 
-  await new Promise((resolve) => setTimeout(resolve, 1));
+  await waitFor(() => expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled'));
 
-  expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled');
+  resolve();
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
-
-  expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled');
+  await waitFor(() =>
+    expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Nothing more to load'),
+  );
 });
 
 test('refetches data when refresh button is clicked', async () => {
-  // create a mock query that increments a number every time it is called
-  const createMockQuery = () => {
-    let count = 0;
-    return async () => {
-      const mockData = ['page' + count];
-      count++;
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      return mockData;
-    };
-  };
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: createMockQuery(),
-      initialPageParam: 0,
-      getNextPageParam(_lastPage, _allPages, lastPageParam) {
-        return lastPageParam + 1;
-      },
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
+  let refreshCount = 0;
+  const { query, resolve } = createResolvableInfiniteQuery(() => {
+    refreshCount++;
+    return ['refresh' + refreshCount];
+  });
 
   render(TanstackAppTableTest, {
     query,
@@ -361,32 +276,28 @@ test('refetches data when refresh button is clicked', async () => {
     head: 'Test head',
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
 
-  expect(screen.getByTestId('bodyRow')).toHaveTextContent('page0');
+  await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('refresh1'));
 
   // refreshing
   const refreshButton = screen.getByTestId('refreshButton');
   await userEvent.click(refreshButton);
 
-  await new Promise((resolve) => setTimeout(resolve, 1));
-
   // refreshButton should have the class animate-spin
-  expect(refreshButton).toHaveClass('animate-spin');
+  await waitFor(() => expect(refreshButton).toHaveClass('animate-spin'));
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
+
+  await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('refresh2'));
 
   // refreshButton should not have the class animate-spin
-  expect(refreshButton).not.toHaveClass('animate-spin');
-
-  expect(screen.getByTestId('bodyRow')).toHaveTextContent('page1');
+  await waitFor(() => expect(refreshButton).not.toHaveClass('animate-spin'));
 
   // refreshing
   await userEvent.click(refreshButton);
 
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  resolve();
 
-  expect(screen.getByTestId('bodyRow')).toHaveTextContent('page2');
+  await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('refresh3'));
 });
