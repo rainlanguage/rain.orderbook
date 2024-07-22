@@ -20,11 +20,11 @@
   import type { UTCTimestamp } from 'lightweight-charts';
   import { formatUnits } from 'viem';
   import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
-  import { vaultBalanceChangesList, vaultDetail } from '$lib/queries/commands';
+  // import { vaultBalanceChangesList, vaultDetail } from '$lib/queries/commands';
   import { QKEY_VAULT, QKEY_VAULT_CHANGES } from '$lib/queries/keys';
   import { subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
-  import TanstackAppTable from '$lib/components/TanstackAppTable.svelte';
+  import TanstackAppTable from '$lib/components/tables/TanstackAppTable.svelte';
 
   let showDepositModal = false;
   let showWithdrawModal = false;
