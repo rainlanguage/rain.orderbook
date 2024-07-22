@@ -8,10 +8,11 @@ use url::Url;
 mod input;
 pub use input::*;
 
-/// CLI app entrypoint sruct
+/// Rain orderbook Quoter CLI app entrypoint sruct
 #[derive(Parser, Debug, Clone, PartialEq)]
 #[command(author, version, about = "Rain Orderbook Qoute CLI", long_about = None)]
-pub struct QuoterCLi {
+pub struct Quoter {
+    // input group, only one of which can be specified at a time
     #[command(flatten)]
     pub input: Input,
 
@@ -45,16 +46,19 @@ pub struct QuoterCLi {
     pub pretty: bool,
 }
 
+/// A serializable/deserializable struct that bridges [QuoteResult] for cli
+/// output by implementing `From` trait for it.
+/// This is is needed since [crate::error::FailedQuote] does not impl ser/deser.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "status", content = "message")]
-pub enum QuoteCliResultInner {
+pub enum QuoterResultInner {
     Error(String),
     #[serde(untagged)]
     Ok(OrderQuoteValue),
 }
 
-impl From<QuoteResult> for QuoteCliResultInner {
+impl From<QuoteResult> for QuoterResultInner {
     fn from(value: QuoteResult) -> Self {
         match value {
             Ok(v) => Self::Ok(v),
@@ -63,23 +67,24 @@ impl From<QuoteResult> for QuoteCliResultInner {
     }
 }
 
+/// Wrapper struct for arrya of [QuoterResultInner]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct QuoteCliResult(pub Vec<QuoteCliResultInner>);
+pub struct QuoterResult(pub Vec<QuoterResultInner>);
 
-impl From<Vec<QuoteResult>> for QuoteCliResult {
+impl From<Vec<QuoteResult>> for QuoterResult {
     fn from(value: Vec<QuoteResult>) -> Self {
         Self(value.into_iter().map(|v| v.into()).collect())
     }
 }
 
-impl QuoterCLi {
+impl Quoter {
     /// Executes the CLI call based on the given options of self
-    pub async fn execute(&self) -> anyhow::Result<()> {
+    pub async fn run(&self) -> anyhow::Result<()> {
         let strigifier = if self.pretty {
-            serde_json::to_string_pretty::<QuoteCliResult>
+            serde_json::to_string_pretty::<QuoterResult>
         } else {
-            serde_json::to_string::<QuoteCliResult>
+            serde_json::to_string::<QuoterResult>
         };
         let result = match self.input.read_content().await? {
             InputContentType::Target(v) => strigifier(
@@ -118,8 +123,8 @@ impl QuoterCLi {
 /// The main entrypoint for this crate's cli
 pub async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(tracing_subscriber::fmt::Subscriber::new())?;
-    let cli = QuoterCLi::parse();
-    cli.execute().await
+    let cli = Quoter::parse();
+    cli.run().await
 }
 
 #[cfg(test)]
@@ -136,7 +141,7 @@ mod tests {
 
     #[test]
     fn verify_cli() {
-        QuoterCLi::command().debug_assert();
+        Quoter::command().debug_assert();
     }
 
     #[test]
@@ -151,7 +156,7 @@ mod tests {
         let sg = Url::parse("https://sg.com").unwrap();
         let output = PathBuf::from_str("./a/b").unwrap();
 
-        let cmd = QuoterCLi::command();
+        let cmd = Quoter::command();
         let result = cmd.get_matches_from(vec![
             "cmd",
             "--output",
@@ -187,7 +192,7 @@ mod tests {
             ]
         );
 
-        let cmd = QuoterCLi::command();
+        let cmd = Quoter::command();
         assert!(cmd
             .try_get_matches_from(vec![
                 "cmd",
@@ -203,7 +208,7 @@ mod tests {
             ])
             .is_err());
 
-        let cmd = QuoterCLi::command();
+        let cmd = Quoter::command();
         assert!(cmd
             .try_get_matches_from(vec![
                 "cmd",
@@ -219,7 +224,7 @@ mod tests {
             ])
             .is_err());
 
-        let cmd = QuoterCLi::command();
+        let cmd = Quoter::command();
         assert!(cmd
             .try_get_matches_from(vec![
                 "cmd",
@@ -237,8 +242,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_dispatch_err() {
-        let cli = QuoterCLi {
+    async fn test_run_err() {
+        let cli = Quoter {
             output: PathBuf::new(),
             rpc: Url::parse("http://a.com").unwrap(),
             subgraph: None,
@@ -255,7 +260,7 @@ mod tests {
                 ),
             },
         };
-        let result = cli.execute().await.expect_err("expected error").to_string();
+        let result = cli.run().await.expect_err("expected error").to_string();
         assert_eq!(
             result,
             "requires '--subgraph' url to read orders details from"
@@ -263,13 +268,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_dispatch_ok() {
+    async fn test_run_ok() {
         let rpc_server = MockServer::start_async().await;
         let rpc_url = rpc_server.url("/rpc");
         let test_path = std::env::current_dir().unwrap().join("test-result.json");
 
         let targets = BatchQuoteTarget(vec![QuoteTarget::default()]);
-        let cli = QuoterCLi {
+        let cli = Quoter {
             output: test_path.clone(),
             rpc: Url::parse(&rpc_url).unwrap(),
             subgraph: None,
@@ -309,7 +314,7 @@ mod tests {
         });
 
         // run dispatch
-        cli.execute().await.unwrap();
+        cli.run().await.unwrap();
 
         // output json format containing ok and err variants:
         // [
@@ -317,9 +322,9 @@ mod tests {
         //     { "status": "error", "message": "Order does not exist" }
         // ]
         let result = read_to_string(test_path.clone()).unwrap();
-        let expected = serde_json::to_string(&QuoteCliResult(vec![
-            QuoteCliResultInner::Ok(OrderQuoteValue::default()),
-            QuoteCliResultInner::Error(FailedQuote::NonExistent.to_string()),
+        let expected = serde_json::to_string(&QuoterResult(vec![
+            QuoterResultInner::Ok(OrderQuoteValue::default()),
+            QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
         ]))
         .unwrap();
         assert_eq!(result, expected);

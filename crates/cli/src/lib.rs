@@ -2,7 +2,7 @@ use crate::commands::{Chart, Order, OrderTake, Vault};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
-use rain_orderbook_quote::cli::QuoterCLi;
+use rain_orderbook_quote::cli::Quoter;
 
 mod commands;
 mod execute;
@@ -24,7 +24,7 @@ pub enum Orderbook {
 
     Chart(Chart),
 
-    Quote(QuoterCLi),
+    Quote(Quoter),
 }
 
 impl Orderbook {
