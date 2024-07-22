@@ -17,7 +17,7 @@ serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "05b6396271b77a4844c29bf840b7a587be388ff8" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "cbdedb77fb1994a18ceb47e72786f8b32b670669" }
 rain-orderbook-env = { path = "../../crates/env" }
 alloy-primitives = "0.6.3"
 alloy-json-abi = "0.6.3"
