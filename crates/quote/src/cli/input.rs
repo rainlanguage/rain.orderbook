@@ -30,7 +30,7 @@ pub struct Input {
     #[arg(short, long, env)]
     pub json_string: Option<String>,
 
-    /// Input in simplest form that takes exactly 3 values (orderbook address,
+    /// Input in simplest form that takes exactly 4 values (orderbook address,
     /// order hash, input index and output index) in order, "--subgraph-url" is
     /// required when usng this arg
     #[arg(

@@ -6057,6 +6057,7 @@ dependencies = [
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
+ "rain_orderbook_quote",
  "rain_orderbook_subgraph_client",
  "reqwest 0.11.27",
  "rust-bigint",

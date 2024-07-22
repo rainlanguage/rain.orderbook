@@ -73,51 +73,53 @@ impl From<Vec<QuoteResult>> for QuoteCliResult {
     }
 }
 
-/// Dispatches the CLI call based on the given options
-pub async fn dispatch(cli: QuoterCLi) -> anyhow::Result<()> {
-    let strigifier = if cli.pretty {
-        serde_json::to_string_pretty::<QuoteCliResult>
-    } else {
-        serde_json::to_string::<QuoteCliResult>
-    };
-    let result = match cli.input.read_content().await? {
-        InputContentType::Target(v) => strigifier(
-            &v.do_quote(cli.rpc.as_str(), cli.block_number, cli.multicall_address)
-                .await?
-                .into(),
-        )?,
-        InputContentType::Spec(v) => {
-            if let Some(sg) = cli.subgraph {
-                strigifier(
-                    &v.do_quote(
-                        sg.as_str(),
-                        cli.rpc.as_str(),
-                        cli.block_number,
-                        cli.multicall_address,
-                    )
+impl QuoterCLi {
+    /// Executes the CLI call based on the given options of self
+    pub async fn execute(&self) -> anyhow::Result<()> {
+        let strigifier = if self.pretty {
+            serde_json::to_string_pretty::<QuoteCliResult>
+        } else {
+            serde_json::to_string::<QuoteCliResult>
+        };
+        let result = match self.input.read_content().await? {
+            InputContentType::Target(v) => strigifier(
+                &v.do_quote(self.rpc.as_str(), self.block_number, self.multicall_address)
                     .await?
                     .into(),
-                )?
-            } else {
-                return Err(anyhow::anyhow!(
-                    "requires '--subgraph' url to read orders details from"
-                ));
+            )?,
+            InputContentType::Spec(v) => {
+                if let Some(sg) = &self.subgraph {
+                    strigifier(
+                        &v.do_quote(
+                            sg.as_str(),
+                            self.rpc.as_str(),
+                            self.block_number,
+                            self.multicall_address,
+                        )
+                        .await?
+                        .into(),
+                    )?
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "requires '--subgraph' url to read orders details from"
+                    ));
+                }
             }
+        };
+        if self.stdout {
+            println!("{}", result);
         }
-    };
-    if cli.stdout {
-        println!("{}", result);
-    }
-    write(cli.output, result)?;
+        write(&self.output, result)?;
 
-    Ok(())
+        Ok(())
+    }
 }
 
 /// The main entrypoint for this crate's cli
 pub async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(tracing_subscriber::fmt::Subscriber::new())?;
     let cli = QuoterCLi::parse();
-    dispatch(cli).await
+    cli.execute().await
 }
 
 #[cfg(test)]
@@ -253,7 +255,7 @@ mod tests {
                 ),
             },
         };
-        let result = dispatch(cli).await.expect_err("expected error").to_string();
+        let result = cli.execute().await.expect_err("expected error").to_string();
         assert_eq!(
             result,
             "requires '--subgraph' url to read orders details from"
@@ -307,7 +309,7 @@ mod tests {
         });
 
         // run dispatch
-        dispatch(cli).await.unwrap();
+        cli.execute().await.unwrap();
 
         // output json format containing ok and err variants:
         // [
