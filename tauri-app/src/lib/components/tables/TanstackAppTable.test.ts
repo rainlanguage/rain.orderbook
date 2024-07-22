@@ -264,7 +264,7 @@ test('load more buttton is disabled when there are no more pages', async () => {
 
 test('refetches data when refresh button is clicked', async () => {
   let refreshCount = 0;
-  const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+  const { query, resolve } = createResolvableInfiniteQuery(() => {
     refreshCount++;
     return ['refresh' + refreshCount];
   });
