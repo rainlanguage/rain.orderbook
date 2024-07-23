@@ -37,32 +37,65 @@ if (import.meta.vitest) {
     const mockVaultBalanceChanges: VaultBalanceChange[] = [
       {
         __typename: 'Withdrawal',
-        data: {
-          id: 'withdrawal1',
-          __typename: 'Withdrawal',
-          amount: '1000',
-          old_vault_balance: '5000',
-          new_vault_balance: '4000',
+        amount: '1000',
+        old_vault_balance: '5000',
+        new_vault_balance: '4000',
+        vault: {
+          id: 'vault1',
+          token: {
+            id: 'token1',
+            address: '0xTokenAddress1',
+            name: 'Token1',
+            symbol: 'TKN1',
+            decimals: '18',
+          },
+        },
+        timestamp: '1625247600',
+        transaction: {
+          id: 'tx1',
+          from: '0xUser1',
         },
       },
       {
         __typename: 'TradeVaultBalanceChange',
-        data: {
-          id: 'trade1',
-          __typename: 'TradeVaultBalanceChange',
-          amount: '1500',
-          old_vault_balance: '4000',
-          new_vault_balance: '2500',
+        amount: '1500',
+        old_vault_balance: '4000',
+        new_vault_balance: '2500',
+        vault: {
+          id: 'vault2',
+          token: {
+            id: 'token2',
+            address: '0xTokenAddress2',
+            name: 'Token2',
+            symbol: 'TKN2',
+            decimals: '18',
+          },
+        },
+        timestamp: '1625347600',
+        transaction: {
+          id: 'tx2',
+          from: '0xUser2',
         },
       },
       {
         __typename: 'Deposit',
-        data: {
-          id: 'deposit1',
-          __typename: 'Deposit',
-          amount: '2000',
-          old_vault_balance: '2500',
-          new_vault_balance: '4500',
+        amount: '2000',
+        old_vault_balance: '2500',
+        new_vault_balance: '4500',
+        vault: {
+          id: 'vault3',
+          token: {
+            id: 'token3',
+            address: '0xTokenAddress3',
+            name: 'Token3',
+            symbol: 'TKN3',
+            decimals: '18',
+          },
+        },
+        timestamp: '1625447600',
+        transaction: {
+          id: 'tx3',
+          from: '0xUser3',
         },
       },
     ];

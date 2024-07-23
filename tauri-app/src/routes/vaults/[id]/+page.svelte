@@ -1,7 +1,5 @@
 <script lang="ts">
   import { Heading, Button, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
-  import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
-  import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -10,7 +8,6 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { goto } from '$app/navigation';
-  import LightweightChartHistogram from '$lib/components/LightweightChartHistogram.svelte';
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import { sortBy } from 'lodash';
   import { bigintToFloat } from '$lib/utils/number';
@@ -26,9 +23,9 @@
   import { subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import TanstackAppTable from '$lib/components/tables/TanstackAppTable.svelte';
-
-  let showDepositModal = false;
-  let showWithdrawModal = false;
+  import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
+  import type { Vault } from '$lib/typeshare/vaultDetail';
+  import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
 
   $: balanceChangesQuery = createInfiniteQuery({
     queryKey: [QKEY_VAULT_CHANGES + $page.params.id],
@@ -51,19 +48,21 @@
     enabled: !!$subgraphUrl,
   });
 
-  let vaultBalanceChangesChartData: { value: number; time: UTCTimestamp; color?: string }[] = [];
+  let vaultBalanceChangesChartData: { value: number; time: UTCTimestamp }[] = [];
 
-  // function prepareChartData() {
-  //   const transformedData = $vaultBalanceChangesList.all.map((d) => ({
-  //     value: bigintToFloat(BigInt(d.amount), Number(vault.token.decimals ?? 0)),
-  //     time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-  //     color: BigInt(d.amount) < 0n ? '#4E4AF6' : '#046C4E',
-  //   }));
+  function prepareChartData(vault: Vault) {
+    const transformedData = $balanceChangesQuery.data?.pages.flatMap((page) =>
+      page.map((d) => ({
+        value: bigintToFloat(BigInt(d.new_vault_balance), Number(vault.token.decimals ?? 0)),
+        time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+      })),
+    );
 
-  //   return sortBy(transformedData, (d) => d.time);
-  // }
+    return sortBy(transformedData, (d) => d.time);
+  }
 
-  // $: $balanceChangesQuery.data?.pages.length, (vaultBalanceChangesChartData = prepareChartData());
+  $: if ($balanceChangesQuery.data?.pages.length && $vaultDetailQuery.data)
+    vaultBalanceChangesChartData = prepareChartData($vaultDetailQuery.data);
 </script>
 
 <PageHeader title="Vault" />
@@ -75,70 +74,74 @@
     </div>
     <div>
       {#if data && $walletAddressMatchesOrBlank(data.owner)}
-        <Button color="dark" on:click={() => handleDepositModal()}
+        <Button color="dark" on:click={() => handleDepositModal(data)}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
-        <Button color="dark" on:click={() => (showWithdrawModal = !showWithdrawModal)}
+        <Button color="dark" on:click={() => handleWithdrawModal(data)}
           ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
         >
       {/if}
     </div>
   </svelte:fragment>
   <svelte:fragment slot="card" let:data>
-    <CardProperty>
-      <svelte:fragment slot="key">Vault ID</svelte:fragment>
-      <svelte:fragment slot="value">{bigintStringToHex(data?.vault_id)}</svelte:fragment>
-    </CardProperty>
+    {#if data}
+      <CardProperty>
+        <svelte:fragment slot="key">Vault ID</svelte:fragment>
+        <svelte:fragment slot="value">{bigintStringToHex(data.vault_id)}</svelte:fragment>
+      </CardProperty>
 
-    <CardProperty>
-      <svelte:fragment slot="key">Owner Address</svelte:fragment>
-      <svelte:fragment slot="value">
-        <Hash type={HashType.Wallet} value={vault.owner} />
-      </svelte:fragment>
-    </CardProperty>
+      <CardProperty>
+        <svelte:fragment slot="key">Owner Address</svelte:fragment>
+        <svelte:fragment slot="value">
+          <Hash type={HashType.Wallet} value={data.owner} />
+        </svelte:fragment>
+      </CardProperty>
 
-    <CardProperty>
-      <svelte:fragment slot="key">Token address</svelte:fragment>
-      <svelte:fragment slot="value">
-        <Hash value={vault.token.id} />
-      </svelte:fragment>
-    </CardProperty>
+      <CardProperty>
+        <svelte:fragment slot="key">Token address</svelte:fragment>
+        <svelte:fragment slot="value">
+          <Hash value={data.token.id} />
+        </svelte:fragment>
+      </CardProperty>
 
-    <CardProperty>
-      <svelte:fragment slot="key">Balance</svelte:fragment>
-      <svelte:fragment slot="value"
-        >{formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
-        {vault.token.symbol}</svelte:fragment
-      >
-    </CardProperty>
+      <CardProperty>
+        <svelte:fragment slot="key">Balance</svelte:fragment>
+        <svelte:fragment slot="value"
+          >{formatUnits(BigInt(data.balance), Number(data.token.decimals ?? 0))}
+          {data.token.symbol}</svelte:fragment
+        >
+      </CardProperty>
 
-    <CardProperty>
-      <svelte:fragment slot="key">Orders</svelte:fragment>
-      <svelte:fragment slot="value">
-        {#if vault.orders_as_output && vault.orders_as_output.length > 0}
-          <p class="flex flex-wrap justify-start">
-            {#each vault.orders_as_output as order}
-              <Button
-                class="mr-1 mt-1 px-1 py-0"
-                color="alternative"
-                on:click={() => goto(`/orders/${order.id}`)}
-                ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
-              >
-            {/each}
-          </p>
-        {/if}
-      </svelte:fragment>
-    </CardProperty>
+      <CardProperty>
+        <svelte:fragment slot="key">Orders</svelte:fragment>
+        <svelte:fragment slot="value">
+          {#if data.orders_as_output && data.orders_as_output.length > 0}
+            <p class="flex flex-wrap justify-start">
+              {#each data.orders_as_output as order}
+                <Button
+                  class="mr-1 mt-1 px-1 py-0"
+                  color="alternative"
+                  on:click={() => goto(`/orders/${order.id}`)}
+                  ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
+                >
+              {/each}
+            </p>
+          {/if}
+        </svelte:fragment>
+      </CardProperty>
+    {/if}
   </svelte:fragment>
 
-  <svelte:fragment slot="chart">
-    <LightweightChartHistogram
-      title="Deposits & Withdrawals"
-      priceSymbol={vault.token.symbol}
-      data={vaultBalanceChangesChartData}
-      loading={$balanceChangesQuery.isLoading}
-      emptyMessage="No deposits or withdrawals found"
-    />
+  <svelte:fragment slot="chart" let:data>
+    {#if data}
+      <LightweightChartLine
+        title="Balance history"
+        priceSymbol={data.token.symbol}
+        data={vaultBalanceChangesChartData}
+        loading={$balanceChangesQuery.isLoading}
+        emptyMessage="No deposits or withdrawals found"
+      />
+    {/if}
   </svelte:fragment>
 
   <svelte:fragment slot="below">
@@ -155,6 +158,7 @@
         <TableHeadCell padding="p-0">Sender</TableHeadCell>
         <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
         <TableHeadCell padding="p-0">Balance Change</TableHeadCell>
+        <TableHeadCell padding="p-0">Balance</TableHeadCell>
         <TableHeadCell padding="p--">Type</TableHeadCell>
       </svelte:fragment>
 
@@ -173,12 +177,13 @@
           {item.vault.token.symbol}
         </TableBodyCell>
         <TableBodyCell tdClass="break-word p-0 text-left">
+          {formatUnits(BigInt(item.new_vault_balance), Number(item.vault.token.decimals ?? 0))}
+          {item.vault.token.symbol}
+        </TableBodyCell>
+        <TableBodyCell tdClass="break-word p-0 text-left">
           {item.__typename}
         </TableBodyCell>
       </svelte:fragment>
     </TanstackAppTable>
   </svelte:fragment>
 </PageContentDetail>
-
-<ModalVaultDeposit bind:open={showDepositModal} {vault} />
-<ModalVaultWithdraw bind:open={showWithdrawModal} {vault} />

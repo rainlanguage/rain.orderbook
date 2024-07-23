@@ -24,6 +24,7 @@ if (import.meta.vitest) {
 
   it('uses the vault_detail command correctly', async () => {
     const mockData: Vault = {
+      id: '1',
       vault_id: '1',
       owner: '0x123',
       token: {
