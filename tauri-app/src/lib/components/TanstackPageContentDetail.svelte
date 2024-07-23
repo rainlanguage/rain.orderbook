@@ -27,5 +27,7 @@
     <Spinner class="h-8 w-8" color="white" />
   </div>
 {:else}
-  <div class="text-center text-gray-900 dark:text-white">{emptyMessage}</div>
+  <div data-testid="emptyMessage" class="text-center text-gray-900 dark:text-white">
+    {emptyMessage}
+  </div>
 {/if}
