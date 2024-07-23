@@ -3,10 +3,6 @@
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
-  import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
-  import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
-  import type { Vault } from '$lib/typeshare/vaultsList';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
@@ -18,12 +14,9 @@
   import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
   import { QKEY_VAULTS } from '$lib/queries/keys';
   import { vaultBalanceDisplay } from '$lib/utils/vault';
+  import { createEventDispatcher } from 'svelte';
 
-  let showDepositModal = false;
-  let showWithdrawModal = false;
-  let showDepositGenericModal = false;
-  let depositModalVault: Vault;
-  let withdrawModalVault: Vault;
+  const dispatch = createEventDispatcher();
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS],
@@ -55,7 +48,7 @@
             disabled={!$activeOrderbook}
             size="sm"
             color="primary"
-            on:click={() => (showDepositGenericModal = true)}>New vault</Button
+            on:click={() => dispatch('showDepositGenericModal')}>New vault</Button
           >
         </div>
         <div class="flex flex-col items-end gap-y-2">
@@ -142,23 +135,17 @@
           <DropdownItem
             on:click={(e) => {
               e.stopPropagation();
-              depositModalVault = item;
-              showDepositModal = true;
+              dispatch('showDepositModal', item);
             }}>Deposit</DropdownItem
           >
           <DropdownItem
             on:click={(e) => {
               e.stopPropagation();
-              withdrawModalVault = item;
-              showWithdrawModal = true;
+              dispatch('showWithdrawModal', item);
             }}>Withdraw</DropdownItem
           >
         </Dropdown>
       {/if}
     </svelte:fragment>
   </TanstackAppTable>
-
-  <ModalVaultDeposit bind:open={showDepositModal} vault={depositModalVault} />
-  <ModalVaultWithdraw bind:open={showWithdrawModal} vault={withdrawModalVault} />
-  <ModalVaultDepositGeneric bind:open={showDepositGenericModal} />
 {/if}
