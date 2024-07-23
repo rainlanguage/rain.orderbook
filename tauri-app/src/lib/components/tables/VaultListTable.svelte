@@ -13,7 +13,7 @@
   import { activeOrderbook, subgraphUrl } from '$lib/stores/settings';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import { vaultBalanceList } from '$lib/queries/commands';
+  import { vaultList } from '$lib/queries/vaultList';
   import TanstackAppTable from '$lib/components/tables/TanstackAppTable.svelte';
   import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
   import { QKEY_VAULTS } from '$lib/queries/keys';
@@ -28,7 +28,7 @@
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS],
     queryFn: ({ pageParam }) => {
-      return vaultBalanceList($subgraphUrl, pageParam);
+      return vaultList($subgraphUrl, pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {

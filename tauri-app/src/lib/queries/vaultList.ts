@@ -14,7 +14,7 @@ export type VaultsListArgs = {
   };
 };
 
-export const vaultBalanceList = async (
+export const vaultList = async (
   url: string | undefined,
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
@@ -55,10 +55,10 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await vaultBalanceList(undefined, 0)).toEqual([]);
+    expect(await vaultList(undefined, 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await vaultBalanceList('http://localhost:8000', 0)).toEqual([
+    expect(await vaultList('http://localhost:8000', 0)).toEqual([
       {
         id: '1',
         vault_id: '1',

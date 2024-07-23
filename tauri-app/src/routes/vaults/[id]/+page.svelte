@@ -20,7 +20,8 @@
   import type { UTCTimestamp } from 'lightweight-charts';
   import { formatUnits } from 'viem';
   import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
-  // import { vaultBalanceChangesList, vaultDetail } from '$lib/queries/commands';
+  import { vaultBalanceChangesList } from '$lib/queries/vaultBalanceChangesList';
+  import { vaultDetail } from '$lib/queries/vaultDetail';
   import { QKEY_VAULT, QKEY_VAULT_CHANGES } from '$lib/queries/keys';
   import { subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
@@ -52,34 +53,29 @@
 
   let vaultBalanceChangesChartData: { value: number; time: UTCTimestamp; color?: string }[] = [];
 
-  function prepareChartData() {
-    const transformedData = $vaultBalanceChangesList.all.map((d) => ({
-      value: bigintToFloat(BigInt(d.amount), Number(vault.token.decimals ?? 0)),
-      time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
-      color: BigInt(d.amount) < 0n ? '#4E4AF6' : '#046C4E',
-    }));
+  // function prepareChartData() {
+  //   const transformedData = $vaultBalanceChangesList.all.map((d) => ({
+  //     value: bigintToFloat(BigInt(d.amount), Number(vault.token.decimals ?? 0)),
+  //     time: timestampSecondsToUTCTimestamp(BigInt(d.timestamp)),
+  //     color: BigInt(d.amount) < 0n ? '#4E4AF6' : '#046C4E',
+  //   }));
 
-    return sortBy(transformedData, (d) => d.time);
-  }
+  //   return sortBy(transformedData, (d) => d.time);
+  // }
 
-  $: vault = $vaultDetailQuery?.data;
-  $: $balanceChangesQuery.data?.pages.length, (vaultBalanceChangesChartData = prepareChartData());
+  // $: $balanceChangesQuery.data?.pages.length, (vaultBalanceChangesChartData = prepareChartData());
 </script>
 
 <PageHeader title="Vault" />
 
-<PageContentDetail
-  isFetching={$vaultDetailQuery.isFetched}
-  isEmpty={vault === undefined}
-  emptyMessage="Vault not found"
->
-  <svelte:fragment slot="top">
+<PageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
+  <svelte:fragment slot="top" let:data>
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
-      {vault.token.name}
+      {data?.token.name}
     </div>
     <div>
-      {#if vault && $walletAddressMatchesOrBlank(vault.owner)}
-        <Button color="dark" on:click={() => (showDepositModal = !showDepositModal)}
+      {#if data && $walletAddressMatchesOrBlank(data.owner)}
+        <Button color="dark" on:click={() => handleDepositModal()}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
         <Button color="dark" on:click={() => (showWithdrawModal = !showWithdrawModal)}
@@ -88,10 +84,10 @@
       {/if}
     </div>
   </svelte:fragment>
-  <svelte:fragment slot="card">
+  <svelte:fragment slot="card" let:data>
     <CardProperty>
       <svelte:fragment slot="key">Vault ID</svelte:fragment>
-      <svelte:fragment slot="value">{bigintStringToHex(vault.vault_id)}</svelte:fragment>
+      <svelte:fragment slot="value">{bigintStringToHex(data?.vault_id)}</svelte:fragment>
     </CardProperty>
 
     <CardProperty>
@@ -146,13 +142,14 @@
   </svelte:fragment>
 
   <svelte:fragment slot="below">
-    <Heading tag="h5" class="mb-4 mt-6 font-normal">Deposits & Withdrawals</Heading>
-
     <TanstackAppTable
       query={balanceChangesQuery}
       emptyMessage="No deposits or withdrawals found"
       rowHoverable={false}
     >
+      <svelte:fragment slot="title">
+        <Heading tag="h5" class="mb-4 mt-6 font-normal">Vault Balance Changes</Heading>
+      </svelte:fragment>
       <svelte:fragment slot="head">
         <TableHeadCell padding="p-4">Date</TableHeadCell>
         <TableHeadCell padding="p-0">Sender</TableHeadCell>
