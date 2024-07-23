@@ -23,7 +23,7 @@ vi.mock('$lib/stores/wallets', async () => {
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('$lib/stores/settings.test');
+  const { mockSettingsStore } = await import('$lib/mocks/settings');
 
   const _activeOrderbook = writable();
 
