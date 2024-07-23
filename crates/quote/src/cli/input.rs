@@ -40,60 +40,47 @@ pub struct Input {
 }
 
 /// Parse and validates the input hex string bytes into [BatchQuoteSpec]
-pub fn parse_input(
-    value: &str,
-) -> Result<BatchQuoteSpec, Box<dyn std::error::Error + Send + Sync + 'static>> {
+pub fn parse_input(value: &str) -> anyhow::Result<BatchQuoteSpec> {
     let bytes = alloy_primitives::hex::decode(value)?;
-    if bytes.len() % 54 != 0 {
-        return Err("bad input length".into());
+    if bytes.is_empty() || bytes.len() % 54 != 0 {
+        return Err(anyhow::anyhow!("bad input length"));
     }
     let mut batch_quote_sepcs = BatchQuoteSpec(vec![]);
     let mut start_index = 0;
     let mut end_index = 54;
-    while let Some(b) = bytes.get(start_index..end_index) {
-        batch_quote_sepcs.0.push(resolve_spec_bytes(b)?);
+    while let Some(bytes_piece) = bytes.get(start_index..end_index) {
+        let orderbook = bytes_piece
+            .get(..20)
+            .map(Address::from_slice)
+            .ok_or(anyhow::anyhow!("missing orderbook address"))?;
+        let input_io_index = bytes_piece
+            .get(20..21)
+            .map(|v| v[0])
+            .ok_or(anyhow::anyhow!("missing input IO index"))?;
+        let output_io_index = bytes_piece
+            .get(21..22)
+            .map(|v| v[0])
+            .ok_or(anyhow::anyhow!("missing output IO index"))?;
+        let order_hash = bytes_piece
+            .get(22..)
+            .map(|v| {
+                let mut bytes32: [u8; 32] = [0; 32];
+                bytes32.copy_from_slice(v);
+                U256::from_be_bytes(bytes32)
+            })
+            .ok_or(anyhow::anyhow!("missing order hash"))?;
+
+        batch_quote_sepcs.0.push(QuoteSpec {
+            order_hash,
+            input_io_index,
+            output_io_index,
+            signed_context: vec![],
+            orderbook,
+        });
         start_index += 54;
         end_index += 54;
     }
     Ok(batch_quote_sepcs)
-}
-
-/// Resolves bytes into [QuoteSpec]
-pub fn resolve_spec_bytes(bytes: &[u8]) -> anyhow::Result<QuoteSpec> {
-    // a single set of concated quote specs must have exactly 54 bytes in length
-    // orderbook-address(20) + input-io-index(1) + output-io-index(1) + order-hash(32) = 54
-    if bytes.len() != 54 {
-        return Err(anyhow::anyhow!("bad input length"));
-    }
-
-    let orderbook = bytes
-        .get(0..20)
-        .map(Address::from_slice)
-        .ok_or(anyhow::anyhow!("missing orderbook address"))?;
-    let input_io_index = bytes
-        .get(20..21)
-        .map(|v| v[0])
-        .ok_or(anyhow::anyhow!("missing input IO index"))?;
-    let output_io_index = bytes
-        .get(21..22)
-        .map(|v| v[0])
-        .ok_or(anyhow::anyhow!("missing output IO index"))?;
-    let order_hash = bytes
-        .get(22..)
-        .map(|v| {
-            let mut result: [u8; 32] = [0; 32];
-            result.copy_from_slice(v);
-            U256::from_be_bytes(result)
-        })
-        .ok_or(anyhow::anyhow!("missing order hash"))?;
-
-    Ok(QuoteSpec {
-        order_hash,
-        input_io_index,
-        output_io_index,
-        signed_context: vec![],
-        orderbook,
-    })
 }
 
 // a binding struct for Quote
@@ -232,34 +219,6 @@ mod tests {
         assert_eq!(result, "bad input length");
 
         assert!(parse_input("some non bytes input").is_err());
-    }
-
-    #[test]
-    fn test_resolve_spec_bytes() {
-        let orderbook_address1 = Address::random();
-        let input_io_index1 = 10u8;
-        let output_io_index1 = 8u8;
-        let order_hash1 = [5u8; 32];
-        let mut bytes = vec![];
-        bytes.extend(orderbook_address1.0 .0);
-        bytes.push(input_io_index1);
-        bytes.push(output_io_index1);
-        bytes.extend(order_hash1);
-
-        let result = resolve_spec_bytes(&bytes).unwrap();
-        let expected = QuoteSpec {
-            order_hash: U256::from_be_bytes(order_hash1),
-            input_io_index: input_io_index1,
-            output_io_index: output_io_index1,
-            signed_context: vec![],
-            orderbook: orderbook_address1,
-        };
-        assert_eq!(result, expected);
-
-        let result = resolve_spec_bytes(&bytes[2..])
-            .expect_err("expected to error")
-            .to_string();
-        assert_eq!(result, "bad input length");
     }
 
     #[test]
