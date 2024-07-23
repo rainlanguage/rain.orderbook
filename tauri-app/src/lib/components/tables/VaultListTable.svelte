@@ -14,9 +14,11 @@
   import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
   import { QKEY_VAULTS } from '$lib/queries/keys';
   import { vaultBalanceDisplay } from '$lib/utils/vault';
-  import { createEventDispatcher } from 'svelte';
-
-  const dispatch = createEventDispatcher();
+  import {
+    handleDepositGenericModal,
+    handleDepositModal,
+    handleWithdrawModal,
+  } from '$lib/services/modal';
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS],
@@ -48,7 +50,10 @@
             disabled={!$activeOrderbook}
             size="sm"
             color="primary"
-            on:click={() => dispatch('showDepositGenericModal')}>New vault</Button
+            data-testid="new-vault-button"
+            on:click={() => {
+              handleDepositGenericModal();
+            }}>New vault</Button
           >
         </div>
         <div class="flex flex-col items-end gap-y-2">
@@ -67,23 +72,28 @@
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
-      <TableBodyCell tdClass="break-all px-4 py-4">{bigintStringToHex(item.vault_id)}</TableBodyCell
+      <TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
+        >{bigintStringToHex(item.vault_id)}</TableBodyCell
       >
-      <TableBodyCell tdClass="break-all px-4 py-2 min-w-48"
+      <TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner"
         ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
       >
-      <TableBodyCell tdClass="break-word p-2 min-w-48">{item.token.name}</TableBodyCell>
-      <TableBodyCell tdClass="break-all p-2 min-w-48">
+      <TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
+        >{item.token.name}</TableBodyCell
+      >
+      <TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
         {vaultBalanceDisplay(item)}
         {item.token.symbol}
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
         {#if item.orders_as_input.length > 0}
-          <div class="flex flex-wrap items-end justify-start">
+          <div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
             {#each item.orders_as_input.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color="alternative"
+                data-testid="vault-order-input"
+                data-order-id={order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
                 ><Hash
                   type={HashType.Identifier}
@@ -98,11 +108,13 @@
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
         {#if item.orders_as_output.length > 0}
-          <div class="flex flex-wrap items-end justify-start">
+          <div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
             {#each item.orders_as_output.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color="alternative"
+                data-order-id={order.id}
+                data-testid="vault-order-output"
                 on:click={() => goto(`/orders/${order.id}`)}
                 ><Hash
                   type={HashType.Identifier}
@@ -120,6 +132,7 @@
           <Button
             color="alternative"
             outline={false}
+            data-testid="vault-menu"
             id={`vault-menu-${item.id}`}
             class="mr-2 border-none px-2"
             on:click={(e) => {
@@ -131,17 +144,23 @@
         {/if}
       </TableBodyCell>
       {#if $walletAddressMatchesOrBlank(item.owner)}
-        <Dropdown placement="bottom-end" triggeredBy={`#vault-menu-${item.id}`}>
+        <Dropdown
+          data-testid="dropdown"
+          placement="bottom-end"
+          triggeredBy={`#vault-menu-${item.id}`}
+        >
           <DropdownItem
+            data-testid="deposit-button"
             on:click={(e) => {
               e.stopPropagation();
-              dispatch('showDepositModal', item);
+              handleDepositModal(item);
             }}>Deposit</DropdownItem
           >
           <DropdownItem
+            data-testid="withdraw-button"
             on:click={(e) => {
               e.stopPropagation();
-              dispatch('showWithdrawModal', item);
+              handleWithdrawModal(item);
             }}>Withdraw</DropdownItem
           >
         </Dropdown>
