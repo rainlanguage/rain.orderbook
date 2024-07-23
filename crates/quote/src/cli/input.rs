@@ -1,8 +1,154 @@
 use crate::{BatchQuoteSpec, BatchQuoteTarget, QuoteSpec, QuoteTarget};
-use alloy_primitives::{hex::FromHex, Address, U256};
+use alloy_primitives::{
+    hex::{decode, FromHex},
+    Address, U256,
+};
+use alloy_sol_types::SolType;
 use clap::Args;
-use std::{fs::read_to_string, path::PathBuf};
-use url::Url;
+use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
+use std::str::FromStr;
+
+/// Group of valid input formats
+/// Only one of them can be passed at a time in cli
+#[derive(Args, Clone, Debug, PartialEq)]
+#[group(required = true, multiple = false)]
+pub struct Input {
+    /// Quote specs concated bytes
+    #[arg(
+        short,
+        long,
+        env,
+        value_name = "HEX_STRING",
+        requires = "subgraph",
+        value_parser = parse_input
+    )]
+    pub input: Option<BatchQuoteSpec>,
+
+    /// A Quote Target input that takes exactly 4 values
+    #[arg(
+        short,
+        long,
+        num_args = 4,
+        value_names = [
+            "ORDERBOOK_ADDRESS",
+            "INPUT_IO_INDEX",
+            "OUTPUT_IO_INDEX",
+            "ORDER_BYTES"
+        ],
+    )]
+    pub target: Option<Vec<String>>,
+}
+
+/// Parse and validates the input hex string bytes into [BatchQuoteSpec]
+pub fn parse_input(
+    value: &str,
+) -> Result<BatchQuoteSpec, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let bytes = alloy_primitives::hex::decode(value)?;
+    if bytes.len() % 54 != 0 {
+        return Err("bad input length".into());
+    }
+    let mut batch_quote_sepcs = BatchQuoteSpec(vec![]);
+    let mut start_index = 0;
+    let mut end_index = 54;
+    while let Some(b) = bytes.get(start_index..end_index) {
+        batch_quote_sepcs.0.push(resolve_spec_bytes(b)?);
+        start_index += 54;
+        end_index += 54;
+    }
+    Ok(batch_quote_sepcs)
+}
+
+/// Resolves bytes into [QuoteSpec]
+pub fn resolve_spec_bytes(bytes: &[u8]) -> anyhow::Result<QuoteSpec> {
+    // a single set of concated quote specs must have exactly 54 bytes in length
+    // orderbook-address(20) + input-io-index(1) + output-io-index(1) + order-hash(32) = 54
+    if bytes.len() != 54 {
+        return Err(anyhow::anyhow!("bad input length"));
+    }
+
+    let orderbook = bytes
+        .get(0..20)
+        .map(|v| Address::from_slice(v))
+        .ok_or(anyhow::anyhow!("missing orderbook address"))?;
+    let input_io_index = bytes
+        .get(20..21)
+        .map(|v| v[0])
+        .ok_or(anyhow::anyhow!("missing input IO index"))?;
+    let output_io_index = bytes
+        .get(21..22)
+        .map(|v| v[0])
+        .ok_or(anyhow::anyhow!("missing output IO index"))?;
+    let order_hash = bytes
+        .get(22..)
+        .map(|v| {
+            let mut result: [u8; 32] = [0; 32];
+            result.copy_from_slice(v);
+            U256::from_be_bytes(result)
+        })
+        .ok_or(anyhow::anyhow!("missing order hash"))?;
+
+    Ok(QuoteSpec {
+        order_hash,
+        input_io_index,
+        output_io_index,
+        signed_context: vec![],
+        orderbook,
+    })
+}
+
+// a binding struct for Quote
+struct CliQuoteTarget<'a> {
+    pub order: &'a str,
+    pub input_io_index: &'a str,
+    pub output_io_index: &'a str,
+}
+impl<'a> TryFrom<CliQuoteTarget<'a>> for Quote {
+    type Error = anyhow::Error;
+    fn try_from(value: CliQuoteTarget<'a>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            inputIOIndex: U256::from_str(value.input_io_index)?,
+            outputIOIndex: U256::from_str(value.output_io_index)?,
+            signedContext: vec![],
+            order: OrderV3::abi_decode(&decode(value.order)?, true)?,
+        })
+    }
+}
+
+// tries to map an array of strings into a BatchQuoteTarget
+impl TryFrom<&Vec<String>> for BatchQuoteTarget {
+    type Error = anyhow::Error;
+    fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
+        let mut batch_quote_target = BatchQuoteTarget::default();
+        let mut iter = value.iter();
+        while let Some(orderbook_str) = iter.next() {
+            if let Some(input_io_index_str) = iter.next() {
+                if let Some(output_io_index_str) = iter.next() {
+                    if let Some(order_bytes_str) = iter.next() {
+                        let cli_quote_target = CliQuoteTarget {
+                            order: order_bytes_str,
+                            input_io_index: input_io_index_str,
+                            output_io_index: output_io_index_str,
+                        };
+                        batch_quote_target.0.push(QuoteTarget {
+                            orderbook: Address::from_hex(orderbook_str)?,
+                            quote_config: cli_quote_target.try_into()?,
+                        });
+                    } else {
+                        return Err(anyhow::anyhow!("missing order bytes"));
+                    }
+                } else {
+                    return Err(anyhow::anyhow!("missing output IO index"));
+                }
+            } else {
+                return Err(anyhow::anyhow!("missing input IO index"));
+            }
+        }
+        if batch_quote_target.0.is_empty() {
+            return Err(anyhow::anyhow!("missing '--target' values"));
+        }
+        Ok(batch_quote_target)
+    }
+}
 
 /// Determines the variants of parsed json input
 #[derive(Debug, Clone, PartialEq)]
@@ -13,259 +159,243 @@ pub enum InputContentType {
     Target(BatchQuoteTarget),
 }
 
-/// Group of valid input formats
-/// Only one of them can be passed at a time in cli
-#[derive(Args, Clone, Debug, PartialEq)]
-#[group(required = true, multiple = false)]
-pub struct Input {
-    /// Input json file path
-    #[arg(short, long, env, value_name = "PATH")]
-    pub input: Option<PathBuf>,
-
-    /// Remote input json url
-    #[arg(long, env, value_name = "URL")]
-    pub remote_json: Option<Url>,
-
-    /// Input that is in json stringified format
-    #[arg(short, long, env)]
-    pub json_string: Option<String>,
-
-    /// Input in simplest form that takes exactly 4 values (orderbook address,
-    /// order hash, input index and output index) in order, "--subgraph-url" is
-    /// required when usng this arg
-    #[arg(
-        short,
-        long,
-        num_args = 4,
-        requires = "subgraph",
-        value_names = ["ORDERBOOK_ADDRESS", "ORDER_HASH", "INPUT_IO_INDEX", "OUTPUT_IO_INDEX"],
-    )]
-    pub quote_spec: Option<Vec<String>>,
-}
-
 impl Input {
-    /// Parses the given json string into one of the expected types
-    pub fn resolve_type(json_string: &str) -> anyhow::Result<InputContentType> {
-        if let Ok(v) = serde_json::from_str::<BatchQuoteTarget>(json_string) {
-            return Ok(InputContentType::Target(v));
-        }
-        if let Ok(v) = serde_json::from_str::<QuoteTarget>(json_string) {
-            return Ok(InputContentType::Target(BatchQuoteTarget(vec![v])));
-        }
-        if let Ok(v) = serde_json::from_str::<BatchQuoteSpec>(json_string) {
-            return Ok(InputContentType::Spec(v));
-        }
-        if let Ok(v) = serde_json::from_str::<QuoteSpec>(json_string) {
-            return Ok(InputContentType::Spec(BatchQuoteSpec(vec![v])));
-        }
-        Err(anyhow::anyhow!("invalid json content"))
-    }
-
     /// Reads the input content from the provided source
-    pub async fn read_content(&self) -> anyhow::Result<InputContentType> {
-        if let Some(path) = &self.input {
-            Ok(Self::resolve_type(&read_to_string(path)?)?)
-        } else if let Some(url) = &self.remote_json {
-            Ok(Self::resolve_type(
-                &reqwest::get(url.as_str()).await?.text().await?,
-            )?)
-        } else if let Some(json_string) = &self.json_string {
-            Ok(Self::resolve_type(json_string)?)
-        } else if let Some(specs) = &self.quote_spec {
-            let mut batch_quote_specs = BatchQuoteSpec::default();
-            let mut iter = specs.iter();
-            while let Some(orderbook) = iter.next() {
-                if let Some(order_hash_str) = iter.next() {
-                    if let Some(input_io_index) = iter.next() {
-                        if let Some(output_io_index) = iter.next() {
-                            batch_quote_specs.0.push(QuoteSpec {
-                                orderbook: Address::from_hex(orderbook)?,
-                                order_hash: U256::from_str_radix(
-                                    order_hash_str.strip_prefix("0x").unwrap_or(order_hash_str),
-                                    16,
-                                )?,
-                                input_io_index: if input_io_index.starts_with("0x") {
-                                    U256::from_str_radix(
-                                        input_io_index.strip_prefix("0x").unwrap(),
-                                        16,
-                                    )?
-                                } else {
-                                    U256::from_str_radix(input_io_index, 10)?
-                                },
-                                output_io_index: if output_io_index.starts_with("0x") {
-                                    U256::from_str_radix(
-                                        output_io_index.strip_prefix("0x").unwrap(),
-                                        16,
-                                    )?
-                                } else {
-                                    U256::from_str_radix(output_io_index, 10)?
-                                },
-                                signed_context: vec![],
-                            });
-                        } else {
-                            return Err(anyhow::anyhow!("missing output IO index"));
-                        }
-                    } else {
-                        return Err(anyhow::anyhow!("missing input IO index"));
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("missing order hash"));
-                }
-            }
-            if batch_quote_specs.0.is_empty() {
-                return Err(anyhow::anyhow!("missing '--quote-spec' values"));
-            }
-            Ok(InputContentType::Spec(batch_quote_specs))
+    pub fn read_content(&self) -> anyhow::Result<InputContentType> {
+        if self.input.is_some() && self.target.is_some() {
+            Err(anyhow::anyhow!("conflicting inputs"))
+        } else if let Some(v) = &self.input {
+            Ok(InputContentType::Spec(v.clone()))
+        } else if let Some(targets) = &self.target {
+            let batch_quote_target = targets.try_into()?;
+            Ok(InputContentType::Target(batch_quote_target))
         } else {
-            Err(anyhow::anyhow!("unexpected input"))
+            Err(anyhow::anyhow!("expected at least one input"))
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use super::*;
     use alloy_primitives::hex::encode_prefixed;
-    use httpmock::{Method::GET, MockServer};
+    use alloy_sol_types::SolValue;
+    use rain_orderbook_bindings::IOrderBookV4::EvaluableV3;
 
     #[test]
-    fn test_resolve_type() {
-        let target = QuoteTarget::default();
-        let result = Input::resolve_type(&serde_json::to_string(&target).unwrap()).unwrap();
-        let expected = InputContentType::Target(BatchQuoteTarget(vec![target]));
+    fn test_parse_input() {
+        let orderbook_address1 = Address::random();
+        let input_io_index1 = 10u8;
+        let output_io_index1 = 8u8;
+        let order_hash1 = [5u8; 32];
+
+        let orderbook_address2 = Address::random();
+        let input_io_index2 = 1u8;
+        let output_io_index2 = 2u8;
+        let order_hash2 = [2u8; 32];
+
+        let mut bytes = vec![];
+        bytes.extend(orderbook_address1.0 .0);
+        bytes.push(input_io_index1);
+        bytes.push(output_io_index1);
+        bytes.extend(order_hash1);
+        bytes.extend(orderbook_address2.0 .0);
+        bytes.push(input_io_index2);
+        bytes.push(output_io_index2);
+        bytes.extend(order_hash2);
+
+        let hex_bytes = encode_prefixed(&bytes);
+
+        let result = parse_input(&hex_bytes).unwrap();
+        let expected = BatchQuoteSpec(vec![
+            QuoteSpec {
+                order_hash: U256::from_be_bytes(order_hash1),
+                input_io_index: input_io_index1,
+                output_io_index: output_io_index1,
+                signed_context: vec![],
+                orderbook: orderbook_address1,
+            },
+            QuoteSpec {
+                order_hash: U256::from_be_bytes(order_hash2),
+                input_io_index: input_io_index2,
+                output_io_index: output_io_index2,
+                signed_context: vec![],
+                orderbook: orderbook_address2,
+            },
+        ]);
         assert_eq!(result, expected);
 
-        let target = BatchQuoteTarget(vec![QuoteTarget::default()]);
-        let result = Input::resolve_type(&serde_json::to_string(&target).unwrap()).unwrap();
-        let expected = InputContentType::Target(target);
-        assert_eq!(result, expected);
-
-        let spec = QuoteSpec::default();
-        let result = Input::resolve_type(&serde_json::to_string(&spec).unwrap()).unwrap();
-        let expected = InputContentType::Spec(BatchQuoteSpec(vec![spec]));
-        assert_eq!(result, expected);
-
-        let spec = BatchQuoteSpec(vec![QuoteSpec::default()]);
-        let result = Input::resolve_type(&serde_json::to_string(&spec).unwrap()).unwrap();
-        let expected = InputContentType::Spec(spec);
-        assert_eq!(result, expected);
-
-        let some_json = serde_json::to_string(&serde_json::json!({
-            "someKey": 123,
-        }))
-        .unwrap();
-        let result = Input::resolve_type(&some_json)
-            .expect_err("expected error")
+        let hex_bytes = encode_prefixed(&bytes[2..]);
+        let result = parse_input(&hex_bytes)
+            .expect_err("expected to error")
             .to_string();
-        assert_eq!(result, "invalid json content");
+        assert_eq!(result, "bad input length");
+
+        assert!(parse_input("some non bytes input").is_err());
     }
 
-    #[tokio::test]
-    async fn test_read_content() {
-        // valid spec
-        let orderbook1 = Address::random();
-        let orderbook2 = Address::random();
-        let order_hash1 = U256::from(1);
-        let order_hash2 = U256::from(2);
-        let input_index = U256::from(8);
-        let output_index = U256::from(9);
-        let input = Input {
-            input: None,
-            remote_json: None,
-            json_string: None,
-            quote_spec: Some(vec![
-                encode_prefixed(orderbook1.0),
-                encode_prefixed(order_hash1.to_be_bytes_vec()),
-                input_index.to_string(),
-                output_index.to_string(),
-                encode_prefixed(orderbook2.0),
-                encode_prefixed(order_hash2.to_be_bytes_vec()),
-                input_index.to_string(),
-                output_index.to_string(),
-            ]),
+    #[test]
+    fn test_resolve_spec_bytes() {
+        let orderbook_address1 = Address::random();
+        let input_io_index1 = 10u8;
+        let output_io_index1 = 8u8;
+        let order_hash1 = [5u8; 32];
+        let mut bytes = vec![];
+        bytes.extend(orderbook_address1.0 .0);
+        bytes.push(input_io_index1);
+        bytes.push(output_io_index1);
+        bytes.extend(order_hash1);
+
+        let result = resolve_spec_bytes(&bytes).unwrap();
+        let expected = QuoteSpec {
+            order_hash: U256::from_be_bytes(order_hash1),
+            input_io_index: input_io_index1,
+            output_io_index: output_io_index1,
+            signed_context: vec![],
+            orderbook: orderbook_address1,
         };
-        let result = input.read_content().await.unwrap();
-        let expected = InputContentType::Spec(BatchQuoteSpec(vec![
-            QuoteSpec {
-                order_hash: order_hash1,
-                orderbook: orderbook1,
-                input_io_index: input_index,
-                output_io_index: output_index,
-                signed_context: vec![],
-            },
-            QuoteSpec {
-                order_hash: order_hash2,
-                orderbook: orderbook2,
-                input_io_index: input_index,
-                output_io_index: output_index,
-                signed_context: vec![],
-            },
-        ]));
         assert_eq!(result, expected);
 
-        // missing spec value
-        let input = Input {
-            input: None,
-            remote_json: None,
-            json_string: None,
-            quote_spec: Some(vec![
-                encode_prefixed(orderbook1.0),
-                encode_prefixed(order_hash1.to_be_bytes_vec()),
-                input_index.to_string(),
-            ]),
+        let result = resolve_spec_bytes(&bytes[2..])
+            .expect_err("expected to error")
+            .to_string();
+        assert_eq!(result, "bad input length");
+    }
+
+    #[test]
+    fn test_try_from_vec_string_for_batch_quote_target() {
+        // valid targets
+        let input_index = 8u8;
+        let output_index = 9u8;
+        let orderbook1 = Address::random();
+        let orderbook2 = Address::random();
+        let order1 = OrderV3 {
+            evaluable: EvaluableV3 {
+                bytecode: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0],
+                ..Default::default()
+            },
+            ..Default::default()
         };
-        let result = input
-            .read_content()
-            .await
+        let order2 = OrderV3 {
+            evaluable: EvaluableV3 {
+                bytecode: vec![0xa, 0xb, 0xc, 0xd, 0xe, 0xf],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let order_bytes1 = order1.abi_encode();
+        let order_bytes2 = order2.abi_encode();
+
+        let targets_str = vec![
+            encode_prefixed(orderbook1.0),
+            input_index.to_string(),
+            output_index.to_string(),
+            encode_prefixed(order_bytes1.clone()),
+            encode_prefixed(orderbook2.0),
+            input_index.to_string(),
+            output_index.to_string(),
+            encode_prefixed(order_bytes2),
+        ];
+
+        let result: BatchQuoteTarget = (&targets_str).try_into().unwrap();
+        let expected = BatchQuoteTarget(vec![
+            QuoteTarget {
+                orderbook: orderbook1,
+                quote_config: Quote {
+                    inputIOIndex: U256::from(input_index),
+                    outputIOIndex: U256::from(output_index),
+                    signedContext: vec![],
+                    order: order1,
+                },
+            },
+            QuoteTarget {
+                orderbook: orderbook2,
+                quote_config: Quote {
+                    inputIOIndex: U256::from(input_index),
+                    outputIOIndex: U256::from(output_index),
+                    signedContext: vec![],
+                    order: order2,
+                },
+            },
+        ]);
+        assert_eq!(result, expected);
+
+        // invalid targets
+        let targets_str = vec![
+            encode_prefixed(orderbook1.0),
+            input_index.to_string(),
+            output_index.to_string(),
+            encode_prefixed(order_bytes1),
+            encode_prefixed(orderbook2.0),
+            input_index.to_string(),
+            output_index.to_string(),
+        ];
+        let result = std::convert::TryInto::<BatchQuoteTarget>::try_into(&targets_str)
+            .expect_err("expected error")
+            .to_string();
+        assert_eq!(result, "missing order bytes");
+
+        let targets_str = vec![encode_prefixed(orderbook1.0), input_index.to_string()];
+        let result = std::convert::TryInto::<BatchQuoteTarget>::try_into(&targets_str)
             .expect_err("expected error")
             .to_string();
         assert_eq!(result, "missing output IO index");
+    }
 
-        // inline json string input
-        let targets = BatchQuoteTarget(vec![QuoteTarget::default(), QuoteTarget::default()]);
+    #[test]
+    fn test_read_content() {
+        let orderbook = Address::random();
+        let input_io_index = 10u8;
+        let output_io_index = 8u8;
+        let order_hash = [5u8; 32];
+
+        let specs = BatchQuoteSpec(vec![QuoteSpec {
+            order_hash: U256::from_be_bytes(order_hash),
+            input_io_index,
+            output_io_index,
+            signed_context: vec![],
+            orderbook,
+        }]);
+        let input = Input {
+            input: Some(specs.clone()),
+            target: None,
+        };
+        matches!(input.read_content().unwrap(), InputContentType::Spec(_));
+
+        let targets_str = vec![
+            encode_prefixed(orderbook.0),
+            input_io_index.to_string(),
+            output_io_index.to_string(),
+            encode_prefixed(OrderV3::default().abi_encode()),
+        ];
         let input = Input {
             input: None,
-            remote_json: None,
-            quote_spec: None,
-            json_string: Some(serde_json::to_string(&targets).unwrap()),
+            target: Some(targets_str.clone()),
         };
-        let result = input.read_content().await.unwrap();
-        let expected = InputContentType::Target(targets);
-        assert_eq!(result, expected);
+        matches!(input.read_content().unwrap(), InputContentType::Target(_));
 
-        // file input
-        let targets = BatchQuoteTarget(vec![QuoteTarget::default(), QuoteTarget::default()]);
-        let contents = serde_json::to_string(&targets).unwrap();
-        let test_path = std::env::current_dir().unwrap().join("test.json");
-        fs::write(test_path.clone(), contents).unwrap();
-        let input = Input {
-            input: Some(test_path.clone()),
-            remote_json: None,
-            quote_spec: None,
-            json_string: None,
-        };
-        let result = input.read_content().await.unwrap();
-        let expected = InputContentType::Target(targets);
-        assert_eq!(result, expected);
-        fs::remove_file(test_path).unwrap();
-
-        // remote input
-        let rpc_server = MockServer::start_async().await;
-        let targets = BatchQuoteTarget(vec![QuoteTarget::default(), QuoteTarget::default()]);
-        rpc_server.mock(|when, then| {
-            when.method(GET).path("/remote");
-            then.json_body_obj(&targets);
-        });
         let input = Input {
             input: None,
-            remote_json: Some(url::Url::parse(&rpc_server.url("/remote")).unwrap()),
-            quote_spec: None,
-            json_string: None,
+            target: None,
         };
-        let result = input.read_content().await.unwrap();
-        let expected = InputContentType::Target(targets);
-        assert_eq!(result, expected);
+        assert_eq!(
+            input
+                .read_content()
+                .expect_err("expected error")
+                .to_string(),
+            "expected at least one input"
+        );
+
+        let input = Input {
+            input: Some(specs),
+            target: Some(targets_str),
+        };
+        assert_eq!(
+            input
+                .read_content()
+                .expect_err("expected error")
+                .to_string(),
+            "conflicting inputs"
+        );
     }
 }

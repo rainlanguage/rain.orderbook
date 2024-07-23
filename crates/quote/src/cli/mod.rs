@@ -2,7 +2,7 @@ use crate::{OrderQuoteValue, QuoteResult};
 use alloy_primitives::Address;
 use clap::{command, ArgAction, Parser};
 use serde::{Deserialize, Serialize};
-use std::{fs::write, path::PathBuf};
+use std::{fs::write, io::Write, path::PathBuf};
 use url::Url;
 
 mod input;
@@ -16,17 +16,20 @@ pub struct Quoter {
     #[command(flatten)]
     pub input: Input,
 
-    /// Specifies the output file path
-    #[arg(short, long, env, value_name = "PATH")]
-    pub output: PathBuf,
-
     /// RPC URL of the evm chain to quote
     #[arg(short, long, env, value_name = "URL", hide_env_values = true)]
     pub rpc: Url,
 
     /// Subgraph URL to read orders details from, presence of this
     /// arg determines what type input's undelying content should be in
-    #[arg(short, long, env, value_name = "URL", visible_alias = "sg")]
+    #[arg(
+        short,
+        long,
+        env,
+        value_name = "URL",
+        visible_alias = "sg",
+        hide_env_values = true
+    )]
     pub subgraph: Option<Url>,
 
     /// Optional block number to quote at
@@ -37,9 +40,13 @@ pub struct Quoter {
     #[arg(short, long, env, value_name = "ADDRESS")]
     pub multicall_address: Option<Address>,
 
-    /// Log the results
+    /// Optional file path to write the output results into
+    #[arg(short, long, env, value_name = "PATH")]
+    pub output: Option<PathBuf>,
+
+    /// Do NOT send the results to stdout
     #[arg(long, action = ArgAction::SetTrue)]
-    pub stdout: bool,
+    pub no_stdout: bool,
 
     /// Pretty format the result
     #[arg(short, long, action = ArgAction::SetTrue)]
@@ -49,7 +56,7 @@ pub struct Quoter {
 /// A serializable/deserializable struct that bridges [QuoteResult] for cli
 /// output by implementing `From` trait for it.
 /// This is is needed since [crate::error::FailedQuote] does not impl ser/deser.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "status", content = "message")]
 pub enum QuoterResultInner {
@@ -68,7 +75,7 @@ impl From<QuoteResult> for QuoterResultInner {
 }
 
 /// Wrapper struct for arrya of [QuoterResultInner]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(transparent)]
 pub struct QuoterResult(pub Vec<QuoterResultInner>);
 
@@ -80,30 +87,22 @@ impl From<Vec<QuoteResult>> for QuoterResult {
 
 impl Quoter {
     /// Executes the CLI call based on the given options of self
-    pub async fn run(&self) -> anyhow::Result<()> {
-        let strigifier = if self.pretty {
-            serde_json::to_string_pretty::<QuoterResult>
-        } else {
-            serde_json::to_string::<QuoterResult>
-        };
-        let result = match self.input.read_content().await? {
-            InputContentType::Target(v) => strigifier(
-                &v.do_quote(self.rpc.as_str(), self.block_number, self.multicall_address)
-                    .await?
-                    .into(),
-            )?,
+    pub async fn run(&self) -> anyhow::Result<QuoterResult> {
+        let result: QuoterResult = match self.input.read_content()? {
+            InputContentType::Target(v) => v
+                .do_quote(self.rpc.as_str(), self.block_number, self.multicall_address)
+                .await?
+                .into(),
             InputContentType::Spec(v) => {
                 if let Some(sg) = &self.subgraph {
-                    strigifier(
-                        &v.do_quote(
-                            sg.as_str(),
-                            self.rpc.as_str(),
-                            self.block_number,
-                            self.multicall_address,
-                        )
-                        .await?
-                        .into(),
-                    )?
+                    v.do_quote(
+                        sg.as_str(),
+                        self.rpc.as_str(),
+                        self.block_number,
+                        self.multicall_address,
+                    )
+                    .await?
+                    .into()
                 } else {
                     return Err(anyhow::anyhow!(
                         "requires '--subgraph' url to read orders details from"
@@ -111,12 +110,23 @@ impl Quoter {
                 }
             }
         };
-        if self.stdout {
-            println!("{}", result);
-        }
-        write(&self.output, result)?;
 
-        Ok(())
+        if !self.no_stdout || self.output.is_some() {
+            let stringified_result = if self.pretty {
+                serde_json::to_string_pretty::<QuoterResult>(&result)?
+            } else {
+                serde_json::to_string::<QuoterResult>(&result)?
+            };
+            if !self.no_stdout {
+                let mut stdout = std::io::stdout().lock();
+                stdout.write_all(stringified_result.as_bytes())?;
+            }
+            if let Some(v) = &self.output {
+                write(v, stringified_result)?;
+            }
+        }
+
+        Ok(result)
     }
 }
 
@@ -124,19 +134,19 @@ impl Quoter {
 pub async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(tracing_subscriber::fmt::Subscriber::new())?;
     let cli = Quoter::parse();
-    cli.run().await
+    cli.run().await.map(|_| ())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{error::FailedQuote, BatchQuoteSpec, BatchQuoteTarget, QuoteSpec, QuoteTarget};
+    use crate::{error::FailedQuote, BatchQuoteSpec, QuoteSpec};
     use alloy_ethers_typecast::{multicall::IMulticall3::Result as MulticallResult, rpc::Response};
-    use alloy_primitives::{hex::encode_prefixed, U256};
+    use alloy_primitives::{hex::encode_prefixed, keccak256, U256};
     use alloy_sol_types::{SolCall, SolValue};
     use clap::CommandFactory;
     use httpmock::{Method::POST, MockServer};
-    use rain_orderbook_bindings::IOrderBookV4::quoteCall;
+    use rain_orderbook_bindings::IOrderBookV4::{quoteCall, OrderV3, IO};
     use std::{fs::read_to_string, str::FromStr};
 
     #[test]
@@ -146,16 +156,51 @@ mod tests {
 
     #[test]
     fn test_cli_args() {
-        let orderbook1 = encode_prefixed(Address::random().0);
-        let orderbook2 = encode_prefixed(Address::random().0);
-        let order_hash1 = encode_prefixed(U256::from(1).to_be_bytes_vec());
-        let order_hash2 = encode_prefixed(U256::from(2).to_be_bytes_vec());
-        let input_index = U256::from(8).to_string();
-        let output_index = U256::from(9).to_string();
         let rpc = Url::parse("https://rpc.com").unwrap();
         let sg = Url::parse("https://sg.com").unwrap();
         let output = PathBuf::from_str("./a/b").unwrap();
 
+        let batch_quote_specs = BatchQuoteSpec(vec![QuoteSpec {
+            orderbook: Address::random(),
+            input_io_index: 0,
+            output_io_index: 0,
+            order_hash: U256::from(1),
+            signed_context: vec![],
+        }]);
+        let mut bytes = vec![];
+        bytes.extend(batch_quote_specs.0[0].orderbook.0);
+        bytes.push(batch_quote_specs.0[0].input_io_index);
+        bytes.push(batch_quote_specs.0[0].output_io_index);
+        bytes.extend(batch_quote_specs.0[0].order_hash.to_be_bytes_vec());
+        let hex_bytes = encode_prefixed(&bytes);
+        let cmd = Quoter::command();
+        let result = cmd
+            .try_get_matches_from(vec![
+                "cmd",
+                "--output",
+                output.clone().to_str().unwrap(),
+                "--rpc",
+                rpc.as_str(),
+                "-i",
+                &hex_bytes,
+                "--sg",
+                sg.as_str(),
+            ])
+            .unwrap();
+        assert_eq!(result.get_one::<PathBuf>("output"), Some(&output));
+        assert_eq!(result.get_one::<Url>("subgraph"), Some(&sg));
+        assert_eq!(result.get_one::<Url>("rpc"), Some(&rpc));
+        assert_eq!(
+            result.get_one::<BatchQuoteSpec>("input"),
+            Some(&batch_quote_specs)
+        );
+
+        let orderbook1 = encode_prefixed(Address::random().0);
+        let orderbook2 = encode_prefixed(Address::random().0);
+        let order_bytes1 = encode_prefixed(OrderV3::default().abi_encode());
+        let order_bytes2 = encode_prefixed(OrderV3::default().abi_encode());
+        let input_index = U256::from(8).to_string();
+        let output_index = U256::from(9).to_string();
         let cmd = Quoter::command();
         let result = cmd.get_matches_from(vec![
             "cmd",
@@ -163,32 +208,28 @@ mod tests {
             output.clone().to_str().unwrap(),
             "--rpc",
             rpc.as_str(),
-            "--quote-spec",
+            "--target",
             &orderbook1,
-            &order_hash1,
             &input_index,
             &output_index,
-            "--quote-spec",
+            &order_bytes1,
+            "--target",
             &orderbook2,
-            &order_hash2,
             &input_index,
             &output_index,
-            "--sg",
-            sg.as_str(),
+            &order_bytes2,
         ]);
-
         assert_eq!(result.get_one::<PathBuf>("output"), Some(&output));
-        assert_eq!(result.get_one::<Url>("subgraph"), Some(&sg));
         assert_eq!(result.get_one::<Url>("rpc"), Some(&rpc));
         assert_eq!(
             result
-                .get_occurrences("quote_spec")
+                .get_occurrences("target")
                 .unwrap()
                 .map(Iterator::collect)
                 .collect::<Vec<Vec<&String>>>(),
             vec![
-                vec![&orderbook1, &order_hash1, &input_index, &output_index,],
-                vec![&orderbook2, &order_hash2, &input_index, &output_index,]
+                vec![&orderbook1, &input_index, &output_index, &order_bytes1],
+                vec![&orderbook2, &input_index, &output_index, &order_bytes2]
             ]
         );
 
@@ -198,43 +239,11 @@ mod tests {
                 "cmd",
                 "--output",
                 output.clone().to_str().unwrap(),
-                "--rpc",
-                rpc.as_str(),
-                "--quote-spec",
+                "--target",
                 &orderbook1,
-                &order_hash1,
                 &input_index,
                 &output_index,
-            ])
-            .is_err());
-
-        let cmd = Quoter::command();
-        assert!(cmd
-            .try_get_matches_from(vec![
-                "cmd",
-                "--rpc",
-                rpc.as_str(),
-                "--quote-spec",
-                &orderbook1,
-                &order_hash1,
-                &input_index,
-                &output_index,
-                "--sg",
-                sg.as_str(),
-            ])
-            .is_err());
-
-        let cmd = Quoter::command();
-        assert!(cmd
-            .try_get_matches_from(vec![
-                "cmd",
-                "--output",
-                output.clone().to_str().unwrap(),
-                "--quote-spec",
-                &orderbook1,
-                &order_hash1,
-                &input_index,
-                &output_index,
+                &order_bytes1,
                 "--sg",
                 sg.as_str(),
             ])
@@ -244,20 +253,19 @@ mod tests {
     #[tokio::test]
     async fn test_run_err() {
         let cli = Quoter {
-            output: PathBuf::new(),
+            output: Some(PathBuf::new()),
             rpc: Url::parse("http://a.com").unwrap(),
             subgraph: None,
             block_number: None,
             multicall_address: None,
-            stdout: true,
+            no_stdout: true,
             pretty: true,
             input: Input {
-                input: None,
-                remote_json: None,
-                quote_spec: None,
-                json_string: Some(
-                    serde_json::to_string(&BatchQuoteSpec(vec![QuoteSpec::default()])).unwrap(),
-                ),
+                target: None,
+                input: Some(BatchQuoteSpec(vec![
+                    QuoteSpec::default(),
+                    QuoteSpec::default(),
+                ])),
             },
         };
         let result = cli.run().await.expect_err("expected error").to_string();
@@ -268,25 +276,152 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_ok() {
+    async fn test_run_ok_input_bytes() {
+        let rpc_server = MockServer::start_async().await;
+        let rpc_url = rpc_server.url("/rpc");
+        let sg_url = rpc_server.url("/sg");
+
+        let rpc_response_data = vec![
+            MulticallResult {
+                success: true,
+                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)),
+            },
+            MulticallResult {
+                success: true,
+                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)),
+            },
+        ]
+        .abi_encode();
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body_obj(
+                &serde_json::from_str::<serde_json::Value>(
+                    &Response::new_success(1, encode_prefixed(rpc_response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        // mock subgraph
+        let orderbook = Address::random();
+        let order = OrderV3 {
+            validInputs: vec![IO::default()],
+            validOutputs: vec![IO::default()],
+            ..Default::default()
+        };
+        let order_hash_bytes = keccak256(order.abi_encode()).0;
+        let order_id_u256 = U256::from_be_bytes(order_hash_bytes);
+        let order_id = encode_prefixed(order_hash_bytes);
+        let retrun_sg_data = serde_json::json!({
+            "data": {
+                "orders": [{
+                    "id": order_id,
+                    "orderBytes": encode_prefixed(order.abi_encode()),
+                    "orderHash": order_id,
+                    "owner": encode_prefixed(order.owner),
+                    "outputs": [{
+                        "id": encode_prefixed(Address::random().0.0),
+                        "token": {
+                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "name": "T1",
+                            "symbol": "T1",
+                            "decimals": order.validOutputs[0].decimals.to_string()
+                        },
+                        "balance": "0",
+                        "vaultId": order.validOutputs[0].vaultId.to_string(),
+                    }],
+                    "inputs": [{
+                        "id": encode_prefixed(Address::random().0.0),
+                        "token": {
+                            "id": encode_prefixed(order.validInputs[0].token.0.0),
+                            "address": encode_prefixed(order.validInputs[0].token.0.0),
+                            "name": "T2",
+                            "symbol": "T2",
+                            "decimals": order.validInputs[0].decimals.to_string()
+                        },
+                        "balance": "0",
+                        "vaultId": order.validInputs[0].vaultId.to_string(),
+                    }],
+                    "active": true,
+                    "addEvents": [{
+                        "transaction": {
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                        }
+                    }],
+                    "meta": null,
+                    "timestampAdded": "0",
+                }]
+            }
+        });
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/sg");
+            then.json_body_obj(&retrun_sg_data);
+        });
+
+        let batch_quote_specs = BatchQuoteSpec(vec![
+            QuoteSpec {
+                order_hash: order_id_u256,
+                input_io_index: 0,
+                output_io_index: 0,
+                signed_context: vec![],
+                orderbook,
+            },
+            QuoteSpec::default(),
+        ]);
+        let cli = Quoter {
+            output: None,
+            rpc: Url::parse(&rpc_url).unwrap(),
+            subgraph: Some(Url::parse(&sg_url).unwrap()),
+            block_number: None,
+            multicall_address: None,
+            no_stdout: true,
+            pretty: false,
+            input: Input {
+                target: None,
+                input: Some(batch_quote_specs),
+            },
+        };
+
+        // run
+        let result = cli.run().await.unwrap();
+        let expected = QuoterResult(vec![
+            QuoterResultInner::Ok(OrderQuoteValue::default()),
+            QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
+        ]);
+        assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
+    async fn test_run_ok_target_args() {
         let rpc_server = MockServer::start_async().await;
         let rpc_url = rpc_server.url("/rpc");
         let test_path = std::env::current_dir().unwrap().join("test-result.json");
 
-        let targets = BatchQuoteTarget(vec![QuoteTarget::default()]);
+        let orderbook = Address::random();
+        let input_io_index = 0u8;
+        let output_io_index = 0u8;
+        let targets_str = vec![
+            encode_prefixed(orderbook.0),
+            input_io_index.to_string(),
+            output_io_index.to_string(),
+            encode_prefixed(OrderV3::default().abi_encode()),
+        ];
+
         let cli = Quoter {
-            output: test_path.clone(),
+            output: Some(test_path.clone()),
             rpc: Url::parse(&rpc_url).unwrap(),
             subgraph: None,
             block_number: None,
             multicall_address: None,
-            stdout: true,
+            no_stdout: false,
             pretty: false,
             input: Input {
                 input: None,
-                remote_json: None,
-                quote_spec: None,
-                json_string: Some(serde_json::to_string(&targets).unwrap()),
+                target: Some(targets_str),
             },
         };
 
@@ -313,20 +448,21 @@ mod tests {
             );
         });
 
-        // run dispatch
-        cli.run().await.unwrap();
+        // run
+        let result = cli.run().await.unwrap();
+        let expected = QuoterResult(vec![
+            QuoterResultInner::Ok(OrderQuoteValue::default()),
+            QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
+        ]);
+        assert_eq!(result, expected);
 
-        // output json format containing ok and err variants:
+        // output json format containing array of ok/err quote results:
         // [
         //     { "maxOutput": "0x0", "ratio": "0x0" },
         //     { "status": "error", "message": "Order does not exist" }
         // ]
         let result = read_to_string(test_path.clone()).unwrap();
-        let expected = serde_json::to_string(&QuoterResult(vec![
-            QuoterResultInner::Ok(OrderQuoteValue::default()),
-            QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
-        ]))
-        .unwrap();
+        let expected = serde_json::to_string(&expected).unwrap();
         assert_eq!(result, expected);
 
         // rmeove the output test file

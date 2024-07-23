@@ -85,8 +85,8 @@ impl BatchQuoteTarget {
 #[serde(rename_all = "camelCase")]
 pub struct QuoteSpec {
     pub order_hash: U256,
-    pub input_io_index: U256,
-    pub output_io_index: U256,
+    pub input_io_index: u8,
+    pub output_io_index: u8,
     pub signed_context: Vec<SignedContextV1>,
     pub orderbook: Address,
 }
@@ -107,8 +107,8 @@ impl QuoteSpec {
         Ok(QuoteTarget {
             orderbook: self.orderbook,
             quote_config: Quote {
-                inputIOIndex: self.input_io_index,
-                outputIOIndex: self.output_io_index,
+                inputIOIndex: U256::from(self.input_io_index),
+                outputIOIndex: U256::from(self.output_io_index),
                 signedContext: self.signed_context.clone(),
                 order: OrderV3::abi_decode(
                     decode(order_detail.order_bytes.0.as_str())?.as_slice(),
@@ -175,8 +175,8 @@ impl BatchQuoteSpec {
                         Some(QuoteTarget {
                             orderbook: target.orderbook,
                             quote_config: Quote {
-                                inputIOIndex: target.input_io_index,
-                                outputIOIndex: target.output_io_index,
+                                inputIOIndex: U256::from(target.input_io_index),
+                                outputIOIndex: U256::from(target.output_io_index),
                                 signedContext: target.signed_context.clone(),
                                 order: OrderV3::abi_decode(
                                     decode(order_detail.order_bytes.0.as_str()).ok()?.as_slice(),
@@ -325,8 +325,8 @@ mod tests {
 
         let quote_target_specifier = QuoteSpec {
             order_hash: order_id_u256,
-            input_io_index: U256::ZERO,
-            output_io_index: U256::ZERO,
+            input_io_index: 0,
+            output_io_index: 0,
             signed_context: vec![],
             orderbook,
         };
@@ -339,8 +339,8 @@ mod tests {
             orderbook,
             quote_config: Quote {
                 order,
-                inputIOIndex: quote_target_specifier.input_io_index,
-                outputIOIndex: quote_target_specifier.output_io_index,
+                inputIOIndex: U256::from(quote_target_specifier.input_io_index),
+                outputIOIndex: U256::from(quote_target_specifier.output_io_index),
                 signedContext: quote_target_specifier.signed_context,
             },
         };
@@ -362,8 +362,8 @@ mod tests {
 
         let batch_quote_targets_specifiers = BatchQuoteSpec(vec![QuoteSpec {
             order_hash: order_id_u256,
-            input_io_index: U256::ZERO,
-            output_io_index: U256::ZERO,
+            input_io_index: 0,
+            output_io_index: 0,
             signed_context: vec![],
             orderbook,
         }]);
@@ -376,8 +376,8 @@ mod tests {
             orderbook,
             quote_config: Quote {
                 order,
-                inputIOIndex: batch_quote_targets_specifiers.0[0].input_io_index,
-                outputIOIndex: batch_quote_targets_specifiers.0[0].output_io_index,
+                inputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].input_io_index),
+                outputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].output_io_index),
                 signedContext: batch_quote_targets_specifiers.0[0].signed_context.clone(),
             },
         })];
@@ -419,8 +419,8 @@ mod tests {
 
         let quote_target_specifier = QuoteSpec {
             order_hash: order_id_u256,
-            input_io_index: U256::ZERO,
-            output_io_index: U256::ZERO,
+            input_io_index: 0,
+            output_io_index: 0,
             signed_context: vec![],
             orderbook,
         };
@@ -479,8 +479,8 @@ mod tests {
         let batch_quote_targets_specifiers = BatchQuoteSpec(vec![
             QuoteSpec {
                 order_hash: order_id_u256,
-                input_io_index: U256::ZERO,
-                output_io_index: U256::ZERO,
+                input_io_index: 0,
+                output_io_index: 0,
                 signed_context: vec![],
                 orderbook,
             },
