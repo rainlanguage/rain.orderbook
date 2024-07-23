@@ -46,7 +46,7 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await vaultDetail('1', undefined)).toEqual([]);
+    expect(await vaultDetail('1', undefined)).toEqual(undefined);
 
     // check for a result with a URL
     expect(await vaultDetail('1', 'http://localhost:8000')).toEqual({ ...mockData });

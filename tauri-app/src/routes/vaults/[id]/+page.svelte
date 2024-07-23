@@ -11,7 +11,6 @@
   import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
   import { sortBy } from 'lodash';
   import { bigintToFloat } from '$lib/utils/number';
-  import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
   import CardProperty from '$lib/components/CardProperty.svelte';
   import type { UTCTimestamp } from 'lightweight-charts';
@@ -26,6 +25,7 @@
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import type { Vault } from '$lib/typeshare/vaultDetail';
   import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
+  import TanstackContentDetail from '$lib/components/TanstackPageContentDetail.svelte';
 
   $: balanceChangesQuery = createInfiniteQuery({
     queryKey: [QKEY_VAULT_CHANGES + $page.params.id],
@@ -67,7 +67,7 @@
 
 <PageHeader title="Vault" />
 
-<PageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
+<TanstackContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
   <svelte:fragment slot="top" let:data>
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       {data?.token.name}
@@ -113,7 +113,27 @@
       </CardProperty>
 
       <CardProperty>
-        <svelte:fragment slot="key">Orders</svelte:fragment>
+        <svelte:fragment slot="key">Orders as input</svelte:fragment>
+        <svelte:fragment slot="value">
+          {#if data.orders_as_input && data.orders_as_input.length > 0}
+            <p class="flex flex-wrap justify-start">
+              {#each data.orders_as_input as order}
+                <Button
+                  class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
+                  color="light"
+                  on:click={() => goto(`/orders/${order.id}`)}
+                  ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
+                >
+              {/each}
+            </p>
+          {:else}
+            None
+          {/if}
+        </svelte:fragment>
+      </CardProperty>
+
+      <CardProperty>
+        <svelte:fragment slot="key">Orders as output</svelte:fragment>
         <svelte:fragment slot="value">
           {#if data.orders_as_output && data.orders_as_output.length > 0}
             <p class="flex flex-wrap justify-start">
@@ -126,7 +146,8 @@
                 >
               {/each}
             </p>
-          {/if}
+          {:else}
+            None{/if}
         </svelte:fragment>
       </CardProperty>
     {/if}
@@ -186,4 +207,4 @@
       </svelte:fragment>
     </TanstackAppTable>
   </svelte:fragment>
-</PageContentDetail>
+</TanstackContentDetail>
