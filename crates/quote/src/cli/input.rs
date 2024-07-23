@@ -68,7 +68,7 @@ pub fn resolve_spec_bytes(bytes: &[u8]) -> anyhow::Result<QuoteSpec> {
 
     let orderbook = bytes
         .get(0..20)
-        .map(|v| Address::from_slice(v))
+        .map(Address::from_slice)
         .ok_or(anyhow::anyhow!("missing orderbook address"))?;
     let input_io_index = bytes
         .get(20..21)
