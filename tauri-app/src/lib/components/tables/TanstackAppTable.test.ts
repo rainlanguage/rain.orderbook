@@ -2,73 +2,8 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import TanstackAppTableTest from './TanstackAppTable.test.svelte';
-import { QueryClient, createInfiniteQuery } from '@tanstack/svelte-query';
 import userEvent from '@testing-library/user-event';
-
-// A helper function to create a resolvable mock query.
-// This gives us more control over when each query resolves.
-const createResolvableMockQuery = (queryFn: (pageParam: number) => unknown) => {
-  const resolveQueue: Array<() => void> = [];
-  let currentPromise: Promise<void>;
-
-  const createNewPromise = () => {
-    currentPromise = new Promise<void>((res) => {
-      resolveQueue.push(res);
-    });
-  };
-
-  createNewPromise(); // Initialize the first promise
-
-  const resolvableQuery = async (pageParam: number) => {
-    const mockData = queryFn(pageParam);
-    await currentPromise;
-    createNewPromise(); // Create a new promise for the next call
-    return mockData;
-  };
-
-  const resolve = () => {
-    const resolver = resolveQueue.shift();
-    if (resolver) {
-      resolver();
-    }
-  };
-
-  return { queryFn: resolvableQuery, resolve };
-};
-
-// A helper function to create a Tanstack query that resolves when you call
-// the `resolve` function.
-const createResolvableInfiniteQuery = (
-  _queryFn: (pageParam: number) => unknown,
-  getNextPageParam: (
-    _lastPage: unknown,
-    _allPages: unknown[],
-    lastPageParam: number,
-  ) => number | undefined = (_lastPage: unknown, _allPages: unknown[], lastPageParam: number) =>
-    lastPageParam + 1,
-) => {
-  const { queryFn, resolve } = createResolvableMockQuery(_queryFn);
-
-  const query = createInfiniteQuery(
-    {
-      queryKey: [],
-      queryFn: ({ pageParam }) => {
-        return queryFn(pageParam);
-      },
-      initialPageParam: 0,
-      getNextPageParam,
-    },
-    new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: Infinity,
-        },
-      },
-    }),
-  );
-
-  return { query, resolve };
-};
+import { createResolvableInfiniteQuery } from '$lib/mocks/queries';
 
 test('shows head and title', async () => {
   const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
