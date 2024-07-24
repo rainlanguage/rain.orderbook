@@ -15,7 +15,7 @@
   import { subgraphUrl } from '$lib/stores/settings';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import TanstackContentDetail from '$lib/components/detail/TanstackPageContentDetail.svelte';
-  import VaultBalanceChart from '../charts/VaultBalanceChart.svelte';
+  import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
 
   export let id: string;
 
