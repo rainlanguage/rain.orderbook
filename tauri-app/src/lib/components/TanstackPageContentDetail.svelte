@@ -24,7 +24,7 @@
   </div>
 {:else if $query.isFetching || $query.isLoading}
   <div class="flex h-16 w-full items-center justify-center">
-    <Spinner class="h-8 w-8" color="white" />
+    <Spinner class="h-8 w-8" color="white" data-testid="loadingSpinner" />
   </div>
 {:else}
   <div data-testid="emptyMessage" class="text-center text-gray-900 dark:text-white">
