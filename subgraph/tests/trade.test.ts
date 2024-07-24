@@ -21,6 +21,7 @@ import { createTradeEntity, makeTradeId } from "../src/trade";
 import { TradeVaultBalanceChange } from "../generated/schema";
 import { tradeVaultBalanceChangeId } from "../src/tradevaultbalancechange";
 import { createMockERC20Functions } from "./erc20.test";
+import { makeOrderId } from "../src/order";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -122,6 +123,7 @@ describe("Deposits", () => {
     );
 
     let id = makeTradeId(event, orderHash).toHexString();
+    let orderId = makeOrderId(event.address, orderHash).toHexString();
 
     assert.entityCount("Trade", 1);
     assert.fieldEquals(
@@ -130,5 +132,19 @@ describe("Deposits", () => {
       "timestamp",
       event.block.timestamp.toString()
     );
+
+    assert.fieldEquals(
+      "Trade",
+      id,
+      "inputVaultBalanceChange",
+      inputVaultBalanceChange.id.toHexString()
+    );
+    assert.fieldEquals(
+      "Trade",
+      id,
+      "outputVaultBalanceChange",
+      outputVaultBalanceChange.id.toHexString()
+    );
+    assert.fieldEquals("Trade", id, "order", orderId);
   });
 });
