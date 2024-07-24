@@ -1,4 +1,5 @@
 import type { Vault } from '$lib/typeshare/vaultsList';
+// import type { Vault as VaultDetail } from '$lib/typeshare/vaultDetail';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from './constants';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -13,7 +14,7 @@ export type VaultsListArgs = {
   };
 };
 
-export const vaultBalanceList = async (
+export const vaultList = async (
   url: string | undefined,
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
@@ -54,10 +55,10 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await vaultBalanceList(undefined, 0)).toEqual([]);
+    expect(await vaultList(undefined, 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await vaultBalanceList('http://localhost:8000', 0)).toEqual([
+    expect(await vaultList('http://localhost:8000', 0)).toEqual([
       {
         id: '1',
         vault_id: '1',
