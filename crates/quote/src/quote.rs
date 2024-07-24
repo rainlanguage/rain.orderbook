@@ -4,12 +4,13 @@ use crate::{
 };
 use alloy_primitives::{
     hex::{decode, encode_prefixed},
-    keccak256, Address, U256,
+    keccak256, Address, B256, U256,
 };
 use alloy_sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
 use rain_orderbook_subgraph_client::{
     types::{order_detail::Bytes, Id},
+    utils::make_order_id,
     OrderbookSubgraphClient,
 };
 use serde::{Deserialize, Serialize};
@@ -45,17 +46,14 @@ pub struct QuoteTarget {
 
 impl QuoteTarget {
     /// Get the order hash of self
-    pub fn get_order_hash(&self) -> [u8; 32] {
-        keccak256(self.quote_config.order.abi_encode()).0
+    pub fn get_order_hash(&self) -> B256 {
+        keccak256(self.quote_config.order.abi_encode())
     }
 
-    /// Builds "id" that is compatible with orderbook subgraph
-    /// which is keccak of orderbook address concated with order hash
-    pub fn get_id(&self) -> Vec<u8> {
-        let mut id_bytes = vec![];
-        id_bytes.extend_from_slice(self.orderbook.as_ref());
-        id_bytes.extend_from_slice(&self.get_order_hash());
-        keccak256(id_bytes).to_vec()
+    /// Get subgraph represented "order_id" of self
+    /// which is keccak256 of orderbook address concated with order hash
+    pub fn get_id(&self) -> B256 {
+        make_order_id(self.orderbook, self.get_order_hash().into())
     }
 
     /// Quotes the target on the given rpc url
@@ -106,13 +104,10 @@ pub struct QuoteSpec {
 }
 
 impl QuoteSpec {
-    /// Builds "id" that is compatible with orderbook subgraph
-    /// which is keccak of orderbook address concated with order hash
-    pub fn get_id(&self) -> Vec<u8> {
-        let mut id_bytes = vec![];
-        id_bytes.extend_from_slice(self.orderbook.as_ref());
-        id_bytes.extend_from_slice(&self.order_hash.to_be_bytes_vec());
-        keccak256(id_bytes).to_vec()
+    /// Get subgraph represented "order_id" of self
+    /// which is keccak256 of orderbook address concated with order hash
+    pub fn get_id(&self) -> B256 {
+        make_order_id(self.orderbook, self.order_hash)
     }
 
     /// Given a subgraph will fetch the order details and returns the
