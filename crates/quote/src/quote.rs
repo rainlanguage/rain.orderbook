@@ -4,7 +4,7 @@ use crate::{
 };
 use alloy_primitives::{
     hex::{decode, encode_prefixed},
-    Address, U256,
+    keccak256, Address, U256,
 };
 use alloy_sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
@@ -44,6 +44,20 @@ pub struct QuoteTarget {
 }
 
 impl QuoteTarget {
+    /// Get the order hash of self
+    pub fn get_order_hash(&self) -> [u8; 32] {
+        keccak256(self.quote_config.order.abi_encode()).0
+    }
+
+    /// Builds "id" that is compatible with orderbook subgraph
+    /// which is keccak of orderbook address concated with order hash
+    pub fn get_id(&self) -> Vec<u8> {
+        let mut id_bytes = vec![];
+        id_bytes.extend_from_slice(self.orderbook.as_ref());
+        id_bytes.extend_from_slice(&self.get_order_hash());
+        keccak256(id_bytes).to_vec()
+    }
+
     /// Quotes the target on the given rpc url
     pub async fn do_quote(
         &self,
@@ -92,6 +106,15 @@ pub struct QuoteSpec {
 }
 
 impl QuoteSpec {
+    /// Builds "id" that is compatible with orderbook subgraph
+    /// which is keccak of orderbook address concated with order hash
+    pub fn get_id(&self) -> Vec<u8> {
+        let mut id_bytes = vec![];
+        id_bytes.extend_from_slice(self.orderbook.as_ref());
+        id_bytes.extend_from_slice(&self.order_hash.to_be_bytes_vec());
+        keccak256(id_bytes).to_vec()
+    }
+
     /// Given a subgraph will fetch the order details and returns the
     /// respective quote target
     pub async fn get_quote_target_from_subgraph(
@@ -101,7 +124,7 @@ impl QuoteSpec {
         let url = Url::from_str(subgraph_url)?;
         let sg_client = OrderbookSubgraphClient::new(url);
         let order_detail = sg_client
-            .order_detail(Id::new(encode_prefixed(self.order_hash.to_be_bytes_vec())))
+            .order_detail(Id::new(encode_prefixed(self.get_id())))
             .await?;
 
         Ok(QuoteTarget {
@@ -156,7 +179,7 @@ impl BatchQuoteSpec {
             .batch_order_detail(
                 self.0
                     .iter()
-                    .map(|v| Bytes(encode_prefixed(v.order_hash.to_be_bytes_vec())))
+                    .map(|v| Bytes(encode_prefixed(v.get_id())))
                     .collect(),
             )
             .await?;
@@ -167,10 +190,7 @@ impl BatchQuoteSpec {
             .map(|target| {
                 orders_details
                     .iter()
-                    .find(|order_detail| {
-                        order_detail.order_hash.0
-                            == encode_prefixed(target.order_hash.to_be_bytes_vec())
-                    })
+                    .find(|order_detail| order_detail.id.0 == encode_prefixed(target.get_id()))
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
                             orderbook: target.orderbook,
@@ -254,12 +274,16 @@ mod tests {
             ..Default::default()
         };
         let order_hash_bytes = keccak256(order.abi_encode()).0;
-        let order_id_u256 = U256::from_be_bytes(order_hash_bytes);
-        let order_id = encode_prefixed(order_hash_bytes);
+        let order_hash_u256 = U256::from_be_bytes(order_hash_bytes);
+        let order_hash = encode_prefixed(order_hash_bytes);
+        let mut id = vec![];
+        id.extend_from_slice(orderbook.as_ref());
+        id.extend_from_slice(&order_hash_bytes);
+        let order_id = encode_prefixed(keccak256(id));
         let order_json = json!({
             "id": order_id,
             "orderBytes": encode_prefixed(order.abi_encode()),
-            "orderHash": order_id,
+            "orderHash": order_hash,
             "owner": encode_prefixed(order.owner),
             "outputs": [{
                 "id": encode_prefixed(Address::random().0.0),
@@ -308,11 +332,11 @@ mod tests {
                 }
             })
         };
-        (orderbook, order, order_id_u256, retrun_sg_data)
+        (orderbook, order, order_hash_u256, retrun_sg_data)
     }
 
     #[tokio::test]
-    async fn test_get_quote_target_from_subgraph() {
+    async fn test_get_quote_spec_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(false);
@@ -349,7 +373,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_batch_quote_target_from_subgraph() {
+    async fn test_get_batch_quote_spec_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(true);
@@ -386,7 +410,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_specifier() {
+    async fn test_quote_spec_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
@@ -445,7 +469,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_batch_specifier() {
+    async fn test_quote_batch_spec_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(true);
@@ -517,7 +541,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote() {
+    async fn test_quote_target_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, _, _) = get_test_data(false);
@@ -564,7 +588,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_batch_quote() {
+    async fn test_batch_quote_target_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, _, _) = get_test_data(true);

@@ -312,14 +312,18 @@ mod tests {
             ..Default::default()
         };
         let order_hash_bytes = keccak256(order.abi_encode()).0;
-        let order_id_u256 = U256::from_be_bytes(order_hash_bytes);
-        let order_id = encode_prefixed(order_hash_bytes);
+        let order_hash_u256 = U256::from_be_bytes(order_hash_bytes);
+        let order_hash = encode_prefixed(order_hash_bytes);
+        let mut order_id = vec![];
+        order_id.extend_from_slice(orderbook.as_ref());
+        order_id.extend_from_slice(&order_hash_bytes);
+        let order_id = encode_prefixed(keccak256(order_id));
         let retrun_sg_data = serde_json::json!({
             "data": {
                 "orders": [{
                     "id": order_id,
                     "orderBytes": encode_prefixed(order.abi_encode()),
-                    "orderHash": order_id,
+                    "orderHash": order_hash,
                     "owner": encode_prefixed(order.owner),
                     "outputs": [{
                         "id": encode_prefixed(Address::random().0.0),
@@ -364,7 +368,7 @@ mod tests {
 
         let batch_quote_specs = BatchQuoteSpec(vec![
             QuoteSpec {
-                order_hash: order_id_u256,
+                order_hash: order_hash_u256,
                 input_io_index: 0,
                 output_io_index: 0,
                 signed_context: vec![],
