@@ -30,11 +30,14 @@
 
 <TanstackContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
   <svelte:fragment slot="top" let:data>
-    <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
-      {data?.token.name}
+    <div
+      data-testid="vaultDetailTokenName"
+      class="flex gap-x-4 text-3xl font-medium dark:text-white"
+    >
+      {data.token.name}
     </div>
     <div>
-      {#if data && $walletAddressMatchesOrBlank(data.owner)}
+      {#if $walletAddressMatchesOrBlank(data.owner)}
         <Button color="dark" on:click={() => handleDepositModal(data)}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
@@ -45,79 +48,80 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="card" let:data>
-    {#if data}
-      <CardProperty>
-        <svelte:fragment slot="key">Vault ID</svelte:fragment>
-        <svelte:fragment slot="value">{bigintStringToHex(data.vault_id)}</svelte:fragment>
-      </CardProperty>
+    <CardProperty data-testid="vaultDetailVaultId">
+      <svelte:fragment slot="key">Vault ID</svelte:fragment>
+      <svelte:fragment slot="value">{bigintStringToHex(data.vault_id)}</svelte:fragment>
+    </CardProperty>
 
-      <CardProperty>
-        <svelte:fragment slot="key">Owner Address</svelte:fragment>
-        <svelte:fragment slot="value">
-          <Hash type={HashType.Wallet} value={data.owner} />
-        </svelte:fragment>
-      </CardProperty>
+    <CardProperty data-testid="vaultDetailOwnerAddress">
+      <svelte:fragment slot="key">Owner Address</svelte:fragment>
+      <svelte:fragment slot="value">
+        <Hash type={HashType.Wallet} value={data.owner} />
+      </svelte:fragment>
+    </CardProperty>
 
-      <CardProperty>
-        <svelte:fragment slot="key">Token address</svelte:fragment>
-        <svelte:fragment slot="value">
-          <Hash value={data.token.id} />
-        </svelte:fragment>
-      </CardProperty>
+    <CardProperty data-testid="vaultDetailTokenAddress">
+      <svelte:fragment slot="key">Token address</svelte:fragment>
+      <svelte:fragment slot="value">
+        <Hash value={data.token.id} />
+      </svelte:fragment>
+    </CardProperty>
 
-      <CardProperty>
-        <svelte:fragment slot="key">Balance</svelte:fragment>
-        <svelte:fragment slot="value"
-          >{formatUnits(BigInt(data.balance), Number(data.token.decimals ?? 0))}
-          {data.token.symbol}</svelte:fragment
-        >
-      </CardProperty>
+    <CardProperty data-testid="vaultDetailBalance">
+      <svelte:fragment slot="key">Balance</svelte:fragment>
+      <svelte:fragment slot="value"
+        >{formatUnits(BigInt(data.balance), Number(data.token.decimals ?? 0))}
+        {data.token.symbol}</svelte:fragment
+      >
+    </CardProperty>
 
-      <CardProperty>
-        <svelte:fragment slot="key">Orders as input</svelte:fragment>
-        <svelte:fragment slot="value">
+    <CardProperty>
+      <svelte:fragment slot="key">Orders as input</svelte:fragment>
+      <svelte:fragment slot="value">
+        <p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
           {#if data.orders_as_input && data.orders_as_input.length > 0}
-            <p class="flex flex-wrap justify-start">
-              {#each data.orders_as_input as order}
-                <Button
-                  class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-                  color="light"
-                  on:click={() => goto(`/orders/${order.id}`)}
-                  ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
-                >
-              {/each}
-            </p>
+            {#each data.orders_as_input as order}
+              <Button
+                class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
+                color="light"
+                data-testid={'vaultDetailOrderAsInputOrder' + order.id}
+                on:click={() => goto(`/orders/${order.id}`)}
+              >
+                <Hash type={HashType.Identifier} value={order.id} copyOnClick={false} />
+              </Button>
+            {/each}
           {:else}
             None
           {/if}
-        </svelte:fragment>
-      </CardProperty>
+        </p>
+      </svelte:fragment>
+    </CardProperty>
 
-      <CardProperty>
-        <svelte:fragment slot="key">Orders as output</svelte:fragment>
-        <svelte:fragment slot="value">
+    <CardProperty>
+      <svelte:fragment slot="key">Orders as output</svelte:fragment>
+      <svelte:fragment slot="value">
+        <p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
           {#if data.orders_as_output && data.orders_as_output.length > 0}
-            <p class="flex flex-wrap justify-start">
-              {#each data.orders_as_output as order}
-                <Button
-                  class="mr-1 mt-1 px-1 py-0"
-                  color="alternative"
-                  on:click={() => goto(`/orders/${order.id}`)}
-                  ><Hash type={HashType.Identifier} value={order.id} copyOnClick={false} /></Button
-                >
-              {/each}
-            </p>
+            {#each data.orders_as_output as order}
+              <Button
+                class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
+                color="alternative"
+                data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
+                on:click={() => goto(`/orders/${order.id}`)}
+              >
+                <Hash type={HashType.Identifier} value={order.id} copyOnClick={false} />
+              </Button>
+            {/each}
           {:else}
-            None{/if}
-        </svelte:fragment>
-      </CardProperty>
-    {/if}
+            None
+          {/if}
+        </p>
+      </svelte:fragment>
+    </CardProperty>
   </svelte:fragment>
 
   <svelte:fragment slot="chart" let:data>
-    {#if data}
-      <VaultBalanceChart vault={data} />
-    {/if}
+    <VaultBalanceChart vault={data} />
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>
