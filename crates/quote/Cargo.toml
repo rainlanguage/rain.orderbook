@@ -16,12 +16,16 @@ alloy-ethers-typecast = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 once_cell = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
+anyhow = { workspace = true }
+reqwest = { workspace = true }
+clap = { workspace = true, features = ["env"]}
+tracing-subscriber = { workspace = true, features = ['env-filter'] }
 
 [dev-dependencies]
 httpmock = "0.7.0"
-serde_json = { workspace = true }
