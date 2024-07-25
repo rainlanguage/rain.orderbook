@@ -39,6 +39,7 @@ pub struct VaultDetailQuery {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
 pub struct Vault {
+    pub id: Bytes,
     pub vault_id: BigInt,
     pub token: ERC20,
     pub owner: Bytes,
