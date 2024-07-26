@@ -37,6 +37,55 @@ pub struct Input {
         ],
     )]
     pub target: Option<Vec<String>>,
+
+    /// A Quote Spec input that takes exactly 4 values
+    #[arg(
+        long,
+        num_args = 4,
+        value_names = [
+            "ORDERBOOK_ADDRESS",
+            "INPUT_IO_INDEX",
+            "OUTPUT_IO_INDEX",
+            "ORDER_HASH"
+        ],
+    )]
+    pub spec: Option<Vec<String>>,
+}
+
+/// Determines the variants of parsed json input
+#[derive(Debug, Clone, PartialEq)]
+pub enum InputContentType {
+    /// quote specs that need to read their order details from a subgraph before a quote call
+    Spec(BatchQuoteSpec),
+    // ready to quote targets that have all the details for a quote call
+    Target(BatchQuoteTarget),
+}
+
+impl Input {
+    /// Reads the input content from the provided source
+    pub fn read_content(&self) -> anyhow::Result<InputContentType> {
+        let mut inputs_count = 0;
+        if self.input.is_some() {
+            inputs_count += 1;
+        }
+        if self.target.is_some() {
+            inputs_count += 1;
+        }
+        if self.spec.is_some() {
+            inputs_count += 1;
+        }
+        if inputs_count > 1 {
+            Err(anyhow::anyhow!("conflicting inputs"))
+        } else if let Some(v) = &self.input {
+            Ok(InputContentType::Spec(v.clone()))
+        } else if let Some(targets) = &self.target {
+            Ok(InputContentType::Target(targets.try_into()?))
+        } else if let Some(specs) = &self.spec {
+            Ok(InputContentType::Spec(specs.try_into()?))
+        } else {
+            Err(anyhow::anyhow!("expected at least one input"))
+        }
+    }
 }
 
 /// Parse and validates the input hex string bytes into [BatchQuoteSpec]
@@ -49,56 +98,29 @@ pub fn parse_input(value: &str) -> anyhow::Result<BatchQuoteSpec> {
     let mut start_index = 0;
     let mut end_index = 54;
     while let Some(bytes_piece) = bytes.get(start_index..end_index) {
-        let orderbook = bytes_piece
-            .get(..20)
-            .map(Address::from_slice)
-            .ok_or(anyhow::anyhow!("missing orderbook address"))?;
-        let input_io_index = bytes_piece
-            .get(20..21)
-            .map(|v| v[0])
-            .ok_or(anyhow::anyhow!("missing input IO index"))?;
-        let output_io_index = bytes_piece
-            .get(21..22)
-            .map(|v| v[0])
-            .ok_or(anyhow::anyhow!("missing output IO index"))?;
-        let order_hash = bytes_piece
-            .get(22..)
-            .map(|v| {
-                let mut bytes32: [u8; 32] = [0; 32];
-                bytes32.copy_from_slice(v);
-                U256::from_be_bytes(bytes32)
-            })
-            .ok_or(anyhow::anyhow!("missing order hash"))?;
-
         batch_quote_sepcs.0.push(QuoteSpec {
-            order_hash,
-            input_io_index,
-            output_io_index,
             signed_context: vec![],
-            orderbook,
+            orderbook: bytes_piece
+                .get(..20)
+                .map(Address::from_slice)
+                .ok_or(anyhow::anyhow!("missing orderbook address"))?,
+            input_io_index: bytes_piece
+                .get(20..21)
+                .map(|v| v[0])
+                .ok_or(anyhow::anyhow!("missing input IO index"))?,
+            output_io_index: bytes_piece
+                .get(21..22)
+                .map(|v| v[0])
+                .ok_or(anyhow::anyhow!("missing output IO index"))?,
+            order_hash: bytes_piece
+                .get(22..)
+                .map(U256::from_be_slice)
+                .ok_or(anyhow::anyhow!("missing order hash"))?,
         });
         start_index += 54;
         end_index += 54;
     }
     Ok(batch_quote_sepcs)
-}
-
-// a binding struct for Quote
-struct CliQuoteTarget<'a> {
-    pub order: &'a str,
-    pub input_io_index: &'a str,
-    pub output_io_index: &'a str,
-}
-impl<'a> TryFrom<CliQuoteTarget<'a>> for Quote {
-    type Error = anyhow::Error;
-    fn try_from(value: CliQuoteTarget<'a>) -> Result<Self, Self::Error> {
-        Ok(Self {
-            inputIOIndex: U256::from_str(value.input_io_index)?,
-            outputIOIndex: U256::from_str(value.output_io_index)?,
-            signedContext: vec![],
-            order: OrderV3::abi_decode(&decode(value.order)?, true)?,
-        })
-    }
 }
 
 // tries to map an array of strings into a BatchQuoteTarget
@@ -111,14 +133,14 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
             if let Some(input_io_index_str) = iter.next() {
                 if let Some(output_io_index_str) = iter.next() {
                     if let Some(order_bytes_str) = iter.next() {
-                        let cli_quote_target = CliQuoteTarget {
-                            order: order_bytes_str,
-                            input_io_index: input_io_index_str,
-                            output_io_index: output_io_index_str,
-                        };
                         batch_quote_target.0.push(QuoteTarget {
                             orderbook: Address::from_hex(orderbook_str)?,
-                            quote_config: cli_quote_target.try_into()?,
+                            quote_config: Quote {
+                                signedContext: vec![],
+                                inputIOIndex: U256::from_str(input_io_index_str)?,
+                                outputIOIndex: U256::from_str(output_io_index_str)?,
+                                order: OrderV3::abi_decode(&decode(order_bytes_str)?, true)?,
+                            },
                         });
                     } else {
                         return Err(anyhow::anyhow!("missing order bytes"));
@@ -137,28 +159,37 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
     }
 }
 
-/// Determines the variants of parsed json input
-#[derive(Debug, Clone, PartialEq)]
-pub enum InputContentType {
-    /// quote specs that need to read their order details from a subgraph before a quote call
-    Spec(BatchQuoteSpec),
-    // ready to quote targets that have all the details for a quote call
-    Target(BatchQuoteTarget),
-}
-
-impl Input {
-    /// Reads the input content from the provided source
-    pub fn read_content(&self) -> anyhow::Result<InputContentType> {
-        if self.input.is_some() && self.target.is_some() {
-            Err(anyhow::anyhow!("conflicting inputs"))
-        } else if let Some(v) = &self.input {
-            Ok(InputContentType::Spec(v.clone()))
-        } else if let Some(targets) = &self.target {
-            let batch_quote_target = targets.try_into()?;
-            Ok(InputContentType::Target(batch_quote_target))
-        } else {
-            Err(anyhow::anyhow!("expected at least one input"))
+// tries to map an array of strings into a BatchQuoteSpec
+impl TryFrom<&Vec<String>> for BatchQuoteSpec {
+    type Error = anyhow::Error;
+    fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
+        let mut batch_quote_specs = BatchQuoteSpec::default();
+        let mut iter = value.iter();
+        while let Some(orderbook_str) = iter.next() {
+            if let Some(input_io_index_str) = iter.next() {
+                if let Some(output_io_index_str) = iter.next() {
+                    if let Some(order_hash_str) = iter.next() {
+                        batch_quote_specs.0.push(QuoteSpec {
+                            signed_context: vec![],
+                            orderbook: Address::from_hex(orderbook_str)?,
+                            order_hash: U256::from_str(order_hash_str)?,
+                            input_io_index: input_io_index_str.parse()?,
+                            output_io_index: output_io_index_str.parse()?,
+                        });
+                    } else {
+                        return Err(anyhow::anyhow!("missing order hash"));
+                    }
+                } else {
+                    return Err(anyhow::anyhow!("missing output IO index"));
+                }
+            } else {
+                return Err(anyhow::anyhow!("missing input IO index"));
+            }
         }
+        if batch_quote_specs.0.is_empty() {
+            return Err(anyhow::anyhow!("missing '--spec' values"));
+        }
+        Ok(batch_quote_specs)
     }
 }
 
@@ -302,6 +333,68 @@ mod tests {
     }
 
     #[test]
+    fn test_try_from_vec_string_for_batch_quote_spec() {
+        // valid targets
+        let input_index = 8u8;
+        let output_index = 9u8;
+        let orderbook1 = Address::random();
+        let orderbook2 = Address::random();
+        let order_hash1 = [1u8; 32];
+        let order_hash2 = [2u8; 32];
+
+        let specs_str = vec![
+            encode_prefixed(orderbook1.0),
+            input_index.to_string(),
+            output_index.to_string(),
+            encode_prefixed(order_hash1),
+            encode_prefixed(orderbook2.0),
+            input_index.to_string(),
+            output_index.to_string(),
+            encode_prefixed(order_hash2),
+        ];
+
+        let result: BatchQuoteSpec = (&specs_str).try_into().unwrap();
+        let expected = BatchQuoteSpec(vec![
+            QuoteSpec {
+                orderbook: orderbook1,
+                input_io_index: input_index,
+                output_io_index: output_index,
+                signed_context: vec![],
+                order_hash: U256::from_be_bytes(order_hash1),
+            },
+            QuoteSpec {
+                orderbook: orderbook2,
+                input_io_index: input_index,
+                output_io_index: output_index,
+                signed_context: vec![],
+                order_hash: U256::from_be_bytes(order_hash2),
+            },
+        ]);
+        assert_eq!(result, expected);
+
+        // invalid targets
+        let specs_str = vec![
+            encode_prefixed(orderbook1.0),
+            input_index.to_string(),
+            output_index.to_string(),
+            encode_prefixed([1u8; 32]),
+            encode_prefixed(orderbook2.0),
+            input_index.to_string(),
+            output_index.to_string(),
+        ];
+        let result = std::convert::TryInto::<BatchQuoteSpec>::try_into(&specs_str)
+            .expect_err("expected error")
+            .to_string();
+        assert_eq!(result, "missing order hash");
+
+        let specs_str = vec![encode_prefixed(orderbook1.0), input_index.to_string()];
+        let result = std::convert::TryInto::<BatchQuoteSpec>::try_into(&specs_str)
+            .expect_err("expected error")
+            .to_string();
+        assert_eq!(result, "missing output IO index");
+    }
+
+    #[test]
     fn test_read_content() {
         let orderbook = Address::random();
         let input_io_index = 10u8;
@@ -318,6 +411,7 @@ mod tests {
         let input = Input {
             input: Some(specs.clone()),
             target: None,
+            spec: None,
         };
         matches!(input.read_content().unwrap(), InputContentType::Spec(_));
 
@@ -330,12 +424,27 @@ mod tests {
         let input = Input {
             input: None,
             target: Some(targets_str.clone()),
+            spec: None,
         };
         matches!(input.read_content().unwrap(), InputContentType::Target(_));
+
+        let specs_str = vec![
+            encode_prefixed(orderbook.0),
+            input_io_index.to_string(),
+            output_io_index.to_string(),
+            encode_prefixed([1u8; 32]),
+        ];
+        let input = Input {
+            input: None,
+            spec: Some(specs_str.clone()),
+            target: None,
+        };
+        matches!(input.read_content().unwrap(), InputContentType::Spec(_));
 
         let input = Input {
             input: None,
             target: None,
+            spec: None,
         };
         assert_eq!(
             input
@@ -348,6 +457,7 @@ mod tests {
         let input = Input {
             input: Some(specs),
             target: Some(targets_str),
+            spec: None,
         };
         assert_eq!(
             input

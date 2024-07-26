@@ -262,6 +262,7 @@ mod tests {
             pretty: true,
             input: Input {
                 target: None,
+                spec: None,
                 input: Some(BatchQuoteSpec(vec![
                     QuoteSpec::default(),
                     QuoteSpec::default(),
@@ -276,7 +277,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_ok_input_bytes() {
+    async fn test_run_ok_spec_inputs() {
         let rpc_server = MockServer::start_async().await;
         let rpc_url = rpc_server.url("/rpc");
         let sg_url = rpc_server.url("/sg");
@@ -312,14 +313,18 @@ mod tests {
             ..Default::default()
         };
         let order_hash_bytes = keccak256(order.abi_encode()).0;
-        let order_id_u256 = U256::from_be_bytes(order_hash_bytes);
-        let order_id = encode_prefixed(order_hash_bytes);
+        let order_hash_u256 = U256::from_be_bytes(order_hash_bytes);
+        let order_hash = encode_prefixed(order_hash_bytes);
+        let mut order_id = vec![];
+        order_id.extend_from_slice(orderbook.as_ref());
+        order_id.extend_from_slice(&order_hash_bytes);
+        let order_id = encode_prefixed(keccak256(order_id));
         let retrun_sg_data = serde_json::json!({
             "data": {
                 "orders": [{
                     "id": order_id,
                     "orderBytes": encode_prefixed(order.abi_encode()),
-                    "orderHash": order_id,
+                    "orderHash": order_hash,
                     "owner": encode_prefixed(order.owner),
                     "outputs": [{
                         "id": encode_prefixed(Address::random().0.0),
@@ -362,9 +367,10 @@ mod tests {
             then.json_body_obj(&retrun_sg_data);
         });
 
+        // input bytes
         let batch_quote_specs = BatchQuoteSpec(vec![
             QuoteSpec {
-                order_hash: order_id_u256,
+                order_hash: order_hash_u256,
                 input_io_index: 0,
                 output_io_index: 0,
                 signed_context: vec![],
@@ -382,7 +388,42 @@ mod tests {
             pretty: false,
             input: Input {
                 target: None,
+                spec: None,
                 input: Some(batch_quote_specs),
+            },
+        };
+
+        // run
+        let result = cli.run().await.unwrap();
+        let expected = QuoterResult(vec![
+            QuoterResultInner::Ok(OrderQuoteValue::default()),
+            QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
+        ]);
+        assert_eq!(result, expected);
+
+        // specs input
+        let specs_str = vec![
+            encode_prefixed(orderbook.0),
+            0.to_string(),
+            0.to_string(),
+            encode_prefixed(order_hash_bytes),
+            encode_prefixed(orderbook.0),
+            0.to_string(),
+            0.to_string(),
+            encode_prefixed([0u8; 32]),
+        ];
+        let cli = Quoter {
+            output: None,
+            rpc: Url::parse(&rpc_url).unwrap(),
+            subgraph: Some(Url::parse(&sg_url).unwrap()),
+            block_number: None,
+            multicall_address: None,
+            no_stdout: true,
+            pretty: false,
+            input: Input {
+                target: None,
+                input: None,
+                spec: Some(specs_str),
             },
         };
 
@@ -421,6 +462,7 @@ mod tests {
             pretty: false,
             input: Input {
                 input: None,
+                spec: None,
                 target: Some(targets_str),
             },
         };
