@@ -402,6 +402,130 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_run_ok_specs_args() {
+        let rpc_server = MockServer::start_async().await;
+        let rpc_url = rpc_server.url("/rpc");
+        let sg_url = rpc_server.url("/sg");
+
+        let rpc_response_data = vec![
+            MulticallResult {
+                success: true,
+                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)),
+            },
+            MulticallResult {
+                success: true,
+                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)),
+            },
+        ]
+        .abi_encode();
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body_obj(
+                &serde_json::from_str::<serde_json::Value>(
+                    &Response::new_success(1, encode_prefixed(rpc_response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        // mock subgraph
+        let orderbook = Address::random();
+        let order = OrderV3 {
+            validInputs: vec![IO::default()],
+            validOutputs: vec![IO::default()],
+            ..Default::default()
+        };
+        let order_hash_bytes = keccak256(order.abi_encode()).0;
+        let order_hash = encode_prefixed(order_hash_bytes);
+        let mut order_id = vec![];
+        order_id.extend_from_slice(orderbook.as_ref());
+        order_id.extend_from_slice(&order_hash_bytes);
+        let order_id = encode_prefixed(keccak256(order_id));
+        let retrun_sg_data = serde_json::json!({
+            "data": {
+                "orders": [{
+                    "id": order_id,
+                    "orderBytes": encode_prefixed(order.abi_encode()),
+                    "orderHash": order_hash,
+                    "owner": encode_prefixed(order.owner),
+                    "outputs": [{
+                        "id": encode_prefixed(Address::random().0.0),
+                        "token": {
+                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "name": "T1",
+                            "symbol": "T1",
+                            "decimals": order.validOutputs[0].decimals.to_string()
+                        },
+                        "balance": "0",
+                        "vaultId": order.validOutputs[0].vaultId.to_string(),
+                    }],
+                    "inputs": [{
+                        "id": encode_prefixed(Address::random().0.0),
+                        "token": {
+                            "id": encode_prefixed(order.validInputs[0].token.0.0),
+                            "address": encode_prefixed(order.validInputs[0].token.0.0),
+                            "name": "T2",
+                            "symbol": "T2",
+                            "decimals": order.validInputs[0].decimals.to_string()
+                        },
+                        "balance": "0",
+                        "vaultId": order.validInputs[0].vaultId.to_string(),
+                    }],
+                    "active": true,
+                    "addEvents": [{
+                        "transaction": {
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                        }
+                    }],
+                    "meta": null,
+                    "timestampAdded": "0",
+                }]
+            }
+        });
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/sg");
+            then.json_body_obj(&retrun_sg_data);
+        });
+
+        let specs_str = vec![
+            encode_prefixed(orderbook.0),
+            0.to_string(),
+            0.to_string(),
+            encode_prefixed(order_hash_bytes),
+            encode_prefixed(orderbook.0),
+            0.to_string(),
+            0.to_string(),
+            encode_prefixed([0u8; 32]),
+        ];
+        let cli = Quoter {
+            output: None,
+            rpc: Url::parse(&rpc_url).unwrap(),
+            subgraph: Some(Url::parse(&sg_url).unwrap()),
+            block_number: None,
+            multicall_address: None,
+            no_stdout: true,
+            pretty: false,
+            input: Input {
+                target: None,
+                input: None,
+                spec: Some(specs_str),
+            },
+        };
+
+        // run
+        let result = cli.run().await.unwrap();
+        let expected = QuoterResult(vec![
+            QuoterResultInner::Ok(OrderQuoteValue::default()),
+            QuoterResultInner::Error(FailedQuote::NonExistent.to_string()),
+        ]);
+        assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
     async fn test_run_ok_target_args() {
         let rpc_server = MockServer::start_async().await;
         let rpc_url = rpc_server.url("/rpc");

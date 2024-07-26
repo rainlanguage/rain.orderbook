@@ -98,33 +98,24 @@ pub fn parse_input(value: &str) -> anyhow::Result<BatchQuoteSpec> {
     let mut start_index = 0;
     let mut end_index = 54;
     while let Some(bytes_piece) = bytes.get(start_index..end_index) {
-        let orderbook = bytes_piece
-            .get(..20)
-            .map(Address::from_slice)
-            .ok_or(anyhow::anyhow!("missing orderbook address"))?;
-        let input_io_index = bytes_piece
-            .get(20..21)
-            .map(|v| v[0])
-            .ok_or(anyhow::anyhow!("missing input IO index"))?;
-        let output_io_index = bytes_piece
-            .get(21..22)
-            .map(|v| v[0])
-            .ok_or(anyhow::anyhow!("missing output IO index"))?;
-        let order_hash = bytes_piece
-            .get(22..)
-            .map(|v| {
-                let mut bytes32: [u8; 32] = [0; 32];
-                bytes32.copy_from_slice(v);
-                U256::from_be_bytes(bytes32)
-            })
-            .ok_or(anyhow::anyhow!("missing order hash"))?;
-
         batch_quote_sepcs.0.push(QuoteSpec {
-            order_hash,
-            input_io_index,
-            output_io_index,
             signed_context: vec![],
-            orderbook,
+            orderbook: bytes_piece
+                .get(..20)
+                .map(Address::from_slice)
+                .ok_or(anyhow::anyhow!("missing orderbook address"))?,
+            input_io_index: bytes_piece
+                .get(20..21)
+                .map(|v| v[0])
+                .ok_or(anyhow::anyhow!("missing input IO index"))?,
+            output_io_index: bytes_piece
+                .get(21..22)
+                .map(|v| v[0])
+                .ok_or(anyhow::anyhow!("missing output IO index"))?,
+            order_hash: bytes_piece
+                .get(22..)
+                .map(U256::from_be_slice)
+                .ok_or(anyhow::anyhow!("missing order hash"))?,
         });
         start_index += 54;
         end_index += 54;
@@ -132,23 +123,6 @@ pub fn parse_input(value: &str) -> anyhow::Result<BatchQuoteSpec> {
     Ok(batch_quote_sepcs)
 }
 
-// a binding struct for Quote
-struct CliQuoteTarget<'a> {
-    pub order: &'a str,
-    pub input_io_index: &'a str,
-    pub output_io_index: &'a str,
-}
-impl<'a> TryFrom<CliQuoteTarget<'a>> for Quote {
-    type Error = anyhow::Error;
-    fn try_from(value: CliQuoteTarget<'a>) -> Result<Self, Self::Error> {
-        Ok(Self {
-            inputIOIndex: U256::from_str(value.input_io_index)?,
-            outputIOIndex: U256::from_str(value.output_io_index)?,
-            signedContext: vec![],
-            order: OrderV3::abi_decode(&decode(value.order)?, true)?,
-        })
-    }
-}
 // tries to map an array of strings into a BatchQuoteTarget
 impl TryFrom<&Vec<String>> for BatchQuoteTarget {
     type Error = anyhow::Error;
@@ -159,14 +133,14 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
             if let Some(input_io_index_str) = iter.next() {
                 if let Some(output_io_index_str) = iter.next() {
                     if let Some(order_bytes_str) = iter.next() {
-                        let cli_quote_target = CliQuoteTarget {
-                            order: order_bytes_str,
-                            input_io_index: input_io_index_str,
-                            output_io_index: output_io_index_str,
-                        };
                         batch_quote_target.0.push(QuoteTarget {
                             orderbook: Address::from_hex(orderbook_str)?,
-                            quote_config: cli_quote_target.try_into()?,
+                            quote_config: Quote {
+                                signedContext: vec![],
+                                inputIOIndex: U256::from_str(input_io_index_str)?,
+                                outputIOIndex: U256::from_str(output_io_index_str)?,
+                                order: OrderV3::abi_decode(&decode(order_bytes_str)?, true)?,
+                            },
                         });
                     } else {
                         return Err(anyhow::anyhow!("missing order bytes"));
@@ -185,25 +159,6 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
     }
 }
 
-// a binding struct for QuoteSpec
-struct CliQuoteSpec<'a> {
-    pub orderbook: &'a str,
-    pub order_hash: &'a str,
-    pub input_io_index: &'a str,
-    pub output_io_index: &'a str,
-}
-impl<'a> TryFrom<CliQuoteSpec<'a>> for QuoteSpec {
-    type Error = anyhow::Error;
-    fn try_from(value: CliQuoteSpec<'a>) -> Result<Self, Self::Error> {
-        Ok(Self {
-            orderbook: Address::from_hex(value.orderbook)?,
-            order_hash: U256::from_str(value.order_hash)?,
-            input_io_index: value.input_io_index.parse()?,
-            output_io_index: value.output_io_index.parse()?,
-            signed_context: vec![],
-        })
-    }
-}
 // tries to map an array of strings into a BatchQuoteSpec
 impl TryFrom<&Vec<String>> for BatchQuoteSpec {
     type Error = anyhow::Error;
@@ -214,15 +169,13 @@ impl TryFrom<&Vec<String>> for BatchQuoteSpec {
             if let Some(input_io_index_str) = iter.next() {
                 if let Some(output_io_index_str) = iter.next() {
                     if let Some(order_hash_str) = iter.next() {
-                        batch_quote_specs.0.push(
-                            CliQuoteSpec {
-                                orderbook: orderbook_str,
-                                input_io_index: input_io_index_str,
-                                output_io_index: output_io_index_str,
-                                order_hash: order_hash_str,
-                            }
-                            .try_into()?,
-                        );
+                        batch_quote_specs.0.push(QuoteSpec {
+                            signed_context: vec![],
+                            orderbook: Address::from_hex(orderbook_str)?,
+                            order_hash: U256::from_str(order_hash_str)?,
+                            input_io_index: input_io_index_str.parse()?,
+                            output_io_index: output_io_index_str.parse()?,
+                        });
                     } else {
                         return Err(anyhow::anyhow!("missing order hash"));
                     }
