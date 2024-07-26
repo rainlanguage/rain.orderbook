@@ -262,6 +262,7 @@ mod tests {
             pretty: true,
             input: Input {
                 target: None,
+                spec: None,
                 input: Some(BatchQuoteSpec(vec![
                     QuoteSpec::default(),
                     QuoteSpec::default(),
@@ -386,6 +387,7 @@ mod tests {
             pretty: false,
             input: Input {
                 target: None,
+                spec: None,
                 input: Some(batch_quote_specs),
             },
         };
@@ -425,6 +427,7 @@ mod tests {
             pretty: false,
             input: Input {
                 input: None,
+                spec: None,
                 target: Some(targets_str),
             },
         };

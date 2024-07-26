@@ -37,6 +37,55 @@ pub struct Input {
         ],
     )]
     pub target: Option<Vec<String>>,
+
+    /// A Quote Spec input that takes exactly 4 values
+    #[arg(
+        long,
+        num_args = 4,
+        value_names = [
+            "ORDERBOOK_ADDRESS",
+            "INPUT_IO_INDEX",
+            "OUTPUT_IO_INDEX",
+            "ORDER_HASH"
+        ],
+    )]
+    pub spec: Option<Vec<String>>,
+}
+
+/// Determines the variants of parsed json input
+#[derive(Debug, Clone, PartialEq)]
+pub enum InputContentType {
+    /// quote specs that need to read their order details from a subgraph before a quote call
+    Spec(BatchQuoteSpec),
+    // ready to quote targets that have all the details for a quote call
+    Target(BatchQuoteTarget),
+}
+
+impl Input {
+    /// Reads the input content from the provided source
+    pub fn read_content(&self) -> anyhow::Result<InputContentType> {
+        let mut inputs = 0;
+        if self.input.is_some() {
+            inputs += 1;
+        }
+        if self.target.is_some() {
+            inputs += 1;
+        }
+        if self.spec.is_some() {
+            inputs += 1;
+        }
+        if inputs > 1 {
+            Err(anyhow::anyhow!("conflicting inputs"))
+        } else if let Some(v) = &self.input {
+            Ok(InputContentType::Spec(v.clone()))
+        } else if let Some(targets) = &self.target {
+            Ok(InputContentType::Target(targets.try_into()?))
+        } else if let Some(specs) = &self.spec {
+            Ok(InputContentType::Spec(specs.try_into()?))
+        } else {
+            Err(anyhow::anyhow!("expected at least one input"))
+        }
+    }
 }
 
 /// Parse and validates the input hex string bytes into [BatchQuoteSpec]
@@ -100,7 +149,6 @@ impl<'a> TryFrom<CliQuoteTarget<'a>> for Quote {
         })
     }
 }
-
 // tries to map an array of strings into a BatchQuoteTarget
 impl TryFrom<&Vec<String>> for BatchQuoteTarget {
     type Error = anyhow::Error;
@@ -137,28 +185,56 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
     }
 }
 
-/// Determines the variants of parsed json input
-#[derive(Debug, Clone, PartialEq)]
-pub enum InputContentType {
-    /// quote specs that need to read their order details from a subgraph before a quote call
-    Spec(BatchQuoteSpec),
-    // ready to quote targets that have all the details for a quote call
-    Target(BatchQuoteTarget),
+// a binding struct for QuoteSpec
+struct CliQuoteSpec<'a> {
+    pub orderbook: &'a str,
+    pub order_hash: &'a str,
+    pub input_io_index: &'a str,
+    pub output_io_index: &'a str,
 }
-
-impl Input {
-    /// Reads the input content from the provided source
-    pub fn read_content(&self) -> anyhow::Result<InputContentType> {
-        if self.input.is_some() && self.target.is_some() {
-            Err(anyhow::anyhow!("conflicting inputs"))
-        } else if let Some(v) = &self.input {
-            Ok(InputContentType::Spec(v.clone()))
-        } else if let Some(targets) = &self.target {
-            let batch_quote_target = targets.try_into()?;
-            Ok(InputContentType::Target(batch_quote_target))
-        } else {
-            Err(anyhow::anyhow!("expected at least one input"))
+impl<'a> TryFrom<CliQuoteSpec<'a>> for QuoteSpec {
+    type Error = anyhow::Error;
+    fn try_from(value: CliQuoteSpec<'a>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            orderbook: Address::from_hex(value.orderbook)?,
+            order_hash: U256::from_str(value.order_hash)?,
+            input_io_index: value.input_io_index.parse()?,
+            output_io_index: value.output_io_index.parse()?,
+            signed_context: vec![],
+        })
+    }
+}
+// tries to map an array of strings into a BatchQuoteSpec
+impl TryFrom<&Vec<String>> for BatchQuoteSpec {
+    type Error = anyhow::Error;
+    fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
+        let mut batch_quote_specs = BatchQuoteSpec::default();
+        let mut iter = value.iter();
+        while let Some(orderbook_str) = iter.next() {
+            if let Some(input_io_index_str) = iter.next() {
+                if let Some(output_io_index_str) = iter.next() {
+                    if let Some(order_hash_str) = iter.next() {
+                        let cli_quote_target = CliQuoteSpec {
+                            orderbook: orderbook_str,
+                            input_io_index: input_io_index_str,
+                            output_io_index: output_io_index_str,
+                            order_hash: order_hash_str,
+                        };
+                        batch_quote_specs.0.push(cli_quote_target.try_into()?);
+                    } else {
+                        return Err(anyhow::anyhow!("missing order hash"));
+                    }
+                } else {
+                    return Err(anyhow::anyhow!("missing output IO index"));
+                }
+            } else {
+                return Err(anyhow::anyhow!("missing input IO index"));
+            }
         }
+        if batch_quote_specs.0.is_empty() {
+            return Err(anyhow::anyhow!("missing '--spec' values"));
+        }
+        Ok(batch_quote_specs)
     }
 }
 
@@ -318,6 +394,7 @@ mod tests {
         let input = Input {
             input: Some(specs.clone()),
             target: None,
+            spec: None,
         };
         matches!(input.read_content().unwrap(), InputContentType::Spec(_));
 
@@ -330,12 +407,14 @@ mod tests {
         let input = Input {
             input: None,
             target: Some(targets_str.clone()),
+            spec: None,
         };
         matches!(input.read_content().unwrap(), InputContentType::Target(_));
 
         let input = Input {
             input: None,
             target: None,
+            spec: None,
         };
         assert_eq!(
             input
@@ -348,6 +427,7 @@ mod tests {
         let input = Input {
             input: Some(specs),
             target: Some(targets_str),
+            spec: None,
         };
         assert_eq!(
             input
