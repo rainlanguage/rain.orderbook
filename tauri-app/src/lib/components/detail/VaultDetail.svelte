@@ -38,10 +38,16 @@
     </div>
     <div>
       {#if $walletAddressMatchesOrBlank(data.owner)}
-        <Button color="dark" on:click={() => handleDepositModal(data)}
+        <Button
+          data-testid="vaultDetailDepositButton"
+          color="dark"
+          on:click={() => handleDepositModal(data)}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
-        <Button color="dark" on:click={() => handleWithdrawModal(data)}
+        <Button
+          data-testid="vaultDetailWithdrawButton"
+          color="dark"
+          on:click={() => handleWithdrawModal(data)}
           ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
         >
       {/if}
@@ -84,10 +90,11 @@
               <Button
                 class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
                 color="light"
+                data-order={order.id}
                 data-testid={'vaultDetailOrderAsInputOrder' + order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
               >
-                <Hash type={HashType.Identifier} value={order.id} copyOnClick={false} />
+                <Hash type={HashType.Identifier} value={order.order_hash} copyOnClick={false} />
               </Button>
             {/each}
           {:else}
@@ -106,10 +113,11 @@
               <Button
                 class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
                 color="alternative"
+                data-order={order.id}
                 data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
               >
-                <Hash type={HashType.Identifier} value={order.id} copyOnClick={false} />
+                <Hash type={HashType.Identifier} value={order.order_hash} copyOnClick={false} />
               </Button>
             {/each}
           {:else}
