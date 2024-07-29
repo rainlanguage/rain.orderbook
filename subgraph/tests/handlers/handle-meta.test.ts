@@ -6,7 +6,7 @@ import {
   clearInBlockStore,
   assert,
 } from "matchstick-as";
-import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
+import { Bytes, BigInt, Address, ByteArray } from "@graphprotocol/graph-ts";
 import {
   Evaluable,
   IO,
@@ -44,7 +44,7 @@ describe("Add and remove orders", () => {
     );
 
     let orderHash = Bytes.fromHexString(
-      "0x0987654321098765432109876543210987654321"
+      "0xefe58367f916890724f651fb12e4c074532a8c4be3e6141596d67bf697a0838e"
     );
     // first we need to create an order
     let event = createAddOrderEvent(
@@ -74,16 +74,26 @@ describe("Add and remove orders", () => {
 
     handleAddOrder(event);
 
+    assert.entityCount("Order", 1);
+    assert.fieldEquals(
+      "Order",
+      makeOrderId(event.address, orderHash).toHexString(),
+      "id",
+      makeOrderId(event.address, orderHash).toHexString()
+    );
+
     let metaEvent = createMetaEvent(
       // sender
       Address.fromBytes(
         Address.fromHexString("0x1234567890abcdef1234567890abcdef12345678")
       ),
       // subject
-      BigInt.fromByteArray(orderHash),
+      BigInt.fromByteArray(changetype<ByteArray>(orderHash.reverse())),
       // meta
       Bytes.fromHexString("0x1234567890abcdef1234567890abcdef12345678")
     );
+
+    metaEvent.address = event.address;
 
     handleMeta(metaEvent);
 
@@ -101,7 +111,7 @@ describe("Add and remove orders", () => {
     // meta field on order should be updated
     assert.fieldEquals(
       "Order",
-      id.toHexString(),
+      makeOrderId(event.address, orderHash).toHexString(),
       "meta",
       "0x1234567890abcdef1234567890abcdef12345678"
     );
