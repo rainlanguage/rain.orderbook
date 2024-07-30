@@ -4,28 +4,30 @@ use crate::{
 };
 use alloy_primitives::{
     hex::{decode, encode_prefixed},
-    Address, U256,
+    keccak256, Address, B256, U256,
 };
 use alloy_sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
 use rain_orderbook_subgraph_client::{
     types::{order_detail::Bytes, Id},
+    utils::make_order_id,
     OrderbookSubgraphClient,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, str::FromStr};
 use url::Url;
 
-pub type QuoteResult = Result<OrderQuote, FailedQuote>;
+pub type QuoteResult = Result<OrderQuoteValue, FailedQuote>;
 
 /// Holds quoted order max output and ratio
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
-pub struct OrderQuote {
+#[serde(rename_all = "camelCase")]
+pub struct OrderQuoteValue {
     pub max_output: U256,
     pub ratio: U256,
 }
 
-impl From<quoteReturn> for OrderQuote {
+impl From<quoteReturn> for OrderQuoteValue {
     fn from(v: quoteReturn) -> Self {
         Self {
             max_output: v.outputMax,
@@ -36,13 +38,24 @@ impl From<quoteReturn> for OrderQuote {
 
 /// A quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct QuoteTarget {
-    pub order_hash: U256,
     pub quote_config: Quote,
     pub orderbook: Address,
 }
 
 impl QuoteTarget {
+    /// Get the order hash of self
+    pub fn get_order_hash(&self) -> B256 {
+        keccak256(self.quote_config.order.abi_encode())
+    }
+
+    /// Get subgraph represented "order_id" of self
+    /// which is keccak256 of orderbook address concated with order hash
+    pub fn get_id(&self) -> B256 {
+        make_order_id(self.orderbook, self.get_order_hash().into())
+    }
+
     /// Quotes the target on the given rpc url
     pub async fn do_quote(
         &self,
@@ -63,6 +76,7 @@ impl QuoteTarget {
 /// Specifies a batch of [QuoteTarget]s
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
+#[serde(rename_all = "camelCase")]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
 
 impl BatchQuoteTarget {
@@ -80,15 +94,22 @@ impl BatchQuoteTarget {
 /// A quote target specifier, where the order details need to be fetched from a
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct QuoteTargetSpecifier {
+#[serde(rename_all = "camelCase")]
+pub struct QuoteSpec {
     pub order_hash: U256,
-    pub input_io_index: U256,
-    pub output_io_index: U256,
+    pub input_io_index: u8,
+    pub output_io_index: u8,
     pub signed_context: Vec<SignedContextV1>,
     pub orderbook: Address,
 }
 
-impl QuoteTargetSpecifier {
+impl QuoteSpec {
+    /// Get subgraph represented "order_id" of self
+    /// which is keccak256 of orderbook address concated with order hash
+    pub fn get_id(&self) -> B256 {
+        make_order_id(self.orderbook, self.order_hash)
+    }
+
     /// Given a subgraph will fetch the order details and returns the
     /// respective quote target
     pub async fn get_quote_target_from_subgraph(
@@ -98,15 +119,14 @@ impl QuoteTargetSpecifier {
         let url = Url::from_str(subgraph_url)?;
         let sg_client = OrderbookSubgraphClient::new(url);
         let order_detail = sg_client
-            .order_detail(Id::new(encode_prefixed(self.order_hash.to_be_bytes_vec())))
+            .order_detail(Id::new(encode_prefixed(self.get_id())))
             .await?;
 
         Ok(QuoteTarget {
-            order_hash: self.order_hash,
             orderbook: self.orderbook,
             quote_config: Quote {
-                inputIOIndex: self.input_io_index,
-                outputIOIndex: self.output_io_index,
+                inputIOIndex: U256::from(self.input_io_index),
+                outputIOIndex: U256::from(self.output_io_index),
                 signedContext: self.signed_context.clone(),
                 order: OrderV3::abi_decode(
                     decode(order_detail.order_bytes.0.as_str())?.as_slice(),
@@ -133,12 +153,13 @@ impl QuoteTargetSpecifier {
     }
 }
 
-/// specifies a batch of [QuoteTargetSpecifier]s
+/// specifies a batch of [QuoteSpec]s
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
-pub struct BatchQuoteTargetSpecifier(pub Vec<QuoteTargetSpecifier>);
+#[serde(rename_all = "camelCase")]
+pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
 
-impl BatchQuoteTargetSpecifier {
+impl BatchQuoteSpec {
     /// Given a subgraph url, will fetch orders details and returns their
     /// respective quote targets.
     /// Those specifiers that were not in the subgraph are returned as None
@@ -153,7 +174,7 @@ impl BatchQuoteTargetSpecifier {
             .batch_order_detail(
                 self.0
                     .iter()
-                    .map(|v| Bytes(encode_prefixed(v.order_hash.to_be_bytes_vec())))
+                    .map(|v| Bytes(encode_prefixed(v.get_id())))
                     .collect(),
             )
             .await?;
@@ -164,17 +185,13 @@ impl BatchQuoteTargetSpecifier {
             .map(|target| {
                 orders_details
                     .iter()
-                    .find(|order_detail| {
-                        order_detail.order_hash.0
-                            == encode_prefixed(target.order_hash.to_be_bytes_vec())
-                    })
+                    .find(|order_detail| order_detail.id.0 == encode_prefixed(target.get_id()))
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
-                            order_hash: target.order_hash,
                             orderbook: target.orderbook,
                             quote_config: Quote {
-                                inputIOIndex: target.input_io_index,
-                                outputIOIndex: target.output_io_index,
+                                inputIOIndex: U256::from(target.input_io_index),
+                                outputIOIndex: U256::from(target.output_io_index),
                                 signedContext: target.signed_context.clone(),
                                 order: OrderV3::abi_decode(
                                     decode(order_detail.order_bytes.0.as_str()).ok()?.as_slice(),
@@ -198,7 +215,7 @@ impl BatchQuoteTargetSpecifier {
         rpc_url: &str,
         block_number: Option<u64>,
         multicall_address: Option<Address>,
-    ) -> Result<Vec<Option<QuoteResult>>, Error> {
+    ) -> Result<Vec<QuoteResult>, Error> {
         let opts_quote_targets = self
             .get_batch_quote_target_from_subgraph(subgraph_url)
             .await?;
@@ -217,9 +234,13 @@ impl BatchQuoteTargetSpecifier {
         let mut result = vec![];
         opts_quote_targets.iter().for_each(|v| {
             if v.is_some() {
-                result.push(quote_results.pop_front());
+                result.push(
+                    quote_results
+                        .pop_front()
+                        .unwrap_or(Err(FailedQuote::NonExistent)),
+                );
             } else {
-                result.push(None)
+                result.push(Err(FailedQuote::NonExistent))
             }
         });
 
@@ -248,12 +269,16 @@ mod tests {
             ..Default::default()
         };
         let order_hash_bytes = keccak256(order.abi_encode()).0;
-        let order_id_u256 = U256::from_be_bytes(order_hash_bytes);
-        let order_id = encode_prefixed(order_hash_bytes);
+        let order_hash_u256 = U256::from_be_bytes(order_hash_bytes);
+        let order_hash = encode_prefixed(order_hash_bytes);
+        let mut id = vec![];
+        id.extend_from_slice(orderbook.as_ref());
+        id.extend_from_slice(&order_hash_bytes);
+        let order_id = encode_prefixed(keccak256(id));
         let order_json = json!({
             "id": order_id,
             "orderBytes": encode_prefixed(order.abi_encode()),
-            "orderHash": order_id,
+            "orderHash": order_hash,
             "owner": encode_prefixed(order.owner),
             "outputs": [{
                 "id": encode_prefixed(Address::random().0.0),
@@ -302,11 +327,11 @@ mod tests {
                 }
             })
         };
-        (orderbook, order, order_id_u256, retrun_sg_data)
+        (orderbook, order, order_hash_u256, retrun_sg_data)
     }
 
     #[tokio::test]
-    async fn test_get_quote_target_from_subgraph() {
+    async fn test_get_quote_spec_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(false);
@@ -317,10 +342,10 @@ mod tests {
             then.json_body_obj(&retrun_sg_data);
         });
 
-        let quote_target_specifier = QuoteTargetSpecifier {
+        let quote_target_specifier = QuoteSpec {
             order_hash: order_id_u256,
-            input_io_index: U256::ZERO,
-            output_io_index: U256::ZERO,
+            input_io_index: 0,
+            output_io_index: 0,
             signed_context: vec![],
             orderbook,
         };
@@ -330,12 +355,11 @@ mod tests {
             .unwrap();
 
         let expected = QuoteTarget {
-            order_hash: order_id_u256,
             orderbook,
             quote_config: Quote {
                 order,
-                inputIOIndex: quote_target_specifier.input_io_index,
-                outputIOIndex: quote_target_specifier.output_io_index,
+                inputIOIndex: U256::from(quote_target_specifier.input_io_index),
+                outputIOIndex: U256::from(quote_target_specifier.output_io_index),
                 signedContext: quote_target_specifier.signed_context,
             },
         };
@@ -344,7 +368,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_batch_quote_target_from_subgraph() {
+    async fn test_get_batch_quote_spec_from_subgraph() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(true);
@@ -355,26 +379,24 @@ mod tests {
             then.json_body_obj(&retrun_sg_data);
         });
 
-        let batch_quote_targets_specifiers =
-            BatchQuoteTargetSpecifier(vec![QuoteTargetSpecifier {
-                order_hash: order_id_u256,
-                input_io_index: U256::ZERO,
-                output_io_index: U256::ZERO,
-                signed_context: vec![],
-                orderbook,
-            }]);
+        let batch_quote_targets_specifiers = BatchQuoteSpec(vec![QuoteSpec {
+            order_hash: order_id_u256,
+            input_io_index: 0,
+            output_io_index: 0,
+            signed_context: vec![],
+            orderbook,
+        }]);
         let result = batch_quote_targets_specifiers
             .get_batch_quote_target_from_subgraph(rpc_server.url("/").as_str())
             .await
             .unwrap();
 
         let expected = vec![Some(QuoteTarget {
-            order_hash: order_id_u256,
             orderbook,
             quote_config: Quote {
                 order,
-                inputIOIndex: batch_quote_targets_specifiers.0[0].input_io_index,
-                outputIOIndex: batch_quote_targets_specifiers.0[0].output_io_index,
+                inputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].input_io_index),
+                outputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].output_io_index),
                 signedContext: batch_quote_targets_specifiers.0[0].signed_context.clone(),
             },
         })];
@@ -383,7 +405,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_specifier() {
+    async fn test_quote_spec_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
@@ -414,10 +436,10 @@ mod tests {
             then.json_body_obj(&retrun_sg_data);
         });
 
-        let quote_target_specifier = QuoteTargetSpecifier {
+        let quote_target_specifier = QuoteSpec {
             order_hash: order_id_u256,
-            input_io_index: U256::ZERO,
-            output_io_index: U256::ZERO,
+            input_io_index: 0,
+            output_io_index: 0,
             signed_context: vec![],
             orderbook,
         };
@@ -434,7 +456,7 @@ mod tests {
 
         assert_eq!(
             result.unwrap(),
-            OrderQuote {
+            OrderQuoteValue {
                 max_output: U256::from(1),
                 ratio: U256::from(2),
             }
@@ -442,7 +464,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_batch_specifier() {
+    async fn test_quote_batch_spec_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(true);
@@ -473,17 +495,17 @@ mod tests {
             then.json_body_obj(&retrun_sg_data);
         });
 
-        let batch_quote_targets_specifiers = BatchQuoteTargetSpecifier(vec![
-            QuoteTargetSpecifier {
+        let batch_quote_targets_specifiers = BatchQuoteSpec(vec![
+            QuoteSpec {
                 order_hash: order_id_u256,
-                input_io_index: U256::ZERO,
-                output_io_index: U256::ZERO,
+                input_io_index: 0,
+                output_io_index: 0,
                 signed_context: vec![],
                 orderbook,
             },
             // should be None in final result
-            QuoteTargetSpecifier::default(),
-            QuoteTargetSpecifier::default(),
+            QuoteSpec::default(),
+            QuoteSpec::default(),
         ]);
 
         let result = batch_quote_targets_specifiers
@@ -498,28 +520,27 @@ mod tests {
         let mut iter_result = result.into_iter();
 
         assert_eq!(
-            iter_result.next().unwrap().unwrap().unwrap(),
-            OrderQuote {
+            iter_result.next().unwrap().unwrap(),
+            OrderQuoteValue {
                 max_output: U256::from(1),
                 ratio: U256::from(2),
             }
         );
 
         // specifiers that were not present on subgraph were not quoted and are None
-        assert!(iter_result.next().unwrap().is_none());
-        assert!(iter_result.next().unwrap().is_none());
+        assert!(iter_result.next().unwrap().is_err());
+        assert!(iter_result.next().unwrap().is_err());
 
         // all results should have been consumed by now
         assert!(iter_result.next().is_none());
     }
 
     #[tokio::test]
-    async fn test_quote() {
+    async fn test_quote_target_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
-        let (orderbook, order, order_id_u256, _) = get_test_data(false);
+        let (orderbook, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            order_hash: order_id_u256,
             quote_config: Quote {
                 order,
                 ..Default::default()
@@ -554,7 +575,7 @@ mod tests {
 
         assert_eq!(
             result.unwrap(),
-            OrderQuote {
+            OrderQuoteValue {
                 max_output: U256::from(1),
                 ratio: U256::from(2),
             }
@@ -562,12 +583,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_batch_quote() {
+    async fn test_batch_quote_target_do_quote() {
         let rpc_server = MockServer::start_async().await;
 
-        let (orderbook, order, order_id_u256, _) = get_test_data(true);
+        let (orderbook, order, _, _) = get_test_data(true);
         let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
-            order_hash: order_id_u256,
             quote_config: Quote {
                 order,
                 ..Default::default()
@@ -603,7 +623,7 @@ mod tests {
 
         assert_eq!(
             iter_result.next().unwrap().unwrap(),
-            OrderQuote {
+            OrderQuoteValue {
                 max_output: U256::from(1),
                 ratio: U256::from(2),
             }

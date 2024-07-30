@@ -67,7 +67,7 @@ pub async fn batch_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::quote::OrderQuote;
+    use crate::quote::OrderQuoteValue;
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
     use alloy_ethers_typecast::{
         request_shim::{AlloyTransactionRequest, TransactionRequestShim},
@@ -154,7 +154,7 @@ mod tests {
 
         assert_eq!(
             iter_result.next().unwrap().unwrap(),
-            OrderQuote {
+            OrderQuoteValue {
                 max_output: U256::from(1),
                 ratio: U256::from(2),
             }
