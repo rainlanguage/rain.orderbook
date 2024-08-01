@@ -112,16 +112,16 @@
   <div class="flex w-full justify-between border-b p-3 pb-0 dark:border-gray-700">
     <div class="text-gray-900 dark:text-white">
       {#if title !== undefined}
-        <div class="mb-2 text-xl">{title}</div>
+        <div data-testid="lightweightChartTitle" class="mb-2 text-xl">{title}</div>
       {/if}
     </div>
 
     <div>
       {#if loading}
-        <Spinner class="mr-2 h-4 w-4" color="white" />
+        <Spinner data-testid="lightweightChartSpinner" class="mr-2 h-4 w-4" color="white" />
       {/if}
       {#if data.length > 0}
-        <ButtonGroup class="bg-gray-800">
+        <ButtonGroup class="bg-gray-800" data-testid="lightweightChartYearButtons">
           <ButtonTab
             on:click={() => (timeDelta = TIME_DELTA_1_YEAR)}
             active={timeDelta === TIME_DELTA_1_YEAR}
