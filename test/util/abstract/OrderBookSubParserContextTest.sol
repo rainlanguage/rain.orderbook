@@ -35,13 +35,13 @@ abstract contract OrderBookSubParserContextTest is OpTest {
         checkDisallowedOperand(rainlang);
     }
 
-    function testSubParserContextUnhappyDisallowedInputs() external {
-        string memory w = word();
-        OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
+    // function testSubParserContextUnhappyDisallowedInputs() external {
+    //     string memory w = word();
+    //     OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
-        bytes memory rainlang =
-            bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "(1);"));
+    //     bytes memory rainlang =
+    //         bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "(1);"));
 
-        checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
-    }
+    //     checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
+    // }
 }

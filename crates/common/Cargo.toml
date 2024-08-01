@@ -37,7 +37,7 @@ rain_interpreter_parser = { workspace = true }
 rain-interpreter-eval = { workspace = true }
 rain-orderbook-env = { workspace = true }
 serde_bytes = { workspace = true }
-tokio = { workspace = true }
+# tokio = { workspace = true }
 proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
@@ -46,5 +46,11 @@ futures = { workspace = true }
 rain-error-decoding = { workspace = true }
 rand = "0.8.5"
 
-[dev-dependencies]
-tokio = { workspace = true }
+# [dev-dependencies]
+# tokio = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { version = "1.28.0", features = ["full"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+tokio = { version = "1.28.0", features = ["sync", "macros", "io-util", "rt", "time"] }

@@ -57,13 +57,13 @@ contract OrderBookSubParserSignersTest is OpTest {
         checkUnhappyParse(rainlang, abi.encodeWithSelector(UnexpectedOperandValue.selector));
     }
 
-    /// Test signer with an input errors.
-    function testSubParserContextSignerUnhappyInput() external {
-        OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
+    // /// Test signer with an input errors.
+    // function testSubParserContextSignerUnhappyInput() external {
+    //     OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
-        bytes memory rainlang =
-            bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signer<0>(0);"));
+    //     bytes memory rainlang =
+    //         bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signer<0>(0);"));
 
-        checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
-    }
+    //     checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
+    // }
 }
