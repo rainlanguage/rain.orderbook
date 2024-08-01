@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import VaultBalanceChangesTable from './VaultBalanceChangesTable.svelte';
 import type { VaultBalanceChange } from '$lib/typeshare/vaultBalanceChangesList';
+import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
@@ -150,17 +151,12 @@ test('it shows the correct data in the table', async () => {
 
   await waitFor(() => {
     expect(screen.getByTestId('vaultBalanceChangesTableDate')).toHaveTextContent(
-      '07/02/2021 6:40 PM',
+      formatTimestampSecondsAsLocal(BigInt('1625247600')),
     );
-    // vaultBalanceChangesTableFrom
     expect(screen.getByTestId('vaultBalanceChangesTableFrom')).toHaveTextContent('0xUse...User1');
-    // vaultBalanceChangesTableTx
     expect(screen.getByTestId('vaultBalanceChangesTableTx')).toHaveTextContent('tx1');
-    // vaultBalanceChangesTableBalanceChange
     expect(screen.getByTestId('vaultBalanceChangesTableBalanceChange')).toHaveTextContent('1 TKN1');
-    // vaultBalanceChangesTableBalance
     expect(screen.getByTestId('vaultBalanceChangesTableBalance')).toHaveTextContent('0.4 TKN1');
-    // vaultBalanceChangesTableType
     expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('Withdrawal');
   });
 });
