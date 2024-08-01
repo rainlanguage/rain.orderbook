@@ -45,24 +45,27 @@
   </svelte:fragment>
 
   <svelte:fragment slot="bodyRow" let:item>
-    <TableBodyCell tdClass="px-4 py-2">
+    <TableBodyCell tdClass="px-4 py-2" data-testid="vaultBalanceChangesTableDate">
       {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
     </TableBodyCell>
-    <TableBodyCell tdClass="break-all py-2 min-w-48">
+    <TableBodyCell tdClass="break-all py-2 min-w-48" data-testid="vaultBalanceChangesTableFrom">
       <Hash type={HashType.Wallet} value={item.transaction.from} />
     </TableBodyCell>
-    <TableBodyCell tdClass="break-all py-2 min-w-48">
+    <TableBodyCell tdClass="break-all py-2 min-w-48" data-testid="vaultBalanceChangesTableTx">
       <Hash type={HashType.Transaction} value={item.transaction.id} />
     </TableBodyCell>
-    <TableBodyCell tdClass="break-word p-0 text-left">
+    <TableBodyCell
+      tdClass="break-word p-0 text-left"
+      data-testid="vaultBalanceChangesTableBalanceChange"
+    >
       {formatUnits(BigInt(item.amount), Number(item.vault.token.decimals ?? 0))}
       {item.vault.token.symbol}
     </TableBodyCell>
-    <TableBodyCell tdClass="break-word p-0 text-left">
+    <TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableBalance">
       {formatUnits(BigInt(item.new_vault_balance), Number(item.vault.token.decimals ?? 0))}
       {item.vault.token.symbol}
     </TableBodyCell>
-    <TableBodyCell tdClass="break-word p-0 text-left">
+    <TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
       {item.__typename}
     </TableBodyCell>
   </svelte:fragment>
