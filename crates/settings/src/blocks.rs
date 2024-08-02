@@ -128,7 +128,6 @@ fn parse_range(s: &str) -> Result<BlockRange, String> {
 
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-#[typeshare]
 pub enum Blocks {
     RangeWithInterval { range: BlockRange, interval: u32 },
     SimpleRange(BlockRange),
