@@ -1,13 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { act, render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
-import { QueryClient } from '@tanstack/svelte-query';
 import LightweightChart from './LightweightChart.svelte';
-import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Vault } from '$lib/typeshare/vaultDetail';
-import { goto } from '$app/navigation';
-import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
-import type { IChartApi } from 'lightweight-charts';
+import type { IChartApi, UTCTimestamp } from 'lightweight-charts';
 
 vi.mock('lightweight-charts', async (importOriginal) => ({
   ...((await importOriginal()) as object),
@@ -15,6 +10,9 @@ vi.mock('lightweight-charts', async (importOriginal) => ({
     addLineSeries: vi.fn(),
     remove(): void {},
     applyOptions: vi.fn(),
+    timeScale: vi.fn(() => ({
+      setVisibleRange: vi.fn(),
+    })),
   })),
 }));
 
@@ -25,10 +23,68 @@ test('renders without data correctly', async () => {
   const priceSymbol = '$';
   const createSeries = (chart: IChartApi) => chart.addLineSeries();
 
-  render(LightweightChart, { title, emptyMessage, loading, priceSymbol, createSeries });
+  const { component } = render(LightweightChart, {
+    title,
+    emptyMessage,
+    loading,
+    priceSymbol,
+    createSeries,
+  });
 
   await waitFor(() => {
     expect(screen.getByTestId('lightweightChartTitle')).toHaveTextContent(title);
     expect(screen.getByTestId('lightweightChartSpinner')).toBeInTheDocument();
+  });
+
+  loading = false;
+
+  await act(() => component.$set({ loading: false }));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('lightweightChartEmptyMessage')).toHaveTextContent(emptyMessage);
+  });
+});
+
+test('renders with data correctly', async () => {
+  const title = 'test title';
+  const emptyMessage = 'empty message';
+  const loading = true;
+  const priceSymbol = '$';
+  let series = { setData: vi.fn() };
+  const createSeries = (chart: IChartApi) => {
+    return series;
+  };
+
+  const data: { value: number; time: UTCTimestamp; color?: string }[] = [
+    {
+      value: 10,
+      time: 1529899200 as UTCTimestamp,
+    },
+    {
+      value: 20,
+      time: 1529899300 as UTCTimestamp,
+    },
+    {
+      value: 5,
+      time: 1529899500 as UTCTimestamp,
+    },
+  ];
+
+  render(LightweightChart, {
+    title,
+    emptyMessage,
+    loading,
+    priceSymbol,
+    createSeries,
+    data,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('lightweightChartTitle')).toHaveTextContent(title);
+    expect(screen.getByTestId('lightweightChartSpinner')).toBeInTheDocument();
+    expect(screen.getByTestId('lightweightChartElement')).toBeInTheDocument();
+    expect(screen.queryByTestId('lightweightChartYearButtons')).toBeInTheDocument();
+
+    expect();
   });
 });
