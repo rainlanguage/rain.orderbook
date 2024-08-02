@@ -185,7 +185,7 @@ impl AddOrderArgs {
     }
 
     /// Generate an addOrder call from given dotrain
-    async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
+    pub async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpc_url.clone(), rainlang.clone())
