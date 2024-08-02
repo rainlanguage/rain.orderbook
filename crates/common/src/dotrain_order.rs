@@ -244,6 +244,46 @@ _ _: 0 0;
     }
 
     #[tokio::test]
+    async fn test_rainlang_post_from_scenario() {
+        let dotrain = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#post-add-order
+_ _: 1 2;
+"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        let rainlang = dotrain_order
+            .compose_scenario_to_post_task_rainlang("polygon".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            rainlang,
+            r#"/* 0. post-add-order */ 
+_ _: 1 2;"#
+        );
+    }
+
+    #[tokio::test]
     async fn test_config_merge() {
         let dotrain = format!(
             r#"
