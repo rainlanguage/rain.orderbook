@@ -106,7 +106,7 @@ amount price: get("amount") 52;
 
         let tx = TransactionRequest::default()
             .with_input(calldata)
-            .with_to(orderbook.address().clone());
+            .with_to(*orderbook.address());
 
         let _tx_hash = provider
             .send_transaction(tx)
@@ -226,7 +226,7 @@ amount price: get("amount") 52;
 
         let tx = TransactionRequest::default()
             .with_input(calldata)
-            .with_to(orderbook.address().clone());
+            .with_to(*orderbook.address());
 
         let res = provider.send_transaction(tx).await;
 
