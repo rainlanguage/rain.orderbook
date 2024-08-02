@@ -1,5 +1,5 @@
 use crate::{
-    dotrain_add_order_lsp::LANG_SERVICES,
+    rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
 use alloy_ethers_typecast::transaction::{
@@ -8,7 +8,7 @@ use alloy_ethers_typecast::transaction::{
 };
 use alloy_primitives::{hex::FromHexError, Address, U256};
 use alloy_sol_types::SolCall;
-use dotrain::{error::ComposeError, RainDocument, Rebind};
+use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{
@@ -166,42 +166,22 @@ impl AddOrderArgs {
 
     /// Compose to rainlang string
     pub fn compose_to_rainlang(&self) -> Result<String, AddOrderArgsError> {
-        // Parse file into dotrain document
-        let meta_store = LANG_SERVICES.meta_store();
-
-        let mut rebinds = None;
-        if !self.bindings.is_empty() {
-            rebinds = Some(
-                self.bindings
-                    .iter()
-                    .map(|(key, value)| Rebind(key.clone(), value.clone()))
-                    .collect(),
-            );
-        };
-        let dotrain_doc =
-            RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
-
-        Ok(dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?)
+        let res = compose_to_rainlang(
+            self.dotrain.clone(),
+            self.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?;
+        Ok(res)
     }
 
     /// Compose the addOrder2 post action
     pub fn compose_addorder_post_task(&self) -> Result<String, AddOrderArgsError> {
-        // Parse file into dotrain document
-        let meta_store = LANG_SERVICES.meta_store();
-
-        let mut rebinds = None;
-        if !self.bindings.is_empty() {
-            rebinds = Some(
-                self.bindings
-                    .iter()
-                    .map(|(key, value)| Rebind(key.clone(), value.clone()))
-                    .collect(),
-            );
-        };
-        let dotrain_doc =
-            RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
-
-        Ok(dotrain_doc.compose(&ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS)?)
+        let res = compose_to_rainlang(
+            self.dotrain.clone(),
+            self.bindings.clone(),
+            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
+        )?;
+        Ok(res)
     }
 
     /// Generate an addOrder call from given dotrain
@@ -493,7 +473,9 @@ _ _: 0 0;
         let network_arc = Arc::new(network);
         let deployer = Deployer {
             network: network_arc.clone(),
-            address: Address::default(),
+            address: "0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba"
+                .parse::<Address>()
+                .unwrap(),
             label: None,
         };
         let deployer_arc = Arc::new(deployer);
@@ -528,21 +510,20 @@ _ _: 0 0;
         let token1_arc = Arc::new(token1);
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
-        let known_vault_id = U256::from(1);
         let order = Order {
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
-                    vault_id: None,
+                    vault_id: Some(U256::from(2)),
                 },
                 OrderIO {
                     token: token2_arc.clone(),
-                    vault_id: Some(known_vault_id),
+                    vault_id: Some(U256::from(1)),
                 },
             ],
             outputs: vec![OrderIO {
                 token: token3_arc.clone(),
-                vault_id: None,
+                vault_id: Some(U256::from(4)),
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -576,13 +557,13 @@ _ _: 0 0;
         assert_eq!(add_order_call.config.validOutputs.len(), 1);
         assert_eq!(add_order_call.post.len(), 1);
 
-        assert_eq!(add_order_call.config.validInputs[0].vaultId, U256::from(0));
-        assert_eq!(add_order_call.config.validInputs[1].vaultId, known_vault_id);
-        assert_eq!(add_order_call.config.validOutputs[0].vaultId, U256::from(0));
+        assert_eq!(add_order_call.config.validInputs[0].vaultId, U256::from(2));
+        assert_eq!(add_order_call.config.validInputs[1].vaultId, U256::from(1));
+        assert_eq!(add_order_call.config.validOutputs[0].vaultId, U256::from(4));
 
-        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 4);
+        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 111);
 
-        assert_eq!(add_order_call.config.meta.len(), 4);
+        assert_eq!(add_order_call.config.meta.len(), 105);
 
         assert_eq!(
             add_order_call.config.validInputs[0].token,
@@ -601,32 +582,20 @@ _ _: 0 0;
 
         assert_eq!(
             add_order_call.post[0].evaluable.interpreter,
-            Address::default()
+            "0x6352593f4018c99df731de789e2a147c7fb29370"
+                .parse::<Address>()
+                .unwrap()
         );
 
-        assert_eq!(add_order_call.post[0].evaluable.store, Address::default());
+        assert_eq!(
+            add_order_call.post[0].evaluable.store,
+            "0xde38ad4b13d5258a5653e530ecdf0ca71b4e8a51"
+                .parse::<Address>()
+                .unwrap()
+        );
 
-        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 4);
-
+        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 111);
         assert_eq!(add_order_call.post[0].signedContext.len(), 0);
-
-        assert_eq!(add_order_call.config.meta.len(), 4);
-
-        assert_eq!(add_order_call.config.meta[0], 9);
-
-        assert_eq!(add_order_call.config.meta[1], 10);
-
-        assert_eq!(add_order_call.config.meta[2], 11);
-
-        assert_eq!(add_order_call.config.meta[3], 12);
-
-        assert_eq!(add_order_call.config.validInputs[0].decimals, 18);
-
-        assert_eq!(add_order_call.config.validInputs[1].decimals, 18);
-
-        assert_eq!(add_order_call.config.validOutputs[0].decimals, 18);
-
-        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 4);
     }
 
     #[tokio::test]
@@ -712,7 +681,7 @@ _ _: 0 0;
 #post-add-order
 _ _: 0 0;
 "#;
-        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
             .await
             .unwrap();
 

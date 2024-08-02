@@ -10,7 +10,10 @@ use rain_orderbook_app_settings::{
 };
 use thiserror::Error;
 
-use crate::rainlang::compose_to_rainlang;
+use crate::{
+    add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
+    rainlang::compose_to_rainlang,
+};
 
 #[derive(Clone)]
 pub struct DotrainOrder {
@@ -87,6 +90,24 @@ impl DotrainOrder {
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
             scenario.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?)
+    }
+
+    pub async fn compose_scenario_to_post_task_rainlang(
+        &self,
+        scenario: String,
+    ) -> Result<String, DotrainOrderError> {
+        let scenario = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+
+        Ok(compose_to_rainlang(
+            self.dotrain.clone(),
+            scenario.bindings.clone(),
+            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
         )?)
     }
 
