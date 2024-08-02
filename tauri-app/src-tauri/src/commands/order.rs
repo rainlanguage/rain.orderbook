@@ -3,7 +3,7 @@ use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLoc
 use alloy_primitives::Bytes;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv, ,
+    add_order::AddOrderArgs, csv::TryIntoCsv,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     types::OrderDetailExtended, types::OrderFlattened, types::FlattenError, dotrain_order::DotrainOrder
 };
