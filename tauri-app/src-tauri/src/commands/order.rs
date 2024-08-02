@@ -3,9 +3,9 @@ use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLoc
 use alloy_primitives::Bytes;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv, rainlang::compose_to_rainlang,
+    add_order::AddOrderArgs, csv::TryIntoCsv, ,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
-    types::OrderDetailExtended, types::OrderFlattened, types::FlattenError
+    types::OrderDetailExtended, types::OrderFlattened, types::FlattenError, dotrain_order::DotrainOrder
 };
 use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
 use std::fs;
