@@ -2,7 +2,7 @@ use alloy::sol;
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
-    Orderbook, "../../out/Orderbook.sol/Orderbook.json"
+    Orderbook, "../../out/OrderBook.sol/OrderBook.json"
 );
 
 #[cfg(test)]
