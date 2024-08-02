@@ -178,7 +178,9 @@ _ _: 0 0;
 
         assert_eq!(
             dotrain_order.config.networks.get("polygon").unwrap().rpc,
-            "https://rpc.ankr.com/polygon".parse().unwrap()
+            rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+                .parse()
+                .unwrap()
         );
     }
 
