@@ -22,11 +22,7 @@ alloy-sol-types = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
-# tokio = { workspace = true }
-tokio = { version = "1.28.0", features = ["full"] }
+tokio = { workspace = true }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }
-
-#[cfg_attr(not(target_family = "wasm"), async_trait)]
- #[cfg_attr(target_family = "wasm", async_trait(?Send))]

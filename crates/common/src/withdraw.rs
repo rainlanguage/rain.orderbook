@@ -1,4 +1,7 @@
-use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
+#[cfg(not(target_family = "wasm"))]
+use crate::transaction::TransactionArgs;
+use crate::transaction::WritableTransactionExecuteError;
+#[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::SolCall;
@@ -25,6 +28,7 @@ impl From<WithdrawArgs> for withdraw2Call {
 
 impl WithdrawArgs {
     /// Execute OrderbookV3 withdraw call
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<withdraw2Call>)>(
         &self,
         transaction_args: TransactionArgs,

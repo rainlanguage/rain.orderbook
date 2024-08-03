@@ -8,11 +8,14 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
-alloy-primitives = { workspace = true }
+alloy-primitives = { workspace = true, features = ["rand"] }
 alloy-ethers-typecast = { workspace = true }
 alloy-sol-types = { workspace = true }
 url = { workspace = true }
@@ -34,23 +37,25 @@ rain-metadata-bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
-rain-interpreter-eval = { workspace = true }
-rain-orderbook-env = { workspace = true }
 serde_bytes = { workspace = true }
-# tokio = { workspace = true }
-proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
-rand = "0.8.5"
-
-# [dev-dependencies]
-# tokio = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { version = "1.28.0", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
+rain-interpreter-eval = { workspace = true }
+proptest = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-tokio = { version = "1.28.0", features = ["sync", "macros", "io-util", "rt", "time"] }
+js-sys = { version = "0.3.69" }
+wasm-bindgen = { version = "0.2.92" }
+serde-wasm-bindgen = { version = "0.6.5" }
+wasm-bindgen-futures = { version = "0.4.42" }
+tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
+
+[dev-dependencies]
+rain-orderbook-env = { workspace = true }

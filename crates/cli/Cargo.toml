@@ -30,7 +30,7 @@ comfy-table = { workspace = true }
 chrono = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { version = "1.28.0", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-tokio = { version = "1.28.0", features = ["sync", "macros", "io-util", "rt", "time"] }
+tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }

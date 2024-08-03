@@ -1,6 +1,6 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
-use alloy_primitives::U256;
+use alloy_primitives::{private::rand, U256};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::prelude::RngCore;

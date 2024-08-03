@@ -40,7 +40,7 @@ pub enum TransactionArgsError {
     LedgerClient(#[from] LedgerClientError),
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct TransactionArgs {
     pub orderbook_address: Address,
     pub derivation_index: Option<usize>,
