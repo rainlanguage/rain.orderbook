@@ -13,7 +13,7 @@ import {
     OrderConfigV3,
     ActionV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// If there is some live order(s) but the maxTakerInput is zero we error as
