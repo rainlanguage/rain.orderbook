@@ -60,8 +60,4 @@ jobs:
         run: nix develop -c ${{ matrix.task }}
 
       - name: Build for wasm target
-        run: nix develop -c cargo build --target wasm32-unknown-unknown -p rain_orderbook_app_settings
-        env:
-          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
-          ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
-          DEPLOY_VERIFIER: ""
+        run: nix develop -c cargo build --target wasm32-unknown-unknown --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env
