@@ -17,7 +17,7 @@ import {
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV4ArbConfigV1} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {EvaluableV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 
 contract Token is ERC20 {

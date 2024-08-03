@@ -9,7 +9,7 @@ import {IMetaV1} from "rain.metadata/lib/LibMeta.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {
     IOrderBookV4,
