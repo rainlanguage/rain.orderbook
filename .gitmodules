@@ -1,21 +1,9 @@
-[submodule "lib/rain.erc1820"]
-	path = lib/rain.erc1820
-	url = https://github.com/rainprotocol/rain.erc1820
-[submodule "lib/rain.lib.memkv"]
-	path = lib/rain.lib.memkv
-	url = https://github.com/rainprotocol/rain.lib.memkv
 [submodule "lib/sushixswap-v2"]
 	path = lib/sushixswap-v2
 	url = https://github.com/rainprotocol/sushixswap-v2
-[submodule "lib/rain.solmem"]
-	path = lib/rain.solmem
-	url = https://github.com/rainprotocol/rain.solmem
 [submodule "lib/rain.orderbook.interface"]
 	path = lib/rain.orderbook.interface
 	url = https://github.com/rainlanguage/rain.orderbook.interface
-[submodule "lib/rain.metadata"]
-	path = lib/rain.metadata
-	url = https://github.com/rainlanguage/rain.metadata
 [submodule "lib/rain.interpreter"]
 	path = lib/rain.interpreter
 	url = https://github.com/rainlanguage/rain.interpreter
