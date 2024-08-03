@@ -187,6 +187,8 @@
               set -euxo pipefail
 
               ls src-tauri/target/release
+              echo "''${GTK_PATH:-}"
+              echo "''${GIO_MODULE_DIR:-}"
 
               if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib src-tauri/target/release/Raindex
