@@ -11,14 +11,13 @@ import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointD
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
+import {
+    LibEncodedDispatch,
+    EncodedDispatch
+} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {
-    SourceIndexV2,
-    StateNamespace,
-    IInterpreterV3
-} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";

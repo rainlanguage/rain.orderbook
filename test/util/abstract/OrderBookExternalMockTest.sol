@@ -11,12 +11,7 @@ import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {
-    IOrderBookV4,
-    OrderConfigV3,
-    OrderV3,
-    ActionV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IOrderBookV4, OrderConfigV3, OrderV3, ActionV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";

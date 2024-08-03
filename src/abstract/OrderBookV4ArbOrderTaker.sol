@@ -7,16 +7,17 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
-import {EncodedDispatch, LibEncodedDispatch} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
+import {
+    EncodedDispatch,
+    LibEncodedDispatch
+} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV4, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
     IOrderBookV4ArbOrderTaker,
     IOrderBookV4OrderTaker
 } from "rain.orderbook.interface/interface/IOrderBookV4ArbOrderTaker.sol";
-import {
-    IInterpreterV3, DEFAULT_STATE_NAMESPACE
-} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {IInterpreterV3, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
