@@ -13,7 +13,7 @@ import {
     EvaluableV3,
     ActionV1,
     Quote
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 contract FlashLendingMockOrderBook is IOrderBookV4 {

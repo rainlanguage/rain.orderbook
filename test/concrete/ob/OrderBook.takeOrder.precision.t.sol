@@ -12,7 +12,7 @@ import {
     EvaluableV3,
     SignedContextV1,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.

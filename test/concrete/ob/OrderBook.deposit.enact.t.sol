@@ -7,7 +7,7 @@ import {
     EvaluableV3,
     ActionV1,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract OrderBookDepositEnactTest is OrderBookExternalRealTest {

@@ -12,7 +12,7 @@ import {
     EvaluableV3,
     OrderConfigV3,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {

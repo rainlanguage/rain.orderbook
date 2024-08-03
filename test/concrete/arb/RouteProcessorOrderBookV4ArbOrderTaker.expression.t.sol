@@ -10,7 +10,7 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongEvaluable} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 

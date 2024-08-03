@@ -7,7 +7,7 @@ import {
     EvaluableV3,
     ActionV1,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 contract OrderBookEnactTest is OrderBookExternalRealTest {
     function checkReentrancyRW() internal {
