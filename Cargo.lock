@@ -282,7 +282,7 @@ dependencies = [
  "ethers",
  "getrandom",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827)",
+ "rain-error-decoding",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -294,7 +294,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=cbdedb77fb1994a18ceb47e72786f8b32b670669#cbdedb77fb1994a18ceb47e72786f8b32b670669"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2#d9bd0fe8360d803ed3e58b34063890c8775999f2"
 dependencies = [
  "alloy-dyn-abi 0.6.4",
  "alloy-json-abi 0.6.4",
@@ -303,8 +303,9 @@ dependencies = [
  "async-trait",
  "derive_builder 0.12.0",
  "ethers",
+ "getrandom",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=700142c3c73d5cbaea82f1d51af5ce04de5bac6a)",
+ "rain-error-decoding",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -6315,28 +6316,11 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=cc9d7c3c74cf8e9676d72ee054af7f1b67a84974#cc9d7c3c74cf8e9676d72ee054af7f1b67a84974"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=7f50b2c05eb41a77ee925ebe80fe49420a2b5b80#7f50b2c05eb41a77ee925ebe80fe49420a2b5b80"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=cbdedb77fb1994a18ceb47e72786f8b32b670669)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2)",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
- "thiserror",
-]
-
-[[package]]
-name = "rain-error-decoding"
-version = "0.1.0"
-source = "git+https://github.com/rainlanguage/rain.error?rev=700142c3c73d5cbaea82f1d51af5ce04de5bac6a#700142c3c73d5cbaea82f1d51af5ce04de5bac6a"
-dependencies = [
- "alloy-dyn-abi 0.6.4",
- "alloy-json-abi 0.6.4",
- "alloy-primitives 0.6.4",
- "alloy-sol-types 0.6.4",
- "ethers",
- "once_cell",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
  "thiserror",
 ]
 
@@ -6366,7 +6350,7 @@ dependencies = [
  "eyre",
  "foundry-evm",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827)",
+ "rain-error-decoding",
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm",
@@ -6379,7 +6363,7 @@ dependencies = [
 name = "rain-metaboard-subgraph"
 version = "0.1.0"
 dependencies = [
- "alloy-primitives 0.5.4",
+ "alloy",
  "async-trait",
  "cynic",
  "cynic-codegen",
@@ -6391,10 +6375,8 @@ dependencies = [
 name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=cbdedb77fb1994a18ceb47e72786f8b32b670669)",
- "alloy-json-abi 0.5.4",
- "alloy-primitives 0.5.4",
- "alloy-sol-types 0.6.4",
+ "alloy",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
  "anyhow",
  "clap",
  "deflate",
@@ -6457,8 +6439,7 @@ dependencies = [
 name = "rain-metadata-bindings"
 version = "0.1.0"
 dependencies = [
- "alloy-primitives 0.5.4",
- "alloy-sol-types 0.6.4",
+ "alloy",
 ]
 
 [[package]]
@@ -6573,7 +6554,7 @@ dependencies = [
  "futures",
  "once_cell",
  "proptest",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=700142c3c73d5cbaea82f1d51af5ce04de5bac6a)",
+ "rain-error-decoding",
  "rain-interpreter-eval",
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
@@ -6622,7 +6603,7 @@ dependencies = [
  "clap",
  "httpmock",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=700142c3c73d5cbaea82f1d51af5ce04de5bac6a)",
+ "rain-error-decoding",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "reqwest 0.11.27",

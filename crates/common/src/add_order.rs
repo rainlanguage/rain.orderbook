@@ -143,7 +143,7 @@ impl AddOrderArgs {
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        Ok(rainlang_parsed.bytecode)
+        Ok(rainlang_parsed.bytecode.into())
     }
 
     /// Generate RainlangSource meta
@@ -207,7 +207,7 @@ impl AddOrderArgs {
         let post_evaluable = EvaluableV3 {
             interpreter: dispair.interpreter,
             store: dispair.store,
-            bytecode: post_bytecode,
+            bytecode: post_bytecode.into(),
         };
 
         let post_task = ActionV1 {
@@ -222,9 +222,9 @@ impl AddOrderArgs {
                 evaluable: EvaluableV3 {
                     interpreter: dispair.interpreter,
                     store: dispair.store,
-                    bytecode,
+                    bytecode: bytecode.into(),
                 },
-                meta,
+                meta: meta.into(),
                 nonce: alloy::primitives::private::rand::random::<U256>().into(),
                 secret: alloy::primitives::private::rand::random::<U256>().into(),
             },
@@ -356,9 +356,9 @@ price: 2e18;
             evaluable: EvaluableV3 {
                 interpreter,
                 store,
-                bytecode: bytecode.clone(),
+                bytecode: bytecode.clone().into(),
             },
-            meta: meta.clone(),
+            meta: meta.clone().into(),
         };
 
         assert_eq!(order_config_v2.validInputs, inputs);

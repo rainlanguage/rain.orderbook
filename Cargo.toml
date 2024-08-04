@@ -56,7 +56,7 @@ test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-orderbook-env = { path = "crates/env" }
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "cc9d7c3c74cf8e9676d72ee054af7f1b67a84974" }
-rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "700142c3c73d5cbaea82f1d51af5ce04de5bac6a" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
