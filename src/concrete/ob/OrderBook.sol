@@ -20,6 +20,7 @@ import {
     IInterpreterV3
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
+import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
@@ -220,7 +221,9 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         sVaultBalances[msg.sender][token][vaultId] += amount;
 
-        LibOrderBook.doPost(new uint256[][](0), post);
+        LibOrderBook.doPost(
+            LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, amount)), post
+        );
     }
 
     /// @inheritdoc IOrderBookV4
