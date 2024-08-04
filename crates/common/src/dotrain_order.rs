@@ -10,7 +10,10 @@ use rain_orderbook_app_settings::{
 };
 use thiserror::Error;
 
-use crate::rainlang::compose_to_rainlang;
+use crate::{
+    add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
+    rainlang::compose_to_rainlang,
+};
 
 #[derive(Clone)]
 pub struct DotrainOrder {
@@ -87,6 +90,24 @@ impl DotrainOrder {
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
             scenario.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?)
+    }
+
+    pub async fn compose_scenario_to_post_task_rainlang(
+        &self,
+        scenario: String,
+    ) -> Result<String, DotrainOrderError> {
+        let scenario = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+
+        Ok(compose_to_rainlang(
+            self.dotrain.clone(),
+            scenario.bindings.clone(),
+            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
         )?)
     }
 
@@ -220,6 +241,47 @@ _ _: 0 0;
 _ _: 0 0;
 
 /* 1. handle-io */ 
+:;"#
+        );
+    }
+
+    #[tokio::test]
+    async fn test_rainlang_post_from_scenario() {
+        let dotrain = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#post-add-order
+_ _: 1 2;
+"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        let rainlang = dotrain_order
+            .compose_scenario_to_post_task_rainlang("polygon".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            rainlang,
+            r#"/* 0. post-add-order */ 
+_ _: 1 2;
 :;"#
         );
     }

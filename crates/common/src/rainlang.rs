@@ -1,4 +1,3 @@
-use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use crate::dotrain_add_order_lsp::LANG_SERVICES;
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use alloy_primitives::{bytes::Bytes, Address};
@@ -80,6 +79,7 @@ pub async fn parse_rainlang_on_fork(
 pub fn compose_to_rainlang(
     dotrain: String,
     bindings: HashMap<String, String>,
+    entrypoints: &[&str],
 ) -> Result<String, ComposeError> {
     let meta_store = LANG_SERVICES.meta_store();
 
@@ -111,6 +111,5 @@ pub fn compose_to_rainlang(
         .collect::<Vec<Rebind>>();
 
     // compose a new RainDocument with final injected bindings
-    RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings))
-        .compose(&ORDERBOOK_ORDER_ENTRYPOINTS)
+    RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings)).compose(entrypoints)
 }
