@@ -292,29 +292,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alloy-ethers-typecast"
-version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2#d9bd0fe8360d803ed3e58b34063890c8775999f2"
-dependencies = [
- "alloy-dyn-abi 0.6.4",
- "alloy-json-abi 0.6.4",
- "alloy-primitives 0.6.4",
- "alloy-sol-types 0.6.4",
- "async-trait",
- "derive_builder 0.12.0",
- "ethers",
- "getrandom",
- "once_cell",
- "rain-error-decoding",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "alloy-genesis"
 version = "0.1.0"
 source = "git+https://github.com/alloy-rs/alloy?rev=8808d21#8808d21677ed9a05ff04000ac7f4acdd2fde94e3"
@@ -950,7 +927,6 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e86ec0a47740b20bc5613b8712d0d321d031c4efc58e9645af96085d5cccfc27"
 dependencies = [
- "alloy-json-abi 0.6.4",
  "const-hex",
  "dunce",
  "heck 0.4.1",
@@ -958,7 +934,6 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "serde_json",
  "syn 2.0.61",
  "syn-solidity 0.6.4",
  "tiny-keccak",
@@ -1060,7 +1035,6 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad09ec5853fa700d12d778ad224dcdec636af424d29fad84fb9a2f16a5b0ef09"
 dependencies = [
- "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-macro 0.6.4",
  "const-hex",
@@ -6316,11 +6290,10 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=7f50b2c05eb41a77ee925ebe80fe49420a2b5b80#7f50b2c05eb41a77ee925ebe80fe49420a2b5b80"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=dfe647e48a918f17b0ebf5c1578091377d3e1512#dfe647e48a918f17b0ebf5c1578091377d3e1512"
 dependencies = [
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2)",
- "alloy-primitives 0.6.4",
- "alloy-sol-types 0.6.4",
+ "alloy",
+ "alloy-ethers-typecast",
  "thiserror",
 ]
 
@@ -6376,7 +6349,7 @@ name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
+ "alloy-ethers-typecast",
  "anyhow",
  "clap",
  "deflate",
@@ -6462,7 +6435,7 @@ name = "rain_interpreter_dispair"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
+ "alloy-ethers-typecast",
  "ethers",
  "rain_interpreter_bindings",
  "serde",
@@ -6478,7 +6451,7 @@ name = "rain_interpreter_parser"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
+ "alloy-ethers-typecast",
  "ethers",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
@@ -6518,7 +6491,7 @@ name = "rain_orderbook_cli"
 version = "0.0.4"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
+ "alloy-ethers-typecast",
  "anyhow",
  "chrono",
  "clap",
@@ -6543,7 +6516,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "alloy-dyn-abi 0.6.4",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
+ "alloy-ethers-typecast",
  "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
@@ -6597,7 +6570,7 @@ name = "rain_orderbook_quote"
 version = "0.0.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=2c09cd1cfe910602fe712f49c9c639418273abe2)",
+ "alloy-ethers-typecast",
  "alloy-sol-types 0.6.4",
  "anyhow",
  "clap",
