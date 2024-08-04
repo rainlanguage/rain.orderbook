@@ -47,6 +47,10 @@ jobs:
         working-directory: lib/rain.interpreter
       - run: nix develop -c rainix-rs-prelude
         working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
 
       - run: nix develop -c rainix-sol-prelude
       - run: nix develop -c rainix-rs-prelude
