@@ -1,6 +1,6 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use crate::rainlang::parse_rainlang_on_fork;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use dotrain::{
     error::{ComposeError, ErrorCode},
     types::ast::Problem,

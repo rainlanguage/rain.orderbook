@@ -1,10 +1,10 @@
 use crate::transaction::{TransactionArgs, TransactionArgsError};
+use alloy::primitives::hex::FromHexError;
 use alloy_ethers_typecast::transaction::{
     WritableClientError, WriteTransaction, WriteTransactionStatus,
 };
-use alloy_primitives::hex::FromHexError;
 
-use alloy_sol_types::SolCall;
+use alloy::sol_types::SolCall;
 use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
 use rain_orderbook_subgraph_client::types::{
     order_detail::Order, order_detail_traits::OrderDetailError,

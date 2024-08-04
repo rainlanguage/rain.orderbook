@@ -10,7 +10,8 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "cbdedb77fb1994a18ceb47e72786f8b32b670669" }
+alloy = { version = "0.2.0", features = ["full", "node-bindings"] }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "2c09cd1cfe910602fe712f49c9c639418273abe2" }
 alloy-sol-types = "0.6.3"
 alloy-primitives = "0.6.3"
 alloy-json-abi = "0.6.3"

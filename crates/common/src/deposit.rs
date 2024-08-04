@@ -1,4 +1,6 @@
 use crate::transaction::{TransactionArgs, TransactionArgsError, WritableTransactionExecuteError};
+use alloy::primitives::{Address, U256};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     ethers_address_to_alloy,
     transaction::{
@@ -6,8 +8,6 @@ use alloy_ethers_typecast::{
         ReadableClientError, WritableClientError, WriteTransaction, WriteTransactionStatus,
     },
 };
-use alloy_primitives::{Address, U256};
-use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::{
     IOrderBookV4::deposit2Call,
     IERC20::{allowanceCall, approveCall},
@@ -146,7 +146,7 @@ impl DepositArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
 
     #[test]
     fn test_deposit_args_into() {

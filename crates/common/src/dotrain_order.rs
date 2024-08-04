@@ -1,5 +1,5 @@
+use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
-use alloy_primitives::Address;
 use dotrain::{error::ComposeError, RainDocument};
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;

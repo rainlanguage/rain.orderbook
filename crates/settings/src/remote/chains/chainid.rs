@@ -1,5 +1,5 @@
 use crate::config_source::*;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;

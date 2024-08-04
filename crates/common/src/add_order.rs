@@ -2,12 +2,12 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
+use alloy::primitives::{hex::FromHexError, Address, U256};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
     WriteTransaction, WriteTransactionStatus,
 };
-use alloy_primitives::{hex::FromHexError, Address, U256};
-use alloy_sol_types::SolCall;
 use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
@@ -225,8 +225,8 @@ impl AddOrderArgs {
                     bytecode,
                 },
                 meta,
-                nonce: alloy_primitives::private::rand::random::<U256>().into(),
-                secret: alloy_primitives::private::rand::random::<U256>().into(),
+                nonce: alloy::primitives::private::rand::random::<U256>().into(),
+                secret: alloy::primitives::private::rand::random::<U256>().into(),
             },
             post: vec![post_task],
         })

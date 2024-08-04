@@ -1,6 +1,6 @@
 use crate::dotrain_add_order_lsp::LANG_SERVICES;
+use alloy::primitives::{bytes::Bytes, Address};
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
-use alloy_primitives::{bytes::Bytes, Address};
 use dotrain::error::ComposeError;
 use dotrain::RainDocument;
 use dotrain::Rebind;
@@ -104,7 +104,7 @@ pub fn compose_to_rainlang(
         .filter_map(|(k, v)| {
             v.is_elided_binding().then_some(Rebind(
                 k.clone(),
-                alloy_primitives::hex::encode_prefixed([0; 32]),
+                alloy::primitives::hex::encode_prefixed([0; 32]),
             ))
         })
         .chain(rebinds.unwrap_or(vec![]))

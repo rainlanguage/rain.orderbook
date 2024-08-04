@@ -1,3 +1,5 @@
+use alloy::primitives::{ruint::FromUintError, Address, U256};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     client::{LedgerClient, LedgerClientError},
     gas_fee_middleware::GasFeeSpeed,
@@ -6,8 +8,6 @@ use alloy_ethers_typecast::{
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
 };
-use alloy_primitives::{ruint::FromUintError, Address, U256};
-use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

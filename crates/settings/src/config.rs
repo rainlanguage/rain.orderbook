@@ -1,6 +1,6 @@
 use super::config_source::ConfigSourceError;
 use crate::*;
-use alloy_primitives::U256;
+use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -196,7 +196,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
     use std::collections::HashMap;
     use url::Url;
 

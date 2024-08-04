@@ -1,6 +1,6 @@
 use crate::commands::config::merge_configstrings;
 use crate::error::CommandResult;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use futures::future::{join_all, try_join_all};
 use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, DotrainOrderError};

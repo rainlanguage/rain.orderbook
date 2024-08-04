@@ -12,6 +12,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
+alloy = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
 alloy-sol-types = { workspace = true }

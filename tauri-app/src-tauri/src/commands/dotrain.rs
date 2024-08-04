@@ -1,5 +1,5 @@
 use crate::error::CommandResult;
-use alloy_primitives::{bytes::Bytes, Address};
+use alloy::primitives::{bytes::Bytes, Address};
 use rain_orderbook_common::rainlang::parse_rainlang_on_fork;
 
 #[tauri::command]
