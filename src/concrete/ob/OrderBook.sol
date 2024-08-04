@@ -209,20 +209,27 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit2(address token, uint256 vaultId, uint256 amount, ActionV1[] calldata post) external nonReentrant {
-        if (amount == 0) {
+    function deposit2(address token, uint256 vaultId, uint256 depositAmount, ActionV1[] calldata post)
+        external
+        nonReentrant
+    {
+        if (depositAmount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
-        emit Deposit(msg.sender, token, vaultId, amount);
+        emit Deposit(msg.sender, token, vaultId, depositAmount);
         //slither-disable-next-line reentrancy-benign
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        sVaultBalances[msg.sender][token][vaultId] += amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
+        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance + depositAmount;
 
         LibOrderBook.doPost(
-            LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, amount)), post
+            LibUint256Matrix.matrixFrom(
+                LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, currentVaultBalance, depositAmount)
+            ),
+            post
         );
     }
 
@@ -245,7 +252,14 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)), vaultId, currentVaultBalance, withdrawAmount, targetAmount
+                    )
+                ),
+                post
+            );
         }
     }
 
@@ -288,7 +302,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                 emit MetaV1(order.owner, uint256(orderHash), orderConfig.meta);
             }
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash))), post);
         }
 
         return stateChange;
@@ -309,7 +323,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash))), post);
         }
     }
 
