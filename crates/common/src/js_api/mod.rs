@@ -38,8 +38,12 @@ pub async fn get_add_order_calldata(dotrain: &str, deployment: &str) -> Result<U
         AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment_ref.deref().clone())
             .await?;
 
+    let tx_args = TransactionArgs {
+        rpc_url: deployment_ref.scenario.deployer.network.rpc.to_string(),
+        ..Default::default()
+    };
     Ok(add_order_args
-        .get_add_order_calldata(TransactionArgs::default())
+        .get_add_order_calldata(tx_args)
         .await?
         .as_slice()
         .into())

@@ -12,7 +12,7 @@ import {
     EvaluableV3,
     SignedContextV1,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookClearHandleIORevertTest

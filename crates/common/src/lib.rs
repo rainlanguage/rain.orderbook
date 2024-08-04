@@ -15,7 +15,7 @@ pub mod types;
 pub mod utils;
 pub mod withdraw;
 
-// #[cfg(target_family = "wasm")]
+#[cfg(target_family = "wasm")]
 pub mod js_api;
 
 pub use dotrain;

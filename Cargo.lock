@@ -5887,12 +5887,8 @@ dependencies = [
  "async-trait",
  "cynic",
  "cynic-codegen",
- "httpmock",
- "insta",
  "reqwest 0.11.27",
- "serde_json",
  "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -5908,7 +5904,6 @@ dependencies = [
  "deflate",
  "futures",
  "graphql_client",
- "httpmock",
  "inflate",
  "itertools 0.10.5",
  "once_cell",

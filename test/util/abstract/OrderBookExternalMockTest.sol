@@ -3,24 +3,19 @@ pragma solidity =0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {IMetaV1} from "rain.metadata/lib/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {
-    IOrderBookV4,
-    OrderConfigV3,
-    OrderV3,
-    ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IOrderBookV4, OrderConfigV3, OrderV3, ActionV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";
-import {EvaluableV3} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
+import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 
 /// @title OrderBookExternalTest
 /// Abstract contract that performs common setup needed for testing an orderbook

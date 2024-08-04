@@ -14,8 +14,8 @@ bytes32 constant BYTECODE_HASH = bytes32(0xa24098eea11f3a83e475674e649959ac6d6b3
 /// @dev The hash of the meta that describes the contract.
 bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd049627a3a1f49857ec6a26c8bcc6da98b05bd4696);
 
-/// @dev Encodes the parser meta that is used to lookup word definitions.
-/// The structure of the parser meta is:
+/// @dev The parse meta that is used to lookup word definitions.
+/// The structure of the parse meta is:
 /// - 1 byte: The depth of the bloom filters
 /// - 1 byte: The hashing seed
 /// - The bloom filters, each is 32 bytes long, one for each build depth.
@@ -34,9 +34,10 @@ bytes constant PARSE_META =
     hex"01004800040040420204100000000000001806000008000020840000000100000010088de69a02c9be1f116682f50b6f6a660584c8d406bbcde61283156f0109ac301087b0c70398cd200ea9bcef0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
 
 /// @dev The build depth of the parser meta.
+
 uint8 constant PARSE_META_BUILD_DEPTH = 1;
 
-/// @dev Real function pointers to the sub parser functions that produce the
+/// @dev The function pointers for the sub parser functions that produce the
 /// bytecode that this contract knows about. This is both constructing the subParser
 /// bytecode that dials back into this contract at eval time, and mapping
 /// to things that happen entirely on the interpreter such as well known
