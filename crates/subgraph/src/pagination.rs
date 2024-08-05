@@ -97,11 +97,25 @@ pub trait PaginationClient {
 /// Client that provides a fn to query a "page", and another to sort a list of results.
 /// This allows the query to be used for client-side pagination.
 /// The query_page function can potentially make multiple queries and merge the results into a single list.
+#[cfg(not(target_family = "wasm"))]
 pub trait PageQueryClient<T, V> {
     fn query_page(
         &self,
         variables: V,
     ) -> impl std::future::Future<Output = Result<Vec<T>, CynicClientError>> + Send;
+
+    fn sort_results(results: Vec<T>) -> Vec<T>;
+}
+
+/// Client that provides a fn to query a "page", and another to sort a list of results.
+/// This allows the query to be used for client-side pagination.
+/// The query_page function can potentially make multiple queries and merge the results into a single list.
+#[cfg(target_family = "wasm")]
+pub trait PageQueryClient<T, V> {
+    fn query_page(
+        &self,
+        variables: V,
+    ) -> impl std::future::Future<Output = Result<Vec<T>, CynicClientError>>;
 
     fn sort_results(results: Vec<T>) -> Vec<T>;
 }
