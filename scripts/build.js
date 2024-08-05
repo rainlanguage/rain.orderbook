@@ -20,10 +20,9 @@ execSync("npm run build-wasm");
 // build specified packages and include them in final index file
 // list of packages to build can be extended by adding new package
 // names to the below list
-const packagePrefix = "rain_orderbook_";
 const packages = ["common"];
 for (const package of packages) {
-  execSync(`node scripts/buildPackage ${packagePrefix} ${package}`);
+  execSync(`node scripts/buildPackage ${package}`);
 }
 
 // create index file that exports all packages that were built in previous step

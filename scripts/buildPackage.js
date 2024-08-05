@@ -1,7 +1,8 @@
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-const [packagePrefix, package] = process.argv.slice(2);
+const packagePrefix = "rain_orderbook_";
+const [package] = process.argv.slice(2);
 
 // generate node/web bindgens
 execSync(
