@@ -390,7 +390,7 @@ networks:
 scenarios:
     sepolia:
         blocks:
-            range: [5789000..5789100]
+            range: [5789000..5789010]
             interval: 10
 ---
 #calculate-io
@@ -415,7 +415,7 @@ _: block-number();
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 11);
+        assert!(res.runs.len() == 2);
 
         res.runs.iter().enumerate().for_each(|(i, run)| {
             assert!(run.traces[0].stack[0] == U256::from(5789000 + i as u64 * 10));

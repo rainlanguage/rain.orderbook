@@ -38,7 +38,7 @@
             name = "ob-rs-test";
             body = ''
               set -euxo pipefail
-              cargo test --workspace .
+              cargo test --workspace
             '';
           };
 

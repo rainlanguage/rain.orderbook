@@ -1,6 +1,6 @@
 [workspace]
 members = ["crates/*"]
-exclude = ["tauri-app/src-tauri", "lib/rain.interpreter"]
+exclude = ["tauri-app/src-tauri", "lib/rain.interpreter", "lib/rain.metadata"]
 resolver = "2"
 
 [workspace.package]
