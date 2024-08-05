@@ -1,7 +1,7 @@
 {
     "name": "@rainlanguage/orderbook",
     "description": "Provides RainLanguage Orderbook rust crates' functionalities through wasm",
-    "version": "0.0.1",
+    "version": "0.0.0",
     "author": "Rain Language",
     "license": "CAL-1.0",
     "repository": {
@@ -30,14 +30,15 @@
         "/esm.d.ts"
     ],
     "scripts": {
-        "prepublish": "npm run build check",
-        "build": "node scripts/build",
+        "prepublish": "node scripts/setup",
+        "build": "npm run rm-dist && npm run rm-temp && node scripts/build",
+        "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",
         "lint-bindings": "eslint \"dist/**\" --fix",
-        "lint": "eslint \"dist/**\"",
-        "lint-fix": "eslint \"dist/**\" --fix",
-        "test": "mocha -r ts-node/register test/**/*.test.ts --timeout 100000"
+        "lint": "eslint \"dist/**\" \"js-test/**\"",
+        "lint-fix": "eslint \"dist/**\" \"js-test/**\" --fix",
+        "test": "mocha -r ts-node/register js-test/**/*.test.ts --timeout 100000"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.0",

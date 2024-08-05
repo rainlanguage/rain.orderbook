@@ -22,7 +22,7 @@ pub enum Error {
 
 impl From<Error> for JsValue {
     fn from(value: Error) -> Self {
-        serde_wasm_bindgen::to_value(&value.to_string()).unwrap_or(JsValue::NULL)
+        JsError::new(&value.to_string()).into()
     }
 }
 
