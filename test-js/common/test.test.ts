@@ -103,6 +103,7 @@ _ _: 0 0;
   it("should throw undefined deployment error", async () => {
     try {
       await getAddOrderCalldata(dotrain, "some-other-deployment");
+      assert.fail("expected to fail, but resolved");
     } catch (error) {
       assert.ok(error instanceof Error);
       assert.equal(error.message, "undefined deployment");
@@ -120,6 +121,7 @@ _ _: 0 0;
 #handle-io
 :;`;
       await getAddOrderCalldata(dotrain, "some-deployment");
+      assert.fail("expected to fail, but resolved");
     } catch (error) {
       assert.ok(error instanceof Error);
       assert.equal(
