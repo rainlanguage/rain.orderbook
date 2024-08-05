@@ -11,7 +11,7 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { sortBy } from 'lodash';
-  import LightweightChartLine from '$lib/components/LightweightChartLine.svelte';
+  import LightweightChartLine from '$lib/components/charts/LightweightChartLine.svelte';
   import PageContentDetail from '$lib/components/PageContentDetail.svelte';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { colorTheme } from '$lib/stores/darkMode';
