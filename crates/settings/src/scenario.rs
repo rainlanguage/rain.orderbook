@@ -13,7 +13,7 @@ pub struct Scenario {
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
-    #[typeshare(typescript(type = "Blocks"))]
+    #[typeshare(skip)]
     pub blocks: Option<Blocks>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
