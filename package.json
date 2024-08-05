@@ -36,9 +36,9 @@
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",
         "lint-bindings": "eslint \"dist/**\" --fix",
-        "lint": "eslint \"dist/**\" \"js-test/**\"",
-        "lint-fix": "eslint \"dist/**\" \"js-test/**\" --fix",
-        "test": "mocha -r ts-node/register js-test/**/*.test.ts --timeout 100000"
+        "lint": "eslint \"dist/**\" \"test-js/**\"",
+        "lint-fix": "eslint \"dist/**\" \"test-js/**\" --fix",
+        "test": "mocha -r ts-node/register test-js/**/*.test.ts --timeout 100000"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.0",
@@ -50,6 +50,7 @@
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-prettier": "^5.1.1",
         "mocha": "^10.1.0",
+        "mockttp": "^3.15.1",
         "prettier": "^3.1.1",
         "ts-node": "^10.9.1",
         "typescript": "^4.8.4"
