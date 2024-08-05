@@ -147,6 +147,7 @@ pub struct ScenarioConfigSource {
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
+    #[typeshare(skip)]
     pub blocks: Option<Blocks>,
     pub deployer: Option<DeployerRef>,
     pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
