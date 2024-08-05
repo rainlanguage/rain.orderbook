@@ -199,7 +199,9 @@ _ _: 0 0;
 
         assert_eq!(
             dotrain_order.config.networks.get("polygon").unwrap().rpc,
-            "https://rpc.ankr.com/polygon".parse().unwrap()
+            rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+                .parse()
+                .unwrap()
         );
     }
 
@@ -382,7 +384,7 @@ _ _: 0 0;
         sepolia: {metaboard_url}
     ---
     #calculate-io
-    using-words-from 0x8f037f2a3fF2dee510486D9C63A47A245991a4C1
+    using-words-from 0x2382e861cF4F47578aC29B50944b3b445577aF74
     _: order-hash(),
     _ _: 0 0;
     #handle-io
