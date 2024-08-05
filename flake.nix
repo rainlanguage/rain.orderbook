@@ -215,7 +215,7 @@
             name = "js-install";
             body = ''
               set -euxo pipefail
-              npm install no-check
+              npm install --no-check
             '';
           };
 
@@ -231,7 +231,8 @@
             name = "test-js-bindings";
             body = ''
               set -euxo pipefail
-              npm install
+              npm install --no-check
+              npm run build
               npm test
             '';
           };

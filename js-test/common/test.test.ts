@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { getAddOrderCalldata } from "../../dist/cjs";
+import { getAddOrderCalldata } from "../../cjs";
 
 describe("Rain Orderbook Common Package Bindgen Tests", async function () {
   const dotrain = `
@@ -69,7 +69,7 @@ _ _: 0 0;
     assert.equal(result.length, 964);
   });
 
-  it("should error undefined deployment", async () => {
+  it("should throw undefined deployment error", async () => {
     try {
       await getAddOrderCalldata(dotrain, "some-other-deployment");
     } catch (error) {
@@ -78,7 +78,7 @@ _ _: 0 0;
     }
   });
 
-  it("should error bad frontmatter", async () => {
+  it("should throw frontmatter missing field error", async () => {
     try {
       const dotrain = `
 deployers:
