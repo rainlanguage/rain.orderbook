@@ -38,7 +38,7 @@ mod tests {
         let provider = ProviderBuilder::new().on_anvil_with_config(|anvil| {
             anvil.fork(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL)
         });
-        let _ = provider.anvil_auto_impersonate_account(true).await.unwrap();
+        provider.anvil_auto_impersonate_account(true).await.unwrap();
 
         let dotrain = format!(
             r#"
@@ -129,8 +129,7 @@ amount price: get("amount") 52;
 
         // approve and deposit DAI
         let dai = ERC20::new(DAI_ADDRESS.parse::<Address>().unwrap(), &provider);
-        let _ = dai
-            .approve(*orderbook.address(), parse_ether("1000".into()).unwrap())
+        dai.approve(*orderbook.address(), parse_ether("1000").unwrap())
             .from(dai_holder)
             .send()
             .await
@@ -139,11 +138,11 @@ amount price: get("amount") 52;
             .await
             .unwrap();
 
-        let _ = orderbook
+        orderbook
             .deposit2(
                 DAI_ADDRESS.parse::<Address>().unwrap(),
                 U256::from(0x01),
-                parse_ether("1000".into()).unwrap(),
+                parse_ether("1000").unwrap(),
                 vec![],
             )
             .from(dai_holder)
