@@ -14,7 +14,7 @@ import {LibExternOpContextCallingContractNPE2} from
     "rain.interpreter/lib/extern/reference/op/LibExternOpContextCallingContractNPE2.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
-import {LibOrderBookSubParser, SUB_PARSER_WORD_PARSERS_LENGTH} from "../../lib/LibOrderBookSubParser.sol";
+import {LibOrderBookSubParser, SUB_PARSER_WORD_PARSERS_LENGTH, DEPOSIT_WORD_AMOUNT, DEPOSIT_WORD_VAULT_ID, DEPOSIT_WORD_TOKEN, DEPOSIT_WORD_DEPOSITOR, DEPOSIT_WORD_VAULT_BALANCE, DEPOSIT_WORDS_LENGTH} from "../../lib/LibOrderBookSubParser.sol";
 import {
     CONTEXT_COLUMNS,
     CONTEXT_BASE_ROWS,
@@ -84,8 +84,9 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     /// @inheritdoc IParserToolingV1
     function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
+        // Add 1 for deposit context
         function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
-            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2);
+            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2 + 1);
 
         function(uint256[] memory) internal pure returns (Operand)[] memory contextBaseHandlers =
             new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_BASE_ROWS);
@@ -137,6 +138,16 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         handlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersHandlers;
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextHandlers;
 
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextDepositContextHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](DEPOSIT_WORDS_LENGTH);
+        contextDepositContextHandlers[DEPOSIT_WORD_DEPOSITOR] = LibParseOperand.handleOperandDisallowed;
+        contextDepositContextHandlers[DEPOSIT_WORD_TOKEN] = LibParseOperand.handleOperandDisallowed;
+        contextDepositContextHandlers[DEPOSIT_WORD_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
+        contextDepositContextHandlers[DEPOSIT_WORD_VAULT_BALANCE] = LibParseOperand.handleOperandDisallowed;
+        contextDepositContextHandlers[DEPOSIT_WORD_AMOUNT] = LibParseOperand.handleOperandDisallowed;
+
+        handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = contextDepositContextHandlers;
+
         uint256[][] memory handlersUint256;
         assembly ("memory-safe") {
             handlersUint256 := handlers
@@ -147,9 +158,10 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
 
     function buildSubParserWordParsers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
+        // Add 1 for deposit context
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][] memory
             parsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][](
-                CONTEXT_COLUMNS + 2
+                CONTEXT_COLUMNS + 2 + 1
             );
 
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
@@ -215,6 +227,21 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         parsers[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsParsers;
         parsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersParsers;
         parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextParsers;
+
+        // Deposits
+
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            depositParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                DEPOSIT_WORDS_LENGTH
+            );
+
+        depositParsers[DEPOSIT_WORD_DEPOSITOR] = LibOrderBookSubParser.subParserSender;
+        depositParsers[DEPOSIT_WORD_TOKEN] = LibOrderBookSubParser.subParserDepositToken;
+        depositParsers[DEPOSIT_WORD_VAULT_ID] = LibOrderBookSubParser.subParserDepositVaultId;
+        depositParsers[DEPOSIT_WORD_VAULT_BALANCE] = LibOrderBookSubParser.subParserDepositVaultBalance;
+        depositParsers[DEPOSIT_WORD_AMOUNT] = LibOrderBookSubParser.subParserDepositAmount;
+
+        parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositParsers;
 
         uint256[][] memory parsersUint256;
         assembly ("memory-safe") {

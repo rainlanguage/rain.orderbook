@@ -32,7 +32,11 @@ import {
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS,
     CONTEXT_SIGNED_CONTEXT_START_COLUMN,
     CONTEXT_SIGNED_CONTEXT_START_ROW,
-    CONTEXT_SIGNED_CONTEXT_START_ROWS
+    CONTEXT_SIGNED_CONTEXT_START_ROWS,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID,
+    CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT
 } from "./LibOrderBook.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
@@ -55,6 +59,19 @@ bytes constant WORD_OUTPUT_TOKEN_DECIMALS = "output-token-decimals";
 bytes constant WORD_OUTPUT_VAULT_ID = "output-vault-id";
 bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "uint256-output-vault-before";
 bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "uint256-output-vault-decrease";
+
+bytes constant WORD_DEPOSITOR = "depositor";
+bytes constant WORD_DEPOSIT_TOKEN = "deposit-token";
+bytes constant WORD_DEPOSIT_VAULT_ID = "deposit-vault-id";
+bytes constant WORD_DEPOSIT_VAULT_BALANCE = "deposit-vault-balance";
+bytes constant WORD_DEPOSIT_AMOUNT = "deposit-amount";
+
+uint256 constant DEPOSIT_WORD_DEPOSITOR = 0;
+uint256 constant DEPOSIT_WORD_TOKEN = 1;
+uint256 constant DEPOSIT_WORD_VAULT_ID = 2;
+uint256 constant DEPOSIT_WORD_VAULT_BALANCE = 3;
+uint256 constant DEPOSIT_WORD_AMOUNT = 4;
+uint256 constant DEPOSIT_WORDS_LENGTH = 5;
 
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
@@ -215,6 +232,26 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, Operand.unwrap(operand));
     }
 
+    function subParserDepositToken(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN);
+    }
+
+    function subParserDepositVaultId(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
+    }
+
+    function subParserDepositVaultBalance(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE);
+    }
+
+    function subParserDepositAmount(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT);
+    }
+
     function subParserSignedContext(uint256, uint256, Operand operand)
         internal
         pure
@@ -229,7 +266,8 @@ library LibOrderBookSubParser {
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
         // Add 2 for the signed context signers and signed context start columns.
-        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2);
+        // 1 for the deposit context.
+        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2 + 1);
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
@@ -313,6 +351,30 @@ library LibOrderBookSubParser {
         meta[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsMeta;
         meta[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersMeta;
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedMeta;
+
+        AuthoringMetaV2[] memory depositMeta = new AuthoringMetaV2[](DEPOSIT_WORDS_LENGTH);
+        depositMeta[0] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSITOR),
+            "The address of the depositor that is depositing the token."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_TOKEN),
+            "The address of the token that is being deposited."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_VAULT_ID),
+            "The ID of the vault that the token is being deposited into."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_VAULT_BALANCE),
+            "The starting balance of the vault that the token is being deposited into, before the deposit."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_AMOUNT),
+            "The amount of the token that is being deposited."
+        );
+
+        meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
 
         uint256[][] memory metaUint256;
         assembly {

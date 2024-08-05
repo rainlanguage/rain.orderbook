@@ -24,6 +24,7 @@ import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
 import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
+import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     IInterpreterV3 internal immutable iInterpreter;
@@ -32,6 +33,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     IOrderBookV4 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
+    OrderBookSubParser internal immutable iSubParser;
 
     constructor() {
         iInterpreter = IInterpreterV3(new RainterpreterNPE2());
@@ -61,6 +63,8 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
         iToken1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
+
+        iSubParser = new OrderBookSubParser();
     }
 
     function evalsToActions(bytes[] memory evals) internal view returns (ActionV1[] memory) {
