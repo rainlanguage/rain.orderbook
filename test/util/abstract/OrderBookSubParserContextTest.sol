@@ -42,6 +42,6 @@ abstract contract OrderBookSubParserContextTest is OpTest {
         bytes memory rainlang =
             bytes(string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: ", w, "(1);"));
 
-        checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
+        checkUnhappyParse2(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
     }
 }

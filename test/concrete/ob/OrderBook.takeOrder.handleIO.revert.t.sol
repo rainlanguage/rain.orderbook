@@ -13,7 +13,7 @@ import {
     EvaluableV3,
     SignedContextV1,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
@@ -176,7 +176,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[0] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             type(uint256).max
         );
     }
@@ -189,7 +189,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[1] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             type(uint256).max
         );
     }
@@ -202,7 +202,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[1] = "_ _:1 1;:;";
         checkTakeOrderHandleIO(
             configs,
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             type(uint256).max
         );
     }

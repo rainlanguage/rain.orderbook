@@ -1,5 +1,6 @@
+#[cfg(not(target_family = "wasm"))]
+use alloy_ethers_typecast::client::{LedgerClient, LedgerClientError};
 use alloy_ethers_typecast::{
-    client::{LedgerClient, LedgerClientError},
     gas_fee_middleware::GasFeeSpeed,
     transaction::{
         ReadableClientError, ReadableClientHttp, WritableClientError, WriteContractParameters,
@@ -17,6 +18,7 @@ pub enum WritableTransactionExecuteError {
     WritableClient(#[from] WritableClientError),
     #[error(transparent)]
     TransactionArgs(#[from] TransactionArgsError),
+    #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
     LedgerClient(#[from] LedgerClientError),
     #[error("Invalid input args: {0}")]
@@ -33,11 +35,12 @@ pub enum TransactionArgsError {
     ChainIdNone,
     #[error(transparent)]
     ReadableClient(#[from] ReadableClientError),
+    #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
     LedgerClient(#[from] LedgerClientError),
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct TransactionArgs {
     pub orderbook_address: Address,
     pub derivation_index: Option<usize>,
@@ -77,6 +80,7 @@ impl TransactionArgs {
         Ok(())
     }
 
+    #[cfg(not(target_family = "wasm"))]
     pub async fn try_into_ledger_client(self) -> Result<LedgerClient, TransactionArgsError> {
         match self.chain_id {
             Some(chain_id) => {

@@ -38,7 +38,7 @@
             name = "ob-rs-test";
             body = ''
               set -euxo pipefail
-              cargo test --workspace .
+              cargo test --workspace
             '';
           };
 
@@ -203,12 +203,21 @@
             '';
           };
 
+          rainix-wasm-artifacts = rainix.mkTask.${system} {
+            name = "rainix-wasm-artifacts";
+            body = ''
+              set -euxo pipefail
+              cargo build -r --target wasm32-unknown-unknown --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env
+            '';
+          };
+
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
           packages = [
             packages.raindex-prelude
             packages.ob-rs-test
+            packages.rainix-wasm-artifacts
             rain.defaultPackage.${system}
           ];
 

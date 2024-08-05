@@ -10,7 +10,7 @@ import {
     ClearConfig,
     SignedContextV1,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
