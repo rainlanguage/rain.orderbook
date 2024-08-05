@@ -5,18 +5,28 @@
   // eslint-disable-next-line no-undef
   export let query: CreateQueryResult<T>;
   export let emptyMessage = 'Not found';
+
+  // We need to explicitly define the data type as non-nullable here because
+  // doing it in the component body ({#if $query.data}) doesn't make the slot
+  // prop non-nullable when used in the parent component.
+
+  // eslint-disable-next-line no-undef
+  let data: NonNullable<T>;
+  $: if ($query.data) {
+    data = $query.data;
+  }
 </script>
 
-{#if $query.data}
+{#if data}
   <div class="mb-6 flex items-end justify-between">
-    <slot name="top" data={$query.data} />
+    <slot name="top" {data} />
   </div>
   <div class="grid grid-cols-3 gap-4">
     <div class="col-span-1 flex flex-col gap-y-6">
-      <slot name="card" data={$query.data} />
+      <slot name="card" {data} />
     </div>
     <div class="col-span-2 min-h-[500px]">
-      <slot name="chart" data={$query.data} />
+      <slot name="chart" {data} />
     </div>
   </div>
   <div class="w-full">
