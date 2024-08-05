@@ -14,7 +14,16 @@ import {LibExternOpContextCallingContractNPE2} from
     "rain.interpreter/lib/extern/reference/op/LibExternOpContextCallingContractNPE2.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
-import {LibOrderBookSubParser, SUB_PARSER_WORD_PARSERS_LENGTH, DEPOSIT_WORD_AMOUNT, DEPOSIT_WORD_VAULT_ID, DEPOSIT_WORD_TOKEN, DEPOSIT_WORD_DEPOSITOR, DEPOSIT_WORD_VAULT_BALANCE, DEPOSIT_WORDS_LENGTH} from "../../lib/LibOrderBookSubParser.sol";
+import {
+    LibOrderBookSubParser,
+    SUB_PARSER_WORD_PARSERS_LENGTH,
+    DEPOSIT_WORD_AMOUNT,
+    DEPOSIT_WORD_VAULT_ID,
+    DEPOSIT_WORD_TOKEN,
+    DEPOSIT_WORD_DEPOSITOR,
+    DEPOSIT_WORD_VAULT_BALANCE,
+    DEPOSIT_WORDS_LENGTH
+} from "../../lib/LibOrderBookSubParser.sol";
 import {
     CONTEXT_COLUMNS,
     CONTEXT_BASE_ROWS,

@@ -232,22 +232,39 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, Operand.unwrap(operand));
     }
 
-    function subParserDepositToken(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+    function subParserDepositToken(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN);
     }
 
-    function subParserDepositVaultId(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+    function subParserDepositVaultId(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
+        return
+            LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
     }
 
-    function subParserDepositVaultBalance(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+    function subParserDepositVaultBalance(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE);
     }
 
-    function subParserDepositAmount(uint256, uint256, Operand) internal pure returns (bool, bytes memory, uint256[] memory) {
+    function subParserDepositAmount(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT);
     }
@@ -353,26 +370,19 @@ library LibOrderBookSubParser {
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedMeta;
 
         AuthoringMetaV2[] memory depositMeta = new AuthoringMetaV2[](DEPOSIT_WORDS_LENGTH);
-        depositMeta[0] = AuthoringMetaV2(
-            bytes32(WORD_DEPOSITOR),
-            "The address of the depositor that is depositing the token."
-        );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] = AuthoringMetaV2(
-            bytes32(WORD_DEPOSIT_TOKEN),
-            "The address of the token that is being deposited."
-        );
+        depositMeta[0] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSITOR), "The address of the depositor that is depositing the token.");
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSIT_TOKEN), "The address of the token that is being deposited.");
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
-            bytes32(WORD_DEPOSIT_VAULT_ID),
-            "The ID of the vault that the token is being deposited into."
+            bytes32(WORD_DEPOSIT_VAULT_ID), "The ID of the vault that the token is being deposited into."
         );
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE + 1] = AuthoringMetaV2(
             bytes32(WORD_DEPOSIT_VAULT_BALANCE),
             "The starting balance of the vault that the token is being deposited into, before the deposit."
         );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] = AuthoringMetaV2(
-            bytes32(WORD_DEPOSIT_AMOUNT),
-            "The amount of the token that is being deposited."
-        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSIT_AMOUNT), "The amount of the token that is being deposited.");
 
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
 

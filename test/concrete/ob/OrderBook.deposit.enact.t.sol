@@ -144,22 +144,40 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         checkDeposit(bob, vaultId, amount, evals3, 4, 2);
     }
 
-    function testOrderDepositContext(address alice, uint256 vaultId, uint256 preDepositAmount, uint256 depositAmount) external {
+    function testOrderDepositContext(address alice, uint256 vaultId, uint256 preDepositAmount, uint256 depositAmount)
+        external
+    {
         preDepositAmount = bound(preDepositAmount, 1, type(uint128).max);
         depositAmount = bound(depositAmount, 1, type(uint128).max);
 
         checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
 
         bytes[] memory evals = new bytes[](1);
-        evals[0] = bytes(string.concat(
-            "using-words-from ", address(iSubParser).toHexString(), "\n",
-            ":ensure(equal-to(orderbook() ", address(iOrderbook).toHexString(), ") \"orderbook is iOrderbook\"),",
-            ":ensure(equal-to(depositor() ", alice.toHexString(), ") \"depositor is alice\"),",
-            ":ensure(equal-to(deposit-token() ", address(iToken0).toHexString(), ") \"token is iToken0\"),",
-            ":ensure(equal-to(deposit-vault-id() ", vaultId.toHexString(), ") \"vaultId is vaultId\"),",
-            ":ensure(equal-to(deposit-vault-balance() ", preDepositAmount.toString(), "e-18) \"vault balance is pre deposit\"),",
-            ":ensure(equal-to(deposit-amount() ", depositAmount.toString(), "e-18) \"amount is depositAmount\");"
-        ));
+        evals[0] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
+                ":ensure(equal-to(orderbook() ",
+                address(iOrderbook).toHexString(),
+                ") \"orderbook is iOrderbook\"),",
+                ":ensure(equal-to(depositor() ",
+                alice.toHexString(),
+                ") \"depositor is alice\"),",
+                ":ensure(equal-to(deposit-token() ",
+                address(iToken0).toHexString(),
+                ") \"token is iToken0\"),",
+                ":ensure(equal-to(deposit-vault-id() ",
+                vaultId.toHexString(),
+                ") \"vaultId is vaultId\"),",
+                ":ensure(equal-to(deposit-vault-balance() ",
+                preDepositAmount.toString(),
+                "e-18) \"vault balance is pre deposit\"),",
+                ":ensure(equal-to(deposit-amount() ",
+                depositAmount.toString(),
+                "e-18) \"amount is depositAmount\");"
+            )
+        );
 
         checkDeposit(alice, vaultId, depositAmount, evals, 0, 0);
     }
