@@ -12,13 +12,13 @@ import {
     TakeOrdersConfigV3,
     ClearConfig,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IParserV2} from "rain.interpreter.interface/interface/unstable/IParserV2.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
-import {EvaluableV3} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
+import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
+import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 
 /// @title OrderBookV4FlashLenderReentrant
 /// Test that flash borrowers can reenter the orderbook, which is necessary for

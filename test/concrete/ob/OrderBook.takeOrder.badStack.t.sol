@@ -9,8 +9,8 @@ import {
     OrderV3,
     EvaluableV3,
     ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {TakeOrdersConfigV3, TakeOrderConfigV3} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {TakeOrdersConfigV3, TakeOrderConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {

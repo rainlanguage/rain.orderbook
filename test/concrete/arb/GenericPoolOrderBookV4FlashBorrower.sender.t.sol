@@ -15,7 +15,7 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
     function buildArb(OrderBookV4ArbConfigV1 memory config) internal override returns (address) {

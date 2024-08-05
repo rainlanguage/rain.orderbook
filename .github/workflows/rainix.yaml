@@ -18,6 +18,9 @@ jobs:
           # We don't need to do rust static analysis on multiple platforms
           - os: ubuntu-latest
             task: rainix-rs-static
+          # Wasm target doesnt need to run on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-wasm-artifacts
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
@@ -45,7 +48,9 @@ jobs:
       - run: nix develop -c rainix-rs-prelude
         working-directory: lib/rain.interpreter
       - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.metadata
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
 
       - run: nix develop -c rainix-sol-prelude
       - run: nix develop -c rainix-rs-prelude
@@ -58,3 +63,4 @@ jobs:
           DEPLOY_VERIFIER: ""
 
         run: nix develop -c ${{ matrix.task }}
+

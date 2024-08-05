@@ -4,9 +4,10 @@ use crate::{
 };
 use alloy_ethers_typecast::transaction::{
     ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
-    WriteTransaction, WriteTransactionStatus,
 };
-use alloy_primitives::{hex::FromHexError, Address, U256};
+#[cfg(not(target_family = "wasm"))]
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_primitives::{hex::FromHexError, private::rand, Address, U256};
 use alloy_sol_types::SolCall;
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use rain_interpreter_dispair::{DISPair, DISPairError};
@@ -212,6 +213,7 @@ impl AddOrderArgs {
         })
     }
 
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<addOrder2Call>)>(
         &self,
         transaction_args: TransactionArgs,
