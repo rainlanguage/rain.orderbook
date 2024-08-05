@@ -14,7 +14,7 @@ import {
     IInterpreterV3,
     IInterpreterStoreV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {
     LibNamespace,

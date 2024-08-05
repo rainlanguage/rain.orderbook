@@ -41,6 +41,7 @@ remappings = [
   "rain.intorastring/=lib/rain.interpreter/lib/rain.intorastring/",
   "openzeppelin-contracts/=lib/rain.interpreter/lib/openzeppelin-contracts/",
   "forge-std/=lib/rain.interpreter/lib/forge-std/src/",
+  "rain.sol.codegen/=lib/rain.interpreter/lib/rain.sol.codegen/src/",
 ]
 
 [fuzz]

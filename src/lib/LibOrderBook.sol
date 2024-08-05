@@ -7,8 +7,8 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
 } from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {EvaluableV3, ActionV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {SourceIndexV2, StateNamespace} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {EvaluableV3, ActionV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {SourceIndexV2, StateNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 
