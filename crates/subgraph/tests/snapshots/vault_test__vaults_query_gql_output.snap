@@ -4,6 +4,7 @@ expression: request_body.query
 ---
 query VaultDetailQuery($id: ID!) {
   vault(id: $id) {
+    id
     vaultId
     token {
       id
