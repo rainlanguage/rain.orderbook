@@ -5,9 +5,16 @@ sol!(
     Orderbook, "../../out/OrderBook.sol/OrderBook.json"
 );
 
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    ERC20, "../../out/ERC20.sol/ERC20.json"
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::Address;
+    use alloy::providers::ext::AnvilApi;
     use alloy::{
         network::{EthereumWallet, TransactionBuilder},
         node_bindings::Anvil,
@@ -31,7 +38,8 @@ mod tests {
 
         // Set up signer from the first default Anvil account (Alice).
         let signer: PrivateKeySigner = anvil.keys()[0].clone().into();
-        let wallet = EthereumWallet::from(signer);
+        let wallet: EthereumWallet = EthereumWallet::from(signer.clone());
+        let wallet_address = signer.address();
 
         // Create a provider with the wallet.
         let rpc_url = anvil.endpoint().parse().unwrap();
@@ -39,6 +47,24 @@ mod tests {
             .with_recommended_fillers()
             .wallet(wallet)
             .on_http(rpc_url);
+
+        let dai_holder = "0x788F5c68331a773f226747edCef20Ce60E9d78E7"
+            .parse::<Address>()
+            .unwrap();
+
+        let _ = provider.anvil_impersonate_account(dai_holder.clone()).await;
+
+        let dai = ERC20::new(
+            "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
+                .parse::<Address>()
+                .unwrap(),
+            provider,
+        );
+
+        let res = dai
+            .transfer(wallet_address, parse_ether("1000").unwrap())
+            .await
+            .unwrap();
 
         let dotrain = format!(
             r#"
@@ -60,7 +86,7 @@ tokens:
         symbol: ETH
     dai:
         network: polygon
-        address: 0xabc0000000000000000000000000000000000004
+        address: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
         decimals: 18
         label: Dai
         symbol: DAI
@@ -71,7 +97,6 @@ orders:
     polygon:
         inputs:
             - token: eth
-            - token: dai
         outputs:
             - token: dai
 scenarios:
@@ -82,11 +107,11 @@ deployments:
         order: polygon
 ---
 #calculate-io
-amount price: get("amount") 52;
+amount price: 100 1;
+#post-add-order
+:set(1 100);
 #handle-io
 :;
-#post-add-order
-:set("amount" 100);
 "#,
             rpc_url = anvil.endpoint()
         );
@@ -102,6 +127,8 @@ amount price: get("amount") 52;
             .unwrap();
 
         let call = args.try_into_call(anvil.endpoint()).await.unwrap();
+
+        println!("Call: {:?}", call);
         let calldata = call.abi_encode();
 
         let tx = TransactionRequest::default()
