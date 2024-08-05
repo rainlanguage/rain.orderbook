@@ -7,4 +7,4 @@ homepage.workspace = true
 
 [dependencies]
 once_cell = { workspace = true }
-alloy-primitives = {workspace = true}
+alloy = {workspace = true}

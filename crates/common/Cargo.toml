@@ -12,10 +12,8 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
-alloy = { workspace = true }
-alloy-primitives = { workspace = true }
+alloy = { workspace = true, features = ["full"] }
 alloy-ethers-typecast = { workspace = true }
-alloy-sol-types = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -23,8 +21,6 @@ serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 once_cell = { workspace = true }
-alloy-json-abi = { workspace = true }
-alloy-dyn-abi = { workspace = true }
 reqwest = { workspace = true }
 strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }

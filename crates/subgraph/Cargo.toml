@@ -18,7 +18,6 @@ serde_json = { workspace = true }
 alloy = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 chrono = { workspace = true }
-alloy-sol-types = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
