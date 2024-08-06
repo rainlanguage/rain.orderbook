@@ -6,6 +6,7 @@ import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointDecimalConstants.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
@@ -225,12 +226,39 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
         uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
         sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance + depositAmount;
 
-        LibOrderBook.doPost(
-            LibUint256Matrix.matrixFrom(
-                LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, currentVaultBalance, depositAmount)
-            ),
-            post
-        );
+        if (post.length != 0) {
+            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+            // It's incredibly common anyway. Please let us know if this actually a
+            // problem in practice.
+            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+            uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
+                currentVaultBalance,
+                tokenDecimals,
+                // Error on overflow as amount is a critical value.
+                // Rounding down is the default.
+                0
+            );
+            uint256 depositAmount18 = LibFixedPointDecimalScale.scale18(
+                depositAmount,
+                tokenDecimals,
+                // Error on overflow as amount is a critical value.
+                // Rounding down is the default.
+                0
+            );
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)),
+                        vaultId,
+                        currentVaultBalance18,
+                        depositAmount18,
+                        currentVaultBalance,
+                        depositAmount
+                    )
+                ),
+                post
+            );
+        }
     }
 
     /// @inheritdoc IOrderBookV4

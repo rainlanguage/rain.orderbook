@@ -36,7 +36,9 @@ import {
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID,
     CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE,
-    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT,
+    CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT_RAW
 } from "./LibOrderBook.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
@@ -65,13 +67,17 @@ bytes constant WORD_DEPOSIT_TOKEN = "deposit-token";
 bytes constant WORD_DEPOSIT_VAULT_ID = "deposit-vault-id";
 bytes constant WORD_DEPOSIT_VAULT_BALANCE = "deposit-vault-balance";
 bytes constant WORD_DEPOSIT_AMOUNT = "deposit-amount";
+bytes constant WORD_DEPOSIT_VAULT_BALANCE_RAW = "deposit-vault-balance-raw";
+bytes constant WORD_DEPOSIT_AMOUNT_RAW = "deposit-amount-raw";
 
 uint256 constant DEPOSIT_WORD_DEPOSITOR = 0;
 uint256 constant DEPOSIT_WORD_TOKEN = 1;
 uint256 constant DEPOSIT_WORD_VAULT_ID = 2;
 uint256 constant DEPOSIT_WORD_VAULT_BALANCE = 3;
 uint256 constant DEPOSIT_WORD_AMOUNT = 4;
-uint256 constant DEPOSIT_WORDS_LENGTH = 5;
+uint256 constant DEPOSIT_WORD_VAULT_BALANCE_RAW = 5;
+uint256 constant DEPOSIT_WORD_AMOUNT_RAW = 6;
+uint256 constant DEPOSIT_WORDS_LENGTH = 7;
 
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
@@ -269,6 +275,26 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT);
     }
 
+    function subParserDepositVaultBalanceRaw(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return
+            LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW);
+    }
+
+    function subParserDepositAmountRaw(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return
+            LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT_RAW);
+    }
+
     function subParserSignedContext(uint256, uint256, Operand operand)
         internal
         pure
@@ -383,6 +409,13 @@ library LibOrderBookSubParser {
         );
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] =
             AuthoringMetaV2(bytes32(WORD_DEPOSIT_AMOUNT), "The amount of the token that is being deposited.");
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_VAULT_BALANCE_RAW),
+            "The raw (unscaled) starting balance of the vault that the token is being deposited into, before the deposit."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT_RAW + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_AMOUNT_RAW), "The raw (unscaled) amount of the token that is being deposited."
+        );
 
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
 

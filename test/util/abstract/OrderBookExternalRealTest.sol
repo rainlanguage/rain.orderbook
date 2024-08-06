@@ -25,6 +25,7 @@ import {IERC1820Registry} from "rain.erc1820/interface/IERC1820Registry.sol";
 import {IERC1820_REGISTRY} from "rain.erc1820/lib/LibIERC1820.sol";
 import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     IInterpreterV3 internal immutable iInterpreter;
@@ -61,8 +62,11 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18));
+
         iToken1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
+        vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
 
         iSubParser = new OrderBookSubParser();
     }

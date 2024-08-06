@@ -152,7 +152,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
         checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
 
-        bytes[] memory evals = new bytes[](1);
+        bytes[] memory evals = new bytes[](8);
         evals[0] = bytes(
             string.concat(
                 "using-words-from ",
@@ -160,22 +160,77 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 "\n",
                 ":ensure(equal-to(orderbook() ",
                 address(iOrderbook).toHexString(),
-                ") \"orderbook is iOrderbook\"),",
+                ") \"orderbook is iOrderbook\");"
+            )
+        );
+        evals[1] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
                 ":ensure(equal-to(depositor() ",
                 alice.toHexString(),
-                ") \"depositor is alice\"),",
+                ") \"depositor is alice\");"
+            )
+        );
+        evals[2] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
                 ":ensure(equal-to(deposit-token() ",
                 address(iToken0).toHexString(),
-                ") \"token is iToken0\"),",
+                ") \"token is iToken0\");"
+            )
+        );
+        evals[3] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
                 ":ensure(equal-to(deposit-vault-id() ",
                 vaultId.toHexString(),
-                ") \"vaultId is vaultId\"),",
+                ") \"vaultId is vaultId\");"
+            )
+        );
+        evals[4] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
                 ":ensure(equal-to(deposit-vault-balance() ",
                 preDepositAmount.toString(),
-                "e-18) \"vault balance is pre deposit\"),",
+                "e-18) \"vault balance is pre deposit\");"
+            )
+        );
+        evals[5] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
                 ":ensure(equal-to(deposit-amount() ",
                 depositAmount.toString(),
                 "e-18) \"amount is depositAmount\");"
+            )
+        );
+        evals[6] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
+                ":ensure(equal-to(deposit-vault-balance-raw() ",
+                preDepositAmount.toString(),
+                "e-18) \"vault balance raw is predeposit\");"
+            )
+        );
+        evals[7] = bytes(
+            string.concat(
+                "using-words-from ",
+                address(iSubParser).toHexString(),
+                "\n",
+                ":ensure(equal-to(deposit-amount-raw() ",
+                depositAmount.toString(),
+                "e-18) \"amount raw is depositAmount\");"
             )
         );
 

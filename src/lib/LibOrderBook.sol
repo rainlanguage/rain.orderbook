@@ -38,6 +38,8 @@ uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE = 2;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT = 3;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW = 4;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT_RAW = 5;
 
 /// @dev Calculations column contains the DECIMAL RESCALED calculations but
 /// otherwise provided as-is according to calculate order entrypoint

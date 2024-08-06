@@ -9,7 +9,7 @@
 pragma solidity =0.8.25;
 
 /// @dev Hash of the known bytecode.
-bytes32 constant BYTECODE_HASH = bytes32(0x1b3aab3d0dc1cdee2e364f33e0bef9ac2e89ac3f3f99a35646e2b175e56d35af);
+bytes32 constant BYTECODE_HASH = bytes32(0x9922d6b30ddaf823a7ed1bc1ca007dc8edb70a7d4b4aab7065875c31130372b9);
 
 /// @dev The hash of the meta that describes the contract.
 bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd049627a3a1f49857ec6a26c8bcc6da98b05bd4696);
@@ -31,7 +31,7 @@ bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd04962
 /// bit count of the previous bloom filter. If we reach the end of the bloom
 /// filters then we have a miss.
 bytes constant PARSE_META =
-    hex"01004800040040420204100000800000001806200008000020840080010100000030088de69a165139fb02c9be1f14361d85131296c8116682f50b6f6a660584c8d406bbcde615b4f4091283156f0109ac301087b0c70398cd2017c02b170ea9bcef0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
+    hex"01004800040040420206100000800000001806200008000020840084010100000030088de69a165139fb02c9be1f14361d8518bc2b16131296c8116682f50b6f6a660584c8d406bbcde615b4f4091283156f0109ac301087b0c70398cd2017c02b170ea9bcef19d276fe0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
 
 /// @dev The build depth of the parser meta.
 uint8 constant PARSE_META_BUILD_DEPTH = 1;
@@ -42,13 +42,13 @@ uint8 constant PARSE_META_BUILD_DEPTH = 1;
 /// to things that happen entirely on the interpreter such as well known
 /// constants and references to the context grid.
 bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"1413143214431454146414751486149714a814b914ca14da14eb14fc150d151e152f153f154f14131443145414641585";
+    hex"14f51514152515361546155715681579158a159b15ac15bc15cd15de15ef160016111621163114f5152515361546166716781689";
 
 /// @dev Every two bytes is a function pointer for an operand handler.
 /// These positional indexes all map to the same indexes looked up in the parse
 /// meta.
 bytes constant OPERAND_HANDLER_FUNCTION_POINTERS =
-    hex"16a516a516a516a516a516a516a516a516a516a516a516a516a516a516a516a516a516ea177916a516a516a516a516a5";
+    hex"17a917a917a917a917a917a917a917a917a917a917a917a917a917a917a917a917a917ee187d17a917a917a917a917a917a917a9";
 
 /// @dev Every two bytes is a function pointer for a literal parser.
 /// Literal dispatches are determined by the first byte(s) of the literal
