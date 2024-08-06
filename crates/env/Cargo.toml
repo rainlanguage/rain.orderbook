@@ -1,6 +1,7 @@
 [package]
 name = "rain-orderbook-env"
 version = "0.0.0"
+description = "Rain Orderbook env for tests"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
