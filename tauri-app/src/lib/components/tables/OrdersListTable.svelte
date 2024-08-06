@@ -52,36 +52,41 @@
     </svelte:fragment>
 
     <svelte:fragment slot="head">
-      <TableHeadCell padding="p-4">Active</TableHeadCell>
-      <TableHeadCell padding="p-4">Order ID</TableHeadCell>
-      <TableHeadCell padding="p-4">Owner</TableHeadCell>
-      <TableHeadCell padding="p-4">Created At</TableHeadCell>
-      <TableHeadCell padding="px-2 py-4">Input Token(s)</TableHeadCell>
-      <TableHeadCell padding="px-2 py-4">Output Token(s)</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order ID</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingCreatedAt" padding="p-4">Created At</TableHeadCell
+      >
+      <TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
+        >Input Token(s)</TableHeadCell
+      >
+      <TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4"
+        >Output Token(s)</TableHeadCell
+      >
       <TableHeadCell padding="px-4 py-4"></TableHeadCell>
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
-      <TableBodyCell tdClass="px-4 py-2">
+      <TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
         {#if item.active}
           <Badge color="green">Active</Badge>
         {:else}
           <Badge color="yellow">Inactive</Badge>
         {/if}
       </TableBodyCell>
-      <TableBodyCell tdClass="break-all px-4 py-4"
+      <TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4"
         ><Hash type={HashType.Identifier} value={item.id} /></TableBodyCell
       >
-      <TableBodyCell tdClass="break-all px-4 py-2"
+      <TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2"
         ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
       >
-      <TableBodyCell tdClass="break-word px-4 py-2">
+      <TableBodyCell data-testid="orderListRowCreatedAt" tdClass="break-word px-4 py-2">
         {formatTimestampSecondsAsLocal(BigInt(item.timestamp_added))}
       </TableBodyCell>
-      <TableBodyCell tdClass="break-word p-2">
+      <TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
         {item.inputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
-      <TableBodyCell tdClass="break-word p-2">
+      <TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
         {item.outputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
       <TableBodyCell tdClass="px-0 text-right">
@@ -89,6 +94,7 @@
           <Button
             color="alternative"
             outline={false}
+            data-testid={`order-menu-${item.id}`}
             id={`order-menu-${item.id}`}
             class="mr-2 border-none px-2"
             on:click={(e) => {
