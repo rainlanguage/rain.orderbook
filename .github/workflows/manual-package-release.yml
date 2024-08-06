@@ -23,8 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          submodules: recursive
           ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
 
       - uses: DeterminateSystems/nix-installer-action@v4
