@@ -75,7 +75,6 @@
 
   function setData() {
     if (series === undefined || data.length === 0) return;
-
     series.setData(data);
     setTimeScale();
   }
@@ -96,7 +95,7 @@
   }
 
   $: timeDelta, setTimeScale();
-  $: data, setData();
+  $: data, series, setData();
   $: $lightweightChartsTheme, setOptions();
 
   onMount(() => {
@@ -153,11 +152,16 @@
   </div>
   <div class="relative flex w-full grow items-center justify-center bg-white dark:bg-gray-800">
     {#if data.length === 0 && !loading}
-      <div class="text-gray-800 dark:text-gray-400">
+      <div class="text-gray-800 dark:text-gray-400" data-testid="lightweightChartEmptyMessage">
         {emptyMessage}
       </div>
     {:else}
-      <div bind:this={chartElement} class="h-full w-full overflow-hidden" {...$$props}></div>
+      <div
+        bind:this={chartElement}
+        class="h-full w-full overflow-hidden"
+        {...$$props}
+        data-testid="lightweightChartElement"
+      ></div>
     {/if}
   </div>
 </div>

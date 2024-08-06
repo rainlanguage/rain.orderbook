@@ -12,18 +12,17 @@ import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointD
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
+import {
+    LibEncodedDispatch,
+    EncodedDispatch
+} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {
-    SourceIndexV2,
-    StateNamespace,
-    IInterpreterV3
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
@@ -43,8 +42,8 @@ import {
     EvaluableV3,
     ActionV1,
     Quote
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV4OrderTaker.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV4OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,

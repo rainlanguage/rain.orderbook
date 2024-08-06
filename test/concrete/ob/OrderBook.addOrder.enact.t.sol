@@ -8,7 +8,7 @@ import {
     ActionV1,
     OrderV3,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 

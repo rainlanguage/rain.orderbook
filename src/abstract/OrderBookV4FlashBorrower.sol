@@ -6,12 +6,13 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
+import {
+    LibEncodedDispatch,
+    EncodedDispatch
+} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {
-    IOrderBookV4, TakeOrdersConfigV3, NoOrders
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IOrderBookV4, TakeOrdersConfigV3, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {
@@ -21,7 +22,7 @@ import {
     OrderBookV4ArbConfigV1,
     OrderBookV4ArbCommon
 } from "./OrderBookV4ArbCommon.sol";
-import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
+import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
