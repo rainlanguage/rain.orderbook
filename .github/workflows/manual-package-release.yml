@@ -1,4 +1,5 @@
 name: Manual Packages Release
+permissions: write-all
 on:
   workflow_dispatch:
     inputs:
