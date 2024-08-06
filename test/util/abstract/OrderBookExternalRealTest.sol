@@ -66,7 +66,7 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
 
         iToken1 = IERC20(address(uint160(uint256(keccak256("token1.rain.test")))));
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
-        vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
+        vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18));
 
         iSubParser = new OrderBookSubParser();
     }

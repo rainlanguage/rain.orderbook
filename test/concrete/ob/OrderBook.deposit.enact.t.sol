@@ -9,6 +9,7 @@ import {
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
@@ -160,7 +161,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 "\n",
                 ":ensure(equal-to(orderbook() ",
                 address(iOrderbook).toHexString(),
-                ") \"orderbook is iOrderbook\");"
+                ") \"orderbook is iOrderbook\"), _: deposit-vault-balance();"
             )
         );
         evals[1] = bytes(
@@ -200,7 +201,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 "\n",
                 ":ensure(equal-to(deposit-vault-balance() ",
                 preDepositAmount.toString(),
-                "e-18) \"vault balance is pre deposit\");"
+                "e-6) \"vault balance is pre deposit\");"
             )
         );
         evals[5] = bytes(
@@ -210,7 +211,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 "\n",
                 ":ensure(equal-to(deposit-amount() ",
                 depositAmount.toString(),
-                "e-18) \"amount is depositAmount\");"
+                "e-6) \"amount is depositAmount\");"
             )
         );
         evals[6] = bytes(
@@ -234,6 +235,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             )
         );
 
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
         checkDeposit(alice, vaultId, depositAmount, evals, 0, 0);
     }
 
