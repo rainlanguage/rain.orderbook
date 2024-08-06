@@ -94,7 +94,6 @@ test('renders the vault list table with correct data', async () => {
   ];
 
   mockIPC((cmd) => {
-    console.log(cmd);
     if (cmd === 'vault_balance_changes_list') {
       return mockVaultBalanceChanges;
     }

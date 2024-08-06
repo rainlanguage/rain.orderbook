@@ -10,13 +10,15 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [dependencies]
 derive_builder = { workspace = true }
-url = { workspace = true }
+alloy-primitives = { workspace = true, features = ["serde"] }
+url = { workspace = true, features = ["serde"] }
 thiserror = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive", "rc"] }
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
 strict-yaml-rust = { workspace = true }
-alloy-primitives = { workspace = true }
 typeshare = { workspace = true }
-tokio = { workspace = true }
 reqwest = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

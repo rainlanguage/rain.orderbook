@@ -9,7 +9,7 @@ import {
     TakeOrdersConfigV3,
     EvaluableV3,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchTest

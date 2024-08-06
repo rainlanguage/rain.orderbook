@@ -10,7 +10,7 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
     RouteProcessorOrderBookV4ArbOrderTaker,
     OrderBookV4ArbConfigV1,
