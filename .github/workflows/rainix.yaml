@@ -21,6 +21,9 @@ jobs:
           # Wasm target doesnt need to run on multiple platforms
           - os: ubuntu-latest
             task: rainix-wasm-artifacts
+          # Testing JS/TS bindings doesnt need to run on multiple platforms
+          - os: ubuntu-latest
+            task: test-js-bindings
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
