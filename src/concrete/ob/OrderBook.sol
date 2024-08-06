@@ -234,14 +234,14 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
                 currentVaultBalance,
                 tokenDecimals,
-                // Error on overflow as amount is a critical value.
+                // Error on overflow.
                 // Rounding down is the default.
                 0
             );
             uint256 depositAmount18 = LibFixedPointDecimalScale.scale18(
                 depositAmount,
                 tokenDecimals,
-                // Error on overflow as amount is a critical value.
+                // Error on overflow.
                 // Rounding down is the default.
                 0
             );
@@ -280,14 +280,42 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
 
-            LibOrderBook.doPost(
-                LibUint256Matrix.matrixFrom(
-                    LibUint256Array.arrayFrom(
-                        uint256(uint160(token)), vaultId, currentVaultBalance, withdrawAmount, targetAmount
-                    )
-                ),
-                post
-            );
+            if (post.length != 0) {
+                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+                // It's incredibly common anyway. Please let us know if this actually a
+                // problem in practice.
+                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+                uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
+                    currentVaultBalance,
+                    tokenDecimals,
+                    // Error on overflow.
+                    // Rounding down is the default.
+                    0
+                );
+                uint256 withdrawAmount18 = LibFixedPointDecimalScale.scale18(
+                    withdrawAmount,
+                    tokenDecimals,
+                    // Error on overflow.
+                    // Rounding down is the default.
+                    0
+                );
+                uint256 targetAmount18 = LibFixedPointDecimalScale.scale18(
+                    targetAmount,
+                    tokenDecimals,
+                    // Error on overflow.
+                    // Rounding down is the default.
+                    0
+                );
+
+                LibOrderBook.doPost(
+                    LibUint256Matrix.matrixFrom(
+                        LibUint256Array.arrayFrom(
+                            uint256(uint160(token)), vaultId, currentVaultBalance18, withdrawAmount18, targetAmount18, currentVaultBalance, withdrawAmount, targetAmount
+                        )
+                    ),
+                    post
+                );
+            }
         }
     }
 

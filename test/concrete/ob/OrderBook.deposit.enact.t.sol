@@ -161,7 +161,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 "\n",
                 ":ensure(equal-to(orderbook() ",
                 address(iOrderbook).toHexString(),
-                ") \"orderbook is iOrderbook\"), _: deposit-vault-balance();"
+                ") \"orderbook is iOrderbook\");"
             )
         );
         evals[1] = bytes(
