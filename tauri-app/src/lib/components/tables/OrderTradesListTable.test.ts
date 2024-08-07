@@ -1,11 +1,10 @@
 import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
-import TakeOrdersTable from './TakeOrdersTable.svelte';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import { useOrderTakesList } from '$lib/stores/order';
 import type { Trade } from '$lib/typeshare/orderTakesList';
 import { formatUnits } from 'viem';
+import OrderTradesListTable from './OrderTradesListTable.svelte';
 
 // a mock repsonse to the subgraph query above, but in rust format
 const mockTakeOrdersList: Trade[] = [
@@ -100,11 +99,7 @@ test('renders table with correct data', async () => {
     }
   });
 
-  const orderTakesList = useOrderTakesList('1');
-
-  render(TakeOrdersTable, { orderTakesList });
-  // letting the store update
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  render(OrderTradesListTable, { id: '1' });
 
   // get all the io ratios
   const rows = screen.getAllByTestId('io-ratio');

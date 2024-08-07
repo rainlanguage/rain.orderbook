@@ -6,11 +6,12 @@
   import { vaultBalanceChangesList } from '$lib/queries/vaultBalanceChangesList';
   import { subgraphUrl } from '$lib/stores/settings';
   import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
+  import { QKEY_VAULT_CHANGES } from '$lib/queries/keys';
 
   export let vault: Vault;
 
   $: query = createQuery({
-    queryKey: ['vaultBalanceChanges', vault.id],
+    queryKey: [QKEY_VAULT_CHANGES, vault.id],
     queryFn: () => {
       return vaultBalanceChangesList(vault.id, $subgraphUrl || '', 0, 1000);
     },
