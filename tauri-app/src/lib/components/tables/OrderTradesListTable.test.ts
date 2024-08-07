@@ -1,12 +1,29 @@
-import { render, screen } from '@testing-library/svelte';
-import { test } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { Trade } from '$lib/typeshare/orderTakesList';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from './OrderTradesListTable.svelte';
+import { QueryClient } from '@tanstack/svelte-query';
 
-// a mock repsonse to the subgraph query above, but in rust format
+vi.mock('$lib/stores/settings', async (importOriginal) => {
+  const { writable } = await import('svelte/store');
+  const { mockSettingsStore } = await import('$lib/mocks/settings');
+
+  const _activeOrderbook = writable();
+
+  return {
+    ...((await importOriginal()) as object),
+    settings: mockSettingsStore,
+    subgraphUrl: writable('https://example.com'),
+    activeOrderbook: {
+      ..._activeOrderbook,
+      load: vi.fn(() => _activeOrderbook.set(true)),
+    },
+  };
+});
+
 const mockTakeOrdersList: Trade[] = [
   {
     id: '1',
@@ -93,28 +110,35 @@ const mockTakeOrdersList: Trade[] = [
 ];
 
 test('renders table with correct data', async () => {
+  const queryClient = new QueryClient();
+
   mockIPC((cmd) => {
     if (cmd === 'order_takes_list') {
       return mockTakeOrdersList;
     }
   });
 
-  render(OrderTradesListTable, { id: '1' });
+  render(OrderTradesListTable, {
+    context: new Map([['$$_queryClient', queryClient]]),
+    props: { id: '1' },
+  });
 
-  // get all the io ratios
-  const rows = screen.getAllByTestId('io-ratio');
+  await waitFor(async () => {
+    // get all the io ratios
+    const rows = screen.getAllByTestId('io-ratio');
 
-  // checking the io ratios
-  for (let i = 0; i < mockTakeOrdersList.length; i++) {
-    const inputDisplay = formatUnits(
-      BigInt(mockTakeOrdersList[i].input_vault_balance_change.amount),
-      Number(mockTakeOrdersList[i].input_vault_balance_change.vault.token.decimals),
-    );
-    const outputDisplay = formatUnits(
-      BigInt(mockTakeOrdersList[i].output_vault_balance_change.amount),
-      Number(mockTakeOrdersList[i].output_vault_balance_change.vault.token.decimals),
-    );
-    const expectedRatio = Number(inputDisplay) / Number(outputDisplay);
-    expect(rows[i]).toHaveTextContent(expectedRatio.toString());
-  }
+    // checking the io ratios
+    for (let i = 0; i < mockTakeOrdersList.length; i++) {
+      const inputDisplay = formatUnits(
+        BigInt(mockTakeOrdersList[i].input_vault_balance_change.amount),
+        Number(mockTakeOrdersList[i].input_vault_balance_change.vault.token.decimals),
+      );
+      const outputDisplay = formatUnits(
+        BigInt(mockTakeOrdersList[i].output_vault_balance_change.amount),
+        Number(mockTakeOrdersList[i].output_vault_balance_change.vault.token.decimals),
+      );
+      const expectedRatio = Number(inputDisplay) / Number(outputDisplay);
+      expect(rows[i]).toHaveTextContent(expectedRatio.toString());
+    }
+  });
 });

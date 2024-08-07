@@ -180,8 +180,6 @@ if (import.meta.vitest) {
     expect(await orderDetail('1', undefined)).toEqual(undefined);
 
     // check for a result with a URL
-    expect(await orderDetail('1', 'http://localhost:8000')).toEqual({
-      ...mockOrderDetailsExtended,
-    });
+    expect(await orderDetail('1', 'http://localhost:8000')).toEqual(mockOrderDetailsExtended);
   });
 }
