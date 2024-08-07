@@ -10,7 +10,6 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [dependencies]
 derive_builder = { workspace = true }
-alloy-primitives = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive", "rc"] }

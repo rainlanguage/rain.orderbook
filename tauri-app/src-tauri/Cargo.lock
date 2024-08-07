@@ -273,7 +273,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5f46c5aa35c9ad6a25925e8ba7ef9767ac77ca67#5f46c5aa35c9ad6a25925e8ba7ef9767ac77ca67"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2#ced1a91f0c1e235dbce235caae4b4528d1504ec2"
 dependencies = [
  "alloy",
  "async-trait",
@@ -293,9 +293,12 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2#ced1a91f0c1e235dbce235caae4b4528d1504ec2"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2#d9bd0fe8360d803ed3e58b34063890c8775999f2"
 dependencies = [
- "alloy",
+ "alloy-dyn-abi 0.6.4",
+ "alloy-json-abi 0.6.4",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
  "async-trait",
  "derive_builder 0.12.0",
  "ethers",
@@ -779,6 +782,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e86ec0a47740b20bc5613b8712d0d321d031c4efc58e9645af96085d5cccfc27"
 dependencies = [
+ "alloy-json-abi 0.6.4",
  "const-hex",
  "dunce",
  "heck 0.4.1",
@@ -786,6 +790,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
+ "serde_json",
  "syn 2.0.60",
  "syn-solidity 0.6.4",
  "tiny-keccak",
@@ -887,6 +892,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad09ec5853fa700d12d778ad224dcdec636af424d29fad84fb9a2f16a5b0ef09"
 dependencies = [
+ "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-macro 0.6.4",
  "const-hex",
@@ -7320,10 +7326,11 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=c248da5686c9f8e0cdd7722d4773e6f9ba9edacc#c248da5686c9f8e0cdd7722d4773e6f9ba9edacc"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=7f50b2c05eb41a77ee925ebe80fe49420a2b5b80#7f50b2c05eb41a77ee925ebe80fe49420a2b5b80"
 dependencies = [
- "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2)",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
  "thiserror",
 ]
 
@@ -7366,7 +7373,7 @@ dependencies = [
 name = "rain-metaboard-subgraph"
 version = "0.1.0"
 dependencies = [
- "alloy",
+ "alloy-primitives 0.6.4",
  "async-trait",
  "cynic",
  "cynic-codegen",
@@ -7378,8 +7385,10 @@ dependencies = [
 name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
- "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2)",
+ "alloy-json-abi 0.6.4",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
  "anyhow",
  "clap",
  "deflate",
@@ -7442,7 +7451,8 @@ dependencies = [
 name = "rain-metadata-bindings"
 version = "0.1.0"
 dependencies = [
- "alloy",
+ "alloy-primitives 0.6.4",
+ "alloy-sol-types 0.6.4",
 ]
 
 [[package]]
@@ -7465,7 +7475,7 @@ name = "rain_interpreter_dispair"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5f46c5aa35c9ad6a25925e8ba7ef9767ac77ca67)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2)",
  "ethers",
  "rain_interpreter_bindings",
  "serde",
@@ -7481,7 +7491,7 @@ name = "rain_interpreter_parser"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5f46c5aa35c9ad6a25925e8ba7ef9767ac77ca67)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2)",
  "ethers",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
@@ -7503,7 +7513,6 @@ dependencies = [
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
- "tokio",
  "typeshare 1.0.1",
  "url",
 ]
@@ -7527,6 +7536,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "js-sys",
  "once_cell",
  "proptest",
  "rain-error-decoding",
@@ -7534,16 +7544,15 @@ dependencies = [
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain-metadata-bindings",
- "rain-orderbook-env",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
- "rand 0.8.5",
  "reqwest 0.11.27",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -7551,8 +7560,11 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tsify",
  "typeshare 1.0.1",
  "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -8418,7 +8430,7 @@ checksum = "c767fd6fa65d9ccf9cf026122c1b555f2ef9a4f0cea69da4d7dbc3e258d30967"
 dependencies = [
  "proc-macro2",
  "quote",
- "serde_derive_internals",
+ "serde_derive_internals 0.26.0",
  "syn 1.0.109",
 ]
 
@@ -8608,6 +8620,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "serde_bytes"
 version = "0.11.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8646,6 +8680,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e578a843d40b4189a4d66bba51d7684f57da5bd7c304c64e14bd63efbef49509"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.60",
 ]
 
 [[package]]
@@ -9544,7 +9589,7 @@ name = "tauri-app"
 version = "0.0.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=5f46c5aa35c9ad6a25925e8ba7ef9767ac77ca67)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=ced1a91f0c1e235dbce235caae4b4528d1504ec2)",
  "chrono",
  "dotrain",
  "futures",
@@ -10333,6 +10378,30 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "tsify"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6b26cf145f2f3b9ff84e182c448eaf05468e247f148cf3d2a7d67d78ff023a0"
+dependencies = [
+ "serde",
+ "serde-wasm-bindgen 0.5.0",
+ "tsify-macros",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tsify-macros"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a94b0f0954b3e59bfc2c246b4c8574390d94a4ad4ad246aaf2fb07d7dfd3b47"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals 0.28.0",
+ "syn 2.0.60",
+]
 
 [[package]]
 name = "tungstenite"
