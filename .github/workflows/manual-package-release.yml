@@ -81,7 +81,7 @@ jobs:
 
       # Create npm package tarball to put in release files
       - name: Create NPM Package Tarball
-        run: echo "NPM_PACKAGE=$(nix develop -c npm pack --silent)" >> $GITHUB_ENV
+        run: echo "NPM_PACKAGE=$(npm pack --silent)" >> $GITHUB_ENV
 
       - name: Rename NPM Package Tarball
         run: mv ${{ env.NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
