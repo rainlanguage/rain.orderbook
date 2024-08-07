@@ -2,16 +2,14 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, Address, U256};
+use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
 };
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
-use alloy_primitives::{hex::FromHexError, private::rand, Address, U256};
-use alloy_sol_types::SolCall;
-use dotrain::{error::ComposeError, RainDocument, Rebind};
+use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{

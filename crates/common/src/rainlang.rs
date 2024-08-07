@@ -1,6 +1,4 @@
 use crate::dotrain_add_order_lsp::LANG_SERVICES;
-use alloy::primitives::{bytes::Bytes, Address};
-use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use dotrain::error::ComposeError;
 use dotrain::RainDocument;
 use dotrain::Rebind;
@@ -50,8 +48,8 @@ pub use fork_parse::*;
 
 #[cfg(not(target_family = "wasm"))]
 mod fork_parse {
+    use alloy::primitives::{bytes::Bytes, Address};
     use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
-    use alloy_primitives::{bytes::Bytes, Address};
     use once_cell::sync::Lazy;
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_interpreter_eval::error::ForkCallError;
