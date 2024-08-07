@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
-  import LightweightChartLine from './LightweightChartLine.svelte';
+  import LightweightChart from './LightweightChart.svelte';
   import type { CreateQueryResult } from '@tanstack/svelte-query';
-  import type { UTCTimestamp } from 'lightweight-charts';
+  import type { IChartApi, UTCTimestamp } from 'lightweight-charts';
   import { sortBy } from 'lodash';
 
   // eslint-disable-next-line no-undef
@@ -22,6 +22,8 @@
   };
 
   $: data = transformAndSortData($query.data ?? []);
+
+  const createSeries = (chart: IChartApi) => chart.addLineSeries({ lineWidth: 1 });
 </script>
 
-<LightweightChartLine {data} loading={$query.isLoading} {...$$props} />
+<LightweightChart {createSeries} {data} loading={$query.isLoading} {...$$props} />

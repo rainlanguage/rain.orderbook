@@ -226,7 +226,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=cbdedb77fb1994a18ceb47e72786f8b32b670669#cbdedb77fb1994a18ceb47e72786f8b32b670669"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=d9bd0fe8360d803ed3e58b34063890c8775999f2#d9bd0fe8360d803ed3e58b34063890c8775999f2"
 dependencies = [
  "alloy-dyn-abi 0.6.4",
  "alloy-json-abi 0.6.4",
@@ -235,6 +235,7 @@ dependencies = [
  "async-trait",
  "derive_builder 0.12.0",
  "ethers",
+ "getrandom 0.2.14",
  "once_cell",
  "rain-error-decoding",
  "reqwest 0.11.27",
@@ -7121,7 +7122,7 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=cc9d7c3c74cf8e9676d72ee054af7f1b67a84974#cc9d7c3c74cf8e9676d72ee054af7f1b67a84974"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=7f50b2c05eb41a77ee925ebe80fe49420a2b5b80#7f50b2c05eb41a77ee925ebe80fe49420a2b5b80"
 dependencies = [
  "alloy-ethers-typecast",
  "alloy-primitives 0.6.4",
@@ -7132,13 +7133,14 @@ dependencies = [
 [[package]]
 name = "rain-error-decoding"
 version = "0.1.0"
-source = "git+https://github.com/rainlanguage/rain.error?rev=700142c3c73d5cbaea82f1d51af5ce04de5bac6a#700142c3c73d5cbaea82f1d51af5ce04de5bac6a"
+source = "git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827#72d9577fdaf7135113847027ba951f9a43b41827"
 dependencies = [
  "alloy-dyn-abi 0.6.4",
  "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "ethers",
+ "getrandom 0.2.14",
  "once_cell",
  "reqwest 0.11.27",
  "serde",
@@ -7183,7 +7185,7 @@ name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
  "alloy-ethers-typecast",
- "alloy-json-abi 0.5.4",
+ "alloy-json-abi 0.6.4",
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
  "anyhow",
@@ -7313,7 +7315,6 @@ dependencies = [
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
- "tokio",
  "typeshare 1.0.1",
  "url",
 ]
@@ -7341,6 +7342,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "js-sys",
  "once_cell",
  "proptest",
  "rain-error-decoding",
@@ -7348,16 +7350,15 @@ dependencies = [
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain-metadata-bindings",
- "rain-orderbook-env",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
- "rand 0.8.5",
  "reqwest 0.11.27",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -7365,8 +7366,11 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tsify",
  "typeshare 1.0.1",
  "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -8203,7 +8207,7 @@ checksum = "c767fd6fa65d9ccf9cf026122c1b555f2ef9a4f0cea69da4d7dbc3e258d30967"
 dependencies = [
  "proc-macro2",
  "quote",
- "serde_derive_internals",
+ "serde_derive_internals 0.26.0",
  "syn 1.0.109",
 ]
 
@@ -8375,9 +8379,9 @@ checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
 
 [[package]]
 name = "serde"
-version = "1.0.199"
+version = "1.0.204"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c9f6e76df036c77cd94996771fb40db98187f096dd0b9af39c6c6e452ba966a"
+checksum = "bc76f558e0cbb2a839d37354c575f1dc3fdc6546b5be373ba43d95f231bf7c12"
 dependencies = [
  "serde_derive",
 ]
@@ -8390,6 +8394,28 @@ checksum = "f3a1a3341211875ef120e117ea7fd5228530ae7e7036a779fdc9117be6b3282c"
 dependencies = [
  "ordered-float",
  "serde",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -8413,9 +8439,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.199"
+version = "1.0.204"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11bd257a6541e141e42ca6d24ae26f7714887b47e89aa739099104c7e4d3b7fc"
+checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8431,6 +8457,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e578a843d40b4189a4d66bba51d7684f57da5bd7c304c64e14bd63efbef49509"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.60",
 ]
 
 [[package]]
@@ -10107,6 +10144,30 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "tsify"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6b26cf145f2f3b9ff84e182c448eaf05468e247f148cf3d2a7d67d78ff023a0"
+dependencies = [
+ "serde",
+ "serde-wasm-bindgen 0.5.0",
+ "tsify-macros",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tsify-macros"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a94b0f0954b3e59bfc2c246b4c8574390d94a4ad4ad246aaf2fb07d7dfd3b47"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals 0.28.0",
+ "syn 2.0.60",
+]
 
 [[package]]
 name = "tungstenite"
