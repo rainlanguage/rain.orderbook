@@ -1,0 +1,63 @@
+{
+    "name": "@rainlanguage/orderbook",
+    "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
+    "version": "0.0.1",
+    "author": "Rain Language",
+    "license": "CAL-1.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/rainlanguage/rain.orderbook.git"
+    },
+    "keywords": [],
+    "bugs": {
+        "url": "https://github.com/rainlanguage/rain.orderbook/issues"
+    },
+    "homepage": "https://github.com/rainlanguage/rain.orderbook#readme",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
+    "browser": {
+        "./dist/cjs/index.js": "./dist/cjs/index.js",
+        "./dist/esm/index.js": "./dist/esm/index.js"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "files": [
+        "/dist",
+        "/cjs.js",
+        "/esm.js",
+        "/cjs.d.ts",
+        "/esm.d.ts"
+    ],
+    "scripts": {
+        "prepublish": "node scripts/setup",
+        "build": "npm run rm-dist && npm run rm-temp && node scripts/build",
+        "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env",
+        "rm-dist": "rimraf ./dist",
+        "rm-temp": "rimraf ./temp",
+        "lint-bindings": "eslint \"dist/**\" --fix",
+        "lint": "eslint \"dist/**\" \"test-js/**\"",
+        "lint-fix": "eslint \"dist/**\" \"test-js/**\" --fix",
+        "test": "vitest run --dir test-js"
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.0",
+        "@types/node": "^18.13.0",
+        "@typescript-eslint/eslint-plugin": "^5.42.0",
+        "@typescript-eslint/parser": "^5.42.0",
+        "@vitest/expect": "^2.0.5",
+        "copyfiles": "^2.4.1",
+        "eslint": "^8.26.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-prettier": "^5.1.1",
+        "mocha": "^10.1.0",
+        "mockttp": "^3.15.1",
+        "prettier": "^3.1.1",
+        "ts-node": "^10.9.1",
+        "typescript": "^4.8.4",
+        "vitest": "^2.0.5"
+    },
+    "dependencies": {
+        "buffer": "^6.0.3"
+    }
+}

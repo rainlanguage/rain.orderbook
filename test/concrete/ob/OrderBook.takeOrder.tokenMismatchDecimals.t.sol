@@ -9,7 +9,7 @@ import {
     OrderV3,
     EvaluableV3,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchDecimalsTest
 /// @notice A test harness for testing the OrderBook takeOrder function.

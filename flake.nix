@@ -203,12 +203,50 @@
             '';
           };
 
+          rainix-wasm-artifacts = rainix.mkTask.${system} {
+            name = "rainix-wasm-artifacts";
+            body = ''
+              set -euxo pipefail
+              cargo build -r --target wasm32-unknown-unknown --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env
+            '';
+          };
+
+          js-install = rainix.mkTask.${system} {
+            name = "js-install";
+            body = ''
+              set -euxo pipefail
+              npm install --no-check
+            '';
+          };
+
+          build-js-bindings = rainix.mkTask.${system} {
+            name = "build-js-bindings";
+            body = ''
+              set -euxo pipefail
+              npm run build
+            '';
+          };
+
+          test-js-bindings = rainix.mkTask.${system} {
+            name = "test-js-bindings";
+            body = ''
+              set -euxo pipefail
+              npm install --no-check
+              npm run build
+              npm test
+            '';
+          };
+
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
           packages = [
             packages.raindex-prelude
             packages.ob-rs-test
+            packages.rainix-wasm-artifacts
+            packages.js-install
+            packages.build-js-bindings
+            packages.test-js-bindings
             rain.defaultPackage.${system}
           ];
 

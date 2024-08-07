@@ -1,8 +1,14 @@
-use crate::transaction::{TransactionArgs, TransactionArgsError};
+#[cfg(not(target_family = "wasm"))]
+use crate::transaction::TransactionArgs;
+use crate::transaction::TransactionArgsError;
 use alloy::primitives::hex::FromHexError;
+use alloy_ethers_typecast::transaction::WritableClientError;
 use alloy_ethers_typecast::transaction::{
     WritableClientError, WriteTransaction, WriteTransactionStatus,
 };
+#[cfg(not(target_family = "wasm"))]
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use alloy_primitives::hex::FromHexError;
 
 use alloy::sol_types::SolCall;
 use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
@@ -47,6 +53,7 @@ impl TryInto<removeOrder2Call> for RemoveOrderArgs {
 }
 
 impl RemoveOrderArgs {
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder2Call>)>(
         self,
         transaction_args: TransactionArgs,

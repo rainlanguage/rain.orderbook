@@ -7,3 +7,10 @@ target
 .env
 subgraph/tests/.docker
 subgraph/tests/.latest.json
+node_modules
+temp
+dist
+/cjs.js
+/cjs.d.ts
+/esm.js
+/esm.d.ts

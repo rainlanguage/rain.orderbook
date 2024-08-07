@@ -1,10 +1,14 @@
+#[cfg(not(target_family = "wasm"))]
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
+#[cfg(not(target_family = "wasm"))]
 use crate::rainlang::parse_rainlang_on_fork;
+#[cfg(not(target_family = "wasm"))]
 use alloy::primitives::Address;
+use dotrain::Rebind;
+#[cfg(not(target_family = "wasm"))]
 use dotrain::{
     error::{ComposeError, ErrorCode},
     types::ast::Problem,
-    Rebind,
 };
 use dotrain_lsp::{
     lsp_types::{CompletionItem, Hover, Position, TextDocumentItem},
@@ -53,6 +57,7 @@ impl DotrainAddOrderLsp {
     }
 
     /// get problems for a given text document item
+    #[cfg(not(target_family = "wasm"))]
     pub async fn problems(
         &self,
         rpc_url: &str,

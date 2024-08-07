@@ -6623,6 +6623,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "js-sys",
  "once_cell",
  "proptest",
  "rain-error-decoding",
@@ -6637,9 +6638,9 @@ dependencies = [
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
- "rand",
  "reqwest 0.11.27",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -6647,8 +6648,11 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tsify",
  "typeshare",
  "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -7625,6 +7629,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "serde_bytes"
 version = "0.11.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8594,6 +8620,30 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "tsify"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6b26cf145f2f3b9ff84e182c448eaf05468e247f148cf3d2a7d67d78ff023a0"
+dependencies = [
+ "serde",
+ "serde-wasm-bindgen 0.5.0",
+ "tsify-macros",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tsify-macros"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a94b0f0954b3e59bfc2c246b4c8574390d94a4ad4ad246aaf2fb07d7dfd3b47"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals 0.28.0",
+ "syn 2.0.61",
+]
 
 [[package]]
 name = "tungstenite"

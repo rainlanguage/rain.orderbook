@@ -107,6 +107,6 @@ contract OrderBookSubParserSignedContextTest is OpTest {
             string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signed-context<0 0>(0);")
         );
 
-        checkUnhappyDeploy(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
+        checkUnhappyParse2(rainlang, abi.encodeWithSelector(StackAllocationMismatch.selector, 2, 1));
     }
 }
