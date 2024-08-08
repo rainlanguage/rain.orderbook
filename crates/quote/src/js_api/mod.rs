@@ -71,8 +71,14 @@ pub enum QuoteResult {
 /// Get subgraph represented "order_id" of a QuoteTarget
 #[wasm_bindgen(js_name = "getId")]
 pub fn get_id(orderbook: &str, order_hash: &str) -> String {
-    let orderbook = Address::from_hex(orderbook).expect_throw("invalid orderbook address");
-    let order_hash = U256::from_str(order_hash).expect_throw("invalid order hash");
+    let mut orderbook_error = "orderbook address, ".to_string();
+    let mut order_hash_error = "order hash, ".to_string();
+    let orderbook = Address::from_hex(orderbook)
+        .inspect_err(|e| orderbook_error.push_str(&e.to_string()))
+        .expect_throw(&orderbook_error);
+    let order_hash = U256::from_str(order_hash)
+        .inspect_err(|e| order_hash_error.push_str(&e.to_string()))
+        .expect_throw(&order_hash_error);
     encode_prefixed(make_order_id(orderbook, order_hash))
 }
 
@@ -84,8 +90,12 @@ pub async fn do_quote_targets(
     block_number: Option<u64>,
     multicall_address: Option<String>,
 ) -> Result<JsValue, Error> {
-    let multicall_address =
-        multicall_address.map(|v| Address::from_hex(v).expect_throw("invalid multicall address"));
+    let mut multicall_address_error = "multicall address, ".to_string();
+    let multicall_address = multicall_address.map(|v| {
+        Address::from_hex(v)
+            .inspect_err(|e| multicall_address_error.push_str(&e.to_string()))
+            .expect_throw(&multicall_address_error)
+    });
     let quote_targets: Vec<MainQuoteTarget> = quote_targets
         .0
         .iter()
@@ -115,8 +125,12 @@ pub async fn do_quote(
     block_number: Option<u64>,
     multicall_address: Option<String>,
 ) -> Result<JsValue, Error> {
-    let multicall_address =
-        multicall_address.map(|v| Address::from_hex(v).expect_throw("invalid multicall address"));
+    let mut multicall_address_error = "multicall address, ".to_string();
+    let multicall_address = multicall_address.map(|v| {
+        Address::from_hex(v)
+            .inspect_err(|e| multicall_address_error.push_str(&e.to_string()))
+            .expect_throw(&multicall_address_error)
+    });
     let quote_specs: Vec<MainQuoteSpec> = quote_specs
         .0
         .iter()
