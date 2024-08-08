@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
-import {IMetaV1} from "rain.metadata/lib/LibMeta.sol";
+import {IMetaV1_2} from "rain.metadata/lib/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
@@ -28,7 +28,7 @@ import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCall
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
 /// Implements IOrderBookV4 so that it has access to all the relevant events.
-abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
+abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV4Stub {
     IInterpreterV3 immutable iInterpreter;
     IInterpreterStoreV2 immutable iStore;
     IExpressionDeployerV3 immutable iDeployer;
@@ -77,7 +77,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1, IOrderBookV4Stub {
         if (config.meta.length > 0) {
             vm.expectEmit(false, false, true, false);
             // The subject of the meta is the order hash.
-            emit MetaV1(owner, uint256(orderHash), config.meta);
+            emit MetaV1_2(owner, orderHash, config.meta);
         }
         vm.record();
         vm.recordLogs();
