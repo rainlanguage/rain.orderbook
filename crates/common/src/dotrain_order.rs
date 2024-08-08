@@ -1,5 +1,5 @@
+use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
-use alloy_primitives::Address;
 use dotrain::{error::ComposeError, RainDocument};
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
@@ -10,7 +10,10 @@ use rain_orderbook_app_settings::{
 };
 use thiserror::Error;
 
-use crate::rainlang::compose_to_rainlang;
+use crate::{
+    add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
+    rainlang::compose_to_rainlang,
+};
 
 #[derive(Clone)]
 pub struct DotrainOrder {
@@ -87,6 +90,24 @@ impl DotrainOrder {
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
             scenario.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?)
+    }
+
+    pub async fn compose_scenario_to_post_task_rainlang(
+        &self,
+        scenario: String,
+    ) -> Result<String, DotrainOrderError> {
+        let scenario = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+
+        Ok(compose_to_rainlang(
+            self.dotrain.clone(),
+            scenario.bindings.clone(),
+            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
         )?)
     }
 
@@ -225,6 +246,46 @@ _ _: 0 0;
     }
 
     #[tokio::test]
+    async fn test_rainlang_post_from_scenario() {
+        let dotrain = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#post-add-order
+_ _: 1 2;
+"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        let rainlang = dotrain_order
+            .compose_scenario_to_post_task_rainlang("polygon".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            rainlang,
+            r#"/* 0. post-add-order */ 
+_ _: 1 2;"#
+        );
+    }
+
+    #[tokio::test]
     async fn test_config_merge() {
         let dotrain = format!(
             r#"
@@ -315,14 +376,14 @@ _ _: 0 0;
             chain-id: 0
     deployers:
         sepolia:
-            address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
     metaboards:
         sepolia: {metaboard_url}
     ---
     #calculate-io
-    using-words-from 0x2382e861cF4F47578aC29B50944b3b445577aF74
+    using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
     _ _: 0 0;
     #handle-io

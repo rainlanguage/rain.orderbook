@@ -1,7 +1,7 @@
 use crate::types::vault::NO_SYMBOL;
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy_dyn_abi::SolType;
-use alloy_primitives::hex::{encode, hex::decode};
+use alloy::dyn_abi::SolType;
+use alloy::primitives::hex::{encode, hex::decode};
 use rain_orderbook_bindings::IOrderBookV4::OrderV3;
 use rain_orderbook_subgraph_client::types::orders_list::*;
 use serde::{Deserialize, Serialize};

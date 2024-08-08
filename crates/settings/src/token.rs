@@ -1,5 +1,5 @@
 use crate::*;
-use alloy_primitives::{hex::FromHexError, Address};
+use alloy::primitives::{hex::FromHexError, Address};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -54,7 +54,7 @@ impl TokenConfigSource {
 mod token_tests {
     use self::test::*;
     use super::*;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
 
     fn setup_networks() -> HashMap<String, Arc<Network>> {
         let network = mock_network();

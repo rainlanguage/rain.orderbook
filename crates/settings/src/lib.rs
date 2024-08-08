@@ -25,6 +25,6 @@ pub(crate) use scenario::*;
 pub(crate) use token::*;
 
 #[cfg(test)]
-mod test;
+pub mod test;
 
 pub use config::*;

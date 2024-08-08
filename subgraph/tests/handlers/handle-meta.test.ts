@@ -30,7 +30,7 @@ describe("Add and remove orders", () => {
         "0x1234567890abcdef1234567890abcdef12345678"
       ) as Address,
       // subject
-      BigInt.fromI32(1),
+      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
       // meta
       Bytes.fromHexString("0x1234567890abcdef1234567890abcdef12345678")
     );
@@ -80,7 +80,7 @@ describe("Add and remove orders", () => {
         Address.fromHexString("0x1234567890abcdef1234567890abcdef12345678")
       ),
       // subject
-      BigInt.fromByteArray(orderHash),
+      orderHash,
       // meta
       Bytes.fromHexString("0x1234567890abcdef1234567890abcdef12345678")
     );

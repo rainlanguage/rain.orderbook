@@ -1,5 +1,5 @@
+use alloy::primitives::ruint::FromUintError;
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
-use alloy_primitives::ruint::FromUintError;
 use dotrain::error::ComposeError;
 use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::config_source::ConfigSourceError;
