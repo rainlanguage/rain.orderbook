@@ -5,9 +5,9 @@ use alloy_primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
+use rain_orderbook_bindings::js_api::Quote;
 use rain_orderbook_bindings::IOrderBookV4::{
-    EvaluableV3 as MainEvaluableV3, OrderV3 as MainOrderV3, Quote as MainQuote,
-    SignedContextV1 as MainSignedContextV1, IO as MainIO,
+    Quote as MainQuote, SignedContextV1 as MainSignedContextV1,
 };
 use serde_wasm_bindgen::{from_value, to_value};
 use std::str::FromStr;
@@ -29,139 +29,6 @@ impl From<MainOrderQuoteValue> for OrderQuoteValue {
         OrderQuoteValue {
             max_output: encode_prefixed(value.max_output.to_be_bytes_vec()),
             ratio: encode_prefixed(value.ratio.to_be_bytes_vec()),
-        }
-    }
-}
-
-impl From<EvaluableV3> for MainEvaluableV3 {
-    fn from(value: EvaluableV3) -> Self {
-        MainEvaluableV3 {
-            interpreter: Address::from_hex(value.interpreter)
-                .expect_throw("invalid interpreter address"),
-            store: Address::from_hex(value.store).expect_throw("invalid store address"),
-            bytecode: value.bytecode,
-        }
-    }
-}
-impl From<MainEvaluableV3> for EvaluableV3 {
-    fn from(value: MainEvaluableV3) -> Self {
-        EvaluableV3 {
-            interpreter: encode_prefixed(value.interpreter),
-            store: encode_prefixed(value.store),
-            bytecode: value.bytecode,
-        }
-    }
-}
-
-impl From<IO> for MainIO {
-    fn from(value: IO) -> Self {
-        MainIO {
-            token: Address::from_hex(value.token).expect_throw("invalid token address"),
-            vaultId: U256::from_str(&value.vault_id).expect_throw("invalid vault id value"),
-            decimals: value.decimals,
-        }
-    }
-}
-impl From<MainIO> for IO {
-    fn from(value: MainIO) -> Self {
-        IO {
-            token: encode_prefixed(value.token),
-            vault_id: encode_prefixed(value.vaultId.to_be_bytes_vec()),
-            decimals: value.decimals,
-        }
-    }
-}
-
-impl From<OrderV3> for MainOrderV3 {
-    fn from(value: OrderV3) -> Self {
-        let valid_inputs = value
-            .valid_inputs
-            .iter()
-            .map(|v| MainIO::from(v.clone()))
-            .collect();
-        let valid_outputs = value
-            .valid_outputs
-            .iter()
-            .map(|v| MainIO::from(v.clone()))
-            .collect();
-        MainOrderV3 {
-            owner: Address::from_hex(value.owner).expect_throw("invalid owner address"),
-            evaluable: MainEvaluableV3::from(value.evaluable),
-            validInputs: valid_inputs,
-            validOutputs: valid_outputs,
-            nonce: U256::from_str(&value.nonce)
-                .expect_throw("invalid nonce value")
-                .into(),
-        }
-    }
-}
-impl From<MainOrderV3> for OrderV3 {
-    fn from(value: MainOrderV3) -> Self {
-        OrderV3 {
-            owner: encode_prefixed(value.owner),
-            evaluable: value.evaluable.into(),
-            nonce: encode_prefixed(value.nonce),
-            valid_inputs: value.validInputs.into_iter().map(IO::from).collect(),
-            valid_outputs: value.validOutputs.into_iter().map(IO::from).collect(),
-        }
-    }
-}
-
-impl From<SignedContextV1> for MainSignedContextV1 {
-    fn from(value: SignedContextV1) -> Self {
-        let context = value
-            .context
-            .iter()
-            .map(|v| U256::from_str(v).expect_throw("invalid context value"))
-            .collect();
-        MainSignedContextV1 {
-            signer: Address::from_hex(value.signer).expect_throw("invalid token address"),
-            context,
-            signature: value.signature,
-        }
-    }
-}
-impl From<MainSignedContextV1> for SignedContextV1 {
-    fn from(value: MainSignedContextV1) -> Self {
-        SignedContextV1 {
-            signer: encode_prefixed(value.signer),
-            signature: value.signature,
-            context: value
-                .context
-                .into_iter()
-                .map(|v| encode_prefixed(v.to_be_bytes_vec()))
-                .collect(),
-        }
-    }
-}
-
-impl From<Quote> for MainQuote {
-    fn from(value: Quote) -> Self {
-        MainQuote {
-            order: MainOrderV3::from(value.order),
-            inputIOIndex: U256::from_str(&value.input_io_index)
-                .expect_throw("invalid input io index"),
-            outputIOIndex: U256::from_str(&value.output_io_index)
-                .expect_throw("invalid output io index"),
-            signedContext: value
-                .signed_context
-                .iter()
-                .map(|v| MainSignedContextV1::from(v.clone()))
-                .collect(),
-        }
-    }
-}
-impl From<MainQuote> for Quote {
-    fn from(value: MainQuote) -> Self {
-        Quote {
-            order: OrderV3::from(value.order),
-            input_io_index: encode_prefixed(value.inputIOIndex.to_be_bytes_vec()),
-            output_io_index: encode_prefixed(value.outputIOIndex.to_be_bytes_vec()),
-            signed_context: value
-                .signedContext
-                .into_iter()
-                .map(SignedContextV1::from)
-                .collect(),
         }
     }
 }
@@ -208,14 +75,6 @@ impl From<crate::QuoteResult> for super::QuoteResult {
     }
 }
 
-impl RefFromWasmAbi for OrderV3 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<OrderV3>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(OrderV3::from_abi(js))
-    }
-}
-
 impl LongRefFromWasmAbi for BatchQuoteTarget {
     type Abi = <JsValue as RefFromWasmAbi>::Abi;
     type Anchor = Box<BatchQuoteTarget>;
@@ -232,6 +91,13 @@ impl LongRefFromWasmAbi for BatchQuoteSpec {
     }
 }
 
+impl LongRefFromWasmAbi for QuoteTarget {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<QuoteTarget>;
+    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(QuoteTarget::from_abi(js))
+    }
+}
 impl RefFromWasmAbi for QuoteTarget {
     type Abi = <JsValue as RefFromWasmAbi>::Abi;
     type Anchor = Box<QuoteTarget>;
@@ -269,6 +135,20 @@ impl TryFromJsValue for QuoteTarget {
     }
 }
 
+impl LongRefFromWasmAbi for QuoteSpec {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<QuoteSpec>;
+    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(QuoteSpec::from_abi(js))
+    }
+}
+impl RefFromWasmAbi for QuoteSpec {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<QuoteSpec>;
+    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(QuoteSpec::from_abi(js))
+    }
+}
 impl VectorIntoWasmAbi for QuoteSpec {
     type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
     fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
@@ -299,6 +179,20 @@ impl TryFromJsValue for QuoteSpec {
     }
 }
 
+impl LongRefFromWasmAbi for QuoteResult {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<QuoteResult>;
+    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(QuoteResult::from_abi(js))
+    }
+}
+impl RefFromWasmAbi for QuoteResult {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<QuoteResult>;
+    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(QuoteResult::from_abi(js))
+    }
+}
 impl VectorIntoWasmAbi for QuoteResult {
     type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
     fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {

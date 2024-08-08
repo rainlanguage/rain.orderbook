@@ -2,10 +2,9 @@ use crate::{error::Error, BatchQuoteSpec as MainBatchQuoteSpec, QuoteSpec as Mai
 use crate::{BatchQuoteTarget as MainBatchQuoteTarget, QuoteTarget as MainQuoteTarget};
 use alloy_primitives::{
     hex::{encode_prefixed, FromHex},
-    keccak256, Address, U256,
+    Address, U256,
 };
-use alloy_sol_types::SolValue;
-use rain_orderbook_bindings::IOrderBookV4::OrderV3 as MainOrderV3;
+use rain_orderbook_bindings::js_api::{Quote, SignedContextV1};
 use rain_orderbook_subgraph_client::utils::make_order_id;
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::to_value;
@@ -16,11 +15,6 @@ use wasm_bindgen::{convert::*, describe::WasmDescribe, JsValue, UnwrapThrowExt};
 
 mod impls;
 
-// a serializer fn for serializing Vec<u8> as Uint8Array for js
-fn bytes_serilializer<S: serde::Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_bytes(val)
-}
-
 /// Holds quoted order max output and ratio
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -28,60 +22,6 @@ fn bytes_serilializer<S: serde::Serializer>(val: &[u8], serializer: S) -> Result
 pub struct OrderQuoteValue {
     pub max_output: String,
     pub ratio: String,
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct EvaluableV3 {
-    pub interpreter: String,
-    pub store: String,
-    #[tsify(type = "Uint8Array")]
-    #[serde(serialize_with = "bytes_serilializer")]
-    pub bytecode: Vec<u8>,
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct IO {
-    pub token: String,
-    pub decimals: u8,
-    pub vault_id: String,
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct OrderV3 {
-    pub owner: String,
-    pub evaluable: EvaluableV3,
-    pub valid_inputs: Vec<IO>,
-    pub valid_outputs: Vec<IO>,
-    pub nonce: String,
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct SignedContextV1 {
-    pub signer: String,
-    pub context: Vec<String>,
-    #[tsify(type = "Uint8Array")]
-    #[serde(serialize_with = "bytes_serilializer")]
-    pub signature: Vec<u8>,
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct Quote {
-    pub order: OrderV3,
-    #[serde(rename = "inputIOIndex")]
-    pub input_io_index: String,
-    #[serde(rename = "outputIOIndex")]
-    pub output_io_index: String,
-    pub signed_context: Vec<SignedContextV1>,
 }
 
 /// A quote target
@@ -126,12 +66,6 @@ pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
 pub enum QuoteResult {
     Ok(OrderQuoteValue),
     Err(String),
-}
-
-/// Get the order hash of an order
-#[wasm_bindgen(js_name = "getOrderHash")]
-pub fn get_order_hash(order: &OrderV3) -> String {
-    encode_prefixed(keccak256(MainOrderV3::from(order.clone()).abi_encode()))
 }
 
 /// Get subgraph represented "order_id" of a QuoteTarget

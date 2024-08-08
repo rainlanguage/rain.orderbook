@@ -6037,7 +6037,11 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives 0.6.4",
  "alloy-sol-types 0.6.4",
+ "js-sys",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]

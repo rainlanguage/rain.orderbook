@@ -15,3 +15,6 @@ sol!(
     #![sol(all_derives = true)]
     ERC20, "../../out/ERC20.sol/ERC20.json"
 );
+
+#[cfg(target_family = "wasm")]
+pub mod js_api;
