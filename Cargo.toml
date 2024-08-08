@@ -10,7 +10,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
-alloy = { version = "0.2.1", features = ["full", "node-bindings"] }
+alloy = { version = "0.2.1" }
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "ced1a91f0c1e235dbce235caae4b4528d1504ec2" }
 anyhow = "1.0.70"
 async-trait = "0.1.77"

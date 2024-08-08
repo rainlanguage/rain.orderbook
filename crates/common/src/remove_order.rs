@@ -2,11 +2,10 @@
 use crate::transaction::TransactionArgs;
 use crate::transaction::TransactionArgsError;
 use alloy::primitives::hex::FromHexError;
-#[cfg(not(target_family = "wasm"))]
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::{
-    WritableClientError, WriteTransaction, WriteTransactionStatus,
-};
+use alloy_ethers_typecast::transaction::WritableClientError;
+#[cfg(not(target_family = "wasm"))]
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
 use rain_orderbook_subgraph_client::types::{
     order_detail::Order, order_detail_traits::OrderDetailError,
