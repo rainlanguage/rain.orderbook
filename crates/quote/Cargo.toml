@@ -8,6 +8,9 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
@@ -30,6 +33,11 @@ tracing-subscriber = { workspace = true, features = ['env-filter'] }
 tokio = { workspace = true, features = ["full"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
+js-sys = { version = "0.3.69" }
+wasm-bindgen = { version = "0.2.92" }
+serde-wasm-bindgen = { version = "0.6.5" }
+wasm-bindgen-futures = { version = "0.4.42" }
+tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
 [dev-dependencies]

@@ -6121,18 +6121,23 @@ dependencies = [
  "anyhow",
  "clap",
  "httpmock",
+ "js-sys",
  "once_cell",
  "rain-error-decoding",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "reqwest 0.11.27",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "tsify",
  "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
 {
     "name": "@rainlanguage/orderbook",
     "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
-    "version": "0.0.1",
+    "version": "0.0.1-alpha.0",
     "author": "Rain Language",
     "license": "CAL-1.0",
     "repository": {
@@ -38,7 +38,7 @@
         "lint-bindings": "eslint \"dist/**\" --fix",
         "lint": "eslint \"dist/**\" \"test-js/**\"",
         "lint-fix": "eslint \"dist/**\" \"test-js/**\" --fix",
-        "test": "vitest run --dir test-js"
+        "test": "vitest run --dir test-js/common && vitest run --dir test-js/quote"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.0",
