@@ -10,7 +10,6 @@ use rain_orderbook_bindings::IOrderBookV4::{
     SignedContextV1 as MainSignedContextV1, IO as MainIO,
 };
 use serde_wasm_bindgen::{from_value, to_value};
-use std::mem::ManuallyDrop;
 use std::str::FromStr;
 use wasm_bindgen::{
     describe::{inform, WasmDescribeVector, VECTOR},
@@ -211,18 +210,32 @@ impl From<crate::QuoteResult> for super::QuoteResult {
 
 impl RefFromWasmAbi for OrderV3 {
     type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = ManuallyDrop<OrderV3>;
+    type Anchor = Box<OrderV3>;
     unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        ManuallyDrop::new(OrderV3::from_abi(js))
+        Box::new(OrderV3::from_abi(js))
+    }
+}
+
+impl LongRefFromWasmAbi for BatchQuoteTarget {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<BatchQuoteTarget>;
+    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(BatchQuoteTarget::from_abi(js))
+    }
+}
+
+impl LongRefFromWasmAbi for BatchQuoteSpec {
+    type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    type Anchor = Box<BatchQuoteSpec>;
+    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
+        Box::new(BatchQuoteSpec::from_abi(js))
     }
 }
 
 impl RefFromWasmAbi for QuoteTarget {
     type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    // type Anchor = ManuallyDrop<QuoteTarget>;
     type Anchor = Box<QuoteTarget>;
     unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        // ManuallyDrop::new(QuoteTarget::from_abi(js))
         Box::new(QuoteTarget::from_abi(js))
     }
 }

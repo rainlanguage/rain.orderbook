@@ -1,5 +1,5 @@
-use crate::{error::Error, BatchQuoteSpec, QuoteSpec as MainQuoteSpec};
-use crate::{BatchQuoteTarget, QuoteTarget as MainQuoteTarget};
+use crate::{error::Error, BatchQuoteSpec as MainBatchQuoteSpec, QuoteSpec as MainQuoteSpec};
+use crate::{BatchQuoteTarget as MainBatchQuoteTarget, QuoteTarget as MainQuoteTarget};
 use alloy_primitives::{
     hex::{encode_prefixed, FromHex},
     keccak256, Address, U256,
@@ -93,6 +93,12 @@ pub struct QuoteTarget {
     pub orderbook: String,
 }
 
+/// Batch quote target
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[serde(transparent)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
+
 /// A quote target specifier, where the order details need to be fetched from a
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
@@ -107,6 +113,12 @@ pub struct QuoteSpec {
     pub signed_context: Vec<SignedContextV1>,
     pub orderbook: String,
 }
+
+/// Batch quote spec
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[serde(transparent)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
@@ -133,7 +145,7 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> String {
 /// Quotes the target on the given rpc url
 #[wasm_bindgen(js_name = "doQuoteTargets")]
 pub async fn do_quote_targets(
-    quote_targets: Vec<QuoteTarget>,
+    quote_targets: &BatchQuoteTarget,
     rpc_url: &str,
     block_number: Option<u64>,
     multicall_address: Option<String>,
@@ -141,10 +153,11 @@ pub async fn do_quote_targets(
     let multicall_address =
         multicall_address.map(|v| Address::from_hex(v).expect_throw("invalid multicall address"));
     let quote_targets: Vec<MainQuoteTarget> = quote_targets
-        .into_iter()
-        .map(MainQuoteTarget::from)
+        .0
+        .iter()
+        .map(|v| MainQuoteTarget::from(v.clone()))
         .collect();
-    let batch_quote_target = BatchQuoteTarget(quote_targets);
+    let batch_quote_target = MainBatchQuoteTarget(quote_targets);
     match batch_quote_target
         .do_quote(rpc_url, block_number, multicall_address)
         .await
@@ -162,7 +175,7 @@ pub async fn do_quote_targets(
 /// and final result also leaves their place in the array as None
 #[wasm_bindgen(js_name = "doQuoteSpecs")]
 pub async fn do_quote(
-    quote_specs: Vec<QuoteSpec>,
+    quote_specs: &BatchQuoteSpec,
     subgraph_url: &str,
     rpc_url: &str,
     block_number: Option<u64>,
@@ -170,9 +183,12 @@ pub async fn do_quote(
 ) -> Result<JsValue, Error> {
     let multicall_address =
         multicall_address.map(|v| Address::from_hex(v).expect_throw("invalid multicall address"));
-    let quote_specs: Vec<MainQuoteSpec> =
-        quote_specs.into_iter().map(MainQuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
+    let quote_specs: Vec<MainQuoteSpec> = quote_specs
+        .0
+        .iter()
+        .map(|v| MainQuoteSpec::from(v.clone()))
+        .collect();
+    let batch_quote_spec = MainBatchQuoteSpec(quote_specs);
     match batch_quote_spec
         .do_quote(subgraph_url, rpc_url, block_number, multicall_address)
         .await
@@ -190,12 +206,15 @@ pub async fn do_quote(
 /// in the resturning array
 #[wasm_bindgen(js_name = "getQuoteTargetFromSubgraph")]
 pub async fn get_batch_quote_target_from_subgraph(
-    quote_specs: Vec<QuoteSpec>,
+    quote_specs: &BatchQuoteSpec,
     subgraph_url: &str,
 ) -> Result<JsValue, Error> {
-    let quote_specs: Vec<MainQuoteSpec> =
-        quote_specs.into_iter().map(MainQuoteSpec::from).collect();
-    let batch_quote_spec = BatchQuoteSpec(quote_specs);
+    let quote_specs: Vec<MainQuoteSpec> = quote_specs
+        .0
+        .iter()
+        .map(|v| MainQuoteSpec::from(v.clone()))
+        .collect();
+    let batch_quote_spec = MainBatchQuoteSpec(quote_specs);
     match batch_quote_spec
         .get_batch_quote_target_from_subgraph(subgraph_url)
         .await
