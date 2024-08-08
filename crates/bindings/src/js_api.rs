@@ -86,9 +86,14 @@ pub fn get_order_hash(order: &OrderV3) -> String {
 impl From<EvaluableV3> for MainEvaluableV3 {
     fn from(value: EvaluableV3) -> Self {
         MainEvaluableV3 {
-            interpreter: Address::from_hex(value.interpreter)
-                .expect_throw("invalid interpreter address"),
-            store: Address::from_hex(value.store).expect_throw("invalid store address"),
+            interpreter: match Address::from_hex(&value.interpreter) {
+                Ok(v) => v,
+                Err(e) => Address::from_hex(value.interpreter).expect_throw(&e.to_string()),
+            },
+            store: match Address::from_hex(&value.store) {
+                Ok(v) => v,
+                Err(e) => Address::from_hex(value.store).expect_throw(&e.to_string()),
+            },
             bytecode: value.bytecode,
         }
     }
@@ -106,8 +111,14 @@ impl From<MainEvaluableV3> for EvaluableV3 {
 impl From<IO> for MainIO {
     fn from(value: IO) -> Self {
         MainIO {
-            token: Address::from_hex(value.token).expect_throw("invalid token address"),
-            vaultId: U256::from_str(&value.vault_id).expect_throw("invalid vault id value"),
+            token: match Address::from_hex(&value.token) {
+                Ok(v) => v,
+                Err(e) => Address::from_hex(value.token).expect_throw(&e.to_string()),
+            },
+            vaultId: match U256::from_str(&value.vault_id) {
+                Ok(v) => v,
+                Err(e) => U256::from_str(&value.vault_id).expect_throw(&e.to_string()),
+            },
             decimals: value.decimals,
         }
     }
@@ -124,24 +135,20 @@ impl From<MainIO> for IO {
 
 impl From<OrderV3> for MainOrderV3 {
     fn from(value: OrderV3) -> Self {
-        let valid_inputs = value
-            .valid_inputs
-            .iter()
-            .map(|v| MainIO::from(v.clone()))
-            .collect();
-        let valid_outputs = value
-            .valid_outputs
-            .iter()
-            .map(|v| MainIO::from(v.clone()))
-            .collect();
         MainOrderV3 {
-            owner: Address::from_hex(value.owner).expect_throw("invalid owner address"),
+            owner: match Address::from_hex(&value.owner) {
+                Ok(v) => v,
+                Err(e) => Address::from_hex(value.owner).expect_throw(&e.to_string()),
+            },
             evaluable: MainEvaluableV3::from(value.evaluable),
-            validInputs: valid_inputs,
-            validOutputs: valid_outputs,
-            nonce: U256::from_str(&value.nonce)
-                .expect_throw("invalid nonce value")
-                .into(),
+            validInputs: value.valid_inputs.into_iter().map(MainIO::from).collect(),
+            validOutputs: value.valid_outputs.into_iter().map(MainIO::from).collect(),
+            nonce: match U256::from_str(&value.nonce) {
+                Ok(v) => v.into(),
+                Err(e) => U256::from_str(&value.nonce)
+                    .expect_throw(&e.to_string())
+                    .into(),
+            },
         }
     }
 }
@@ -162,10 +169,16 @@ impl From<SignedContextV1> for MainSignedContextV1 {
         let context = value
             .context
             .iter()
-            .map(|v| U256::from_str(v).expect_throw("invalid context value"))
+            .map(|v| match U256::from_str(v) {
+                Ok(e) => e,
+                Err(e) => U256::from_str(v).expect_throw(&e.to_string()),
+            })
             .collect();
         MainSignedContextV1 {
-            signer: Address::from_hex(value.signer).expect_throw("invalid token address"),
+            signer: match Address::from_hex(&value.signer) {
+                Ok(v) => v,
+                Err(e) => Address::from_hex(&value.signer).expect_throw(&e.to_string()),
+            },
             context,
             signature: value.signature,
         }
@@ -189,10 +202,14 @@ impl From<Quote> for MainQuote {
     fn from(value: Quote) -> Self {
         MainQuote {
             order: MainOrderV3::from(value.order),
-            inputIOIndex: U256::from_str(&value.input_io_index)
-                .expect_throw("invalid input io index"),
-            outputIOIndex: U256::from_str(&value.output_io_index)
-                .expect_throw("invalid output io index"),
+            inputIOIndex: match U256::from_str(&value.input_io_index) {
+                Ok(v) => v,
+                Err(e) => U256::from_str(&value.input_io_index).expect_throw(&e.to_string()),
+            },
+            outputIOIndex: match U256::from_str(&value.output_io_index) {
+                Ok(v) => v,
+                Err(e) => U256::from_str(&value.output_io_index).expect_throw(&e.to_string()),
+            },
             signedContext: value
                 .signed_context
                 .iter()
@@ -433,5 +450,71 @@ impl TryFromJsValue for Quote {
     type Error = serde_wasm_bindgen::Error;
     fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
         from_value(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn test_io_roundtrip() {
+        let main_io = MainIO::default();
+        let io = IO::from(main_io.clone());
+        let expected = MainIO::from(io.clone());
+        assert_eq!(main_io, expected);
+
+        let main_io = MainIO::from(io.clone());
+        let expected = IO::from(main_io.clone());
+        assert_eq!(io, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_evaluable_roundtrip() {
+        let main_evaluable = MainEvaluableV3::default();
+        let evaluable = EvaluableV3::from(main_evaluable.clone());
+        let expected = MainEvaluableV3::from(evaluable.clone());
+        assert_eq!(main_evaluable, expected);
+
+        let main_evaluable = MainEvaluableV3::from(evaluable.clone());
+        let expected = EvaluableV3::from(main_evaluable.clone());
+        assert_eq!(evaluable, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_order_roundtrip() {
+        let main_order = MainOrderV3::default();
+        let order = OrderV3::from(main_order.clone());
+        let expected = MainOrderV3::from(order.clone());
+        assert_eq!(main_order, expected);
+
+        let main_order = MainOrderV3::from(order.clone());
+        let expected = OrderV3::from(main_order.clone());
+        assert_eq!(order, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_signed_context_roundtrip() {
+        let main_signed_context = MainSignedContextV1::default();
+        let signed_context = SignedContextV1::from(main_signed_context.clone());
+        let expected = MainSignedContextV1::from(signed_context.clone());
+        assert_eq!(main_signed_context, expected);
+
+        let main_signed_context = MainSignedContextV1::from(signed_context.clone());
+        let expected = SignedContextV1::from(main_signed_context.clone());
+        assert_eq!(signed_context, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_quote_roundtrip() {
+        let main_quote = MainQuote::default();
+        let quote = Quote::from(main_quote.clone());
+        let expected = MainQuote::from(quote.clone());
+        assert_eq!(main_quote, expected);
+
+        let main_quote = MainQuote::from(quote.clone());
+        let expected = Quote::from(main_quote.clone());
+        assert_eq!(quote, expected);
     }
 }

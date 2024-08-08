@@ -46,7 +46,10 @@ jobs:
       - run: nix develop -c rainix-rs-prelude
       - run: nix develop -c raindex-prelude
       
-      - name: Test JS/TS Binding
+      - name: Test JS/TS Binding 1/2
+        run: nix develop -c rainix-wasm-test
+
+      - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings
 
       - name: Git Config

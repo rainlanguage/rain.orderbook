@@ -40,5 +40,8 @@ wasm-bindgen-futures = { version = "0.4.42" }
 tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
-[dev-dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
+
+[target.'cfg(target_family = "wasm")'.dev-dependencies]
+wasm-bindgen-test = "0.3.42"

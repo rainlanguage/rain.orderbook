@@ -248,6 +248,7 @@ impl BatchQuoteSpec {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[cfg(test)]
 mod tests {
     use super::*;

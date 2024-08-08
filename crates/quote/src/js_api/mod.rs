@@ -156,10 +156,7 @@ pub async fn get_batch_quote_target_from_subgraph(
         Err(e) => Err(e),
         Ok(v) => Ok(to_value(
             &v.into_iter()
-                .map(|e| match e {
-                    Some(quote_value) => Some(QuoteTarget::from(quote_value)),
-                    None => None,
-                })
+                .map(|e| e.map(QuoteTarget::from))
                 .collect::<Vec<_>>(),
         )?),
     }
