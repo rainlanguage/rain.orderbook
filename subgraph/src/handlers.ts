@@ -1,7 +1,7 @@
 import {
   AddOrderV2,
   Deposit,
-  MetaV1,
+  MetaV1_2,
   RemoveOrderV2,
   TakeOrderV2,
 } from "../generated/OrderBook/OrderBook";
@@ -35,6 +35,6 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   _handleTakeOrder(event);
 }
 
-export function handleMeta(event: MetaV1): void {
+export function handleMeta(event: MetaV1_2): void {
   _handleMeta(event);
 }
