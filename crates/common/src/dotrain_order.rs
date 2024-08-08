@@ -281,8 +281,7 @@ _ _: 1 2;
         assert_eq!(
             rainlang,
             r#"/* 0. post-add-order */ 
-_ _: 1 2;
-:;"#
+_ _: 1 2;"#
         );
     }
 
