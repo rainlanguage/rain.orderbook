@@ -1,5 +1,5 @@
 use crate::{OrderQuoteValue, QuoteResult};
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use clap::{command, ArgAction, Parser};
 use serde::{Deserialize, Serialize};
 use std::{fs::write, io::Write, path::PathBuf};
@@ -10,7 +10,7 @@ pub use input::*;
 
 /// Rain orderbook Quoter CLI app entrypoint sruct
 #[derive(Parser, Debug, Clone, PartialEq)]
-#[command(author, version, about = "Rain Orderbook Qoute CLI", long_about = None)]
+#[command(author, version, about = "Rain Orderbook Quote CLI", long_about = None)]
 pub struct Quoter {
     // input group, only one of which can be specified at a time
     #[command(flatten)]
@@ -141,9 +141,9 @@ pub async fn main() -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use crate::{error::FailedQuote, BatchQuoteSpec, QuoteSpec};
+    use alloy::primitives::{hex::encode_prefixed, keccak256, U256};
+    use alloy::sol_types::{SolCall, SolValue};
     use alloy_ethers_typecast::{multicall::IMulticall3::Result as MulticallResult, rpc::Response};
-    use alloy_primitives::{hex::encode_prefixed, keccak256, U256};
-    use alloy_sol_types::{SolCall, SolValue};
     use clap::CommandFactory;
     use httpmock::{Method::POST, MockServer};
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, OrderV3, IO};
@@ -285,11 +285,11 @@ mod tests {
         let rpc_response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)),
+                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)).into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)),
+                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
             },
         ]
         .abi_encode();
@@ -470,11 +470,11 @@ mod tests {
         let rpc_response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)),
+                returnData: quoteCall::abi_encode_returns(&(true, U256::ZERO, U256::ZERO)).into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)),
+                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
             },
         ]
         .abi_encode();

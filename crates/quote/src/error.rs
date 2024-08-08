@@ -1,5 +1,5 @@
+use alloy::primitives::hex::FromHexError;
 use alloy_ethers_typecast::transaction::ReadableClientError;
-use alloy_primitives::hex::FromHexError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;

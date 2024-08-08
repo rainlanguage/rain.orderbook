@@ -8,7 +8,7 @@ import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolO
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
 import {OrderBookV4ArbConfigV1} from "src/abstract/OrderBookV4ArbCommon.sol";
-import {IMetaBoardV1} from "rain.metadata/interface/IMetaBoardV1.sol";
+import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
@@ -38,7 +38,7 @@ contract Deploy is Script {
         return new OrderBook();
     }
 
-    function deploySubParser(IMetaBoardV1 metaboard) internal {
+    function deploySubParser(IMetaBoardV1_2 metaboard) internal {
         OrderBookSubParser subParser = new OrderBookSubParser();
         bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParser.rain.meta");
         LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
@@ -55,7 +55,7 @@ contract Deploy is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
+        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
         string memory suiteString = vm.envOr("DEPLOYMENT_SUITE", string("all"));
         bytes32 suite = keccak256(bytes(suiteString));
 

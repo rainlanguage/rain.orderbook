@@ -9,7 +9,7 @@
 pragma solidity =0.8.25;
 
 /// @dev Hash of the known bytecode.
-bytes32 constant BYTECODE_HASH = bytes32(0xa24098eea11f3a83e475674e649959ac6d6b382fea5e47b47376e8c15a4a6863);
+bytes32 constant BYTECODE_HASH = bytes32(0x05cef3d0f9099c7d722e30cf2f8dbe8db87ad991600c5d011bf0c8d2673ba62d);
 
 /// @dev The hash of the meta that describes the contract.
 bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd049627a3a1f49857ec6a26c8bcc6da98b05bd4696);
@@ -43,13 +43,13 @@ uint8 constant PARSE_META_BUILD_DEPTH = 1;
 /// to things that happen entirely on the interpreter such as well known
 /// constants and references to the context grid.
 bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"1073109210a310b410c410d510e610f711081119112a113a114b115c116d117e118f119f11af";
+    hex"1040105d106c107b108a109a10a910b910c810d810e810f71107111611261136114611551164";
 
 /// @dev Every two bytes is a function pointer for an operand handler.
 /// These positional indexes all map to the same indexes looked up in the parse
 /// meta.
 bytes constant OPERAND_HANDLER_FUNCTION_POINTERS =
-    hex"12f412f412f412f412f412f412f412f412f412f412f412f412f412f412f412f412f4133913c8";
+    hex"12a612a612a612a612a612a612a612a612a612a612a612a612a612a612a612a612a612e81375";
 
 /// @dev Every two bytes is a function pointer for a literal parser.
 /// Literal dispatches are determined by the first byte(s) of the literal

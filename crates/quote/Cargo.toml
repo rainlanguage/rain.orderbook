@@ -15,9 +15,8 @@ crate-type = ["rlib", "cdylib"]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain-error-decoding = { workspace = true }
+alloy = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
-alloy-primitives = { workspace = true }
-alloy-sol-types = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

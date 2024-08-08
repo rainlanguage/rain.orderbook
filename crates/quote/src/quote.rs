@@ -2,11 +2,11 @@ use crate::{
     error::{Error, FailedQuote},
     rpc::batch_quote,
 };
-use alloy_primitives::{
+use alloy::primitives::{
     hex::{decode, encode_prefixed},
     keccak256, Address, B256, U256,
 };
-use alloy_sol_types::SolValue;
+use alloy::sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
 use rain_orderbook_subgraph_client::{
     types::{order_detail::Bytes, Id},
@@ -252,11 +252,11 @@ impl BatchQuoteSpec {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::keccak256;
+    use alloy::primitives::{hex::encode_prefixed, U256};
+    use alloy::sol_types::{SolCall, SolValue};
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
     use alloy_ethers_typecast::rpc::Response;
-    use alloy_primitives::keccak256;
-    use alloy_primitives::{hex::encode_prefixed, U256};
-    use alloy_sol_types::{SolCall, SolValue};
     use httpmock::{Method::POST, MockServer};
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};
     use serde_json::{from_str, json, Value};
@@ -414,7 +414,7 @@ mod tests {
         // build response data
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
         }]
         .abi_encode();
 
@@ -473,7 +473,7 @@ mod tests {
         // build response data
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
         }]
         .abi_encode();
 
@@ -552,7 +552,7 @@ mod tests {
         // build response data
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
         }]
         .abi_encode();
 
@@ -599,7 +599,7 @@ mod tests {
         // build response data
         let response_data = vec![MulticallResult {
             success: true,
-            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
         }]
         .abi_encode();
 

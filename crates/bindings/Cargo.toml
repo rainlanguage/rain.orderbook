@@ -7,8 +7,7 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-alloy-sol-types = { workspace = true, features = ["json"] }
-alloy-primitives = { workspace = true }
+alloy = { workspace = true, features = ["sol-types"] }
 serde = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]

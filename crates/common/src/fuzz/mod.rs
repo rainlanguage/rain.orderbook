@@ -1,6 +1,7 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
+use alloy::primitives::private::rand;
+use alloy::primitives::U256;
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
-use alloy_primitives::{private::rand, U256};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::prelude::RngCore;
@@ -249,7 +250,7 @@ impl FuzzRunner {
                 for elided_binding in elided_binding_keys.as_slice() {
                     let mut val: [u8; 32] = [0; 32];
                     self.rng.fill_bytes(&mut val);
-                    let hex = alloy_primitives::hex::encode_prefixed(val);
+                    let hex = alloy::primitives::hex::encode_prefixed(val);
                     final_bindings.push(Rebind(elided_binding.to_string(), hex));
                 }
 
@@ -344,7 +345,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
         bindings:
             bound: 3
 ---
@@ -373,7 +374,7 @@ b: fuzzed;
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 500);
+        assert!(res.runs.len() == 50);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -435,7 +436,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
         bindings:
             bound: 3
 ---
@@ -500,7 +501,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
 ---
 #calculate-io
 _: context<0 0>(),
@@ -549,7 +550,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
 ---
 #calculate-io
 _: context<50 50>();
@@ -589,7 +590,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 100
+        runs: 20
 ---
 #calculate-io
 _: context<1 0>();

@@ -1,5 +1,5 @@
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::WriteTransactionStatus;
-use alloy_sol_types::SolCall;
 use std::fmt::Debug;
 use tracing::info;
 

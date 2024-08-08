@@ -1,5 +1,5 @@
 use crate::csv::TryIntoCsv;
-use alloy_primitives::{utils::format_units, U256};
+use alloy::primitives::{utils::format_units, U256};
 use rain_orderbook_subgraph_client::types::vaults_list::*;
 use serde::{Deserialize, Serialize};
 
