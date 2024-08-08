@@ -83,6 +83,7 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> String {
 }
 
 /// Quotes the target on the given rpc url
+/// Resolves with array of OrderQuoteValue object or a string error
 #[wasm_bindgen(js_name = "doQuoteTargets")]
 pub async fn do_quote_targets(
     quote_targets: &BatchQuoteTarget,
@@ -115,10 +116,9 @@ pub async fn do_quote_targets(
 
 /// Given a subgraph url, will fetch the order details from the subgraph and
 /// then quotes them using the given rpc url.
-/// Those orders that are not found from subgraph are excluded from quoting,
-/// and final result also leaves their place in the array as None
+/// Resolves with array of OrderQuoteValue object or a string error
 #[wasm_bindgen(js_name = "doQuoteSpecs")]
-pub async fn do_quote(
+pub async fn do_quote_specs(
     quote_specs: &BatchQuoteSpec,
     subgraph_url: &str,
     rpc_url: &str,
@@ -150,8 +150,8 @@ pub async fn do_quote(
 
 /// Given a subgraph url, will fetch orders details and returns their
 /// respective quote targets.
-/// Those specifiers that were not in the subgraph are returned as None
-/// in the resturning array
+/// Resolves with array of QuoteTarget object or undefined if no result
+/// found on subgraph for a specific spec
 #[wasm_bindgen(js_name = "getQuoteTargetFromSubgraph")]
 pub async fn get_batch_quote_target_from_subgraph(
     quote_specs: &BatchQuoteSpec,
