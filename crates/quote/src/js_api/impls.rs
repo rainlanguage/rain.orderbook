@@ -1,10 +1,11 @@
 use super::*;
 use crate::QuoteTarget as MainQuoteTarget;
-use crate::{error::Error, OrderQuoteValue as MainOrderQuoteValue, QuoteSpec as MainQuoteSpec};
+use crate::{OrderQuoteValue as MainOrderQuoteValue, QuoteSpec as MainQuoteSpec};
 use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
+use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_bindings::js_api::Quote;
 use rain_orderbook_bindings::IOrderBookV4::{
     Quote as MainQuote, SignedContextV1 as MainSignedContextV1,
@@ -121,137 +122,9 @@ impl LongRefFromWasmAbi for BatchQuoteSpec {
     }
 }
 
-impl LongRefFromWasmAbi for QuoteTarget {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<QuoteTarget>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(QuoteTarget::from_abi(js))
-    }
-}
-impl RefFromWasmAbi for QuoteTarget {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<QuoteTarget>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(QuoteTarget::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for QuoteTarget {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for QuoteTarget {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for QuoteTarget {
-    fn describe_vector() {
-        inform(VECTOR);
-        QuoteTarget::describe();
-    }
-}
-impl From<QuoteTarget> for JsValue {
-    fn from(value: QuoteTarget) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for QuoteTarget {
-    type Error = Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        Ok(from_value(value)?)
-    }
-}
-
-impl LongRefFromWasmAbi for QuoteSpec {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<QuoteSpec>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(QuoteSpec::from_abi(js))
-    }
-}
-impl RefFromWasmAbi for QuoteSpec {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<QuoteSpec>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(QuoteSpec::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for QuoteSpec {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for QuoteSpec {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for QuoteSpec {
-    fn describe_vector() {
-        inform(VECTOR);
-        QuoteSpec::describe();
-    }
-}
-impl From<QuoteSpec> for JsValue {
-    fn from(value: QuoteSpec) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for QuoteSpec {
-    type Error = Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        Ok(from_value(value)?)
-    }
-}
-
-impl LongRefFromWasmAbi for QuoteResult {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<QuoteResult>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(QuoteResult::from_abi(js))
-    }
-}
-impl RefFromWasmAbi for QuoteResult {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<QuoteResult>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(QuoteResult::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for QuoteResult {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for QuoteResult {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for QuoteResult {
-    fn describe_vector() {
-        inform(VECTOR);
-        QuoteResult::describe();
-    }
-}
-impl From<QuoteResult> for JsValue {
-    fn from(value: QuoteResult) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for QuoteResult {
-    type Error = Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        Ok(from_value(value)?)
-    }
-}
+impl_wasm_traits!(QuoteSpec);
+impl_wasm_traits!(QuoteTarget);
+impl_wasm_traits!(QuoteResult);
 
 #[cfg(test)]
 mod tests {

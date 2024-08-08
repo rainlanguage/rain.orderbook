@@ -8,7 +8,7 @@ homepage.workspace = true
 
 [dependencies]
 alloy = { workspace = true, features = ["sol-types", "json"] }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive", "rc"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 js-sys = { version = "0.3.69" }

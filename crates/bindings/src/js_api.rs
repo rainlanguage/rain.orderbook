@@ -233,225 +233,60 @@ impl From<MainQuote> for Quote {
     }
 }
 
-impl RefFromWasmAbi for OrderV3 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<OrderV3>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(OrderV3::from_abi(js))
-    }
-}
-impl LongRefFromWasmAbi for OrderV3 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<OrderV3>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(OrderV3::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for OrderV3 {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for OrderV3 {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for OrderV3 {
-    fn describe_vector() {
-        inform(VECTOR);
-        OrderV3::describe();
-    }
-}
-impl From<OrderV3> for JsValue {
-    fn from(value: OrderV3) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for OrderV3 {
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        from_value(value)
-    }
-}
-
-impl RefFromWasmAbi for EvaluableV3 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<EvaluableV3>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(EvaluableV3::from_abi(js))
-    }
-}
-impl LongRefFromWasmAbi for EvaluableV3 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<EvaluableV3>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(EvaluableV3::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for EvaluableV3 {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for EvaluableV3 {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for EvaluableV3 {
-    fn describe_vector() {
-        inform(VECTOR);
-        EvaluableV3::describe();
-    }
-}
-impl From<EvaluableV3> for JsValue {
-    fn from(value: EvaluableV3) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for EvaluableV3 {
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        from_value(value)
-    }
+#[macro_export]
+macro_rules! impl_wasm_traits {
+    ($struct_name:ident) => {
+        impl RefFromWasmAbi for $struct_name {
+            type Abi = <JsValue as RefFromWasmAbi>::Abi;
+            type Anchor = Box<$struct_name>;
+            unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
+                Box::new($struct_name::from_abi(js))
+            }
+        }
+        impl LongRefFromWasmAbi for $struct_name {
+            type Abi = <JsValue as RefFromWasmAbi>::Abi;
+            type Anchor = Box<$struct_name>;
+            unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
+                Box::new($struct_name::from_abi(js))
+            }
+        }
+        impl VectorIntoWasmAbi for $struct_name {
+            type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
+            fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
+                js_value_vector_into_abi(vector)
+            }
+        }
+        impl VectorFromWasmAbi for $struct_name {
+            type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
+            unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
+                js_value_vector_from_abi(js)
+            }
+        }
+        impl WasmDescribeVector for $struct_name {
+            fn describe_vector() {
+                inform(VECTOR);
+                $struct_name::describe();
+            }
+        }
+        impl From<$struct_name> for JsValue {
+            fn from(value: $struct_name) -> Self {
+                to_value(&value).unwrap_throw()
+            }
+        }
+        impl TryFromJsValue for $struct_name {
+            type Error = serde_wasm_bindgen::Error;
+            fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
+                from_value(value)
+            }
+        }
+    };
 }
 
-impl RefFromWasmAbi for IO {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<IO>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(IO::from_abi(js))
-    }
-}
-impl LongRefFromWasmAbi for IO {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<IO>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(IO::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for IO {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for IO {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for IO {
-    fn describe_vector() {
-        inform(VECTOR);
-        IO::describe();
-    }
-}
-impl From<IO> for JsValue {
-    fn from(value: IO) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for IO {
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        from_value(value)
-    }
-}
-
-impl RefFromWasmAbi for SignedContextV1 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<SignedContextV1>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(SignedContextV1::from_abi(js))
-    }
-}
-impl LongRefFromWasmAbi for SignedContextV1 {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<SignedContextV1>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(SignedContextV1::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for SignedContextV1 {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for SignedContextV1 {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for SignedContextV1 {
-    fn describe_vector() {
-        inform(VECTOR);
-        SignedContextV1::describe();
-    }
-}
-impl From<SignedContextV1> for JsValue {
-    fn from(value: SignedContextV1) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for SignedContextV1 {
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        from_value(value)
-    }
-}
-
-impl RefFromWasmAbi for Quote {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<Quote>;
-    unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(Quote::from_abi(js))
-    }
-}
-impl LongRefFromWasmAbi for Quote {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<Quote>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(Quote::from_abi(js))
-    }
-}
-impl VectorIntoWasmAbi for Quote {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-        js_value_vector_into_abi(vector)
-    }
-}
-impl VectorFromWasmAbi for Quote {
-    type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-    unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-        js_value_vector_from_abi(js)
-    }
-}
-impl WasmDescribeVector for Quote {
-    fn describe_vector() {
-        inform(VECTOR);
-        Quote::describe();
-    }
-}
-impl From<Quote> for JsValue {
-    fn from(value: Quote) -> Self {
-        to_value(&value).unwrap_throw()
-    }
-}
-impl TryFromJsValue for Quote {
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-        from_value(value)
-    }
-}
+impl_wasm_traits!(IO);
+impl_wasm_traits!(EvaluableV3);
+impl_wasm_traits!(OrderV3);
+impl_wasm_traits!(SignedContextV1);
+impl_wasm_traits!(Quote);
 
 #[cfg(test)]
 mod tests {
