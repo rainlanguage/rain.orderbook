@@ -376,14 +376,14 @@ _ _: 0 0;
             chain-id: 0
     deployers:
         sepolia:
-            address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
     metaboards:
         sepolia: {metaboard_url}
     ---
     #calculate-io
-    using-words-from 0x2382e861cF4F47578aC29B50944b3b445577aF74
+    using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
     _ _: 0 0;
     #handle-io

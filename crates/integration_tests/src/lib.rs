@@ -5,9 +5,16 @@ sol!(
     Orderbook, "../../out/OrderBook.sol/OrderBook.json"
 );
 
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    ERC20, "../../out/ERC20.sol/ERC20.json"
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::Address;
+    use alloy::providers::ext::AnvilApi;
     use alloy::sol_types::SolCall;
     use alloy::{
         network::{EthereumWallet, TransactionBuilder},
@@ -22,23 +29,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_task_set() {
-        // Spin up a local Anvil node.
-        // Ensure `anvil` is available in $PATH.
-        let anvil = Anvil::new()
-            .fork(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL)
-            .try_spawn()
+        let dai_holder = "0x788F5c68331a773f226747edCef20Ce60E9d78E7"
+            .parse::<Address>()
             .unwrap();
 
-        // Set up signer from the first default Anvil account (Alice).
-        let signer: PrivateKeySigner = anvil.keys()[0].clone().into();
-        let wallet = EthereumWallet::from(signer);
+        const DAI_ADDRESS: &str = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
 
-        // Create a provider with the wallet.
-        let rpc_url = anvil.endpoint().parse().unwrap();
-        let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(wallet)
-            .on_http(rpc_url);
+        let provider = ProviderBuilder::new().on_anvil_with_config(|anvil| {
+            anvil.fork(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL)
+        });
+        provider.anvil_auto_impersonate_account(true).await.unwrap();
 
         let dotrain = format!(
             r#"
@@ -60,7 +60,7 @@ tokens:
         symbol: ETH
     dai:
         network: polygon
-        address: 0xabc0000000000000000000000000000000000004
+        address: {dai}
         decimals: 18
         label: Dai
         symbol: DAI
@@ -71,9 +71,9 @@ orders:
     polygon:
         inputs:
             - token: eth
-            - token: dai
         outputs:
             - token: dai
+              vault-id: 0x01
 scenarios:
     polygon:
 deployments:
@@ -82,16 +82,18 @@ deployments:
         order: polygon
 ---
 #calculate-io
+using-words-from 0xe80e7438ce6b1055c8e9CDE1b6336a4F9D53C666
 amount price: get("amount") 52;
-#handle-io
-:;
 #post-add-order
 :set("amount" 100);
+#handle-io
+:;
 "#,
-            rpc_url = anvil.endpoint()
+            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL,
+            dai = DAI_ADDRESS
         );
 
-        let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
+        let orderbook = Orderbook::deploy(&provider).await.unwrap();
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
 
@@ -101,12 +103,17 @@ amount price: get("amount") 52;
             .await
             .unwrap();
 
-        let call = args.try_into_call(anvil.endpoint()).await.unwrap();
+        let call = args
+            .try_into_call(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL.into())
+            .await
+            .unwrap();
+
         let calldata = call.abi_encode();
 
         let tx = TransactionRequest::default()
             .with_input(calldata)
-            .with_to(*orderbook.address());
+            .with_to(*orderbook.address())
+            .with_from(dai_holder);
 
         let _tx_hash = provider
             .send_transaction(tx)
@@ -120,6 +127,32 @@ amount price: get("amount") 52;
         let logs = filter.query().await.unwrap();
         let order = logs[0].0.order.clone();
 
+        // approve and deposit DAI
+        let dai = ERC20::new(DAI_ADDRESS.parse::<Address>().unwrap(), &provider);
+        dai.approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .from(dai_holder)
+            .send()
+            .await
+            .unwrap()
+            .watch()
+            .await
+            .unwrap();
+
+        orderbook
+            .deposit2(
+                DAI_ADDRESS.parse::<Address>().unwrap(),
+                U256::from(0x01),
+                parse_ether("1000").unwrap(),
+                vec![],
+            )
+            .from(dai_holder)
+            .send()
+            .await
+            .unwrap()
+            .watch()
+            .await
+            .unwrap();
+
         let quote = orderbook
             .quote(Quote {
                 order,
@@ -130,8 +163,6 @@ amount price: get("amount") 52;
             .call()
             .await
             .unwrap();
-
-        println!("Quote: {:?}", quote);
 
         let amount = quote._1;
         let price = quote._2;
