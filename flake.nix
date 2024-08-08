@@ -207,7 +207,7 @@
             name = "rainix-wasm-artifacts";
             body = ''
               set -euxo pipefail
-              cargo build -r --target wasm32-unknown-unknown --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env
+              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env
             '';
           };
 
