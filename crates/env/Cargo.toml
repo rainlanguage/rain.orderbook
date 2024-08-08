@@ -7,4 +7,3 @@ homepage.workspace = true
 
 [dependencies]
 once_cell = { workspace = true }
-alloy = {workspace = true}

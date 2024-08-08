@@ -8,7 +8,7 @@ homepage.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["full", "node-bindings"] }
 rain-orderbook-env = { workspace = true }
 rain_orderbook_common = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
