@@ -12,7 +12,7 @@
   $: query = createQuery({
     queryKey: ['vaultBalanceChanges', vault.id],
     queryFn: () => {
-      return vaultBalanceChangesList(vault.id, '', 0, 1000);
+      return vaultBalanceChangesList(vault.id, $subgraphUrl, 0, 1000);
     },
     enabled: !!$subgraphUrl,
   });
