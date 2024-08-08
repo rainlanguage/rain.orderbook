@@ -85,15 +85,15 @@ pub fn get_order_hash(order: &OrderV3) -> String {
 
 impl From<EvaluableV3> for MainEvaluableV3 {
     fn from(value: EvaluableV3) -> Self {
+        let mut interpreter_error = "interpreter address, ".to_string();
+        let mut store_error = "store address, ".to_string();
         MainEvaluableV3 {
-            interpreter: match Address::from_hex(&value.interpreter) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(value.interpreter).expect_throw(&e.to_string()),
-            },
-            store: match Address::from_hex(&value.store) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(value.store).expect_throw(&e.to_string()),
-            },
+            interpreter: Address::from_hex(&value.interpreter)
+                .inspect_err(|e| interpreter_error.push_str(&e.to_string()))
+                .expect_throw(&interpreter_error),
+            store: Address::from_hex(&value.store)
+                .inspect_err(|e| store_error.push_str(&e.to_string()))
+                .expect_throw(&store_error),
             bytecode: value.bytecode.into(),
         }
     }
@@ -110,15 +110,15 @@ impl From<MainEvaluableV3> for EvaluableV3 {
 
 impl From<IO> for MainIO {
     fn from(value: IO) -> Self {
+        let mut token_error = "token address, ".to_string();
+        let mut vault_id_error = "vault id, ".to_string();
         MainIO {
-            token: match Address::from_hex(&value.token) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(value.token).expect_throw(&e.to_string()),
-            },
-            vaultId: match U256::from_str(&value.vault_id) {
-                Ok(v) => v,
-                Err(e) => U256::from_str(&value.vault_id).expect_throw(&e.to_string()),
-            },
+            token: Address::from_hex(&value.token)
+                .inspect_err(|e| token_error.push_str(&e.to_string()))
+                .expect_throw(&token_error),
+            vaultId: U256::from_str(&value.vault_id)
+                .inspect_err(|e| vault_id_error.push_str(&e.to_string()))
+                .expect_throw(&vault_id_error),
             decimals: value.decimals,
         }
     }
@@ -135,20 +135,19 @@ impl From<MainIO> for IO {
 
 impl From<OrderV3> for MainOrderV3 {
     fn from(value: OrderV3) -> Self {
+        let mut owner_error = "owner address, ".to_string();
+        let mut nonce_error = "nonce value, ".to_string();
         MainOrderV3 {
-            owner: match Address::from_hex(&value.owner) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(value.owner).expect_throw(&e.to_string()),
-            },
+            owner: Address::from_hex(&value.owner)
+                .inspect_err(|e| owner_error.push_str(&e.to_string()))
+                .expect_throw(&owner_error),
             evaluable: MainEvaluableV3::from(value.evaluable),
             validInputs: value.valid_inputs.into_iter().map(MainIO::from).collect(),
             validOutputs: value.valid_outputs.into_iter().map(MainIO::from).collect(),
-            nonce: match U256::from_str(&value.nonce) {
-                Ok(v) => v.into(),
-                Err(e) => U256::from_str(&value.nonce)
-                    .expect_throw(&e.to_string())
-                    .into(),
-            },
+            nonce: U256::from_str(&value.nonce)
+                .inspect_err(|e| nonce_error.push_str(&e.to_string()))
+                .expect_throw(&nonce_error)
+                .into(),
         }
     }
 }
@@ -166,19 +165,21 @@ impl From<MainOrderV3> for OrderV3 {
 
 impl From<SignedContextV1> for MainSignedContextV1 {
     fn from(value: SignedContextV1) -> Self {
+        let mut context_error = "context, ".to_string();
+        let mut signer_error = "signer address, ".to_string();
         let context = value
             .context
             .iter()
-            .map(|v| match U256::from_str(v) {
-                Ok(e) => e,
-                Err(e) => U256::from_str(v).expect_throw(&e.to_string()),
+            .map(|v| {
+                U256::from_str(&v)
+                    .inspect_err(|e| context_error.push_str(&e.to_string()))
+                    .expect_throw(&context_error)
             })
             .collect();
         MainSignedContextV1 {
-            signer: match Address::from_hex(&value.signer) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(&value.signer).expect_throw(&e.to_string()),
-            },
+            signer: Address::from_hex(&value.signer)
+                .inspect_err(|e| signer_error.push_str(&e.to_string()))
+                .expect_throw(&signer_error),
             context,
             signature: value.signature.into(),
         }
@@ -200,20 +201,20 @@ impl From<MainSignedContextV1> for SignedContextV1 {
 
 impl From<Quote> for MainQuote {
     fn from(value: Quote) -> Self {
+        let mut input_io_index_error = "input io index, ".to_string();
+        let mut output_io_index_error = "output io index, ".to_string();
         MainQuote {
             order: MainOrderV3::from(value.order),
-            inputIOIndex: match U256::from_str(&value.input_io_index) {
-                Ok(v) => v,
-                Err(e) => U256::from_str(&value.input_io_index).expect_throw(&e.to_string()),
-            },
-            outputIOIndex: match U256::from_str(&value.output_io_index) {
-                Ok(v) => v,
-                Err(e) => U256::from_str(&value.output_io_index).expect_throw(&e.to_string()),
-            },
+            inputIOIndex: U256::from_str(&value.input_io_index)
+                .inspect_err(|e| input_io_index_error.push_str(&e.to_string()))
+                .expect_throw(&input_io_index_error),
+            outputIOIndex: U256::from_str(&value.output_io_index)
+                .inspect_err(|e| output_io_index_error.push_str(&e.to_string()))
+                .expect_throw(&output_io_index_error),
             signedContext: value
                 .signed_context
-                .iter()
-                .map(|v| MainSignedContextV1::from(v.clone()))
+                .into_iter()
+                .map(MainSignedContextV1::from)
                 .collect(),
         }
     }
@@ -270,7 +271,10 @@ macro_rules! impl_wasm_traits {
         }
         impl From<$struct_name> for JsValue {
             fn from(value: $struct_name) -> Self {
-                to_value(&value).unwrap_throw()
+                match to_value(&value) {
+                    Ok(v) => v,
+                    Err(e) => to_value(&value).expect_throw(&e.to_string()),
+                }
             }
         }
         impl TryFromJsValue for $struct_name {
@@ -306,6 +310,15 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_io_unhappy() {
+        let main_io = MainIO::default();
+        let mut io = IO::from(main_io);
+        io.token = "0x1234".to_string();
+        let _ = MainIO::from(io);
+    }
+
+    #[wasm_bindgen_test]
     fn test_evaluable_roundtrip() {
         let main_evaluable = MainEvaluableV3::default();
         let evaluable = EvaluableV3::from(main_evaluable.clone());
@@ -315,6 +328,15 @@ mod tests {
         let main_evaluable = MainEvaluableV3::from(evaluable.clone());
         let expected = EvaluableV3::from(main_evaluable.clone());
         assert_eq!(evaluable, expected);
+    }
+
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_evaluable_unhappy() {
+        let main_evaluable = MainEvaluableV3::default();
+        let mut evaluable = EvaluableV3::from(main_evaluable);
+        evaluable.interpreter = "0x1234".to_string();
+        let _ = MainEvaluableV3::from(evaluable);
     }
 
     #[wasm_bindgen_test]
@@ -330,6 +352,15 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_order_unhappy() {
+        let main_order = MainOrderV3::default();
+        let mut order = OrderV3::from(main_order);
+        order.owner = "0x1234".to_string();
+        let _ = MainOrderV3::from(order);
+    }
+
+    #[wasm_bindgen_test]
     fn test_signed_context_roundtrip() {
         let main_signed_context = MainSignedContextV1::default();
         let signed_context = SignedContextV1::from(main_signed_context.clone());
@@ -342,6 +373,15 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_signed_context_unhappy() {
+        let main_signed_context = MainSignedContextV1::default();
+        let mut signed_context = SignedContextV1::from(main_signed_context);
+        signed_context.signer = "0x1234".to_string();
+        let _ = MainSignedContextV1::from(signed_context);
+    }
+
+    #[wasm_bindgen_test]
     fn test_quote_roundtrip() {
         let main_quote = MainQuote::default();
         let quote = Quote::from(main_quote.clone());
@@ -351,5 +391,14 @@ mod tests {
         let main_quote = MainQuote::from(quote.clone());
         let expected = Quote::from(main_quote.clone());
         assert_eq!(quote, expected);
+    }
+
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_quote_unhappy() {
+        let main_quote = MainQuote::default();
+        let mut quote = Quote::from(main_quote);
+        quote.order.nonce = "abcd".to_string();
+        let _ = MainQuote::from(quote);
     }
 }

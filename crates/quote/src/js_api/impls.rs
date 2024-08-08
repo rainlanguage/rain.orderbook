@@ -19,15 +19,15 @@ use wasm_bindgen::{
 
 impl From<OrderQuoteValue> for MainOrderQuoteValue {
     fn from(value: OrderQuoteValue) -> Self {
+        let mut max_output_error = "max output, ".to_string();
+        let mut ratio_error = "ratio, ".to_string();
         MainOrderQuoteValue {
-            max_output: match U256::from_str(&value.max_output) {
-                Ok(v) => v,
-                Err(e) => U256::from_str(&value.max_output).expect_throw(&e.to_string()),
-            },
-            ratio: match U256::from_str(&value.ratio) {
-                Ok(v) => v,
-                Err(e) => U256::from_str(&value.ratio).expect_throw(&e.to_string()),
-            },
+            max_output: U256::from_str(&value.max_output)
+                .inspect_err(|e| max_output_error.push_str(&e.to_string()))
+                .expect_throw(&max_output_error),
+            ratio: U256::from_str(&value.ratio)
+                .inspect_err(|e| ratio_error.push_str(&e.to_string()))
+                .expect_throw(&ratio_error),
         }
     }
 }
@@ -42,11 +42,11 @@ impl From<MainOrderQuoteValue> for OrderQuoteValue {
 
 impl From<QuoteTarget> for MainQuoteTarget {
     fn from(value: QuoteTarget) -> Self {
+        let mut orderbook_error = "orderbook address, ".to_string();
         MainQuoteTarget {
-            orderbook: match Address::from_hex(&value.orderbook) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(value.orderbook).expect_throw(&e.to_string()),
-            },
+            orderbook: Address::from_hex(&value.orderbook)
+                .inspect_err(|e| orderbook_error.push_str(&e.to_string()))
+                .expect_throw(&orderbook_error),
             quote_config: MainQuote::from(value.quote_config),
         }
     }
@@ -62,11 +62,12 @@ impl From<MainQuoteTarget> for QuoteTarget {
 
 impl From<QuoteSpec> for MainQuoteSpec {
     fn from(value: QuoteSpec) -> Self {
+        let mut orderbook_error = "orderbook address, ".to_string();
+        let mut order_hash_error = "order hash, ".to_string();
         MainQuoteSpec {
-            order_hash: match U256::from_str(&value.order_hash) {
-                Ok(v) => v,
-                Err(e) => U256::from_str(&value.order_hash).expect_throw(&e.to_string()),
-            },
+            order_hash: U256::from_str(&value.order_hash)
+                .inspect_err(|e| order_hash_error.push_str(&e.to_string()))
+                .expect_throw(&order_hash_error),
             input_io_index: value.input_io_index,
             output_io_index: value.output_io_index,
             signed_context: value
@@ -74,10 +75,9 @@ impl From<QuoteSpec> for MainQuoteSpec {
                 .into_iter()
                 .map(MainSignedContextV1::from)
                 .collect(),
-            orderbook: match Address::from_hex(&value.orderbook) {
-                Ok(v) => v,
-                Err(e) => Address::from_hex(value.orderbook).expect_throw(&e.to_string()),
-            },
+            orderbook: Address::from_hex(&value.orderbook)
+                .inspect_err(|e| orderbook_error.push_str(&e.to_string()))
+                .expect_throw(&orderbook_error),
         }
     }
 }
@@ -144,6 +144,15 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_order_quote_value_unhappy() {
+        let main_order_quote_value = MainOrderQuoteValue::default();
+        let mut order_quote_value = OrderQuoteValue::from(main_order_quote_value);
+        order_quote_value.ratio = "qwe".to_string();
+        let _ = MainOrderQuoteValue::from(order_quote_value);
+    }
+
+    #[wasm_bindgen_test]
     fn test_quote_spec_roundtrip() {
         let main_quote_spec = MainQuoteSpec::default();
         let quote_spec = QuoteSpec::from(main_quote_spec.clone());
@@ -156,6 +165,15 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_quote_spec_unhappy() {
+        let main_quote_spec = MainQuoteSpec::default();
+        let mut quote_spec = QuoteSpec::from(main_quote_spec);
+        quote_spec.order_hash = "abcd".to_string();
+        let _ = MainQuoteSpec::from(quote_spec);
+    }
+
+    #[wasm_bindgen_test]
     fn test_quote_target_roundtrip() {
         let main_quote_target = MainQuoteTarget::default();
         let quote_target = QuoteTarget::from(main_quote_target.clone());
@@ -165,5 +183,14 @@ mod tests {
         let main_quote_target = MainQuoteTarget::from(quote_target.clone());
         let expected = QuoteTarget::from(main_quote_target.clone());
         assert_eq!(quote_target, expected);
+    }
+
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_quote_target_unhappy() {
+        let main_quote_target = MainQuoteTarget::default();
+        let mut quote_target = QuoteTarget::from(main_quote_target);
+        quote_target.quote_config.order.owner = "0x1234".to_string();
+        let _ = MainQuoteTarget::from(quote_target);
     }
 }
