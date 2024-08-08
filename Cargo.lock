@@ -6365,8 +6365,8 @@ dependencies = [
 name = "rain_orderbook_bindings"
 version = "0.1.0"
 dependencies = [
- "js-sys",
  "alloy",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen 0.6.5",
  "tsify",
@@ -8874,7 +8874,7 @@ checksum = "b7f89739351a2e03cb94beb799d47fb2cac01759b40ec441f7de39b00cbf7ef0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.61",
+ "syn 2.0.72",
 ]
 
 [[package]]

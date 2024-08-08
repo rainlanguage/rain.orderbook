@@ -1,7 +1,7 @@
 use super::*;
 use crate::QuoteTarget as MainQuoteTarget;
 use crate::{error::Error, OrderQuoteValue as MainOrderQuoteValue, QuoteSpec as MainQuoteSpec};
-use alloy_primitives::{
+use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };

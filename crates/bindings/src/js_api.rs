@@ -2,11 +2,11 @@ use crate::IOrderBookV4::{
     EvaluableV3 as MainEvaluableV3, OrderV3 as MainOrderV3, Quote as MainQuote,
     SignedContextV1 as MainSignedContextV1, IO as MainIO,
 };
-use alloy_primitives::{
+use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     keccak256, Address, U256,
 };
-use alloy_sol_types::SolValue;
+use alloy::sol_types::SolValue;
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use std::str::FromStr;
@@ -94,7 +94,7 @@ impl From<EvaluableV3> for MainEvaluableV3 {
                 Ok(v) => v,
                 Err(e) => Address::from_hex(value.store).expect_throw(&e.to_string()),
             },
-            bytecode: value.bytecode,
+            bytecode: value.bytecode.into(),
         }
     }
 }
@@ -103,7 +103,7 @@ impl From<MainEvaluableV3> for EvaluableV3 {
         EvaluableV3 {
             interpreter: encode_prefixed(value.interpreter),
             store: encode_prefixed(value.store),
-            bytecode: value.bytecode,
+            bytecode: value.bytecode.into(),
         }
     }
 }
@@ -180,7 +180,7 @@ impl From<SignedContextV1> for MainSignedContextV1 {
                 Err(e) => Address::from_hex(&value.signer).expect_throw(&e.to_string()),
             },
             context,
-            signature: value.signature,
+            signature: value.signature.into(),
         }
     }
 }
@@ -188,7 +188,7 @@ impl From<MainSignedContextV1> for SignedContextV1 {
     fn from(value: MainSignedContextV1) -> Self {
         SignedContextV1 {
             signer: encode_prefixed(value.signer),
-            signature: value.signature,
+            signature: value.signature.to_vec(),
             context: value
                 .context
                 .into_iter()

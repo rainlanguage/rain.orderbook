@@ -1,6 +1,6 @@
 use crate::{error::Error, BatchQuoteSpec as MainBatchQuoteSpec, QuoteSpec as MainQuoteSpec};
 use crate::{BatchQuoteTarget as MainBatchQuoteTarget, QuoteTarget as MainQuoteTarget};
-use alloy_primitives::{
+use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };

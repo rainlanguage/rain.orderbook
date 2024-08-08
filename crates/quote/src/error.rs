@@ -34,7 +34,7 @@ pub enum Error {
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
-    AlloySolTypesError(#[from] alloy_sol_types::Error),
+    AlloySolTypesError(#[from] alloy::sol_types::Error),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
