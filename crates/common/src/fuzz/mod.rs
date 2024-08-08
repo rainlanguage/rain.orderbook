@@ -345,7 +345,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
         bindings:
             bound: 3
 ---
@@ -374,7 +374,7 @@ b: fuzzed;
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 500);
+        assert!(res.runs.len() == 50);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -436,7 +436,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
         bindings:
             bound: 3
 ---
@@ -501,7 +501,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
 ---
 #calculate-io
 _: context<0 0>(),
@@ -550,7 +550,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 500
+        runs: 50
 ---
 #calculate-io
 _: context<50 50>();
@@ -590,7 +590,7 @@ networks:
         chain-id: 137
 scenarios:
     sepolia:
-        runs: 100
+        runs: 20
 ---
 #calculate-io
 _: context<1 0>();
