@@ -38,7 +38,7 @@
         "lint-bindings": "eslint \"dist/**\" --fix",
         "lint": "eslint \"dist/**\" \"test-js/**\"",
         "lint-fix": "eslint \"dist/**\" \"test-js/**\" --fix",
-        "test": "vitest run --dir test-js/common && vitest run --dir test-js/quote"
+        "test": "vitest run --dir test-js"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.0",

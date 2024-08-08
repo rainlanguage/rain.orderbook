@@ -14,7 +14,7 @@ import {
 
 describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
   const mockServer = getLocal();
-  beforeEach(() => mockServer.start(8080));
+  beforeEach(() => mockServer.start(8081));
   afterEach(() => mockServer.stop());
 
   it("should get correct order hash", async () => {
