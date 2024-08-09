@@ -6,6 +6,7 @@ import {
     OrderConfigV3, EvaluableV3, ActionV1, SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
@@ -267,7 +268,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-token() ",
                 address(iToken0).toHexString(),
-                ") \"withdraw token is token\");"
+                ") \"withdraw token\");"
             )
         );
         evals[3] = bytes(
@@ -275,7 +276,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-id() ",
                 vaultId.toHexString(),
-                ") \"withdraw vaultId is vaultId\");"
+                ") \"withdraw vaultId\");"
             )
         );
         evals[4] = bytes(
@@ -291,7 +292,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-amount() ",
                 withdrawAmount.toString(),
-                "e-6) \"amount is withdrawAmount\");"
+                "e-6) \"withdraw amount\");"
             )
         );
         // target amount
@@ -300,7 +301,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount() ",
                 withdrawAmount.toString(),
-                "e-6) \"target amount is withdrawAmount\");"
+                "e-6) \"target amount\");"
             )
         );
         // vault balance raw
@@ -309,7 +310,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-vault-balance-raw() ",
                 depositAmount.toString(),
-                "e-18) \"vault balance raw is depositAmount\");"
+                "e-18) \"vault balance raw\");"
             )
         );
         // amount raw
@@ -318,7 +319,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-amount-raw() ",
                 withdrawAmount.toString(),
-                "e-18) \"amount raw is withdrawAmount\");"
+                "e-18) \"amount raw\");"
             )
         );
         // target amount raw
@@ -327,9 +328,10 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount-raw() ",
                 withdrawAmount.toString(),
-                "e-18) \"target amount raw is withdrawAmount\");"
+                "e-18) \"target amount raw\");"
             )
         );
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
 
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
     }

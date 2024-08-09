@@ -26,6 +26,14 @@ import {
     DEPOSIT_WORD_VAULT_BALANCE_RAW,
     DEPOSIT_WORDS_LENGTH,
     WITHDRAW_WORD_WITHDRAWER,
+    WITHDRAW_WORD_TOKEN,
+    WITHDRAW_WORD_VAULT_ID,
+    WITHDRAW_WORD_VAULT_BALANCE,
+    WITHDRAW_WORD_AMOUNT,
+    WITHDRAW_WORD_TARGET_AMOUNT,
+    WITHDRAW_WORD_VAULT_BALANCE_RAW,
+    WITHDRAW_WORD_AMOUNT_RAW,
+    WITHDRAW_WORD_TARGET_AMOUNT_RAW,
     WITHDRAW_WORDS_LENGTH
 } from "../../lib/LibOrderBookSubParser.sol";
 import {
@@ -165,8 +173,16 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = contextDepositContextHandlers;
 
         function(uint256[] memory) internal pure returns (Operand)[] memory contextWithdrawContextHandlers =
-            new function(uint256[] memory) internal pure returns (Operand)[](DEPOSIT_WORDS_LENGTH);
+            new function(uint256[] memory) internal pure returns (Operand)[](WITHDRAW_WORDS_LENGTH);
         contextWithdrawContextHandlers[WITHDRAW_WORD_WITHDRAWER] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_TOKEN] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_VAULT_BALANCE] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_AMOUNT] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_TARGET_AMOUNT] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_VAULT_BALANCE_RAW] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_AMOUNT_RAW] = LibParseOperand.handleOperandDisallowed;
+        contextWithdrawContextHandlers[WITHDRAW_WORD_TARGET_AMOUNT_RAW] = LibParseOperand.handleOperandDisallowed;
 
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = contextWithdrawContextHandlers;
 
@@ -276,6 +292,14 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
             );
 
         withdrawParsers[WITHDRAW_WORD_WITHDRAWER] = LibOrderBookSubParser.subParserSender;
+        withdrawParsers[WITHDRAW_WORD_TOKEN] = LibOrderBookSubParser.subParserWithdrawToken;
+        withdrawParsers[WITHDRAW_WORD_VAULT_ID] = LibOrderBookSubParser.subParserWithdrawVaultId;
+        withdrawParsers[WITHDRAW_WORD_VAULT_BALANCE] = LibOrderBookSubParser.subParserWithdrawVaultBalance;
+        withdrawParsers[WITHDRAW_WORD_AMOUNT] = LibOrderBookSubParser.subParserWithdrawAmount;
+        withdrawParsers[WITHDRAW_WORD_TARGET_AMOUNT] = LibOrderBookSubParser.subParserWithdrawTargetAmount;
+        withdrawParsers[WITHDRAW_WORD_VAULT_BALANCE_RAW] = LibOrderBookSubParser.subParserWithdrawVaultBalanceRaw;
+        withdrawParsers[WITHDRAW_WORD_AMOUNT_RAW] = LibOrderBookSubParser.subParserWithdrawAmountRaw;
+        withdrawParsers[WITHDRAW_WORD_TARGET_AMOUNT_RAW] = LibOrderBookSubParser.subParserWithdrawTargetAmountRaw;
 
         parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = withdrawParsers;
 
