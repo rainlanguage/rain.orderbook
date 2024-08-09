@@ -11,6 +11,7 @@ import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     using Strings for address;
+    using Strings for uint256;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -247,7 +248,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
-        bytes[] memory evals = new bytes[](2);
+        bytes[] memory evals = new bytes[](10);
         evals[0] = bytes(
             string.concat(
                 usingWordsFrom,
@@ -259,6 +260,74 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         evals[1] = bytes(
             string.concat(
                 usingWordsFrom, ":ensure(equal-to(withdrawer() ", alice.toHexString(), ") \"withdrawer is alice\");"
+            )
+        );
+        evals[2] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-token() ",
+                address(iToken0).toHexString(),
+                ") \"withdraw token is token\");"
+            )
+        );
+        evals[3] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-vault-id() ",
+                vaultId.toHexString(),
+                ") \"withdraw vaultId is vaultId\");"
+            )
+        );
+        evals[4] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-vault-balance() ",
+                depositAmount.toString(),
+                "e-6) \"vault balance\");"
+            )
+        );
+        evals[5] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-amount() ",
+                withdrawAmount.toString(),
+                "e-6) \"amount is withdrawAmount\");"
+            )
+        );
+        // target amount
+        evals[6] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-target-amount() ",
+                withdrawAmount.toString(),
+                "e-6) \"target amount is withdrawAmount\");"
+            )
+        );
+        // vault balance raw
+        evals[7] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-vault-balance-raw() ",
+                depositAmount.toString(),
+                "e-18) \"vault balance raw is depositAmount\");"
+            )
+        );
+        // amount raw
+        evals[8] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-amount-raw() ",
+                withdrawAmount.toString(),
+                "e-18) \"amount raw is withdrawAmount\");"
+            )
+        );
+        // target amount raw
+        evals[9] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-target-amount-raw() ",
+                withdrawAmount.toString(),
+                "e-18) \"target amount raw is withdrawAmount\");"
             )
         );
 

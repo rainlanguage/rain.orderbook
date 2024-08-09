@@ -179,7 +179,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-id() ",
                 vaultId.toHexString(),
-                ") \"vaultId is vaultId\");"
+                ") \"deposit vaultId is vaultId\");"
             )
         );
         evals[4] = bytes(
