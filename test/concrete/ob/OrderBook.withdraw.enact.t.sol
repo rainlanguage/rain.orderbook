@@ -7,7 +7,11 @@ import {
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
+import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
+    using Strings for address;
+
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
@@ -233,5 +237,31 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, actions);
 
         assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+    }
+
+    function testOrderWithdrawContext(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount)
+        external
+    {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+
+        string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
+
+        bytes[] memory evals = new bytes[](2);
+        evals[0] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(orderbook() ",
+                address(iOrderbook).toHexString(),
+                ") \"orderbook is iOrderbook\");"
+            )
+        );
+        evals[1] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(withdrawer() ", alice.toHexString(), ") \"withdrawer is alice\");"
+            )
+        );
+
+        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
     }
 }

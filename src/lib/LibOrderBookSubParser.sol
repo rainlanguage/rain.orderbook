@@ -70,6 +70,8 @@ bytes constant WORD_DEPOSIT_AMOUNT = "deposit-amount";
 bytes constant WORD_DEPOSIT_VAULT_BALANCE_RAW = "deposit-vault-balance-raw";
 bytes constant WORD_DEPOSIT_AMOUNT_RAW = "deposit-amount-raw";
 
+bytes constant WORD_WITHDRAWER = "withdrawer";
+
 uint256 constant DEPOSIT_WORD_DEPOSITOR = 0;
 uint256 constant DEPOSIT_WORD_TOKEN = 1;
 uint256 constant DEPOSIT_WORD_VAULT_ID = 2;
@@ -78,6 +80,9 @@ uint256 constant DEPOSIT_WORD_AMOUNT = 4;
 uint256 constant DEPOSIT_WORD_VAULT_BALANCE_RAW = 5;
 uint256 constant DEPOSIT_WORD_AMOUNT_RAW = 6;
 uint256 constant DEPOSIT_WORDS_LENGTH = 7;
+
+uint256 constant WITHDRAW_WORD_WITHDRAWER = 0;
+uint256 constant WITHDRAW_WORDS_LENGTH = 1;
 
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
@@ -310,7 +315,8 @@ library LibOrderBookSubParser {
     function authoringMetaV2() internal pure returns (bytes memory) {
         // Add 2 for the signed context signers and signed context start columns.
         // 1 for the deposit context.
-        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2 + 1);
+        // 1 for the withdraw context.
+        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2 + 1 + 1);
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
@@ -418,6 +424,12 @@ library LibOrderBookSubParser {
         );
 
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
+
+        AuthoringMetaV2[] memory withdrawMeta = new AuthoringMetaV2[](WITHDRAW_WORDS_LENGTH);
+        withdrawMeta[0] =
+            AuthoringMetaV2(bytes32(WORD_WITHDRAWER), "The address of the withdrawer that is withdrawing the token.");
+
+        meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = withdrawMeta;
 
         uint256[][] memory metaUint256;
         assembly {

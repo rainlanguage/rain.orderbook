@@ -24,7 +24,9 @@ import {
     DEPOSIT_WORD_VAULT_BALANCE,
     DEPOSIT_WORD_AMOUNT_RAW,
     DEPOSIT_WORD_VAULT_BALANCE_RAW,
-    DEPOSIT_WORDS_LENGTH
+    DEPOSIT_WORDS_LENGTH,
+    WITHDRAW_WORD_WITHDRAWER,
+    WITHDRAW_WORDS_LENGTH
 } from "../../lib/LibOrderBookSubParser.sol";
 import {
     CONTEXT_COLUMNS,
@@ -96,8 +98,9 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
         // Add 1 for deposit context
+        // Add 1 for withdraw context
         function(uint256[] memory) internal pure returns (Operand)[][] memory handlers =
-            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2 + 1);
+            new function(uint256[] memory) internal pure returns (Operand)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
 
         function(uint256[] memory) internal pure returns (Operand)[] memory contextBaseHandlers =
             new function(uint256[] memory) internal pure returns (Operand)[](CONTEXT_BASE_ROWS);
@@ -161,6 +164,12 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
 
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = contextDepositContextHandlers;
 
+        function(uint256[] memory) internal pure returns (Operand)[] memory contextWithdrawContextHandlers =
+            new function(uint256[] memory) internal pure returns (Operand)[](DEPOSIT_WORDS_LENGTH);
+        contextWithdrawContextHandlers[WITHDRAW_WORD_WITHDRAWER] = LibParseOperand.handleOperandDisallowed;
+
+        handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = contextWithdrawContextHandlers;
+
         uint256[][] memory handlersUint256;
         assembly ("memory-safe") {
             handlersUint256 := handlers
@@ -172,9 +181,10 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
     function buildSubParserWordParsers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
         // Add 1 for deposit context
+        // Add 1 for withdraw context
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][] memory
             parsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[][](
-                CONTEXT_COLUMNS + 2 + 1
+                CONTEXT_COLUMNS + 2 + 1 + 1
             );
 
         function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
@@ -257,6 +267,17 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         depositParsers[DEPOSIT_WORD_AMOUNT_RAW] = LibOrderBookSubParser.subParserDepositAmountRaw;
 
         parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositParsers;
+
+        // Withdraws
+
+        function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[] memory
+            withdrawParsers = new function(uint256, uint256, Operand) internal view returns (bool, bytes memory, uint256[] memory)[](
+                WITHDRAW_WORDS_LENGTH
+            );
+
+        withdrawParsers[WITHDRAW_WORD_WITHDRAWER] = LibOrderBookSubParser.subParserSender;
+
+        parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = withdrawParsers;
 
         uint256[][] memory parsersUint256;
         assembly ("memory-safe") {

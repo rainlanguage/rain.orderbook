@@ -150,12 +150,12 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
         checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
 
+        string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
+
         bytes[] memory evals = new bytes[](8);
         evals[0] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(orderbook() ",
                 address(iOrderbook).toHexString(),
                 ") \"orderbook is iOrderbook\");"
@@ -163,19 +163,12 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         );
         evals[1] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
-                ":ensure(equal-to(depositor() ",
-                alice.toHexString(),
-                ") \"depositor is alice\");"
+                usingWordsFrom, ":ensure(equal-to(depositor() ", alice.toHexString(), ") \"depositor is alice\");"
             )
         );
         evals[2] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(deposit-token() ",
                 address(iToken0).toHexString(),
                 ") \"token is iToken0\");"
@@ -183,9 +176,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         );
         evals[3] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-id() ",
                 vaultId.toHexString(),
                 ") \"vaultId is vaultId\");"
@@ -193,9 +184,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         );
         evals[4] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-balance() ",
                 preDepositAmount.toString(),
                 "e-6) \"vault balance is pre deposit\");"
@@ -203,9 +192,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         );
         evals[5] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(deposit-amount() ",
                 depositAmount.toString(),
                 "e-6) \"amount is depositAmount\");"
@@ -213,9 +200,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         );
         evals[6] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-balance-raw() ",
                 preDepositAmount.toString(),
                 "e-18) \"vault balance raw is predeposit\");"
@@ -223,9 +208,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         );
         evals[7] = bytes(
             string.concat(
-                "using-words-from ",
-                address(iSubParser).toHexString(),
-                "\n",
+                usingWordsFrom,
                 ":ensure(equal-to(deposit-amount-raw() ",
                 depositAmount.toString(),
                 "e-18) \"amount raw is depositAmount\");"
