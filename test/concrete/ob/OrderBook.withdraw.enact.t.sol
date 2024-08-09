@@ -33,7 +33,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         address owner,
         uint256 vaultId,
         uint256 depositAmount,
-        uint256 withdrawAmount,
+        uint256 targetAmount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
@@ -53,11 +53,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             actions[i] =
                 ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
+        uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount), abi.encode(true)
         );
         vm.record();
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, actions);
+        iOrderbook.withdraw2(address(iToken0), vaultId, targetAmount, actions);
         checkReentrancyRW(depositAmount > 0 ? 5 : 4, depositAmount > 0 ? 3 : 2);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
@@ -241,11 +242,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
     }
 
-    function testOrderWithdrawContext(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount)
+    function testOrderWithdrawContext(address alice, uint256 vaultId, uint256 depositAmount, uint256 targetAmount)
         external
     {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
-        withdrawAmount = bound(withdrawAmount, 1, depositAmount);
+        targetAmount = bound(targetAmount, 1, type(uint128).max);
+        uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -300,7 +302,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount() ",
-                withdrawAmount.toString(),
+                targetAmount.toString(),
                 "e-6) \"target amount\");"
             )
         );
@@ -327,12 +329,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(withdraw-target-amount-raw() ",
-                withdrawAmount.toString(),
+                targetAmount.toString(),
                 "e-18) \"target amount raw\");"
             )
         );
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
 
-        checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
+        checkWithdraw(alice, vaultId, depositAmount, targetAmount, evals, 0, 0);
     }
 }
