@@ -35,9 +35,9 @@ import {
     CONTEXT_SIGNED_CONTEXT_START_ROWS,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID,
-    CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT,
-    CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE_RAW,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT_RAW,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID,
@@ -292,7 +292,9 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, uint256[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE);
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE
+        );
     }
 
     function subParserDepositAmount(uint256, uint256, Operand)
@@ -310,8 +312,9 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, uint256[] memory)
     {
         //slither-disable-next-line unused-return
-        return
-            LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW);
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE_RAW
+        );
     }
 
     function subParserDepositAmountRaw(uint256, uint256, Operand)
@@ -516,13 +519,13 @@ library LibOrderBookSubParser {
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
             bytes32(WORD_DEPOSIT_VAULT_ID), "The ID of the vault that the token is being deposited into."
         );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE + 1] = AuthoringMetaV2(
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE + 1] = AuthoringMetaV2(
             bytes32(WORD_DEPOSIT_VAULT_BALANCE),
             "The starting balance of the vault that the token is being deposited into, before the deposit."
         );
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] =
             AuthoringMetaV2(bytes32(WORD_DEPOSIT_AMOUNT), "The amount of the token that is being deposited.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_VAULT_BALANCE_RAW + 1] = AuthoringMetaV2(
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE_RAW + 1] = AuthoringMetaV2(
             bytes32(WORD_DEPOSIT_VAULT_BALANCE_RAW),
             "The raw (unscaled) starting balance of the vault that the token is being deposited into, before the deposit."
         );
