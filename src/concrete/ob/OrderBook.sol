@@ -361,7 +361,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 emit MetaV1_2(order.owner, orderHash, orderConfig.meta);
             }
 
-            LibOrderBook.doPost(LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash))), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
 
         return stateChange;
@@ -382,7 +385,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
 
-            LibOrderBook.doPost(LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash))), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
     }
 
