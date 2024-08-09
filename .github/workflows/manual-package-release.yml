@@ -46,7 +46,10 @@ jobs:
       - run: nix develop -c rainix-rs-prelude
       - run: nix develop -c raindex-prelude
       
-      - name: Test JS/TS Binding
+      - name: Test JS/TS Binding 1/2
+        run: nix develop -c rainix-wasm-test
+
+      - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings
 
       - name: Git Config
@@ -61,7 +64,7 @@ jobs:
 
       # set npm version to rust crate version
       - name: Set Version
-        run: echo "NEW_VERSION=$(npm version $(node ./scripts/version.js) --no-git-tag-version)" >> $GITHUB_ENV
+        run: echo "NEW_VERSION=$(node ./scripts/version.js ${{ inputs.version-level }})" >> $GITHUB_ENV
 
       # Commit changes and tag
       - name: Commit And Tag

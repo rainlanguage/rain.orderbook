@@ -36,8 +36,7 @@ dts = dts.replace(
   ""
 );
 dts = "/* this file is auto-generated, do not modify */\n" + dts;
-fs.writeFileSync(`./dist/cjs/${package}.d.ts`, dts);
-fs.writeFileSync(`./dist/esm/${package}.d.ts`, dts);
+fs.writeFileSync(`./dist/types/${package}.d.ts`, dts);
 
 // prepare cjs
 let cjs = fs.readFileSync(`./temp/node/${package}/${package}.js`, {
