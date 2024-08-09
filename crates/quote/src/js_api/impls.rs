@@ -106,25 +106,11 @@ impl From<crate::QuoteResult> for super::QuoteResult {
     }
 }
 
-impl LongRefFromWasmAbi for BatchQuoteTarget {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<BatchQuoteTarget>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(BatchQuoteTarget::from_abi(js))
-    }
-}
-
-impl LongRefFromWasmAbi for BatchQuoteSpec {
-    type Abi = <JsValue as RefFromWasmAbi>::Abi;
-    type Anchor = Box<BatchQuoteSpec>;
-    unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(BatchQuoteSpec::from_abi(js))
-    }
-}
-
 impl_wasm_traits!(QuoteSpec);
 impl_wasm_traits!(QuoteTarget);
 impl_wasm_traits!(QuoteResult);
+impl_wasm_traits!(BatchQuoteSpec);
+impl_wasm_traits!(BatchQuoteTarget);
 
 #[cfg(test)]
 mod tests {
