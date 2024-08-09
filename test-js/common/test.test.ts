@@ -1,6 +1,6 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
-import { getAddOrderCalldata } from "../../cjs";
+import { getAddOrderCalldata } from "../../dist/cjs/common";
 import { describe, it, beforeEach, afterEach } from "vitest";
 
 describe("Rain Orderbook Common Package Bindgen Tests", async function () {
