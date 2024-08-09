@@ -2,13 +2,13 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
+use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
 };
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
-use alloy_primitives::{hex::FromHexError, private::rand, Address, U256};
-use alloy_sol_types::SolCall;
 use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
@@ -144,7 +144,7 @@ impl AddOrderArgs {
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        Ok(rainlang_parsed.bytecode)
+        Ok(rainlang_parsed.bytecode.into())
     }
 
     /// Generate RainlangSource meta
@@ -208,7 +208,7 @@ impl AddOrderArgs {
         let post_evaluable = EvaluableV3 {
             interpreter: dispair.interpreter,
             store: dispair.store,
-            bytecode: post_bytecode,
+            bytecode: post_bytecode.into(),
         };
 
         let post_task = ActionV1 {
@@ -223,11 +223,11 @@ impl AddOrderArgs {
                 evaluable: EvaluableV3 {
                     interpreter: dispair.interpreter,
                     store: dispair.store,
-                    bytecode,
+                    bytecode: bytecode.into(),
                 },
-                meta,
-                nonce: alloy_primitives::private::rand::random::<U256>().into(),
-                secret: alloy_primitives::private::rand::random::<U256>().into(),
+                meta: meta.into(),
+                nonce: alloy::primitives::private::rand::random::<U256>().into(),
+                secret: alloy::primitives::private::rand::random::<U256>().into(),
             },
             post: vec![post_task],
         })
@@ -358,9 +358,9 @@ price: 2e18;
             evaluable: EvaluableV3 {
                 interpreter,
                 store,
-                bytecode: bytecode.clone(),
+                bytecode: bytecode.clone().into(),
             },
-            meta: meta.clone(),
+            meta: meta.clone().into(),
         };
 
         assert_eq!(order_config_v2.validInputs, inputs);

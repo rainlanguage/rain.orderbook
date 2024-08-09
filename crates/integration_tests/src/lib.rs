@@ -15,6 +15,7 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use alloy::providers::ext::AnvilApi;
+    use alloy::sol_types::SolCall;
     use alloy::{
         network::{EthereumWallet, TransactionBuilder},
         node_bindings::Anvil,
@@ -23,7 +24,6 @@ mod tests {
         rpc::types::TransactionRequest,
         signers::local::PrivateKeySigner,
     };
-    use alloy_sol_types::SolCall;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use Orderbook::*;
 

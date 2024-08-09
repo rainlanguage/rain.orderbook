@@ -1,5 +1,5 @@
+use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;
-use alloy_primitives::{Address, U256};
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;
 

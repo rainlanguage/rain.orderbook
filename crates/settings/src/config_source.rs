@@ -1,7 +1,7 @@
 use crate::blocks::Blocks;
 use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
 use crate::{Metric, Plot};
-use alloy_primitives::{Address, U256};
+use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;

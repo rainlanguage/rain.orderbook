@@ -7,7 +7,7 @@ import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMoc
 /// Tests the basic functionality of reading from the vault balance.
 contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// Test that reading the vault balance without deposits is always zero.
-    function testVaultBalanceNoDeposits(address token, uint256 vaultId) external {
+    function testVaultBalanceNoDeposits(address token, uint256 vaultId) external view {
         assertEq(iOrderbook.vaultBalance(address(this), token, vaultId), 0);
     }
 }

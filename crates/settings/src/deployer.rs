@@ -1,5 +1,5 @@
 use crate::*;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -18,7 +18,7 @@ pub struct Deployer {
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseDeployerConfigSourceError {
     #[error("Failed to parse address")]
-    AddressParseError(alloy_primitives::hex::FromHexError),
+    AddressParseError(alloy::primitives::hex::FromHexError),
     #[error("Network not found: {0}")]
     NetworkNotFoundError(String),
 }

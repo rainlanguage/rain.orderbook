@@ -34,6 +34,6 @@ dataSources:
           handler: handleRemoveOrder
         - event: TakeOrderV2(address,((address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),uint256,uint256,(address,uint256[],bytes)[]),uint256,uint256)
           handler: handleTakeOrder
-        - event: MetaV1(address,uint256,bytes)
+        - event: MetaV1_2(address,bytes32,bytes)
           handler: handleMeta
       file: "./src/handlers.ts"

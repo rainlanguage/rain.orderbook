@@ -16,7 +16,7 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 /// @title OrderBookQuoteTest
 contract OrderBookQuoteTest is OrderBookExternalRealTest {
     /// Dead orders always eval to false.
-    function testQuoteDeadOrder(Quote memory quoteConfig) external {
+    function testQuoteDeadOrder(Quote memory quoteConfig) external view {
         (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
         assert(!success);
         assertEq(maxOutput, 0);

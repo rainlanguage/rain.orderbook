@@ -2,6 +2,8 @@ use crate::{
     error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
+use alloy::primitives::{hex::FromHex, Address, U64};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     multicall::{
         IMulticall3::{aggregate3Call, Call3},
@@ -9,8 +11,6 @@ use alloy_ethers_typecast::{
     },
     transaction::{ReadContractParameters, ReadableClient},
 };
-use alloy_primitives::{hex::FromHex, Address, U64};
-use alloy_sol_types::SolCall;
 use rain_error_decoding::AbiDecodedErrorType;
 use rain_orderbook_bindings::IOrderBookV4::quoteCall;
 
@@ -34,7 +34,8 @@ pub async fn batch_quote(
                     callData: quoteCall {
                         quoteConfig: quote_target.quote_config.clone(),
                     }
-                    .abi_encode(),
+                    .abi_encode()
+                    .into(),
                 })
                 .collect(),
         },
@@ -68,13 +69,13 @@ pub async fn batch_quote(
 mod tests {
     use super::*;
     use crate::quote::OrderQuoteValue;
+    use alloy::primitives::{hex::encode_prefixed, U256};
+    use alloy::sol_types::SolValue;
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
     use alloy_ethers_typecast::{
         request_shim::{AlloyTransactionRequest, TransactionRequestShim},
         rpc::{eip2718::TypedTransaction, BlockNumber, Request, Response},
     };
-    use alloy_primitives::{hex::encode_prefixed, U256};
-    use alloy_sol_types::SolValue;
     use httpmock::{Method::POST, MockServer};
     use serde_json::{from_str, Value};
 
@@ -99,7 +100,8 @@ mod tests {
                     callData: quoteCall {
                         quoteConfig: quote_target.quote_config.clone(),
                     }
-                    .abi_encode(),
+                    .abi_encode()
+                    .into(),
                 })
                 .collect(),
         };
@@ -108,15 +110,16 @@ mod tests {
         let response_data = vec![
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))),
+                returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2)))
+                    .into(),
             },
             MulticallResult {
                 success: true,
-                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)),
+                returnData: quoteCall::abi_encode_returns(&(false, U256::ZERO, U256::ZERO)).into(),
             },
             MulticallResult {
                 success: false,
-                returnData: vec![],
+                returnData: vec![].into(),
             },
         ]
         .abi_encode();

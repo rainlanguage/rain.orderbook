@@ -1,9 +1,9 @@
 use crate::{BatchQuoteSpec, BatchQuoteTarget, QuoteSpec, QuoteTarget};
-use alloy_primitives::{
+use alloy::primitives::{
     hex::{decode, FromHex},
     Address, U256,
 };
-use alloy_sol_types::SolType;
+use alloy::sol_types::SolType;
 use clap::Args;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
 use std::str::FromStr;
@@ -90,7 +90,7 @@ impl Input {
 
 /// Parse and validates the input hex string bytes into [BatchQuoteSpec]
 pub fn parse_input(value: &str) -> anyhow::Result<BatchQuoteSpec> {
-    let bytes = alloy_primitives::hex::decode(value)?;
+    let bytes = alloy::primitives::hex::decode(value)?;
     if bytes.is_empty() || bytes.len() % 54 != 0 {
         return Err(anyhow::anyhow!("bad input length"));
     }
@@ -196,8 +196,8 @@ impl TryFrom<&Vec<String>> for BatchQuoteSpec {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::hex::encode_prefixed;
-    use alloy_sol_types::SolValue;
+    use alloy::primitives::hex::encode_prefixed;
+    use alloy::sol_types::SolValue;
     use rain_orderbook_bindings::IOrderBookV4::EvaluableV3;
 
     #[test]
@@ -261,14 +261,14 @@ mod tests {
         let orderbook2 = Address::random();
         let order1 = OrderV3 {
             evaluable: EvaluableV3 {
-                bytecode: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0],
+                bytecode: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0].into(),
                 ..Default::default()
             },
             ..Default::default()
         };
         let order2 = OrderV3 {
             evaluable: EvaluableV3 {
-                bytecode: vec![0xa, 0xb, 0xc, 0xd, 0xe, 0xf],
+                bytecode: vec![0xa, 0xb, 0xc, 0xd, 0xe, 0xf].into(),
                 ..Default::default()
             },
             ..Default::default()
