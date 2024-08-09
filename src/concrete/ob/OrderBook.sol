@@ -288,25 +288,32 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 LibOrderBook.doPost(
                     LibUint256Matrix.matrixFrom(
                         LibUint256Array.arrayFrom(
-                            uint256(uint160(token)), vaultId, LibFixedPointDecimalScale.scale18(
+                            uint256(uint160(token)),
+                            vaultId,
+                            LibFixedPointDecimalScale.scale18(
                                 currentVaultBalance,
                                 tokenDecimals,
                                 // Error on overflow.
                                 // Rounding down is the default.
                                 0
-                            ), LibFixedPointDecimalScale.scale18(
+                            ),
+                            LibFixedPointDecimalScale.scale18(
                                 withdrawAmount,
                                 tokenDecimals,
                                 // Error on overflow.
                                 // Rounding down is the default.
                                 0
-                            ), LibFixedPointDecimalScale.scale18(
+                            ),
+                            LibFixedPointDecimalScale.scale18(
                                 targetAmount,
                                 tokenDecimals,
                                 // Error on overflow.
                                 // Rounding down is the default.
                                 0
-                            ), currentVaultBalance, withdrawAmount, targetAmount
+                            ),
+                            currentVaultBalance,
+                            withdrawAmount,
+                            targetAmount
                         )
                     ),
                     post
