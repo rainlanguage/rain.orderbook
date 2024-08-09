@@ -32,21 +32,21 @@ fs.writeFileSync(
 ${packages.map((v) => `const ${v} = require("./${v}");`).join("\n")}
 
 module.exports = {
-    ${packages.map((v) => `...${v}`).join(",\n")}
+    ${packages.map((v) => `${v}`).join(",\n    ")}
 };
 `
 );
 fs.writeFileSync(
   "./dist/cjs/index.d.ts",
-  packages.map((v) => `export * from "./${v}";`).join("\n")
+  packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
 );
 fs.writeFileSync(
   "./dist/esm/index.js",
-  packages.map((v) => `export * from "./${v}";`).join("\n")
+  packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
 );
 fs.writeFileSync(
   "./dist/esm/index.d.ts",
-  packages.map((v) => `export * from "./${v}";`).join("\n")
+  packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
 );
 
 // lint the generated js/dts files

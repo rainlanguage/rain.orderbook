@@ -1,6 +1,6 @@
 import assert from "assert";
 import { describe, it } from "vitest";
-import { getOrderHash, OrderV3 } from "../../cjs";
+import { getOrderHash, OrderV3 } from "../../dist/cjs/quote";
 
 describe("Rain Orderbook Bindings Package Bindgen Tests", async function () {
   it("should get correct order hash", async () => {
@@ -61,6 +61,7 @@ describe("Rain Orderbook Bindings Package Bindgen Tests", async function () {
       getOrderHash(order);
       assert.fail("expected to error, but resolved");
     } catch (error) {
+      console.log(error);
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes("owner address, Invalid string length"));
     }

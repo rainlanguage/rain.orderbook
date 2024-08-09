@@ -3,12 +3,12 @@ import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
 import {
   getId,
-  getQuoteTargetFromSubgraph,
-  doQuoteTargets,
-  QuoteTarget,
   QuoteSpec,
+  QuoteTarget,
+  doQuoteTargets,
   OrderQuoteValue,
-} from "../../cjs";
+  getQuoteTargetFromSubgraph,
+} from "../../dist/cjs/quote";
 
 describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
   const mockServer = getLocal();
