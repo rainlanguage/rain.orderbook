@@ -6,6 +6,7 @@ import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointDecimalConstants.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
@@ -19,6 +20,7 @@ import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
+import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
@@ -207,19 +209,55 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit2(address token, uint256 vaultId, uint256 amount, ActionV1[] calldata post) external nonReentrant {
-        if (amount == 0) {
+    function deposit2(address token, uint256 vaultId, uint256 depositAmount, ActionV1[] calldata post)
+        external
+        nonReentrant
+    {
+        if (depositAmount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
-        emit Deposit(msg.sender, token, vaultId, amount);
+        emit Deposit(msg.sender, token, vaultId, depositAmount);
         //slither-disable-next-line reentrancy-benign
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        sVaultBalances[msg.sender][token][vaultId] += amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
+        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance + depositAmount;
 
-        LibOrderBook.doPost(new uint256[][](0), post);
+        if (post.length != 0) {
+            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+            // It's incredibly common anyway. Please let us know if this actually a
+            // problem in practice.
+            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+            uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
+                currentVaultBalance,
+                tokenDecimals,
+                // Error on overflow.
+                // Rounding down is the default.
+                0
+            );
+            uint256 depositAmount18 = LibFixedPointDecimalScale.scale18(
+                depositAmount,
+                tokenDecimals,
+                // Error on overflow.
+                // Rounding down is the default.
+                0
+            );
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)),
+                        vaultId,
+                        currentVaultBalance18,
+                        depositAmount18,
+                        currentVaultBalance,
+                        depositAmount
+                    )
+                ),
+                post
+            );
+        }
     }
 
     /// @inheritdoc IOrderBookV4
@@ -241,7 +279,46 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            if (post.length != 0) {
+                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+                // It's incredibly common anyway. Please let us know if this actually a
+                // problem in practice.
+                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+
+                LibOrderBook.doPost(
+                    LibUint256Matrix.matrixFrom(
+                        LibUint256Array.arrayFrom(
+                            uint256(uint160(token)),
+                            vaultId,
+                            LibFixedPointDecimalScale.scale18(
+                                currentVaultBalance,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            LibFixedPointDecimalScale.scale18(
+                                withdrawAmount,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            LibFixedPointDecimalScale.scale18(
+                                targetAmount,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            currentVaultBalance,
+                            withdrawAmount,
+                            targetAmount
+                        )
+                    ),
+                    post
+                );
+            }
         }
     }
 
@@ -284,7 +361,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 emit MetaV1_2(order.owner, orderHash, orderConfig.meta);
             }
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
 
         return stateChange;
@@ -305,7 +385,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
     }
 

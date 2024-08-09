@@ -12,8 +12,12 @@ import {
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
+import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
+    using Strings for address;
+    using Strings for uint256;
 
     mapping(bytes32 => bool) nonces;
 
@@ -154,5 +158,35 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         assert(!iOrderbook.orderExists(order.hash()));
+    }
+
+    function testAddOrderContext(address alice, OrderConfigV3 memory config) external {
+        // Need this conform here so that the order doesn't get mutated and
+        // change the hash.
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+
+        string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
+
+        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        bytes32 orderHash = order.hash();
+
+        bytes[] memory evals = new bytes[](3);
+        evals[0] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(orderbook() ", address(iOrderbook).toHexString(), ") \"orderbook\");"
+            )
+        );
+        evals[1] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(order-hash() ", uint256(orderHash).toHexString(), ") \"order-hash\");"
+            )
+        );
+        evals[2] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(order-owner() ", address(alice).toHexString(), ") \"order-owner\");"
+            )
+        );
+
+        checkAddOrder(alice, config, evals, 0, 0);
     }
 }
