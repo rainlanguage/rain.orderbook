@@ -13,6 +13,7 @@ fs.writeFileSync("./esm.d.ts", 'export * from "./dist/esm/index";\n');
 // create dist dir
 fs.mkdirSync("./dist/cjs", { recursive: true });
 fs.mkdirSync("./dist/esm", { recursive: true });
+fs.mkdirSync("./dist/types", { recursive: true });
 
 // build for wasm32 target
 execSync("npm run build-wasm");
@@ -37,15 +38,11 @@ module.exports = {
 `
 );
 fs.writeFileSync(
-  "./dist/cjs/index.d.ts",
+  "./dist/types/index.d.ts",
   packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
 );
 fs.writeFileSync(
   "./dist/esm/index.js",
-  packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
-);
-fs.writeFileSync(
-  "./dist/esm/index.d.ts",
   packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
 );
 

@@ -61,7 +61,6 @@ describe("Rain Orderbook Bindings Package Bindgen Tests", async function () {
       getOrderHash(order);
       assert.fail("expected to error, but resolved");
     } catch (error) {
-      console.log(error);
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes("owner address, Invalid string length"));
     }
