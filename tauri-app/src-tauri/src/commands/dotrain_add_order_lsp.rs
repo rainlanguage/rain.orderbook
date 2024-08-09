@@ -1,5 +1,5 @@
 use crate::error::CommandResult;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use rain_orderbook_common::{
     dotrain::types::ast::Problem,
     dotrain_add_order_lsp::DotrainAddOrderLsp,

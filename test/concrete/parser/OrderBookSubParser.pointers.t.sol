@@ -12,7 +12,7 @@ import {
 import {LibGenParseMeta} from "rain.sol.codegen/lib/LibGenParseMeta.sol";
 
 contract OrderBookSubParserPointersTest is Test {
-    function testSubParserParseMeta() external {
+    function testSubParserParseMeta() external pure {
         bytes memory authoringMetaBytes = LibOrderBookSubParser.authoringMetaV2();
         AuthoringMetaV2[] memory authoringMeta = abi.decode(authoringMetaBytes, (AuthoringMetaV2[]));
         bytes memory expected = LibGenParseMeta.buildParseMetaV2(authoringMeta, 2);
@@ -34,7 +34,7 @@ contract OrderBookSubParserPointersTest is Test {
         assertEq(actual, expected);
     }
 
-    function testWordOperandLengthEquivalence() external {
+    function testWordOperandLengthEquivalence() external pure {
         assertEq(SUB_PARSER_WORD_PARSERS.length, SUB_PARSER_OPERAND_HANDLERS.length);
         assertEq(
             SUB_PARSER_PARSE_META.length,

@@ -10,11 +10,8 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "d9bd0fe8360d803ed3e58b34063890c8775999f2" }
-alloy-sol-types = "0.6.3"
-alloy-primitives = "0.6.3"
-alloy-json-abi = "0.6.3"
-alloy-dyn-abi = "0.6.3"
+alloy = { version = "0.2.1" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "ced1a91f0c1e235dbce235caae4b4528d1504ec2" }
 anyhow = "1.0.70"
 async-trait = "0.1.77"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
@@ -54,7 +51,7 @@ thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-orderbook-env = { path = "crates/env" }
-rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "7f50b2c05eb41a77ee925ebe80fe49420a2b5b80" }
+rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "c248da5686c9f8e0cdd7722d4773e6f9ba9edacc" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
 
 [workspace.dependencies.rain_orderbook_bindings]

@@ -126,7 +126,7 @@ impl ScenarioConfigSource {
 
 mod tests {
     use crate::test::mock_deployer;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
     use url::Url;
 
     use super::*;

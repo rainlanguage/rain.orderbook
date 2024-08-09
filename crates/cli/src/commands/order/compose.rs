@@ -23,6 +23,10 @@ pub struct Compose {
     #[arg(short = 's', long, help = "The name of the scenario to use")]
     scenario: String,
 
+    // whether to compose the post task
+    #[arg(short = 'p', long, help = "Compose the post task")]
+    post: bool,
+
     // supported encoding
     #[arg(short = 'o', long, help = "Output encoding", default_value = "binary")]
     encoding: SupportedOutputEncoding,
@@ -37,10 +41,18 @@ impl Execute for Compose {
             }
             None => None,
         };
-        let rainlang = DotrainOrder::new(dotrain, settings)
-            .await?
-            .compose_scenario_to_rainlang(self.scenario.clone())
-            .await?;
+
+        let order = DotrainOrder::new(dotrain, settings).await?;
+
+        let rainlang = if self.post {
+            order
+                .compose_scenario_to_post_task_rainlang(self.scenario.clone())
+                .await?
+        } else {
+            order
+                .compose_scenario_to_rainlang(self.scenario.clone())
+                .await?
+        };
 
         output(&None, self.encoding.clone(), rainlang.as_bytes())?;
 
