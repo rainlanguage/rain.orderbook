@@ -14,8 +14,6 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
-import {console2} from "forge-std/Test.sol";
-
 contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
     using Strings for address;
