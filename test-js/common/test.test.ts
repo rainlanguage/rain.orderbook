@@ -68,7 +68,10 @@ deployments:
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;`;
+:;
+#post-add-order
+:;
+`;
 
   it("should get correct calldata", async () => {
     // mock calls
@@ -97,7 +100,7 @@ _ _: 0 0;
       );
 
     const result = await getAddOrderCalldata(dotrain, "some-deployment");
-    assert.equal(result.length, 868);
+    assert.equal(result.length, 1156);
   });
 
   it("should throw undefined deployment error", async () => {
@@ -119,7 +122,10 @@ deployers:
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;`;
+:;
+#post-add-order
+:;
+`;
       await getAddOrderCalldata(dotrain, "some-deployment");
       assert.fail("expected to fail, but resolved");
     } catch (error) {

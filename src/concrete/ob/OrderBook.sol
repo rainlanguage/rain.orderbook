@@ -25,7 +25,7 @@ import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpr
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
-import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
+import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 
 import {
@@ -165,7 +165,7 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
+contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV3;
@@ -354,7 +354,7 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             // that the meta self describes as a Rain meta document.
             if (orderConfig.meta.length > 0) {
                 LibMeta.checkMetaUnhashedV1(orderConfig.meta);
-                emit MetaV1(order.owner, uint256(orderHash), orderConfig.meta);
+                emit MetaV1_2(order.owner, orderHash, orderConfig.meta);
             }
 
             LibOrderBook.doPost(LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash))), post);

@@ -1,5 +1,5 @@
+use alloy::primitives::hex::FromHexError;
 use alloy_ethers_typecast::transaction::ReadableClientError;
-use alloy_primitives::hex::FromHexError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;
@@ -28,5 +28,5 @@ pub enum Error {
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
-    AlloySolTypesError(#[from] alloy_sol_types::Error),
+    AlloySolTypesError(#[from] alloy::sol_types::Error),
 }

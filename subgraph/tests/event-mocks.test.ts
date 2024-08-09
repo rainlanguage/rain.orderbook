@@ -9,7 +9,7 @@ import {
 import {
   AddOrderV2,
   Deposit,
-  MetaV1,
+  MetaV1_2,
   RemoveOrderV2,
   TakeOrderV2,
 } from "../generated/OrderBook/OrderBook";
@@ -294,11 +294,11 @@ export function createTakeOrderEvent(
 // event MetaV1(address sender, uint256 subject, bytes meta);
 export function createMetaEvent(
   sender: Address,
-  subject: BigInt,
+  subject: Bytes,
   meta: Bytes
-): MetaV1 {
+): MetaV1_2 {
   let mockEvent = newMockEvent();
-  let metaEvent = new MetaV1(
+  let metaEvent = new MetaV1_2(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -315,7 +315,7 @@ export function createMetaEvent(
   metaEvent.parameters.push(
     new ethereum.EventParam(
       "subject",
-      ethereum.Value.fromUnsignedBigInt(subject)
+      ethereum.Value.fromBytes(subject)
     )
   );
   metaEvent.parameters.push(

@@ -1,4 +1,4 @@
-use alloy_primitives::hex::{decode, FromHexError};
+use alloy::primitives::hex::{decode, FromHexError};
 use rain_metadata::{Error as RainMetadataError, KnownMagic, RainMetaDocumentV1Item};
 use rain_orderbook_subgraph_client::types::order_detail::RainMetaV1;
 use std::string::FromUtf8Error;

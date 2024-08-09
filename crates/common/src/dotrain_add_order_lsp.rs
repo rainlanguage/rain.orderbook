@@ -3,7 +3,7 @@ use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 #[cfg(not(target_family = "wasm"))]
 use crate::rainlang::parse_rainlang_on_fork;
 #[cfg(not(target_family = "wasm"))]
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use dotrain::Rebind;
 #[cfg(not(target_family = "wasm"))]
 use dotrain::{
