@@ -13,12 +13,14 @@ import {
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {console2} from "forge-std/Test.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 /// @title OrderBookQuoteTest
 contract OrderBookQuoteTest is OrderBookExternalRealTest {
     using Strings for address;
+    using Strings for uint256;
 
     /// Dead orders always eval to false.
     function testQuoteDeadOrder(Quote memory quoteConfig) external view {
@@ -39,7 +41,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         config.validOutputs[0].token = address(iToken0);
-        config.validOutputs[0].decimals = 18;
+        config.validOutputs[0].decimals = 12;
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12));
+
         config.validInputs[0].token = address(iToken1);
         config.validInputs[0].decimals = 6;
         vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
@@ -55,6 +59,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
+            console2.log(i);
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
             iOrderbook.addOrder2(config, new ActionV1[](0));
@@ -109,7 +114,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
     /// Can access context.
     function testQuoteContextSender(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
-        depositAmount = bound(depositAmount, 1e18, type(uint256).max);
+        // Max amount needs to be small enough to be scaled up to 18 decimals
+        // from 12 decimals.
+        depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -140,8 +147,15 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         // vault io vault id
         // not easy to test with this setup
         // rainlang[6] = "_ _:1 context<3 2>();:;";
-        // vault io balance before
-        rainlang[6] = "_ _:1 context<3 3>();:;";
+        // input vault balance before
+        rainlang[6] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(input-vault-before() context<3 3>()) \"input vault before\"),",
+                ":ensure(equal-to(input-vault-before() 0) \"input vault before literal\"),",
+                "_ _:1 context<3 3>();:;"
+            )
+        );
         // outputs
         // vault output token
         rainlang[7] = "_ _:1 context<4 0>();:;";
@@ -150,15 +164,24 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(output-token-decimals() context<4 1>()) \"output decimals\"),",
-                ":ensure(equal-to(output-token-decimals() 18) \"output decimals literal\"),",
+                ":ensure(equal-to(output-token-decimals() 12) \"output decimals literal\"),",
                 "_ _:1 context<4 1>();:;"
             )
         );
         // vault io vault id
         // not easy to test with this setup
         // rainlang[9] = "_ _:1 context<4 2>();:;";
-        // vault io balance before
-        rainlang[9] = "_ _:1 context<4 3>();:;";
+        // output vault balance before
+        rainlang[9] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(output-vault-before() context<4 3>()) \"output vault before\"),",
+                ":ensure(equal-to(output-vault-before() ",
+                depositAmount.toString(),
+                "e-12) \"output vault before literal\"),",
+                "_ _:1 context<4 3>();:;"
+            )
+        );
 
         uint256[] memory expectedMaxOutput = new uint256[](10);
         expectedMaxOutput[0] = 1e18;
@@ -182,8 +205,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         expectedIoRatio[5] = 6e18;
         expectedIoRatio[6] = 0;
         expectedIoRatio[7] = uint256(uint160(address(iToken0)));
-        expectedIoRatio[8] = 18e18;
-        expectedIoRatio[9] = depositAmount;
+        expectedIoRatio[8] = 12e18;
+        // Output decimals scaled to 18 fixed point value from 12.
+        expectedIoRatio[9] = depositAmount * 1e6;
 
         checkQuote(owner, config, rainlang, depositAmount, expectedMaxOutput, expectedIoRatio);
     }

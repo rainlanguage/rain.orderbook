@@ -9,7 +9,7 @@
 pragma solidity =0.8.25;
 
 /// @dev Hash of the known bytecode.
-bytes32 constant BYTECODE_HASH = bytes32(0xf8d804a6f741a21c63ef4bfe2330c4eeaee58c3ec6caaf63657f41e6d862f4a0);
+bytes32 constant BYTECODE_HASH = bytes32(0xfbe2477fae3551bf8cacbe8873a061dfee30460a9243a21c0a055b8ec84a3877);
 
 /// @dev The hash of the meta that describes the contract.
 bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x37096fdde7b025c34cf7d2774f97f0fbb7711051fe45d959b7d34acadc31e4ee);
@@ -31,7 +31,7 @@ bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x37096fdde7b025c34cf7d2774f97
 /// bit count of the previous bloom filter. If we reach the end of the bloom
 /// filters then we have a miss.
 bytes constant PARSE_META =
-    hex"01004800040040420206180010a00040003806204008040820840086010100000030088de69a165139fb02c9be1f14361d851dc13efa18bc2b16131296c8116682f50b6f6a660584c8d41c02582b1ad22c2f06bbcde61ea8967915b4f4091283156f0109ac301087b0c70398cd201f611967211923d122dd2b8317c02b171b3926a52035ccb90ea9bcef19d276fe0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
+    hex"010f400000028002c04430408080100088204004040001c04122021002014400002204bf47e41a19b4d70efcb25710917c780d8a999e00070e0c1bf88d921681b49419da75e908a426f7079c5bad20ce2f881edef4a21492cb9c172eb0931504342f01f5e3e51cc18c8712e8d28313b32a0b21b6e80f02af2c090611d3b80c5121240906775105ed58f018fc66531ff92d2111def2391d669daf0f6787972275a57f0aaef47f03bd62390bccc2da";
 
 /// @dev The build depth of the parser meta.
 
