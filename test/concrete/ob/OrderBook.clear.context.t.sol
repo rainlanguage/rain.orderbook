@@ -113,8 +113,14 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
         vm.prank(alice);
         iOrderbook.addOrder2(configAlice, new ActionV1[](0));
 
+        vm.prank(alice);
+        iOrderbook.deposit2(configAlice.validOutputs[0].token, configAlice.validOutputs[0].vaultId, 100e6, new ActionV1[](0));
+
         vm.prank(bob);
         iOrderbook.addOrder2(configBob, new ActionV1[](0));
+
+        vm.prank(bob);
+        iOrderbook.deposit2(configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, 100e12, new ActionV1[](0));
 
         iOrderbook.clear2(
             orderAlice, orderBob, ClearConfig(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)
