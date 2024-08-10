@@ -9,10 +9,10 @@
 pragma solidity =0.8.25;
 
 /// @dev Hash of the known bytecode.
-bytes32 constant BYTECODE_HASH = bytes32(0x05cef3d0f9099c7d722e30cf2f8dbe8db87ad991600c5d011bf0c8d2673ba62d);
+bytes32 constant BYTECODE_HASH = bytes32(0xf8d804a6f741a21c63ef4bfe2330c4eeaee58c3ec6caaf63657f41e6d862f4a0);
 
 /// @dev The hash of the meta that describes the contract.
-bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd049627a3a1f49857ec6a26c8bcc6da98b05bd4696);
+bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x37096fdde7b025c34cf7d2774f97f0fbb7711051fe45d959b7d34acadc31e4ee);
 
 /// @dev The parse meta that is used to lookup word definitions.
 /// The structure of the parse meta is:
@@ -31,7 +31,7 @@ bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xa90cf581ab38cb58f1502cd04962
 /// bit count of the previous bloom filter. If we reach the end of the bloom
 /// filters then we have a miss.
 bytes constant PARSE_META =
-    hex"01004800040040420204100000000000001806000008000020840000000100000010088de69a02c9be1f116682f50b6f6a660584c8d406bbcde61283156f0109ac301087b0c70398cd200ea9bcef0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
+    hex"01004800040040420206180010a00040003806204008040820840086010100000030088de69a165139fb02c9be1f14361d851dc13efa18bc2b16131296c8116682f50b6f6a660584c8d41c02582b1ad22c2f06bbcde61ea8967915b4f4091283156f0109ac301087b0c70398cd201f611967211923d122dd2b8317c02b171b3926a52035ccb90ea9bcef19d276fe0a865655075e0bc300d3b4e80f8316290de78f2e0c9fc5d509a7e6560427db4a";
 
 /// @dev The build depth of the parser meta.
 
@@ -43,13 +43,13 @@ uint8 constant PARSE_META_BUILD_DEPTH = 1;
 /// to things that happen entirely on the interpreter such as well known
 /// constants and references to the context grid.
 bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"1040105d106c107b108a109a10a910b910c810d810e810f71107111611261136114611551164";
+    hex"1962197f198e199d19ac19bc19cb19db19ea19fa1a0a1a191a291a381a481a581a681a771a861962198e199d19ac1abb1acb1adb1962198e199d19ac1abb1acb1adb1aeb1afb";
 
 /// @dev Every two bytes is a function pointer for an operand handler.
 /// These positional indexes all map to the same indexes looked up in the parse
 /// meta.
 bytes constant OPERAND_HANDLER_FUNCTION_POINTERS =
-    hex"12a612a612a612a612a612a612a612a612a612a612a612a612a612a612a612a612a612e81375";
+    hex"1c181c181c181c181c181c181c181c181c181c181c181c181c181c181c181c181c181c5a1ce71c181c181c181c181c181c181c181c181c181c181c181c181c181c181c181c18";
 
 /// @dev Every two bytes is a function pointer for a literal parser.
 /// Literal dispatches are determined by the first byte(s) of the literal
