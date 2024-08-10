@@ -747,25 +747,30 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     uint256(orderHash), uint256(uint160(order.owner)), uint256(uint160(counterparty))
                 );
 
-                callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order.validInputs[inputIOIndex].token)),
-                    order.validInputs[inputIOIndex].decimals,
-                    order.validInputs[inputIOIndex].vaultId,
-                    sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
-                        .vaultId],
-                    // Don't know the balance diff yet!
-                    0
-                );
+                {
+                    callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                        uint256(uint160(order.validInputs[inputIOIndex].token)),
+                        order.validInputs[inputIOIndex].decimals * 1e18,
+                        order.validInputs[inputIOIndex].vaultId,
+                        sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
+                            .vaultId],
+                        // Don't know the balance diff yet!
+                        0
+                    );
+                }
 
-                callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order.validOutputs[outputIOIndex].token)),
-                    order.validOutputs[outputIOIndex].decimals,
-                    order.validOutputs[outputIOIndex].vaultId,
-                    sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
-                        .vaultId],
-                    // Don't know the balance diff yet!
-                    0
-                );
+                {
+                    callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                        uint256(uint160(order.validOutputs[outputIOIndex].token)),
+                        order.validOutputs[outputIOIndex].decimals * 1e18,
+                        order.validOutputs[outputIOIndex].vaultId,
+                        sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
+                            .vaultId],
+                        // Don't know the balance diff yet!
+                        0
+                    );
+                }
+
                 context = LibContext.build(callingContext, signedContext);
             }
 
