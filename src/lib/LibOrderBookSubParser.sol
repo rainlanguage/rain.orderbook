@@ -62,13 +62,13 @@ bytes constant WORD_CALCULATED_IO_RATIO = "calculated-io-ratio";
 bytes constant WORD_INPUT_TOKEN = "input-token";
 bytes constant WORD_INPUT_TOKEN_DECIMALS = "input-token-decimals";
 bytes constant WORD_INPUT_VAULT_ID = "input-vault-id";
-bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "uint256-input-vault-before";
-bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "uint256-input-vault-increase";
+bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "input-vault-before";
+bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "input-vault-increase";
 bytes constant WORD_OUTPUT_TOKEN = "output-token";
 bytes constant WORD_OUTPUT_TOKEN_DECIMALS = "output-token-decimals";
 bytes constant WORD_OUTPUT_VAULT_ID = "output-vault-id";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "uint256-output-vault-before";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "uint256-output-vault-decrease";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "output-vault-before";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "output-vault-decrease";
 
 bytes constant WORD_DEPOSITOR = "depositor";
 bytes constant WORD_DEPOSIT_TOKEN = "deposit-token";

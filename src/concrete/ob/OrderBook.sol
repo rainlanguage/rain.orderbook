@@ -50,6 +50,7 @@ import {
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
     CONTEXT_VAULT_IO_BALANCE_DIFF,
+    CONTEXT_VAULT_IO_TOKEN_DECIMALS,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_VAULT_IO_TOKEN,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
@@ -748,24 +749,30 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 );
 
                 {
+                    uint256 inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order
+                        .validInputs[inputIOIndex].vaultId];
                     callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
                         uint256(uint160(order.validInputs[inputIOIndex].token)),
                         order.validInputs[inputIOIndex].decimals * 1e18,
                         order.validInputs[inputIOIndex].vaultId,
-                        sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
-                            .vaultId],
+                        LibFixedPointDecimalScale.scale18(
+                            inputTokenVaultBalance, order.validInputs[inputIOIndex].decimals, 0
+                        ),
                         // Don't know the balance diff yet!
                         0
                     );
                 }
 
                 {
+                    uint256 outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex]
+                        .token][order.validOutputs[outputIOIndex].vaultId];
                     callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
                         uint256(uint160(order.validOutputs[outputIOIndex].token)),
                         order.validOutputs[outputIOIndex].decimals * 1e18,
                         order.validOutputs[outputIOIndex].vaultId,
-                        sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
-                            .vaultId],
+                        LibFixedPointDecimalScale.scale18(
+                            outputTokenVaultBalance, order.validOutputs[outputIOIndex].decimals, 0
+                        ),
                         // Don't know the balance diff yet!
                         0
                     );
@@ -854,8 +861,24 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
     function recordVaultIO(uint256 input, uint256 output, OrderIOCalculationV2 memory orderIOCalculation) internal {
-        orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input;
-        orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output;
+        unchecked {
+            orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibFixedPointDecimalScale.scale18(
+                input,
+                orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
+                0
+            );
+            orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibFixedPointDecimalScale.scale18(
+                output,
+                orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
+                // Round outputs diff up if the scaling causes a rounding error.
+                // This only happens if the token has more than 18 decimals.
+                // Generally it's safer to overestimate output than
+                // underestimate.
+                FLAG_ROUND_UP
+            );
+        }
 
         if (input > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
