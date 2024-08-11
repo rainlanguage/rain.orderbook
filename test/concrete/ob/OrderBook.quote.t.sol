@@ -13,7 +13,6 @@ import {
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {console2} from "forge-std/Test.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
@@ -59,7 +58,6 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
-            console2.log(i);
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
             iOrderbook.addOrder2(config, new ActionV1[](0));

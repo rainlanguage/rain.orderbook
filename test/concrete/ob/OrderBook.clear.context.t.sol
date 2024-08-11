@@ -163,9 +163,6 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
-        // configAlice.evaluable.bytecode = iParserV2.parse2(rainStringAlice);
-        // configBob.evaluable.bytecode = iParserV2.parse2(rainStringBob);
-
         OrderV3 memory orderAlice =
             OrderV3(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
         OrderV3 memory orderBob =
