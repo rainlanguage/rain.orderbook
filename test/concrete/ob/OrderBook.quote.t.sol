@@ -74,8 +74,8 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 Quote({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
             (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
             assert(success);
-            assertEq(maxOutput, expectedMaxOutput[i]);
-            assertEq(ioRatio, expectedIoRatio[i]);
+            assertEq(maxOutput, expectedMaxOutput[i], "max output");
+            assertEq(ioRatio, expectedIoRatio[i], "io ratio");
         }
     }
 
@@ -100,14 +100,14 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     }
 
     function testQuoteSimple(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
-        depositAmount = bound(depositAmount, 1e18, type(uint256).max);
+        depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);
         checkQuote(owner, config, "_ _:1 2;", depositAmount, 1e18, 2e18);
     }
 
     /// The output will be maxed at the deposit in the vault.
     function testQuoteMaxOutput(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
-        depositAmount = bound(depositAmount, 1, 1e18);
-        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount, 2e18);
+        depositAmount = bound(depositAmount, 1, 1e12);
+        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount * 1e6, 2e18);
     }
 
     /// Can access context.
