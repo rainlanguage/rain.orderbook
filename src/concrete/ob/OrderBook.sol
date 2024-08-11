@@ -872,7 +872,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             LibFixedPointDecimalScale.scale18(
                 output,
                 orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
-                0
+                // Round outputs diff up if the scaling causes a rounding error.
+                // This only happens if the token has more than 18 decimals.
+                // Generally it's safer to overestimate output than
+                // underestimate.
+                FLAG_ROUND_UP
             );
         }
 
