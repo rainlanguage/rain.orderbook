@@ -17,8 +17,6 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
-import {console2} from "forge-std/Test.sol";
-
 contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
