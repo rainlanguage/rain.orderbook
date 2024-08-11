@@ -38,7 +38,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
         bytes memory rainStringAlice = bytes(
             string.concat(
                 usingWordsFrom,
-                "_ _:1 1;",
+                "_ _:5 2;",
                 ":ensure(equal-to(input-token() ",
                 address(iToken0).toHexString(),
                 ") \"input token\"),",
@@ -66,7 +66,9 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
                 ") \"Alice\"),",
                 ":ensure(equal-to(order-counterparty() ",
                 bob.toHexString(),
-                ") \"Bob\");"
+                ") \"Bob\"),",
+                ":ensure(equal-to(calculated-io-ratio() 2) \"alice io ratio\"),",
+                ":ensure(equal-to(calculated-max-output() 5) \"alice max output\");"
             )
         );
 
@@ -74,7 +76,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             string.concat(
                 string.concat(
                     usingWordsFrom,
-                    "_ _:1 1;",
+                    "_ _:3 0.5;",
                     ":ensure(equal-to(input-token() ",
                     address(iToken1).toHexString(),
                     ") \"input token\"),",
@@ -103,7 +105,10 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
                 ") \"Bob\"),",
                 ":ensure(equal-to(order-counterparty() ",
                 alice.toHexString(),
-                ") \"Alice\");"
+                ") \"Alice\"),",
+                ":ensure(equal-to(calculated-io-ratio() 0.5) \"bob io ratio\"),",
+                // ":ensure(equal-to(output-vault-decrease() 3) \"bob output vault decrease\"),",
+                ":ensure(equal-to(calculated-max-output() 3) \"bob max output\");"
             )
         );
 
