@@ -68,6 +68,8 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
                 bob.toHexString(),
                 ") \"Bob\"),",
                 ":ensure(equal-to(calculated-io-ratio() 2) \"alice io ratio\"),",
+                ":ensure(equal-to(output-vault-decrease() 1.5) \"alice output vault decrease\"),",
+                ":ensure(equal-to(input-vault-increase() 3) \"alice input vault increase\"),",
                 ":ensure(equal-to(calculated-max-output() 5) \"alice max output\");"
             )
         );
@@ -107,7 +109,8 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
                 alice.toHexString(),
                 ") \"Alice\"),",
                 ":ensure(equal-to(calculated-io-ratio() 0.5) \"bob io ratio\"),",
-                // ":ensure(equal-to(output-vault-decrease() 3) \"bob output vault decrease\"),",
+                ":ensure(equal-to(output-vault-decrease() 3) \"bob output vault decrease\"),",
+                ":ensure(equal-to(input-vault-increase() 1.5) \"bob input vault increase\"),",
                 ":ensure(equal-to(calculated-max-output() 3) \"bob max output\");"
             )
         );
