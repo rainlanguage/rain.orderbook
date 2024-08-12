@@ -251,7 +251,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
-        bytes[] memory evals = new bytes[](10);
+        bytes[] memory evals = new bytes[](7);
         evals[0] = bytes(
             string.concat(
                 usingWordsFrom,
@@ -304,33 +304,6 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 ":ensure(equal-to(withdraw-target-amount() ",
                 targetAmount.toString(),
                 "e-6) \"target amount\");"
-            )
-        );
-        // vault balance raw
-        evals[7] = bytes(
-            string.concat(
-                usingWordsFrom,
-                ":ensure(equal-to(withdraw-vault-balance-raw() ",
-                depositAmount.toString(),
-                "e-18) \"vault balance raw\");"
-            )
-        );
-        // amount raw
-        evals[8] = bytes(
-            string.concat(
-                usingWordsFrom,
-                ":ensure(equal-to(withdraw-amount-raw() ",
-                withdrawAmount.toString(),
-                "e-18) \"amount raw\");"
-            )
-        );
-        // target amount raw
-        evals[9] = bytes(
-            string.concat(
-                usingWordsFrom,
-                ":ensure(equal-to(withdraw-target-amount-raw() ",
-                targetAmount.toString(),
-                "e-18) \"target amount raw\");"
             )
         );
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));

@@ -251,9 +251,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         uint256(uint160(token)),
                         vaultId,
                         currentVaultBalance18,
-                        depositAmount18,
-                        currentVaultBalance,
-                        depositAmount
+                        depositAmount18
                     )
                 ),
                 post
@@ -311,10 +309,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                                 // Error on overflow.
                                 // Rounding down is the default.
                                 0
-                            ),
-                            currentVaultBalance,
-                            withdrawAmount,
-                            targetAmount
+                            )
                         )
                     ),
                     post

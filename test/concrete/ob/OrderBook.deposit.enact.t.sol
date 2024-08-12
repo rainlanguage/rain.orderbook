@@ -152,7 +152,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
-        bytes[] memory evals = new bytes[](8);
+        bytes[] memory evals = new bytes[](6);
         evals[0] = bytes(
             string.concat(
                 usingWordsFrom,
@@ -196,22 +196,6 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 ":ensure(equal-to(deposit-amount() ",
                 depositAmount.toString(),
                 "e-6) \"amount is depositAmount\");"
-            )
-        );
-        evals[6] = bytes(
-            string.concat(
-                usingWordsFrom,
-                ":ensure(equal-to(deposit-vault-balance-raw() ",
-                preDepositAmount.toString(),
-                "e-18) \"vault balance raw is predeposit\");"
-            )
-        );
-        evals[7] = bytes(
-            string.concat(
-                usingWordsFrom,
-                ":ensure(equal-to(deposit-amount-raw() ",
-                depositAmount.toString(),
-                "e-18) \"amount raw is depositAmount\");"
             )
         );
 
