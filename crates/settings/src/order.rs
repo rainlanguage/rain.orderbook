@@ -1,5 +1,5 @@
 use crate::*;
-use alloy_primitives::U256;
+use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -44,7 +44,7 @@ pub enum ParseOrderConfigSourceError {
     #[error("Network does not match")]
     NetworkNotMatch,
     #[error("Failed to parse vault {}", 0)]
-    VaultParseError(#[from] alloy_primitives::ruint::ParseError),
+    VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 
 impl OrderConfigSource {

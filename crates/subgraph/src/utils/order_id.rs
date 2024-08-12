@@ -1,4 +1,4 @@
-use alloy_primitives::{keccak256, Address, B256, U256};
+use alloy::primitives::{keccak256, Address, B256, U256};
 
 /// Builds the subgraph represented order ID, given an orderbook address and an order hash
 /// An order ID on subgraph is keccak256 of concated orderbook address + order hash
