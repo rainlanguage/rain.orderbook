@@ -12,7 +12,7 @@
   >;
 
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
-  import { ButtonGroup, Spinner } from 'flowbite-svelte';
+  import { Spinner } from 'flowbite-svelte';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   import {
     createChart,
@@ -28,7 +28,7 @@
     type SeriesOptionsMap,
   } from 'lightweight-charts';
   import { onDestroy, onMount } from 'svelte';
-  import ButtonTab from '$lib/components/ButtonTab.svelte';
+  import ChartTimeFilters from './ChartTimeFilters.svelte';
 
   export let data: { value: number; time: UTCTimestamp; color?: string }[] = [];
   export let loading = false;
@@ -37,15 +37,10 @@
   export let priceSymbol: string | undefined = undefined;
   export let createSeries: (chart: IChartApi) => ISeriesApiType;
 
-  const TIME_DELTA_24_HOURS = 60 * 60 * 24;
-  const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
-  const TIME_DELTA_30_DAYS = TIME_DELTA_24_HOURS * 30;
-  const TIME_DELTA_1_YEAR = TIME_DELTA_24_HOURS * 365;
-
   let chartElement: HTMLElement | undefined = undefined;
   let chart: IChartApi | undefined;
   let series: ISeriesApiType | undefined;
-  let timeDelta: number = TIME_DELTA_7_DAYS;
+  let timeDelta: number;
   let timeFrom: UTCTimestamp;
   let timeTo: UTCTimestamp;
 
@@ -112,41 +107,16 @@
   <div class="flex w-full justify-between border-b p-3 pb-0 dark:border-gray-700">
     <div class="text-gray-900 dark:text-white">
       {#if title !== undefined}
-        <div class="mb-2 text-xl">{title}</div>
+        <div data-testid="lightweightChartTitle" class="mb-2 text-xl">{title}</div>
       {/if}
     </div>
 
     <div>
       {#if loading}
-        <Spinner class="mr-2 h-4 w-4" color="white" />
+        <Spinner data-testid="lightweightChartSpinner" class="mr-2 h-4 w-4" color="white" />
       {/if}
       {#if data.length > 0}
-        <ButtonGroup class="bg-gray-800">
-          <ButtonTab
-            on:click={() => (timeDelta = TIME_DELTA_1_YEAR)}
-            active={timeDelta === TIME_DELTA_1_YEAR}
-            size="xs"
-            class="px-2 py-1">1 Year</ButtonTab
-          >
-          <ButtonTab
-            on:click={() => (timeDelta = TIME_DELTA_30_DAYS)}
-            active={timeDelta === TIME_DELTA_30_DAYS}
-            size="xs"
-            class="px-2 py-1">30 Days</ButtonTab
-          >
-          <ButtonTab
-            on:click={() => (timeDelta = TIME_DELTA_7_DAYS)}
-            active={timeDelta === TIME_DELTA_7_DAYS}
-            size="xs"
-            class="px-2 py-1">7 Days</ButtonTab
-          >
-          <ButtonTab
-            on:click={() => (timeDelta = TIME_DELTA_24_HOURS)}
-            active={timeDelta === TIME_DELTA_24_HOURS}
-            size="xs"
-            class="px-2 py-1">24 Hours</ButtonTab
-          >
-        </ButtonGroup>
+        <ChartTimeFilters bind:timeDelta />
       {/if}
     </div>
   </div>
