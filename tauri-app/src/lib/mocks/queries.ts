@@ -2,9 +2,7 @@ import { QueryClient, createInfiniteQuery, createQuery } from '@tanstack/svelte-
 
 // A helper function to create a resolvable mock query.
 // This gives us more control over when each query resolves.
-export const createResolvableMockQuery = (
-  queryFn: (() => unknown) | ((pageParam: number) => unknown),
-) => {
+export const createResolvableMockQuery = <T>(queryFn: (() => T) | ((pageParam: number) => T)) => {
   const resolveQueue: Array<() => void> = [];
   let currentPromise: Promise<void>;
 
@@ -68,8 +66,8 @@ export const createResolvableInfiniteQuery = (
 };
 
 // A helper function to create a regular Tanstack query that resolves when you call resolve
-export const createResolvableQuery = (_queryFn: () => unknown) => {
-  const { queryFn, resolve } = createResolvableMockQuery(_queryFn);
+export const createResolvableQuery = <T>(_queryFn: () => T) => {
+  const { queryFn, resolve } = createResolvableMockQuery<T>(_queryFn);
 
   const query = createQuery(
     {
