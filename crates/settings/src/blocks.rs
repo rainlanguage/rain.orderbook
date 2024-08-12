@@ -1,4 +1,4 @@
-use alloy_primitives::BlockNumber;
+use alloy::primitives::BlockNumber;
 use serde::{
     de::{self, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,

@@ -1,3 +1,5 @@
+use alloy::primitives::{ruint::FromUintError, Address, U256};
+use alloy::sol_types::SolCall;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::client::{LedgerClient, LedgerClientError};
 use alloy_ethers_typecast::{
@@ -7,8 +9,6 @@ use alloy_ethers_typecast::{
         WriteContractParametersBuilder, WriteContractParametersBuilderError,
     },
 };
-use alloy_primitives::{ruint::FromUintError, Address, U256};
-use alloy_sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

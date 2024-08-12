@@ -207,7 +207,17 @@
             name = "rainix-wasm-artifacts";
             body = ''
               set -euxo pipefail
-              cargo build -r --target wasm32-unknown-unknown --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env
+
+              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests
+            '';
+          };
+
+          rainix-wasm-test = rainix.mkTask.${system} {
+            name = "rainix-wasm-test";
+            body = ''
+              set -euxo pipefail
+
+              CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown --lib -p rain_orderbook_quote -p rain_orderbook_bindings
             '';
           };
 
@@ -244,6 +254,7 @@
             packages.raindex-prelude
             packages.ob-rs-test
             packages.rainix-wasm-artifacts
+            packages.rainix-wasm-test
             packages.js-install
             packages.build-js-bindings
             packages.test-js-bindings

@@ -10,6 +10,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [dependencies]
 alloy-ethers-typecast = { workspace = true }
+alloy = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_common = { workspace = true }
@@ -24,8 +25,6 @@ serde_bytes = { workspace = true }
 # tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ['env-filter'] }
-alloy-primitives = { workspace = true }
-alloy-sol-types = { workspace = true }
 comfy-table = { workspace = true }
 chrono = { workspace = true }
 

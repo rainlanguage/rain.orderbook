@@ -1,4 +1,3 @@
-use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 use crate::dotrain_add_order_lsp::LANG_SERVICES;
 use dotrain::error::ComposeError;
 use dotrain::RainDocument;
@@ -9,6 +8,7 @@ use std::collections::HashMap;
 pub fn compose_to_rainlang(
     dotrain: String,
     bindings: HashMap<String, String>,
+    entrypoints: &[&str],
 ) -> Result<String, ComposeError> {
     let meta_store = LANG_SERVICES.meta_store();
 
@@ -33,15 +33,14 @@ pub fn compose_to_rainlang(
         .filter_map(|(k, v)| {
             v.is_elided_binding().then_some(Rebind(
                 k.clone(),
-                alloy_primitives::hex::encode_prefixed([0; 32]),
+                alloy::primitives::hex::encode_prefixed([0; 32]),
             ))
         })
         .chain(rebinds.unwrap_or(vec![]))
         .collect::<Vec<Rebind>>();
 
     // compose a new RainDocument with final injected bindings
-    RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings))
-        .compose(&ORDERBOOK_ORDER_ENTRYPOINTS)
+    RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings)).compose(entrypoints)
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -49,8 +48,8 @@ pub use fork_parse::*;
 
 #[cfg(not(target_family = "wasm"))]
 mod fork_parse {
+    use alloy::primitives::{bytes::Bytes, Address};
     use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
-    use alloy_primitives::{bytes::Bytes, Address};
     use once_cell::sync::Lazy;
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_interpreter_eval::error::ForkCallError;

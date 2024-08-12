@@ -6,8 +6,14 @@ import {
     OrderConfigV3, EvaluableV3, ActionV1, SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
+    using Strings for address;
+    using Strings for uint256;
+
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
@@ -134,6 +140,67 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
         checkDeposit(bob, vaultId, amount, evals3, 4, 2);
+    }
+
+    function testOrderDepositContext(address alice, uint256 vaultId, uint256 preDepositAmount, uint256 depositAmount)
+        external
+    {
+        preDepositAmount = bound(preDepositAmount, 1, type(uint128).max);
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+
+        checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
+
+        string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
+
+        bytes[] memory evals = new bytes[](6);
+        evals[0] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(orderbook() ",
+                address(iOrderbook).toHexString(),
+                ") \"orderbook is iOrderbook\");"
+            )
+        );
+        evals[1] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(depositor() ", alice.toHexString(), ") \"depositor is alice\");"
+            )
+        );
+        evals[2] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(deposit-token() ",
+                address(iToken0).toHexString(),
+                ") \"token is iToken0\");"
+            )
+        );
+        evals[3] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(deposit-vault-id() ",
+                vaultId.toHexString(),
+                ") \"deposit vaultId is vaultId\");"
+            )
+        );
+        evals[4] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(deposit-vault-balance() ",
+                preDepositAmount.toString(),
+                "e-6) \"vault balance is pre deposit\");"
+            )
+        );
+        evals[5] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(deposit-amount() ",
+                depositAmount.toString(),
+                "e-6) \"amount is depositAmount\");"
+            )
+        );
+
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
+        checkDeposit(alice, vaultId, depositAmount, evals, 0, 0);
     }
 
     /// A revert in the action prevents the deposit from being enacted.

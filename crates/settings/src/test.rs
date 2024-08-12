@@ -1,5 +1,5 @@
 use crate::*;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use std::sync::Arc;
 
 // Helper function to create a mock network

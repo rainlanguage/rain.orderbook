@@ -20,6 +20,8 @@ optimizer_runs = 1000000
 bytecode_hash = "none"
 cbor_metadata = false
 
+evm_version = "cancun"
+
 # Build metadata used for testing rain meta aware contracts in this folder rather
 # than expose ffi to forge.
 fs_permissions = [
@@ -33,15 +35,15 @@ fs_permissions = [
 ]
 
 remappings = [
-  "forge-std/=lib/rain.interpreter/lib/forge-std/src/",
-  "openzeppelin-contracts/=lib/rain.interpreter/lib/openzeppelin-contracts/",
+  "forge-std/=lib/rain.interpreter/lib/rain.interpreter.interface/lib/forge-std/src/",
+  "openzeppelin-contracts/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/openzeppelin-contracts/",
   "rain.interpreter/=lib/rain.interpreter/src/",
   "rain.metadata/=lib/rain.interpreter/lib/rain.metadata/src/",
   "rain.interpreter.interface/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/src/",
   "rain.intorastring/=lib/rain.interpreter/lib/rain.intorastring/",
   "openzeppelin-contracts/=lib/rain.interpreter/lib/openzeppelin-contracts/",
-  "forge-std/=lib/rain.interpreter/lib/forge-std/src/",
   "rain.sol.codegen/=lib/rain.interpreter/lib/rain.sol.codegen/src/",
+  "rain.solmem/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.solmem/src",
 ]
 
 [fuzz]
