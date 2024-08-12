@@ -12,8 +12,12 @@ import {
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
+import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+
 contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
+    using Strings for address;
+    using Strings for uint256;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -160,5 +164,35 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
         assert(!stateChanged2);
 
         assert(iOrderbook.orderExists(order.hash()));
+    }
+
+    function testRemoveOrderContext(address alice, OrderConfigV3 memory config) external {
+        // Need this conform here so that the order doesn't get mutated and
+        // change the hash.
+        LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+
+        string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
+
+        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        bytes32 orderHash = order.hash();
+
+        bytes[] memory evals = new bytes[](3);
+        evals[0] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(orderbook() ", address(iOrderbook).toHexString(), ") \"orderbook\");"
+            )
+        );
+        evals[1] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(order-hash() ", uint256(orderHash).toHexString(), ") \"order-hash\");"
+            )
+        );
+        evals[2] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(order-owner() ", address(alice).toHexString(), ") \"order-owner\");"
+            )
+        );
+
+        checkRemoveOrder(alice, config, evals, 0, 0, false);
     }
 }

@@ -6,6 +6,7 @@ import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointDecimalConstants.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
@@ -19,6 +20,7 @@ import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
+import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
@@ -48,6 +50,7 @@ import {
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
     CONTEXT_VAULT_IO_BALANCE_DIFF,
+    CONTEXT_VAULT_IO_TOKEN_DECIMALS,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_VAULT_IO_TOKEN,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
@@ -207,19 +210,48 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit2(address token, uint256 vaultId, uint256 amount, ActionV1[] calldata post) external nonReentrant {
-        if (amount == 0) {
+    function deposit2(address token, uint256 vaultId, uint256 depositAmount, ActionV1[] calldata post)
+        external
+        nonReentrant
+    {
+        if (depositAmount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
-        emit Deposit(msg.sender, token, vaultId, amount);
+        emit Deposit(msg.sender, token, vaultId, depositAmount);
         //slither-disable-next-line reentrancy-benign
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        sVaultBalances[msg.sender][token][vaultId] += amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
+        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance + depositAmount;
 
-        LibOrderBook.doPost(new uint256[][](0), post);
+        if (post.length != 0) {
+            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+            // It's incredibly common anyway. Please let us know if this actually a
+            // problem in practice.
+            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+            uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
+                currentVaultBalance,
+                tokenDecimals,
+                // Error on overflow.
+                // Rounding down is the default.
+                0
+            );
+            uint256 depositAmount18 = LibFixedPointDecimalScale.scale18(
+                depositAmount,
+                tokenDecimals,
+                // Error on overflow.
+                // Rounding down is the default.
+                0
+            );
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, currentVaultBalance18, depositAmount18)
+                ),
+                post
+            );
+        }
     }
 
     /// @inheritdoc IOrderBookV4
@@ -241,7 +273,43 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            if (post.length != 0) {
+                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+                // It's incredibly common anyway. Please let us know if this actually a
+                // problem in practice.
+                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+
+                LibOrderBook.doPost(
+                    LibUint256Matrix.matrixFrom(
+                        LibUint256Array.arrayFrom(
+                            uint256(uint160(token)),
+                            vaultId,
+                            LibFixedPointDecimalScale.scale18(
+                                currentVaultBalance,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            LibFixedPointDecimalScale.scale18(
+                                withdrawAmount,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            LibFixedPointDecimalScale.scale18(
+                                targetAmount,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            )
+                        )
+                    ),
+                    post
+                );
+            }
         }
     }
 
@@ -284,7 +352,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 emit MetaV1_2(order.owner, orderHash, orderConfig.meta);
             }
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
 
         return stateChange;
@@ -305,7 +376,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
     }
 
@@ -664,25 +738,36 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     uint256(orderHash), uint256(uint160(order.owner)), uint256(uint160(counterparty))
                 );
 
-                callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order.validInputs[inputIOIndex].token)),
-                    order.validInputs[inputIOIndex].decimals,
-                    order.validInputs[inputIOIndex].vaultId,
-                    sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
-                        .vaultId],
-                    // Don't know the balance diff yet!
-                    0
-                );
+                {
+                    uint256 inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order
+                        .validInputs[inputIOIndex].vaultId];
+                    callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                        uint256(uint160(order.validInputs[inputIOIndex].token)),
+                        order.validInputs[inputIOIndex].decimals * 1e18,
+                        order.validInputs[inputIOIndex].vaultId,
+                        LibFixedPointDecimalScale.scale18(
+                            inputTokenVaultBalance, order.validInputs[inputIOIndex].decimals, 0
+                        ),
+                        // Don't know the balance diff yet!
+                        0
+                    );
+                }
 
-                callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order.validOutputs[outputIOIndex].token)),
-                    order.validOutputs[outputIOIndex].decimals,
-                    order.validOutputs[outputIOIndex].vaultId,
-                    sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
-                        .vaultId],
-                    // Don't know the balance diff yet!
-                    0
-                );
+                {
+                    uint256 outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex]
+                        .token][order.validOutputs[outputIOIndex].vaultId];
+                    callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                        uint256(uint160(order.validOutputs[outputIOIndex].token)),
+                        order.validOutputs[outputIOIndex].decimals * 1e18,
+                        order.validOutputs[outputIOIndex].vaultId,
+                        LibFixedPointDecimalScale.scale18(
+                            outputTokenVaultBalance, order.validOutputs[outputIOIndex].decimals, 0
+                        ),
+                        // Don't know the balance diff yet!
+                        0
+                    );
+                }
+
                 context = LibContext.build(callingContext, signedContext);
             }
 
@@ -766,8 +851,24 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
     function recordVaultIO(uint256 input, uint256 output, OrderIOCalculationV2 memory orderIOCalculation) internal {
-        orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input;
-        orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output;
+        unchecked {
+            orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibFixedPointDecimalScale.scale18(
+                input,
+                orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
+                0
+            );
+            orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibFixedPointDecimalScale.scale18(
+                output,
+                orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
+                // Round outputs diff up if the scaling causes a rounding error.
+                // This only happens if the token has more than 18 decimals.
+                // Generally it's safer to overestimate output than
+                // underestimate.
+                FLAG_ROUND_UP
+            );
+        }
 
         if (input > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
