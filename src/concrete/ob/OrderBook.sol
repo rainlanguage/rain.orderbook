@@ -247,12 +247,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             );
             LibOrderBook.doPost(
                 LibUint256Matrix.matrixFrom(
-                    LibUint256Array.arrayFrom(
-                        uint256(uint160(token)),
-                        vaultId,
-                        currentVaultBalance18,
-                        depositAmount18
-                    )
+                    LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, currentVaultBalance18, depositAmount18)
                 ),
                 post
             );
