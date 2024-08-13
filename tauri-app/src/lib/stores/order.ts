@@ -2,24 +2,8 @@ import type { OrderDetailExtended } from '$lib/typeshare/orderDetail';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
 import { detailStore } from '$lib/storesGeneric/detailStore';
-import type { Order } from '$lib/typeshare/ordersList';
 import { listStore } from '$lib/storesGeneric/listStore';
 import type { Trade } from '$lib/typeshare/orderTakesList';
-import { asyncDerived } from '@square/svelte-store';
-
-export const ordersList = asyncDerived(subgraphUrl, async () => {
-  const url = await subgraphUrl.load();
-
-  return listStore<Order>(
-    `${url}.ordersList`,
-    (page) =>
-      invoke('orders_list', {
-        subgraphArgs: { url },
-        paginationArgs: { page: page + 1, page_size: 10 },
-      }),
-    (path) => invoke('orders_list_write_csv', { path, subgraphArgs: { url } }),
-  );
-});
 
 export const orderDetail = detailStore<OrderDetailExtended>(
   'orders.orderDetail',
