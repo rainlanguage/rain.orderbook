@@ -41,7 +41,6 @@ remappings = [
   "rain.metadata/=lib/rain.interpreter/lib/rain.metadata/src/",
   "rain.interpreter.interface/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/src/",
   "rain.intorastring/=lib/rain.interpreter/lib/rain.intorastring/",
-  "openzeppelin-contracts/=lib/rain.interpreter/lib/openzeppelin-contracts/",
   "rain.sol.codegen/=lib/rain.interpreter/lib/rain.sol.codegen/src/",
   "rain.solmem/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.solmem/src",
 ]
