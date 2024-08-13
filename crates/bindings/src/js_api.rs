@@ -1,12 +1,16 @@
 use crate::IOrderBookV4::{
-    EvaluableV3 as MainEvaluableV3, OrderV3 as MainOrderV3, Quote as MainQuote,
-    SignedContextV1 as MainSignedContextV1, IO as MainIO,
-};
-use alloy::primitives::{
-    hex::{encode_prefixed, FromHex},
-    keccak256, Address, U256,
+    takeOrders2Call, EvaluableV3 as MainEvaluableV3, OrderV3 as MainOrderV3, Quote as MainQuote,
+    SignedContextV1 as MainSignedContextV1, TakeOrderConfigV3 as MainTakeOrderConfigV3,
+    TakeOrdersConfigV3 as MainTakeOrdersConfigV3, IO as MainIO,
 };
 use alloy::sol_types::SolValue;
+use alloy::{
+    primitives::{
+        hex::{decode, encode_prefixed, FromHex},
+        keccak256 as main_keccak256, Address, U256,
+    },
+    sol_types::SolCall,
+};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use std::str::FromStr;
@@ -71,16 +75,72 @@ pub struct SignedContextV1 {
 pub struct Quote {
     pub order: OrderV3,
     #[serde(rename = "inputIOIndex")]
-    pub input_io_index: String,
+    pub input_io_index: u8,
     #[serde(rename = "outputIOIndex")]
-    pub output_io_index: String,
+    pub output_io_index: u8,
     pub signed_context: Vec<SignedContextV1>,
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct TakeOrderConfigV3 {
+    order: OrderV3,
+    #[serde(rename = "inputIOIndex")]
+    input_io_index: u8,
+    #[serde(rename = "outputIOIndex")]
+    output_io_index: u8,
+    signed_context: Vec<SignedContextV1>,
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct TakeOrdersConfigV3 {
+    minimum_input: String,
+    maximum_input: String,
+    #[serde(rename = "maximumIORatio")]
+    maximum_io_ratio: String,
+    orders: Vec<TakeOrderConfigV3>,
+    #[tsify(type = "Uint8Array")]
+    #[serde(serialize_with = "bytes_serilializer")]
+    data: Vec<u8>,
 }
 
 /// Get the order hash of an order
 #[wasm_bindgen(js_name = "getOrderHash")]
 pub fn get_order_hash(order: &OrderV3) -> String {
-    encode_prefixed(keccak256(MainOrderV3::from(order.clone()).abi_encode()))
+    encode_prefixed(main_keccak256(
+        MainOrderV3::from(order.clone()).abi_encode(),
+    ))
+}
+
+/// Get takeOrders2() calldata
+#[wasm_bindgen(js_name = "getTakeOrders2Calldata")]
+pub fn get_take_orders2_calldata(take_orders_config: &TakeOrdersConfigV3) -> js_sys::Uint8Array {
+    takeOrders2Call {
+        config: take_orders_config.clone().into(),
+    }
+    .abi_encode()
+    .as_slice()
+    .into()
+}
+
+/// calculates keccak256 of the given bytes
+#[wasm_bindgen]
+pub fn keccak256(bytes: &[u8]) -> String {
+    encode_prefixed(main_keccak256(bytes))
+}
+
+/// calculate keccak256 of a hex string
+#[wasm_bindgen(js_name = "keccak256HexString")]
+pub fn keccak256_hex_string(hex_string: &str) -> String {
+    let mut err = "".to_string();
+    encode_prefixed(main_keccak256(
+        decode(hex_string)
+            .inspect_err(|e| err.push_str(&e.to_string()))
+            .expect_throw(&err),
+    ))
 }
 
 impl From<EvaluableV3> for MainEvaluableV3 {
@@ -201,16 +261,10 @@ impl From<MainSignedContextV1> for SignedContextV1 {
 
 impl From<Quote> for MainQuote {
     fn from(value: Quote) -> Self {
-        let mut input_io_index_error = "input io index, ".to_string();
-        let mut output_io_index_error = "output io index, ".to_string();
         MainQuote {
             order: MainOrderV3::from(value.order),
-            inputIOIndex: U256::from_str(&value.input_io_index)
-                .inspect_err(|e| input_io_index_error.push_str(&e.to_string()))
-                .expect_throw(&input_io_index_error),
-            outputIOIndex: U256::from_str(&value.output_io_index)
-                .inspect_err(|e| output_io_index_error.push_str(&e.to_string()))
-                .expect_throw(&output_io_index_error),
+            inputIOIndex: U256::from(value.input_io_index),
+            outputIOIndex: U256::from(value.output_io_index),
             signedContext: value
                 .signed_context
                 .into_iter()
@@ -221,15 +275,112 @@ impl From<Quote> for MainQuote {
 }
 impl From<MainQuote> for Quote {
     fn from(value: MainQuote) -> Self {
+        let mut input_io_index_error = "input io index, ".to_string();
+        let mut output_io_index_error = "output io index, ".to_string();
         Quote {
             order: OrderV3::from(value.order),
-            input_io_index: encode_prefixed(value.inputIOIndex.to_be_bytes_vec()),
-            output_io_index: encode_prefixed(value.outputIOIndex.to_be_bytes_vec()),
+            input_io_index: value
+                .inputIOIndex
+                .try_into()
+                .inspect_err(|e: &alloy::primitives::ruint::FromUintError<u8>| {
+                    input_io_index_error.push_str(&e.to_string())
+                })
+                .expect_throw(&input_io_index_error),
+            output_io_index: value
+                .outputIOIndex
+                .try_into()
+                .inspect_err(|e: &alloy::primitives::ruint::FromUintError<u8>| {
+                    output_io_index_error.push_str(&e.to_string())
+                })
+                .expect_throw(&output_io_index_error),
             signed_context: value
                 .signedContext
                 .into_iter()
                 .map(SignedContextV1::from)
                 .collect(),
+        }
+    }
+}
+
+impl From<TakeOrderConfigV3> for MainTakeOrderConfigV3 {
+    fn from(value: TakeOrderConfigV3) -> Self {
+        MainTakeOrderConfigV3 {
+            order: MainOrderV3::from(value.order),
+            inputIOIndex: U256::from(value.input_io_index),
+            outputIOIndex: U256::from(value.output_io_index),
+            signedContext: value
+                .signed_context
+                .into_iter()
+                .map(MainSignedContextV1::from)
+                .collect(),
+        }
+    }
+}
+impl From<MainTakeOrderConfigV3> for TakeOrderConfigV3 {
+    fn from(value: MainTakeOrderConfigV3) -> Self {
+        let mut input_io_index_error = "input io index, ".to_string();
+        let mut output_io_index_error = "output io index, ".to_string();
+        TakeOrderConfigV3 {
+            order: OrderV3::from(value.order),
+            input_io_index: value
+                .inputIOIndex
+                .try_into()
+                .inspect_err(|e: &alloy::primitives::ruint::FromUintError<u8>| {
+                    input_io_index_error.push_str(&e.to_string())
+                })
+                .expect_throw(&input_io_index_error),
+            output_io_index: value
+                .outputIOIndex
+                .try_into()
+                .inspect_err(|e: &alloy::primitives::ruint::FromUintError<u8>| {
+                    output_io_index_error.push_str(&e.to_string())
+                })
+                .expect_throw(&output_io_index_error),
+            signed_context: value
+                .signedContext
+                .into_iter()
+                .map(SignedContextV1::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<TakeOrdersConfigV3> for MainTakeOrdersConfigV3 {
+    fn from(value: TakeOrdersConfigV3) -> Self {
+        let mut minimum_input_err = "minimum input value, ".to_string();
+        let mut maximum_input_err = "maximum input value, ".to_string();
+        let mut maximum_io_ratio_err = "maximum io ratio value, ".to_string();
+        MainTakeOrdersConfigV3 {
+            minimumInput: U256::from_str(&value.minimum_input)
+                .inspect_err(|e| minimum_input_err.push_str(&e.to_string()))
+                .expect_throw(&minimum_input_err),
+            maximumInput: U256::from_str(&value.maximum_input)
+                .inspect_err(|e| maximum_input_err.push_str(&e.to_string()))
+                .expect_throw(&maximum_input_err),
+            maximumIORatio: U256::from_str(&value.maximum_io_ratio)
+                .inspect_err(|e| maximum_io_ratio_err.push_str(&e.to_string()))
+                .expect_throw(&maximum_io_ratio_err),
+            orders: value
+                .orders
+                .into_iter()
+                .map(MainTakeOrderConfigV3::from)
+                .collect(),
+            data: value.data.into(),
+        }
+    }
+}
+impl From<MainTakeOrdersConfigV3> for TakeOrdersConfigV3 {
+    fn from(value: MainTakeOrdersConfigV3) -> Self {
+        TakeOrdersConfigV3 {
+            maximum_input: encode_prefixed(value.minimumInput.to_be_bytes_vec()),
+            minimum_input: encode_prefixed(value.minimumInput.to_be_bytes_vec()),
+            maximum_io_ratio: encode_prefixed(value.maximumIORatio.to_be_bytes_vec()),
+            orders: value
+                .orders
+                .into_iter()
+                .map(TakeOrderConfigV3::from)
+                .collect(),
+            data: value.data.to_vec(),
         }
     }
 }
@@ -271,10 +422,10 @@ macro_rules! impl_wasm_traits {
         }
         impl From<$struct_name> for JsValue {
             fn from(value: $struct_name) -> Self {
-                match to_value(&value) {
-                    Ok(v) => v,
-                    Err(e) => to_value(&value).expect_throw(&e.to_string()),
-                }
+                let mut err = "".to_string();
+                to_value(&value)
+                    .inspect_err(|e| err.push_str(&e.to_string()))
+                    .expect_throw(&err)
             }
         }
         impl TryFromJsValue for $struct_name {
@@ -287,10 +438,12 @@ macro_rules! impl_wasm_traits {
 }
 
 impl_wasm_traits!(IO);
-impl_wasm_traits!(EvaluableV3);
-impl_wasm_traits!(OrderV3);
-impl_wasm_traits!(SignedContextV1);
 impl_wasm_traits!(Quote);
+impl_wasm_traits!(OrderV3);
+impl_wasm_traits!(EvaluableV3);
+impl_wasm_traits!(SignedContextV1);
+impl_wasm_traits!(TakeOrderConfigV3);
+impl_wasm_traits!(TakeOrdersConfigV3);
 
 #[cfg(test)]
 mod tests {
@@ -400,5 +553,77 @@ mod tests {
         let mut quote = Quote::from(main_quote);
         quote.order.nonce = "abcd".to_string();
         let _ = MainQuote::from(quote);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_take_order_config_roundtrip() {
+        let main_take_order_config = MainTakeOrderConfigV3::default();
+        let take_order_config = TakeOrderConfigV3::from(main_take_order_config.clone());
+        let expected = MainTakeOrderConfigV3::from(take_order_config.clone());
+        assert_eq!(main_take_order_config, expected);
+
+        let main_take_order_config = MainTakeOrderConfigV3::from(take_order_config.clone());
+        let expected = TakeOrderConfigV3::from(main_take_order_config.clone());
+        assert_eq!(take_order_config, expected);
+    }
+
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_take_order_config_unhappy() {
+        let main_take_order_config = MainTakeOrderConfigV3::default();
+        let mut take_order_config = TakeOrderConfigV3::from(main_take_order_config);
+        take_order_config.order.nonce = "abcd".to_string();
+        let _ = MainTakeOrderConfigV3::from(take_order_config);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_take_orders_config_roundtrip() {
+        let main_take_orders_config = MainTakeOrdersConfigV3::default();
+        let take_orders_config = TakeOrdersConfigV3::from(main_take_orders_config.clone());
+        let expected = MainTakeOrdersConfigV3::from(take_orders_config.clone());
+        assert_eq!(main_take_orders_config, expected);
+
+        let main_take_orders_config = MainTakeOrdersConfigV3::from(take_orders_config.clone());
+        let expected = TakeOrdersConfigV3::from(main_take_orders_config.clone());
+        assert_eq!(take_orders_config, expected);
+    }
+
+    #[wasm_bindgen_test]
+    #[should_panic]
+    fn test_take_orders_config_unhappy() {
+        let main_take_orders_config = MainTakeOrdersConfigV3::default();
+        let mut take_orders_config = TakeOrdersConfigV3::from(main_take_orders_config);
+        take_orders_config.maximum_input = "abcd".to_string();
+        let _ = MainTakeOrdersConfigV3::from(take_orders_config);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_take_orders_calldata() {
+        let main_take_orders_config = MainTakeOrdersConfigV3::default();
+        let take_orders_config = TakeOrdersConfigV3::from(main_take_orders_config.clone());
+        let result = get_take_orders2_calldata(&take_orders_config);
+        let expected = takeOrders2Call {
+            config: main_take_orders_config,
+        }
+        .abi_encode();
+        assert_eq!(result.to_vec(), expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_keccak256() {
+        let bytes = vec![1, 2];
+        let result = keccak256(&bytes);
+        let expected =
+            "0x22ae6da6b482f9b1b19b0b897c3fd43884180a1c5ee361e1107a1bc635649dda".to_string();
+        assert_eq!(result, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_keccak256_hex_string() {
+        let hex_string = "0x0102";
+        let result = keccak256_hex_string(&hex_string);
+        let expected =
+            "0x22ae6da6b482f9b1b19b0b897c3fd43884180a1c5ee361e1107a1bc635649dda".to_string();
+        assert_eq!(result, expected);
     }
 }
