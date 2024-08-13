@@ -68,7 +68,7 @@ export function createAddOrderEntity(event: AddOrderV2): void {
   let addOrder = new AddOrder(event.transaction.hash);
   addOrder.id = eventId(event);
   addOrder.orderbook = event.address;
-  addOrder.order = event.params.orderHash;
+  addOrder.order = makeOrderId(event.address, event.params.orderHash);
   addOrder.sender = event.params.sender;
   addOrder.transaction = createTransactionEntity(event);
   addOrder.save();
@@ -78,7 +78,7 @@ export function createRemoveOrderEntity(event: RemoveOrderV2): void {
   let removeOrder = new RemoveOrder(event.transaction.hash);
   removeOrder.id = eventId(event);
   removeOrder.orderbook = event.address;
-  removeOrder.order = event.params.orderHash;
+  removeOrder.order = makeOrderId(event.address, event.params.orderHash);
   removeOrder.sender = event.params.sender;
   removeOrder.transaction = createTransactionEntity(event);
   removeOrder.save();

@@ -205,11 +205,13 @@ describe("Add and remove orders", () => {
 
     let id = eventId(event);
 
+    let orderid = makeOrderId(event.address, event.params.orderHash);
+
     assert.fieldEquals(
       "AddOrder",
       id.toHexString(),
       "order",
-      "0x0987654321098765432109876543210987654321"
+      orderid.toHexString()
     );
 
     assert.fieldEquals(
@@ -260,11 +262,13 @@ describe("Add and remove orders", () => {
 
     let id = eventId(event);
 
+    let orderid = makeOrderId(event.address, event.params.orderHash);
+
     assert.fieldEquals(
       "RemoveOrder",
       id.toHexString(),
       "order",
-      "0x0987654321098765432109876543210987654321"
+      orderid.toHexString()
     );
 
     assert.fieldEquals(
