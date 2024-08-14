@@ -30,7 +30,7 @@
     </div>
   </div>
   <div class="w-full">
-    <slot name="below" />
+    <slot name="below" {data} />
   </div>
 {:else if $query.isFetching || $query.isLoading}
   <div class="flex h-16 w-full items-center justify-center">
