@@ -43,7 +43,8 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
+            iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
             evaluable
@@ -89,7 +90,8 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
             );
         }
 
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
+            iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
             EvaluableV3(iInterpreter, iInterpreterStore, expression())

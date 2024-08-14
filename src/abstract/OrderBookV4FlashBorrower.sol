@@ -92,10 +92,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         returns (bytes32)
     {
         // As per reference implementation.
-        if (msg.sender != address(iOrderBook)) {
-            revert BadLender(msg.sender);
-        }
-        // As per reference implementation.
         if (initiator != address(this)) {
             revert BadInitiator(initiator);
         }
@@ -112,7 +108,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders2(takeOrders);
+        (uint256 totalInput, uint256 totalOutput) = IOrderBookV4(msg.sender).takeOrders2(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
@@ -146,7 +142,8 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// for decoding this data and defining how it controls interactions with
     /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
     /// uses this data as a literal encoded external call.
-    function arb2(
+    function arb3(
+        IOrderBookV4 orderBook,
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
         bytes calldata exchangeData,
@@ -171,12 +168,12 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), type(uint256).max);
-        if (!iOrderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
+        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
+        if (!orderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
         // Send all unspent input tokens to the sender.
         uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
