@@ -14,9 +14,10 @@ import {
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV4, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
-    IOrderBookV4ArbOrderTaker,
+    IOrderBookV4,
+    IOrderBookV4ArbOrderTakerV2,
     IOrderBookV4OrderTaker
-} from "rain.orderbook.interface/interface/IOrderBookV4ArbOrderTaker.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV4ArbOrderTakerV2.sol";
 import {IInterpreterV3, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
@@ -39,7 +40,7 @@ error NonZeroBeforeArbInputs(uint256 inputs);
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
 abstract contract OrderBookV4ArbOrderTaker is
-    IOrderBookV4ArbOrderTaker,
+    IOrderBookV4ArbOrderTakerV2,
     ReentrancyGuard,
     ERC165,
     OrderBookV4ArbCommon
@@ -51,16 +52,16 @@ abstract contract OrderBookV4ArbOrderTaker is
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return (interfaceId == type(IOrderBookV4OrderTaker).interfaceId)
-            || (interfaceId == type(IOrderBookV4ArbOrderTaker).interfaceId) || super.supportsInterface(interfaceId);
+            || (interfaceId == type(IOrderBookV4ArbOrderTakerV2).interfaceId) || super.supportsInterface(interfaceId);
     }
 
-    /// @inheritdoc IOrderBookV4ArbOrderTaker
-    function arb2(TakeOrdersConfigV3 calldata takeOrders, uint256 minimumSenderOutput, EvaluableV3 calldata evaluable)
-        external
-        payable
-        nonReentrant
-        onlyValidEvaluable(evaluable)
-    {
+    /// @inheritdoc IOrderBookV4ArbOrderTakerV2
+    function arb3(
+        IOrderBookV4 orderBook,
+        TakeOrdersConfigV3 calldata takeOrders,
+        uint256 minimumSenderOutput,
+        EvaluableV3 calldata evaluable
+    ) external payable nonReentrant onlyValidEvaluable(evaluable) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -69,11 +70,11 @@ abstract contract OrderBookV4ArbOrderTaker is
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), type(uint256).max);
-        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders2(takeOrders);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
+        (uint256 totalInput, uint256 totalOutput) = orderBook.takeOrders2(takeOrders);
         (totalInput, totalOutput);
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
         // Send all unspent input tokens to the sender.
         uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
@@ -99,9 +100,5 @@ abstract contract OrderBookV4ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV4OrderTaker
-    function onTakeOrders(address, address, uint256, uint256, bytes calldata) public virtual override {
-        if (msg.sender != address(iOrderBook)) {
-            revert BadLender(msg.sender);
-        }
-    }
+    function onTakeOrders(address, address, uint256, uint256, bytes calldata) public virtual override {}
 }

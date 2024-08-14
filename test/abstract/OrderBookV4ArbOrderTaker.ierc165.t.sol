@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 import {
     OrderBookV4ArbOrderTaker,
-    IOrderBookV4ArbOrderTaker,
+    IOrderBookV4ArbOrderTakerV2,
     EvaluableV3,
     OrderBookV4ArbConfigV1,
     IOrderBookV4OrderTaker
@@ -32,12 +32,12 @@ contract OrderBookV4ArbOrderTakerIERC165Test is Test {
     /// as per ERC165.
     function testOrderBookV4ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
-        vm.assume(badInterfaceId != type(IOrderBookV4ArbOrderTaker).interfaceId);
+        vm.assume(badInterfaceId != type(IOrderBookV4ArbOrderTakerV2).interfaceId);
         vm.assume(badInterfaceId != type(IOrderBookV4OrderTaker).interfaceId);
 
         ChildOrderBookV4ArbOrderTaker arbOrderTaker = new ChildOrderBookV4ArbOrderTaker();
         assertTrue(arbOrderTaker.supportsInterface(type(IERC165).interfaceId));
-        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV4ArbOrderTaker).interfaceId));
+        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV4ArbOrderTakerV2).interfaceId));
         assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV4OrderTaker).interfaceId));
         assertFalse(arbOrderTaker.supportsInterface(badInterfaceId));
     }

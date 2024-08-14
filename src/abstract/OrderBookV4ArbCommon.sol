@@ -48,12 +48,8 @@ abstract contract OrderBookV4ArbCommon {
     event Construct(address sender, OrderBookV4ArbConfigV1 config);
 
     bytes32 public immutable iEvaluableHash;
-    IOrderBookV4 public immutable iOrderBook;
 
     constructor(OrderBookV4ArbConfigV1 memory config) {
-        // @todo This could be paramaterised on `arb`.
-        iOrderBook = IOrderBookV4(config.orderBook);
-
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
 

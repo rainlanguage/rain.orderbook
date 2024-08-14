@@ -33,7 +33,8 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
+            iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
             evaluable
@@ -79,7 +80,8 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
             );
         }
 
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb2(
+        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
+            iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
             EvaluableV3(iInterpreter, iInterpreterStore, expression())
