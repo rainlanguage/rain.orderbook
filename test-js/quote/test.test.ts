@@ -124,10 +124,8 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
             nonce:
               "0x0000000000000000000000000000000000000000000000000000000000000000",
           },
-          inputIOIndex:
-            "0x0000000000000000000000000000000000000000000000000000000000000000",
-          outputIOIndex:
-            "0x0000000000000000000000000000000000000000000000000000000000000000",
+          inputIOIndex: 0,
+          outputIOIndex: 0,
           signedContext: [],
         },
         orderbook: "0x713180d188e1ff758f508d9f2e1d350d650fea5e",
@@ -174,10 +172,8 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
           nonce:
             "0x0000000000000000000000000000000000000000000000000000000000000000",
         },
-        inputIOIndex:
-          "0x0000000000000000000000000000000000000000000000000000000000000000",
-        outputIOIndex:
-          "0x0000000000000000000000000000000000000000000000000000000000000000",
+        inputIOIndex: 0,
+        outputIOIndex: 0,
         signedContext: [],
       },
     };

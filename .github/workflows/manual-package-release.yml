@@ -102,7 +102,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.NEW_VERSION }}
-          name: Release ${{ env.NEW_VERSION }}
+          name: Package Release ${{ env.NEW_VERSION }}
           files: orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
