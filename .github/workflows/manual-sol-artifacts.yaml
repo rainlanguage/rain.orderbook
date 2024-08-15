@@ -19,6 +19,7 @@ on:
           - polygon
           - sepolia
           - songbird
+          - linea
 
       suite:
         description: 'Suite to deploy'
