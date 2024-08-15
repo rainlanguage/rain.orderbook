@@ -9,7 +9,7 @@ import {
     EvaluableV3,
     ClearConfig,
     SignedContextV1,
-    ActionV1
+    TaskV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
@@ -39,10 +39,10 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
             OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new ActionV1[](0));
+        iOrderbook.addOrder2(configAlice, new TaskV1[](0));
 
         vm.prank(bob);
-        iOrderbook.addOrder2(configBob, new ActionV1[](0));
+        iOrderbook.addOrder2(configBob, new TaskV1[](0));
 
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));
         iOrderbook.clear2(

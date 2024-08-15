@@ -18,7 +18,7 @@ use rain_metadata::{
 };
 use rain_orderbook_app_settings::deployment::Deployment;
 use rain_orderbook_bindings::{
-    IOrderBookV4::{addOrder2Call, ActionV1, EvaluableV3, OrderConfigV3, IO},
+    IOrderBookV4::{addOrder2Call, TaskV1, EvaluableV3, OrderConfigV3, IO},
     ERC20::decimalsCall,
 };
 use serde::{Deserialize, Serialize};
@@ -211,7 +211,7 @@ impl AddOrderArgs {
             bytecode: post_bytecode.into(),
         };
 
-        let post_task = ActionV1 {
+        let post_task = TaskV1 {
             evaluable: post_evaluable,
             signedContext: vec![],
         };

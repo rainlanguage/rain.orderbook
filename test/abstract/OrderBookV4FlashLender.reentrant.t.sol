@@ -11,7 +11,7 @@ import {
     TakeOrderConfigV3,
     TakeOrdersConfigV3,
     ClearConfig,
-    ActionV1
+    TaskV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
@@ -98,7 +98,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         checkFlashLoanNotRevert(
             borrower,
             abi.encodeWithSelector(
-                IOrderBookV4.withdraw2.selector, address(iToken0), vaultId, withdrawAmount, new ActionV1[](0)
+                IOrderBookV4.withdraw2.selector, address(iToken0), vaultId, withdrawAmount, new TaskV1[](0)
             ),
             loanAmount
         );
@@ -112,7 +112,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(
-            borrower, abi.encodeWithSelector(IOrderBookV4.addOrder2.selector, config, new ActionV1[](0)), loanAmount
+            borrower, abi.encodeWithSelector(IOrderBookV4.addOrder2.selector, config, new TaskV1[](0)), loanAmount
         );
     }
 
@@ -122,7 +122,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         Reenteroor borrower = new Reenteroor();
         order.owner = address(borrower);
         checkFlashLoanNotRevert(
-            borrower, abi.encodeWithSelector(IOrderBookV4.removeOrder2.selector, order, new ActionV1[](0)), loanAmount
+            borrower, abi.encodeWithSelector(IOrderBookV4.removeOrder2.selector, order, new TaskV1[](0)), loanAmount
         );
     }
 
@@ -132,7 +132,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         config.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
 
         vm.recordLogs();
-        iOrderbook.addOrder2(config, new ActionV1[](0));
+        iOrderbook.addOrder2(config, new TaskV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
@@ -169,13 +169,13 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         vm.recordLogs();
         vm.prank(alice);
-        iOrderbook.addOrder2(aliceConfig, new ActionV1[](0));
+        iOrderbook.addOrder2(aliceConfig, new TaskV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, OrderV3 memory aliceOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
         vm.recordLogs();
         vm.prank(bob);
-        iOrderbook.addOrder2(bobConfig, new ActionV1[](0));
+        iOrderbook.addOrder2(bobConfig, new TaskV1[](0));
         entries = vm.getRecordedLogs();
         (,, OrderV3 memory bobOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 

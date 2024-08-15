@@ -6,7 +6,7 @@ import {IOrderBookV4, Quote} from "rain.orderbook.interface/interface/IOrderBook
 import {
     OrderConfigV3,
     EvaluableV3,
-    ActionV1,
+    TaskV1,
     OrderV3,
     SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
@@ -54,13 +54,13 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         );
         vm.prank(owner);
         iOrderbook.deposit2(
-            config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new ActionV1[](0)
+            config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV1[](0)
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
-            iOrderbook.addOrder2(config, new ActionV1[](0));
+            iOrderbook.addOrder2(config, new TaskV1[](0));
 
             OrderV3 memory order = OrderV3({
                 owner: owner,
