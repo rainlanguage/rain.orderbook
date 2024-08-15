@@ -1,11 +1,16 @@
-use crate::error::CommandResult;
+use crate::error::{CommandError, CommandResult};
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
-use alloy::primitives::Bytes;
+use alloy::primitives::{Address, Bytes, Uint, U256};
+use alloy::signers::k256::elliptic_curve::rand_core::block;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv,
+    add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
-    types::OrderDetailExtended, types::OrderFlattened, types::FlattenError, dotrain_order::DotrainOrder
+    types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
+};
+use rain_orderbook_quote::rpc::batch_quote;
+use rain_orderbook_quote::{
+    BatchQuoteSpec, BatchQuoteTarget, OrderQuoteValue, QuoteResult, QuoteSpec, QuoteTarget,
 };
 use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
 use std::fs;
@@ -171,4 +176,35 @@ pub async fn order_remove_calldata(
 pub async fn compose_from_scenario(dotrain: String, scenario: Scenario) -> CommandResult<String> {
     let order = DotrainOrder::new(dotrain.clone(), None).await?;
     Ok(order.compose_scenario_to_rainlang(scenario.name).await?)
+}
+
+#[tauri::command]
+pub async fn batch_order_quotes(
+    order_hashes: Vec<String>,
+    orderbook: Address,
+    subgraph_url: String,
+    rpc_url: String,
+) -> CommandResult<Vec<OrderQuoteValue>> {
+    let quote_specs = order_hashes
+        .into_iter()
+        .map(|hash| {
+            let order_hash = U256::from_str_radix(&hash[2..], 16).map_err(CommandError::from)?;
+            Ok(QuoteSpec {
+                order_hash,
+                input_io_index: 0,
+                output_io_index: 0,
+                signed_context: vec![],
+                orderbook,
+            })
+        })
+        .collect::<Result<Vec<QuoteSpec>, CommandError>>()?;
+    let quote_values = BatchQuoteSpec(quote_specs)
+        .do_quote(&subgraph_url, &rpc_url, None, None)
+        .await?;
+    let quote_results: Vec<OrderQuoteValue> = quote_values
+        .into_iter()
+        .map(|quote_value| quote_value.map_err(|e| CommandError::from(e)))
+        .collect::<Result<Vec<OrderQuoteValue>, CommandError>>()?;
+
+    Ok(quote_results)
 }

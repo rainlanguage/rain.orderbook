@@ -13,8 +13,8 @@ use commands::config::{convert_configstring_to_config, merge_configstrings, pars
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
-    compose_from_scenario, order_add, order_add_calldata, order_detail, order_remove,
-    order_remove_calldata, orders_list, orders_list_write_csv,
+    batch_order_quotes, compose_from_scenario, order_add, order_add_calldata, order_detail,
+    order_remove, order_remove_calldata, orders_list, orders_list_write_csv,
 };
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
 use commands::vault::{
@@ -71,6 +71,7 @@ fn run_tauri_app() {
             vault_withdraw_calldata,
             get_authoring_meta_v2_for_scenarios,
             compose_from_scenario,
+            batch_order_quotes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
