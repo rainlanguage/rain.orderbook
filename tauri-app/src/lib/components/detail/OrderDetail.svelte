@@ -16,6 +16,7 @@
   import { orderDetail } from '$lib/queries/orderDetail';
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';
+  import OrderQuote from '../detail/TanstackOrderQuote.svelte';
 
   export let id: string;
 
@@ -74,6 +75,8 @@
           {/each}
         </svelte:fragment>
       </CardProperty>
+
+      <OrderQuote orderHash={data.order.order_hash} />
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
