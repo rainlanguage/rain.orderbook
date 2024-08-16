@@ -63,14 +63,3 @@ export async function orderAddComposeRainlang(
     scenario,
   });
 }
-
-export async function batchOrderQuotes(
-  orderHashes: string[],
-): Promise<{ maxOutput: string; ratio: string }[]> {
-  return await invoke('batch_order_quotes', {
-    orderHashes,
-    subgraphUrl: get(subgraphUrl),
-    rpcUrl: get(rpcUrl),
-    orderbook: get(orderbookAddress),
-  });
-}

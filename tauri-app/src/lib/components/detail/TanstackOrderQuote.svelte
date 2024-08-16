@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
   import { QKEY_ORDER_QUOTE } from '$lib/queries/keys';
-  import { batchOrderQuotes } from '$lib/services/order';
+  import { batchOrderQuotes } from '$lib/services/orderQuote';
   import { formatUnits } from 'viem';
   import CardProperty from '../CardProperty.svelte';
 
@@ -21,7 +21,7 @@
   <div class="flex h-16 w-full items-center justify-center">
     <Spinner class="h-8 w-8" color="white" data-testid="loadingSpinner" />
   </div>
-{:else if $orderQuoteQuery.data}
+{:else if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0}
   <div data-testid="orderQuoteComponent" class="grid grid-cols-2 gap-x-2">
     <CardProperty>
       <svelte:fragment slot="key">Maximum output</svelte:fragment>
