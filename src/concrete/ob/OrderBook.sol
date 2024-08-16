@@ -40,7 +40,7 @@ import {
     ZeroMaximumInput,
     SignedContextV1,
     EvaluableV3,
-    ActionV1,
+    TaskV1,
     Quote
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV4OrderTaker.sol";
@@ -205,12 +205,12 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV4
-    function enact(ActionV1[] calldata post) external nonReentrant {
+    function entask(TaskV1[] calldata post) external nonReentrant {
         LibOrderBook.doPost(new uint256[][](0), post);
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit2(address token, uint256 vaultId, uint256 depositAmount, ActionV1[] calldata post)
+    function deposit2(address token, uint256 vaultId, uint256 depositAmount, TaskV1[] calldata post)
         external
         nonReentrant
     {
@@ -255,7 +255,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV4
-    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, ActionV1[] calldata post)
+    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, TaskV1[] calldata post)
         external
         nonReentrant
     {
@@ -314,7 +314,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder2(OrderConfigV3 calldata orderConfig, ActionV1[] calldata post)
+    function addOrder2(OrderConfigV3 calldata orderConfig, TaskV1[] calldata post)
         external
         nonReentrant
         returns (bool)
@@ -362,7 +362,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV4
-    function removeOrder2(OrderV3 calldata order, ActionV1[] calldata post)
+    function removeOrder2(OrderV3 calldata order, TaskV1[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)

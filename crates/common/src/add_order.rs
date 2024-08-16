@@ -18,7 +18,7 @@ use rain_metadata::{
 };
 use rain_orderbook_app_settings::deployment::Deployment;
 use rain_orderbook_bindings::{
-    IOrderBookV4::{addOrder2Call, ActionV1, EvaluableV3, OrderConfigV3, IO},
+    IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, TaskV1, IO},
     ERC20::decimalsCall,
 };
 use serde::{Deserialize, Serialize};
@@ -211,7 +211,7 @@ impl AddOrderArgs {
             bytecode: post_bytecode.into(),
         };
 
-        let post_task = ActionV1 {
+        let post_task = TaskV1 {
             evaluable: post_evaluable,
             signedContext: vec![],
         };
@@ -229,7 +229,7 @@ impl AddOrderArgs {
                 nonce: alloy::primitives::private::rand::random::<U256>().into(),
                 secret: alloy::primitives::private::rand::random::<U256>().into(),
             },
-            post: vec![post_task],
+            tasks: vec![post_task],
         })
     }
 
@@ -557,13 +557,13 @@ _ _: 0 0;
 
         assert_eq!(add_order_call.config.validInputs.len(), 2);
         assert_eq!(add_order_call.config.validOutputs.len(), 1);
-        assert_eq!(add_order_call.post.len(), 1);
+        assert_eq!(add_order_call.tasks.len(), 1);
 
         assert_eq!(add_order_call.config.validInputs[0].vaultId, U256::from(2));
         assert_eq!(add_order_call.config.validInputs[1].vaultId, U256::from(1));
         assert_eq!(add_order_call.config.validOutputs[0].vaultId, U256::from(4));
 
-        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 111);
+        assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
 
         assert_eq!(add_order_call.config.meta.len(), 105);
 
@@ -583,21 +583,21 @@ _ _: 0 0;
         );
 
         assert_eq!(
-            add_order_call.post[0].evaluable.interpreter,
+            add_order_call.tasks[0].evaluable.interpreter,
             "0x6352593f4018c99df731de789e2a147c7fb29370"
                 .parse::<Address>()
                 .unwrap()
         );
 
         assert_eq!(
-            add_order_call.post[0].evaluable.store,
+            add_order_call.tasks[0].evaluable.store,
             "0xde38ad4b13d5258a5653e530ecdf0ca71b4e8a51"
                 .parse::<Address>()
                 .unwrap()
         );
 
-        assert_eq!(add_order_call.post[0].evaluable.bytecode.len(), 111);
-        assert_eq!(add_order_call.post[0].signedContext.len(), 0);
+        assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
+        assert_eq!(add_order_call.tasks[0].signedContext.len(), 0);
     }
 
     #[tokio::test]
