@@ -6,7 +6,7 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
     OrderConfigV3,
     OrderV3,
-    ActionV1,
+    TaskV1,
     ClearConfig,
     SignedContextV1,
     IO,
@@ -167,20 +167,18 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new ActionV1[](0));
+        iOrderbook.addOrder2(configAlice, new TaskV1[](0));
 
         vm.prank(alice);
         iOrderbook.deposit2(
-            configAlice.validOutputs[0].token, configAlice.validOutputs[0].vaultId, 100e6, new ActionV1[](0)
+            configAlice.validOutputs[0].token, configAlice.validOutputs[0].vaultId, 100e6, new TaskV1[](0)
         );
 
         vm.prank(bob);
-        iOrderbook.addOrder2(configBob, new ActionV1[](0));
+        iOrderbook.addOrder2(configBob, new TaskV1[](0));
 
         vm.prank(bob);
-        iOrderbook.deposit2(
-            configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, 100e12, new ActionV1[](0)
-        );
+        iOrderbook.deposit2(configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, 100e12, new TaskV1[](0));
 
         iOrderbook.clear2(
             orderAlice, orderBob, ClearConfig(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)

@@ -48,7 +48,7 @@ impl From<DepositArgs> for deposit2Call {
             token: val.token,
             vaultId: val.vault_id,
             amount: val.amount,
-            post: vec![],
+            tasks: vec![],
         }
     }
 }

@@ -16,7 +16,7 @@ import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
 import {
     IOrderBookV4,
     IInterpreterV3,
-    ActionV1,
+    TaskV1,
     EvaluableV3,
     SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
@@ -78,11 +78,10 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
         vm.assume(account != address(0x000000000000000000636F6e736F6c652e6c6f67));
     }
 
-    function evalsToActions(bytes[] memory evals) internal view returns (ActionV1[] memory) {
-        ActionV1[] memory actions = new ActionV1[](evals.length);
+    function evalsToActions(bytes[] memory evals) internal view returns (TaskV1[] memory) {
+        TaskV1[] memory actions = new TaskV1[](evals.length);
         for (uint256 i = 0; i < evals.length; i++) {
-            actions[i] =
-                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evals[i])), new SignedContextV1[](0));
+            actions[i] = TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evals[i])), new SignedContextV1[](0));
         }
         return actions;
     }

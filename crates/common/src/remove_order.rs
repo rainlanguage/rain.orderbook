@@ -42,7 +42,7 @@ impl TryInto<removeOrder2Call> for RemoveOrderArgs {
     fn try_into(self) -> Result<removeOrder2Call, OrderDetailError> {
         Ok(removeOrder2Call {
             order: self.order.try_into()?,
-            post: vec![],
+            tasks: vec![],
         })
     }
 }

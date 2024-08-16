@@ -3,7 +3,7 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3, EvaluableV3, ActionV1, SignedContextV1
+    OrderConfigV3, EvaluableV3, TaskV1, SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -45,13 +45,13 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
         if (depositAmount > 0) {
-            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
+            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
         }
 
-        ActionV1[] memory actions = new ActionV1[](evalStrings.length);
+        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                ActionV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
         vm.mockCall(
@@ -224,7 +224,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
 
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
@@ -232,7 +232,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");
-        ActionV1[] memory actions = evalsToActions(evals);
+        TaskV1[] memory actions = evalsToActions(evals);
 
         assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
 
