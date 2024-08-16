@@ -5,9 +5,44 @@ import TanstackOrderQuote from './TanstackOrderQuote.svelte';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
-vi.mock('$lib/services/order', () => ({
-  batchOrderQuotes: vi.fn(),
-}));
+vi.mock('$lib/stores/settings', async (importOriginal) => {
+  const { writable } = await import('svelte/store');
+  const { mockSettingsStore } = await import('$lib/mocks/settings');
+
+  const _activeOrderbook = writable();
+
+  return {
+    ...((await importOriginal()) as object),
+    settings: mockSettingsStore,
+    subgraphUrl: writable('https://example.com'),
+    activeOrderbook: {
+      ..._activeOrderbook,
+      load: vi.fn(() => _activeOrderbook.set(true)),
+    },
+  };
+});
+
+test('displays loading spinner while fetching data', async () => {
+  mockIPC(() => {
+    // Simulate a delay to trigger the loading state
+    return new Promise((resolve) =>
+      setTimeout(() => resolve([{ maxOutput: '0x0', ratio: '0x0' }]), 100),
+    );
+  });
+
+  const queryClient = new QueryClient();
+
+  render(TanstackOrderQuote, {
+    props: { orderHash: '0x123' },
+    context: new Map([['$$_queryClient', queryClient]]),
+  });
+
+  expect(screen.getByTestId('loadingSpinner')).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(screen.queryByTestId('loadingSpinner')).not.toBeInTheDocument();
+  });
+});
 
 test('displays order quote data when query is successful', async () => {
   mockIPC((cmd) => {
