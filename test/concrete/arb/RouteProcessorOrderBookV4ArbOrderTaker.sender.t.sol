@@ -25,17 +25,14 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
     {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        TaskV1[] memory tasks = new TaskV1[](1);
-        tasks[0] = TaskV1({
-            evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
-            signedContext: new SignedContextV1[](0)
-        });
-
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
             0,
-            tasks
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+                signedContext: new SignedContextV1[](0)
+            })
         );
     }
 
@@ -52,18 +49,15 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
 
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        TaskV1[] memory tasks = new TaskV1[](1);
-        tasks[0] = TaskV1({
-            evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
-            signedContext: new SignedContextV1[](0)
-        });
-
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
             minimumOutput,
-            tasks
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+                signedContext: new SignedContextV1[](0)
+            })
         );
     }
 }

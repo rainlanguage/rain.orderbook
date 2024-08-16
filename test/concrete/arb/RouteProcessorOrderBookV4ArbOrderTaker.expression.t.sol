@@ -34,15 +34,12 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        TaskV1[] memory tasks = new TaskV1[](1);
-        tasks[0] = TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)});
-
         vm.expectRevert(abi.encodeWithSelector(WrongTasks.selector));
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            tasks
+            TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
 
@@ -85,13 +82,14 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
             );
         }
 
-        TaskV1[] memory tasks = new TaskV1[](1);
-        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()), signedContext: new SignedContextV1[](0)});
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            tasks
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+                signedContext: new SignedContextV1[](0)
+            })
         );
     }
 }

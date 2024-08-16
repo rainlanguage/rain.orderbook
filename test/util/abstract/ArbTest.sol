@@ -13,7 +13,8 @@ import {
     OrderV3,
     TakeOrderConfigV3,
     IO,
-    SignedContextV1
+    SignedContextV1,
+    EvaluableV3
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV4ArbConfigV2} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
@@ -63,7 +64,12 @@ abstract contract ArbTest is Test {
         vm.label(address(iOrderBook), "iOrderBook");
 
         OrderBookV4ArbConfigV2 memory config = OrderBookV4ArbConfigV2(
-            address(iOrderBook), new TaskV1[](0), abi.encode(iRefundoor)
+            address(iOrderBook),
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+                signedContext: new SignedContextV1[](0)
+            }),
+            abi.encode(iRefundoor)
         );
 
         vm.expectEmit();

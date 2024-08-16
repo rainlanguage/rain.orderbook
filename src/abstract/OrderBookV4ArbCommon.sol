@@ -31,7 +31,7 @@ error BadLender(address badLender);
 /// implementation of the arb contract.
 struct OrderBookV4ArbConfigV2 {
     address orderBook;
-    TaskV1[] tasks;
+    TaskV1 task;
     bytes implementationData;
 }
 
@@ -47,21 +47,8 @@ abstract contract OrderBookV4ArbCommon {
 
     event Construct(address sender, OrderBookV4ArbConfigV2 config);
 
-    bytes32 public immutable iTasksHash = 0;
-
     constructor(OrderBookV4ArbConfigV2 memory config) {
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
-
-        if (config.tasks.length != 0) {
-            iTasksHash = keccak256(abi.encode(config.tasks));
-        }
-    }
-
-    modifier onlyValidTasks(TaskV1[] calldata tasks) {
-        if (iTasksHash != 0 && keccak256(abi.encode(tasks)) != iTasksHash) {
-            revert WrongTasks();
-        }
-        _;
     }
 }

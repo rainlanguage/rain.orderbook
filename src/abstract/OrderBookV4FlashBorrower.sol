@@ -147,8 +147,8 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
         bytes calldata exchangeData,
-        TaskV1[] calldata tasks
-    ) external payable nonReentrant onlyValidTasks(tasks) {
+        TaskV1 calldata task
+    ) external payable nonReentrant {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();

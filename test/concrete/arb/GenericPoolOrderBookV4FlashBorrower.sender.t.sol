@@ -33,15 +33,15 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
     ) public {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        TaskV1[] memory tasks = new TaskV1[](1);
-        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)});
-
         GenericPoolOrderBookV4FlashBorrower(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             0,
             abi.encode(iRefundoor, iRefundoor, ""),
-            tasks
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+                signedContext: new SignedContextV1[](0)
+            })
         );
     }
 
@@ -58,16 +58,16 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
 
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        TaskV1[] memory tasks = new TaskV1[](1);
-        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)});
-
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         GenericPoolOrderBookV4FlashBorrower(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             minimumOutput,
             abi.encode(iRefundoor, iRefundoor, ""),
-            tasks
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+                signedContext: new SignedContextV1[](0)
+            })
         );
     }
 }

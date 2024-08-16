@@ -9,7 +9,8 @@ import {
     EvaluableV3,
     OrderBookV4ArbConfigV2,
     IOrderBookV4OrderTaker,
-    TaskV1
+    TaskV1,
+    SignedContextV1
 } from "src/abstract/OrderBookV4ArbOrderTaker.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
@@ -21,7 +22,10 @@ contract ChildOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
         OrderBookV4ArbOrderTaker(
             OrderBookV4ArbConfigV2(
                 address(0),
-                new TaskV1[](0),
+                TaskV1({
+                    evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
+                    signedContext: new SignedContextV1[](0)
+                }),
                 abi.encode(address(0))
             )
         )

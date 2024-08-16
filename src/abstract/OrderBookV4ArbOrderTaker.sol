@@ -28,7 +28,8 @@ import {
     NonZeroBeforeArbStack,
     OrderBookV4ArbConfigV2,
     EvaluableV3,
-    OrderBookV4ArbCommon
+    OrderBookV4ArbCommon,
+    SignedContextV1
 } from "./OrderBookV4ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
@@ -61,8 +62,8 @@ abstract contract OrderBookV4ArbOrderTaker is
         IOrderBookV4 orderBook,
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
-        TaskV1[] calldata tasks
-    ) external payable nonReentrant onlyValidTasks(tasks) {
+        TaskV1 calldata task
+    ) external payable nonReentrant {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();

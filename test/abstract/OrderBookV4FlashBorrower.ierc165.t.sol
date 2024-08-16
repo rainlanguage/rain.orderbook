@@ -7,7 +7,9 @@ import {
     OrderBookV4FlashBorrower,
     IERC3156FlashBorrower,
     OrderBookV4ArbConfigV2,
-    TaskV1
+    TaskV1,
+    SignedContextV1,
+    EvaluableV3
 } from "src/abstract/OrderBookV4FlashBorrower.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
@@ -19,7 +21,10 @@ contract ChildOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
         OrderBookV4FlashBorrower(
             OrderBookV4ArbConfigV2(
                 address(0),
-                new TaskV1[](0),
+                TaskV1({
+                    evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    signedContext: new SignedContextV1[](0)
+                }),
                 abi.encode(address(0))
             )
         )
