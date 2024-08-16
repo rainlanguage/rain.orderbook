@@ -5,7 +5,7 @@ import { rpcUrl, orderbookAddress, subgraphUrl } from '$lib/stores/settings';
 export async function batchOrderQuotes(
   orderHashes: string[],
 ): Promise<{ maxOutput: string; ratio: string }[]> {
-  return await invoke('batch_order_quotes', {
+  return invoke('batch_order_quotes', {
     orderHashes,
     subgraphUrl: get(subgraphUrl),
     rpcUrl: get(rpcUrl),

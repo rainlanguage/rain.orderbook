@@ -8,12 +8,23 @@
   import { Button, Spinner } from 'flowbite-svelte';
 
   export let orderHash: string;
+  let error: string | undefined = undefined;
+
+  const getOrderQuote = async (orderHash: string) => {
+    try {
+      const data = await batchOrderQuotes([orderHash]);
+      return data;
+    } catch (e: unknown) {
+      error = e as string;
+      return [];
+    }
+  };
 
   $: orderQuoteQuery = createQuery({
     queryKey: [QKEY_ORDER_QUOTE + orderHash],
-    queryFn: () => batchOrderQuotes([orderHash]),
+    queryFn: () => getOrderQuote(orderHash),
     enabled: !!orderHash,
-    refetchInterval: 10000,
+    refetchInterval: error ? false : 10000,
   });
 </script>
 
@@ -38,6 +49,11 @@
   </div>
   <div>
     <Button on:click={() => $orderQuoteQuery.refetch()}>Refresh Quote</Button>
+  </div>
+{:else if error}
+  <div data-testid="errorMessage" class="text-red-500 dark:text-red-400">
+    {'Error fetching pair quote:'} <br />
+    {error}
   </div>
 {:else}
   <div data-testid="emptyMessage" class="text-gray-900 dark:text-white">
