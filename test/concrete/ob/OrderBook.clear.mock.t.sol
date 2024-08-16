@@ -13,7 +13,7 @@ import {
     EvaluableV3,
     SignedContextV1,
     IInterpreterV3,
-    ActionV1
+    TaskV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
@@ -112,7 +112,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(token), vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(token), vaultId, amount, new TaskV1[](0));
 
         // Check that the vaultBalance was updated
         assertEq(iOrderbook.vaultBalance(depositor, address(token), vaultId), amount);

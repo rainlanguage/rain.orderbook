@@ -21,7 +21,7 @@ impl From<WithdrawArgs> for withdraw2Call {
             token: val.token,
             vaultId: val.vault_id,
             targetAmount: val.target_amount,
-            post: vec![],
+            tasks: vec![],
         }
     }
 }
