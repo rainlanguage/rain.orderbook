@@ -21,7 +21,7 @@ import {
     LibNamespace,
     DEFAULT_STATE_NAMESPACE,
     BEFORE_ARB_SOURCE_INDEX,
-    WrongTasks
+    WrongTask
 } from "src/abstract/OrderBookV4ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 
@@ -43,7 +43,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        vm.expectRevert(abi.encodeWithSelector(WrongTasks.selector));
+        vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),

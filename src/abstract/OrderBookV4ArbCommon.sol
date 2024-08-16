@@ -35,8 +35,8 @@ struct OrderBookV4ArbConfigV2 {
     bytes implementationData;
 }
 
-/// Thrown when the tasks do not match the expected hash.
-error WrongTasks();
+/// Thrown when the task does not match the expected hash.
+error WrongTask();
 
 /// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
 /// allows for some kind of access control to the arb.
@@ -47,8 +47,23 @@ abstract contract OrderBookV4ArbCommon {
 
     event Construct(address sender, OrderBookV4ArbConfigV2 config);
 
+    bytes32 public immutable iTaskHash;
+
     constructor(OrderBookV4ArbConfigV2 memory config) {
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
+
+        if (config.task.evaluable.bytecode.length != 0) {
+            iTaskHash = keccak256(abi.encode(config.task));
+        } else {
+            iTaskHash = bytes32(0);
+        }
+    }
+
+    modifier onlyValidTask(TaskV1 memory task) {
+        if (iTaskHash != bytes32(0) && iTaskHash != keccak256(abi.encode(task))) {
+            revert WrongTask();
+        }
+        _;
     }
 }

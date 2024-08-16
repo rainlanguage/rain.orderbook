@@ -23,6 +23,7 @@ import {
     OrderBookV4ArbCommon
 } from "./OrderBookV4ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
+import {LibOrderBook} from "../lib/LibOrderBook.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -148,7 +149,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         uint256 minimumSenderOutput,
         bytes calldata exchangeData,
         TaskV1 calldata task
-    ) external payable nonReentrant {
+    ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -196,5 +197,9 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // without calling `arb` is going to lose their tokens/gas.
         // See https://github.com/crytic/slither/issues/1658
         Address.sendValue(payable(msg.sender), address(this).balance);
+
+        TaskV1[] memory post = new TaskV1[](1);
+        post[0] = task;
+        LibOrderBook.doPost(new uint256[][](0), post);
     }
 }

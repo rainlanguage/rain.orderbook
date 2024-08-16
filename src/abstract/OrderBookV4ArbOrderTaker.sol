@@ -33,6 +33,7 @@ import {
 } from "./OrderBookV4ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
+import {LibOrderBook} from "../lib/LibOrderBook.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
@@ -63,7 +64,7 @@ abstract contract OrderBookV4ArbOrderTaker is
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
         TaskV1 calldata task
-    ) external payable nonReentrant {
+    ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -99,6 +100,10 @@ abstract contract OrderBookV4ArbOrderTaker is
         // calling `arb` is going to lose their tokens/gas.
         // See https://github.com/crytic/slither/issues/1658
         Address.sendValue(payable(msg.sender), address(this).balance);
+
+        TaskV1[] memory post = new TaskV1[](1);
+        post[0] = task;
+        LibOrderBook.doPost(new uint256[][](0), post);
     }
 
     /// @inheritdoc IOrderBookV4OrderTaker

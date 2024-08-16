@@ -13,7 +13,7 @@ import {
     TaskV1,
     SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTasks} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTask} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
@@ -34,7 +34,7 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        vm.expectRevert(abi.encodeWithSelector(WrongTasks.selector));
+        vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
@@ -54,32 +54,18 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
 
         vm.mockCall(
             address(iInterpreter),
-            abi.encodeWithSelector(
-                IInterpreterV3.eval3.selector,
-                iInterpreterStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
-            ),
+            abi.encodeWithSelector(IInterpreterV3.eval3.selector, iInterpreterStore),
+            // LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
             abi.encode(stack, kvs)
         );
-        vm.expectCall(
-            address(iInterpreter),
-            abi.encodeWithSelector(
-                IInterpreterV3.eval3.selector,
-                iInterpreterStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
-            )
-        );
+        vm.expectCall(address(iInterpreter), abi.encodeWithSelector(IInterpreterV3.eval3.selector, iInterpreterStore));
+        // LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
 
         if (kvs.length > 0) {
             vm.mockCall(
-                address(iInterpreterStore),
-                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, DEFAULT_STATE_NAMESPACE, kvs),
-                abi.encode("")
+                address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector), abi.encode("")
             );
-            vm.expectCall(
-                address(iInterpreterStore),
-                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, DEFAULT_STATE_NAMESPACE, kvs)
-            );
+            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector));
         }
 
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
