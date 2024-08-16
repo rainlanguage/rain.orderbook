@@ -22,7 +22,7 @@
     <Spinner class="h-8 w-8" color="white" data-testid="loadingSpinner" />
   </div>
 {:else if $orderQuoteQuery.data}
-  <div class="grid grid-cols-2 gap-x-2">
+  <div data-testid="orderQuoteComponent" class="grid grid-cols-2 gap-x-2">
     <CardProperty>
       <svelte:fragment slot="key">Maximum output</svelte:fragment>
       <svelte:fragment slot="value">
