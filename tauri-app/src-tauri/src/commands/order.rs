@@ -1,17 +1,13 @@
 use crate::error::{CommandError, CommandResult};
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::{Address, Bytes, Uint, U256};
-use alloy::signers::k256::elliptic_curve::rand_core::block;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
 };
-use rain_orderbook_quote::rpc::batch_quote;
-use rain_orderbook_quote::{
-    BatchQuoteSpec, BatchQuoteTarget, OrderQuoteValue, QuoteResult, QuoteSpec, QuoteTarget,
-};
+use rain_orderbook_quote::{BatchQuoteSpec, OrderQuoteValue, QuoteSpec};
 use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;
