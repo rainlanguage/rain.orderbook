@@ -7,7 +7,7 @@ import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {
     OrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV1,
+    OrderBookV4ArbConfigV2,
     MinimumOutput
 } from "../../abstract/OrderBookV4ArbOrderTaker.sol";
 
@@ -15,7 +15,7 @@ contract GenericPoolOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbOrderTaker(config) {}
+    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbOrderTaker(config) {}
 
     /// @inheritdoc OrderBookV4ArbOrderTaker
     function onTakeOrders(

@@ -16,7 +16,8 @@ import {IOrderBookV4, NoOrders} from "rain.orderbook.interface/interface/IOrderB
 import {
     IOrderBookV4,
     IOrderBookV4ArbOrderTakerV2,
-    IOrderBookV4OrderTaker
+    IOrderBookV4OrderTaker,
+    TaskV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV4ArbOrderTakerV2.sol";
 import {IInterpreterV3, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
@@ -25,7 +26,7 @@ import {
     BadLender,
     MinimumOutput,
     NonZeroBeforeArbStack,
-    OrderBookV4ArbConfigV1,
+    OrderBookV4ArbConfigV2,
     EvaluableV3,
     OrderBookV4ArbCommon
 } from "./OrderBookV4ArbCommon.sol";
@@ -47,7 +48,7 @@ abstract contract OrderBookV4ArbOrderTaker is
 {
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {}
+    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -60,8 +61,8 @@ abstract contract OrderBookV4ArbOrderTaker is
         IOrderBookV4 orderBook,
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
-        EvaluableV3 calldata evaluable
-    ) external payable nonReentrant onlyValidEvaluable(evaluable) {
+        TaskV1[] calldata tasks
+    ) external payable nonReentrant onlyValidTasks(tasks) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();

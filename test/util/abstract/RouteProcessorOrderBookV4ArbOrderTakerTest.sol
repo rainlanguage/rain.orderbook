@@ -4,11 +4,11 @@ pragma solidity =0.8.25;
 import {ArbTest} from "./ArbTest.sol";
 import {
     RouteProcessorOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV1
+    OrderBookV4ArbConfigV2
 } from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTakerTest is ArbTest {
-    function buildArb(OrderBookV4ArbConfigV1 memory config) internal override returns (address) {
+    function buildArb(OrderBookV4ArbConfigV2 memory config) internal override returns (address) {
         return address(new RouteProcessorOrderBookV4ArbOrderTaker(config));
     }
 

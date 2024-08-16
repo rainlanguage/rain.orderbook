@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 import {GenericPoolOrderBookV4ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV4ArbOrderTakerTest.sol";
 import {
     GenericPoolOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV1
+    OrderBookV4ArbConfigV2
 } from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {
     OrderV3,
@@ -13,14 +13,15 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2,
-    SignedContextV1
+    SignedContextV1,
+    TaskV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {
     LibNamespace,
     DEFAULT_STATE_NAMESPACE,
     BEFORE_ARB_SOURCE_INDEX,
-    WrongEvaluable
+    WrongTasks
 } from "src/abstract/OrderBookV4ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 
@@ -42,12 +43,15 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)});
+
+        vm.expectRevert(abi.encodeWithSelector(WrongTasks.selector));
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            evaluable
+            tasks
         );
     }
 
@@ -90,11 +94,13 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
             );
         }
 
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()), signedContext: new SignedContextV1[](0)});
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            EvaluableV3(iInterpreter, iInterpreterStore, expression())
+            tasks
         );
     }
 }

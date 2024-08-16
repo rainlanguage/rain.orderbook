@@ -6,7 +6,7 @@ import {ArbTest} from "test/util/abstract/ArbTest.sol";
 import {
     GenericPoolOrderBookV4FlashBorrower,
     MinimumOutput,
-    OrderBookV4ArbConfigV1
+    OrderBookV4ArbConfigV2
 } from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
 import {
     OrderV3,
@@ -14,11 +14,13 @@ import {
     EvaluableV3,
     TakeOrdersConfigV3,
     IInterpreterV3,
-    IInterpreterStoreV2
+    IInterpreterStoreV2,
+    TaskV1,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
-    function buildArb(OrderBookV4ArbConfigV1 memory config) internal override returns (address) {
+    function buildArb(OrderBookV4ArbConfigV2 memory config) internal override returns (address) {
         return address(new GenericPoolOrderBookV4FlashBorrower(config));
     }
 
@@ -31,12 +33,15 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
     ) public {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)});
+
         GenericPoolOrderBookV4FlashBorrower(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             0,
             abi.encode(iRefundoor, iRefundoor, ""),
-            EvaluableV3(iInterpreter, iInterpreterStore, "")
+            tasks
         );
     }
 
@@ -53,13 +58,16 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
 
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)});
+
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         GenericPoolOrderBookV4FlashBorrower(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             minimumOutput,
             abi.encode(iRefundoor, iRefundoor, ""),
-            EvaluableV3(iInterpreter, iInterpreterStore, "")
+            tasks
         );
     }
 }

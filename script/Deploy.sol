@@ -2,12 +2,12 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook, EvaluableV3} from "src/concrete/ob/OrderBook.sol";
+import {OrderBook, EvaluableV3, TaskV1} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
-import {OrderBookV4ArbConfigV1} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {OrderBookV4ArbConfigV2} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
@@ -86,23 +86,24 @@ contract Deploy is Script {
 
             // Order takers.
             new GenericPoolOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV1(
-                    address(raindex), EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""), ""
-                )
+                OrderBookV4ArbConfigV2(
+                    address(raindex), new TaskV1[](0), "")
             );
 
             new RouteProcessorOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV1(
+                OrderBookV4ArbConfigV2(
                     address(raindex),
-                    EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
+                    new TaskV1[](0),
                     abi.encode(routeProcessor)
                 )
             );
 
             // Flash borrowers.
             new GenericPoolOrderBookV4FlashBorrower(
-                OrderBookV4ArbConfigV1(
-                    raindex, EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""), ""
+                OrderBookV4ArbConfigV2(
+                    raindex,
+                    new TaskV1[](0),
+                    ""
                 )
             );
         }

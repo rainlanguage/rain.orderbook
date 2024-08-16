@@ -7,7 +7,7 @@ import {
     SourceIndexV2,
     DEFAULT_STATE_NAMESPACE
 } from "rain.interpreter.interface/interface/IInterpreterV3.sol";
-import {IOrderBookV4} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IOrderBookV4, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
@@ -26,17 +26,17 @@ error BadLender(address badLender);
 
 /// Configuration for an arb contract to construct.
 /// @param orderBook The `OrderBook` contract to arb against.
-/// @param evaluable The `EvaluableV3` to use as a pre-hook for each arb.
+/// @param tasks The tasks to use as post for each arb.
 /// @param implementationData The constructor data for the specific
 /// implementation of the arb contract.
-struct OrderBookV4ArbConfigV1 {
+struct OrderBookV4ArbConfigV2 {
     address orderBook;
-    EvaluableV3 evaluable;
+    TaskV1[] tasks;
     bytes implementationData;
 }
 
-/// Thrown when the evaluable does not match the expected hash.
-error WrongEvaluable();
+/// Thrown when the tasks do not match the expected hash.
+error WrongTasks();
 
 /// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
 /// allows for some kind of access control to the arb.
@@ -45,36 +45,22 @@ SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 abstract contract OrderBookV4ArbCommon {
     using LibEvaluable for EvaluableV3;
 
-    event Construct(address sender, OrderBookV4ArbConfigV1 config);
+    event Construct(address sender, OrderBookV4ArbConfigV2 config);
 
-    bytes32 public immutable iEvaluableHash;
+    bytes32 public immutable iTasksHash = 0;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) {
+    constructor(OrderBookV4ArbConfigV2 memory config) {
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
 
-        iEvaluableHash = config.evaluable.hash();
+        if (config.tasks.length != 0) {
+            iTasksHash = keccak256(abi.encode(config.tasks));
+        }
     }
 
-    modifier onlyValidEvaluable(EvaluableV3 calldata evaluable) {
-        if (evaluable.hash() != iEvaluableHash) {
-            revert WrongEvaluable();
-        }
-        if (evaluable.bytecode.length > 0) {
-            (uint256[] memory stack, uint256[] memory kvs) = evaluable.interpreter.eval3(
-                evaluable.store,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(this)),
-                evaluable.bytecode,
-                BEFORE_ARB_SOURCE_INDEX,
-                LibContext.build(new uint256[][](0), new SignedContextV1[](0)),
-                new uint256[](0)
-            );
-            // We don't care about the stack.
-            (stack);
-            // Persist any state changes from the expression.
-            if (kvs.length > 0) {
-                evaluable.store.set(DEFAULT_STATE_NAMESPACE, kvs);
-            }
+    modifier onlyValidTasks(TaskV1[] calldata tasks) {
+        if (iTasksHash != 0 && keccak256(abi.encode(tasks)) != iTasksHash) {
+            revert WrongTasks();
         }
         _;
     }

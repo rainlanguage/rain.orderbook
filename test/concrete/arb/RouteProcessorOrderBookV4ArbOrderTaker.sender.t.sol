@@ -9,11 +9,13 @@ import {
     TakeOrderConfigV3,
     TakeOrdersConfigV3,
     IInterpreterV3,
-    IInterpreterStoreV2
+    IInterpreterStoreV2,
+    TaskV1,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
     RouteProcessorOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV1,
+    OrderBookV4ArbConfigV2,
     MinimumOutput
 } from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
@@ -23,11 +25,17 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
     {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({
+            evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+            signedContext: new SignedContextV1[](0)
+        });
+
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
             0,
-            EvaluableV3(iInterpreter, iInterpreterStore, "")
+            tasks
         );
     }
 
@@ -44,12 +52,18 @@ contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrder
 
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({
+            evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+            signedContext: new SignedContextV1[](0)
+        });
+
         vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
             minimumOutput,
-            EvaluableV3(iInterpreter, iInterpreterStore, expression())
+            tasks
         );
     }
 }

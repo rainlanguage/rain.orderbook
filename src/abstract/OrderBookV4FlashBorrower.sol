@@ -12,14 +12,14 @@ import {
 } from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IOrderBookV4, TakeOrdersConfigV3, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IOrderBookV4, TakeOrdersConfigV3, NoOrders, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {
     BadLender,
     MinimumOutput,
     NonZeroBeforeArbStack,
-    OrderBookV4ArbConfigV1,
+    OrderBookV4ArbConfigV2,
     OrderBookV4ArbCommon
 } from "./OrderBookV4ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
@@ -68,7 +68,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     using Address for address;
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {}
+    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -147,8 +147,8 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         TakeOrdersConfigV3 calldata takeOrders,
         uint256 minimumSenderOutput,
         bytes calldata exchangeData,
-        EvaluableV3 calldata evaluable
-    ) external payable nonReentrant onlyValidEvaluable(evaluable) {
+        TaskV1[] calldata tasks
+    ) external payable nonReentrant onlyValidTasks(tasks) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();

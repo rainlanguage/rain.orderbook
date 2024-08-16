@@ -9,9 +9,11 @@ import {
     TakeOrderConfigV3,
     TakeOrdersConfigV3,
     IInterpreterV3,
-    IInterpreterStoreV2
+    IInterpreterStoreV2,
+    TaskV1,
+    SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongEvaluable} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTasks} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
@@ -32,12 +34,15 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)});
+
+        vm.expectRevert(abi.encodeWithSelector(WrongTasks.selector));
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            evaluable
+            tasks
         );
     }
 
@@ -80,11 +85,13 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
             );
         }
 
+        TaskV1[] memory tasks = new TaskV1[](1);
+        tasks[0] = TaskV1({evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()), signedContext: new SignedContextV1[](0)});
         RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             0,
-            EvaluableV3(iInterpreter, iInterpreterStore, expression())
+            tasks
         );
     }
 }
