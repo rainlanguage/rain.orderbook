@@ -1,6 +1,6 @@
 use crate::error::{CommandError, CommandResult};
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
-use alloy::primitives::{Address, Bytes, Uint, U256};
+use alloy::primitives::{Address, Bytes, U256};
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
