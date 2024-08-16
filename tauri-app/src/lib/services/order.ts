@@ -66,7 +66,7 @@ export async function orderAddComposeRainlang(
 
 export async function batchOrderQuotes(
   orderHashes: string[],
-): Promise<{ max_output: string; ratio: string }[]> {
+): Promise<{ maxOutput: string; ratio: string }[]> {
   return await invoke('batch_order_quotes', {
     orderHashes,
     subgraphUrl: get(subgraphUrl),
