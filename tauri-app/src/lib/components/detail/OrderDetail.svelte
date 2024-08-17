@@ -75,14 +75,13 @@
           {/each}
         </svelte:fragment>
       </CardProperty>
-
-      <OrderQuote orderHash={data.order.order_hash} />
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
     <OrderTradesChart {id} />
   </svelte:fragment>
   <svelte:fragment slot="below" let:data>
+    <OrderQuote {id} order={data.order} />
     <Tabs
       style="underline"
       contentClass="mt-4"
