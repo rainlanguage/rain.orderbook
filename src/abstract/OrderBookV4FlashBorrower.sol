@@ -15,15 +15,10 @@ import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface
 import {IOrderBookV4, TakeOrdersConfigV3, NoOrders, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {
-    BadLender,
-    MinimumOutput,
-    NonZeroBeforeArbStack,
-    OrderBookV4ArbConfigV2,
-    OrderBookV4ArbCommon
-} from "./OrderBookV4ArbCommon.sol";
+import {OrderBookV4ArbConfigV2, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
+import {LibOrderBookArb, MinimumOutput, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -176,30 +171,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         }
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
-        // Send all unspent input tokens to the sender.
-        uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
-        if (inputBalance < minimumSenderOutput) {
-            revert MinimumOutput(minimumSenderOutput, inputBalance);
-        }
-        if (inputBalance > 0) {
-            IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
-        }
-        // Send all unspent output tokens to the sender.
-        uint256 outputBalance = IERC20(ordersOutputToken).balanceOf(address(this));
-        if (outputBalance > 0) {
-            IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
-        }
-
-        // Send any remaining gas to the sender.
-        // Slither false positive here. We want to send everything to the sender
-        // because the borrower contract should be empty of all gas and tokens
-        // between uses. Anyone who sends tokens or gas to an arb contract
-        // without calling `arb` is going to lose their tokens/gas.
-        // See https://github.com/crytic/slither/issues/1658
-        Address.sendValue(payable(msg.sender), address(this).balance);
-
-        TaskV1[] memory post = new TaskV1[](1);
-        post[0] = task;
-        LibOrderBook.doPost(new uint256[][](0), post);
+        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken, minimumSenderOutput);
     }
 }

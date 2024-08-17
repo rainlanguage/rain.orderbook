@@ -22,18 +22,11 @@ import {
 import {IInterpreterV3, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {
-    BadLender,
-    MinimumOutput,
-    NonZeroBeforeArbStack,
-    OrderBookV4ArbConfigV2,
-    EvaluableV3,
-    OrderBookV4ArbCommon,
-    SignedContextV1
-} from "./OrderBookV4ArbCommon.sol";
+import {OrderBookV4ArbConfigV2, EvaluableV3, OrderBookV4ArbCommon, SignedContextV1} from "./OrderBookV4ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
+import {LibOrderBookArb, MinimumOutput, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
@@ -79,31 +72,7 @@ abstract contract OrderBookV4ArbOrderTaker is
         (totalInput, totalOutput);
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
-        // Send all unspent input tokens to the sender.
-        uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
-        if (inputBalance < minimumSenderOutput) {
-            revert MinimumOutput(minimumSenderOutput, inputBalance);
-        }
-        if (inputBalance > 0) {
-            IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
-        }
-        // Send all unspent output tokens to the sender.
-        uint256 outputBalance = IERC20(ordersOutputToken).balanceOf(address(this));
-        if (outputBalance > 0) {
-            IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
-        }
-
-        // Send any remaining gas to the sender.
-        // Slither false positive here. We want to send everything to the sender
-        // because this contract should be empty of all gas and tokens between
-        // uses. Anyone who sends tokens or gas to an arb contract without
-        // calling `arb` is going to lose their tokens/gas.
-        // See https://github.com/crytic/slither/issues/1658
-        Address.sendValue(payable(msg.sender), address(this).balance);
-
-        TaskV1[] memory post = new TaskV1[](1);
-        post[0] = task;
-        LibOrderBook.doPost(new uint256[][](0), post);
+        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken, minimumSenderOutput);
     }
 
     /// @inheritdoc IOrderBookV4OrderTaker

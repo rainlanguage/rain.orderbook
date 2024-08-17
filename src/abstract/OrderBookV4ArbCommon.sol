@@ -12,18 +12,6 @@ import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 
-/// Thrown when the minimum output for the sender is not met after the arb.
-/// @param minimum The minimum output expected by the sender.
-/// @param actual The actual output that would be received by the sender.
-error MinimumOutput(uint256 minimum, uint256 actual);
-
-/// Thrown when the stack is not empty after the access control dispatch.
-error NonZeroBeforeArbStack();
-
-/// Thrown when the lender is not the trusted `OrderBook`.
-/// @param badLender The untrusted lender calling `onFlashLoan`.
-error BadLender(address badLender);
-
 /// Configuration for an arb contract to construct.
 /// @param orderBook The `OrderBook` contract to arb against.
 /// @param tasks The tasks to use as post for each arb.
