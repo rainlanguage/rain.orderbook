@@ -216,7 +216,7 @@ test('displays error message when query fails', async () => {
 
   await waitFor(() => {
     const errorCell = screen.getByText(
-      (content, element) =>
+      (content) =>
         content.includes('Error fetching pair quote:') && content.includes('Network error'),
     );
     expect(errorCell).toBeInTheDocument();

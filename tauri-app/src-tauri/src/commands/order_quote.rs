@@ -1,10 +1,8 @@
 use crate::error::{CommandError, CommandResult};
-use crate::toast::toast_error;
 use alloy::primitives::{Address, U256};
 use rain_orderbook_quote::{BatchQuoteSpec, OrderQuoteValue, QuoteSpec};
 use rain_orderbook_subgraph_client::types::orders_list;
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct Response {
@@ -16,7 +14,6 @@ pub struct Response {
 
 #[tauri::command]
 pub async fn batch_order_quotes(
-    app_handle: AppHandle,
     orders: Vec<orders_list::Order>,
     orderbook: Address,
     subgraph_url: String,

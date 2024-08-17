@@ -21,8 +21,7 @@
   let error: string | undefined = undefined;
 
   const getOrderQuote = async (order: Order) => {
-    const data = await batchOrderQuotes([order, order]);
-    console.log('data', data);
+    const data = await batchOrderQuotes([order]);
     return data;
   };
 
