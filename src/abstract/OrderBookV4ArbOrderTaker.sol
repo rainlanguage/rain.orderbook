@@ -52,11 +52,12 @@ abstract contract OrderBookV4ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV4ArbOrderTakerV2
-    function arb3(
-        IOrderBookV4 orderBook,
-        TakeOrdersConfigV3 calldata takeOrders,
-        TaskV1 calldata task
-    ) external payable nonReentrant onlyValidTask(task) {
+    function arb3(IOrderBookV4 orderBook, TakeOrdersConfigV3 calldata takeOrders, TaskV1 calldata task)
+        external
+        payable
+        nonReentrant
+        onlyValidTask(task)
+    {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();

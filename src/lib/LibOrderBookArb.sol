@@ -19,11 +19,7 @@ error BadLender(address badLender);
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
 
-    function finalizeArb(
-        TaskV1 memory task,
-        address ordersInputToken,
-        address ordersOutputToken
-    ) internal {
+    function finalizeArb(TaskV1 memory task, address ordersInputToken, address ordersOutputToken) internal {
         uint256[][] memory context = new uint256[][](1);
         uint256[] memory col = new uint256[](3);
 

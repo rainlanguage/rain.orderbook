@@ -6,10 +6,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
-import {
-    OrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV2
-} from "../../abstract/OrderBookV4ArbOrderTaker.sol";
+import {OrderBookV4ArbOrderTaker, OrderBookV4ArbConfigV2} from "../../abstract/OrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
     using SafeERC20 for IERC20;
