@@ -6,7 +6,6 @@ import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156
 
 import {
     OrderBookV4FlashBorrower,
-    MinimumOutput,
     SafeERC20,
     IERC20,
     Address,

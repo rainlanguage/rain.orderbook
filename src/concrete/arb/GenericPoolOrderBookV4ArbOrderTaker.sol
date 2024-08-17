@@ -7,8 +7,7 @@ import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {
     OrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV2,
-    MinimumOutput
+    OrderBookV4ArbConfigV2
 } from "../../abstract/OrderBookV4ArbOrderTaker.sol";
 
 contract GenericPoolOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {

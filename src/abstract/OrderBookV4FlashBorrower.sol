@@ -18,7 +18,7 @@ import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpr
 import {OrderBookV4ArbConfigV2, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
-import {LibOrderBookArb, MinimumOutput, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
+import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -126,13 +126,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// sender.
     ///
     /// @param takeOrders As per `IOrderBookV4.takeOrders2`.
-    /// @param minimumSenderOutput The minimum output that must be sent to the
-    /// sender by the end of the arb call. This, in combination with the
-    /// orderbook's own asset handling, is expected to REPLACE the standard
-    /// slippage protection that would be provided by a DEX. The sender is
-    /// expected to calculate absolute values based on prevailing conditions
-    /// such as gas price and the risk of holding the assets any arb profit is
-    /// denominated in.
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
@@ -141,7 +134,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     function arb3(
         IOrderBookV4 orderBook,
         TakeOrdersConfigV3 calldata takeOrders,
-        uint256 minimumSenderOutput,
         bytes calldata exchangeData,
         TaskV1 calldata task
     ) external payable nonReentrant onlyValidTask(task) {
@@ -171,6 +163,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         }
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
-        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken, minimumSenderOutput);
+        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken);
     }
 }

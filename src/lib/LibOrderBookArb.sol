@@ -9,11 +9,6 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-/// Thrown when the minimum output for the sender is not met after the arb.
-/// @param minimum The minimum output expected by the sender.
-/// @param actual The actual output that would be received by the sender.
-error MinimumOutput(uint256 minimum, uint256 actual);
-
 /// Thrown when the stack is not empty after the access control dispatch.
 error NonZeroBeforeArbStack();
 
@@ -27,8 +22,7 @@ library LibOrderBookArb {
     function finalizeArb(
         TaskV1 memory task,
         address ordersInputToken,
-        address ordersOutputToken,
-        uint256 minimumSenderOutput
+        address ordersOutputToken
     ) internal {
         uint256[][] memory context = new uint256[][](1);
         uint256[] memory col = new uint256[](3);
@@ -36,9 +30,6 @@ library LibOrderBookArb {
         {
             // Send all unspent input tokens to the sender.
             uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
-            if (inputBalance < minimumSenderOutput) {
-                revert MinimumOutput(minimumSenderOutput, inputBalance);
-            }
             if (inputBalance > 0) {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }

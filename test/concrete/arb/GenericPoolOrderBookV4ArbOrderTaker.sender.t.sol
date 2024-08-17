@@ -5,8 +5,7 @@ import {GenericPoolOrderBookV4ArbOrderTakerTest} from "test/util/abstract/Generi
 
 import {
     GenericPoolOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV2,
-    MinimumOutput
+    OrderBookV4ArbConfigV2
 } from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {
     OrderV3,
@@ -28,32 +27,6 @@ contract GenericPoolOrderBookV4ArbOrderTakerSenderTest is GenericPoolOrderBookV4
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            0,
-            TaskV1({
-                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
-                signedContext: new SignedContextV1[](0)
-            })
-        );
-    }
-
-    function testGenericPoolMinimumOutput(
-        OrderV3 memory order,
-        uint256 inputIOIndex,
-        uint256 outputIOIndex,
-        uint256 minimumOutput,
-        uint256 mintAmount
-    ) public {
-        mintAmount = bound(mintAmount, 0, type(uint256).max - 1);
-        minimumOutput = bound(minimumOutput, mintAmount + 1, type(uint256).max);
-        iTakerOutput.mint(iArb, mintAmount);
-
-        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
-
-        vm.expectRevert(abi.encodeWithSelector(MinimumOutput.selector, minimumOutput, mintAmount));
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
-            iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            minimumOutput,
             TaskV1({
                 evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)

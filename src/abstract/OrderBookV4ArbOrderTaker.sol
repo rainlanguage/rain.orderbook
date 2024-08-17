@@ -26,7 +26,7 @@ import {OrderBookV4ArbConfigV2, EvaluableV3, OrderBookV4ArbCommon, SignedContext
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
-import {LibOrderBookArb, MinimumOutput, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
+import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
@@ -55,7 +55,6 @@ abstract contract OrderBookV4ArbOrderTaker is
     function arb3(
         IOrderBookV4 orderBook,
         TakeOrdersConfigV3 calldata takeOrders,
-        uint256 minimumSenderOutput,
         TaskV1 calldata task
     ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
@@ -72,7 +71,7 @@ abstract contract OrderBookV4ArbOrderTaker is
         (totalInput, totalOutput);
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
-        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken, minimumSenderOutput);
+        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken);
     }
 
     /// @inheritdoc IOrderBookV4OrderTaker

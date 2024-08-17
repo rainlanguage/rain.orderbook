@@ -48,7 +48,6 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            0,
             TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
@@ -86,7 +85,6 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            0,
             TaskV1({
                 evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
