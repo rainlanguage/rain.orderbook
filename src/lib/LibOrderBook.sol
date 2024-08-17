@@ -102,7 +102,9 @@ library LibOrderBook {
                 new uint256[](0)
             );
             (stack);
-            task.evaluable.store.set(namespace, writes);
+            if (writes.length > 0) {
+                task.evaluable.store.set(namespace, writes);
+            }
         }
     }
 }
