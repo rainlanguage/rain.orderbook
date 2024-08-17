@@ -24,6 +24,7 @@ import {
     WrongTask
 } from "src/abstract/OrderBookV4ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
+import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 
 contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBookV4ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
@@ -61,34 +62,25 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
     ) public {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
+        StateNamespace ns = StateNamespace.wrap(uint256(uint160(address(this))));
+        FullyQualifiedNamespace fqns = LibNamespace.qualifyNamespace(ns, address(iArb));
+
         vm.mockCall(
             address(iInterpreter),
-            abi.encodeWithSelector(
-                IInterpreterV3.eval3.selector,
-                iInterpreterStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
-            ),
+            abi.encodeWithSelector(IInterpreterV3.eval3.selector, iInterpreterStore, fqns),
             abi.encode(stack, kvs)
         );
         vm.expectCall(
-            address(iInterpreter),
-            abi.encodeWithSelector(
-                IInterpreterV3.eval3.selector,
-                iInterpreterStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
-            )
+            address(iInterpreter), abi.encodeWithSelector(IInterpreterV3.eval3.selector, iInterpreterStore, fqns)
         );
 
         if (kvs.length > 0) {
             vm.mockCall(
                 address(iInterpreterStore),
-                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, DEFAULT_STATE_NAMESPACE, kvs),
+                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns, kvs),
                 abi.encode("")
             );
-            vm.expectCall(
-                address(iInterpreterStore),
-                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, DEFAULT_STATE_NAMESPACE, kvs)
-            );
+            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns, kvs));
         }
 
         GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(

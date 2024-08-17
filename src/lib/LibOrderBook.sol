@@ -93,17 +93,19 @@ library LibOrderBook {
         TaskV1 memory task;
         for (uint256 i = 0; i < post.length; ++i) {
             task = post[i];
-            (uint256[] memory stack, uint256[] memory writes) = task.evaluable.interpreter.eval3(
-                task.evaluable.store,
-                LibNamespace.qualifyNamespace(namespace, address(this)),
-                task.evaluable.bytecode,
-                SourceIndexV2.wrap(0),
-                LibContext.build(context, task.signedContext),
-                new uint256[](0)
-            );
-            (stack);
-            if (writes.length > 0) {
-                task.evaluable.store.set(namespace, writes);
+            if (task.evaluable.bytecode.length > 0) {
+                (uint256[] memory stack, uint256[] memory writes) = task.evaluable.interpreter.eval3(
+                    task.evaluable.store,
+                    LibNamespace.qualifyNamespace(namespace, address(this)),
+                    task.evaluable.bytecode,
+                    SourceIndexV2.wrap(0),
+                    LibContext.build(context, task.signedContext),
+                    new uint256[](0)
+                );
+                (stack);
+                if (writes.length > 0) {
+                    task.evaluable.store.set(namespace, writes);
+                }
             }
         }
     }
