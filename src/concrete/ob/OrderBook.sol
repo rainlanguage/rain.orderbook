@@ -68,9 +68,7 @@ error ReentrancyGuardReentrantCall();
 error NotOrderOwner(address sender, address owner);
 
 /// Thrown when the input and output tokens don't match, in either direction.
-/// @param aliceToken The input or output of one order.
-/// @param bobToken The input or output of the other order that doesn't match a.
-error TokenMismatch(address aliceToken, address bobToken);
+error TokenMismatch();
 
 /// Thrown when the input and output token decimals don't match, in either
 /// direction.
@@ -443,24 +441,18 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 takeOrderConfig = config.orders[i];
                 order = takeOrderConfig.order;
                 // Every order needs the same input token.
-                if (
-                    order.validInputs[takeOrderConfig.inputIOIndex].token
-                        != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
-                ) {
-                    revert TokenMismatch(
-                        order.validInputs[takeOrderConfig.inputIOIndex].token,
-                        config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
-                    );
-                }
                 // Every order needs the same output token.
                 if (
-                    order.validOutputs[takeOrderConfig.outputIOIndex].token
-                        != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+                    (
+                        order.validInputs[takeOrderConfig.inputIOIndex].token
+                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
+                    )
+                        || (
+                            order.validOutputs[takeOrderConfig.outputIOIndex].token
+                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+                        )
                 ) {
-                    revert TokenMismatch(
-                        order.validOutputs[takeOrderConfig.outputIOIndex].token,
-                        config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
-                    );
+                    revert TokenMismatch();
                 }
                 // Every order needs the same input token decimals.
                 if (
@@ -623,13 +615,16 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 revert SameOwner(aliceOrder.owner);
             }
             if (
-                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
-                    != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
+                (
+                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
+                        != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
+                )
+                    || (
+                        bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
+                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
+                    )
             ) {
-                revert TokenMismatch(
-                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token,
-                    bobOrder.validInputs[clearConfig.bobInputIOIndex].token
-                );
+                revert TokenMismatch();
             }
 
             if (
@@ -639,16 +634,6 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 revert TokenDecimalsMismatch(
                     aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals,
                     bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
-                );
-            }
-
-            if (
-                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
-                    != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
-            ) {
-                revert TokenMismatch(
-                    aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token,
-                    bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
                 );
             }
 

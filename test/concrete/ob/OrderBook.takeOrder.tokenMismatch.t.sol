@@ -50,17 +50,13 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenMismatch.selector, b.validInputs[bInputIOIndex].token, a.validInputs[aInputIOIndex].token
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
     /// Test a mismatch in the output tokens.
-    function testTokenMismatchOutputs(
+    function testTokenDecimalMismatchOutputs(
         OrderV3 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
@@ -89,11 +85,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenMismatch.selector, b.validOutputs[bOutputIOIndex].token, a.validOutputs[aOutputIOIndex].token
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }

@@ -35,7 +35,7 @@ abstract contract OrderBookV4ArbCommon {
 
     event Construct(address sender, OrderBookV4ArbConfigV2 config);
 
-    bytes32 public immutable iTaskHash;
+    bytes32 public immutable iTaskHash = 0;
 
     constructor(OrderBookV4ArbConfigV2 memory config) {
         // Emit events before any external calls are made.
@@ -43,8 +43,6 @@ abstract contract OrderBookV4ArbCommon {
 
         if (config.task.evaluable.bytecode.length != 0) {
             iTaskHash = keccak256(abi.encode(config.task));
-        } else {
-            iTaskHash = bytes32(0);
         }
     }
 
