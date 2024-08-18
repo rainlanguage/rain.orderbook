@@ -205,13 +205,17 @@ impl ConfigSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use httpmock::{Method::GET, MockServer};
+    use serde_json::json;
 
     #[tokio::test]
     async fn parse_yaml_into_configstrings() {
-        let yaml_data = r#"
+        let mocked_chain_id_server = MockServer::start_async().await;
+        let yaml_data = format!(
+            r#"
 using-networks-from:
     chainid:
-        url: https://chainid.network/chains.json
+        url: {}
         format: chainid
 
 networks:
@@ -341,8 +345,36 @@ deployments:
         scenario: mainScenario
         order: buyETH
         
-sentry: true"#
-            .to_string();
+sentry: true"#,
+            mocked_chain_id_server.url("/json")
+        );
+
+        let mocked_chain_id_response = json!([
+            {
+                "name": "Ethereum Mainnet",
+                "chain": "ETH",
+                "rpc": ["https://abcd.com/v3/${API_KEY}","https://api.mycryptoapi.com/eth","https://cloudflare-eth.com"],
+                "nativeCurrency": {"name": "Ether","symbol": "ETH","decimals": 18},
+                "infoURL": "https://ethereum.org",
+                "shortName": "eth",
+                "chainId": 1,
+                "networkId": 1
+            },
+            {
+                "name": "Polygon Mainnet",
+                "chain": "Polygon",
+                "rpc": ["https://polygon-rpc.com/","wss://polygon.drpc.org"],
+                "nativeCurrency": {"name": "MATIC","symbol": "MATIC","decimals": 18},
+                "infoURL": "https://polygon.technology/",
+                "shortName": "matic",
+                "chainId": 137,
+                "networkId": 137
+            }
+        ]);
+        mocked_chain_id_server.mock(|when, then| {
+            when.method(GET).path("/json");
+            then.json_body_obj(&mocked_chain_id_response);
+        });
 
         let config = ConfigSource::try_from_string(yaml_data).await.unwrap();
 
@@ -416,5 +448,40 @@ sentry: true"#
         );
         assert_eq!(order.deployer, expected_order.deployer);
         assert_eq!(order.orderbook, expected_order.orderbook);
+    }
+
+    #[tokio::test]
+    async fn test_remote_chain_configstrings_unhappy() {
+        let mocked_chain_id_server = MockServer::start_async().await;
+        let yaml_data = format!(
+            r#"
+using-networks-from:
+    chainid:
+        url: {}
+        format: chainid"#,
+            mocked_chain_id_server.url("/json")
+        );
+
+        let mocked_chain_id_response = json!([
+            {
+                "name": "Ethereum Mainnet",
+                "chain": "ETH",
+                "rpc": ["https://abcd.com, wss://abcd.com/ws"],
+                "nativeCurrency": {"name": "Ether","symbol": "ETH","decimals": 18},
+                "infoURL": "https://ethereum.org",
+                "shortName": "eth",
+                "chainId": 1,
+                "networkId": 1
+            }
+        ]);
+        mocked_chain_id_server.mock(|when, then| {
+            when.method(GET).path("/json");
+            then.json_body_obj(&mocked_chain_id_response);
+        });
+
+        let config = ConfigSource::try_from_string(yaml_data)
+            .await
+            .expect_err("expected to fail");
+        matches!(config, ConfigSourceError::ChainIdError(_));
     }
 }

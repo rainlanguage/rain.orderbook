@@ -6271,6 +6271,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "derive_builder 0.20.0",
+ "httpmock",
  "reqwest 0.11.27",
  "serde",
  "serde_json",

@@ -16,9 +16,10 @@ serde = { workspace = true, features = ["derive", "rc"] }
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
 strict-yaml-rust = { workspace = true }
-alloy = { workspace = true, features = ["serde"] }
+alloy = { workspace = true, features = ["serde", "rand"] }
 typeshare = { workspace = true }
 reqwest = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
+httpmock = "0.7.0"
