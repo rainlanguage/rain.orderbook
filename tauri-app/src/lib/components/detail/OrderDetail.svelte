@@ -16,6 +16,7 @@
   import { orderDetail } from '$lib/queries/orderDetail';
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';
+  import OrderQuote from '../detail/TanstackOrderQuote.svelte';
 
   export let id: string;
 
@@ -80,6 +81,7 @@
     <OrderTradesChart {id} />
   </svelte:fragment>
   <svelte:fragment slot="below" let:data>
+    <OrderQuote {id} order={data.order} />
     <Tabs
       style="underline"
       contentClass="mt-4"
