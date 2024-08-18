@@ -68,19 +68,6 @@ jobs:
 
       - run: ./pointers.sh
 
-      # - run: nix develop -c rainix-sol-prelude
-      #   working-directory: lib/rain.interpreter
-      # - run: nix develop -c rainix-rs-prelude
-      #   working-directory: lib/rain.interpreter
-      # - run: nix develop -c rainix-sol-prelude
-      #   working-directory: lib/rain.interpreter/lib/rain.metadata
-      # - run: nix develop -c rainix-rs-prelude
-      #   working-directory: lib/rain.interpreter/lib/rain.metadata
-
-      # - run: nix develop -c rainix-sol-prelude
-      # - run: nix develop -c rainix-rs-prelude
-      # - run: nix develop -c raindex-prelude
-
       - name: Run ${{ matrix.task }}
         env:
           ETH_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
