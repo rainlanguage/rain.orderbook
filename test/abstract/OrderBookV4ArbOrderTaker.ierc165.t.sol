@@ -7,25 +7,14 @@ import {
     OrderBookV4ArbOrderTaker,
     IOrderBookV4ArbOrderTakerV2,
     EvaluableV3,
-    OrderBookV4ArbConfigV1,
-    IOrderBookV4OrderTaker
+    OrderBookV4ArbConfigV2,
+    IOrderBookV4OrderTaker,
+    TaskV1,
+    SignedContextV1
 } from "src/abstract/OrderBookV4ArbOrderTaker.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-
-/// @dev We need a contract that is deployable in order to test the abstract
-/// base contract.
-contract ChildOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
-    constructor()
-        OrderBookV4ArbOrderTaker(
-            OrderBookV4ArbConfigV1(
-                address(0),
-                EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
-                abi.encode(address(0))
-            )
-        )
-    {}
-}
+import {ChildOrderBookV4ArbOrderTaker} from "../util/concrete/ChildOrderBookV4ArbOrderTaker.sol";
 
 contract OrderBookV4ArbOrderTakerIERC165Test is Test {
     /// Test that ERC165 and IOrderBookV4ArbOrderTaker are supported interfaces
