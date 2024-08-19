@@ -2,15 +2,9 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl, orderbookAddress, subgraphUrl } from '$lib/stores/settings';
 import type { Order } from '$lib/typeshare/orderDetail';
+import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 
-export async function batchOrderQuotes(orders: Order[]): Promise<
-  {
-    pair_name: string;
-    success: boolean;
-    data: { maxOutput: string; ratio: string } | undefined;
-    error: string | undefined;
-  }[]
-> {
+export async function batchOrderQuotes(orders: Order[]): Promise<BatchOrderQuotesResponse[]> {
   const formattedOrders = orders.map((order) => ({
     ...order,
     orderBytes: order.order_bytes,
