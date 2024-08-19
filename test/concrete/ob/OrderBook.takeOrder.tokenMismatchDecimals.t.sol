@@ -62,7 +62,7 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
     }
 
     /// Test a mismatch in the output tokens decimals.
-    function testTokenMismatchOutputs(
+    function testTokenDecimalsMismatchOutputs(
         OrderV3 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,

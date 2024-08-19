@@ -13,10 +13,11 @@ import {
     OrderV3,
     TakeOrderConfigV3,
     IO,
-    SignedContextV1
+    SignedContextV1,
+    EvaluableV3
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
-import {OrderBookV4ArbConfigV1} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
-import {EvaluableV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {OrderBookV4ArbConfigV2} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
+import {TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 
@@ -39,13 +40,13 @@ abstract contract ArbTest is Test {
     address immutable iArb;
 
     /// Mimics the `Construct` event from `OrderBookV4ArbCommon`.
-    event Construct(address sender, OrderBookV4ArbConfigV1 config);
+    event Construct(address sender, OrderBookV4ArbConfigV2 config);
 
     function expression() internal virtual returns (bytes memory) {
         return "";
     }
 
-    function buildArb(OrderBookV4ArbConfigV1 memory config) internal virtual returns (address);
+    function buildArb(OrderBookV4ArbConfigV2 memory config) internal virtual returns (address);
 
     constructor() {
         iInterpreter = IInterpreterV3(address(uint160(uint256(keccak256("interpreter.rain.test")))));
@@ -62,8 +63,13 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
         vm.label(address(iOrderBook), "iOrderBook");
 
-        OrderBookV4ArbConfigV1 memory config = OrderBookV4ArbConfigV1(
-            address(iOrderBook), EvaluableV3(iInterpreter, iInterpreterStore, expression()), abi.encode(iRefundoor)
+        OrderBookV4ArbConfigV2 memory config = OrderBookV4ArbConfigV2(
+            address(iOrderBook),
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+                signedContext: new SignedContextV1[](0)
+            }),
+            abi.encode(iRefundoor)
         );
 
         vm.expectEmit();

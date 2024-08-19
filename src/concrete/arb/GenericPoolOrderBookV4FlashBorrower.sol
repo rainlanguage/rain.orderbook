@@ -6,12 +6,11 @@ import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156
 
 import {
     OrderBookV4FlashBorrower,
-    MinimumOutput,
     SafeERC20,
     IERC20,
     Address,
     TakeOrdersConfigV3,
-    OrderBookV4ArbConfigV1
+    OrderBookV4ArbConfigV2
 } from "../../abstract/OrderBookV4FlashBorrower.sol";
 
 /// @title GenericPoolOrderBookV4FlashBorrower
@@ -28,7 +27,7 @@ contract GenericPoolOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4FlashBorrower(config) {}
+    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4FlashBorrower(config) {}
 
     /// @inheritdoc OrderBookV4FlashBorrower
     function _exchange(TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) internal virtual override {
