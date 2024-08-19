@@ -87,11 +87,7 @@ contract OrderBookV4ArbOrderTakerContextTest is OrderBookExternalRealTest {
         });
 
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.allowance.selector),
-            abi.encode(0)
-        );
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20.allowance.selector), abi.encode(0));
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.balanceOf.selector, address(arbOrderTaker)),
