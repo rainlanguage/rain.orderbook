@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+  import Refresh from '../icon/Refresh.svelte';
+
   import type { Order } from '$lib/typeshare/orderDetail';
   import { QKEY_ORDER_QUOTE } from '$lib/queries/keys';
   import { batchOrderQuotes } from '$lib/services/orderQuote';
@@ -6,7 +8,6 @@
 
   import { createQuery } from '@tanstack/svelte-query';
   import {
-    Button,
     Spinner,
     Table,
     TableBody,
@@ -40,7 +41,12 @@
 <div class="mt-4">
   <div class="mb-4 flex items-center justify-between">
     <h2 class="text-lg font-semibold">Order Quotes</h2>
-    <Button on:click={refreshQuotes}>Refresh Quotes</Button>
+    <Refresh
+      data-testid="refreshButton"
+      class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
+      on:click={refreshQuotes}
+      spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
+    />
   </div>
 
   <Table divClass="rounded-lg overflow-hidden dark:border-none border">

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import TanstackOrderQuote from './TanstackOrderQuote.svelte';
@@ -114,7 +114,7 @@ test('displays empty message when no data is returned', async () => {
   });
 });
 
-test('refreshes the quote when the refresh button is clicked', async () => {
+test('refreshes the quote when the refresh icon is clicked', async () => {
   mockIPC((cmd) => {
     if (cmd === 'batch_order_quotes') {
       return [
@@ -173,7 +173,8 @@ test('refreshes the quote when the refresh button is clicked', async () => {
     }
   });
 
-  screen.getByText('Refresh Quotes').click();
+  const refreshButton = screen.getByTestId('refreshButton');
+  fireEvent.click(refreshButton);
 
   await waitFor(() => {
     const orderQuoteRows = screen.getAllByTestId('bodyRow');
