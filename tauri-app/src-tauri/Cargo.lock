@@ -7882,6 +7882,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tsify",
+ "typeshare 1.0.1",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
