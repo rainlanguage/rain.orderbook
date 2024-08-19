@@ -3,9 +3,11 @@ use alloy::primitives::{Address, U256};
 use rain_orderbook_quote::{BatchQuoteSpec, OrderQuoteValue, QuoteSpec};
 use rain_orderbook_subgraph_client::types::orders_list;
 use serde::{Deserialize, Serialize};
+use typeshare::typeshare;
 
+#[typeshare]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
-pub struct Response {
+pub struct BatchOrderQuotesResponse {
     pub pair_name: String,
     pub data: Option<OrderQuoteValue>,
     pub success: bool,
@@ -18,8 +20,8 @@ pub async fn batch_order_quotes(
     orderbook: Address,
     subgraph_url: String,
     rpc_url: String,
-) -> CommandResult<Vec<Response>> {
-    let mut results: Vec<Response> = Vec::new();
+) -> CommandResult<Vec<BatchOrderQuotesResponse>> {
+    let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     for order in &orders {
         let pairs: Vec<(String, usize, usize)> = order
@@ -68,7 +70,7 @@ pub async fn batch_order_quotes(
             for (quote_value_result, (_, pair_name)) in quote_values.into_iter().zip(quote_specs) {
                 match quote_value_result {
                     Ok(quote_value) => {
-                        results.push(Response {
+                        results.push(BatchOrderQuotesResponse {
                             pair_name,
                             success: true,
                             data: Some(quote_value),
@@ -76,7 +78,7 @@ pub async fn batch_order_quotes(
                         });
                     }
                     Err(e) => {
-                        results.push(Response {
+                        results.push(BatchOrderQuotesResponse {
                             pair_name,
                             success: false,
                             data: None,
@@ -87,7 +89,7 @@ pub async fn batch_order_quotes(
             }
         } else if let Err(e) = quote_values {
             for (_, pair_name) in quote_specs {
-                results.push(Response {
+                results.push(BatchOrderQuotesResponse {
                     pair_name,
                     success: false,
                     data: None,
