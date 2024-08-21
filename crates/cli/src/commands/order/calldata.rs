@@ -29,10 +29,6 @@ pub struct Calldata {
 
     #[arg(short = 'o', long, help = "Output encoding", default_value = "binary")]
     encoding: SupportedOutputEncoding,
-
-    #[arg(short, long, help = "RPC URL")]
-    pub rpc_url: String,
-
 }
 
 impl Execute for Calldata {
@@ -57,7 +53,9 @@ impl Execute for Calldata {
                 .await;
 
         let add_order_calldata = add_order_args?
-            .try_into_call(self.rpc_url.clone())
+            .try_into_call(
+                config_deployment.scenario.deployer.network.rpc.to_string()
+            )
             .await?
             .abi_encode();
         
