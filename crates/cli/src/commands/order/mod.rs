@@ -1,6 +1,6 @@
 mod add;
-mod compose;
 mod calldata;
+mod compose;
 mod detail;
 mod list;
 mod remove;
@@ -8,9 +8,9 @@ mod remove;
 use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
+use calldata::Calldata;
 use clap::Parser;
 use compose::Compose;
-use calldata::Calldata;
 
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
@@ -33,7 +33,10 @@ pub enum Order {
     #[command(about = "Compose a .rain order file to Rainlang", alias = "comp")]
     Compose(Compose),
 
-    #[command(about = "Generate calldata for addOrder from a composition", alias = "call")]
+    #[command(
+        about = "Generate calldata for addOrder from a composition",
+        alias = "call"
+    )]
     Calldata(Calldata),
 }
 

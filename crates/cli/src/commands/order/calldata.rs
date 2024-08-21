@@ -1,16 +1,14 @@
 use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
+use alloy::sol_types::SolCall;
 use anyhow::{anyhow, Result};
 use clap::Args;
+use rain_orderbook_app_settings::Config;
+use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
-use std::path::PathBuf;
-use rain_orderbook_app_settings::{
-    Config
-};
-use rain_orderbook_common::add_order::AddOrderArgs;
 use std::ops::Deref;
-use alloy::sol_types::SolCall;
+use std::path::PathBuf;
 
 #[derive(Args, Clone)]
 pub struct Calldata {
@@ -49,16 +47,15 @@ impl Execute for Calldata {
             .get(&self.deployment)
             .ok_or(anyhow!("specified deployment is undefined!"))?;
 
-        let add_order_args = AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.deref().clone())
+        let add_order_args =
+            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.deref().clone())
                 .await;
 
         let add_order_calldata = add_order_args?
-            .try_into_call(
-                config_deployment.scenario.deployer.network.rpc.to_string()
-            )
+            .try_into_call(config_deployment.scenario.deployer.network.rpc.to_string())
             .await?
             .abi_encode();
-        
+
         output(&None, self.encoding.clone(), &add_order_calldata)?;
 
         Ok(())
