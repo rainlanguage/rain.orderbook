@@ -1,5 +1,6 @@
 mod add;
 mod compose;
+mod calldata;
 mod detail;
 mod list;
 mod remove;
@@ -9,6 +10,8 @@ use add::CliOrderAddArgs;
 use anyhow::Result;
 use clap::Parser;
 use compose::Compose;
+use calldata::Calldata;
+
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
 use remove::CliOrderRemoveArgs;
@@ -29,6 +32,9 @@ pub enum Order {
 
     #[command(about = "Compose a .rain order file to Rainlang", alias = "comp")]
     Compose(Compose),
+
+    #[command(about = "Generate calldata for addOrder from a composition", alias = "call")]
+    Calldata(Calldata),
 }
 
 impl Execute for Order {
@@ -39,6 +45,7 @@ impl Execute for Order {
             Order::Create(create) => create.execute().await,
             Order::Remove(remove) => remove.execute().await,
             Order::Compose(compose) => compose.execute().await,
+            Order::Calldata(calldata) => calldata.execute().await,
         }
     }
 }
