@@ -15,15 +15,19 @@ use rain_orderbook_subgraph_client::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, str::FromStr};
+use typeshare::typeshare;
 use url::Url;
 
 pub type QuoteResult = Result<OrderQuoteValue, FailedQuote>;
 
 /// Holds quoted order max output and ratio
+#[typeshare]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderQuoteValue {
+    #[typeshare(typescript(type = "string"))]
     pub max_output: U256,
+    #[typeshare(typescript(type = "string"))]
     pub ratio: U256,
 }
 

@@ -1,4 +1,4 @@
-use alloy::primitives::ruint::FromUintError;
+use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use dotrain::error::ComposeError;
 use rain_orderbook_app_settings::config::ParseConfigSourceError;
@@ -81,6 +81,15 @@ pub enum CommandError {
 
     #[error(transparent)]
     FlattenError(#[from] rain_orderbook_common::types::FlattenError),
+
+    #[error(transparent)]
+    QuoteError(#[from] rain_orderbook_quote::error::Error),
+
+    #[error(transparent)]
+    FailedQuoteError(#[from] rain_orderbook_quote::error::FailedQuote),
+
+    #[error(transparent)]
+    FromUintParseError(#[from] FromUintParseError),
 }
 
 impl Serialize for CommandError {

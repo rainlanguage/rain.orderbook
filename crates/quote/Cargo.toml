@@ -27,6 +27,7 @@ anyhow = { workspace = true }
 reqwest = { workspace = true }
 clap = { workspace = true, features = ["env"]}
 tracing-subscriber = { workspace = true, features = ['env-filter'] }
+typeshare = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
