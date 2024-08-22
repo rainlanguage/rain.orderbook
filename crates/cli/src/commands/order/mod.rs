@@ -8,7 +8,7 @@ mod remove;
 use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
-use calldata::Calldata;
+use calldata::AddOrderCalldata;
 use clap::Parser;
 use compose::Compose;
 
@@ -37,7 +37,7 @@ pub enum Order {
         about = "Generate calldata for addOrder from a composition",
         alias = "call"
     )]
-    Calldata(Calldata),
+    Calldata(AddOrderCalldata),
 }
 
 impl Execute for Order {

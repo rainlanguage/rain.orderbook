@@ -11,7 +11,7 @@ use std::ops::Deref;
 use std::path::PathBuf;
 
 #[derive(Args, Clone)]
-pub struct Calldata {
+pub struct AddOrderCalldata {
     #[arg(
         short = 'f',
         long,
@@ -29,7 +29,7 @@ pub struct Calldata {
     encoding: SupportedOutputEncoding,
 }
 
-impl Execute for Calldata {
+impl Execute for AddOrderCalldata {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let settings = match &self.settings_file {
