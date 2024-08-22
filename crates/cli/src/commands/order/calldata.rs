@@ -80,8 +80,8 @@ mod tests {
 
     #[test]
     fn test_cli_args() {
-        let dotrain_file = PathBuf::from_str("./some/dotrain_file.dotrain").unwrap();
-        let settings_file = PathBuf::from_str("./some/settings_file.dotrain").unwrap();
+        let dotrain_file = PathBuf::from_str("./some/dotrain_file.rain").unwrap();
+        let settings_file = PathBuf::from_str("./some/settings_file.rain").unwrap();
         let deployment_str = "some-deployment";
         let output_str = "hex";
 
@@ -188,7 +188,7 @@ _ _: 0 0;
         );
 
         let dotrain_path = "./test_dotrain1.rain";
-        let _ = std::fs::write(dotrain_path, dotrain);
+        std::fs::write(dotrain_path, dotrain).unwrap();
 
         // mock rpc response data
         // mock iInterpreter() call
@@ -198,7 +198,8 @@ _ _: 0 0;
                 &from_str::<Value>(
                     &Response::new_success(
                         1,
-                        encode_prefixed(B256::left_padding_from(&Address::random().0 .0)).as_str(),
+                        encode_prefixed(B256::left_padding_from(Address::random().as_slice()))
+                            .as_str(),
                     )
                     .to_json_string()
                     .unwrap(),
@@ -213,7 +214,8 @@ _ _: 0 0;
                 &from_str::<Value>(
                     &Response::new_success(
                         2,
-                        encode_prefixed(B256::left_padding_from(&Address::random().0 .0)).as_str(),
+                        encode_prefixed(B256::left_padding_from(Address::random().as_slice()))
+                            .as_str(),
                     )
                     .to_json_string()
                     .unwrap(),
@@ -228,7 +230,8 @@ _ _: 0 0;
                 &from_str::<Value>(
                     &Response::new_success(
                         3,
-                        encode_prefixed(B256::left_padding_from(&Address::random().0 .0)).as_str(),
+                        encode_prefixed(B256::left_padding_from(Address::random().as_slice()))
+                            .as_str(),
                     )
                     .to_json_string()
                     .unwrap(),

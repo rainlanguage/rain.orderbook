@@ -72,8 +72,8 @@ mod tests {
 
     #[test]
     fn test_cli_args() {
-        let dotrain_file = PathBuf::from_str("./some/dotrain_file.dotrain").unwrap();
-        let settings_file = PathBuf::from_str("./some/settings_file.dotrain").unwrap();
+        let dotrain_file = PathBuf::from_str("./some/dotrain_file.rain").unwrap();
+        let settings_file = PathBuf::from_str("./some/settings_file.rain").unwrap();
         let deployment_str = "some-deployment";
         let output_str = "hex";
 
@@ -109,9 +109,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_execute_same_name() {
-        let dotrain = "
+    fn get_test_dotrain(orderbook: &str) -> String {
+        format!(
+            "
 networks:
     some-network:
         rpc: https://some-url.com
@@ -128,7 +128,7 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
 orderbooks:
-    some-orderbook:
+    {}:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -161,7 +161,6 @@ orders:
             - token: token2
               vault-id: 1
         deployer: some-deployer
-        orderbook: some-orderbook
 
 deployments:
     some-deployment:
@@ -173,10 +172,17 @@ _ _: 0 0;
 #handle-io
 :;
 #post-add-order
-:;";
+:;",
+            orderbook
+        )
+    }
 
-        let dotrain_path = "./test_dotrain1.rain";
-        let _ = std::fs::write(dotrain_path, dotrain);
+    #[tokio::test]
+    async fn test_execute_same_name() {
+        let dotrain = get_test_dotrain("some-orderbook");
+
+        let dotrain_path = "./test_dotrain2.rain";
+        std::fs::write(dotrain_path, dotrain).unwrap();
 
         let orderbook_adress = OrderbookAddress {
             dotrain_file: dotrain_path.into(),
@@ -193,72 +199,10 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_execute_diff_name() {
-        let dotrain = "
-networks:
-    some-network:
-        rpc: https://some-url.com
-        chain-id: 123
-        network-id: 123
-        currency: ETH
+        let dotrain = get_test_dotrain("some-network");
 
-subgraphs:
-    some-sg: https://www.some-sg.com
-
-deployers:
-    some-deployer:
-        network: some-network
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-
-orderbooks:
-    some-network:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
-        network: some-network
-        subgraph: some-sg
-
-tokens:
-    token1:
-        network: some-network
-        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-        decimals: 6
-        label: T1
-        symbol: T1
-    token2:
-        network: some-network
-        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
-        decimals: 18
-        label: T2
-        symbol: T2
-
-scenarios:
-    some-scenario:
-        network: some-network
-        deployer: some-deployer
-
-orders:
-    some-order:
-        inputs:
-            - token: token1
-              vault-id: 1
-        outputs:
-            - token: token2
-              vault-id: 1
-        deployer: some-deployer
-        orderbook: some-network
-
-deployments:
-    some-deployment:
-        scenario: some-scenario
-        order: some-order
----
-#calculate-io
-_ _: 0 0;
-#handle-io
-:;
-#post-add-order
-:;";
-
-        let dotrain_path = "./test_dotrain2.rain";
-        let _ = std::fs::write(dotrain_path, dotrain);
+        let dotrain_path = "./test_dotrain3.rain";
+        std::fs::write(dotrain_path, dotrain).unwrap();
 
         let orderbook_adress = OrderbookAddress {
             dotrain_file: dotrain_path.into(),
