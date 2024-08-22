@@ -187,7 +187,7 @@ _ _: 0 0;
             rpc_server.url("/rpc").as_str()
         );
 
-        let dotrain_path = "./test_dotrain.dotrain";
+        let dotrain_path = "./test_dotrain1.rain";
         let _ = std::fs::write(dotrain_path, dotrain);
 
         // mock rpc response data

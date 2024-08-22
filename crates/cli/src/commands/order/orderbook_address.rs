@@ -176,7 +176,7 @@ _ _: 0 0;
 #post-add-order
 :;";
 
-        let dotrain_path = "./test_dotrain.dotrain";
+        let dotrain_path = "./test_dotrain1.rain";
         let _ = std::fs::write(dotrain_path, dotrain);
 
         let orderbook_adress = OrderbookAddress {
@@ -258,7 +258,7 @@ _ _: 0 0;
 #post-add-order
 :;";
 
-        let dotrain_path = "./test_dotrain.dotrain";
+        let dotrain_path = "./test_dotrain2.rain";
         let _ = std::fs::write(dotrain_path, dotrain);
 
         let orderbook_adress = OrderbookAddress {
