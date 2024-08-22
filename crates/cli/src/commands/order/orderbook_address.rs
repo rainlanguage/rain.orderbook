@@ -8,7 +8,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 
 #[derive(Args, Clone)]
-pub struct Orderbook {
+pub struct OrderbookAddress {
     #[arg(
         short = 'f',
         long,
@@ -26,7 +26,7 @@ pub struct Orderbook {
     encoding: SupportedOutputEncoding,
 }
 
-impl Execute for Orderbook {
+impl Execute for OrderbookAddress {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let settings = match &self.settings_file {

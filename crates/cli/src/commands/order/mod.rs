@@ -3,10 +3,10 @@ mod calldata;
 mod compose;
 mod detail;
 mod list;
-mod orderbook;
+mod orderbook_address;
 mod remove;
 
-use crate::commands::order::orderbook::Orderbook;
+use crate::commands::order::orderbook_address::OrderbookAddress;
 use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
@@ -41,8 +41,8 @@ pub enum Order {
     )]
     Calldata(AddOrderCalldata),
 
-    #[command(about = "Get the orderbook address for a given order", alias = "ob")]
-    OrderbookAddress(Orderbook),
+    #[command(about = "Get the orderbook address for a given order", alias = "ob-addr")]
+    OrderbookAddress(OrderbookAddress),
 }
 
 impl Execute for Order {
