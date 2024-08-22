@@ -44,7 +44,6 @@ impl Execute for OrderbookAddress {
             .ok_or(anyhow!("specified deployment is undefined!"))?;
 
         let network_name = config_deployment.scenario.deployer.network.name.clone();
-        println!("{}", network_name);
 
         let orderbook = order_config
             .orderbooks
