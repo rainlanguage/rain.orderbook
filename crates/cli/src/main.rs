@@ -31,3 +31,14 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     cli.orderbook.execute().await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn verify_cli() {
+        Cli::command().debug_assert();
+    }
+}

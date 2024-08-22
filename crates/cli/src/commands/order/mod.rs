@@ -41,7 +41,10 @@ pub enum Order {
     )]
     Calldata(AddOrderCalldata),
 
-    #[command(about = "Get the orderbook address for a given order", alias = "ob-addr")]
+    #[command(
+        about = "Get the orderbook address for a given order",
+        alias = "ob-addr"
+    )]
     OrderbookAddress(OrderbookAddress),
 }
 

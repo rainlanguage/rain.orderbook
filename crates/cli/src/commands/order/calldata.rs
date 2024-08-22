@@ -2,7 +2,7 @@ use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
 use alloy::sol_types::SolCall;
 use anyhow::{anyhow, Result};
-use clap::Args;
+use clap::Parser;
 use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::dotrain_order::DotrainOrder;
@@ -10,7 +10,7 @@ use std::fs::read_to_string;
 use std::ops::Deref;
 use std::path::PathBuf;
 
-#[derive(Args, Clone)]
+#[derive(Parser, Clone)]
 pub struct AddOrderCalldata {
     #[arg(
         short = 'f',
@@ -59,5 +59,206 @@ impl Execute for AddOrderCalldata {
         output(&None, self.encoding.clone(), &add_order_calldata)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::B256;
+    use alloy::primitives::{hex::encode_prefixed, Address};
+    use alloy_ethers_typecast::rpc::Response;
+    use clap::CommandFactory;
+    use httpmock::{Method::POST, MockServer};
+    use serde_json::{from_str, Value};
+    use std::str::FromStr;
+
+    #[test]
+    fn verify_cli() {
+        AddOrderCalldata::command().debug_assert();
+    }
+
+    #[test]
+    fn test_cli_args() {
+        let dotrain_file = PathBuf::from_str("./some/dotrain_file.dotrain").unwrap();
+        let settings_file = PathBuf::from_str("./some/settings_file.dotrain").unwrap();
+        let deployment_str = "some-deployment";
+        let output_str = "hex";
+
+        let cmd = AddOrderCalldata::command();
+        let result = cmd
+            .try_get_matches_from(vec![
+                "cmd",
+                "-f",
+                dotrain_file.to_str().unwrap(),
+                "-c",
+                settings_file.to_str().unwrap(),
+                "-e",
+                deployment_str,
+                "-o",
+                output_str,
+            ])
+            .unwrap();
+        assert_eq!(
+            result.get_one::<PathBuf>("dotrain_file"),
+            Some(&dotrain_file)
+        );
+        assert_eq!(
+            result.get_one::<PathBuf>("settings_file"),
+            Some(&settings_file)
+        );
+        assert_eq!(
+            result.get_one::<String>("deployment"),
+            Some(&deployment_str.to_string())
+        );
+        assert_eq!(
+            result.get_one::<SupportedOutputEncoding>("encoding"),
+            Some(&SupportedOutputEncoding::Hex)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_execute() {
+        let rpc_server = MockServer::start_async().await;
+        let dotrain = format!(
+            "
+networks:
+    some-network:
+        rpc: {}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: T1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: T2
+        symbol: T2
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+
+orders:
+    some-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token2
+              vault-id: 1
+        deployer: some-deployer
+        orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#post-add-order
+:;",
+            rpc_server.url("/rpc").as_str()
+        );
+
+        let dotrain_path = "./test_dotrain.dotrain";
+        let _ = std::fs::write(dotrain_path, dotrain);
+
+        // mock rpc response data
+        // mock iInterpreter() call
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc").body_contains("0xf0cfdd37");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(
+                        1,
+                        encode_prefixed(B256::left_padding_from(&Address::random().0 .0)).as_str(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+        // mock iStore() call
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc").body_contains("0xc19423bc");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(
+                        2,
+                        encode_prefixed(B256::left_padding_from(&Address::random().0 .0)).as_str(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+        // mock iParser() call
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc").body_contains("0x24376855");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(
+                        3,
+                        encode_prefixed(B256::left_padding_from(&Address::random().0 .0)).as_str(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+        // mock parse2() call
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc").body_contains("0xa3869e14");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(4, "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000")
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: dotrain_path.into(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+        // should succeed without err
+        add_order_calldata.execute().await.unwrap();
+
+        // remove test file
+        std::fs::remove_file(dotrain_path).unwrap();
     }
 }
