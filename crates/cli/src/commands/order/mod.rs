@@ -4,11 +4,13 @@ mod compose;
 mod detail;
 mod list;
 mod remove;
+mod orderbook;
 
 use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
 use calldata::AddOrderCalldata;
+use crate::commands::order::orderbook::Orderbook;
 use clap::Parser;
 use compose::Compose;
 
@@ -38,6 +40,12 @@ pub enum Order {
         alias = "call"
     )]
     Calldata(AddOrderCalldata),
+
+    #[command(
+        about = "Get the orderbook address for a given order",
+        alias = "ob"
+    )]
+    OrderbookAddress(Orderbook),
 }
 
 impl Execute for Order {
@@ -49,6 +57,8 @@ impl Execute for Order {
             Order::Remove(remove) => remove.execute().await,
             Order::Compose(compose) => compose.execute().await,
             Order::Calldata(calldata) => calldata.execute().await,
+            Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
+
         }
     }
 }
