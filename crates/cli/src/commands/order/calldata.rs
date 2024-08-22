@@ -3,7 +3,6 @@ use crate::output::{output, SupportedOutputEncoding};
 use alloy::sol_types::SolCall;
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
@@ -39,10 +38,10 @@ impl Execute for AddOrderCalldata {
             None => None,
         };
         let order = DotrainOrder::new(dotrain, settings).await?;
-        let order_config: Config = order.clone().config;
-        let dotrain_string: String = order.clone().dotrain;
+        let dotrain_string = order.dotrain.clone();
 
-        let config_deployment = order_config
+        let config_deployment = order
+            .config
             .deployments
             .get(&self.deployment)
             .ok_or(anyhow!("specified deployment is undefined!"))?;
@@ -65,12 +64,11 @@ impl Execute for AddOrderCalldata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::B256;
-    use alloy::primitives::{hex::encode_prefixed, Address};
+    use alloy::primitives::{hex::encode_prefixed, Address, Bytes, B256};
+    use alloy::sol_types::SolValue;
     use alloy_ethers_typecast::rpc::Response;
     use clap::CommandFactory;
-    use httpmock::{Method::POST, MockServer};
-    use serde_json::{from_str, Value};
+    use httpmock::MockServer;
     use std::str::FromStr;
 
     #[test]
@@ -193,62 +191,47 @@ _ _: 0 0;
         // mock rpc response data
         // mock iInterpreter() call
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/rpc").body_contains("0xf0cfdd37");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(
-                        1,
-                        encode_prefixed(B256::left_padding_from(Address::random().as_slice()))
-                            .as_str(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
+            when.path("/rpc").body_contains("0xf0cfdd37");
+            then.body(
+                Response::new_success(
+                    1,
+                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
                 )
+                .to_json_string()
                 .unwrap(),
             );
         });
         // mock iStore() call
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/rpc").body_contains("0xc19423bc");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(
-                        2,
-                        encode_prefixed(B256::left_padding_from(Address::random().as_slice()))
-                            .as_str(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
+            when.path("/rpc").body_contains("0xc19423bc");
+            then.body(
+                Response::new_success(
+                    2,
+                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
                 )
+                .to_json_string()
                 .unwrap(),
             );
         });
         // mock iParser() call
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/rpc").body_contains("0x24376855");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(
-                        3,
-                        encode_prefixed(B256::left_padding_from(Address::random().as_slice()))
-                            .as_str(),
-                    )
-                    .to_json_string()
-                    .unwrap(),
+            when.path("/rpc").body_contains("0x24376855");
+            then.body(
+                Response::new_success(
+                    3,
+                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
                 )
+                .to_json_string()
                 .unwrap(),
             );
         });
         // mock parse2() call
         rpc_server.mock(|when, then| {
-            when.method(POST).path("/rpc").body_contains("0xa3869e14");
-            then.json_body_obj(
-                &from_str::<Value>(
-                    &Response::new_success(4, "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000")
-                        .to_json_string()
-                        .unwrap(),
-                )
-                .unwrap(),
+            when.path("/rpc").body_contains("0xa3869e14");
+            then.body(
+                Response::new_success(4, &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()))
+                    .to_json_string()
+                    .unwrap(),
             );
         });
 

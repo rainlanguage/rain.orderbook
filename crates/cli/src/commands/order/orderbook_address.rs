@@ -37,23 +37,24 @@ impl Execute for OrderbookAddress {
         };
         let order = DotrainOrder::new(dotrain, settings).await?;
         let order_config: Config = order.clone().config;
-
-        let config_deployment = order_config
+        let deployment_ref = order_config
             .deployments
             .get(&self.deployment)
             .ok_or(anyhow!("specified deployment is undefined!"))?;
 
-        let network_name = config_deployment.scenario.deployer.network.name.clone();
-
-        let orderbook = order_config
-            .orderbooks
-            .iter()
-            .find(|(k, v)| **k == network_name || v.network.name == network_name)
-            .ok_or(anyhow!("specified orderbook is undefined!"))?
-            .1;
-
-        let orderbook_address = orderbook.address.to_vec();
-        output(&None, self.encoding.clone(), &orderbook_address)?;
+        let orderbook_address = if let Some(v) = &deployment_ref.order.orderbook {
+            v.address
+        } else {
+            let network_name = &deployment_ref.scenario.deployer.network.name;
+            order_config
+                .orderbooks
+                .iter()
+                .find(|(k, v)| *k == network_name || v.network.name == *network_name)
+                .ok_or(anyhow!("specified orderbook is undefined!"))?
+                .1
+                .address
+        };
+        output(&None, self.encoding.clone(), orderbook_address.as_slice())?;
 
         Ok(())
     }
@@ -78,19 +79,17 @@ mod tests {
         let output_str = "hex";
 
         let cmd = OrderbookAddress::command();
-        let result = cmd
-            .try_get_matches_from(vec![
-                "cmd",
-                "-f",
-                dotrain_file.to_str().unwrap(),
-                "-c",
-                settings_file.to_str().unwrap(),
-                "-e",
-                deployment_str,
-                "-o",
-                output_str,
-            ])
-            .unwrap();
+        let result = cmd.get_matches_from(vec![
+            "cmd",
+            "-f",
+            dotrain_file.to_str().unwrap(),
+            "-c",
+            settings_file.to_str().unwrap(),
+            "-e",
+            deployment_str,
+            "-o",
+            output_str,
+        ]);
         assert_eq!(
             result.get_one::<PathBuf>("dotrain_file"),
             Some(&dotrain_file)
@@ -109,7 +108,7 @@ mod tests {
         );
     }
 
-    fn get_test_dotrain(orderbook: &str) -> String {
+    fn get_test_dotrain(orderbook_key: &str) -> String {
         format!(
             "
 networks:
@@ -173,12 +172,12 @@ _ _: 0 0;
 :;
 #post-add-order
 :;",
-            orderbook
+            orderbook_key
         )
     }
 
     #[tokio::test]
-    async fn test_execute_same_name() {
+    async fn test_execute_diff_name() {
         let dotrain = get_test_dotrain("some-orderbook");
 
         let dotrain_path = "./test_dotrain2.rain";
@@ -198,7 +197,7 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_execute_diff_name() {
+    async fn test_execute_same_name() {
         let dotrain = get_test_dotrain("some-network");
 
         let dotrain_path = "./test_dotrain3.rain";

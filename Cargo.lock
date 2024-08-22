@@ -6316,7 +6316,6 @@ dependencies = [
  "rust-bigint",
  "serde",
  "serde_bytes",
- "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
