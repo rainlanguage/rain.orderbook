@@ -88,3 +88,42 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
 
     Ok(table)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+    use std::str::FromStr;
+
+
+    #[tokio::test]
+    async fn test_execute() {
+        let pagination_args = CliPaginationArgs {
+            csv: false,
+            page_size: 25,
+            page: 1,
+        };
+        let subgraph_args = CliSubgraphArgs {
+            subgraph_url: String::from("https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-sepolia/1.1/gn"),
+        };
+        let pagination_args: PaginationArgs = pagination_args.clone().into();
+        let subgraph_args: SubgraphArgs = subgraph_args.clone().into();
+        let orders = subgraph_args
+            .to_subgraph_client()
+            .await.unwrap()
+            .orders_list(pagination_args)
+            .await.unwrap();
+
+        let orders_flattened: Vec<OrderFlattened> = orders
+            .into_iter()
+            .map(|o| o.try_into())
+            .collect::<Result<Vec<OrderFlattened>, FlattenError>>(
+        ).unwrap();
+        
+        // Test that the second order throws a FlattenError
+        let result: std::result::Result<OrderFlattened, _> = orders_flattened[1].clone().try_into(); 
+        
+    }
+
+
+}
