@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::path::PathBuf;
 
-#[derive(clap::ValueEnum, Clone)]
+#[derive(Debug, clap::ValueEnum, Clone, PartialEq)]
 pub enum SupportedOutputEncoding {
     Binary,
     Hex,

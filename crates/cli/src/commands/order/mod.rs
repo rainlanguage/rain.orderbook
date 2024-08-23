@@ -1,14 +1,19 @@
 mod add;
+mod calldata;
 mod compose;
 mod detail;
 mod list;
+mod orderbook_address;
 mod remove;
 
+use crate::commands::order::orderbook_address::OrderbookAddress;
 use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
+use calldata::AddOrderCalldata;
 use clap::Parser;
 use compose::Compose;
+
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
 use remove::CliOrderRemoveArgs;
@@ -29,6 +34,18 @@ pub enum Order {
 
     #[command(about = "Compose a .rain order file to Rainlang", alias = "comp")]
     Compose(Compose),
+
+    #[command(
+        about = "Generate calldata for addOrder from a composition",
+        alias = "call"
+    )]
+    Calldata(AddOrderCalldata),
+
+    #[command(
+        about = "Get the orderbook address for a given order",
+        alias = "ob-addr"
+    )]
+    OrderbookAddress(OrderbookAddress),
 }
 
 impl Execute for Order {
@@ -39,6 +56,8 @@ impl Execute for Order {
             Order::Create(create) => create.execute().await,
             Order::Remove(remove) => remove.execute().await,
             Order::Compose(compose) => compose.execute().await,
+            Order::Calldata(calldata) => calldata.execute().await,
+            Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
         }
     }
 }
