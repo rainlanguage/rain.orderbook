@@ -3,7 +3,7 @@
 
   import type { Order } from '$lib/typeshare/orderDetail';
   import { QKEY_ORDER_QUOTE } from '$lib/queries/keys';
-  import { batchOrderQuotes } from '$lib/services/orderQuote';
+  import { batchOrderQuotes } from '$lib/queries/orderQuote';
   import { formatUnits } from 'viem';
 
   import { createQuery } from '@tanstack/svelte-query';
