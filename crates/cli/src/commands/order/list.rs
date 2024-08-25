@@ -10,7 +10,6 @@ use rain_orderbook_common::{
     subgraph::SubgraphArgs,
     types::{FlattenError, OrderFlattened},
 };
-use rain_orderbook_subgraph_client::PaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -27,33 +26,28 @@ impl Execute for CliOrderListArgs {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
 
         if self.pagination_args.csv {
-            let orders = subgraph_args
+            let csv_text = subgraph_args
                 .to_subgraph_client()
                 .await?
                 .orders_list_all()
-                .await?;
-            let orders_flattened: Vec<OrderFlattened> = orders
+                .await?
                 .into_iter()
                 .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderFlattened>, FlattenError>>(
-            )?;
+                .collect::<Result<Vec<OrderFlattened>, FlattenError>>()?
+                .try_into_csv()?;
 
-            let csv_text = orders_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
-            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
-            let orders = subgraph_args
-                .to_subgraph_client()
-                .await?
-                .orders_list(pagination_args)
-                .await?;
-            let orders_flattened: Vec<OrderFlattened> = orders
-                .into_iter()
-                .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderFlattened>, FlattenError>>(
+            let table = build_table(
+                subgraph_args
+                    .to_subgraph_client()
+                    .await?
+                    .orders_list(self.pagination_args.clone().into())
+                    .await?
+                    .into_iter()
+                    .map(|o| o.try_into())
+                    .collect::<Result<Vec<OrderFlattened>, FlattenError>>()?,
             )?;
-
-            let table = build_table(orders_flattened)?;
             info!("\n{}", table);
         }
 
@@ -98,61 +92,79 @@ mod tests {
     use serde_json::{json, Value};
 
     #[tokio::test]
-    async fn test_execute() {
+    async fn test_csv_execute_happy() {
+        // mock subgraph with pagination
         let sg_server = MockServer::start_async().await;
+        sg_server.mock(|when, then| {
+            when.body_contains("\"skip\":0");
+            then.json_body_obj(&get_sg_response(false));
+        });
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&json!({"data": {"orders": []}}));
+        });
 
-        let subgraph_args = CliSubgraphArgs {
-            subgraph_url: sg_server.url("/sg"),
-        };
-
-        // true csv
         let cli_order_list_args = CliOrderListArgs {
-            subgraph_args: subgraph_args.clone(),
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
             pagination_args: CliPaginationArgs {
                 csv: true,
                 page_size: 25,
                 page: 1,
             },
         };
-        // mock subgraph with pagination
-        let mut mock = sg_server.mock(|when, then| {
-            when.body_contains("\"skip\":0");
+
+        // should succeed
+        assert!(cli_order_list_args.execute().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_no_csv_execute_happy() {
+        // mock subgraph
+        let sg_server = MockServer::start_async().await;
+        sg_server.mock(|_when, then| {
             then.json_body_obj(&get_sg_response(false));
         });
-        let mut mock2 = sg_server.mock(|_when, then| {
-            then.json_body_obj(&json!({"data": {"orders": []}}));
-        });
-        // should succeed without any error
-        assert!(cli_order_list_args.execute().await.is_ok());
-        mock.delete();
-        mock2.delete();
 
-        // false csv
         let cli_order_list_args = CliOrderListArgs {
-            subgraph_args,
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
             pagination_args: CliPaginationArgs {
                 csv: false,
                 page_size: 25,
                 page: 1,
             },
         };
-        // mock subgraph
-        let mut mock = sg_server.mock(|_when, then| {
-            then.json_body_obj(&get_sg_response(false));
-        });
-        // should succeed without any error
-        assert!(cli_order_list_args.execute().await.is_ok());
-        mock.delete();
 
-        // fail execute
+        // should succeed
+        assert!(cli_order_list_args.execute().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_unhappy() {
         // mock sg with corrupt response
+        let sg_server = MockServer::start_async().await;
         sg_server.mock(|_when, then| {
             then.json_body_obj(&get_sg_response(true));
         });
-        // should fail
+
+        let cli_order_list_args = CliOrderListArgs {
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
+            pagination_args: CliPaginationArgs {
+                csv: false,
+                page_size: 25,
+                page: 1,
+            },
+        };
+
+        // should error
         assert!(cli_order_list_args.execute().await.is_err());
     }
 
+    // helper function that returns mocked sg response in json
     fn get_sg_response(corrupt: bool) -> Value {
         let order = OrderV3 {
             validInputs: vec![IO::default()],
@@ -197,10 +209,10 @@ mod tests {
                         "transaction": {
                             "id": encode_prefixed(B256::random()),
                             "blockNumber": "0",
-                            "timestamp": "0"
+                            "timestamp": "0",
                         }
                     }],
-                    "timestampAdded": "0"
+                    "timestampAdded": "0",
                 }]
             }
         })
