@@ -73,8 +73,8 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
         table.add_row(vec![
             order.id,
             order.timestamp_display,
-            format!("{}", order.order_active),
-            format!("{}", order.owner.0),
+            order.order_active.to_string(),
+            order.owner.0,
             order.valid_inputs_token_symbols_display,
             order.valid_outputs_token_symbols_display,
         ]);
@@ -94,7 +94,7 @@ mod tests {
     #[tokio::test]
     async fn test_csv_execute_happy() {
         // mock subgraph with pagination
-        let sg_server = MockServer::start_async().await;
+        let sg_server = MockServer::start();
         sg_server.mock(|when, then| {
             when.body_contains("\"skip\":0");
             then.json_body_obj(&get_sg_response(false));
@@ -121,7 +121,7 @@ mod tests {
     #[tokio::test]
     async fn test_no_csv_execute_happy() {
         // mock subgraph
-        let sg_server = MockServer::start_async().await;
+        let sg_server = MockServer::start();
         sg_server.mock(|_when, then| {
             then.json_body_obj(&get_sg_response(false));
         });
@@ -144,7 +144,7 @@ mod tests {
     #[tokio::test]
     async fn test_execute_unhappy() {
         // mock sg with corrupt response
-        let sg_server = MockServer::start_async().await;
+        let sg_server = MockServer::start();
         sg_server.mock(|_when, then| {
             then.json_body_obj(&get_sg_response(true));
         });
@@ -166,45 +166,49 @@ mod tests {
 
     // helper function that returns mocked sg response in json
     fn get_sg_response(corrupt: bool) -> Value {
+        let io = IO::default();
         let order = OrderV3 {
-            validInputs: vec![IO::default()],
-            validOutputs: vec![IO::default()],
+            validInputs: vec![io.clone()],
+            validOutputs: vec![io.clone()],
             ..Default::default()
         };
         json!({
             "data": {
                 "orders": [{
                     "id": encode_prefixed(B256::random()),
+                    "owner": encode_prefixed(order.owner),
+                    "orderHash": encode_prefixed(B256::random()),
                     "orderBytes": if corrupt {
+                        // set a corrupt order bytes
                         encode_prefixed(vec![])
                     } else {
+                        // set a valid order bytes
                         encode_prefixed(order.abi_encode())
                     },
-                    "orderHash": encode_prefixed(B256::random()),
-                    "owner": encode_prefixed(order.owner),
                     "outputs": [{
+                        "balance": "0",
+                        "vaultId": io.vaultId.to_string(),
                         "token": {
-                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
-                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
                             "name": "T1",
                             "symbol": "T1",
-                            "decimals": order.validOutputs[0].decimals.to_string()
+                            "id": encode_prefixed(io.token),
+                            "address": encode_prefixed(io.token),
+                            "decimals": io.decimals.to_string(),
                         },
-                        "balance": "0",
-                        "vaultId": order.validOutputs[0].vaultId.to_string(),
                     }],
                     "inputs": [{
+                        "balance": "0",
+                        "vaultId": io.vaultId.to_string(),
                         "token": {
-                            "id": encode_prefixed(order.validInputs[0].token.0.0),
-                            "address": encode_prefixed(order.validInputs[0].token.0.0),
                             "name": "T2",
                             "symbol": "T2",
-                            "decimals": order.validInputs[0].decimals.to_string()
+                            "id": encode_prefixed(io.token),
+                            "address": encode_prefixed(io.token),
+                            "decimals": io.decimals.to_string(),
                         },
-                        "balance": "0",
-                        "vaultId": order.validInputs[0].vaultId.to_string(),
                     }],
                     "active": true,
+                    "timestampAdded": "0",
                     "addEvents": [{
                         "transaction": {
                             "id": encode_prefixed(B256::random()),
@@ -212,7 +216,6 @@ mod tests {
                             "timestamp": "0",
                         }
                     }],
-                    "timestampAdded": "0",
                 }]
             }
         })
