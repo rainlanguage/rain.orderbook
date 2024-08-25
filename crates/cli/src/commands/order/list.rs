@@ -92,38 +92,117 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::CommandFactory;
-    use std::str::FromStr;
-
+    use alloy::{hex::encode_prefixed, primitives::B256, sol_types::SolValue};
+    use httpmock::MockServer;
+    use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
+    use serde_json::{json, Value};
 
     #[tokio::test]
     async fn test_execute() {
-        let pagination_args = CliPaginationArgs {
-            csv: false,
-            page_size: 25,
-            page: 1,
-        };
-        let subgraph_args = CliSubgraphArgs {
-            subgraph_url: String::from("https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-sepolia/1.1/gn"),
-        };
-        let pagination_args: PaginationArgs = pagination_args.clone().into();
-        let subgraph_args: SubgraphArgs = subgraph_args.clone().into();
-        let orders = subgraph_args
-            .to_subgraph_client()
-            .await.unwrap()
-            .orders_list(pagination_args)
-            .await.unwrap();
+        let sg_server = MockServer::start_async().await;
 
-        let orders_flattened: Vec<OrderFlattened> = orders
-            .into_iter()
-            .map(|o| o.try_into())
-            .collect::<Result<Vec<OrderFlattened>, FlattenError>>(
-        ).unwrap();
-        
-        // Test that the second order throws a FlattenError
-        let result: std::result::Result<OrderFlattened, _> = orders_flattened[1].clone().try_into(); 
-        
+        let subgraph_args = CliSubgraphArgs {
+            subgraph_url: sg_server.url("/sg"),
+        };
+
+        // true csv
+        let cli_order_list_args = CliOrderListArgs {
+            subgraph_args: subgraph_args.clone(),
+            pagination_args: CliPaginationArgs {
+                csv: true,
+                page_size: 25,
+                page: 1,
+            },
+        };
+        // mock subgraph with pagination
+        let mut mock = sg_server.mock(|when, then| {
+            when.body_contains("\"skip\":0");
+            then.json_body_obj(&get_sg_response(false));
+        });
+        let mut mock2 = sg_server.mock(|_when, then| {
+            then.json_body_obj(&json!({"data": {"orders": []}}));
+        });
+        // should succeed without any error
+        assert!(cli_order_list_args.execute().await.is_ok());
+        mock.delete();
+        mock2.delete();
+
+        // false csv
+        let cli_order_list_args = CliOrderListArgs {
+            subgraph_args,
+            pagination_args: CliPaginationArgs {
+                csv: false,
+                page_size: 25,
+                page: 1,
+            },
+        };
+        // mock subgraph
+        let mut mock = sg_server.mock(|_when, then| {
+            then.json_body_obj(&get_sg_response(false));
+        });
+        // should succeed without any error
+        assert!(cli_order_list_args.execute().await.is_ok());
+        mock.delete();
+
+        // fail execute
+        // mock sg with corrupt response
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&get_sg_response(true));
+        });
+        // should fail
+        assert!(cli_order_list_args.execute().await.is_err());
     }
 
-
+    fn get_sg_response(corrupt: bool) -> Value {
+        let order = OrderV3 {
+            validInputs: vec![IO::default()],
+            validOutputs: vec![IO::default()],
+            ..Default::default()
+        };
+        json!({
+            "data": {
+                "orders": [{
+                    "id": encode_prefixed(B256::random()),
+                    "orderBytes": if corrupt {
+                        encode_prefixed(vec![])
+                    } else {
+                        encode_prefixed(order.abi_encode())
+                    },
+                    "orderHash": encode_prefixed(B256::random()),
+                    "owner": encode_prefixed(order.owner),
+                    "outputs": [{
+                        "token": {
+                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "name": "T1",
+                            "symbol": "T1",
+                            "decimals": order.validOutputs[0].decimals.to_string()
+                        },
+                        "balance": "0",
+                        "vaultId": order.validOutputs[0].vaultId.to_string(),
+                    }],
+                    "inputs": [{
+                        "token": {
+                            "id": encode_prefixed(order.validInputs[0].token.0.0),
+                            "address": encode_prefixed(order.validInputs[0].token.0.0),
+                            "name": "T2",
+                            "symbol": "T2",
+                            "decimals": order.validInputs[0].decimals.to_string()
+                        },
+                        "balance": "0",
+                        "vaultId": order.validInputs[0].vaultId.to_string(),
+                    }],
+                    "active": true,
+                    "addEvents": [{
+                        "transaction": {
+                            "id": encode_prefixed(B256::random()),
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                        }
+                    }],
+                    "timestampAdded": "0"
+                }]
+            }
+        })
+    }
 }
