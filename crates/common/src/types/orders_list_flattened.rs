@@ -1,7 +1,7 @@
 use crate::types::vault::NO_SYMBOL;
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy::dyn_abi::SolType;
-use alloy::primitives::hex::{encode, hex::decode};
+use alloy::primitives::hex::{decode, encode};
 use rain_orderbook_bindings::IOrderBookV4::OrderV3;
 use rain_orderbook_subgraph_client::types::orders_list::*;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use super::FlattenError;
 
 const LIST_DELIMITER: &str = ", ";
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OrderFlattened {
     pub id: String,
     pub timestamp: BigInt,
