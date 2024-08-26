@@ -265,7 +265,7 @@ scenarios:
 _ _: 0 0;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 _ _: 1 2;
 "#,
             rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL
@@ -280,7 +280,7 @@ _ _: 1 2;
 
         assert_eq!(
             rainlang,
-            r#"/* 0. post-add-order */ 
+            r#"/* 0. handle-add-order */ 
 _ _: 1 2;"#
         );
     }
