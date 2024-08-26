@@ -59,3 +59,87 @@ impl Execute for Compose {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_execute_happy() {
+        let dotrain = get_dotrain();
+
+        let dotrain_path = "./test_dotrain_compose_happy.rain";
+        std::fs::write(dotrain_path, dotrain).unwrap();
+
+        let compose = Compose {
+            dotrain_file: dotrain_path.into(),
+            settings_file: None,
+            scenario: "some-scenario".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+            post: false,
+        };
+
+        assert!(compose.execute().await.is_ok());
+
+        // remove test file
+        std::fs::remove_file(dotrain_path).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_execute_unhappy() {
+        let dotrain = get_dotrain();
+
+        let dotrain_path = "./test_dotrain_compose_unhappy.rain";
+        std::fs::write(dotrain_path, dotrain).unwrap();
+
+        let compose = Compose {
+            dotrain_file: dotrain_path.into(),
+            settings_file: None,
+            scenario: "some-other-scenario".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+            post: false,
+        };
+
+        assert!(compose.execute().await.is_err());
+
+        // remove test file
+        std::fs::remove_file(dotrain_path).unwrap();
+    }
+
+    fn get_dotrain() -> String {
+        "
+networks:
+    some-network:
+        rpc: https://some-rpc.com
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#post-add-order
+:;"
+        .to_string()
+    }
+}
