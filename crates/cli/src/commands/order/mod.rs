@@ -61,3 +61,14 @@ impl Execute for Order {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn verify_command() {
+        Order::command().debug_assert();
+    }
+}

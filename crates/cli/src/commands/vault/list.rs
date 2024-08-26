@@ -81,3 +81,110 @@ fn build_table(vaults: Vec<TokenVaultFlattened>) -> Result<Table> {
 
     Ok(table)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::{
+        hex::encode_prefixed,
+        primitives::{Address, B256},
+    };
+    use httpmock::MockServer;
+    use serde_json::{json, Value};
+
+    #[tokio::test]
+    async fn test_csv_execute_happy() {
+        // mock subgraph with pagination
+        let sg_server = MockServer::start();
+        sg_server.mock(|when, then| {
+            when.body_contains("\"skip\":0");
+            then.json_body_obj(&get_sg_response());
+        });
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&json!({"data": {"vaults": []}}));
+        });
+
+        let cli_vault_list_args = CliVaultListArgs {
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
+            pagination_args: CliPaginationArgs {
+                csv: true,
+                page_size: 25,
+                page: 1,
+            },
+        };
+
+        // should succeed
+        assert!(cli_vault_list_args.execute().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_no_csv_execute_happy() {
+        // mock subgraph
+        let sg_server = MockServer::start();
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&get_sg_response());
+        });
+
+        let cli_vault_list_args = CliVaultListArgs {
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
+            pagination_args: CliPaginationArgs {
+                csv: false,
+                page_size: 25,
+                page: 1,
+            },
+        };
+
+        // should succeed
+        assert!(cli_vault_list_args.execute().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_unhappy() {
+        let cli_vault_list_args = CliVaultListArgs {
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: "https://bad-url".to_string(),
+            },
+            pagination_args: CliPaginationArgs {
+                csv: false,
+                page_size: 25,
+                page: 1,
+            },
+        };
+
+        // should error
+        assert!(cli_vault_list_args.execute().await.is_err());
+    }
+
+    // helper function that returns mocked sg response in json
+    fn get_sg_response() -> Value {
+        json!({
+            "data": {
+                "vaults": [{
+                    "id": encode_prefixed(B256::random()),
+                    "vaultId": encode_prefixed(B256::random()),
+                    "owner": encode_prefixed(Address::random()),
+                    "balance": "0",
+                    "token": {
+                        "name": "T1",
+                        "symbol": "T1",
+                        "id": encode_prefixed(Address::random()),
+                        "address": encode_prefixed(Address::random()),
+                        "decimals": "6"
+                    },
+                    "ordersAsInput": [{
+                        "id": encode_prefixed(B256::random()),
+                        "orderHash": encode_prefixed(B256::random()),
+                    }],
+                    "ordersAsOutput": [{
+                        "id": encode_prefixed(B256::random()),
+                        "orderHash": encode_prefixed(B256::random()),
+                    }],
+                }]
+            }
+        })
+    }
+}
