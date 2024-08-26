@@ -24,3 +24,14 @@ impl Execute for OrderTake {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn verify_command() {
+        OrderTake::command().debug_assert();
+    }
+}
