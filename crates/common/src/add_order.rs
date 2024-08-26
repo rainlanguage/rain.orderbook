@@ -51,7 +51,7 @@ pub enum AddOrderArgsError {
     ComposeError(#[from] ComposeError),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
     pub dotrain: String,

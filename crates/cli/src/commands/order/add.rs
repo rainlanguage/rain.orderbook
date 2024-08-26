@@ -60,3 +60,121 @@ impl Execute for CliOrderAddArgs {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::{Address, U256};
+    use rain_orderbook_bindings::IOrderBookV4::IO;
+    use std::{collections::HashMap, str::FromStr};
+
+    #[tokio::test]
+    async fn test_to_add_order_args() {
+        let dotrain = get_dotrain();
+
+        let dotrain_path = "./test_dotrain_add_order.rain";
+        std::fs::write(dotrain_path, dotrain).unwrap();
+
+        let cli_order_add_args = CliOrderAddArgs {
+            dotrain_file: dotrain_path.into(),
+            deployment: "some-deployment".to_string(),
+            transaction_args: CliTransactionArgs {
+                orderbook_address: Address::random(),
+                derivation_index: None,
+                chain_id: Some(123),
+                rpc_url: "https://some-rpc.com".to_string(),
+                max_fee_per_gas: None,
+                max_priority_fee_per_gas: None,
+                gas_fee_speed: None,
+            },
+        };
+
+        let result = cli_order_add_args.to_add_order_args().await.unwrap();
+        let expected = AddOrderArgs {
+            dotrain: get_dotrain(),
+            inputs: vec![IO {
+                token: Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap(),
+                decimals: 6,
+                vaultId: U256::from(1),
+            }],
+            outputs: vec![IO {
+                token: Address::from_str("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063").unwrap(),
+                decimals: 18,
+                vaultId: U256::from(1),
+            }],
+            deployer: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
+            bindings: HashMap::new(),
+        };
+        assert_eq!(result, expected);
+
+        // remove test file
+        std::fs::remove_file(dotrain_path).unwrap();
+    }
+
+    fn get_dotrain() -> String {
+        "
+networks:
+    some-network:
+        rpc: https://some-rpc.com
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: T1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: T2
+        symbol: T2
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+
+orders:
+    some-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token2
+              vault-id: 1
+        deployer: some-deployer
+        orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#post-add-order
+:;"
+        .to_string()
+    }
+}
