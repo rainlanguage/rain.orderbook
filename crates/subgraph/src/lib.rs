@@ -3,6 +3,7 @@ mod orderbook_client;
 mod pagination;
 pub mod types;
 pub mod utils;
+pub mod validate;
 mod vault_balance_changes_query;
 
 #[cynic::schema("orderbook")]
