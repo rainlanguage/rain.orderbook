@@ -35,3 +35,4 @@ tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time
 
 [dev-dependencies]
 httpmock = "0.7.0"
+serde_json = { workspace = true }
