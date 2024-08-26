@@ -138,7 +138,7 @@ scenarios:
 _ _: 0 0;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 :;"
         .to_string()
     }

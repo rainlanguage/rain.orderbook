@@ -170,7 +170,7 @@ deployments:
 _ _: 0 0;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 :;",
             orderbook_key
         )
