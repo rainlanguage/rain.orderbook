@@ -28,7 +28,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);
         LibTestAddOrder.conformConfig(configBob, iInterpreter, iStore);
         configBob.validOutputs[0] = configAlice.validInputs[0];
-        configAlice.validOutputs[0] = configBob.validInputs[0];
+        configBob.validInputs[0] = configAlice.validOutputs[0];
 
         configAlice.evaluable.bytecode = iParserV2.parse2(rainStringAlice);
         configBob.evaluable.bytecode = iParserV2.parse2(rainStringBob);

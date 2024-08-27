@@ -41,6 +41,8 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
         maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
 
+        vm.assume(a.validInputs[aInputIOIndex].token != a.validOutputs[aOutputIOIndex].token);
+
         // Mismatch on inputs across orders taken.
         vm.assume(a.validInputs[aInputIOIndex].token != b.validInputs[bInputIOIndex].token);
         // Line up outputs so we don't trigger that code path.
@@ -75,6 +77,8 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         vm.assume(b.validOutputs.length > 0);
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
         maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
+
+        vm.assume(a.validOutputs[aOutputIOIndex].token != a.validInputs[aInputIOIndex].token);
 
         // Mismatch on outputs across orders taken.
         vm.assume(a.validOutputs[aOutputIOIndex].token != b.validOutputs[bOutputIOIndex].token);

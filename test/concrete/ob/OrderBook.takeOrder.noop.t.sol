@@ -45,6 +45,9 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         inputIOIndex = bound(inputIOIndex, 0, order.validInputs.length - 1);
         vm.assume(order.validOutputs.length > 0);
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
+
+        vm.assume(order.validInputs[inputIOIndex].token != order.validOutputs[outputIOIndex].token);
+
         // We don't bound the input or output indexes as we want to allow
         // malformed orders to be passed in, and still show that nothing happens.
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
@@ -82,6 +85,9 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         inputIOIndex2 = bound(inputIOIndex2, 0, order2.validInputs.length - 1);
         vm.assume(order2.validOutputs.length > 0);
         outputIOIndex2 = bound(outputIOIndex2, 0, order2.validOutputs.length - 1);
+
+        vm.assume(order1.validInputs[inputIOIndex1].token != order1.validOutputs[outputIOIndex1].token);
+        vm.assume(order2.validInputs[inputIOIndex2].token != order2.validOutputs[outputIOIndex2].token);
 
         // The inputs and outputs need to match or we will trigger the token
         // mismatch error.

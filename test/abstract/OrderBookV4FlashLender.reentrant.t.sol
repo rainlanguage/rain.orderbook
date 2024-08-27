@@ -165,7 +165,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         bobConfig.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
 
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
-        aliceConfig.validInputs[0] = bobConfig.validOutputs[0];
+        bobConfig.validOutputs[0] = aliceConfig.validInputs[0];
 
         vm.recordLogs();
         vm.prank(alice);
