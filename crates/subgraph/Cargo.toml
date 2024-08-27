@@ -23,6 +23,7 @@ cynic-introspection = "3.7.3"
 [dev-dependencies]
 insta = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
+httpmock = "0.7.0"
 
 [build-dependencies]
 cynic-codegen = { workspace = true }
