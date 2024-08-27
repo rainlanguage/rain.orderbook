@@ -318,7 +318,7 @@ deployers:
             print: true,
         };
 
-        // should execute successfully
+        // should fail
         assert!(words.execute().await.is_err());
 
         // remove test file
