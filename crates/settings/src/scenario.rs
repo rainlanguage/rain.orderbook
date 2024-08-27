@@ -200,6 +200,7 @@ mod tests {
 
         // Construct ConfigSource with the above scenarios
         let config_string = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification

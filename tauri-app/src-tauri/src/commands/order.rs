@@ -3,9 +3,9 @@ use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLoc
 use alloy::primitives::Bytes;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv,
+    add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
-    types::OrderDetailExtended, types::OrderFlattened, types::FlattenError, dotrain_order::DotrainOrder
+    types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
 };
 use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
 use std::fs;
@@ -171,4 +171,10 @@ pub async fn order_remove_calldata(
 pub async fn compose_from_scenario(dotrain: String, scenario: Scenario) -> CommandResult<String> {
     let order = DotrainOrder::new(dotrain.clone(), None).await?;
     Ok(order.compose_scenario_to_rainlang(scenario.name).await?)
+}
+
+#[tauri::command]
+pub async fn validate_raindex_version(dotrain: String, settings: String) -> CommandResult<()> {
+    let order = DotrainOrder::new(dotrain.clone(), Some(settings)).await?;
+    Ok(order.validate_raindex_version().await?)
 }

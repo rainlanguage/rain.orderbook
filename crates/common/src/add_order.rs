@@ -1,4 +1,5 @@
 use crate::{
+    dotrain_order::{DotrainOrder, DotrainOrderError},
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
@@ -49,6 +50,8 @@ pub enum AddOrderArgsError {
     RainMetaError(#[from] RainMetaError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
+    #[error(transparent)]
+    DotrainOrderError(#[from] DotrainOrderError),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -67,6 +70,12 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: Deployment,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
+        // check the raindex version of the dotrain
+        DotrainOrder::new(dotrain.clone(), None)
+            .await?
+            .validate_raindex_version()
+            .await?;
+
         let random_vault_id: U256 = rand::random();
         let mut inputs = vec![];
         for input in &deployment.order.inputs {

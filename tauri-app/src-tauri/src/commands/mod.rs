@@ -1,3 +1,4 @@
+pub mod app;
 pub mod authoring_meta;
 pub mod chain;
 pub mod charts;

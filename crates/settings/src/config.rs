@@ -33,6 +33,7 @@ pub struct Config {
     #[typeshare(typescript(type = "Record<string, Deployment>"))]
     pub deployments: HashMap<String, Arc<Deployment>>,
     pub sentry: Option<bool>,
+    pub raindex_version: Option<String>,
 }
 
 pub type Subgraph = Url;
@@ -169,6 +170,7 @@ impl TryFrom<ConfigSource> for Config {
             .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
 
         let config = Config {
+            raindex_version: item.raindex_version,
             networks,
             subgraphs,
             metaboards,
@@ -273,6 +275,7 @@ mod tests {
         let sentry = Some(true);
 
         let config_string = ConfigSource {
+            raindex_version: Some("0x123".to_string()),
             using_networks_from,
             networks,
             subgraphs,
@@ -340,5 +343,8 @@ mod tests {
 
         // Verify sentry
         assert!(config.sentry.unwrap());
+
+        // Verify raindex_version
+        assert_eq!(config.raindex_version, Some("0x123".to_string()));
     }
 }
