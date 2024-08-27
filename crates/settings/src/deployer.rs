@@ -19,7 +19,7 @@ pub struct Deployer {
 pub enum ParseDeployerConfigSourceError {
     #[error("Failed to parse address")]
     AddressParseError(alloy::primitives::hex::FromHexError),
-    #[error("Network not found: {0}")]
+    #[error("Network not found for Deployer: {0}")]
     NetworkNotFoundError(String),
 }
 

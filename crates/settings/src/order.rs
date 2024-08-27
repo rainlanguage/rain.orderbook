@@ -39,7 +39,7 @@ pub enum ParseOrderConfigSourceError {
     OrderbookParseError(ParseOrderbookConfigSourceError),
     #[error("Failed to parse token")]
     TokenParseError(ParseTokenConfigSourceError),
-    #[error("Network not found: {0}")]
+    #[error("Network not found for Order: {0}")]
     NetworkNotFoundError(String),
     #[error("Network does not match")]
     NetworkNotMatch,

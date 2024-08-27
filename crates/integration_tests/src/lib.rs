@@ -84,7 +84,7 @@ deployments:
 #calculate-io
 using-words-from 0xe80e7438ce6b1055c8e9CDE1b6336a4F9D53C666
 amount price: get("amount") 52;
-#post-add-order
+#handle-add-order
 :set("amount" 100);
 #handle-io
 :;
@@ -236,7 +236,7 @@ deployments:
 amount price: get("amount") 52;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 :ensure(0 "should fail");
 "#,
             rpc_url = anvil.endpoint()
