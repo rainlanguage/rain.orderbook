@@ -16,6 +16,7 @@ impl Execute for Subgraph {
     async fn execute(&self) -> Result<()> {
         match self {
             Subgraph::Validate { subgraph_url } => Ok(validate_subgraph_schema(subgraph_url)
+                .await
                 .map(|v| println!("--- {}valid subgraph ---", if v { "" } else { "in" }))?),
         }
     }

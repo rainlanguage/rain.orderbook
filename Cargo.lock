@@ -2430,9 +2430,7 @@ checksum = "478c02b53607e3f21c374f024c2cfc2154e554905bba478e8e09409f10ce3726"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
- "reqwest 0.12.5",
  "serde",
- "serde_json",
  "static_assertions",
  "thiserror",
 ]

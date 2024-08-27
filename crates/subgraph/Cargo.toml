@@ -9,8 +9,8 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cynic = { workspace = true, features = ["http-reqwest-blocking"]}
-reqwest = { workspace = true, features = ["blocking"]}
+cynic = { workspace = true }
+reqwest = { workspace = true }
 thiserror = { workspace = true }
 typeshare = { workspace = true }
 serde = { workspace = true }
@@ -22,7 +22,7 @@ cynic-introspection = "3.7.3"
 
 [dev-dependencies]
 insta = { workspace = true }
-tokio = { workspace = true, features = ["full"]}
+tokio = { workspace = true, features = ["full"] }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }
