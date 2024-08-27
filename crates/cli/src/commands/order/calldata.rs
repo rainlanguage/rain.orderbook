@@ -180,7 +180,7 @@ deployments:
 _ _: 0 0;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 :;",
             rpc_server.url("/rpc").as_str()
         );

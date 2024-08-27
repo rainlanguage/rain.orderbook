@@ -42,3 +42,14 @@ impl Execute for Vault {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn verify_command() {
+        Vault::command().debug_assert();
+    }
+}

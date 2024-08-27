@@ -27,7 +27,7 @@ use std::collections::HashMap;
 use thiserror::Error;
 
 pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
-pub static ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS: [&str; 1] = ["post-add-order"];
+pub static ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS: [&str; 1] = ["handle-add-order"];
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -51,7 +51,7 @@ pub enum AddOrderArgsError {
     ComposeError(#[from] ComposeError),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
     pub dotrain: String,
@@ -543,7 +543,7 @@ some front matter
 _ _: 0 0;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 _ _: 0 0;
 "#;
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
@@ -680,7 +680,7 @@ some front matter
 _ _: 0 0;
 #handle-io
 :;
-#post-add-order
+#handle-add-order
 _ _: 0 0;
 "#;
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
@@ -689,6 +689,6 @@ _ _: 0 0;
 
         let post_action = result.compose_addorder_post_task().unwrap();
 
-        assert_eq!(post_action, "/* 0. post-add-order */ \n_ _: 0 0;");
+        assert_eq!(post_action, "/* 0. handle-add-order */ \n_ _: 0 0;");
     }
 }
