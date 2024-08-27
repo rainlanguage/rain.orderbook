@@ -24,7 +24,7 @@ pub enum ParseTokenConfigSourceError {
     AddressParseError(FromHexError),
     #[error("Failed to parse decimals")]
     DecimalsParseError(std::num::ParseIntError),
-    #[error("Network not found: {0}")]
+    #[error("Network not found for Token: {0}")]
     NetworkNotFoundError(String),
 }
 
