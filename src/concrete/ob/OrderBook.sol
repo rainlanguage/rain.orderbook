@@ -389,6 +389,13 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             return (false, 0, 0);
         }
 
+        if (
+            quoteConfig.order.validInputs[quoteConfig.inputIOIndex].token
+                == quoteConfig.order.validOutputs[quoteConfig.outputIOIndex].token
+        ) {
+            revert TokenSelfTrade();
+        }
+
         OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(
             quoteConfig.order,
             quoteConfig.inputIOIndex,
