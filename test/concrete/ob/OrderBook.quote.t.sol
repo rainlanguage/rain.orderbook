@@ -13,6 +13,7 @@ import {
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
@@ -27,6 +28,18 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         assert(!success);
         assertEq(maxOutput, 0);
         assertEq(ioRatio, 0);
+    }
+
+    /// Same token for input and output is error.
+    function testQuoteSameToken(Quote memory quoteConfig) external {
+        vm.assume(quoteConfig.order.validInputs.length > 0);
+        vm.assume(quoteConfig.order.validOutputs.length > 0);
+        quoteConfig.order.validInputs[0].token = quoteConfig.order.validOutputs[0].token;
+        quoteConfig.inputIOIndex = 0;
+        quoteConfig.outputIOIndex = 0;
+        vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
+        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
+        (success, maxOutput, ioRatio);
     }
 
     function checkQuote(
