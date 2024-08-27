@@ -185,7 +185,11 @@
       composedRainlangForScenarios = new Map();
       for (const scenario of Object.values(scenarios)) {
         try {
-          const composedRainlang = await orderAddComposeRainlang(dotrainText, scenario);
+          const composedRainlang = await orderAddComposeRainlang(
+            dotrainText,
+            $settingsText,
+            scenario,
+          );
           composedRainlangForScenarios.set(scenario, composedRainlang);
         } catch (e) {
           composedRainlangForScenarios.set(

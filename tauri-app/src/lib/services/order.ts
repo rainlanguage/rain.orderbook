@@ -56,10 +56,12 @@ export async function orderRemoveCalldata(id: string) {
 
 export async function orderAddComposeRainlang(
   dotrain: string,
+  settings: string,
   scenario: Scenario,
 ): Promise<string> {
   return await invoke('compose_from_scenario', {
     dotrain,
+    settings,
     scenario,
   });
 }

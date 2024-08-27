@@ -168,8 +168,12 @@ pub async fn order_remove_calldata(
 }
 
 #[tauri::command]
-pub async fn compose_from_scenario(dotrain: String, scenario: Scenario) -> CommandResult<String> {
-    let order = DotrainOrder::new(dotrain.clone(), None).await?;
+pub async fn compose_from_scenario(
+    dotrain: String,
+    settings: Option<String>,
+    scenario: Scenario,
+) -> CommandResult<String> {
+    let order = DotrainOrder::new(dotrain.clone(), settings).await?;
     Ok(order.compose_scenario_to_rainlang(scenario.name).await?)
 }
 
