@@ -28,3 +28,98 @@ impl Execute for CliOrderTakeDetailArgs {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::{
+        hex::encode_prefixed,
+        primitives::{Address, B256},
+    };
+    use httpmock::MockServer;
+    use serde_json::{json, Value};
+
+    #[tokio::test]
+    async fn test_execute_happy() {
+        let sg_server = MockServer::start();
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&get_sg_response());
+        });
+
+        let cli_order_take_detail_args = CliOrderTakeDetailArgs {
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
+            id: encode_prefixed(B256::random()),
+        };
+
+        // should succeed
+        assert!(cli_order_take_detail_args.execute().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_unhappy() {
+        // mock sg with corrupt response
+        let sg_server = MockServer::start();
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&json!({"data": {"trade": null}}));
+        });
+
+        let cli_order_take_detail_args = CliOrderTakeDetailArgs {
+            subgraph_args: CliSubgraphArgs {
+                subgraph_url: sg_server.url("/sg"),
+            },
+            id: encode_prefixed(B256::random()),
+        };
+
+        // should error
+        assert!(cli_order_take_detail_args.execute().await.is_err());
+    }
+
+    // helper function that returns mocked sg response in json
+    fn get_sg_response() -> Value {
+        json!({
+            "data": {
+                "trade": {
+                    "id": encode_prefixed(B256::random()),
+                    "order": {
+                        "orderHash": encode_prefixed(B256::random()),
+                        "timestampAdded": "0",
+                    },
+                    "outputVaultBalanceChange": {
+                        "amount": "0",
+                        "vault": {
+                            "token": {
+                                "name": "T1",
+                                "symbol": "T1",
+                                "id": encode_prefixed(Address::random()),
+                                "address": encode_prefixed(Address::random()),
+                                "decimals": "6"
+                            }
+                        }
+                    },
+                    "inputVaultBalanceChange": {
+                        "amount": "0",
+                        "vault": {
+                            "token": {
+                                "name": "T2",
+                                "symbol": "T2",
+                                "id": encode_prefixed(Address::random()),
+                                "address": encode_prefixed(Address::random()),
+                                "decimals": "18"
+                            }
+                        },
+                    },
+                    "timestamp": "0",
+                    "tradeEvent": {
+                        "sender": encode_prefixed(Address::random()),
+                        "transaction": {
+                            "id": encode_prefixed(B256::random()),
+                            "from": encode_prefixed(Address::random()),
+                        }
+                    },
+                }
+            }
+        })
+    }
+}

@@ -24,7 +24,7 @@ pub struct Orderbook {
 pub enum ParseOrderbookConfigSourceError {
     #[error("Failed to parse address")]
     AddressParseError(FromHexError),
-    #[error("Network not found: {0}")]
+    #[error("Network not found for Orderbook: {0}")]
     NetworkNotFoundError(String),
     #[error("Subgraph not found: {0}")]
     SubgraphNotFoundError(String),
