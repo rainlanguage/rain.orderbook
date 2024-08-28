@@ -383,17 +383,17 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
     /// @inheritdoc IOrderBookV4
     function quote(Quote calldata quoteConfig) external view returns (bool, uint256, uint256) {
+        bytes32 orderHash = quoteConfig.order.hash();
+
+        if (sOrders[orderHash] != ORDER_LIVE) {
+            return (false, 0, 0);
+        }
+
         if (
             quoteConfig.order.validInputs[quoteConfig.inputIOIndex].token
                 == quoteConfig.order.validOutputs[quoteConfig.outputIOIndex].token
         ) {
             revert TokenSelfTrade();
-        }
-
-        bytes32 orderHash = quoteConfig.order.hash();
-
-        if (sOrders[orderHash] != ORDER_LIVE) {
-            return (false, 0, 0);
         }
 
         OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(

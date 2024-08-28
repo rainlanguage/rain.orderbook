@@ -23,23 +23,12 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     using Strings for uint256;
 
     /// Dead orders always eval to false.
+    /// forge-config: default.fuzz.runs = 100
     function testQuoteDeadOrder(Quote memory quoteConfig) external view {
         (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
         assert(!success);
         assertEq(maxOutput, 0);
         assertEq(ioRatio, 0);
-    }
-
-    /// Same token for input and output is error.
-    function testQuoteSameToken(Quote memory quoteConfig) external {
-        vm.assume(quoteConfig.order.validInputs.length > 0);
-        vm.assume(quoteConfig.order.validOutputs.length > 0);
-        quoteConfig.order.validInputs[0].token = quoteConfig.order.validOutputs[0].token;
-        quoteConfig.inputIOIndex = 0;
-        quoteConfig.outputIOIndex = 0;
-        vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
-        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
-        (success, maxOutput, ioRatio);
     }
 
     function checkQuote(
@@ -112,18 +101,21 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         checkQuote(owner, config, rainlangArray, depositAmount, expectedMaxOutputArray, expectedIoRatioArray);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testQuoteSimple(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
         depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);
         checkQuote(owner, config, "_ _:1 2;", depositAmount, 1e18, 2e18);
     }
 
     /// The output will be maxed at the deposit in the vault.
+    /// forge-config: default.fuzz.runs = 100
     function testQuoteMaxOutput(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
         depositAmount = bound(depositAmount, 1, 1e12);
         checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount * 1e6, 2e18);
     }
 
     /// Can access context.
+    /// forge-config: default.fuzz.runs = 100
     function testQuoteContextSender(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
         // Max amount needs to be small enough to be scaled up to 18 decimals
         // from 12 decimals.

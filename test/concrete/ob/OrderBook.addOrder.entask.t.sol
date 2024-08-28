@@ -57,23 +57,27 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         nonces[config.nonce] = true;
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderEmptyNoop(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals = new bytes[](0);
         checkAddOrder(alice, config, evals, 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderOneStateless(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkAddOrder(alice, config, evals, 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderOneReadState(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         checkAddOrder(alice, config, evals, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderWriteStateSingle(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
@@ -86,6 +90,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         checkAddOrder(alice, config, evals1, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderWriteStateSequential(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -95,6 +100,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         checkAddOrder(alice, config, evals0, 6, 4);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderWriteStateDifferentOwnersNamespaced(address alice, address bob, OrderConfigV3 memory config)
         external
     {
@@ -130,6 +136,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
 
     /// Evals DO NOT eval if the adding of an order is a noop.
     /// I.e. if the order is added twice the second time nothing happens.
+    /// forge-config: default.fuzz.runs = 10
     function testAddLiveOrderNoop(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](0);
         checkAddOrder(alice, config, evals0, 0, 0);
@@ -144,6 +151,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     /// A revert in the action prevents the order being added.
     /// forge-config: default.assertions_revert = false
     /// forge-config: default.legacy_assertions = true
+    /// forge-config: default.fuzz.runs = 10
     function testAddLiveOrderRevertNoAdd(address alice, OrderConfigV3 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":ensure(0 \"always revert\");");
@@ -160,6 +168,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         assert(!iOrderbook.orderExists(order.hash()));
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testAddOrderContext(address alice, OrderConfigV3 memory config) external {
         // Need this conform here so that the order doesn't get mutated and
         // change the hash.

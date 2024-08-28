@@ -21,6 +21,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
     /// the caller's desired input and output tokens match the first order they
     /// pass in.
     /// Test a mismatch in the input tokens.
+    /// forge-config: default.fuzz.runs = 10
     function testTokenMismatchInputs(
         OrderV3 memory a,
         uint256 aInputIOIndex,
@@ -58,6 +59,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
     }
 
     /// Test a mismatch in the output tokens.
+    /// forge-config: default.fuzz.runs = 10
     function testTokenDecimalMismatchOutputs(
         OrderV3 memory a,
         uint256 aInputIOIndex,

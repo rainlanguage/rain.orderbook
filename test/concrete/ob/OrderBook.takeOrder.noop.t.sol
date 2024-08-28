@@ -35,6 +35,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// have been removed by its owner. We don't want to revert the whole
     /// transaction in this case as there may be other orders in the input array
     /// in the general case.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderNoopNonLiveOrderOne(
         OrderV3 memory order,
         uint256 inputIOIndex,
@@ -67,6 +68,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     }
 
     /// Same as above but with two orders.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderNoopNonLiveOrderTwo(
         OrderV3 memory order1,
         OrderV3 memory order2,

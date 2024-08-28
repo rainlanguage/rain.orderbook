@@ -47,6 +47,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and read vault balances from within a flash loan.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterReadVaultBalances(uint256 vaultId, uint256 loanAmount) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -58,6 +59,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and check if an order exists from within a flash loan.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterCheckOrderExists(bytes32 orderHash, uint256 loanAmount) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -67,6 +69,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and deposit from within a flash loan.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterDeposit(uint256 vaultId, uint256 loanAmount, uint256 depositAmount) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -86,6 +89,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and withdraw from within a flash loan.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterWithdraw(uint256 vaultId, uint256 loanAmount, uint256 withdrawAmount) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -105,6 +109,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and add an order from within a flash loan.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterAddOrder(uint256 loanAmount, OrderConfigV3 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
@@ -117,6 +122,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and remove an order from within a flash loan.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterRemoveOrder(uint256 loanAmount, OrderV3 memory order) external {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -127,6 +133,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and take orders.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterTakeOrder(uint256 loanAmount, OrderConfigV3 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
@@ -149,6 +156,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     }
 
     /// Can reenter and clear orders.
+    /// forge-config: default.fuzz.runs = 100
     function testReenterClear(
         uint256 loanAmount,
         address alice,

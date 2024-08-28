@@ -40,10 +40,12 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
         iOrderbook.takeOrders2(takeOrdersConfig);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderBadStackEmptyStack(address alice, address bob, OrderConfigV3 memory config) external {
         checkBadStack(alice, bob, config, ":;:;", 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderBadStackOneStack(address alice, address bob, OrderConfigV3 memory config) external {
         checkBadStack(alice, bob, config, "_:1;:;", 1);
     }

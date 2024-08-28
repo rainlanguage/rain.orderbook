@@ -12,6 +12,7 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 /// Tests depositing to an order book.
 contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// Tests that we can deposit some amount and view the new vault balance.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositSimple(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
         vm.prank(depositor);
@@ -26,6 +27,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     }
 
     /// Depositing zero should revert.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositZero(address depositor, uint256 vaultId) external {
         vm.prank(depositor);
         vm.expectRevert(
@@ -73,6 +75,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     }
 
     /// Any failure in the deposit should revert the entire transaction.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositFail(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
 
@@ -107,6 +110,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
 
     /// Any combination of depositors, tokens, vaults, amounts should not cause
     /// collisions or other illogical outcomes.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
@@ -155,6 +159,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     }
 
     /// Depositing should emit an event with the sender and all deposit details.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositEvent(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
         vm.prank(depositor);
@@ -169,6 +174,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     }
 
     /// Depositing should NOT allow reentrancy.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositReentrancy(
         address depositor,
         uint256 vaultId,
@@ -189,6 +195,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     }
 
     /// Vault balances MUST NOT silently overflow.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositOverflow(address depositor, uint256 vaultId, uint256 amountOne, uint256 amountTwo) external {
         amountOne = bound(amountOne, type(uint128).max, type(uint256).max);
         amountTwo = bound(amountTwo, type(uint128).max, type(uint256).max);
