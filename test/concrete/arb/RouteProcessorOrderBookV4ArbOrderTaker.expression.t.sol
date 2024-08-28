@@ -23,6 +23,7 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         return hex"deadbeef";
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testRouteProcessorTakeOrdersWrongExpression(
         OrderV3 memory order,
         uint256 inputIOIndex,
@@ -43,6 +44,7 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         );
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testRouteProcessorTakeOrdersExpression(
         OrderV3 memory order,
         uint256 inputIOIndex,

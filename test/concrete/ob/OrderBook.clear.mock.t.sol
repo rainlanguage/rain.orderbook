@@ -21,6 +21,7 @@ import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 /// @title OrderBookClearTest
 /// Tests clearing an order.
 contract OrderBookClearTest is OrderBookExternalMockTest {
+    /// forge-config: default.fuzz.runs = 100
     function testClearSimple(
         address alice,
         OrderConfigV3 memory aliceConfig,

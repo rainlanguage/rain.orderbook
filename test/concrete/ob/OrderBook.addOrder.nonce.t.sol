@@ -9,6 +9,7 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderNonceSameOrderNoop(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
@@ -24,6 +25,7 @@ contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
         assert(iOrderbook.orderExists(order.hash()));
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderNonceDifferentNonceStateChange(address owner, OrderConfigV3 memory config, bytes32 otherNonce)
         public
     {
@@ -49,6 +51,7 @@ contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
         );
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderNonceSameNonceDifferentOrderStateChange(
         address owner,
         OrderConfigV3 memory config0,

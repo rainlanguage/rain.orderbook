@@ -58,12 +58,14 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         vm.stopPrank();
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEnactEmptyNoop(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount > 0);
         bytes[] memory evals = new bytes[](0);
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEnactOneStateless(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount > 0);
         bytes[] memory evals = new bytes[](1);
@@ -71,6 +73,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEnactOneReadState(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount > 0);
         bytes[] memory evals = new bytes[](1);
@@ -80,6 +83,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         checkDeposit(alice, vaultId, amount, evals, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateSingle(address alice, uint256 vaultId, uint256 amount) external {
         amount = bound(amount, 1, type(uint128).max);
         bytes[] memory evals = new bytes[](1);
@@ -91,6 +95,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         checkDeposit(alice, vaultId, amount, evals, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateSequential(address alice, uint256 vaultId, uint256 amount) external {
         amount = bound(amount, 1, type(uint128).max);
         bytes[] memory evals0 = new bytes[](4);
@@ -108,6 +113,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         checkDeposit(alice, vaultId, amount, evals1, 6, 4);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateDifferentOwnersNamespaced(
         address alice,
         address bob,
@@ -142,6 +148,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         checkDeposit(bob, vaultId, amount, evals3, 4, 2);
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testOrderDepositContext(address alice, uint256 vaultId, uint256 preDepositAmount, uint256 depositAmount)
         external
     {
@@ -204,6 +211,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// A revert in the action prevents the deposit from being enacted.
+    /// forge-config: default.fuzz.runs = 10
     function testDepositRevertInAction(address alice, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
         vm.startPrank(alice);

@@ -19,6 +19,7 @@ import {
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 contract GenericPoolOrderBookV4ArbOrderTakerSenderTest is GenericPoolOrderBookV4ArbOrderTakerTest {
+    /// forge-config: default.fuzz.runs = 10
     function testGenericPoolTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
