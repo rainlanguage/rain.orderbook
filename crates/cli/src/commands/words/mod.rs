@@ -61,7 +61,7 @@ pub struct Input {
     pub settings_file: Option<PathBuf>,
 }
 
-/// Group of possible sources, only one of deployer or scenario
+/// Group of possible sources, only one of deployer or scenario or deployment
 #[derive(Args, Clone, Debug, PartialEq)]
 #[group(required = true, multiple = false)]
 pub struct Source {
@@ -237,7 +237,7 @@ mod tests {
     );
 
     #[test]
-    fn verify_command1() {
+    fn verify_command() {
         Words::command().debug_assert();
     }
 
