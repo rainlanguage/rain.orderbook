@@ -146,7 +146,7 @@ mod tests {
     );
 
     #[tokio::test]
-    async fn test_get_authoring_meta_v2_for_scenarios() {
+    async fn test_get_authoring_meta_v2_for_scenarios_happy() {
         let pragma_addresses = vec![Address::random()];
         let deployer_address = Address::random();
         let server = mock_server(pragma_addresses.clone());
@@ -274,14 +274,6 @@ _ _: 0 0;
 
         // mock shared contract calls
         server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x01ffc9a701ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
-        });
-        server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
             then.body(
                 Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
@@ -293,19 +285,6 @@ _ _: 0 0;
             when.path("/rpc").body_contains("0x01ffc9a7");
             then.body(
                 Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
-        });
-
-        // mock contract and sg calls for deployer
-        server.mock(|when, then| {
-            when.path("/rpc").json_body_partial(format!(
-                "{{\"params\":[{{\"to\":\"{}\",\"data\":\"0x6f5aa28d\"}}]}}",
-                encode_prefixed(deployer_address)
-            ));
-            then.body(
-                Response::new_success(1, &deployer_meta_hash)
                     .to_json_string()
                     .unwrap(),
             );
@@ -326,46 +305,22 @@ _ _: 0 0;
                 .unwrap(),
             );
         });
+
+        // mock contract and sg calls for deployer
         server.mock(|when, then| {
-            when.path("/sg").body_contains(deployer_meta_hash.to_ascii_lowercase());
-            then.status(200).json_body_obj(&serde_json::json!({
-                "data": {
-                    "metaV1S": [{
-                        "meta": encode_prefixed(
-                            RainMetaDocumentV1Item {
-                                payload: ByteBuf::from(
-                                    vec![
-                                        AuthoringMetaV2Sol {
-                                            word: B256::right_padding_from("some-word".as_bytes()),
-                                            description: "some-desc".to_string(),
-                                        },
-                                        AuthoringMetaV2Sol {
-                                            word: B256::right_padding_from("some-other-word".as_bytes()),
-                                            description: "some-other-desc".to_string(),
-                                        }
-                                    ]
-                                    .abi_encode(),
-                                ),
-                                magic: KnownMagic::AuthoringMetaV2,
-                                content_type: rain_metadata::ContentType::OctetStream,
-                                content_encoding: rain_metadata::ContentEncoding::None,
-                                content_language: rain_metadata::ContentLanguage::None,
-                            }
-                            .cbor_encode()
-                            .unwrap()
-                        ),
-                        "metaHash": "0x00",
-                        "sender": "0x00",
-                        "id": "0x00",
-                        "metaBoard": {
-                            "id": "0x00",
-                            "metas": [],
-                            "address": "0x00",
-                        },
-                        "subject": "0x00",
-                    }]
-                }
-            }));
+            when.path("/rpc").json_body_partial(format!(
+                "{{\"params\":[{{\"to\":\"{}\",\"data\":\"0x6f5aa28d\"}}]}}",
+                encode_prefixed(deployer_address)
+            ));
+            then.body(
+                Response::new_success(1, &deployer_meta_hash)
+                    .to_json_string()
+                    .unwrap(),
+            );
+        });
+        server.mock(|when, then| {
+            when.path("/sg").body_contains(&deployer_meta_hash);
+            then.status(200).json_body_obj(&get_sg_mocked_meta());
         });
 
         // mock contract and sg calls for pragma
@@ -438,11 +393,11 @@ _ _: 0 0;
                         PragmaAuthoringMeta {
                             address: pragma_addresses[0],
                             result: PragmaResult::Error(format!(
-                                "Error fetching authoring meta for contract {pragma}, RPC URL {rpc_url}, Metaboard URL {metaboard_url}: Subgraph query returned no data for metahash {meta_hash}",
-                                pragma = pragma_addresses[0],
-                                rpc_url = server.url("/rpc"),
-                                metaboard_url = server.url("/sg"),
-                                meta_hash = pragma_meta_hash,
+                                "Error fetching authoring meta for contract {}, RPC URL {}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
+                                pragma_addresses[0],
+                                server.url("/rpc"),
+                                server.url("/sg"),
+                                pragma_meta_hash,
                             ))
                         },
                     ]
@@ -452,18 +407,55 @@ _ _: 0 0;
         assert_eq!(res, expected);
     }
 
+    fn get_sg_mocked_meta() -> serde_json::Value {
+        serde_json::json!({
+            "data": {
+                "metaV1S": [{
+                    "meta": encode_prefixed(
+                        RainMetaDocumentV1Item {
+                            payload: ByteBuf::from(
+                                vec![
+                                    AuthoringMetaV2Sol {
+                                        word: B256::right_padding_from(
+                                            "some-word".as_bytes()
+                                        ),
+                                        description: "some-desc".to_string(),
+                                    },
+                                    AuthoringMetaV2Sol {
+                                        word: B256::right_padding_from(
+                                            "some-other-word".as_bytes()
+                                        ),
+                                        description: "some-other-desc".to_string(),
+                                    }
+                                ]
+                                .abi_encode(),
+                            ),
+                            magic: KnownMagic::AuthoringMetaV2,
+                            content_type: rain_metadata::ContentType::OctetStream,
+                            content_encoding: rain_metadata::ContentEncoding::None,
+                            content_language: rain_metadata::ContentLanguage::None,
+                        }
+                        .cbor_encode()
+                        .unwrap()
+                    ),
+                    "metaHash": "0x00",
+                    "sender": "0x00",
+                    "id": "0x00",
+                    "metaBoard": {
+                        "id": "0x00",
+                        "metas": [],
+                        "address": "0x00",
+                    },
+                    "subject": "0x00",
+                }]
+            }
+        })
+    }
+
     // helper function to mock rpc and sg response
     fn mock_server(with_pragma_addresses: Vec<Address>) -> MockServer {
         let server = MockServer::start();
         // mock contract calls
-        server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x01ffc9a701ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
-        });
         server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
             then.body(
@@ -508,44 +500,7 @@ _ _: 0 0;
         // mock sg query
         server.mock(|when, then| {
             when.path("/sg");
-            then.status(200).json_body_obj(&serde_json::json!({
-                "data": {
-                    "metaV1S": [{
-                        "meta": encode_prefixed(
-                            RainMetaDocumentV1Item {
-                                payload: ByteBuf::from(
-                                    vec![
-                                        AuthoringMetaV2Sol {
-                                            word: B256::right_padding_from("some-word".as_bytes()),
-                                            description: "some-desc".to_string(),
-                                        },
-                                        AuthoringMetaV2Sol {
-                                            word: B256::right_padding_from("some-other-word".as_bytes()),
-                                            description: "some-other-desc".to_string(),
-                                        }
-                                    ]
-                                    .abi_encode(),
-                                ),
-                                magic: KnownMagic::AuthoringMetaV2,
-                                content_type: rain_metadata::ContentType::OctetStream,
-                                content_encoding: rain_metadata::ContentEncoding::None,
-                                content_language: rain_metadata::ContentLanguage::None,
-                            }
-                            .cbor_encode()
-                            .unwrap()
-                        ),
-                        "metaHash": "0x00",
-                        "sender": "0x00",
-                        "id": "0x00",
-                        "metaBoard": {
-                            "id": "0x00",
-                            "metas": [],
-                            "address": "0x00",
-                        },
-                        "subject": "0x00",
-                    }]
-                }
-            }));
+            then.status(200).json_body_obj(&get_sg_mocked_meta());
         });
         server
     }

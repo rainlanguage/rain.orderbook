@@ -633,14 +633,6 @@ _ _: 0 0;
         let server = MockServer::start();
         // mock contract calls
         server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x01ffc9a701ffc9a7");
-            then.body(
-                Response::new_success(1, &B256::left_padding_from(&[1]).to_string())
-                    .to_json_string()
-                    .unwrap(),
-            );
-        });
-        server.mock(|when, then| {
             when.path("/rpc").body_contains("0x01ffc9a7ffffffff");
             then.body(
                 Response::new_success(1, &B256::left_padding_from(&[0]).to_string())
