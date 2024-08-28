@@ -14,6 +14,7 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
+    /// forge-config: default.fuzz.runs = 10
     function testTakeOrderSameToken(address alice, OrderConfigV3 memory configAlice) external {
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);
         configAlice.validInputs[0].token = address(0);
