@@ -12,16 +12,8 @@
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
-  import { browser } from '$app/environment';
-  import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
-
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        enabled: browser,
-      },
-    },
-  });
+  import { QueryClientProvider } from '@tanstack/svelte-query';
+  import { queryClient } from '$lib/queries/queryClient';
 </script>
 
 <WindowDraggableArea />
@@ -47,7 +39,7 @@
       {/each}
     </div>
   </div>
-  <div class="fixed bottom-0 left-64 right-0 bg-primary-400 p-2 text-center text-white">
+  <div class="bg-primary-400 fixed bottom-0 left-64 right-0 p-2 text-center text-white">
     The Raindex app is still early alpha - have fun but use at your own risk!
   </div>
 </QueryClientProvider>

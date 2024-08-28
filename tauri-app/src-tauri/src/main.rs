@@ -18,6 +18,7 @@ use commands::order::{
 };
 use commands::order_quote::batch_order_quotes;
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
+use commands::trade_debug::debug_trade;
 use commands::vault::{
     vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
     vault_deposit_approve_calldata, vault_deposit_calldata, vault_detail, vault_withdraw,
@@ -72,7 +73,8 @@ fn run_tauri_app() {
             vault_withdraw_calldata,
             get_authoring_meta_v2_for_scenarios,
             compose_from_scenario,
-            batch_order_quotes
+            batch_order_quotes,
+            debug_trade
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

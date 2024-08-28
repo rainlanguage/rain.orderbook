@@ -90,6 +90,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     FromUintParseError(#[from] FromUintParseError),
+
+    #[error(transparent)]
+    TradeReplayerError(#[from] rain_orderbook_common::replays::TradeReplayerError),
 }
 
 impl Serialize for CommandError {

@@ -3,13 +3,14 @@
   import TanstackAppTable from './TanstackAppTable.svelte';
   import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
   import { orderTradesList } from '$lib/queries/orderTradesList';
-  import { subgraphUrl } from '$lib/stores/settings';
+  import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { formatUnits } from 'viem';
+  import { handleDebugTradeModal } from '$lib/services/modal';
 
   export let id: string;
 
@@ -78,6 +79,16 @@
       )}
       {item.input_vault_balance_change.vault.token.symbol}/{item.output_vault_balance_change.vault
         .token.symbol}
+    </TableBodyCell>
+    <TableBodyCell tdClass="py-2">
+      <button
+        class="btn btn-sm btn-primary"
+        on:click={() => {
+          if ($rpcUrl) handleDebugTradeModal(item.trade_event.transaction.id, $rpcUrl);
+        }}
+      >
+        Debug
+      </button>
     </TableBodyCell>
   </svelte:fragment>
 </TanstackAppTable>

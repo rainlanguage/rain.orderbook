@@ -9,6 +9,7 @@ pub mod fuzz;
 pub mod meta;
 pub mod rainlang;
 pub mod remove_order;
+pub mod replays;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
