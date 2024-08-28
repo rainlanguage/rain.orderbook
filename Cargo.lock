@@ -6367,6 +6367,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "httpmock",
  "js-sys",
  "once_cell",
  "proptest",

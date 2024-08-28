@@ -173,7 +173,7 @@ impl Execute for Words {
                 .scenarios
                 .iter()
                 .find(|(_, v)| *v == &deployment.scenario)
-                .unwrap()
+                .ok_or(anyhow!("undefined deployment scenario"))?
                 .0;
 
             // set the cli given metaboard url into the config
@@ -726,7 +726,7 @@ deployers:
 
         // mock sg query
         server.mock(|when, then| {
-            when.path("/sg"); // You need to tailor this to the actual body sent
+            when.path("/sg");
             then.status(200).json_body_obj(&serde_json::json!({
                 "data": {
                     "metaV1S": [{
