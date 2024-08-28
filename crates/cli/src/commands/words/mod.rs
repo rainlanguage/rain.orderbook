@@ -20,7 +20,7 @@ pub struct Words {
         long,
         requires = "scenario",
         action = ArgAction::SetTrue,
-        conflicts_with_all = ["deployer_only", "deployer"],
+        conflicts_with_all = ["deployer_only", "deployer", "deployment"],
     )]
     pub pragma_only: bool,
 
@@ -29,7 +29,7 @@ pub struct Words {
         long,
         requires = "scenario",
         action = ArgAction::SetTrue,
-        conflicts_with_all = ["pragma_only", "deployer"],
+        conflicts_with_all = ["pragma_only", "deployer", "deployment"],
     )]
     pub deployer_only: bool,
 
@@ -72,6 +72,10 @@ pub struct Source {
     /// Scenario key, requires dotrain_file if used
     #[arg(short = 's', long, requires = "dotrain_file")]
     pub scenario: Option<String>,
+
+    /// Deployment key, requires dotrain_file if used
+    #[arg(long, requires = "dotrain_file")]
+    pub deployment: Option<String>,
 }
 
 impl Execute for Words {
@@ -158,6 +162,37 @@ impl Execute for Words {
                     .flat_map(|v| v.words)
                     .collect()
             }
+        } else if let Some(deployment) = &self.source.deployment {
+            let deployment = order
+                .config
+                .deployments
+                .get(deployment)
+                .ok_or(anyhow!("undefined deployment"))?;
+            let scenario = order
+                .config
+                .scenarios
+                .iter()
+                .find(|(_, v)| *v == &deployment.scenario)
+                .unwrap()
+                .0;
+
+            // set the cli given metaboard url into the config
+            if let Some(v) = &self.metaboard_subgraph {
+                let network_name = &deployment.scenario.deployer.network.name;
+                order
+                    .config
+                    .metaboards
+                    .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
+            }
+            order
+                .get_scenario_all_words(scenario)
+                .await?
+                .1
+                .into_iter()
+                .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()?
+                .into_iter()
+                .flat_map(|v| v.words)
+                .collect()
         } else {
             // clap doesnt allow this to happen since at least 1 source
             // is required which is enforced and catched by clap
@@ -242,6 +277,7 @@ deployers:
             source: Source {
                 deployer: Some("some-deployer".to_string()),
                 scenario: None,
+                deployment: None,
             },
             pragma_only: false,
             deployer_only: false,
@@ -290,6 +326,7 @@ deployers:
             source: Source {
                 deployer: Some("some-deployer".to_string()),
                 scenario: None,
+                deployment: None,
             },
             pragma_only: false,
             deployer_only: false,
@@ -344,6 +381,7 @@ deployers:
             source: Source {
                 deployer: Some("some-deployer".to_string()),
                 scenario: None,
+                deployment: None,
             },
             pragma_only: false,
             deployer_only: false,
@@ -397,6 +435,7 @@ scenarios:
             },
             source: Source {
                 deployer: None,
+                deployment: None,
                 scenario: Some("some-scenario".to_string()),
             },
             pragma_only: false,
@@ -458,11 +497,106 @@ scenarios:
             },
             source: Source {
                 deployer: None,
+                deployment: None,
                 scenario: Some("some-scenario".to_string()),
             },
             pragma_only: false,
             deployer_only: true,
             metaboard_subgraph: None,
+            output: None,
+            stdout: true,
+        };
+
+        // should execute successfully
+        assert!(words.execute().await.is_ok());
+
+        // remove test files
+        std::fs::remove_file(settings_path).unwrap();
+        std::fs::remove_file(dotrain_path).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_execute_happy_deployment_words() {
+        let server = mock_server();
+        let dotrain_content = "---\n#calculate-io\n_ _: 1 2;\n#handle-io\n:;".to_string();
+        let settings_content = format!(
+            "
+networks:
+    some-network:
+        rpc: {}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: T1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: T2
+        symbol: T2
+
+orders:
+    some-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token2
+              vault-id: 1
+        deployer: some-deployer
+        orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+",
+            server.url("/rpc"),
+        );
+        let settings_path = "./test_settings_deployment_happy.yml";
+        std::fs::write(settings_path, settings_content).unwrap();
+        let dotrain_path = "./test_dotrain_deployment_happy.rain";
+        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let words = Words {
+            input: Input {
+                settings_file: Some(settings_path.into()),
+                dotrain_file: Some(dotrain_path.into()),
+            },
+            source: Source {
+                deployment: Some("some-deployment".to_string()),
+                deployer: None,
+                scenario: None,
+            },
+            pragma_only: false,
+            deployer_only: false,
+            metaboard_subgraph: Some(server.url("/sg").to_string()),
             output: None,
             stdout: true,
         };
@@ -521,6 +655,7 @@ deployers:
             source: Source {
                 deployer: Some("some-deployer".to_string()),
                 scenario: None,
+                deployment: None,
             },
             pragma_only: false,
             deployer_only: false,
