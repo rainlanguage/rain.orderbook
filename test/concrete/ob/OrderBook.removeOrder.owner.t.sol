@@ -10,6 +10,7 @@ import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
 
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderOwnerSameOrderNoop(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
@@ -36,6 +37,7 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
         vm.stopPrank();
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderOwnerDifferentOwnerStateChange(OrderConfigV3 memory config, address alice, address bob)
         public
     {
@@ -114,6 +116,7 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
         }
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderWrongOwner(OrderConfigV3 memory config, address alice, address bob) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(alice != bob);

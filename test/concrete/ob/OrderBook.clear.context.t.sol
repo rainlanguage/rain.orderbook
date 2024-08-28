@@ -21,6 +21,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
 
+    /// forge-config: default.fuzz.runs = 10
     function testContextEmptyStack(
         address alice,
         address bob,

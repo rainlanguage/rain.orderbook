@@ -70,11 +70,12 @@ error NotOrderOwner(address sender, address owner);
 /// Thrown when the input and output tokens don't match, in either direction.
 error TokenMismatch();
 
+/// Thrown when the input token is the output token.
+error TokenSelfTrade();
+
 /// Thrown when the input and output token decimals don't match, in either
 /// direction.
-/// @param aliceTokenDecimals The input or output decimals of one order.
-/// @param bobTokenDecimals The input or output decimals of the other order.
-error TokenDecimalsMismatch(uint8 aliceTokenDecimals, uint8 bobTokenDecimals);
+error TokenDecimalsMismatch();
 
 /// Thrown when the minimum input is not met.
 /// @param minimumInput The minimum input required.
@@ -82,8 +83,7 @@ error TokenDecimalsMismatch(uint8 aliceTokenDecimals, uint8 bobTokenDecimals);
 error MinimumInput(uint256 minimumInput, uint256 input);
 
 /// Thrown when two orders have the same owner during clear.
-/// @param owner The owner of both orders.
-error SameOwner(address owner);
+error SameOwner();
 
 /// Thrown when calculate order expression wants inputs.
 /// @param inputs The inputs the expression wants.
@@ -389,6 +389,13 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             return (false, 0, 0);
         }
 
+        if (
+            quoteConfig.order.validInputs[quoteConfig.inputIOIndex].token
+                == quoteConfig.order.validOutputs[quoteConfig.outputIOIndex].token
+        ) {
+            revert TokenSelfTrade();
+        }
+
         OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(
             quoteConfig.order,
             quoteConfig.inputIOIndex,
@@ -454,25 +461,27 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 ) {
                     revert TokenMismatch();
                 }
-                // Every order needs the same input token decimals.
+
                 if (
-                    order.validInputs[takeOrderConfig.inputIOIndex].decimals
-                        != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
+                    order.validInputs[takeOrderConfig.inputIOIndex].token
+                        == order.validOutputs[takeOrderConfig.outputIOIndex].token
                 ) {
-                    revert TokenDecimalsMismatch(
-                        order.validInputs[takeOrderConfig.inputIOIndex].decimals,
-                        config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
-                    );
+                    revert TokenSelfTrade();
                 }
+
+                // Every order needs the same input token decimals.
                 // Every order needs the same output token decimals.
                 if (
-                    order.validOutputs[takeOrderConfig.outputIOIndex].decimals
-                        != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
+                    (
+                        order.validInputs[takeOrderConfig.inputIOIndex].decimals
+                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
+                    )
+                        || (
+                            order.validOutputs[takeOrderConfig.outputIOIndex].decimals
+                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
+                        )
                 ) {
-                    revert TokenDecimalsMismatch(
-                        order.validOutputs[takeOrderConfig.outputIOIndex].decimals,
-                        config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
-                    );
+                    revert TokenDecimalsMismatch();
                 }
 
                 bytes32 orderHash = order.hash();
@@ -612,7 +621,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     ) external nonReentrant {
         {
             if (aliceOrder.owner == bobOrder.owner) {
-                revert SameOwner(aliceOrder.owner);
+                revert SameOwner();
             }
             if (
                 (
@@ -628,23 +637,23 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
 
             if (
-                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals
-                    != bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
+                aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
+                    == aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
             ) {
-                revert TokenDecimalsMismatch(
-                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals,
-                    bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
-                );
+                revert TokenSelfTrade();
             }
 
             if (
-                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
-                    != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals
+                (
+                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals
+                        != bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
+                )
+                    || (
+                        bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
+                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals
+                    )
             ) {
-                revert TokenDecimalsMismatch(
-                    aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals,
-                    bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
-                );
+                revert TokenDecimalsMismatch();
             }
 
             // If either order is dead the clear is a no-op other than emitting

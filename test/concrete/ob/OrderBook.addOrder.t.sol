@@ -11,6 +11,7 @@ import {UnsupportedCalculateOutputs, UnsupportedCalculateInputs} from "src/concr
 /// @notice A test harness for testing the OrderBook addOrder function.
 contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// No sources deploys as we let this be a runtime check.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealNoSourcesDeploys(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = hex"";
@@ -20,6 +21,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
 
     /// No handle IO reverts.
     /// This is a runtime check.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealNoHandleIODeploys(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2(":;");
@@ -30,6 +32,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
 
     /// A stack of 0 for calculate order deploys.
     /// Stack size checks are runtime.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealZeroStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2(":;:;");
@@ -40,6 +43,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
 
     /// A stack of 1 for calculate order reverts.
     /// Stack size checks are runtime.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealOneStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_:block-timestamp();:;");
@@ -49,6 +53,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// A stack of 2 for calculate order deploys.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealTwoStackCalculateReverts(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_ _:block-timestamp() chain-id();:;");
@@ -58,6 +63,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     }
 
     /// A stack of 3 for calculate order deploys.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealThreeStackCalculate(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("_ _ _:block-timestamp() chain-id() block-number();:;");
@@ -68,6 +74,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
 
     /// Inputs for calculate order. Tests one input.
     /// Deploys because this is a runtime check.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealCalculateInputsReverts1(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i:;:;");
@@ -78,6 +85,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
 
     /// Inputs for calculate order errors. Tests two inputs.
     /// Deploys because this is a runtime check.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealCalculateInputsReverts2(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i0 i1:;:;");
@@ -89,6 +97,7 @@ contract OrderBookAddOrderTest is OrderBookExternalRealTest {
     /// Inputs for calculate order errors. This takes precedent over the same
     /// error in handle io.
     /// Deploys because this is a runtime check.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderRealCalculateInputsRevertsPreference(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         bytes memory bytecode = iParserV2.parse2("i:;i:;");

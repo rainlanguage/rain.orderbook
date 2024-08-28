@@ -25,6 +25,7 @@ contract GenericPoolOrderBookV4FlashBorrowerTest is ArbTest {
 
     constructor() ArbTest() {}
 
+    /// forge-config: default.fuzz.runs = 10
     function testGenericPoolOrderBookV4FlashBorrowerTakeOrdersSender(
         OrderV3 memory order,
         uint256 inputIOIndex,

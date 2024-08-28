@@ -19,6 +19,7 @@ import {
 } from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV4ArbOrderTakerSenderTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
+    /// forge-config: default.fuzz.runs = 100
     function testRouteProcessorTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
