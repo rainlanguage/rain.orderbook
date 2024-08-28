@@ -1,4 +1,4 @@
-use crate::commands::{Chart, Order, OrderTake, Vault, Words};
+use crate::commands::{Chart, Order, OrderTake, Subgraph, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
@@ -22,6 +22,9 @@ pub enum Orderbook {
     #[command(subcommand)]
     OrderTake(OrderTake),
 
+    #[command(subcommand)]
+    Subgraph(Subgraph),
+
     Chart(Chart),
 
     Quote(Quoter),
@@ -37,6 +40,7 @@ impl Orderbook {
             Orderbook::OrderTake(order_take) => (order_take).execute().await,
             Orderbook::Chart(chart) => chart.execute().await,
             Orderbook::Quote(quote) => quote.execute().await,
+            Orderbook::Subgraph(subgraph) => subgraph.execute().await,
             Orderbook::Words(words) => words.execute().await,
         }
     }
