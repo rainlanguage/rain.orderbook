@@ -1,9 +1,7 @@
-use crate::commands::config::merge_configstrings;
 use crate::error::CommandResult;
 use alloy::primitives::Address;
-use futures::future::{join_all, try_join_all};
-use rain_orderbook_app_settings::Config;
-use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, DotrainOrderError};
+use futures::future::join_all;
+use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder};
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 
@@ -76,88 +74,56 @@ pub async fn get_authoring_meta_v2_for_scenarios(
     dotrain: String,
     settings: Option<String>,
 ) -> CommandResult<Vec<ScenarioAuthoringMeta>> {
-    let config: Config = merge_configstrings(dotrain.clone(), settings.clone().unwrap_or_default())
-        .await?
-        .try_into()?;
-    let scenarios = config.scenarios;
+    let order = DotrainOrder::new(dotrain, settings).await?;
+    let mut futures = vec![];
+    let scenarios_keys: Vec<&String> = order.config.scenarios.keys().collect();
+    for scenario in &scenarios_keys {
+        futures.push(order.get_scenario_all_words(scenario))
+    }
 
-    let futures = scenarios.into_iter().map(|scenario| {
-        let dotrain = dotrain.clone();
-        let settings = settings.clone();
-        async move {
-            let order = DotrainOrder::new(dotrain, settings).await;
-            match order {
-                Ok(order) => {
-                    let pragmas_result = order.get_pragmas_for_scenario(&scenario.0).await;
-                    match pragmas_result {
-                        Ok(pragmas) => {
-                            let pragma_futures = pragmas.into_iter().map(|pragma| {
-                                let order = order.clone();
-                                let scenario_name = scenario.0.clone();
-                                async move {
-                                    match order
-                                        .get_authoring_meta_v2_for_scenario_pragma(
-                                            &scenario_name,
-                                            &pragma,
-                                        )
-                                        .await
-                                    {
-                                        Ok(meta) => PragmaAuthoringMeta {
-                                            address: pragma,
-                                            result: PragmaResult::Success(meta.into()),
-                                        },
-                                        Err(e) => PragmaAuthoringMeta {
-                                            address: pragma,
-                                            result: PragmaResult::Error(e.to_string()),
-                                        },
-                                    }
-                                }
-                            });
-
-                            let pragma_results = join_all(pragma_futures).await;
-
-                            let deployer_result = match order
-                                .get_authoring_meta_v2_for_scenario_pragma(
-                                    &scenario.0,
-                                    &scenario.1.deployer.address,
-                                )
-                                .await
-                            {
-                                Ok(meta) => PragmaAuthoringMeta {
-                                    address: scenario.1.deployer.address,
-                                    result: PragmaResult::Success(meta.into()),
-                                },
-                                Err(e) => PragmaAuthoringMeta {
-                                    address: scenario.1.deployer.address,
-                                    result: PragmaResult::Error(e.to_string()),
-                                },
-                            };
-
-                            Ok(ScenarioAuthoringMeta {
-                                scenario_name: scenario.0,
-                                result: ScenarioResult::Success(ScenarioPragmas {
-                                    deployer: deployer_result,
-                                    pragmas: pragma_results,
-                                }),
-                            })
-                        }
-                        Err(e) => Ok(ScenarioAuthoringMeta {
-                            scenario_name: scenario.0,
-                            result: ScenarioResult::Error(e.to_string()),
-                        }),
-                    }
+    let results = join_all(futures).await;
+    results
+        .into_iter()
+        .enumerate()
+        .map(|(i, result)| match result {
+            Err(e) => Ok(ScenarioAuthoringMeta {
+                scenario_name: scenarios_keys[i].clone(),
+                result: ScenarioResult::Error(e.to_string()),
+            }),
+            Ok((addresses, meta_results)) => {
+                let mut pragma_results = vec![];
+                let deployer_result = match &meta_results[0] {
+                    Ok(meta) => PragmaAuthoringMeta {
+                        address: addresses[0],
+                        result: PragmaResult::Success(meta.clone().into()),
+                    },
+                    Err(e) => PragmaAuthoringMeta {
+                        address: addresses[0],
+                        result: PragmaResult::Error(e.to_string()),
+                    },
+                };
+                for (j, item) in meta_results.into_iter().enumerate().skip(1) {
+                    pragma_results.push(match item {
+                        Ok(meta) => PragmaAuthoringMeta {
+                            address: addresses[j],
+                            result: PragmaResult::Success(meta.into()),
+                        },
+                        Err(e) => PragmaAuthoringMeta {
+                            address: addresses[j],
+                            result: PragmaResult::Error(e.to_string()),
+                        },
+                    })
                 }
-                Err(e) => Ok(ScenarioAuthoringMeta {
-                    scenario_name: scenario.0,
-                    result: ScenarioResult::Error(e.to_string()),
-                }),
+                Ok(ScenarioAuthoringMeta {
+                    scenario_name: scenarios_keys[i].clone(),
+                    result: ScenarioResult::Success(ScenarioPragmas {
+                        deployer: deployer_result,
+                        pragmas: pragma_results,
+                    }),
+                })
             }
-        }
-    });
-
-    try_join_all(futures)
-        .await
-        .map_err(|e: DotrainOrderError| e.into())
+        })
+        .collect()
 }
 
 #[cfg(test)]

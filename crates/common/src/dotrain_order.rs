@@ -1,6 +1,7 @@
 use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
+use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::{
@@ -129,42 +130,93 @@ impl DotrainOrder {
         Ok(pragmas)
     }
 
-    pub async fn get_authoring_meta_v2_for_scenario_pragma(
+    pub async fn get_authoring_meta_v2_for_scenario(
         &self,
         scenario: &String,
-        pragma: &Address,
+        address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
-        let rpc = self
+        let network = &self
             .config
             .scenarios
             .get(scenario)
             .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
             .deployer
-            .network
-            .rpc
-            .clone();
+            .network;
 
-        let network_name = &self
-            .config
-            .scenarios
-            .get(scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
-            .deployer
-            .network
-            .name;
-
+        let rpc = &network.rpc;
         let metaboard = self
             .config
             .metaboards
-            .get(network_name)
-            .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network_name.clone()))?
+            .get(&network.name)
+            .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network.name.clone()))?
             .clone();
+        Ok(
+            AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
+                .await?,
+        )
+    }
 
-        let authoring_meta_v2 =
-            AuthoringMetaV2::fetch_for_contract(*pragma, rpc.to_string(), metaboard.to_string())
-                .await?;
+    pub async fn get_scenario_deployer_words(
+        &self,
+        scenario: &String,
+    ) -> Result<AuthoringMetaV2, DotrainOrderError> {
+        let deployer = &self
+            .config
+            .scenarios
+            .get(scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
+            .deployer
+            .address;
+        self.get_authoring_meta_v2_for_scenario(scenario, *deployer)
+            .await
+    }
 
-        Ok(authoring_meta_v2)
+    pub async fn get_scenario_pragma_words(
+        &self,
+        scenario: &String,
+    ) -> Result<
+        (
+            Vec<Address>,
+            Vec<Result<AuthoringMetaV2, DotrainOrderError>>,
+        ),
+        DotrainOrderError,
+    > {
+        let pragma_addresses = self.get_pragmas_for_scenario(scenario).await?;
+        let pragma_futures = pragma_addresses
+            .clone()
+            .into_iter()
+            .map(|pragma| async move {
+                self.get_authoring_meta_v2_for_scenario(scenario, pragma)
+                    .await
+            });
+        Ok((pragma_addresses, join_all(pragma_futures).await))
+    }
+
+    pub async fn get_scenario_all_words(
+        &self,
+        scenario: &String,
+    ) -> Result<
+        (
+            Vec<Address>,
+            Vec<Result<AuthoringMetaV2, DotrainOrderError>>,
+        ),
+        DotrainOrderError,
+    > {
+        let deployer = &self
+            .config
+            .scenarios
+            .get(scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.clone()))?
+            .deployer
+            .address;
+        let mut addresses = vec![*deployer];
+        addresses.extend(self.get_pragmas_for_scenario(scenario).await?);
+
+        let mut futures = vec![];
+        for address in addresses.clone() {
+            futures.push(self.get_authoring_meta_v2_for_scenario(scenario, address));
+        }
+        Ok((addresses, join_all(futures).await))
     }
 }
 
@@ -367,7 +419,7 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_get_get_authoring_meta_v2_for_scenario_pragma() {
+    async fn test_get_authoring_meta_v2_for_scenario() {
         let dotrain = format!(
             r#"
     networks:
@@ -402,10 +454,115 @@ _ _: 0 0;
         println!("{:?}", pragmas);
 
         let authoring_meta_v2 = dotrain_order
-            .get_authoring_meta_v2_for_scenario_pragma(&"sepolia".to_string(), &pragmas[0])
+            .get_authoring_meta_v2_for_scenario(&"sepolia".to_string(), pragmas[0])
             .await
             .unwrap();
 
         println!("{:?}", authoring_meta_v2);
+    }
+
+    #[tokio::test]
+    async fn test_get_scenario_pragma_words() {
+        let dotrain = format!(
+            r#"
+    networks:
+        sepolia:
+            rpc: {rpc_url}
+            chain-id: 0
+    deployers:
+        sepolia:
+            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+    scenarios:
+        sepolia:
+    metaboards:
+        sepolia: {metaboard_url}
+    ---
+    #calculate-io
+    using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
+    _: order-hash(),
+    _ _: 0 0;
+    #handle-io
+    :;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL,
+            metaboard_url = rain_orderbook_env::CI_SEPOLIA_METABOARD_URL,
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let result = dotrain_order
+            .get_scenario_pragma_words(&"sepolia".to_string())
+            .await
+            .unwrap();
+
+        println!("{:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_get_scenario_deployer_words() {
+        let dotrain = format!(
+            r#"
+    networks:
+        sepolia:
+            rpc: {rpc_url}
+            chain-id: 0
+    deployers:
+        sepolia:
+            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+    scenarios:
+        sepolia:
+    metaboards:
+        sepolia: {metaboard_url}
+    ---
+    #calculate-io
+    using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
+    _: order-hash(),
+    _ _: 0 0;
+    #handle-io
+    :;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL,
+            metaboard_url = rain_orderbook_env::CI_SEPOLIA_METABOARD_URL,
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let result = dotrain_order
+            .get_scenario_deployer_words(&"sepolia".to_string())
+            .await
+            .unwrap();
+
+        println!("{:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_get_scenario_all_words() {
+        let dotrain = format!(
+            r#"
+    networks:
+        sepolia:
+            rpc: {rpc_url}
+            chain-id: 0
+    deployers:
+        sepolia:
+            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+    scenarios:
+        sepolia:
+    metaboards:
+        sepolia: {metaboard_url}
+    ---
+    #calculate-io
+    using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
+    _: order-hash(),
+    _ _: 0 0;
+    #handle-io
+    :;"#,
+            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL,
+            metaboard_url = rain_orderbook_env::CI_SEPOLIA_METABOARD_URL,
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let result = dotrain_order
+            .get_scenario_all_words(&"sepolia".to_string())
+            .await
+            .unwrap();
+
+        println!("{:?}", result);
     }
 }

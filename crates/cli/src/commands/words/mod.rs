@@ -2,9 +2,9 @@ use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args, Parser};
 use csv::Writer;
-use rain_orderbook_app_settings::{config::Config, config_source::ConfigSource};
-use rain_orderbook_common::{dotrain::RainDocument, dotrain_order::AuthoringMetaV2};
-use std::{fs::read_to_string, path::PathBuf};
+use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, DotrainOrderError};
+use reqwest::Url;
+use std::{fs::read_to_string, path::PathBuf, str::FromStr, sync::Arc};
 
 /// Get words of a deployer contract from the given inputs
 #[derive(Debug, Parser)]
@@ -12,17 +12,34 @@ pub struct Words {
     #[command(flatten)]
     pub input: Input,
 
-    /// Deployer key to get its associating words
-    #[arg(short = 'd', long)]
-    pub deployer: String,
+    #[command(flatten)]
+    pub source: Source,
+
+    /// Only get pragma words for a given scenario
+    #[arg(
+        long,
+        requires = "scenario",
+        action = ArgAction::SetTrue,
+        conflicts_with_all = ["deployer_only", "deployer"],
+    )]
+    pub pragma_only: bool,
+
+    /// Only get deployer words for a given scenario
+    #[arg(
+        long,
+        requires = "scenario",
+        action = ArgAction::SetTrue,
+        conflicts_with_all = ["pragma_only", "deployer"],
+    )]
+    pub deployer_only: bool,
 
     /// Optional metaboard subgraph url, will override the metaboard in
     /// inputs or if inputs has no metaboard specified inside
-    #[arg(short = 's', long, value_name = "URL")]
+    #[arg(short = 'm', long, value_name = "URL")]
     pub metaboard_subgraph: Option<String>,
 
     /// Optional output file path to write the result into
-    #[arg(short = 'o', long)]
+    #[arg(short = 'o', long, value_name = "PATH")]
     pub output: Option<PathBuf>,
 
     /// Print the result on console (send result to std out)
@@ -44,74 +61,108 @@ pub struct Input {
     pub settings_file: Option<PathBuf>,
 }
 
+/// Group of possible sources, only one of deployer or scenario
+#[derive(Args, Clone, Debug, PartialEq)]
+#[group(required = true, multiple = false)]
+pub struct Source {
+    /// Deployer key to get its associating words
+    #[arg(short = 'd', long)]
+    pub deployer: Option<String>,
+
+    /// Scenario key, requires dotrain_file if used
+    #[arg(short = 's', long, requires = "dotrain_file")]
+    pub scenario: Option<String>,
+}
+
 impl Execute for Words {
     async fn execute(&self) -> Result<()> {
-        // handle and build Config from inputs
-        let config: Config =
-            if self.input.dotrain_file.is_some() && self.input.settings_file.is_some() {
-                let mut config = ConfigSource::try_from_string(
-                    RainDocument::get_front_matter(&read_to_string(
-                        self.input.dotrain_file.as_ref().unwrap(),
-                    )?)
-                    .unwrap_or("")
-                    .to_string(),
-                )
-                .await?;
-                config.merge(
-                    ConfigSource::try_from_string(read_to_string(
-                        self.input.settings_file.as_ref().unwrap(),
-                    )?)
-                    .await?,
-                )?;
-                config.try_into()?
-            } else if self.input.dotrain_file.is_some() {
-                ConfigSource::try_from_string(
-                    RainDocument::get_front_matter(&read_to_string(
-                        self.input.dotrain_file.as_ref().unwrap(),
-                    )?)
-                    .unwrap_or("")
-                    .to_string(),
-                )
-                .await?
-                .try_into()?
-            } else if self.input.settings_file.is_some() {
-                ConfigSource::try_from_string(read_to_string(
-                    self.input.settings_file.as_ref().unwrap(),
-                )?)
-                .await?
-                .try_into()?
-            } else {
-                // clap doesnt allow this to happen since at least 1 input
-                // is required which is enforced and catched by clap
-                panic!("undefined input")
-            };
-
-        // get deployer from config
-        let deployer = config
-            .deployers
-            .get(&self.deployer)
-            .ok_or(anyhow!("undefined deployer!"))?;
-
-        // get metaboard subgraph url
-        let metaboard_url = self
-            .metaboard_subgraph
+        let dotrain = self
+            .input
+            .dotrain_file
             .as_ref()
-            .map(|v| v.to_string())
-            .or_else(|| {
-                config
-                    .metaboards
-                    .get(&deployer.network.name)
-                    .map(|v| v.to_string())
-            })
-            .ok_or(anyhow!("undefined metaboard subgraph url"))?;
+            .and_then(|v| read_to_string(v).ok())
+            .unwrap_or("---\n".to_string());
+        let settings = match &self.input.settings_file {
+            Some(settings_file) => {
+                Some(read_to_string(settings_file.clone()).map_err(|e| anyhow!(e))?)
+            }
+            None => None,
+        };
+        let mut order = DotrainOrder::new(dotrain, settings).await?;
 
-        let results = AuthoringMetaV2::fetch_for_contract(
-            deployer.address,
-            deployer.network.rpc.to_string(),
-            metaboard_url,
-        )
-        .await?
-        .words;
+        let results = if let Some(deployer_key) = &self.source.deployer {
+            // get deployer from order config
+            let deployer = order
+                .config
+                .deployers
+                .get(deployer_key)
+                .ok_or(anyhow!("undefined deployer!"))?;
+
+            // get metaboard subgraph url
+            let metaboard_url = self
+                .metaboard_subgraph
+                .as_ref()
+                .map(|v| v.to_string())
+                .or_else(|| {
+                    order
+                        .config
+                        .metaboards
+                        .get(&deployer.network.name)
+                        .map(|v| v.to_string())
+                })
+                .ok_or(anyhow!("undefined metaboard subgraph url"))?;
+
+            AuthoringMetaV2::fetch_for_contract(
+                deployer.address,
+                deployer.network.rpc.to_string(),
+                metaboard_url,
+            )
+            .await?
+            .words
+        } else if let Some(scenario) = &self.source.scenario {
+            // set the cli given metaboard url into the config
+            if let Some(v) = &self.metaboard_subgraph {
+                let network_name = &order
+                    .config
+                    .scenarios
+                    .get(scenario)
+                    .ok_or(anyhow!("undefined scenario"))?
+                    .deployer
+                    .network
+                    .name;
+                order
+                    .config
+                    .metaboards
+                    .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
+            }
+            if self.deployer_only {
+                order.get_scenario_deployer_words(scenario).await?.words
+            } else if self.pragma_only {
+                order
+                    .get_scenario_pragma_words(scenario)
+                    .await?
+                    .1
+                    .into_iter()
+                    .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()?
+                    .into_iter()
+                    .flat_map(|v| v.words)
+                    .collect()
+            } else {
+                order
+                    .get_scenario_all_words(scenario)
+                    .await?
+                    .1
+                    .into_iter()
+                    .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()?
+                    .into_iter()
+                    .flat_map(|v| v.words)
+                    .collect()
+            }
+        } else {
+            // clap doesnt allow this to happen since at least 1 source
+            // is required which is enforced and catched by clap
+            panic!("undefined source")
+        };
 
         let mut csv_writer = Writer::from_writer(vec![]);
         for item in results.clone().into_iter() {
@@ -146,9 +197,12 @@ mod tests {
             string description;
         }
     );
+    sol!(
+        struct PragmaV1 { address[] usingWordsFrom; }
+    );
 
     #[test]
-    fn verify_command() {
+    fn verify_command1() {
         Words::command().debug_assert();
     }
 
@@ -185,7 +239,12 @@ deployers:
                 dotrain_file: Some(dotrain_path.into()),
                 settings_file: None,
             },
-            deployer: "some-deployer".to_string(),
+            source: Source {
+                deployer: Some("some-deployer".to_string()),
+                scenario: None,
+            },
+            pragma_only: false,
+            deployer_only: false,
             metaboard_subgraph: None,
             output: None,
             stdout: true,
@@ -220,7 +279,7 @@ deployers:
             server.url("/rpc"),
             server.url("/sg")
         );
-        let settings_path = "./test_settings_words_happy.rain";
+        let settings_path = "./test_settings_words_happy.yml";
         std::fs::write(settings_path, settings_content).unwrap();
 
         let words = Words {
@@ -228,7 +287,12 @@ deployers:
                 settings_file: Some(settings_path.into()),
                 dotrain_file: None,
             },
-            deployer: "some-deployer".to_string(),
+            source: Source {
+                deployer: Some("some-deployer".to_string()),
+                scenario: None,
+            },
+            pragma_only: false,
+            deployer_only: false,
             metaboard_subgraph: None,
             output: None,
             stdout: true,
@@ -267,7 +331,7 @@ deployers:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba",
             server.url("/rpc"),
         );
-        let settings_path = "./test_settings_words_happy_all.rain";
+        let settings_path = "./test_settings_words_happy_all.yml";
         std::fs::write(settings_path, settings_content).unwrap();
         let dotrain_path = "./test_dotrain_words_happy_all.rain";
         std::fs::write(dotrain_path, dotrain_content).unwrap();
@@ -277,7 +341,127 @@ deployers:
                 settings_file: Some(settings_path.into()),
                 dotrain_file: Some(dotrain_path.into()),
             },
-            deployer: "some-deployer".to_string(),
+            source: Source {
+                deployer: Some("some-deployer".to_string()),
+                scenario: None,
+            },
+            pragma_only: false,
+            deployer_only: false,
+            metaboard_subgraph: None,
+            output: None,
+            stdout: true,
+        };
+
+        // should execute successfully
+        assert!(words.execute().await.is_ok());
+
+        // remove test files
+        std::fs::remove_file(settings_path).unwrap();
+        std::fs::remove_file(dotrain_path).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_execute_happy_scenario_all_words() {
+        let server = mock_server();
+        let dotrain_content = "---\n#calculate-io\n_ _: 1 2;\n#handle-io\n:;".to_string();
+        let settings_content = format!(
+            "
+networks:
+    some-network:
+        rpc: {}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+",
+            server.url("/rpc"),
+        );
+        let settings_path = "./test_settings_all_words_happy_all.yml";
+        std::fs::write(settings_path, settings_content).unwrap();
+        let dotrain_path = "./test_dotrain_all_words_happy_all.rain";
+        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let words = Words {
+            input: Input {
+                settings_file: Some(settings_path.into()),
+                dotrain_file: Some(dotrain_path.into()),
+            },
+            source: Source {
+                deployer: None,
+                scenario: Some("some-scenario".to_string()),
+            },
+            pragma_only: false,
+            deployer_only: false,
+            metaboard_subgraph: Some(server.url("/sg").to_string()),
+            output: None,
+            stdout: true,
+        };
+
+        // should execute successfully
+        assert!(words.execute().await.is_ok());
+
+        // remove test files
+        std::fs::remove_file(settings_path).unwrap();
+        std::fs::remove_file(dotrain_path).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_execute_happy_scenario_deployer_words() {
+        let server = mock_server();
+        let dotrain_content = format!(
+            "
+metaboards:
+    some-network: {}
+---
+#binding\n:;",
+            server.url("/sg")
+        );
+        let settings_content = format!(
+            "
+networks:
+    some-network:
+        rpc: {}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+",
+            server.url("/rpc"),
+        );
+        let settings_path = "./test_settings_deployer_words_happy_all.yml";
+        std::fs::write(settings_path, settings_content).unwrap();
+        let dotrain_path = "./test_dotrain_deployer_words_happy_all.rain";
+        std::fs::write(dotrain_path, dotrain_content).unwrap();
+
+        let words = Words {
+            input: Input {
+                settings_file: Some(settings_path.into()),
+                dotrain_file: Some(dotrain_path.into()),
+            },
+            source: Source {
+                deployer: None,
+                scenario: Some("some-scenario".to_string()),
+            },
+            pragma_only: false,
+            deployer_only: true,
             metaboard_subgraph: None,
             output: None,
             stdout: true,
@@ -334,7 +518,12 @@ deployers:
                 dotrain_file: Some(dotrain_path.into()),
                 settings_file: None,
             },
-            deployer: "some-deployer".to_string(),
+            source: Source {
+                deployer: Some("some-deployer".to_string()),
+                scenario: None,
+            },
+            pragma_only: false,
+            deployer_only: false,
             metaboard_subgraph: None,
             output: None,
             stdout: true,
@@ -381,6 +570,22 @@ deployers:
                 Response::new_success(1, &B256::random().to_string())
                     .to_json_string()
                     .unwrap(),
+            );
+        });
+        server.mock(|when, then| {
+            when.path("/rpc").body_contains("0x5514ca20");
+            then.body(
+                Response::new_success(
+                    1,
+                    &encode_prefixed(
+                        PragmaV1 {
+                            usingWordsFrom: vec![],
+                        }
+                        .abi_encode(),
+                    ),
+                )
+                .to_json_string()
+                .unwrap(),
             );
         });
 
