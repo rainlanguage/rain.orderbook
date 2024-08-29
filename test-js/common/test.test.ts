@@ -9,6 +9,7 @@ describe("Rain Orderbook Common Package Bindgen Tests", async function () {
   afterEach(() => mockServer.stop());
 
   const dotrain = `
+raindex-version: ${process.env.COMMIT_SHA}
 networks:
     some-network:
         rpc: http://localhost:8080/rpc-url
@@ -116,6 +117,7 @@ _ _: 0 0;
   it("should throw frontmatter missing field error", async () => {
     try {
       const dotrain = `
+raindex-version: ${process.env.COMMIT_SHA}
 deployers:
     some-deployer:
         ---
