@@ -141,4 +141,24 @@ test('renders table with correct data', async () => {
       expect(rows[i]).toHaveTextContent(expectedRatio.toString());
     }
   });
+
+  test('renders a debug button for each trade', async () => {
+    const queryClient = new QueryClient();
+
+    mockIPC((cmd) => {
+      if (cmd === 'order_takes_list') {
+        return mockTakeOrdersList;
+      }
+    });
+
+    render(OrderTradesListTable, {
+      context: new Map([['$$_queryClient', queryClient]]),
+      props: { id: '1' },
+    });
+
+    await waitFor(async () => {
+      const buttons = screen.getAllByTestId('debug-trade-button');
+      expect(buttons).toHaveLength(mockTakeOrdersList.length);
+    });
+  });
 });

@@ -49,7 +49,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_trade_replayer() {
         let mut replayer = TradeReplayer::new(NewTradeReplayer {
-            fork_url: Url::from_str("https://polygon.meowrpc.com").unwrap(),
+            fork_url: Url::from_str(CI_DEPLOY_POLYGON_RPC_URL).unwrap(),
         })
         .await
         .unwrap();
@@ -70,8 +70,6 @@ mod tests {
         ];
 
         let expected_stack: Vec<U256> = vec.into_iter().map(U256::from).collect();
-
-        println!("{:?}", res.traces[1].stack);
 
         assert_eq!(res.traces[1].stack, expected_stack);
         assert_eq!(res.traces.len(), 16);

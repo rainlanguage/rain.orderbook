@@ -11,6 +11,7 @@
   import { HashType } from '$lib/types/hash';
   import { formatUnits } from 'viem';
   import { handleDebugTradeModal } from '$lib/services/modal';
+  import { BugOutline } from 'flowbite-svelte-icons';
 
   export let id: string;
 
@@ -36,6 +37,7 @@
     <TableHeadCell padding="p-0">Input</TableHeadCell>
     <TableHeadCell padding="p-0">Output</TableHeadCell>
     <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
+    <TableHeadCell padding="p-0"></TableHeadCell>
   </svelte:fragment>
 
   <svelte:fragment slot="bodyRow" let:item>
@@ -82,12 +84,13 @@
     </TableBodyCell>
     <TableBodyCell tdClass="py-2">
       <button
-        class="btn btn-sm btn-primary"
+        data-testid="debug-trade-button"
+        class="text-gray-500 hover:text-gray-700"
         on:click={() => {
           if ($rpcUrl) handleDebugTradeModal(item.trade_event.transaction.id, $rpcUrl);
         }}
       >
-        Debug
+        <BugOutline size="xs" />
       </button>
     </TableBodyCell>
   </svelte:fragment>
