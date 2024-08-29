@@ -120,6 +120,7 @@ mod tests {
         let rpc_server = MockServer::start_async().await;
         let dotrain = format!(
             "
+raindex-version: {raindex_version}
 networks:
     some-network:
         rpc: {}
@@ -182,7 +183,7 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            rpc_server.url("/rpc").as_str()
+            rpc_server.url("/rpc").as_str(), raindex_version = rain_orderbook_env::GH_COMMIT_SHA
         );
 
         let dotrain_path = "./test_dotrain1.rain";

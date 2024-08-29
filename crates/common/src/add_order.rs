@@ -453,13 +453,19 @@ price: 2e18;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;"#;
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -545,8 +551,9 @@ _ _: 0 0;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -554,7 +561,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -682,8 +691,9 @@ _ _: 0 0;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -691,7 +701,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
             .await
             .unwrap();

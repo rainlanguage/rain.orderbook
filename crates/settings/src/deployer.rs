@@ -57,18 +57,6 @@ mod tests {
     use super::*;
     use crate::test::*;
 
-    // Mock a simple Network struct for testing purposes
-    #[derive(Debug, Clone)]
-    struct MockNetwork {
-        name: String,
-    }
-
-    impl PartialEq for MockNetwork {
-        fn eq(&self, other: &Self) -> bool {
-            self.name == other.name
-        }
-    }
-
     #[test]
     fn test_try_into_deployer_success() {
         let address = Address::repeat_byte(0x01); // Generate a random address for testing
