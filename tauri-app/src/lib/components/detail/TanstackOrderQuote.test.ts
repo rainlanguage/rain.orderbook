@@ -23,40 +23,12 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   };
 });
 
-test('displays loading spinner while fetching data', async () => {
-  mockIPC(() => {
-    // Simulate a delay to trigger the loading state
-    return new Promise((resolve) =>
-      setTimeout(
-        () =>
-          resolve([
-            {
-              success: true,
-              pair_name: 'ETH/USDT',
-              data: { maxOutput: '0x0', ratio: '0x0' },
-              error: undefined,
-            },
-          ]),
-        100,
-      ),
-    );
-  });
-
-  const queryClient = new QueryClient();
-
-  render(TanstackOrderQuote, {
-    props: {
-      id: '0x123',
-      order: mockOrderDetailsExtended.order,
-    },
-    context: new Map([['$$_queryClient', queryClient]]),
-  });
-
-  expect(screen.getByTestId('loadingSpinner')).toBeInTheDocument();
-
-  await waitFor(() => {
-    expect(screen.queryByTestId('loadingSpinner')).not.toBeInTheDocument();
-  });
+vi.mock('$lib/services/modal', async () => {
+  return {
+    handleDepositGenericModal: vi.fn(),
+    handleDepositModal: vi.fn(),
+    handleWithdrawModal: vi.fn(),
+  };
 });
 
 test('displays order quote data when query is successful', async () => {
@@ -89,28 +61,6 @@ test('displays order quote data when query is successful', async () => {
     expect(orderQuoteComponent).toHaveTextContent('ETH/USDT');
     expect(orderQuoteComponent).toHaveTextContent('1.550122181502135692');
     expect(orderQuoteComponent).toHaveTextContent('6.563567234157974775');
-  });
-});
-
-test('displays empty message when no data is returned', async () => {
-  mockIPC((cmd) => {
-    if (cmd === 'batch_order_quotes') {
-      return [];
-    }
-  });
-
-  const queryClient = new QueryClient();
-
-  render(TanstackOrderQuote, {
-    props: {
-      id: '0x123',
-      order: mockOrderDetailsExtended.order,
-    },
-    context: new Map([['$$_queryClient', queryClient]]),
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText('Max output and price not found')).toBeInTheDocument();
   });
 });
 

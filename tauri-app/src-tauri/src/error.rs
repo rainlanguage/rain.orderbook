@@ -12,6 +12,7 @@ use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
     rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_quote::QuoteDebuggerError;
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
@@ -93,6 +94,14 @@ pub enum CommandError {
 
     #[error(transparent)]
     TradeReplayerError(#[from] rain_orderbook_common::replays::TradeReplayerError),
+
+    #[error(transparent)]
+    QuoteDebuggerError(#[from] QuoteDebuggerError),
+
+    #[error(transparent)]
+    OrderDetailError(
+        #[from] rain_orderbook_subgraph_client::types::order_detail_traits::OrderDetailError,
+    ),
 }
 
 impl Serialize for CommandError {

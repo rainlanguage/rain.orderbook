@@ -6422,6 +6422,8 @@ dependencies = [
  "js-sys",
  "once_cell",
  "rain-error-decoding",
+ "rain-interpreter-eval",
+ "rain-orderbook-env",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
