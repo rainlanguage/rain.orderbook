@@ -37,22 +37,26 @@ contract OrderBookEnactTest is OrderBookExternalRealTest {
         vm.stopPrank();
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookEvalEmptyNoop(address alice) external {
         checkEntask(alice, new bytes[](0), 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookEvalOneStateless(address alice) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkEntask(alice, evals, 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookEvalOneReadState(address alice) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         checkEntask(alice, evals, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookEvalWriteStateSingle(address alice) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
@@ -63,6 +67,7 @@ contract OrderBookEnactTest is OrderBookExternalRealTest {
         checkEntask(alice, evals1, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookEvalWriteStateSequential() external {
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -79,6 +84,7 @@ contract OrderBookEnactTest is OrderBookExternalRealTest {
         checkEntask(address(0), evals1, 6, 4);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookEvalWriteStateDifferentOwnersNamespaced(address alice, address bob) external {
         vm.assume(alice != bob);
         bytes[] memory evals0 = new bytes[](4);

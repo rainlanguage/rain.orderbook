@@ -43,7 +43,11 @@ library LibTestAddOrder {
         }
         if (config.validOutputs.length == 0) {
             config.validOutputs = new IO[](1);
-            config.validOutputs[0] = IO(address(0), 0, 0);
+            config.validOutputs[0] = IO(address(1), 0, 0);
+        }
+        if (config.validInputs[0].token == config.validOutputs[0].token) {
+            config.validInputs[0].token = address(0);
+            config.validOutputs[0].token = address(1);
         }
         // Taken from parser for "_ _:1e18 1e18;:;".
         config.evaluable.bytecode = hex"020000000c02020002010000000100000000000000";

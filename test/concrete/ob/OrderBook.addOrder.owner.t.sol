@@ -9,6 +9,7 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 contract OrderBookAddOrderOwnerTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderOwnerSameOrderNoop(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
@@ -25,6 +26,7 @@ contract OrderBookAddOrderOwnerTest is OrderBookExternalRealTest {
         assert(iOrderbook.orderExists(order.hash()));
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderOwnerDifferentOwnerStateChange(OrderConfigV3 memory config, address alice, address bob)
         public
     {

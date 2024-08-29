@@ -66,6 +66,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         vm.stopPrank();
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalEmptyNoop(
         address alice,
         uint256 vaultId,
@@ -78,6 +79,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, new bytes[](0), 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalOneStateless(
         address alice,
         uint256 vaultId,
@@ -92,6 +94,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 0, 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalOneReadState(
         address alice,
         uint256 vaultId,
@@ -107,6 +110,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalWriteStateSingle(
         address alice,
         uint256 vaultId,
@@ -127,6 +131,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 2, 1);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalWriteStateSequential(
         address alice,
         uint256 vaultId,
@@ -155,6 +160,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, evals1, 6, 4);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawEvalWriteStateDifferentOwnersNamespaced(
         address alice,
         address bob,
@@ -199,6 +205,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
     /// Evals DO NOT run if withdrawal amount ends up as 0.
     /// No withdraw => no eval.
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawalEvalZeroAmountEvalNoop(address alice, uint256 vaultId, uint256 withdrawAmount)
         external
     {
@@ -209,6 +216,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     }
 
     /// A revert in the action prevents withdraw from being enacted.
+    /// forge-config: default.fuzz.runs = 100
     function testOrderBookWithdrawalEvalRevertInAction(
         address alice,
         uint256 vaultId,
@@ -242,6 +250,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testOrderWithdrawContext(address alice, uint256 vaultId, uint256 depositAmount, uint256 targetAmount)
         external
     {

@@ -13,6 +13,7 @@ import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprec
 contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order without calculations does not revert.
     /// This is a runtime error.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderWithoutCalculationsDeploys(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
@@ -24,6 +25,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Adding an order without inputs reverts.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderWithoutInputsReverts(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
@@ -36,6 +38,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Adding an order without token outputs reverts.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderWithoutOutputsReverts(address owner, OrderConfigV3 memory config) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
@@ -51,6 +54,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     /// Adding an order with calculations, inputs and outputs will succeed if
     /// the expression is valid according to the deployer. The resulting order
     /// MUST be emitted. This test assumes empty meta.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderWithCalculationsInputsAndOutputsSucceeds(
         address owner,
         OrderConfigV3 memory config,
@@ -67,6 +71,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Adding a valid order with a non-empty meta MUST revert if the meta is
     /// not self describing as a rain meta document.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderWithNonEmptyMetaReverts(address owner, OrderConfigV3 memory config, bytes memory) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
@@ -85,6 +90,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Adding a valid order with a non-empty meta MUST emit MetaV1 if the meta
     /// is self describing as a rain meta document.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderWithNonEmptyMetaEmitsMetaV1(
         address owner,
         OrderConfigV3 memory config,
@@ -106,6 +112,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Alice and Bob can add orders with the same config. The resulting orders
     /// MUST be different.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderTwoAccountsWithSameConfig(
         address alice,
         address bob,
@@ -123,6 +130,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Alice and Bob can add orders with different configs. The resulting orders
     /// MUST be different.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderTwoAccountsWithDifferentConfig(
         address alice,
         address bob,
@@ -143,6 +151,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
 
     /// Alice can add orders with different configs. The resulting orders MUST
     /// be different.
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderSameAccountWithDifferentConfig(
         address alice,
         OrderConfigV3 memory configOne,

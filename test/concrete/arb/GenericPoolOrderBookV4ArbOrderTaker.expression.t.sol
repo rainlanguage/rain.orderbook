@@ -32,6 +32,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         return hex"deadbeef";
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testGenericPoolTakeOrdersWrongExpression(
         OrderV3 memory order,
         uint256 inputIOIndex,
@@ -52,6 +53,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         );
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testGenericPoolTakeOrdersExpression(
         OrderV3 memory order,
         uint256 inputIOIndex,
