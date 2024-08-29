@@ -15,10 +15,11 @@ use crate::{
     rainlang::compose_to_rainlang,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DotrainOrder {
     pub config: Config,
     pub dotrain: String,
+    pub config_content: Option<String>,
 }
 
 #[derive(Error, Debug)]
@@ -52,19 +53,23 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     ParserError(#[from] ParserError),
+
+    #[error("{0}")]
+    ShakeOutError(String),
 }
 
 impl DotrainOrder {
     pub async fn new(dotrain: String, config: Option<String>) -> Result<Self, DotrainOrderError> {
         match config {
             Some(config) => {
-                let config_string = ConfigSource::try_from_string(config).await?;
+                let config_string = ConfigSource::try_from_string(config.clone()).await?;
                 let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
                 let mut frontmatter_config =
                     ConfigSource::try_from_string(frontmatter.to_string()).await?;
                 frontmatter_config.merge(config_string)?;
                 Ok(Self {
                     dotrain,
+                    config_content: Some(config),
                     config: frontmatter_config.try_into()?,
                 })
             }
@@ -72,7 +77,11 @@ impl DotrainOrder {
                 let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
                 let config_string = ConfigSource::try_from_string(frontmatter.to_string()).await?;
                 let config: Config = config_string.try_into()?;
-                Ok(Self { dotrain, config })
+                Ok(Self {
+                    dotrain,
+                    config,
+                    config_content: None,
+                })
             }
         }
     }
