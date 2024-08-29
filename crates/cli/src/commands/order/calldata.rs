@@ -183,7 +183,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            rpc_server.url("/rpc").as_str(), raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            rpc_server.url("/rpc").as_str(),
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
         );
 
         let dotrain_path = "./test_dotrain1.rain";

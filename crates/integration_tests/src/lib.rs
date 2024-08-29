@@ -242,7 +242,8 @@ amount price: get("amount") 52;
 #handle-add-order
 :ensure(0 "should fail");
 "#,
-            rpc_url = anvil.endpoint(), raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            rpc_url = anvil.endpoint(),
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
         );
 
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
