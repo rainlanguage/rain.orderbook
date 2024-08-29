@@ -134,7 +134,7 @@ _ _: 0 0;
       assert.ok(error instanceof Error);
       assert.equal(
         error.message,
-        "deployers.some-deployer: missing field `address` at line 3 column 19"
+        "deployers.some-deployer: missing field `address` at line 4 column 19"
       );
     }
   });
