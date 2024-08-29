@@ -16,7 +16,7 @@ if (import.meta.vitest) {
 
   it('uses the trade_debug command correctly', async () => {
     mockIPC((cmd) => {
-      if (cmd === 'trade_debug') {
+      if (cmd === 'debug_trade') {
         return mockTradeDebug;
       }
     });

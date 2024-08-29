@@ -24,6 +24,14 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   };
 });
 
+vi.mock('$lib/services/modal', async () => {
+  return {
+    handleDepositGenericModal: vi.fn(),
+    handleDepositModal: vi.fn(),
+    handleWithdrawModal: vi.fn(),
+  };
+});
+
 const mockTakeOrdersList: Trade[] = [
   {
     id: '1',
@@ -141,24 +149,24 @@ test('renders table with correct data', async () => {
       expect(rows[i]).toHaveTextContent(expectedRatio.toString());
     }
   });
+});
 
-  test('renders a debug button for each trade', async () => {
-    const queryClient = new QueryClient();
+test('renders a debug button for each trade', async () => {
+  const queryClient = new QueryClient();
 
-    mockIPC((cmd) => {
-      if (cmd === 'order_takes_list') {
-        return mockTakeOrdersList;
-      }
-    });
+  mockIPC((cmd) => {
+    if (cmd === 'order_takes_list') {
+      return mockTakeOrdersList;
+    }
+  });
 
-    render(OrderTradesListTable, {
-      context: new Map([['$$_queryClient', queryClient]]),
-      props: { id: '1' },
-    });
+  render(OrderTradesListTable, {
+    context: new Map([['$$_queryClient', queryClient]]),
+    props: { id: '1' },
+  });
 
-    await waitFor(async () => {
-      const buttons = screen.getAllByTestId('debug-trade-button');
-      expect(buttons).toHaveLength(mockTakeOrdersList.length);
-    });
+  await waitFor(async () => {
+    const buttons = screen.getAllByTestId('debug-trade-button');
+    expect(buttons).toHaveLength(mockTakeOrdersList.length);
   });
 });
