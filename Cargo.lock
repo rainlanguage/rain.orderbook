@@ -1558,7 +1558,7 @@ dependencies = [
  "aws-smithy-types",
  "bytes",
  "fastrand 2.1.0",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "http-body 1.0.1",
@@ -2451,6 +2451,18 @@ dependencies = [
  "rkyv",
  "strsim 0.10.0",
  "syn 2.0.74",
+ "thiserror",
+]
+
+[[package]]
+name = "cynic-introspection"
+version = "3.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f50097884e41b92ba467ce0dddb163ac28e8141df0b8f4a7fbf6136c08fab1c"
+dependencies = [
+ "cynic",
+ "cynic-codegen",
+ "indenter",
  "thiserror",
 ]
 
@@ -4245,6 +4257,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "h2"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "524e8ac6999421f49a846c2d4411f337e53497d8ec55d67753beffa43c5d9205"
+dependencies = [
+ "atomic-waker",
+ "bytes",
+ "fnv",
+ "futures-core",
+ "futures-sink",
+ "http 1.1.0",
+ "indexmap",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "half"
 version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4454,7 +4485,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "httparse",
@@ -4477,6 +4508,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
+ "h2 0.4.6",
  "http 1.1.0",
  "http-body 1.0.1",
  "httparse",
@@ -6272,7 +6304,7 @@ dependencies = [
  "alloy",
  "derive_builder 0.20.0",
  "httpmock",
- "reqwest 0.11.27",
+ "reqwest 0.12.5",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -6315,7 +6347,7 @@ dependencies = [
  "rain_orderbook_common",
  "rain_orderbook_quote",
  "rain_orderbook_subgraph_client",
- "reqwest 0.11.27",
+ "reqwest 0.12.5",
  "rust-bigint",
  "serde",
  "serde_bytes",
@@ -6351,7 +6383,7 @@ dependencies = [
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
- "reqwest 0.11.27",
+ "reqwest 0.12.5",
  "serde",
  "serde-wasm-bindgen 0.6.5",
  "serde_bytes",
@@ -6393,7 +6425,7 @@ dependencies = [
  "rain-error-decoding",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
- "reqwest 0.11.27",
+ "reqwest 0.12.5",
  "serde",
  "serde-wasm-bindgen 0.6.5",
  "serde_json",
@@ -6417,9 +6449,11 @@ dependencies = [
  "chrono",
  "cynic",
  "cynic-codegen",
+ "cynic-introspection",
+ "httpmock",
  "insta",
  "rain_orderbook_bindings",
- "reqwest 0.11.27",
+ "reqwest 0.12.5",
  "serde",
  "serde_json",
  "thiserror",
@@ -6602,7 +6636,7 @@ dependencies = [
  "encoding_rs",
  "futures-core",
  "futures-util",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.30",
@@ -6643,9 +6677,11 @@ checksum = "c7d6d2a27d57148378eb5e111173f4276ad26340ecc5c49a4a2152167a2d6a37"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-channel",
  "futures-core",
  "futures-util",
+ "h2 0.4.6",
  "http 1.1.0",
  "http-body 1.0.1",
  "http-body-util",
@@ -6670,6 +6706,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper 1.0.1",
+ "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tokio-rustls 0.26.0",

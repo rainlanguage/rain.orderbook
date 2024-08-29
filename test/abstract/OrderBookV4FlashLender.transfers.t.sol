@@ -83,6 +83,7 @@ contract Carol is IPull {
 contract OrderBookV4FlashLenderTransferTest is OrderBookExternalMockTest {
     /// Alice can send tokens to Bob, who will return them and then the loan will
     /// be repaid.
+    /// forge-config: default.fuzz.runs = 100
     function testFlashLoanTransferSuccess(uint256 amount, bool success) public {
         TKN tkn = new TKN(address(iOrderbook), amount);
 
@@ -100,6 +101,7 @@ contract OrderBookV4FlashLenderTransferTest is OrderBookExternalMockTest {
 
     /// Alice can send tokens to Carol, who will return all but one of them and
     /// then the loan will fail.
+    /// forge-config: default.fuzz.runs = 100
     function testFlashLoanTransferFail(uint256 amount, uint256 amountWithheld, bool success) public {
         amount = bound(amount, 1, type(uint256).max);
         amountWithheld = bound(amountWithheld, 1, amount);

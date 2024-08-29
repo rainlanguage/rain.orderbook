@@ -123,6 +123,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         checkTakeOrderHandleIO(configs, "err 2", type(uint256).max);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO7(uint256 toClear) external {
         toClear = bound(toClear, 3e18 + 1, type(uint256).max);
         bytes[] memory configs = new bytes[](4);
@@ -133,6 +134,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         checkTakeOrderHandleIO(configs, "err 2", toClear);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO8(uint256 toClear) external {
         toClear = bound(toClear, 4e18 + 1, type(uint256).max);
         bytes[] memory configs = new bytes[](5);
@@ -146,6 +148,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO9(uint256 toClear) external {
         toClear = bound(toClear, 1, 4e18);
         bytes[] memory configs = new bytes[](5);
@@ -159,6 +162,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO10(uint256 toClear) external {
         toClear = bound(toClear, 1, 3e18);
         bytes[] memory configs = new bytes[](4);

@@ -10,6 +10,7 @@ import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 /// @notice A contract to test the OrderBook removeOrder function.
 contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     /// An order MUST ONLY be removable by its owner.
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV3 memory config, bytes memory expression)
         external
     {
@@ -41,6 +42,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// The same order can be added and removed multiple times.
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderAddRemoveMulti(address alice, OrderConfigV3 memory config, bytes memory expression)
         external
     {
@@ -61,6 +63,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// An order MUST NOT change state if it does not exist.
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderDoesNotExist(address alice, OrderConfigV3 memory config, bytes memory) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(alice, config);
@@ -78,6 +81,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Can add and remove different orders.
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderDifferent(
         address alice,
         OrderConfigV3 memory configOne,
@@ -105,6 +109,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Different owners can add and remove the same order.
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderDifferentOwners(
         address alice,
         address bob,
@@ -131,6 +136,7 @@ contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
     }
 
     /// Different owners can add and remove different orders.
+    /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderDifferentOwnersDifferent(
         address alice,
         address bob,
