@@ -15,3 +15,5 @@ pub const CI_SEPOLIA_METABOARD_URL: &str = env!(
 
 pub const CI_RPC_URL_ETHEREUM_FORK: &str =
     env!("RPC_URL_ETHEREUM_FORK", "$RPC_URL_ETHEREUM_FORK not set.");
+
+pub const GH_COMMIT_SHA: &str = env!("COMMIT_SHA", "$COMMIT_SHA not set.");

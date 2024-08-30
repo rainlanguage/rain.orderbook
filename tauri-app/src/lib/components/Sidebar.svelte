@@ -15,6 +15,13 @@
   import { PlusSolid } from 'flowbite-svelte-icons';
   import IconTelegram from '$lib/components/IconTelegram.svelte';
   import ModalConnect from '$lib/components/ModalConnect.svelte';
+  import { onMount } from 'svelte';
+  import { getAppCommitSha } from '$lib/services/app';
+
+  let app_sha: string;
+  onMount(async () => {
+    app_sha = await getAppCommitSha();
+  });
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
@@ -94,6 +101,12 @@
     </SidebarGroup>
     <SidebarGroup border class="flex justify-start">
       <ButtonDarkMode />
+    </SidebarGroup>
+    <SidebarGroup border class="flex justify-start self-end">
+      <div class="flex flex-col text-xs text-gray-500 dark:text-gray-400">
+        <p>Raindex version commit:</p>
+        <p>{app_sha}</p>
+      </div>
     </SidebarGroup>
   </SidebarWrapper>
 </Sidebar>

@@ -42,6 +42,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
+raindex-version: {raindex_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -90,7 +91,8 @@ amount price: get("amount") 52;
 :;
 "#,
             rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL,
-            dai = DAI_ADDRESS
+            dai = DAI_ADDRESS,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
         );
 
         let orderbook = Orderbook::deploy(&provider).await.unwrap();
@@ -193,6 +195,7 @@ amount price: get("amount") 52;
 
         let dotrain = format!(
             r#"
+raindex-version: {raindex_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -239,7 +242,8 @@ amount price: get("amount") 52;
 #handle-add-order
 :ensure(0 "should fail");
 "#,
-            rpc_url = anvil.endpoint()
+            rpc_url = anvil.endpoint(),
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
         );
 
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();

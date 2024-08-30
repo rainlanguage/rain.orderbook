@@ -264,6 +264,7 @@ mod tests {
     #[test]
     fn test_successful_merge() {
         let mut config = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -279,6 +280,7 @@ mod tests {
         };
 
         let other = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -299,6 +301,7 @@ mod tests {
     #[test]
     fn test_unsuccessful_merge() {
         let mut config = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -314,6 +317,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -348,6 +352,7 @@ mod tests {
     #[test]
     fn test_successful_merge_metaboard() {
         let mut config = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -363,6 +368,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),

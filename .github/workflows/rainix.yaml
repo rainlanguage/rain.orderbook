@@ -38,6 +38,7 @@ jobs:
       CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       CI_DEPLOY_FLARE_RPC_URL: ${{ secrets.CI_DEPLOY_FLARE_RPC_URL }}
+      COMMIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
