@@ -4,6 +4,7 @@ mod compose;
 mod detail;
 mod list;
 mod orderbook_address;
+mod keys;
 mod remove;
 
 use crate::commands::order::orderbook_address::OrderbookAddress;
@@ -11,6 +12,7 @@ use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
 use calldata::AddOrderCalldata;
+use keys::Keys;
 use clap::Parser;
 use compose::Compose;
 
@@ -46,6 +48,11 @@ pub enum Order {
         alias = "ob-addr"
     )]
     OrderbookAddress(OrderbookAddress),
+
+    #[command(
+        about = "Get yaml keys from a dotrain file",
+    )]
+    Keys(Keys),
 }
 
 impl Execute for Order {
@@ -58,6 +65,7 @@ impl Execute for Order {
             Order::Compose(compose) => compose.execute().await,
             Order::Calldata(calldata) => calldata.execute().await,
             Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
+            Order::Keys(keys) => keys.execute().await,
         }
     }
 }
