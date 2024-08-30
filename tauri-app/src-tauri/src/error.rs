@@ -1,6 +1,7 @@
+use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
-use dotrain::error::ComposeError;
+use dotrain::error::{self, ComposeError};
 use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::config_source::ConfigSourceError;
 use rain_orderbook_app_settings::merge::MergeError;
@@ -90,6 +91,9 @@ pub enum CommandError {
 
     #[error(transparent)]
     FromUintParseError(#[from] FromUintParseError),
+
+    #[error(transparent)]
+    FromHexError(#[from] FromHexError),
 
     #[error(transparent)]
     TradeReplayerError(#[from] rain_orderbook_common::replays::TradeReplayerError),

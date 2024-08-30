@@ -75,7 +75,7 @@ fn run_tauri_app() {
             get_authoring_meta_v2_for_scenarios,
             compose_from_scenario,
             batch_order_quotes,
-            debug_trade
+            debug_trade,
             get_app_commit_sha,
             validate_raindex_version
         ])
