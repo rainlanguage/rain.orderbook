@@ -9,7 +9,10 @@ export const tradeDebug = async (txHash: string, rpcUrl: string) => {
   });
 };
 
-export const mockTradeDebug = ['0x01', '0x02', '0x03'];
+export const mockTradeDebug: RainEvalResultsTable = {
+  column_names: ['1', '2', '3'],
+  rows: [['0x01', '0x02', '0x03']],
+};
 
 if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;

@@ -22,11 +22,11 @@
   <TableBody>
     {#each table.rows[0] as value, i}
       <TableBodyRow>
-        <TableBodyCell data-testid="modal-quote-debug-stack">{table.column_names[i]}</TableBodyCell>
-        <TableBodyCell data-testid="modal-quote-debug-value"
+        <TableBodyCell data-testid="debug-stack">{table.column_names[i]}</TableBodyCell>
+        <TableBodyCell data-testid="debug-value"
           >{isHex(value) ? formatEther(hexToBigInt(value)) : ''}</TableBodyCell
         >
-        <TableBodyCell data-testid="modal-quote-debug-value-hex">{value}</TableBodyCell>
+        <TableBodyCell data-testid="debug-value-hex">{value}</TableBodyCell>
       </TableBodyRow>
     {/each}
   </TableBody>
