@@ -1,135 +1,24 @@
 use crate::error::CommandResult;
-use alloy::primitives::Address;
-use futures::future::join_all;
-use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder};
-use serde::{Deserialize, Serialize};
-use typeshare::typeshare;
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct ExtAuthoringMetaV2Word {
-    pub word: String,
-    pub description: String,
-}
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct ExtAuthoringMetaV2 {
-    pub words: Vec<ExtAuthoringMetaV2Word>,
-}
-
-impl From<AuthoringMetaV2> for ExtAuthoringMetaV2 {
-    fn from(authoring_meta: AuthoringMetaV2) -> Self {
-        let words = authoring_meta
-            .words
-            .into_iter()
-            .map(|word| ExtAuthoringMetaV2Word {
-                word: word.word,
-                description: word.description,
-            })
-            .collect();
-        Self { words }
-    }
-}
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-#[serde(tag = "type", content = "data")]
-pub enum PragmaResult {
-    Success(ExtAuthoringMetaV2),
-    Error(String),
-}
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct PragmaAuthoringMeta {
-    address: Address,
-    result: PragmaResult,
-}
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct ScenarioPragmas {
-    deployer: PragmaAuthoringMeta,
-    pragmas: Vec<PragmaAuthoringMeta>,
-}
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-#[serde(tag = "type", content = "data")]
-pub enum ScenarioResult {
-    Success(ScenarioPragmas),
-    Error(String),
-}
-
-#[typeshare]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct ScenarioAuthoringMeta {
-    scenario_name: String,
-    result: ScenarioResult,
-}
+use rain_orderbook_common::dotrain_order::{DotrainOrder, ScenarioWords};
 
 #[tauri::command]
 pub async fn get_authoring_meta_v2_for_scenarios(
     dotrain: String,
     settings: Option<String>,
-) -> CommandResult<Vec<ScenarioAuthoringMeta>> {
+) -> CommandResult<Vec<ScenarioWords>> {
     let order = DotrainOrder::new(dotrain, settings).await?;
-    let mut futures = vec![];
-    let scenarios_keys: Vec<&String> = order.config.scenarios.keys().collect();
-    for scenario in &scenarios_keys {
-        futures.push(order.get_scenario_all_words(scenario))
-    }
-
-    let results = join_all(futures).await;
-    results
-        .into_iter()
-        .enumerate()
-        .map(|(i, result)| match result {
-            Err(e) => Ok(ScenarioAuthoringMeta {
-                scenario_name: scenarios_keys[i].clone(),
-                result: ScenarioResult::Error(e.to_string()),
-            }),
-            Ok((addresses, meta_results)) => {
-                let mut pragma_results = vec![];
-                let deployer_result = match &meta_results[0] {
-                    Ok(meta) => PragmaAuthoringMeta {
-                        address: addresses[0],
-                        result: PragmaResult::Success(meta.clone().into()),
-                    },
-                    Err(e) => PragmaAuthoringMeta {
-                        address: addresses[0],
-                        result: PragmaResult::Error(e.to_string()),
-                    },
-                };
-                for (j, item) in meta_results.into_iter().enumerate().skip(1) {
-                    pragma_results.push(match item {
-                        Ok(meta) => PragmaAuthoringMeta {
-                            address: addresses[j],
-                            result: PragmaResult::Success(meta.into()),
-                        },
-                        Err(e) => PragmaAuthoringMeta {
-                            address: addresses[j],
-                            result: PragmaResult::Error(e.to_string()),
-                        },
-                    })
-                }
-                Ok(ScenarioAuthoringMeta {
-                    scenario_name: scenarios_keys[i].clone(),
-                    result: ScenarioResult::Success(ScenarioPragmas {
-                        deployer: deployer_result,
-                        pragmas: pragma_results,
-                    }),
-                })
-            }
-        })
-        .collect()
+    Ok(order.get_all_scenarios_all_words().await?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
+    use alloy::{
+        hex::encode_prefixed,
+        primitives::{Address, B256},
+        sol,
+        sol_types::SolValue,
+    };
     use alloy_ethers_typecast::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};

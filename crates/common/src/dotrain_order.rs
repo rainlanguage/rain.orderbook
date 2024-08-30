@@ -1,3 +1,7 @@
+use crate::{
+    add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
+    rainlang::compose_to_rainlang,
+};
 use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
@@ -9,12 +13,9 @@ use rain_orderbook_app_settings::{
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
+use serde::{Serialize, Serializer};
 use thiserror::Error;
-
-use crate::{
-    add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
-    rainlang::compose_to_rainlang,
-};
+use typeshare::typeshare;
 
 #[derive(Clone)]
 pub struct DotrainOrder {
@@ -53,6 +54,38 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     ParserError(#[from] ParserError),
+}
+
+#[typeshare]
+#[derive(Serialize, Debug)]
+#[serde(tag = "type", content = "data")]
+pub enum WordsResult {
+    Success(AuthoringMetaV2),
+    Error(String),
+}
+
+#[typeshare]
+#[derive(Serialize, Debug)]
+pub struct ContractWords {
+    pub address: Address,
+    pub words: WordsResult,
+}
+
+impl From<Result<AuthoringMetaV2, DotrainOrderError>> for WordsResult {
+    fn from(result: Result<AuthoringMetaV2, DotrainOrderError>) -> Self {
+        match result {
+            Ok(meta) => WordsResult::Success(meta),
+            Err(err) => WordsResult::Error(err.to_string()),
+        }
+    }
+}
+
+#[typeshare]
+#[derive(Serialize, Debug)]
+pub struct ScenarioWords {
+    pub scenario: String,
+    pub pragma_words: Vec<ContractWords>,
+    pub deployer_words: ContractWords,
 }
 
 impl DotrainOrder {
@@ -132,7 +165,7 @@ impl DotrainOrder {
         Ok(pragmas)
     }
 
-    pub async fn get_authoring_meta_v2_for_scenario(
+    pub async fn get_contract_authoring_meta_v2_for_scenario(
         &self,
         scenario: &str,
         address: Address,
@@ -158,10 +191,10 @@ impl DotrainOrder {
         )
     }
 
-    pub async fn get_scenario_deployer_words(
+    pub async fn get_deployer_words_for_scenario(
         &self,
         scenario: &str,
-    ) -> Result<AuthoringMetaV2, DotrainOrderError> {
+    ) -> Result<ContractWords, DotrainOrderError> {
         let deployer = &self
             .config
             .scenarios
@@ -169,29 +202,38 @@ impl DotrainOrder {
             .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.to_string()))?
             .deployer
             .address;
-        self.get_authoring_meta_v2_for_scenario(scenario, *deployer)
-            .await
+
+        Ok(ContractWords {
+            address: *deployer,
+            words: self
+                .get_contract_authoring_meta_v2_for_scenario(scenario, *deployer)
+                .await
+                .into(),
+        })
     }
 
-    pub async fn get_scenario_pragma_words(
+    pub async fn get_pragma_words_for_scenario(
         &self,
         scenario: &str,
-    ) -> Result<
-        (
-            Vec<Address>,
-            Vec<Result<AuthoringMetaV2, DotrainOrderError>>,
-        ),
-        DotrainOrderError,
-    > {
+    ) -> Result<Vec<ContractWords>, DotrainOrderError> {
         let pragma_addresses = self.get_pragmas_for_scenario(scenario).await?;
         let mut futures = vec![];
+
         for pragma in &pragma_addresses {
-            futures.push(self.get_authoring_meta_v2_for_scenario(scenario, *pragma))
+            futures.push(self.get_contract_authoring_meta_v2_for_scenario(scenario, *pragma));
         }
-        Ok((pragma_addresses, join_all(futures).await))
+
+        Ok(pragma_addresses
+            .into_iter()
+            .zip(join_all(futures).await)
+            .map(|(address, words)| ContractWords {
+                address,
+                words: words.into(),
+            })
+            .collect())
     }
 
-    pub async fn get_scenario_all_words(
+    pub async fn get_all_words_for_scenario(
         &self,
         scenario: &str,
     ) -> Result<
@@ -213,9 +255,25 @@ impl DotrainOrder {
 
         let mut futures = vec![];
         for address in addresses.clone() {
-            futures.push(self.get_authoring_meta_v2_for_scenario(scenario, address));
+            futures.push(self.get_contract_authoring_meta_v2_for_scenario(scenario, address));
         }
         Ok((addresses, join_all(futures).await))
+    }
+
+    pub async fn get_all_scenarios_all_words(
+        &self,
+    ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
+        let mut scenarios = vec![];
+        for (scenario, _) in &self.config.scenarios {
+            let pragma_words = self.get_pragma_words_for_scenario(scenario).await?;
+            let deployer_words = self.get_deployer_words_for_scenario(scenario).await?;
+            scenarios.push(ScenarioWords {
+                scenario: scenario.clone(),
+                pragma_words,
+                deployer_words,
+            });
+        }
+        Ok(scenarios)
     }
 }
 

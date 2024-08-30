@@ -2937,9 +2937,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-introspection"
-version = "3.7.3"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f50097884e41b92ba467ce0dddb163ac28e8141df0b8f4a7fbf6136c08fab1c"
+checksum = "1952cb2f976ddd5cb0c7268e8827fb5676fcd0d3281afcc8fbf07d8c6bd84218"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -8172,6 +8172,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "typeshare 1.0.1",
  "url",
  "validator",
 ]
