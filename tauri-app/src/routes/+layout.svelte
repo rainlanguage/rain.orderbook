@@ -12,16 +12,8 @@
   import { transactionStatusNoticesList } from '$lib/stores/transactionStatusNotice';
   import TransactionStatusNotice from '$lib/components/TransactionStatusNotice.svelte';
   import WindowDraggableArea from '$lib/components/WindowDraggableArea.svelte';
-  import { browser } from '$app/environment';
-  import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
-
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        enabled: browser,
-      },
-    },
-  });
+  import { QueryClientProvider } from '@tanstack/svelte-query';
+  import { queryClient } from '$lib/queries/queryClient';
 </script>
 
 <WindowDraggableArea />

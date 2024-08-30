@@ -8,5 +8,6 @@ pub mod dotrain_add_order_lsp;
 pub mod order;
 pub mod order_quote;
 pub mod order_take;
+pub mod trade_debug;
 pub mod vault;
 pub mod wallet;
