@@ -176,3 +176,9 @@ pub async fn compose_from_scenario(
     let order = DotrainOrder::new(dotrain.clone(), settings).await?;
     Ok(order.compose_scenario_to_rainlang(scenario.name).await?)
 }
+
+#[tauri::command]
+pub async fn validate_raindex_version(dotrain: String, settings: String) -> CommandResult<()> {
+    let order = DotrainOrder::new(dotrain.clone(), Some(settings)).await?;
+    Ok(order.validate_raindex_version().await?)
+}

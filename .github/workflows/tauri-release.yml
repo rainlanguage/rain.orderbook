@@ -29,6 +29,7 @@ jobs:
       CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
       CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
+      COMMIT_SHA: ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
