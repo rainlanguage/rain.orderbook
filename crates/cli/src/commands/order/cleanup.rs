@@ -55,10 +55,10 @@ impl Execute for Cleanup {
 
         // handle output
         if let Some(output) = &self.output {
-            std::fs::write(output, &order.dotrain)?;
+            std::fs::write(output, order.dotrain())?;
         }
         if self.stdout {
-            println!("{}", order.dotrain);
+            println!("{}", order.dotrain());
         }
         Ok(())
     }

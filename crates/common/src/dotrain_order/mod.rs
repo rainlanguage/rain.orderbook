@@ -15,11 +15,13 @@ use rain_orderbook_app_settings::{
 use rain_orderbook_env::GH_COMMIT_SHA;
 use thiserror::Error;
 
+pub mod filter;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DotrainOrder {
-    pub config: Config,
-    pub dotrain: String,
-    pub config_source: ConfigSource,
+    config: Config,
+    dotrain: String,
+    config_source: ConfigSource,
 }
 
 #[derive(Error, Debug)]
@@ -89,6 +91,21 @@ impl DotrainOrder {
                 })
             }
         }
+    }
+
+    // get this instance's config
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    // get this instance's config source
+    pub fn config_source(&self) -> &ConfigSource {
+        &self.config_source
+    }
+
+    // get this instance's dotrain string
+    pub fn dotrain(&self) -> &str {
+        &self.dotrain
     }
 
     pub async fn compose_scenario_to_rainlang(

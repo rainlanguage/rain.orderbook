@@ -36,6 +36,7 @@ pub struct ConfigSource {
     pub metaboards: HashMap<String, Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentry: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
 }
 
