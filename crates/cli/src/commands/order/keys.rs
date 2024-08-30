@@ -31,10 +31,8 @@ pub struct Keys {
     encoding: SupportedOutputEncoding,
 }
 
-
 impl Execute for Keys {
     async fn execute(&self) -> Result<()> {
-
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let settings = match &self.settings_file {
             Some(settings_file) => {
@@ -44,15 +42,21 @@ impl Execute for Keys {
         };
 
         let order = DotrainOrder::new(dotrain, settings).await?;
-        
+
         let keys_string = match self.key_type {
             KeyType::Deployment => {
                 let deployment_keys = order.config.deployments.keys();
-                deployment_keys.map(|key| key.to_string()).collect::<Vec<String>>().join(" ")
+                deployment_keys
+                    .map(|key| key.to_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
             }
             KeyType::Scenario => {
                 let scenario_keys = order.config.scenarios.keys();
-                scenario_keys.map(|key| key.to_string()).collect::<Vec<String>>().join(" ")
+                scenario_keys
+                    .map(|key| key.to_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
             }
         };
 
@@ -217,7 +221,7 @@ _ _: 0 0;
         let dotrain_path = "./test_dotrain3.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
-        let keys = Keys {   
+        let keys = Keys {
             dotrain_file: dotrain_path.into(),
             settings_file: None,
             key_type: KeyType::Scenario,

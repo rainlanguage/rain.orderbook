@@ -2,9 +2,9 @@ mod add;
 mod calldata;
 mod compose;
 mod detail;
+mod keys;
 mod list;
 mod orderbook_address;
-mod keys;
 mod remove;
 
 use crate::commands::order::orderbook_address::OrderbookAddress;
@@ -12,9 +12,9 @@ use crate::execute::Execute;
 use add::CliOrderAddArgs;
 use anyhow::Result;
 use calldata::AddOrderCalldata;
-use keys::Keys;
 use clap::Parser;
 use compose::Compose;
+use keys::Keys;
 
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
@@ -49,9 +49,7 @@ pub enum Order {
     )]
     OrderbookAddress(OrderbookAddress),
 
-    #[command(
-        about = "Get yaml keys from a dotrain file",
-    )]
+    #[command(about = "Get yaml keys from a dotrain file")]
     Keys(Keys),
 }
 
