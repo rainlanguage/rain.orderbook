@@ -29,18 +29,7 @@ impl DotrainOrder {
         &self,
         deployments: &[&str],
     ) -> Result<Self, DotrainOrderError> {
-        // get the original ConfigSource to copy the used fields from
-        let frontmatter = RainDocument::get_front_matter(&self.dotrain).unwrap();
-        let config_org = match &self.config_content {
-            Some(config) => {
-                let config_string = ConfigSource::try_from_string(config.clone()).await?;
-                let mut frontmatter_config =
-                    ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                frontmatter_config.merge(config_string)?;
-                frontmatter_config
-            }
-            None => ConfigSource::try_from_string(frontmatter.to_string()).await?,
-        };
+        let config_org = &self.config_source;
 
         // new empty config to copy used field into
         let mut new_config = ConfigSource::default();

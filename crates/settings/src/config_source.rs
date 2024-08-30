@@ -9,7 +9,7 @@ use typeshare::typeshare;
 use url::Url;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigSource {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -63,7 +63,7 @@ pub type TokenRef = String;
 pub type MetaboardRef = String;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct NetworkConfigSource {
     pub rpc: Url,
@@ -79,7 +79,7 @@ pub struct NetworkConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct RemoteNetworksConfigSource {
     pub url: String,
@@ -87,7 +87,7 @@ pub struct RemoteNetworksConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderbookConfigSource {
     pub address: Address,
@@ -100,7 +100,7 @@ pub struct OrderbookConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct TokenConfigSource {
     pub network: NetworkRef,
@@ -114,7 +114,7 @@ pub struct TokenConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeployerConfigSource {
     pub address: Address,
@@ -125,7 +125,7 @@ pub struct DeployerConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeploymentConfigSource {
     pub scenario: ScenarioRef,
@@ -133,7 +133,7 @@ pub struct DeploymentConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct IOString {
     pub token: TokenRef,
@@ -143,7 +143,7 @@ pub struct IOString {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderConfigSource {
     pub inputs: Vec<IOString>,
@@ -155,7 +155,7 @@ pub struct OrderConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ScenarioConfigSource {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -173,7 +173,7 @@ pub struct ScenarioConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ChartConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]

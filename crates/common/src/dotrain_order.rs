@@ -19,7 +19,7 @@ use crate::{
 pub struct DotrainOrder {
     pub config: Config,
     pub dotrain: String,
-    pub config_content: Option<String>,
+    pub config_source: ConfigSource,
 }
 
 #[derive(Error, Debug)]
@@ -69,18 +69,17 @@ impl DotrainOrder {
                 frontmatter_config.merge(config_string)?;
                 Ok(Self {
                     dotrain,
-                    config_content: Some(config),
+                    config_source: frontmatter_config.clone(),
                     config: frontmatter_config.try_into()?,
                 })
             }
             None => {
                 let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-                let config_string = ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                let config: Config = config_string.try_into()?;
+                let config_source = ConfigSource::try_from_string(frontmatter.to_string()).await?;
                 Ok(Self {
                     dotrain,
-                    config,
-                    config_content: None,
+                    config_source: config_source.clone(),
+                    config: config_source.try_into()?,
                 })
             }
         }
