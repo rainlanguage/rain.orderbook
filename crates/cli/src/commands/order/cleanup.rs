@@ -5,8 +5,8 @@ use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
-/// Generate a new .rain with a cleaned up frontmatter that only includes the specified
-/// deployments (and their related fields) from a given .rain and an optional setting.yml
+/// Generate a new .rain with unused frontmatter cleaned, ie frontmatter will only include the
+/// specified deployments (and their related fields) from a given .rain and an optional setting.yml
 #[derive(Parser, Clone)]
 pub struct Cleanup {
     /// Path to the .rain file

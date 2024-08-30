@@ -29,6 +29,7 @@ impl DotrainOrder {
         &self,
         deployments: &[&str],
     ) -> Result<Self, DotrainOrderError> {
+        // get the original ConfigSource to copy the used fields from
         let frontmatter = RainDocument::get_front_matter(&self.dotrain).unwrap();
         let config_org = match &self.config_content {
             Some(config) => {
@@ -40,22 +41,31 @@ impl DotrainOrder {
             }
             None => ConfigSource::try_from_string(frontmatter.to_string()).await?,
         };
+
+        // new empty config to copy used field into
         let mut new_config = ConfigSource::default();
         for deployment in deployments {
+            // find and insert the specified deployment
             let deployment_ref = self.config.deployments.get(*deployment).ok_or(
-                DotrainOrderError::ShakeOutError(format!("undefined deployment: {}", deployment)),
+                DotrainOrderError::CleanUnusedFrontmatterError(format!(
+                    "undefined deployment: {}",
+                    deployment
+                )),
             )?;
             new_config.deployments.insert(
                 deployment.to_string(),
                 config_org
                     .deployments
                     .get(*deployment)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined deployment: {}",
                         deployment
                     )))?
                     .clone(),
             );
+
+            // find and insert the deployment scenario
+            // make sure to get the root scenario key
             let scenario_main = &deployment_ref.scenario;
             let scenario_key = scenario_main.name.split('.').nth(0).unwrap();
             new_config.scenarios.insert(
@@ -63,12 +73,14 @@ impl DotrainOrder {
                 config_org
                     .scenarios
                     .get(scenario_key)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined scenario: {}",
                         scenario_key
                     )))?
                     .clone(),
             );
+
+            // find and insert charts that reference the scenario
             for (chart_key, chart) in &self.config.charts {
                 if chart.scenario.name.split('.').nth(0).unwrap() == scenario_key {
                     new_config.charts.insert(
@@ -76,7 +88,7 @@ impl DotrainOrder {
                         config_org
                             .charts
                             .get(chart_key)
-                            .ok_or(DotrainOrderError::ShakeOutError(format!(
+                            .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                                 "undefined chart: {}",
                                 chart_key
                             )))?
@@ -84,12 +96,14 @@ impl DotrainOrder {
                     );
                 }
             }
+
+            // find and insert the deployment order
             let (order_key, order) = self
                 .config
                 .orders
                 .iter()
                 .find(|(_, v)| *v == &deployment_ref.order)
-                .ok_or(DotrainOrderError::ShakeOutError(format!(
+                .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                     "undefined deployment order: {}",
                     deployment
                 )))?;
@@ -98,18 +112,20 @@ impl DotrainOrder {
                 config_org
                     .orders
                     .get(order_key)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order: {}",
                         order_key
                     )))?
                     .clone(),
             );
+
+            // find and insert the deployment scenario deployer
             let (deployer_key, deployer) = self
                 .config
                 .deployers
                 .iter()
                 .find(|(_, v)| *v == &scenario_main.deployer)
-                .ok_or(DotrainOrderError::ShakeOutError(format!(
+                .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                     "undefined scenario deployer: {}",
                     scenario_key
                 )))?;
@@ -118,18 +134,20 @@ impl DotrainOrder {
                 config_org
                     .deployers
                     .get(deployer_key)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined deployer: {}",
                         deployer_key
                     )))?
                     .clone(),
             );
+
+            // find and insert the deployment scenario deployer network
             let (network_key, _) = self
                 .config
                 .networks
                 .iter()
                 .find(|(_, v)| *v == &deployer.network)
-                .ok_or(DotrainOrderError::ShakeOutError(format!(
+                .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                     "undefined scenario deployer network: {}",
                     scenario_key
                 )))?;
@@ -138,18 +156,20 @@ impl DotrainOrder {
                 config_org
                     .networks
                     .get(network_key)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined network: {}",
                         network_key
                     )))?
                     .clone(),
             );
+
+            // find and insert the deployment order network
             let (network_key, _) = self
                 .config
                 .networks
                 .iter()
                 .find(|(_, v)| *v == &order.network)
-                .ok_or(DotrainOrderError::ShakeOutError(format!(
+                .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                     "undefined order network: {}",
                     order_key
                 )))?;
@@ -158,19 +178,21 @@ impl DotrainOrder {
                 config_org
                     .networks
                     .get(network_key)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined network: {}",
                         network_key
                     )))?
                     .clone(),
             );
+
+            // find and insert the deployment order deployer if it is present
             if let Some(deployer_ref) = &order.deployer {
                 let (deployer_key, deployer) = self
                     .config
                     .deployers
                     .iter()
                     .find(|(_, v)| *v == deployer_ref)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order deployer: {}",
                         order_key
                     )))?;
@@ -179,18 +201,20 @@ impl DotrainOrder {
                     config_org
                         .deployers
                         .get(deployer_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined order deployer: {}",
                             order_key
                         )))?
                         .clone(),
                 );
+
+                // find and insert the deployment order deployer network
                 let (network_key, _) = self
                     .config
                     .networks
                     .iter()
                     .find(|(_, v)| *v == &deployer.network)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order deployer network: {}",
                         order_key
                     )))?;
@@ -199,20 +223,22 @@ impl DotrainOrder {
                     config_org
                         .networks
                         .get(network_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined network: {}",
                             network_key
                         )))?
                         .clone(),
                 );
             }
+
+            // find and insert the deployment order orderbook if it is present
             if let Some(orderbook_ref) = &order.orderbook {
                 let (orderbook_key, orderbook) = self
                     .config
                     .orderbooks
                     .iter()
                     .find(|(_, v)| *v == orderbook_ref)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order orderbook: {}",
                         order_key
                     )))?;
@@ -221,18 +247,20 @@ impl DotrainOrder {
                     config_org
                         .orderbooks
                         .get(orderbook_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined orderbook: {}",
                             orderbook_key
                         )))?
                         .clone(),
                 );
+
+                // find and insert the deployment order orderbook subgraph
                 let (sg_key, _) = self
                     .config
                     .subgraphs
                     .iter()
                     .find(|(_, v)| *v == &orderbook_ref.subgraph)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order orderbook subgraph: {}",
                         order_key
                     )))?;
@@ -241,18 +269,20 @@ impl DotrainOrder {
                     config_org
                         .subgraphs
                         .get(sg_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined subgraph: {}",
                             sg_key
                         )))?
                         .clone(),
                 );
+
+                // find and insert the deployment order orderbook network
                 let (network_key, _) = self
                     .config
                     .networks
                     .iter()
                     .find(|(_, v)| *v == &orderbook.network)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order orderbook network: {}",
                         order_key
                     )))?;
@@ -261,40 +291,43 @@ impl DotrainOrder {
                     config_org
                         .networks
                         .get(network_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined network: {}",
                             network_key
                         )))?
                         .clone(),
                 );
             }
+
+            // find and insert the deployment order inputs
             for io in &order.inputs {
                 let (token_key, token) = self
                     .config
                     .tokens
                     .iter()
                     .find(|(_, v)| *v == &io.token)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
-                    "undefined order input token: {}",
-                    order_key
-                )))?;
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(
+                    format!("undefined order input token: {}", order_key),
+                ))?;
                 new_config.tokens.insert(
                     token_key.clone(),
                     config_org
                         .tokens
                         .get(token_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined token: {}",
                             token_key
                         )))?
                         .clone(),
                 );
+
+                // find and insert the deployment order input network
                 let (network_key, _) = self
                     .config
                     .networks
                     .iter()
                     .find(|(_, v)| *v == &token.network)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order input token network: {}",
                         token_key
                     )))?;
@@ -303,40 +336,43 @@ impl DotrainOrder {
                     config_org
                         .networks
                         .get(network_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined network: {}",
                             network_key
                         )))?
                         .clone(),
                 );
             }
+
+            // // find and insert the deployment order outputs
             for io in &order.outputs {
                 let (token_key, token) = self
                     .config
                     .tokens
                     .iter()
                     .find(|(_, v)| *v == &io.token)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
-                    "undefined order output token: {}",
-                    order_key
-                )))?;
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(
+                    format!("undefined order output token: {}", order_key),
+                ))?;
                 new_config.tokens.insert(
                     token_key.clone(),
                     config_org
                         .tokens
                         .get(token_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined token: {}",
                             token_key
                         )))?
                         .clone(),
                 );
+
+                // find and insert the deployment order output network
                 let (network_key, _) = self
                     .config
                     .networks
                     .iter()
                     .find(|(_, v)| *v == &token.network)
-                    .ok_or(DotrainOrderError::ShakeOutError(format!(
+                    .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "undefined order output token network: {}",
                         token_key
                     )))?;
@@ -345,7 +381,7 @@ impl DotrainOrder {
                     config_org
                         .networks
                         .get(network_key)
-                        .ok_or(DotrainOrderError::ShakeOutError(format!(
+                        .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                             "undefined network: {}",
                             network_key
                         )))?
@@ -353,8 +389,10 @@ impl DotrainOrder {
                 );
             }
         }
+
+        // reserialize the new config and construct a new dotrain order with existing dotrain body
         let mut new_dotrain = serde_yaml::to_string(&new_config)
-            .map_err(|e| DotrainOrderError::ShakeOutError(e.to_string()))?;
+            .map_err(|e| DotrainOrderError::CleanUnusedFrontmatterError(e.to_string()))?;
         new_dotrain.push_str("\n---\n");
         new_dotrain.push_str(self.dotrain.split("---").nth(1).unwrap());
 
@@ -661,6 +699,9 @@ _ _: 0 0;
         )
         .await;
 
-        matches!(result, Err(DotrainOrderError::ShakeOutError(_)));
+        matches!(
+            result,
+            Err(DotrainOrderError::CleanUnusedFrontmatterError(_))
+        );
     }
 }

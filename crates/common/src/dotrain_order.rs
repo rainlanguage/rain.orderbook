@@ -55,7 +55,7 @@ pub enum DotrainOrderError {
     ParserError(#[from] ParserError),
 
     #[error("{0}")]
-    ShakeOutError(String),
+    CleanUnusedFrontmatterError(String),
 }
 
 impl DotrainOrder {
