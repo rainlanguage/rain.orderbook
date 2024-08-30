@@ -106,6 +106,9 @@ pub enum CommandError {
     OrderDetailError(
         #[from] rain_orderbook_subgraph_client::types::order_detail_traits::OrderDetailError,
     ),
+
+    #[error(transparent)]
+    RainEvalResultError(#[from] rain_orderbook_common::fuzz::RainEvalResultError),
 }
 
 impl Serialize for CommandError {

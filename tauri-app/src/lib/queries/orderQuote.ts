@@ -5,6 +5,7 @@ import type { Order } from '$lib/typeshare/orderDetail';
 import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
+import type { RainEvalResultsTable } from '$lib/typeshare/config';
 
 const formatOrder = (order: Order) => ({
   ...order,
@@ -65,7 +66,7 @@ export async function debugOrderQuote(
   orderbook: Hex,
   rpcUrl: string,
 ) {
-  return await invoke<Hex[]>('debug_order_quote', {
+  return await invoke<RainEvalResultsTable>('debug_order_quote', {
     order: formatOrder(order),
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,

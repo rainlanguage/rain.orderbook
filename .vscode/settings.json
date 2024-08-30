@@ -2,7 +2,7 @@
   "editor.rulers": [80],
   "svelte.enable-ts-plugin": true,
    
-  "rust-analyzer.linkedProjects": ["tauri-app/src-tauri/Cargo.toml"],
+  "rust-analyzer.linkedProjects": ["tauri-app/src-tauri/Cargo.toml", "Cargo.toml"],
 
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",

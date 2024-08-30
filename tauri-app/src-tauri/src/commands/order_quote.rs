@@ -1,7 +1,10 @@
 use crate::error::{CommandError, CommandResult};
 use alloy::primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV4::Quote;
-use rain_orderbook_common::subgraph::SubgraphArgs;
+use rain_orderbook_common::{
+    fuzz::{RainEvalResults, RainEvalResultsTable},
+    subgraph::SubgraphArgs,
+};
 use rain_orderbook_quote::{
     BatchQuoteSpec, NewQuoteDebugger, OrderQuoteValue, QuoteDebugger, QuoteSpec, QuoteTarget,
 };
@@ -122,7 +125,7 @@ pub async fn debug_order_quote(
     outputIOIndex: u32,
     orderbook: Address,
     rpc_url: String,
-) -> CommandResult<Vec<U256>> {
+) -> CommandResult<RainEvalResultsTable> {
     let quote_target = QuoteTarget {
         orderbook,
         quote_config: Quote {
@@ -138,9 +141,9 @@ pub async fn debug_order_quote(
     })
     .await?;
 
-    let res = debugger.debug(quote_target).await?;
-    let stack = res.traces[0].stack.iter().map(|x| x.clone()).collect();
-    Ok(stack)
+    let res: RainEvalResults = vec![debugger.debug(quote_target).await?].into();
+
+    Ok(res.into_flattened_table()?)
 }
 
 #[cfg(test)]
@@ -178,6 +181,6 @@ mod tests {
             debug_order_quote(order, inputIOIndex, outputIOIndex, orderbook, rpc_url).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().len(), 8);
+        assert_eq!(result.unwrap().rows[0].len(), 8);
     }
 }

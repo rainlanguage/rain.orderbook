@@ -1,9 +1,9 @@
+import type { RainEvalResultsTable } from '$lib/typeshare/config';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Hex } from 'viem';
 
 export const tradeDebug = async (txHash: string, rpcUrl: string) => {
-  return await invoke<Hex[]>('debug_trade', {
+  return await invoke<RainEvalResultsTable>('debug_trade', {
     txHash,
     rpcUrl,
   });
