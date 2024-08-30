@@ -12,38 +12,27 @@ use url::Url;
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigSource {
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub using_networks_from: HashMap<String, RemoteNetworksConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub networks: HashMap<String, NetworkConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub subgraphs: HashMap<String, Url>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub orderbooks: HashMap<String, OrderbookConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub tokens: HashMap<String, TokenConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub deployers: HashMap<String, DeployerConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub orders: HashMap<String, OrderConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub scenarios: HashMap<String, ScenarioConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub charts: HashMap<String, ChartConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub deployments: HashMap<String, DeploymentConfigSource>,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub metaboards: HashMap<String, Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentry: Option<bool>,
@@ -169,8 +158,7 @@ pub struct OrderConfigSource {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct ScenarioConfigSource {
-    #[serde(default)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     #[serde(skip_serializing_if = "Option::is_none")]

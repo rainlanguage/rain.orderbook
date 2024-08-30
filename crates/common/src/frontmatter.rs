@@ -10,18 +10,22 @@ pub async fn parse_frontmatter(dotrain: String) -> Result<ConfigSource, ParseCon
 }
 
 impl DotrainOrder {
-    pub async fn new_with_filtered_deployments(
+    /// Creates a new instance with a clean frontmatter that only includes the
+    /// specified deployments and their related fields
+    pub async fn new_with_deployments_frontmatter(
         dotrain: String,
         config: Option<String>,
         deployments: &[&str],
     ) -> Result<Self, DotrainOrderError> {
         Self::new(dotrain, config)
             .await?
-            .filter_deployments(deployments)
+            .clean_unused_frontmatter_by_deployments(deployments)
             .await
     }
 
-    pub async fn filter_deployments(
+    /// Generates a new instance with a frontmatter that only includes the
+    /// specified deployments and their related fields
+    pub async fn clean_unused_frontmatter_by_deployments(
         &self,
         deployments: &[&str],
     ) -> Result<Self, DotrainOrderError> {
@@ -52,16 +56,8 @@ impl DotrainOrder {
                     )))?
                     .clone(),
             );
-            let (scenario_key, scenario) = self
-                .config
-                .scenarios
-                .iter()
-                .find(|(_, v)| *v == &deployment_ref.scenario)
-                .map(|(k, v)| (k.split('.').nth(0).unwrap(), v))
-                .ok_or(DotrainOrderError::ShakeOutError(format!(
-                    "undefined deployment scenario: {}",
-                    deployment
-                )))?;
+            let scenario_main = &deployment_ref.scenario;
+            let scenario_key = scenario_main.name.split('.').nth(0).unwrap();
             new_config.scenarios.insert(
                 scenario_key.to_string(),
                 config_org
@@ -74,7 +70,7 @@ impl DotrainOrder {
                     .clone(),
             );
             for (chart_key, chart) in &self.config.charts {
-                if &chart.scenario == scenario {
+                if chart.scenario.name.split('.').nth(0).unwrap() == scenario_key {
                     new_config.charts.insert(
                         chart_key.clone(),
                         config_org
@@ -112,7 +108,7 @@ impl DotrainOrder {
                 .config
                 .deployers
                 .iter()
-                .find(|(_, v)| *v == &scenario.deployer)
+                .find(|(_, v)| *v == &scenario_main.deployer)
                 .ok_or(DotrainOrderError::ShakeOutError(format!(
                     "undefined scenario deployer: {}",
                     scenario_key
@@ -371,8 +367,8 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_dotrain_filter_deployments() {
-        let dotrain = "
+    async fn test_to_clean_frontmatter_with_deplyments_happy() {
+        let setting = r#"
 networks:
     some-network:
         rpc: https://abcd.com
@@ -406,7 +402,8 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: n2
         subgraph: sg2
-
+"#;
+        let dotrain = r#"
 tokens:
     token1:
         network: some-network
@@ -431,9 +428,18 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        scenarios: 
+            child-scenario:
+                bindings:
+                    key1: value1
     s2:
         network: some-network
-        deployer: some-deployer
+        deployer: d2
+        scenarios: 
+            child-scenario:
+                bindings:
+                    key1: value1
+                    key2: value2
 
 orders:
     some-order:
@@ -441,32 +447,68 @@ orders:
             - token: token1
               vault-id: 1
         outputs:
-            - token: token2
+            - token: token1
               vault-id: 1
         deployer: some-deployer
         orderbook: some-orderbook
 
 deployments:
     some-deployment:
-        scenario: some-scenario
+        scenario: some-scenario.child-scenario
         order: some-order
+
+charts:
+    some-chart:
+        scenario: some-scenario
+        metrics:
+            - label: A metric
+              description: A description
+              unit-prefix: $
+              unit-suffix: USD
+              value: 0.1
+        plots:
+            plot1:
+                title: "My plot"
+                subtitle: "My subtitle"
+                marks:
+                    - type: dot
+                      options:
+                        x: "0.1"
+                        y: "0.2"
+                        stroke: "black"
+    other-chart:
+        scenario: s2
+        metrics:
+            - label: B metric
+              description: B description
+              unit-prefix: $
+              unit-suffix: EUR
+              value: 0.1
+    another-chart:
+        scenario: s2.child-scenario
+        metrics:
+            - label: A metric
+              description: A description
+              unit-prefix: $
+              unit-suffix: USD
+              value: 0.1
 ---
 #calculate-io
 _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;";
+:;"#;
 
-        let result = DotrainOrder::new_with_filtered_deployments(
+        let result = DotrainOrder::new_with_deployments_frontmatter(
             dotrain.to_string(),
-            None,
+            Some(setting.to_string()),
             &["some-deployment"],
         )
         .await
         .unwrap();
 
-        let expected_dotrain = "networks:
+        let expected_dotrain = r#"networks:
   some-network:
     rpc: https://abcd.com/
     chain-id: 123
@@ -486,12 +528,6 @@ tokens:
     decimals: 6
     label: T1
     symbol: T1
-  token2:
-    network: some-network
-    address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
-    decimals: 18
-    label: T2
-    symbol: T2
 deployers:
   some-deployer:
     address: 0xf14e09601a47552de6abd3a0b165607fafd2b5ba
@@ -502,16 +538,39 @@ orders:
     - token: token1
       vault-id: '0x1'
     outputs:
-    - token: token2
+    - token: token1
       vault-id: '0x1'
     deployer: some-deployer
     orderbook: some-orderbook
 scenarios:
   some-scenario:
     deployer: some-deployer
+    scenarios:
+      child-scenario:
+        bindings:
+          key1: value1
+charts:
+  some-chart:
+    scenario: some-scenario
+    plots:
+      plot1:
+        title: My plot
+        subtitle: My subtitle
+        marks:
+        - type: dot
+          options:
+            x: '0.1'
+            y: '0.2'
+            stroke: black
+    metrics:
+    - label: A metric
+      description: A description
+      unit-prefix: $
+      unit-suffix: USD
+      value: '0.1'
 deployments:
   some-deployment:
-    scenario: some-scenario
+    scenario: some-scenario.child-scenario
     order: some-order
 
 ---
@@ -521,10 +580,87 @@ _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;";
+:;"#;
+
         let expected = DotrainOrder::new(expected_dotrain.to_string(), None)
             .await
             .unwrap();
-        assert_eq!(result, expected);
+
+        assert_eq!(result.config, expected.config);
+        assert_eq!(result.dotrain, expected.dotrain);
+    }
+
+    #[tokio::test]
+    async fn test_to_clean_frontmatter_with_deplyments_unhappy() {
+        let setting = r#"
+networks:
+    some-network:
+        rpc: https://abcd.com
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+"#;
+        let dotrain = r#"
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: T1
+        symbol: T1
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+        scenarios: 
+            child-scenario:
+                bindings:
+                    key1: value1
+
+orders:
+    some-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token1
+              vault-id: 1
+        deployer: some-deployer
+
+deployments:
+    some-deployment:
+        scenario: some-scenario.child-scenario
+        order: some-order
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;"#;
+
+        let result = DotrainOrder::new_with_deployments_frontmatter(
+            dotrain.to_string(),
+            Some(setting.to_string()),
+            &["some-other-deployment"],
+        )
+        .await;
+
+        matches!(result, Err(DotrainOrderError::ShakeOutError(_)));
     }
 }

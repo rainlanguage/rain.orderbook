@@ -1,5 +1,6 @@
 mod add;
 mod calldata;
+mod cleanup;
 mod compose;
 mod detail;
 mod list;
@@ -12,6 +13,7 @@ use add::CliOrderAddArgs;
 use anyhow::Result;
 use calldata::AddOrderCalldata;
 use clap::Parser;
+use cleanup::Cleanup;
 use compose::Compose;
 
 use detail::CliOrderDetailArgs;
@@ -46,6 +48,9 @@ pub enum Order {
         alias = "ob-addr"
     )]
     OrderbookAddress(OrderbookAddress),
+
+    #[command()]
+    Cleanup(Cleanup),
 }
 
 impl Execute for Order {
@@ -58,6 +63,7 @@ impl Execute for Order {
             Order::Compose(compose) => compose.execute().await,
             Order::Calldata(calldata) => calldata.execute().await,
             Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
+            Order::Cleanup(cleanup) => cleanup.execute().await,
         }
     }
 }
