@@ -33,6 +33,10 @@
   </div>
 </div>
 
+<div class="my-4">
+  <slot name="alert" />
+</div>
+
 <div class="my-4 overflow-hidden rounded-lg border dark:border-none">
   <slot name="textarea" />
 </div>

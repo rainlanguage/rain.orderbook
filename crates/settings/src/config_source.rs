@@ -35,6 +35,7 @@ pub struct ConfigSource {
     #[serde(default)]
     pub metaboards: HashMap<String, Url>,
     pub sentry: Option<bool>,
+    pub raindex_version: Option<String>,
 }
 
 #[typeshare]
@@ -213,6 +214,8 @@ mod tests {
         let mocked_chain_id_server = MockServer::start_async().await;
         let yaml_data = format!(
             r#"
+raindex-version: 123
+
 using-networks-from:
     chainid:
         url: {}
@@ -448,6 +451,8 @@ sentry: true"#,
         );
         assert_eq!(order.deployer, expected_order.deployer);
         assert_eq!(order.orderbook, expected_order.orderbook);
+
+        assert_eq!(config.raindex_version, Some("123".to_string()));
     }
 
     #[tokio::test]
