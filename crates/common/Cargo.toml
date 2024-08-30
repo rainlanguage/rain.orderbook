@@ -40,6 +40,7 @@ csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
+rain-orderbook-env = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
@@ -53,6 +54,3 @@ serde-wasm-bindgen = { version = "0.6.5" }
 wasm-bindgen-futures = { version = "0.4.42" }
 tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
-
-[dev-dependencies]
-rain-orderbook-env = { workspace = true }
