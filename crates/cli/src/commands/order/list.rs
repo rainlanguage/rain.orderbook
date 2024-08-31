@@ -207,6 +207,9 @@ mod tests {
                             "decimals": io.decimals.to_string(),
                         },
                     }],
+                    "orderbook": {
+                        "id": encode_prefixed(B256::random()),
+                    },
                     "active": true,
                     "timestampAdded": "0",
                     "addEvents": [{

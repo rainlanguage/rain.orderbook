@@ -70,6 +70,7 @@ test('renders the vault list table with correct data', async () => {
           balance: '100000000000',
           orders_as_input: [],
           orders_as_output: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -86,6 +87,7 @@ test('renders the vault list table with correct data', async () => {
     expect(screen.getByText('Output For')).toBeInTheDocument();
 
     expect(screen.getByTestId('vault-id')).toHaveTextContent('0xabc');
+    expect(screen.getByTestId('vault-orderbook')).toHaveTextContent('0x00');
     expect(screen.getByTestId('vault-owner')).toHaveTextContent('0x123');
     expect(screen.getByTestId('vault-token')).toHaveTextContent('USDC coin');
     expect(screen.getByTestId('vault-balance')).toHaveTextContent('100000 USDC');
@@ -130,6 +132,7 @@ test('clicking a row links to the vault detail page', async () => {
           balance: '100000000000',
           orders_as_input: [],
           orders_as_output: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -205,6 +208,7 @@ test('shows an ellipsis if there is more than three orders as input or output', 
             { id: '3', order_id: '0x789', amount: '100000000000' },
             { id: '4', order_id: '0xabc', amount: '100000000000' },
           ],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -240,6 +244,7 @@ test('clicking on an order links to the order detail page', async () => {
           balance: '100000000000',
           orders_as_input: [{ id: '0x123', order_id: '0x123', amount: '100000000000' }],
           orders_as_output: [{ id: '0x456', order_id: '0x456', amount: '100000000000' }],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -280,6 +285,7 @@ test('doesnt show the row dropdown menu if the wallet address does not match', a
           balance: '100000000000',
           orders_as_input: [],
           orders_as_output: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -315,6 +321,7 @@ test('clicking the deposit option in the row dropdown menu opens the deposit mod
     balance: '100000000000',
     orders_as_input: [],
     orders_as_output: [],
+    orderbook: { id: '0x00' },
   };
 
   mockIPC((cmd) => {
