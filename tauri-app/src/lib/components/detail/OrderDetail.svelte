@@ -33,7 +33,7 @@
   <svelte:fragment slot="top" let:data>
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       <div class="flex gap-x-2">
-        <span class="font-light">Order</span>
+        <span class="font-light">Order Hash</span>
         <Hash shorten value={data.order.order_hash} />
       </div>
       <BadgeActive active={data.order.active} large />
@@ -44,6 +44,13 @@
   </svelte:fragment>
   <svelte:fragment slot="card" let:data>
     <div class="flex flex-col gap-y-6">
+      <CardProperty>
+        <svelte:fragment slot="key">Orderbook</svelte:fragment>
+        <svelte:fragment slot="value">
+          <Hash type={HashType.Identifier} shorten={false} value={data.order.orderbook.id} />
+        </svelte:fragment>
+      </CardProperty>
+
       <CardProperty>
         <svelte:fragment slot="key">Owner</svelte:fragment>
         <svelte:fragment slot="value">

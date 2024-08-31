@@ -39,5 +39,8 @@ query OrdersListQuery($first: Int, $skip: Int) {
       }
     }
     timestampAdded
+    orderbook {
+      id
+    }
   }
 }

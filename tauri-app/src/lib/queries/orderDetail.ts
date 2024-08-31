@@ -64,6 +64,9 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
     ],
     meta: 'metadata1',
     timestamp_added: '1620000000',
+    orderbook: {
+      id: '0x00',
+    },
   },
   rainlang: 'rainlang1',
 };
