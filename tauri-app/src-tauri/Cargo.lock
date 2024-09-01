@@ -8172,7 +8172,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "typeshare 1.0.1",
  "url",
  "validator",
 ]
