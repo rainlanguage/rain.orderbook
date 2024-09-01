@@ -8172,7 +8172,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "typeshare 1.0.1",
  "url",
  "validator",
 ]
@@ -8307,6 +8306,7 @@ dependencies = [
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain-metadata-bindings",
+ "rain-orderbook-env",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",

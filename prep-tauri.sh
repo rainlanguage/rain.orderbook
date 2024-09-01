@@ -9,6 +9,7 @@ keep=(
   -k CI_DEPLOY_POLYGON_RPC_URL
   -k CI_SEPOLIA_METABOARD_URL
   -k RPC_URL_ETHEREUM_FORK
+  -k COMMIT_SHA
 )
 
 # Run commands in the current working directory

@@ -13,6 +13,7 @@ use rain_orderbook_app_settings::{
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
+use rain_orderbook_env::GH_COMMIT_SHA;
 use serde::Serialize;
 use thiserror::Error;
 use typeshare::typeshare;
@@ -54,6 +55,12 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     ParserError(#[from] ParserError),
+
+    #[error("Raindex version mismatch: got {1}, should be {0}")]
+    RaindexVersionMismatch(String, String),
+
+    #[error("Raindex version missing: should be {0}")]
+    MissingRaindexVersion(String),
 }
 
 #[typeshare]
@@ -281,6 +288,27 @@ impl DotrainOrder {
             scenarios.push(self.get_all_words_for_scenario(scenario).await?);
         }
         Ok(scenarios)
+    }
+
+    pub async fn validate_raindex_version(&self) -> Result<(), DotrainOrderError> {
+        let app_sha = GH_COMMIT_SHA.to_string();
+
+        let frontmatter = RainDocument::get_front_matter(&self.dotrain).unwrap();
+        let frontmatter_config = ConfigSource::try_from_string(frontmatter.to_string()).await?;
+        let config: Config = frontmatter_config.try_into()?;
+
+        if let Some(raindex_version) = config.raindex_version {
+            if app_sha != *raindex_version {
+                return Err(DotrainOrderError::RaindexVersionMismatch(
+                    app_sha,
+                    raindex_version.to_string(),
+                ));
+            }
+        } else {
+            return Err(DotrainOrderError::MissingRaindexVersion(app_sha));
+        }
+
+        Ok(())
     }
 }
 
@@ -794,5 +822,55 @@ _ _: 0 0;
             }));
         });
         server
+    }
+
+    #[tokio::test]
+    async fn test_validate_raindex_version_happy() {
+        let dotrain = format!(
+            r#"
+                raindex-version: {GH_COMMIT_SHA}
+                networks:
+                    sepolia:
+                        rpc: http://example.com
+                        chain-id: 0
+                deployers:
+                    sepolia:
+                        address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+                ---
+                #calculate-io
+                _ _: 0 0;
+                #handle-io
+                :;"#,
+            GH_COMMIT_SHA = GH_COMMIT_SHA,
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        dotrain_order.validate_raindex_version().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_validate_raindex_version_unhappy() {
+        let dotrain = format!(
+            r#"
+                raindex-version: {GH_COMMIT_SHA}
+                networks:
+                    sepolia:
+                        rpc: http://example.com
+                        chain-id: 0
+                deployers:
+                    sepolia:
+                        address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+                ---
+                #calculate-io
+                _ _: 0 0;
+                #handle-io
+                :;"#,
+            GH_COMMIT_SHA = "1234567890",
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        assert!(dotrain_order.validate_raindex_version().await.is_err());
     }
 }

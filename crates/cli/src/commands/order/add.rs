@@ -112,7 +112,9 @@ mod tests {
     }
 
     fn get_dotrain() -> String {
-        "
+        format!(
+            r#"
+raindex-version: {raindex_version}
 networks:
     some-network:
         rpc: https://some-rpc.com
@@ -174,7 +176,9 @@ _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;"
+:;"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        )
         .to_string()
     }
 }

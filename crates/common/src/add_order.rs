@@ -1,4 +1,5 @@
 use crate::{
+    dotrain_order::{DotrainOrder, DotrainOrderError},
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
@@ -49,6 +50,8 @@ pub enum AddOrderArgsError {
     RainMetaError(#[from] RainMetaError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
+    #[error(transparent)]
+    DotrainOrderError(#[from] DotrainOrderError),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -67,6 +70,12 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: Deployment,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
+        // check the raindex version of the dotrain
+        DotrainOrder::new(dotrain.clone(), None)
+            .await?
+            .validate_raindex_version()
+            .await?;
+
         let random_vault_id: U256 = rand::random();
         let mut inputs = vec![];
         for input in &deployment.order.inputs {
@@ -444,13 +453,19 @@ price: 2e18;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;"#;
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -536,8 +551,9 @@ _ _: 0 0;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -545,7 +561,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -673,8 +691,9 @@ _ _: 0 0;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -682,7 +701,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+"#,
+            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
             .await
             .unwrap();
