@@ -2,7 +2,7 @@ use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args, Parser};
 use csv::Writer;
-use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, DotrainOrderError};
+use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, WordsResult};
 use reqwest::Url;
 use std::{fs::read_to_string, path::PathBuf, str::FromStr, sync::Arc};
 
@@ -140,27 +140,34 @@ impl Execute for Words {
                     .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
             }
             if self.deployer_only {
-                order.get_scenario_deployer_words(scenario).await?.words
+                match order.get_deployer_words_for_scenario(scenario).await?.words {
+                    WordsResult::Success(v) => v.words,
+                    WordsResult::Error(e) => Err(anyhow!(e))?,
+                }
             } else if self.pragma_only {
-                order
-                    .get_scenario_pragma_words(scenario)
-                    .await?
-                    .1
-                    .into_iter()
-                    .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()?
-                    .into_iter()
-                    .flat_map(|v| v.words)
-                    .collect()
+                let result = order.get_pragma_words_for_scenario(scenario).await?;
+                let mut words = vec![];
+                for p in result {
+                    match p.words {
+                        WordsResult::Success(v) => words.extend(v.words),
+                        WordsResult::Error(e) => Err(anyhow!(e))?,
+                    }
+                }
+                words
             } else {
-                order
-                    .get_scenario_all_words(scenario)
-                    .await?
-                    .1
-                    .into_iter()
-                    .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()?
-                    .into_iter()
-                    .flat_map(|v| v.words)
-                    .collect()
+                let result = order.get_all_words_for_scenario(scenario).await?;
+                let mut words = vec![];
+                match result.deployer_words.words {
+                    WordsResult::Success(v) => words.extend(v.words),
+                    WordsResult::Error(e) => Err(anyhow!(e))?,
+                }
+                for p in result.pragma_words {
+                    match p.words {
+                        WordsResult::Success(v) => words.extend(v.words),
+                        WordsResult::Error(e) => Err(anyhow!(e))?,
+                    }
+                }
+                words
             }
         } else if let Some(deployment) = &self.source.deployment {
             let deployment = order
@@ -184,15 +191,19 @@ impl Execute for Words {
                     .metaboards
                     .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
             }
-            order
-                .get_scenario_all_words(scenario)
-                .await?
-                .1
-                .into_iter()
-                .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()?
-                .into_iter()
-                .flat_map(|v| v.words)
-                .collect()
+            let result = order.get_all_words_for_scenario(scenario).await?;
+            let mut words = vec![];
+            match result.deployer_words.words {
+                WordsResult::Success(v) => words.extend(v.words),
+                WordsResult::Error(e) => Err(anyhow!(e))?,
+            }
+            for p in result.pragma_words {
+                match p.words {
+                    WordsResult::Success(v) => words.extend(v.words),
+                    WordsResult::Error(e) => Err(anyhow!(e))?,
+                }
+            }
+            words
         } else {
             // clap doesnt allow this to happen since at least 1 source
             // is required which is enforced and catched by clap

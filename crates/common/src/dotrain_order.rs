@@ -13,7 +13,7 @@ use rain_orderbook_app_settings::{
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 use thiserror::Error;
 use typeshare::typeshare;
 
@@ -57,7 +57,7 @@ pub enum DotrainOrderError {
 }
 
 #[typeshare]
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
 pub enum WordsResult {
     Success(AuthoringMetaV2),
@@ -65,7 +65,7 @@ pub enum WordsResult {
 }
 
 #[typeshare]
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct ContractWords {
     pub address: Address,
     pub words: WordsResult,
@@ -81,7 +81,7 @@ impl From<Result<AuthoringMetaV2, DotrainOrderError>> for WordsResult {
 }
 
 #[typeshare]
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct ScenarioWords {
     pub scenario: String,
     pub pragma_words: Vec<ContractWords>,
@@ -236,13 +236,7 @@ impl DotrainOrder {
     pub async fn get_all_words_for_scenario(
         &self,
         scenario: &str,
-    ) -> Result<
-        (
-            Vec<Address>,
-            Vec<Result<AuthoringMetaV2, DotrainOrderError>>,
-        ),
-        DotrainOrderError,
-    > {
+    ) -> Result<ScenarioWords, DotrainOrderError> {
         let deployer = &self
             .config
             .scenarios
@@ -257,21 +251,34 @@ impl DotrainOrder {
         for address in addresses.clone() {
             futures.push(self.get_contract_authoring_meta_v2_for_scenario(scenario, address));
         }
-        Ok((addresses, join_all(futures).await))
+        let mut results = join_all(futures).await;
+
+        let deployer_words = ContractWords {
+            address: *deployer,
+            words: results.drain(0..1).nth(0).unwrap().into(),
+        };
+        let pragma_words = results
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| ContractWords {
+                address: addresses[i + 1],
+                words: v.into(),
+            })
+            .collect();
+
+        Ok(ScenarioWords {
+            scenario: scenario.to_string(),
+            pragma_words,
+            deployer_words,
+        })
     }
 
     pub async fn get_all_scenarios_all_words(
         &self,
     ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
         let mut scenarios = vec![];
-        for (scenario, _) in &self.config.scenarios {
-            let pragma_words = self.get_pragma_words_for_scenario(scenario).await?;
-            let deployer_words = self.get_deployer_words_for_scenario(scenario).await?;
-            scenarios.push(ScenarioWords {
-                scenario: scenario.clone(),
-                pragma_words,
-                deployer_words,
-            });
+        for scenario in self.config.scenarios.keys() {
+            scenarios.push(self.get_all_words_for_scenario(scenario).await?);
         }
         Ok(scenarios)
     }
@@ -279,8 +286,6 @@ impl DotrainOrder {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
     use alloy_ethers_typecast::rpc::Response;
@@ -502,7 +507,7 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_get_authoring_meta_v2_for_scenario() {
+    async fn test_get_contract_authoring_meta_v2_for_scenario() {
         let pragma_addresses = vec![Address::random()];
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
@@ -532,7 +537,7 @@ _ _: 0 0;
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
         let result = dotrain_order
-            .get_authoring_meta_v2_for_scenario("sepolia", pragma_addresses[0])
+            .get_contract_authoring_meta_v2_for_scenario("sepolia", pragma_addresses[0])
             .await
             .unwrap();
 
@@ -544,7 +549,7 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_get_scenario_pragma_words() {
+    async fn test_get_pragma_words_for_scenario() {
         let pragma_addresses = vec![Address::random()];
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
@@ -573,29 +578,26 @@ _ _: 0 0;
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
         let result = dotrain_order
-            .get_scenario_pragma_words("sepolia")
+            .get_pragma_words_for_scenario("sepolia")
             .await
             .unwrap();
 
-        assert_eq!(&result.0, &pragma_addresses);
+        assert!(result.len() == 1);
+        assert_eq!(result[0].address, pragma_addresses[0]);
+        assert!(matches!(result[0].words, WordsResult::Success(_)));
+        if let WordsResult::Success(authoring_meta) = &result[0].words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
-        let authoring_meta = result
-            .1
-            .into_iter()
-            .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()
-            .unwrap();
-        for words in &authoring_meta {
-            assert_eq!(&words.words[0].word, "some-word");
-            assert_eq!(&words.words[0].description, "some-desc");
-
-            assert_eq!(&words.words[1].word, "some-other-word");
-            assert_eq!(&words.words[1].description, "some-other-desc");
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
         }
     }
 
     #[tokio::test]
-    async fn test_get_scenario_deployer_words() {
+    async fn test_get_deployer_words_for_scenario() {
         let server = mock_server(vec![]);
+        let deployer = Address::random();
         let dotrain = format!(
             r#"
     networks:
@@ -604,7 +606,7 @@ _ _: 0 0;
             chain-id: 0
     deployers:
         sepolia:
-            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+            address: {deployer_address}
     scenarios:
         sepolia:
     metaboards:
@@ -618,23 +620,29 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
+            deployer_address = encode_prefixed(deployer),
         );
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
         let result = dotrain_order
-            .get_scenario_deployer_words("sepolia")
+            .get_deployer_words_for_scenario("sepolia")
             .await
             .unwrap();
 
-        assert_eq!(&result.words[0].word, "some-word");
-        assert_eq!(&result.words[0].description, "some-desc");
+        assert_eq!(result.address, deployer);
+        assert!(matches!(result.words, WordsResult::Success(_)));
+        if let WordsResult::Success(authoring_meta) = &result.words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
-        assert_eq!(&result.words[1].word, "some-other-word");
-        assert_eq!(&result.words[1].description, "some-other-desc");
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+        }
     }
 
     #[tokio::test]
-    async fn test_get_scenario_all_words() {
+    async fn test_get_all_words_for_scenario() {
+        let deployer = Address::random();
         let pragma_addresses = vec![Address::random()];
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
@@ -645,7 +653,7 @@ _ _: 0 0;
             chain-id: 0
     deployers:
         sepolia:
-            address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+            address: {deployer_address}
     scenarios:
         sepolia:
     metaboards:
@@ -659,30 +667,42 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
+            deployer_address = encode_prefixed(deployer),
         );
 
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
         let result = dotrain_order
-            .get_scenario_all_words("sepolia")
+            .get_all_words_for_scenario("sepolia")
             .await
             .unwrap();
 
-        let mut expected_addresses =
-            vec![Address::from_str("0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59").unwrap()];
-        expected_addresses.extend(pragma_addresses);
-        assert_eq!(&result.0, &expected_addresses);
+        assert_eq!(&result.scenario, "sepolia");
 
-        let authoring_meta = result
-            .1
-            .into_iter()
-            .collect::<Result<Vec<AuthoringMetaV2>, DotrainOrderError>>()
-            .unwrap();
-        for words in &authoring_meta {
-            assert_eq!(&words.words[0].word, "some-word");
-            assert_eq!(&words.words[0].description, "some-desc");
+        assert_eq!(result.deployer_words.address, deployer);
+        assert!(matches!(
+            result.deployer_words.words,
+            WordsResult::Success(_)
+        ));
+        if let WordsResult::Success(authoring_meta) = &result.deployer_words.words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
-            assert_eq!(&words.words[1].word, "some-other-word");
-            assert_eq!(&words.words[1].description, "some-other-desc");
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+        }
+
+        assert!(result.pragma_words.len() == 1);
+        assert_eq!(result.pragma_words[0].address, pragma_addresses[0]);
+        assert!(matches!(
+            result.pragma_words[0].words,
+            WordsResult::Success(_)
+        ));
+        if let WordsResult::Success(authoring_meta) = &result.pragma_words[0].words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
         }
     }
 

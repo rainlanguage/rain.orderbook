@@ -6210,6 +6210,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "typeshare",
  "url",
  "validator",
 ]

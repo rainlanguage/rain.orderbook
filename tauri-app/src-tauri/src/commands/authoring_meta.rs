@@ -22,6 +22,7 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
+    use rain_orderbook_common::dotrain_order::WordsResult;
     use serde_bytes::ByteBuf;
 
     sol!(
@@ -36,8 +37,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_authoring_meta_v2_for_scenarios_happy() {
-        let pragma_addresses = vec![Address::random()];
         let deployer_address = Address::random();
+        let pragma_addresses = vec![Address::random()];
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
@@ -65,46 +66,41 @@ _ _: 0 0;
             deployer = encode_prefixed(deployer_address)
         );
 
-        let res = get_authoring_meta_v2_for_scenarios(dotrain, None)
+        let results = get_authoring_meta_v2_for_scenarios(dotrain, None)
             .await
             .unwrap();
 
-        let expected = vec![ScenarioAuthoringMeta {
-            scenario_name: "sepolia".to_string(),
-            result: ScenarioResult::Success(ScenarioPragmas {
-                deployer: PragmaAuthoringMeta {
-                    address: deployer_address,
-                    result: PragmaResult::Success(ExtAuthoringMetaV2 {
-                        words: vec![
-                            ExtAuthoringMetaV2Word {
-                                word: "some-word".to_string(),
-                                description: "some-desc".to_string(),
-                            },
-                            ExtAuthoringMetaV2Word {
-                                word: "some-other-word".to_string(),
-                                description: "some-other-desc".to_string(),
-                            },
-                        ],
-                    }),
-                },
-                pragmas: vec![PragmaAuthoringMeta {
-                    address: pragma_addresses[0],
-                    result: PragmaResult::Success(ExtAuthoringMetaV2 {
-                        words: vec![
-                            ExtAuthoringMetaV2Word {
-                                word: "some-word".to_string(),
-                                description: "some-desc".to_string(),
-                            },
-                            ExtAuthoringMetaV2Word {
-                                word: "some-other-word".to_string(),
-                                description: "some-other-desc".to_string(),
-                            },
-                        ],
-                    }),
-                }],
-            }),
-        }];
-        assert_eq!(res, expected);
+        assert_eq!(results.len(), 1);
+        for result in results {
+            assert_eq!(&result.scenario, "sepolia");
+
+            assert_eq!(result.deployer_words.address, deployer_address);
+            assert!(matches!(
+                result.deployer_words.words,
+                WordsResult::Success(_)
+            ));
+            if let WordsResult::Success(authoring_meta) = &result.deployer_words.words {
+                assert_eq!(&authoring_meta.words[0].word, "some-word");
+                assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+                assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+                assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+            }
+
+            assert!(result.pragma_words.len() == 1);
+            assert_eq!(result.pragma_words[0].address, pragma_addresses[0]);
+            assert!(matches!(
+                result.pragma_words[0].words,
+                WordsResult::Success(_)
+            ));
+            if let WordsResult::Success(authoring_meta) = &result.pragma_words[0].words {
+                assert_eq!(&authoring_meta.words[0].word, "some-word");
+                assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+                assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+                assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+            }
+        }
     }
 
     #[tokio::test]
@@ -128,7 +124,7 @@ _ _: 0 0;
     ---
     #calculate-io
     using-words-from {pragma}
-    _: order-hash()
+    _: order-hash(),
     _ _: 0 0;
     #handle-io
     :;"#,
@@ -138,18 +134,17 @@ _ _: 0 0;
             deployer = encode_prefixed(deployer_address)
         );
 
-        let res = get_authoring_meta_v2_for_scenarios(dotrain, None)
+        let results = get_authoring_meta_v2_for_scenarios(dotrain, None)
             .await
             .unwrap();
 
-        assert_eq!(res.len(), 1);
-        matches!(
-            res[0],
-            ScenarioAuthoringMeta {
-                result: ScenarioResult::Error(_),
-                ..
-            }
-        );
+        assert_eq!(results.len(), 1);
+        for result in results {
+            assert_eq!(&result.scenario, "sepolia");
+            assert!(&result.pragma_words.is_empty());
+            assert_eq!(result.deployer_words.address, deployer_address);
+            assert!(matches!(result.deployer_words.words, WordsResult::Error(_)));
+        }
     }
 
     #[tokio::test]
@@ -256,44 +251,46 @@ _ _: 0 0;
             deployer = encode_prefixed(deployer_address)
         );
 
-        let res = get_authoring_meta_v2_for_scenarios(dotrain, None)
+        let results = get_authoring_meta_v2_for_scenarios(dotrain, None)
             .await
             .unwrap();
-        let expected = vec![
-            ScenarioAuthoringMeta {
-                scenario_name: "sepolia".to_string(),
-                result: ScenarioResult::Success(ScenarioPragmas {
-                    deployer: PragmaAuthoringMeta {
-                        address: deployer_address,
-                        result: PragmaResult::Success(ExtAuthoringMetaV2 {
-                            words: vec![
-                                ExtAuthoringMetaV2Word {
-                                    word: "some-word".to_string(),
-                                    description: "some-desc".to_string()
-                                },
-                                ExtAuthoringMetaV2Word {
-                                    word: "some-other-word".to_string(),
-                                    description: "some-other-desc".to_string()
-                                }
-                            ]
-                        })
-                    },
-                    pragmas: vec![
-                        PragmaAuthoringMeta {
-                            address: pragma_addresses[0],
-                            result: PragmaResult::Error(format!(
-                                "Error fetching authoring meta for contract {}, RPC URL {}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
-                                pragma_addresses[0],
-                                server.url("/rpc"),
-                                server.url("/sg"),
-                                pragma_meta_hash,
-                            ))
-                        },
-                    ]
-                })
+
+        assert_eq!(results.len(), 1);
+        for result in results {
+            assert_eq!(&result.scenario, "sepolia");
+
+            assert_eq!(result.deployer_words.address, deployer_address);
+            assert!(matches!(
+                result.deployer_words.words,
+                WordsResult::Success(_)
+            ));
+            if let WordsResult::Success(authoring_meta) = &result.deployer_words.words {
+                assert_eq!(&authoring_meta.words[0].word, "some-word");
+                assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+                assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+                assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
             }
-        ];
-        assert_eq!(res, expected);
+
+            assert!(result.pragma_words.len() == 1);
+            assert_eq!(result.pragma_words[0].address, pragma_addresses[0]);
+            assert!(matches!(
+                result.pragma_words[0].words,
+                WordsResult::Error(_)
+            ));
+            if let WordsResult::Error(e) = &result.pragma_words[0].words {
+                assert_eq!(
+                    e, 
+                    &format!(
+                        "Error fetching authoring meta for contract {}, RPC URL {}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
+                        pragma_addresses[0],
+                        server.url("/rpc"),
+                        server.url("/sg"),
+                        pragma_meta_hash,
+                    )
+                );
+            }
+        }
     }
 
     fn get_sg_mocked_meta() -> serde_json::Value {

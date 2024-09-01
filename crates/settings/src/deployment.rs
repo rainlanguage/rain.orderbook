@@ -62,6 +62,7 @@ mod tests {
 
     // Mock a simple Network struct for testing purposes
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     struct MockNetwork {
         name: String,
     }
