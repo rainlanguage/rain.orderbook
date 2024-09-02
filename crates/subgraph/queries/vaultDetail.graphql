@@ -1,9 +1,18 @@
 query VaultDetailQuery($id: Bytes!) {
   vault(id: $id) {
    vaultId
-    token
+    token {
+      id
+      address
+      name
+      symbol
+      decimals
+    }
     owner
-    ordersAsOuput {
+    orderbook {
+      id
+    }
+    ordersAsOutput {
       orderHash
       active
     }

@@ -41,5 +41,8 @@ query OrderDetailQuery($id: ID!) {
     }
     meta
     timestampAdded
+    orderbook {
+      id
+    }
   }
 }

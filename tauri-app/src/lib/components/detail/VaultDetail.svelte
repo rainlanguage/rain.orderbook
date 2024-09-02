@@ -59,6 +59,13 @@
       <svelte:fragment slot="value">{bigintStringToHex(data.vault_id)}</svelte:fragment>
     </CardProperty>
 
+    <CardProperty data-testid="vaultDetailOrderbookAddress">
+      <svelte:fragment slot="key">Orderbook</svelte:fragment>
+      <svelte:fragment slot="value">
+        <Hash type={HashType.Identifier} value={data.orderbook.id} />
+      </svelte:fragment>
+    </CardProperty>
+
     <CardProperty data-testid="vaultDetailOwnerAddress">
       <svelte:fragment slot="key">Owner Address</svelte:fragment>
       <svelte:fragment slot="value">

@@ -30,6 +30,13 @@ pub struct VaultBalanceChange {
     pub vault: Vault,
     pub timestamp: BigInt,
     pub transaction: Transaction,
+    pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Orderbook {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
