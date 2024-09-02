@@ -22,6 +22,7 @@ test('renders table with the correct data', async () => {
       open: true,
       order: {
         id: '1',
+        orderbook: { id: '0x00' },
         order_bytes: '0x123',
         order_hash: '0x123',
         owner: '0x123',
