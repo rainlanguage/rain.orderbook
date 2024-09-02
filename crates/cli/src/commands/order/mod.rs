@@ -1,8 +1,8 @@
 mod add;
 mod calldata;
-mod cleanup;
 mod compose;
 mod detail;
+mod filter;
 mod list;
 mod orderbook_address;
 mod remove;
@@ -13,8 +13,8 @@ use add::CliOrderAddArgs;
 use anyhow::Result;
 use calldata::AddOrderCalldata;
 use clap::Parser;
-use cleanup::Cleanup;
 use compose::Compose;
+use filter::Filter;
 
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
@@ -50,7 +50,7 @@ pub enum Order {
     OrderbookAddress(OrderbookAddress),
 
     #[command()]
-    Cleanup(Cleanup),
+    Filter(Filter),
 }
 
 impl Execute for Order {
@@ -63,7 +63,7 @@ impl Execute for Order {
             Order::Compose(compose) => compose.execute().await,
             Order::Calldata(calldata) => calldata.execute().await,
             Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
-            Order::Cleanup(cleanup) => cleanup.execute().await,
+            Order::Filter(filter) => filter.execute().await,
         }
     }
 }

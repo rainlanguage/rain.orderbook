@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// Generate a new .rain with unused frontmatter cleaned, ie frontmatter will only include the
 /// specified deployments (and their related fields) from a given .rain and an optional setting.yml
 #[derive(Parser, Clone)]
-pub struct Cleanup {
+pub struct Filter {
     /// Path to the .rain file
     #[arg(short = 'f', long, value_name = "PATH")]
     dotrain_file: PathBuf,
@@ -30,7 +30,7 @@ pub struct Cleanup {
     pub stdout: bool,
 }
 
-impl Execute for Cleanup {
+impl Execute for Filter {
     async fn execute(&self) -> Result<()> {
         // read inpput files
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
@@ -42,7 +42,7 @@ impl Execute for Cleanup {
         };
 
         // generate new dotrain order instance with cleaned up frontmatter
-        let order = DotrainOrder::new_with_deployments_frontmatter(
+        let order = DotrainOrder::new_with_frontmatter_filtered_by_deployment(
             dotrain,
             settings,
             &self
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn verify_cli() {
-        Cleanup::command().debug_assert();
+        Filter::command().debug_assert();
     }
 
     #[tokio::test]
@@ -145,12 +145,12 @@ _ _: 0 0;
 #handle-add-order
 :;"#;
 
-        let dotrain_path = "./test_dotrain_cleanup.rain";
-        let settings_path = "./test_settings_cleanup.yml";
+        let dotrain_path = "./test_dotrain_filter.rain";
+        let settings_path = "./test_settings_filter.yml";
         std::fs::write(dotrain_path, dotrain).unwrap();
         std::fs::write(settings_path, setting).unwrap();
 
-        let cleanup = Cleanup {
+        let filter = Filter {
             dotrain_file: dotrain_path.into(),
             settings_file: Some(settings_path.into()),
             deployments: vec!["some-deployment".to_string()],
@@ -158,7 +158,7 @@ _ _: 0 0;
             stdout: true,
         };
 
-        assert!(cleanup.execute().await.is_ok());
+        assert!(filter.execute().await.is_ok());
 
         std::fs::remove_file(dotrain_path).unwrap();
         std::fs::remove_file(settings_path).unwrap();
@@ -166,7 +166,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_execute_unhappy() {
-        let cleanup = Cleanup {
+        let filter = Filter {
             dotrain_file: "./bad-path/test.rain".into(),
             settings_file: None,
             deployments: vec!["some-deployment".to_string()],
@@ -174,6 +174,6 @@ _ _: 0 0;
             stdout: true,
         };
 
-        assert!(cleanup.execute().await.is_err());
+        assert!(filter.execute().await.is_err());
     }
 }
