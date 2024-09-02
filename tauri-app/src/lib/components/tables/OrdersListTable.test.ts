@@ -103,7 +103,7 @@ test('renders the orders list table with correct data', async () => {
 
   await waitFor(async () => {
     expect(screen.getByTestId('orderListHeadingActive')).toHaveTextContent('Active');
-    expect(screen.getByTestId('orderListHeadingID')).toHaveTextContent('Order Hash');
+    expect(screen.getByTestId('orderListHeadingID')).toHaveTextContent('Order');
     expect(screen.getByTestId('orderListHeadingOwner')).toHaveTextContent('Owner');
     expect(screen.getByTestId('orderListHeadingOrderbook')).toHaveTextContent('Orderbook');
     expect(screen.getByTestId('orderListHeadingCreatedAt')).toHaveTextContent('Created At');

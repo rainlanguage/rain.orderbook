@@ -53,7 +53,7 @@
 
     <svelte:fragment slot="head">
       <TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
-      <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order Hash</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingCreatedAt" padding="p-4">Created At</TableHeadCell

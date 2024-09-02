@@ -111,7 +111,7 @@ test('shows the correct data when the query returns data', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText('Order Hash')).toBeInTheDocument();
+    expect(screen.getByText('Order')).toBeInTheDocument();
     expect(screen.getByText('0xabc...bcdef')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('0x1111111111111111111111111111111111111111')).toBeInTheDocument();

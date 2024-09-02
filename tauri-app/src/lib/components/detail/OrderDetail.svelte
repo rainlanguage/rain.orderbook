@@ -33,7 +33,7 @@
   <svelte:fragment slot="top" let:data>
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       <div class="flex gap-x-2">
-        <span class="font-light">Order Hash</span>
+        <span class="font-light">Order</span>
         <Hash shorten value={data.order.order_hash} />
       </div>
       <BadgeActive active={data.order.active} large />
