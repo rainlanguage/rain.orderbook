@@ -118,6 +118,9 @@ mod tests {
                             "from": encode_prefixed(Address::random()),
                         }
                     },
+                    "orderbook": {
+                        "id": encode_prefixed(B256::random()),
+                    },
                 }
             }
         })

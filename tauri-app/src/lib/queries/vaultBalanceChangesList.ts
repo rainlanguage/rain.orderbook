@@ -55,6 +55,9 @@ if (import.meta.vitest) {
           id: 'tx1',
           from: '0xUser1',
         },
+        orderbook: {
+          id: '0x00',
+        },
       },
       {
         __typename: 'TradeVaultBalanceChange',
@@ -76,6 +79,9 @@ if (import.meta.vitest) {
           id: 'tx2',
           from: '0xUser2',
         },
+        orderbook: {
+          id: '0x00',
+        },
       },
       {
         __typename: 'Deposit',
@@ -96,6 +102,9 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx3',
           from: '0xUser3',
+        },
+        orderbook: {
+          id: '0x00',
         },
       },
     ];

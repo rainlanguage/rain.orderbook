@@ -23,5 +23,8 @@ query VaultBalanceChangesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       id
       from
     }
+    orderbook {
+      id
+    }
   }
 }

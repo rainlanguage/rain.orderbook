@@ -21,6 +21,9 @@ if (import.meta.vitest) {
       owner: '0x00',
       orders_as_input: [],
       orders_as_output: [],
+      orderbook: {
+        id: '0x00',
+      },
     } as Vault;
 
     expect(vaultBalanceDisplay(vault)).toEqual('1');

@@ -26,6 +26,13 @@ pub struct Trade {
     pub order: Order,
     pub input_vault_balance_change: TradeVaultBalanceChange2,
     pub timestamp: BigInt,
+    pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Orderbook {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -111,6 +118,10 @@ pub enum TradeOrderBy {
     OrderNonce,
     #[cynic(rename = "order__orderBytes")]
     OrderOrderBytes,
+    #[cynic(rename = "orderbook")]
+    Orderbook,
+    #[cynic(rename = "orderbook__id")]
+    OrderbookId,
     #[cynic(rename = "inputVaultBalanceChange")]
     InputVaultBalanceChange,
     #[cynic(rename = "inputVaultBalanceChange__id")]

@@ -38,6 +38,9 @@ if (import.meta.vitest) {
       orders_as_input: [],
       orders_as_output: [],
       balance_changes: [],
+      orderbook: {
+        id: '0x00',
+      },
     };
     mockIPC((cmd) => {
       if (cmd === 'vault_detail') {

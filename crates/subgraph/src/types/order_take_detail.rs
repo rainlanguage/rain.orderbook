@@ -22,6 +22,13 @@ pub struct Trade {
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: Order,
     pub input_vault_balance_change: TradeVaultBalanceChange2,
+    pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Orderbook {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]

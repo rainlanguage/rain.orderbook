@@ -2,12 +2,21 @@ query VaultsListQuery($skip: Int = 0, $first: Int = 25) {
   vaults(orderBy: id, orderDirection: desc, skip: $skip, first: $first) {
     id
     owner
-    token
+    token {
+      id
+      address
+      name
+      symbol
+      decimals
+    }
     balance
+    orderbook {
+      id
+    }
     ordersAsInput {
       orderHash
     }
-    ordersAsOuput {
+    ordersAsOutput {
       orderHash
     }
   }

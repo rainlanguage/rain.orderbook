@@ -41,5 +41,8 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
     }
     meta
     timestampAdded
+    orderbook {
+      id
+    }
   }
 }
