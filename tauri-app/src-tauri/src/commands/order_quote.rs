@@ -42,11 +42,12 @@ pub async fn batch_order_quotes(
                     .outputs
                     .iter()
                     .enumerate()
+                    .filter(move |(output_index, _)| input_index != *output_index)
                     .map(move |(output_index, output)| {
                         let pair_name = format!(
                             "{}/{}",
-                            input.token.symbol.as_deref().unwrap_or("UNKNOWN"),
-                            output.token.symbol.as_deref().unwrap_or("UNKNOWN")
+                            output.token.symbol.as_deref().unwrap_or("UNKNOWN"),
+                            input.token.symbol.as_deref().unwrap_or("UNKNOWN")
                         );
                         (pair_name, input_index, output_index)
                     })

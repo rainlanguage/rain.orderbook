@@ -16,11 +16,14 @@
     TableBodyRow,
     TableHead,
     TableHeadCell,
+    Tooltip,
   } from 'flowbite-svelte';
-  import { BugOutline } from 'flowbite-svelte-icons';
+  import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 
   export let id: string;
   export let order: Order;
+
+  let enabled = true;
 
   const getOrderQuote = async (order: Order) => {
     const data = await batchOrderQuotes([order]);
@@ -34,7 +37,7 @@
   $: orderQuoteQuery = createQuery({
     queryKey: [QKEY_ORDER_QUOTE + id],
     queryFn: () => getOrderQuote(order),
-    enabled: !!id,
+    enabled: !!id && enabled,
     refetchInterval: 10000,
   });
 </script>
@@ -42,12 +45,27 @@
 <div class="mt-4">
   <div class="mb-4 flex items-center justify-between">
     <h2 class="text-lg font-semibold">Order Quotes</h2>
-    <Refresh
-      data-testid="refreshButton"
-      class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
-      on:click={refreshQuotes}
-      spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
-    />
+    <div class="flex gap-x-2">
+      <Refresh
+        data-testid="refreshButton"
+        class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
+        on:click={refreshQuotes}
+        spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
+      />
+      <PauseSolid
+        class={`ml-2 h-8 w-3 cursor-pointer text-gray-400 dark:text-gray-400 ${!enabled ? 'hidden' : ''}`}
+        on:click={() => {
+          enabled = false;
+        }}
+      />
+      <PlaySolid
+        on:click={() => {
+          enabled = true;
+          refreshQuotes();
+        }}
+        class={`ml-2 h-8 w-3 cursor-pointer text-gray-400 dark:text-gray-400 ${enabled ? 'hidden' : ''}`}
+      />
+    </div>
   </div>
 
   <Table divClass="rounded-lg overflow-hidden dark:border-none border">
@@ -85,10 +103,19 @@
           {:else if !item.success && item.error}
             <TableBodyRow>
               <TableBodyCell>{item.pair_name}</TableBodyCell>
-              <TableBodyCell colspan="2" class="text-center text-red-500 dark:text-red-400">
-                {'Error fetching pair quote:'} <br />
-                {item.error}
+              <TableBodyCell colspan="2" class="flex flex-col justify-start text-gray-400">
+                <Tooltip triggeredBy="#quote-error">
+                  {item.error}
+                </Tooltip>
+                <div
+                  id="quote-error"
+                  class="overflow-x cursor-pointer self-start border-dotted border-red-500"
+                >
+                  Error fetching quote
+                </div>
               </TableBodyCell>
+              <TableBodyCell />
+              <TableBodyCell />
             </TableBodyRow>
           {/if}
         {/each}

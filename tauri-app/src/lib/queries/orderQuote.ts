@@ -76,6 +76,7 @@ export async function debugOrderQuote(
 }
 
 export const mockQuoteDebug: RainEvalResultsTable = {
+  block_number: '0x01',
   column_names: ['1', '2', '3'],
   rows: [['0x01', '0x02', '0x03']],
 };
