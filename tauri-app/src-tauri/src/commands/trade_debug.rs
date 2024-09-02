@@ -11,7 +11,7 @@ pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<Vec<
     .await?;
     let tx_hash = tx_hash.parse::<B256>()?;
     let res = replayer.replay_tx(tx_hash).await?;
-    let stack = res.traces[1].stack.iter().map(|x| x.clone()).collect();
+    let stack = res.traces[1].stack.to_vec();
     Ok(stack)
 }
 

@@ -309,6 +309,7 @@ mod tests {
                 "balance": "0",
                 "vaultId": order.validInputs[0].vaultId.to_string(),
             }],
+            "orderbook": { "id": encode_prefixed(B256::random()) },
             "active": true,
             "addEvents": [{
                 "transaction": {

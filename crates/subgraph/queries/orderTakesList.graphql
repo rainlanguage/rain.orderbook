@@ -13,16 +13,31 @@ query OrderTakesListQuery($id: Bytes!, $skip: Int = 0, $first: Int = 25) {
     outputVaultBalanceChange {
       amount
       vault {
-        token
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
       }
     }
     order {
       id
       orderHash
     }
+    orderbook {
+      id
+    }
     inputVaultBalanceChange {
       vault {
-        token
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
       }
       amount
     }

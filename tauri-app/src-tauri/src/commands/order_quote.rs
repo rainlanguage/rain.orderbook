@@ -3,6 +3,7 @@ use alloy::primitives::{Address, U256};
 use rain_orderbook_quote::{BatchQuoteSpec, OrderQuoteValue, QuoteSpec};
 use rain_orderbook_subgraph_client::types::order_detail;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -17,14 +18,14 @@ pub struct BatchOrderQuotesResponse {
 #[tauri::command]
 pub async fn batch_order_quotes(
     orders: Vec<order_detail::Order>,
-    orderbook: Address,
     subgraph_url: String,
     rpc_url: String,
 ) -> CommandResult<Vec<BatchOrderQuotesResponse>> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     for order in &orders {
-        let pairs: Vec<(String, usize, usize)> = order
+        let orderbook = Address::from_str(&order.orderbook.id.0)?;
+        let pairs: Vec<(String, usize, usize, Address)> = order
             .inputs
             .iter()
             .enumerate()
@@ -39,7 +40,7 @@ pub async fn batch_order_quotes(
                             input.token.symbol.as_deref().unwrap_or("UNKNOWN"),
                             output.token.symbol.as_deref().unwrap_or("UNKNOWN")
                         );
-                        (pair_name, input_index, output_index)
+                        (pair_name, input_index, output_index, orderbook)
                     })
             })
             .collect();
@@ -49,7 +50,7 @@ pub async fn batch_order_quotes(
 
         let mut quote_specs = Vec::new();
 
-        for (pair_name, input_index, output_index) in pairs {
+        for (pair_name, input_index, output_index, orderbook) in pairs {
             let quote_spec = QuoteSpec {
                 order_hash,
                 input_io_index: input_index as u8,

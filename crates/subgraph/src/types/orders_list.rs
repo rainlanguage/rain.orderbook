@@ -29,6 +29,13 @@ pub struct Order {
     pub active: bool,
     pub add_events: Vec<AddOrder>,
     pub timestamp_added: BigInt,
+    pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Orderbook {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -83,6 +90,10 @@ pub enum AddOrderOrderBy {
     OrderNonce,
     #[cynic(rename = "order__orderBytes")]
     OrderOrderBytes,
+    #[cynic(rename = "orderbook")]
+    Orderbook,
+    #[cynic(rename = "orderbook__id")]
+    OrderbookId,
     #[cynic(rename = "transaction")]
     Transaction,
     #[cynic(rename = "transaction__id")]

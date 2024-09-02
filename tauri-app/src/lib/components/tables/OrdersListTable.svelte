@@ -53,8 +53,9 @@
 
     <svelte:fragment slot="head">
       <TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
-      <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order ID</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
+      <TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingCreatedAt" padding="p-4">Created At</TableHeadCell
       >
       <TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
@@ -75,10 +76,13 @@
         {/if}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4"
-        ><Hash type={HashType.Identifier} value={item.id} /></TableBodyCell
+        ><Hash type={HashType.Identifier} value={item.order_hash} /></TableBodyCell
       >
       <TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2"
         ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
+      >
+      <TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2"
+        ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
       >
       <TableBodyCell data-testid="orderListRowCreatedAt" tdClass="break-word px-4 py-2">
         {formatTimestampSecondsAsLocal(BigInt(item.timestamp_added))}
