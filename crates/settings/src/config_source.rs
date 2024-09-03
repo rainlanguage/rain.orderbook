@@ -36,6 +36,8 @@ pub struct ConfigSource {
     pub metaboards: HashMap<String, Url>,
     pub sentry: Option<bool>,
     pub raindex_version: Option<String>,
+    #[serde(default)]
+    pub watchlist: Option<Vec<String>>,
 }
 
 #[typeshare]
@@ -178,6 +180,9 @@ pub enum ConfigSourceError {
 impl ConfigSource {
     pub async fn try_from_string(val: String) -> Result<ConfigSource, ConfigSourceError> {
         let mut conf: ConfigSource = serde_yaml::from_str(&val)?;
+
+        println!("Parsed watchlist: {:?}", conf.watchlist);
+
         if !conf.using_networks_from.is_empty() {
             for (_key, item) in conf.using_networks_from.iter() {
                 let remote_networks =
@@ -348,7 +353,11 @@ deployments:
         scenario: mainScenario
         order: buyETH
         
-sentry: true"#,
+sentry: true
+
+watchlist:
+    - address-one
+    - address-two"#,
             mocked_chain_id_server.url("/json")
         );
 
@@ -453,6 +462,11 @@ sentry: true"#,
         assert_eq!(order.orderbook, expected_order.orderbook);
 
         assert_eq!(config.raindex_version, Some("123".to_string()));
+
+        assert_eq!(
+            config.watchlist,
+            Some(vec!["address-one".to_string(), "address-two".to_string()])
+        );
     }
 
     #[tokio::test]

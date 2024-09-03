@@ -213,6 +213,7 @@ mod tests {
             charts: HashMap::new(), // Assuming no charts for simplification
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         // Perform the conversion

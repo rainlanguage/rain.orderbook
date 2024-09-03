@@ -147,6 +147,17 @@ impl ConfigSource {
             (Some(_), Some(_)) => Err(MergeError::DeploymentCollision("sentry".into())),
         }?;
 
+        // Watchlist
+        self.watchlist = match (self.watchlist.take(), other.watchlist) {
+            (Some(mut a), Some(b)) => {
+                a.extend(b);
+                Some(a)
+            }
+            (Some(a), None) => Some(a),
+            (None, Some(b)) => Some(b),
+            (None, None) => None,
+        };
+
         Ok(())
     }
 }
@@ -251,6 +262,17 @@ impl Config {
             (Some(_), Some(_)) => Err(MergeError::DeploymentCollision("sentry".into())),
         }?;
 
+        // Watchlist
+        self.watchlist = match (self.watchlist.take(), other.watchlist) {
+            (Some(mut a), Some(b)) => {
+                a.extend(b);
+                Some(a)
+            }
+            (Some(a), None) => Some(a),
+            (None, Some(b)) => Some(b),
+            (None, None) => None,
+        };
+
         Ok(())
     }
 }
@@ -277,6 +299,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         let other = ConfigSource {
@@ -293,6 +316,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -314,6 +338,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         let mut other = ConfigSource {
@@ -330,6 +355,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         // Add a collision to cause an unsuccessful merge
@@ -365,6 +391,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         let mut other = ConfigSource {
@@ -381,6 +408,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            watchlist: None,
         };
 
         other.metaboards.insert(

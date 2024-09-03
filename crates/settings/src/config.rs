@@ -34,6 +34,8 @@ pub struct Config {
     pub deployments: HashMap<String, Arc<Deployment>>,
     pub sentry: Option<bool>,
     pub raindex_version: Option<String>,
+    #[typeshare(typescript(type = "string[]"))]
+    pub watchlist: Option<Vec<String>>,
 }
 
 pub type Subgraph = Url;
@@ -182,6 +184,7 @@ impl TryFrom<ConfigSource> for Config {
             charts,
             deployments,
             sentry: item.sentry,
+            watchlist: item.watchlist,
         };
 
         Ok(config)
@@ -273,6 +276,9 @@ mod tests {
         let charts = HashMap::new();
         let deployments = HashMap::new();
         let sentry = Some(true);
+        let watchlist = Some(vec![
+            "0x1234567890123456789012345678901234567890".to_string()
+        ]);
 
         let config_string = ConfigSource {
             raindex_version: Some("0x123".to_string()),
@@ -288,6 +294,7 @@ mod tests {
             charts,
             deployments,
             sentry,
+            watchlist,
         };
 
         let config_result = Config::try_from(config_string);
@@ -346,5 +353,11 @@ mod tests {
 
         // Verify raindex_version
         assert_eq!(config.raindex_version, Some("0x123".to_string()));
+
+        // Verify watchlist
+        assert!(config.watchlist.is_some());
+        let watchlist = config.watchlist.unwrap();
+        assert_eq!(watchlist.len(), 1);
+        assert_eq!(watchlist[0], "0x1234567890123456789012345678901234567890");
     }
 }
