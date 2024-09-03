@@ -319,6 +319,7 @@ mod tests {
             }],
             "meta": null,
             "timestampAdded": "0",
+            "lastModified": "0",
         });
         let retrun_sg_data = if batch {
             json!({

@@ -78,6 +78,7 @@ mod tests {
             order_hash: Bytes("".into()),
             add_events: vec![],
             timestamp_added: BigInt("0".into()),
+            last_modified: BigInt("0".into()),
             owner: Bytes("".into()),
             active: true,
             inputs: vec![],

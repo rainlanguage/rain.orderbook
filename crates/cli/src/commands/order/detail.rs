@@ -118,6 +118,7 @@ mod tests {
                     "meta": null,
                     "active": true,
                     "timestampAdded": "0",
+                    "lastModified": "0",
                     "addEvents": [{
                         "transaction": {
                             "blockNumber": "0",

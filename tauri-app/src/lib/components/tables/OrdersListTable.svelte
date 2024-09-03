@@ -58,6 +58,9 @@
       <TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingCreatedAt" padding="p-4">Created At</TableHeadCell
       >
+      <TableHeadCell data-testid="orderListHeadingLastModified" padding="p-4"
+        >Last Modified</TableHeadCell
+      >
       <TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
         >Input Token(s)</TableHeadCell
       >
@@ -86,6 +89,9 @@
       >
       <TableBodyCell data-testid="orderListRowCreatedAt" tdClass="break-word px-4 py-2">
         {formatTimestampSecondsAsLocal(BigInt(item.timestamp_added))}
+      </TableBodyCell>
+      <TableBodyCell data-testid="orderListRowLastModified" tdClass="break-word px-4 py-2">
+        {formatTimestampSecondsAsLocal(BigInt(item.last_modified))}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
         {item.inputs?.map((t) => t.token.symbol)}

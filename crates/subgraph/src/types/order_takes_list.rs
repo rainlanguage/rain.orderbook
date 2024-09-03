@@ -158,6 +158,8 @@ pub enum TradeOrderBy {
     OutputVaultBalanceChangeTimestamp,
     #[cynic(rename = "timestamp")]
     Timestamp,
+    #[cynic(rename = "order__lastModified")]
+    OrderLastModified,
 }
 
 #[derive(cynic::Scalar, Debug, Clone)]

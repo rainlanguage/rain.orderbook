@@ -17,6 +17,7 @@ export function handleRemoveOrder(event: RemoveOrderV2): void {
   let order = Order.load(makeOrderId(event.address, event.params.orderHash));
   if (order != null) {
     order.active = false;
+    order.lastModified = event.block.timestamp;
     order.save();
   }
   createRemoveOrderEntity(event);
@@ -61,6 +62,7 @@ export function createOrderEntity(event: AddOrderV2): void {
   order.nonce = event.params.order.nonce;
   order.orderBytes = ethereum.encode(event.parameters[2].value)!;
   order.timestampAdded = event.block.timestamp;
+  order.lastModified = event.block.timestamp;
   order.save();
 }
 

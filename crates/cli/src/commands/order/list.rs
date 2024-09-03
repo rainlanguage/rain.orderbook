@@ -212,6 +212,7 @@ mod tests {
                     },
                     "active": true,
                     "timestampAdded": "0",
+                    "lastModified": "0",
                     "addEvents": [{
                         "transaction": {
                             "id": encode_prefixed(B256::random()),

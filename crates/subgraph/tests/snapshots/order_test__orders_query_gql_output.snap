@@ -44,5 +44,6 @@ query OrderDetailQuery($id: ID!) {
     orderbook {
       id
     }
+    lastModified
   }
 }

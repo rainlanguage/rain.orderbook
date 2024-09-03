@@ -44,6 +44,7 @@ if (import.meta.vitest) {
             active: true,
             add_events: [],
             timestamp_added: '123',
+            last_modified: '123',
           },
         ];
       }
@@ -64,6 +65,7 @@ if (import.meta.vitest) {
         active: true,
         add_events: [],
         timestamp_added: '123',
+        last_modified: '123',
       },
     ]);
   });

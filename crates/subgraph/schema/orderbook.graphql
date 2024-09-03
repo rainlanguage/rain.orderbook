@@ -118,6 +118,7 @@ enum AddOrder_orderBy {
   order__orderBytes
   order__meta
   order__timestampAdded
+  order__lastModified
   orderbook
   orderbook__id
   transaction
@@ -576,6 +577,10 @@ type Order {
   The timestamp this order was first added
   """
   timestampAdded: BigInt!
+  """
+  The timestamp this order was last modified
+  """
+  lastModified: BigInt!
 }
 
 """
@@ -697,6 +702,14 @@ input Order_filter {
   timestampAdded_lte: BigInt
   timestampAdded_in: [BigInt!]
   timestampAdded_not_in: [BigInt!]
+  lastModified: BigInt
+  lastModified_not: BigInt
+  lastModified_gt: BigInt
+  lastModified_lt: BigInt
+  lastModified_gte: BigInt
+  lastModified_lte: BigInt
+  lastModified_in: [BigInt!]
+  lastModified_not_in: [BigInt!]
   """
   Filter for the block changed event.
   """
@@ -721,6 +734,7 @@ enum Order_orderBy {
   trades
   meta
   timestampAdded
+  lastModified
 }
 
 type Orderbook {
@@ -1387,6 +1401,7 @@ enum RemoveOrder_orderBy {
   order__orderBytes
   order__meta
   order__timestampAdded
+  order__lastModified
   orderbook
   orderbook__id
   transaction
@@ -2424,6 +2439,7 @@ enum Trade_orderBy {
   order__orderBytes
   order__meta
   order__timestampAdded
+  order__lastModified
   inputVaultBalanceChange
   inputVaultBalanceChange__id
   inputVaultBalanceChange__amount

@@ -51,6 +51,7 @@ const mockOrders = [
     active: true,
     owner: '0xOwner1',
     timestamp_added: '1625247600',
+    last_modified: '1625247600',
     inputs: [{ token: { symbol: 'ETH' } }],
     outputs: [{ token: { symbol: 'USDC' } }],
     orderbook: { id: '0x00' },
@@ -61,6 +62,7 @@ const mockOrders = [
     active: false,
     owner: '0xOwner2',
     timestamp_added: '1625347600',
+    last_modified: '1625347600',
     inputs: [{ token: { symbol: 'BTC' } }],
     outputs: [{ token: { symbol: 'DAI' } }],
     orderbook: { id: '0x00' },
@@ -75,6 +77,7 @@ test('renders the orders list table with correct data', async () => {
       active: false,
       owner: '0xOwner1',
       timestamp_added: '1625247600',
+      last_modified: '1625247600',
       inputs: [{ token: { symbol: 'ETH' } }],
       outputs: [{ token: { symbol: 'USDC' } }],
       orderbook: { id: '0x00' },
@@ -85,6 +88,7 @@ test('renders the orders list table with correct data', async () => {
       active: true,
       owner: '0xOwner2',
       timestamp_added: '1625247400',
+      last_modified: '1625247400',
       inputs: [{ token: { symbol: 'USDT' } }],
       outputs: [{ token: { symbol: 'DAI' } }],
       orderbook: { id: '0x00' },
@@ -107,6 +111,7 @@ test('renders the orders list table with correct data', async () => {
     expect(screen.getByTestId('orderListHeadingOwner')).toHaveTextContent('Owner');
     expect(screen.getByTestId('orderListHeadingOrderbook')).toHaveTextContent('Orderbook');
     expect(screen.getByTestId('orderListHeadingCreatedAt')).toHaveTextContent('Created At');
+    expect(screen.getByTestId('orderListHeadingLastModified')).toHaveTextContent('Last Modified');
     expect(screen.getByTestId('orderListHeadingInputs')).toHaveTextContent('Input Token(s)');
     expect(screen.getByTestId('orderListHeadingOutputs')).toHaveTextContent('Output Token(s)');
 
@@ -117,6 +122,7 @@ test('renders the orders list table with correct data', async () => {
     expect(await screen.findAllByTestId('orderListRowOrderbook')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowOwner')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowCreatedAt')).toHaveLength(2);
+    expect(await screen.findAllByTestId('orderListRowLastModified')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowInputs')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowOutputs')).toHaveLength(2);
 
@@ -133,8 +139,14 @@ test('renders the orders list table with correct data', async () => {
     expect((await screen.findAllByTestId('orderListRowCreatedAt'))[0]).toHaveTextContent(
       formatTimestampSecondsAsLocal(BigInt(mockOrders[0].timestamp_added)),
     );
+    expect((await screen.findAllByTestId('orderListRowLastModified'))[0]).toHaveTextContent(
+      formatTimestampSecondsAsLocal(BigInt(mockOrders[0].last_modified)),
+    );
     expect((await screen.findAllByTestId('orderListRowCreatedAt'))[1]).toHaveTextContent(
       formatTimestampSecondsAsLocal(BigInt(mockOrders[1].timestamp_added)),
+    );
+    expect((await screen.findAllByTestId('orderListRowLastModified'))[1]).toHaveTextContent(
+      formatTimestampSecondsAsLocal(BigInt(mockOrders[1].last_modified)),
     );
     expect((await screen.findAllByTestId('orderListRowInputs'))[0]).toHaveTextContent('ETH');
     expect((await screen.findAllByTestId('orderListRowInputs'))[1]).toHaveTextContent('USDT');

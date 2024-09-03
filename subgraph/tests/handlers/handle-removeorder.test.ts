@@ -122,6 +122,13 @@ describe("Add and remove orders", () => {
       "false",
       "Order should be inactive after removeOrder event"
     );
+    assert.fieldEquals(
+      "Order",
+      id.toHexString(),
+      "lastModified",
+      removeEvent.block.timestamp.toString(),
+      "Order doesn't have correct timestamp for lastModified after removed"
+    );
 
     // if we add the order again, it should be active
     handleAddOrder(event);
@@ -134,6 +141,13 @@ describe("Add and remove orders", () => {
       "active",
       "true",
       "Order should be active after second addOrder event"
+    );
+    assert.fieldEquals(
+      "Order",
+      id.toHexString(),
+      "lastModified",
+      event.block.timestamp.toString(),
+      "Order doesn't have correct timestamp for lastModified after added again"
     );
 
     // if we remove the order again, it should be inactive
@@ -148,6 +162,13 @@ describe("Add and remove orders", () => {
       "active",
       "false",
       "Order should be inactive after second removeOrder event"
+    );
+    assert.fieldEquals(
+      "Order",
+      id.toHexString(),
+      "lastModified",
+      removeEvent.block.timestamp.toString(),
+      "Order doesn't have correct timestamp for lastModified after removed"
     );
   });
 });

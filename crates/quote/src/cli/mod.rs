@@ -360,6 +360,7 @@ mod tests {
                     }],
                     "meta": null,
                     "timestampAdded": "0",
+                    "lastModified": "0",
                 }]
             }
         });

@@ -3,7 +3,7 @@ source: crates/subgraph/tests/batch_order_test.rs
 expression: request_body.query
 ---
 query BatchOrderDetailQuery($id_list: Order_filter!) {
-  orders(where: $id_list) {
+  orders(orderBy: lastModified, orderDirection: desc, where: $id_list) {
     id
     orderBytes
     orderHash
@@ -44,5 +44,6 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
     orderbook {
       id
     }
+    lastModified
   }
 }

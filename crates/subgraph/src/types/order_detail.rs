@@ -35,7 +35,7 @@ pub struct OrderIdList {
 #[cynic(graphql_type = "Query", variables = "BatchOrderDetailQueryVariables")]
 #[typeshare]
 pub struct BatchOrderDetailQuery {
-    #[arguments(where: $id_list)]
+    #[arguments(orderBy: lastModified, orderDirection: "desc", where: $id_list)]
     pub orders: Vec<Order>,
 }
 
@@ -56,6 +56,7 @@ pub struct Order {
     pub meta: Option<RainMetaV1>,
     pub timestamp_added: BigInt,
     pub orderbook: Orderbook,
+    pub last_modified: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -136,6 +137,8 @@ pub enum AddOrderOrderBy {
     Meta,
     #[cynic(rename = "order__timestampAdded")]
     Timestamp,
+    #[cynic(rename = "order__lastModified")]
+    OrderLastModified,
 }
 
 #[derive(cynic::Enum, Copy, Debug, Clone)]

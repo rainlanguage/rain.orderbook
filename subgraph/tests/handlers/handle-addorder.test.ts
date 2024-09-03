@@ -101,6 +101,12 @@ describe("Add and remove orders", () => {
       "timestampAdded",
       event.block.timestamp.toString()
     );
+    assert.fieldEquals(
+      "Order",
+      id.toHexString(),
+      "lastModified",
+      event.block.timestamp.toString()
+    );
 
     // we should also have two new empty vaults
     assert.entityCount("Vault", 2);

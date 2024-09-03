@@ -151,6 +151,8 @@ type Order @entity {
   meta: Bytes
   "The timestamp this order was first added"
   timestampAdded: BigInt!
+  "The timestamp this order was last modified"
+  lastModified: BigInt!
 }
 
 type AddOrder implements Event @entity(immutable: true) {

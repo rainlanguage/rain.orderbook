@@ -13,7 +13,7 @@ pub struct OrdersListQueryVariables {
 #[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
 #[typeshare]
 pub struct OrdersListQuery {
-    #[arguments(orderDirection: "desc", skip: $skip, first: $first)]
+    #[arguments(orderBy: lastModified, orderDirection: "desc", skip: $skip, first: $first)]
     pub orders: Vec<Order>,
 }
 
@@ -30,6 +30,7 @@ pub struct Order {
     pub add_events: Vec<AddOrder>,
     pub timestamp_added: BigInt,
     pub orderbook: Orderbook,
+    pub last_modified: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -110,6 +111,8 @@ pub enum AddOrderOrderBy {
     Meta,
     #[cynic(rename = "order__timestampAdded")]
     OrderTimestampAdded,
+    #[cynic(rename = "order__lastModified")]
+    OrderLastModified,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
