@@ -38,10 +38,10 @@ impl Execute for AddOrderCalldata {
             None => None,
         };
         let order = DotrainOrder::new(dotrain, settings).await?;
-        let dotrain_string = order.dotrain.clone();
+        let dotrain_string = order.dotrain().to_string();
 
         let config_deployment = order
-            .config
+            .config()
             .deployments
             .get(&self.deployment)
             .ok_or(anyhow!("specified deployment is undefined!"))?;

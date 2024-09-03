@@ -100,7 +100,10 @@ mod tests {
                         "id": encode_prefixed(B256::random()),
                         "orderHash": encode_prefixed(B256::random()),
                     }],
-                    "balanceChanges": []
+                    "balanceChanges": [],
+                    "orderbook": {
+                        "id": encode_prefixed(B256::random()),
+                    },
                 }
             }
         })

@@ -63,6 +63,7 @@
     </svelte:fragment>
     <svelte:fragment slot="head">
       <TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
+      <TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
       <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
       <TableHeadCell padding="px-2 py-4">Token</TableHeadCell>
       <TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
@@ -74,6 +75,9 @@
     <svelte:fragment slot="bodyRow" let:item>
       <TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
         >{bigintStringToHex(item.vault_id)}</TableBodyCell
+      >
+      <TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook"
+        ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
       >
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner"
         ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell

@@ -99,6 +99,9 @@ if (import.meta.vitest) {
           },
           amount: '50',
         },
+        orderbook: {
+          id: '0x00',
+        },
       },
       {
         id: '2',
@@ -140,6 +143,9 @@ if (import.meta.vitest) {
           },
           amount: '50',
         },
+        orderbook: {
+          id: '0x00',
+        },
       },
       {
         id: '3',
@@ -180,6 +186,9 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+        },
+        orderbook: {
+          id: '0x00',
         },
       },
     ];
@@ -242,6 +251,9 @@ if (import.meta.vitest) {
           },
           amount: '50',
         },
+        orderbook: {
+          id: '0x00',
+        },
       },
       {
         id: '2',
@@ -283,6 +295,9 @@ if (import.meta.vitest) {
           },
           amount: '50',
         },
+        orderbook: {
+          id: '0x00',
+        },
       },
       {
         id: '3',
@@ -323,6 +338,9 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+        },
+        orderbook: {
+          id: '0x00',
         },
       },
     ];

@@ -23,5 +23,8 @@ query VaultsListQuery($first: Int, $skip: Int) {
       id
       orderHash
     }
+    orderbook {
+      id
+    }
   }
 }
