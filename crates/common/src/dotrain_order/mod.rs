@@ -15,10 +15,13 @@ use rain_orderbook_app_settings::{
 use rain_orderbook_env::GH_COMMIT_SHA;
 use thiserror::Error;
 
-#[derive(Clone)]
+pub mod filter;
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct DotrainOrder {
-    pub config: Config,
-    pub dotrain: String,
+    config: Config,
+    dotrain: String,
+    config_source: ConfigSource,
 }
 
 #[derive(Error, Debug)]
@@ -53,6 +56,9 @@ pub enum DotrainOrderError {
     #[error(transparent)]
     ParserError(#[from] ParserError),
 
+    #[error("{0}")]
+    CleanUnusedFrontmatterError(String),
+
     #[error("Raindex version mismatch: got {1}, should be {0}")]
     RaindexVersionMismatch(String, String),
 
@@ -64,23 +70,42 @@ impl DotrainOrder {
     pub async fn new(dotrain: String, config: Option<String>) -> Result<Self, DotrainOrderError> {
         match config {
             Some(config) => {
-                let config_string = ConfigSource::try_from_string(config).await?;
+                let config_string = ConfigSource::try_from_string(config.clone()).await?;
                 let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
                 let mut frontmatter_config =
                     ConfigSource::try_from_string(frontmatter.to_string()).await?;
                 frontmatter_config.merge(config_string)?;
                 Ok(Self {
                     dotrain,
+                    config_source: frontmatter_config.clone(),
                     config: frontmatter_config.try_into()?,
                 })
             }
             None => {
                 let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-                let config_string = ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                let config: Config = config_string.try_into()?;
-                Ok(Self { dotrain, config })
+                let config_source = ConfigSource::try_from_string(frontmatter.to_string()).await?;
+                Ok(Self {
+                    dotrain,
+                    config_source: config_source.clone(),
+                    config: config_source.try_into()?,
+                })
             }
         }
+    }
+
+    // get this instance's config
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    // get this instance's config source
+    pub fn config_source(&self) -> &ConfigSource {
+        &self.config_source
+    }
+
+    // get this instance's dotrain string
+    pub fn dotrain(&self) -> &str {
+        &self.dotrain
     }
 
     pub async fn compose_scenario_to_rainlang(
