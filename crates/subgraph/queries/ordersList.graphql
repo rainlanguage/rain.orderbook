@@ -4,14 +4,29 @@ query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
     orderHash
     owner
     outputs {
-      token
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
       balance
       vaultId
     }
     inputs {
-      token
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
       balance
       vaultId
+    }
+    orderbook {
+      id
     }
     active
     addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {

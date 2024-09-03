@@ -1,4 +1,4 @@
-use alloy::primitives::{B256, U256};
+use alloy::primitives::B256;
 use rain_orderbook_common::{
     fuzz::{RainEvalResults, RainEvalResultsTable},
     replays::{NewTradeReplayer, TradeReplayer},

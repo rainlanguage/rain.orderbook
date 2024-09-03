@@ -2,7 +2,6 @@ use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
 use std::path::PathBuf;
@@ -36,7 +35,7 @@ impl Execute for OrderbookAddress {
             None => None,
         };
         let order = DotrainOrder::new(dotrain, settings).await?;
-        let order_config: Config = order.clone().config;
+        let order_config = order.config().clone();
         let deployment_ref = order_config
             .deployments
             .get(&self.deployment)

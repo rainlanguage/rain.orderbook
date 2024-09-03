@@ -77,6 +77,9 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
               ],
               meta: null,
               timestampAdded: "0",
+              orderbook: {
+                id: "0x0000000000000000000000000000000000000000",
+              },
             },
           ],
         },

@@ -45,6 +45,13 @@
   <svelte:fragment slot="card" let:data>
     <div class="flex flex-col gap-y-6">
       <CardProperty>
+        <svelte:fragment slot="key">Orderbook</svelte:fragment>
+        <svelte:fragment slot="value">
+          <Hash type={HashType.Identifier} shorten={false} value={data.order.orderbook.id} />
+        </svelte:fragment>
+      </CardProperty>
+
+      <CardProperty>
         <svelte:fragment slot="key">Owner</svelte:fragment>
         <svelte:fragment slot="value">
           <Hash type={HashType.Wallet} shorten={false} value={data.order.owner} />

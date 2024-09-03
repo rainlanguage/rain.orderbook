@@ -214,6 +214,9 @@ mod tests {
                             "timestamp": "0",
                         }
                     },
+                    "orderbook": {
+                        "id": encode_prefixed(B256::random()),
+                    },
                 }]
             }
         })

@@ -99,7 +99,7 @@ amount price: get("amount") 52;
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
 
-        let deployment = order.config.deployments["polygon"].as_ref().clone();
+        let deployment = order.config().deployments["polygon"].as_ref().clone();
 
         let args = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
@@ -250,7 +250,7 @@ amount price: get("amount") 52;
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
 
-        let deployment = order.config.deployments["polygon"].as_ref().clone();
+        let deployment = order.config().deployments["polygon"].as_ref().clone();
 
         let args = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
