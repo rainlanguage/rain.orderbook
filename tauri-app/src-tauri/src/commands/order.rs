@@ -26,6 +26,20 @@ pub async fn orders_list(
 }
 
 #[tauri::command]
+pub async fn orders_list_by_owners(
+    subgraph_args: SubgraphArgs,
+    owners: Option<Vec<orders_list::Bytes>>,
+    pagination_args: PaginationArgs,
+) -> CommandResult<Vec<orders_list::Order>> {
+    let orders = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .orders_list_by_owners(owners, pagination_args)
+        .await?;
+    Ok(orders)
+}
+
+#[tauri::command]
 pub async fn orders_list_write_csv(
     path: PathBuf,
     subgraph_args: SubgraphArgs,

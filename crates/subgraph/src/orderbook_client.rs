@@ -12,7 +12,7 @@ use crate::types::{
     order_takes_list,
     order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
     orders_list,
-    orders_list::{OrdersListQuery, OrdersListQueryVariables},
+    orders_list::{OrdersListByOwnersQuery, OrdersListQuery, OrdersListQueryVariables},
     vault_balance_changes_list::VaultBalanceChange,
     vault_balance_changes_list::VaultBalanceChangesListQueryVariables,
     vault_detail,
@@ -93,6 +93,24 @@ impl OrderbookSubgraphClient {
             .query::<OrdersListQuery, OrdersListQueryVariables>(OrdersListQueryVariables {
                 first: pagination_variables.first,
                 skip: pagination_variables.skip,
+                owners: None,
+            })
+            .await?;
+        Ok(data.orders)
+    }
+
+    /// Fetch all order for a list of owner addresses
+    pub async fn orders_list_by_owners(
+        &self,
+        owners: Option<Vec<orders_list::Bytes>>,
+        pagination_args: PaginationArgs,
+    ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
+        let data = self
+            .query::<OrdersListByOwnersQuery, OrdersListQueryVariables>(OrdersListQueryVariables {
+                first: pagination_variables.first,
+                skip: pagination_variables.skip,
+                owners,
             })
             .await?;
 
