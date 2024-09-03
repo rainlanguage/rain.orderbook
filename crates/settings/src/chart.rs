@@ -19,10 +19,14 @@ pub struct Chart {
 #[serde(rename_all = "kebab-case")]
 pub struct Metric {
     pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unit_prefix: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unit_suffix: Option<String>,
     pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub precision: Option<u8>,
 }
 
