@@ -97,7 +97,7 @@ impl Execute for Words {
         let results = if let Some(deployer_key) = &self.source.deployer {
             // get deployer from order config
             let deployer = order
-                .config
+                .config()
                 .deployers
                 .get(deployer_key)
                 .ok_or(anyhow!("undefined deployer!"))?;
@@ -109,7 +109,7 @@ impl Execute for Words {
                 .map(|v| v.to_string())
                 .or_else(|| {
                     order
-                        .config
+                        .config()
                         .metaboards
                         .get(&deployer.network.name)
                         .map(|v| v.to_string())
@@ -127,15 +127,16 @@ impl Execute for Words {
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_name = &order
-                    .config
+                    .config()
                     .scenarios
                     .get(scenario)
                     .ok_or(anyhow!("undefined scenario"))?
                     .deployer
                     .network
-                    .name;
+                    .name
+                    .clone();
                 order
-                    .config
+                    .config_mut()
                     .metaboards
                     .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
             }
@@ -171,27 +172,28 @@ impl Execute for Words {
             }
         } else if let Some(deployment) = &self.source.deployment {
             let deployment = order
-                .config
+                .config()
                 .deployments
                 .get(deployment)
                 .ok_or(anyhow!("undefined deployment"))?;
             let scenario = order
-                .config
+                .config()
                 .scenarios
                 .iter()
                 .find(|(_, v)| *v == &deployment.scenario)
                 .ok_or(anyhow!("undefined deployment scenario"))?
-                .0;
+                .0
+                .clone();
 
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
-                let network_name = &deployment.scenario.deployer.network.name;
+                let network_name = deployment.scenario.deployer.network.name.clone();
                 order
-                    .config
+                    .config_mut()
                     .metaboards
                     .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
             }
-            let result = order.get_all_words_for_scenario(scenario).await?;
+            let result = order.get_all_words_for_scenario(&scenario).await?;
             let mut words = vec![];
             match result.deployer_words.words {
                 WordsResult::Success(v) => words.extend(v.words),

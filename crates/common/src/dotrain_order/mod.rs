@@ -143,6 +143,16 @@ impl DotrainOrder {
         &self.dotrain
     }
 
+    // get this instance's config mut
+    pub fn config_mut(&mut self) -> &mut Config {
+        &mut self.config
+    }
+
+    // get this instance's config source mut
+    pub fn config_source_mut(&mut self) -> &mut ConfigSource {
+        &mut self.config_source
+    }
+
     pub async fn compose_scenario_to_rainlang(
         &self,
         scenario: String,
