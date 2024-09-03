@@ -2,8 +2,8 @@ mod add;
 mod calldata;
 mod compose;
 mod detail;
-mod listorderfrontmatterkeys;
 mod list;
+mod listorderfrontmatterkeys;
 mod orderbook_address;
 mod remove;
 
@@ -49,10 +49,7 @@ pub enum Order {
     )]
     OrderbookAddress(OrderbookAddress),
 
-    #[command(
-        about = "Get frontmatter keys from a dotrain file",
-        alias = "keys"
-    )]
+    #[command(about = "Get frontmatter keys from a dotrain file", alias = "keys")]
     ListOrderFrontmatterKeys(ListOrderFrontmatterKeys),
 }
 

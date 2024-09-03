@@ -13,8 +13,7 @@ pub enum KeyType {
 }
 
 #[derive(Parser, Clone)]
-pub struct ListOrderFrontmatterKeys
- {
+pub struct ListOrderFrontmatterKeys {
     #[arg(
         short = 'f',
         long,
