@@ -19,6 +19,7 @@ pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<Rain
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::U256;
     use rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL;
     use std::str::FromStr;
 
