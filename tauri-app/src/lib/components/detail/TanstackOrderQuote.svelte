@@ -81,7 +81,7 @@
         {#each $orderQuoteQuery.data as item}
           {#if item.success && item.data}
             <TableBodyRow data-testid="bodyRow">
-              <TableBodyCell>{item.pair_name}</TableBodyCell>
+              <TableBodyCell>{item.pair.pair_name}</TableBodyCell>
               <TableBodyCell>{formatUnits(BigInt(item.data.maxOutput), 18)}</TableBodyCell>
               <TableBodyCell>{formatUnits(BigInt(item.data.ratio), 18)}</TableBodyCell>
               <TableBodyCell>
@@ -102,7 +102,7 @@
             </TableBodyRow>
           {:else if !item.success && item.error}
             <TableBodyRow>
-              <TableBodyCell>{item.pair_name}</TableBodyCell>
+              <TableBodyCell>{item.pair.pair_name}</TableBodyCell>
               <TableBodyCell colspan="2" class="flex flex-col justify-start text-gray-400">
                 <Tooltip triggeredBy="#quote-error">
                   {item.error}

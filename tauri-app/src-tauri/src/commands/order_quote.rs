@@ -1,12 +1,9 @@
-use crate::error::{CommandError, CommandResult};
+use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV4::Quote;
-use rain_orderbook_common::{
-    fuzz::{RainEvalResults, RainEvalResultsTable},
-    subgraph::SubgraphArgs,
-};
+use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{
-    BatchQuoteSpec, NewQuoteDebugger, OrderQuoteValue, QuoteDebugger, QuoteSpec, QuoteTarget,
+    BatchQuoteTarget, NewQuoteDebugger, OrderQuoteValue, QuoteDebugger, QuoteTarget,
 };
 use rain_orderbook_subgraph_client::types::order_detail;
 use serde::{Deserialize, Serialize};
@@ -16,76 +13,72 @@ use typeshare::typeshare;
 #[typeshare]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct BatchOrderQuotesResponse {
-    pub pair_name: String,
-    pub inputIOIndex: u32,
-    pub outputIOIndex: u32,
+    pub pair: Pair,
     pub data: Option<OrderQuoteValue>,
     pub success: bool,
     pub error: Option<String>,
 }
 
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+pub struct Pair {
+    pub pair_name: String,
+    pub input_index: u32,
+    pub output_index: u32,
+}
+
 #[tauri::command]
 pub async fn batch_order_quotes(
     orders: Vec<order_detail::Order>,
-    subgraph_url: String,
     rpc_url: String,
 ) -> CommandResult<Vec<BatchOrderQuotesResponse>> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     for order in &orders {
+        let mut pairs: Vec<Pair> = Vec::new();
+        let mut quote_targets: Vec<QuoteTarget> = Vec::new();
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
-        let pairs: Vec<(String, usize, usize, Address)> = order
-            .inputs
-            .iter()
-            .enumerate()
-            .flat_map(|(input_index, input)| {
-                order
-                    .outputs
-                    .iter()
-                    .enumerate()
-                    .filter(move |(output_index, _)| input_index != *output_index)
-                    .map(move |(output_index, output)| {
-                        let pair_name = format!(
-                            "{}/{}",
-                            output.token.symbol.as_deref().unwrap_or("UNKNOWN"),
-                            input.token.symbol.as_deref().unwrap_or("UNKNOWN")
-                        );
-                        (pair_name, input_index, output_index, orderbook)
-                    })
-            })
-            .collect();
 
-        let order_hash =
-            U256::from_str_radix(&order.order_hash.0[2..], 16).map_err(CommandError::from)?;
+        for (input_index, input) in order.inputs.iter().enumerate() {
+            for (output_index, output) in order.outputs.iter().enumerate() {
+                let pair_name = format!(
+                    "{}/{}",
+                    output.token.symbol.as_deref().unwrap_or("UNKNOWN"),
+                    input.token.symbol.as_deref().unwrap_or("UNKNOWN"),
+                );
 
-        let mut quote_specs = Vec::new();
+                let quote = order.clone().try_into()?;
+                let quote_target = QuoteTarget {
+                    orderbook,
+                    quote_config: Quote {
+                        order: quote,
+                        inputIOIndex: U256::from(input_index),
+                        outputIOIndex: U256::from(output_index),
+                        signedContext: vec![],
+                    },
+                };
 
-        for (pair_name, input_index, output_index, orderbook) in pairs {
-            let quote_spec = QuoteSpec {
-                order_hash,
-                input_io_index: input_index as u8,
-                output_io_index: output_index as u8,
-                signed_context: vec![],
-                orderbook,
-            };
-
-            quote_specs.push((quote_spec, pair_name));
+                if input_index != output_index {
+                    pairs.push(Pair {
+                        pair_name,
+                        input_index: input_index as u32,
+                        output_index: output_index as u32,
+                    });
+                    quote_targets.push(quote_target);
+                }
+            }
         }
 
-        let quote_values =
-            BatchQuoteSpec(quote_specs.iter().map(|(spec, _)| spec.clone()).collect())
-                .do_quote(&subgraph_url, &rpc_url, None, None)
-                .await;
+        let quote_values = BatchQuoteTarget(quote_targets)
+            .do_quote(&rpc_url, None, None)
+            .await;
 
         if let Ok(quote_values) = quote_values {
-            for (quote_value_result, (spec, pair_name)) in quote_values.into_iter().zip(quote_specs)
-            {
+            for (quote_value_result, pair) in quote_values.into_iter().zip(pairs) {
                 match quote_value_result {
                     Ok(quote_value) => {
                         results.push(BatchOrderQuotesResponse {
-                            inputIOIndex: spec.input_io_index as u32,
-                            outputIOIndex: spec.output_io_index as u32,
-                            pair_name,
+                            pair,
                             success: true,
                             data: Some(quote_value),
                             error: None,
@@ -93,9 +86,7 @@ pub async fn batch_order_quotes(
                     }
                     Err(e) => {
                         results.push(BatchOrderQuotesResponse {
-                            inputIOIndex: spec.input_io_index as u32,
-                            outputIOIndex: spec.output_io_index as u32,
-                            pair_name,
+                            pair,
                             success: false,
                             data: None,
                             error: Some(e.to_string()),
@@ -104,11 +95,9 @@ pub async fn batch_order_quotes(
                 }
             }
         } else if let Err(e) = quote_values {
-            for (spec, pair_name) in quote_specs {
+            for pair in pairs {
                 results.push(BatchOrderQuotesResponse {
-                    inputIOIndex: spec.input_io_index as u32,
-                    outputIOIndex: spec.output_io_index as u32,
-                    pair_name,
+                    pair,
                     success: false,
                     data: None,
                     error: Some(e.to_string()),
