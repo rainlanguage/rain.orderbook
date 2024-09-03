@@ -7,6 +7,7 @@ use typeshare::typeshare;
 pub struct OrdersListQueryVariables {
     pub first: Option<i32>,
     pub skip: Option<i32>,
+    pub owners: Option<Vec<Bytes>>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -14,6 +15,14 @@ pub struct OrdersListQueryVariables {
 #[typeshare]
 pub struct OrdersListQuery {
     #[arguments(orderDirection: "desc", skip: $skip, first: $first)]
+    pub orders: Vec<Order>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
+#[typeshare]
+pub struct OrdersListByOwnersQuery {
+    #[arguments(orderDirection: "desc", skip: $skip, first: $first, where: { owner_in: $owners })]
     pub orders: Vec<Order>,
 }
 
