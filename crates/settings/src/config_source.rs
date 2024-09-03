@@ -180,9 +180,6 @@ pub enum ConfigSourceError {
 impl ConfigSource {
     pub async fn try_from_string(val: String) -> Result<ConfigSource, ConfigSourceError> {
         let mut conf: ConfigSource = serde_yaml::from_str(&val)?;
-
-        println!("Parsed watchlist: {:?}", conf.watchlist);
-
         if !conf.using_networks_from.is_empty() {
             for (_key, item) in conf.using_networks_from.iter() {
                 let remote_networks =
