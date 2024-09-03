@@ -1,4 +1,5 @@
 use dotrain::RainDocument;
+pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::{config::ParseConfigSourceError, config_source::ConfigSource};
 
 /// Parse dotrain frontmatter and merges it with top Config if given

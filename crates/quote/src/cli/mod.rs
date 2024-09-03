@@ -141,7 +141,7 @@ pub async fn main() -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use crate::{error::FailedQuote, BatchQuoteSpec, QuoteSpec};
-    use alloy::primitives::{hex::encode_prefixed, keccak256, U256};
+    use alloy::primitives::{hex::encode_prefixed, keccak256, B256, U256};
     use alloy::sol_types::{SolCall, SolValue};
     use alloy_ethers_typecast::{multicall::IMulticall3::Result as MulticallResult, rpc::Response};
     use clap::CommandFactory;
@@ -350,6 +350,7 @@ mod tests {
                         "balance": "0",
                         "vaultId": order.validInputs[0].vaultId.to_string(),
                     }],
+                    "orderbook": { "id": encode_prefixed(B256::random()) },
                     "active": true,
                     "addEvents": [{
                         "transaction": {

@@ -49,5 +49,8 @@ query VaultDetailQuery($id: ID!) {
       }
     }
     balance
+    orderbook {
+      id
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, subgraphUrl } from '$lib/stores/settings';
+import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
 import type { Order } from '$lib/typeshare/orderDetail';
 import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 import type { Hex } from 'viem';
@@ -55,7 +55,6 @@ export async function batchOrderQuotes(orders: Order[]): Promise<BatchOrderQuote
     orders: formattedOrders,
     subgraphUrl: get(subgraphUrl),
     rpcUrl: get(rpcUrl),
-    orderbook: get(orderbookAddress),
   });
 }
 
@@ -93,6 +92,7 @@ if (import.meta.vitest) {
     const result = await debugOrderQuote(
       {
         id: '1',
+        orderbook: { id: '0x00' },
         order_bytes: '0x123',
         order_hash: '0x123',
         owner: '0x123',

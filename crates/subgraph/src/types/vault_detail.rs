@@ -47,6 +47,13 @@ pub struct Vault {
     pub orders_as_input: Vec<Order>,
     pub balance_changes: Vec<VaultBalanceChange>,
     pub balance: BigInt,
+    pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Orderbook {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]

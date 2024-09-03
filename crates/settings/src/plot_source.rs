@@ -5,16 +5,26 @@ use typeshare::typeshare;
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct Plot {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subtitle: Option<String>,
     pub marks: Vec<Mark>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<AxisOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub y: Option<AxisOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub margin: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub margin_left: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub margin_right: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub margin_top: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub margin_bottom: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub inset: Option<u32>,
 }
 
@@ -30,22 +40,34 @@ pub enum Mark {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DotOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub y: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub r: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fill: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stroke: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transform: Option<Transform>,
 }
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct LineOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub y: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub r: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fill: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stroke: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transform: Option<Transform>,
 }
 
@@ -53,10 +75,15 @@ pub struct LineOptions {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct RectYOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub x0: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub x1: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub y0: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub y1: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transform: Option<Transform>,
 }
 
@@ -65,9 +92,13 @@ pub struct RectYOptions {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct AxisOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub anchor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label_anchor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label_arrow: Option<String>,
 }
 
@@ -84,11 +115,17 @@ pub enum Transform {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TransformOutputs {
+    #[serde(skip_serializing_if = "Option::is_none")]
     x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     y: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     r: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     z: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     stroke: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     fill: Option<String>,
 }
 
@@ -103,8 +140,11 @@ pub struct HexBinTransform {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct HexBinOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     y: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     bin_width: Option<u32>,
 }
 
@@ -118,7 +158,9 @@ pub struct BinXTransform {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BinXOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
     x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     thresholds: Option<u32>,
 }
 

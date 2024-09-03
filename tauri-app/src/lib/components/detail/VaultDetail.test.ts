@@ -108,6 +108,9 @@ test('shows the correct data when the query returns data', async () => {
     orders_as_input: [],
     orders_as_output: [],
     balance_changes: [],
+    orderbook: {
+      id: '0x00',
+    },
   };
   mockIPC((cmd) => {
     if (cmd === 'vault_detail') {
@@ -175,6 +178,9 @@ test('shows the correct data when the query returns data with orders', async () 
       },
     ],
     balance_changes: [],
+    orderbook: {
+      id: '0x00',
+    },
   };
   mockIPC((cmd) => {
     if (cmd === 'vault_detail') {
@@ -250,6 +256,9 @@ test('orders link to the correct order', async () => {
       },
     ],
     balance_changes: [],
+    orderbook: {
+      id: '0x00',
+    },
   };
   mockIPC((cmd) => {
     if (cmd === 'vault_detail') {
@@ -305,6 +314,9 @@ test('shows deposit and withdraw buttons if owner wallet matches, opens correct 
     orders_as_input: [],
     orders_as_output: [],
     balance_changes: [],
+    orderbook: {
+      id: '0x00',
+    },
   };
 
   mockIPC((cmd) => {

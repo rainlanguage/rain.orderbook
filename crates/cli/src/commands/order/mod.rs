@@ -2,6 +2,7 @@ mod add;
 mod calldata;
 mod compose;
 mod detail;
+mod filter;
 mod list;
 mod orderbook_address;
 mod remove;
@@ -13,6 +14,7 @@ use anyhow::Result;
 use calldata::AddOrderCalldata;
 use clap::Parser;
 use compose::Compose;
+use filter::Filter;
 
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
@@ -46,6 +48,9 @@ pub enum Order {
         alias = "ob-addr"
     )]
     OrderbookAddress(OrderbookAddress),
+
+    #[command()]
+    Filter(Filter),
 }
 
 impl Execute for Order {
@@ -58,6 +63,7 @@ impl Execute for Order {
             Order::Compose(compose) => compose.execute().await,
             Order::Calldata(calldata) => calldata.execute().await,
             Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
+            Order::Filter(filter) => filter.execute().await,
         }
     }
 }

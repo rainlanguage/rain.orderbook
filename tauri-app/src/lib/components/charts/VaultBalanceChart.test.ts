@@ -67,6 +67,9 @@ const mockVaultBalanceChanges: VaultBalanceChange[] = [
       id: 'tx1',
       from: '0xUser1',
     },
+    orderbook: {
+      id: '0x00',
+    },
   },
   {
     __typename: 'TradeVaultBalanceChange',
@@ -87,6 +90,9 @@ const mockVaultBalanceChanges: VaultBalanceChange[] = [
     transaction: {
       id: 'tx2',
       from: '0xUser2',
+    },
+    orderbook: {
+      id: '0x00',
     },
   },
   {
@@ -109,6 +115,9 @@ const mockVaultBalanceChanges: VaultBalanceChange[] = [
       id: 'tx3',
       from: '0xUser3',
     },
+    orderbook: {
+      id: '0x00',
+    },
   },
 ];
 
@@ -127,6 +136,9 @@ const mockVault: Vault = {
   orders_as_input: [],
   balance_changes: [],
   balance: '1000000000000000000',
+  orderbook: {
+    id: '0x00',
+  },
 };
 
 test('renders the chart with correct data and transformations', async () => {

@@ -73,6 +73,9 @@ const mockTakeOrdersList: Trade[] = [
       },
       amount: '50',
     },
+    orderbook: {
+      id: '0x00',
+    },
   },
   {
     id: '2',
@@ -113,6 +116,9 @@ const mockTakeOrdersList: Trade[] = [
         },
       },
       amount: '50',
+    },
+    orderbook: {
+      id: '0x00',
     },
   },
 ];

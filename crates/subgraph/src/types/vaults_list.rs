@@ -27,6 +27,13 @@ pub struct Vault {
     pub balance: BigInt,
     pub orders_as_input: Vec<Order>,
     pub orders_as_output: Vec<Order>,
+    pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+pub struct Orderbook {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -71,6 +78,10 @@ pub enum VaultOrderBy {
     OrdersAsInput,
     #[cynic(rename = "ordersAsOutput")]
     OrdersAsOutput,
+    #[cynic(rename = "orderbook")]
+    Orderbook,
+    #[cynic(rename = "orderbook__id")]
+    OrderbookId,
     #[cynic(rename = "balance")]
     Balance,
     #[cynic(rename = "balanceChanges")]
