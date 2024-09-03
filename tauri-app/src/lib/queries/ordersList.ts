@@ -27,6 +27,22 @@ export const ordersList = async (
   } as OrdersListArgs);
 };
 
+export const ordersListByOwners = async (
+  url: string | undefined,
+  owners: string[],
+  pageParam: number,
+  pageSize: number = DEFAULT_PAGE_SIZE,
+) => {
+  if (!url) {
+    return [];
+  }
+  return await invoke<Order[]>('orders_list_by_owners', {
+    subgraphArgs: { url },
+    paginationArgs: { page: pageParam + 1, page_size: pageSize },
+    owners,
+  } as OrdersListArgs);
+};
+
 if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
 
