@@ -13,7 +13,8 @@ pub enum KeyType {
 }
 
 #[derive(Parser, Clone)]
-pub struct Keys {
+pub struct ListOrderFrontmatterKeys
+ {
     #[arg(
         short = 'f',
         long,
@@ -31,7 +32,7 @@ pub struct Keys {
     encoding: SupportedOutputEncoding,
 }
 
-impl Execute for Keys {
+impl Execute for ListOrderFrontmatterKeys {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let settings = match &self.settings_file {
@@ -74,7 +75,7 @@ mod tests {
 
     #[test]
     fn verify_cli() {
-        Keys::command().debug_assert();
+        ListOrderFrontmatterKeys::command().debug_assert();
     }
 
     #[test]
@@ -84,7 +85,7 @@ mod tests {
         let key_type = "deployment";
         let output_str = "binary";
 
-        let cmd = Keys::command();
+        let cmd = ListOrderFrontmatterKeys::command();
         let result = cmd.get_matches_from(vec![
             "cmd",
             "-f",
@@ -201,7 +202,7 @@ _ _: 0 0;
         let dotrain_path = "./test_dotrain2.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
-        let keys = Keys {
+        let keys = ListOrderFrontmatterKeys {
             dotrain_file: dotrain_path.into(),
             settings_file: None,
             key_type: KeyType::Deployment,
@@ -221,7 +222,7 @@ _ _: 0 0;
         let dotrain_path = "./test_dotrain3.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
-        let keys = Keys {
+        let keys = ListOrderFrontmatterKeys {
             dotrain_file: dotrain_path.into(),
             settings_file: None,
             key_type: KeyType::Scenario,

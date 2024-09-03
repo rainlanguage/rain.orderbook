@@ -2,7 +2,7 @@ mod add;
 mod calldata;
 mod compose;
 mod detail;
-mod keys;
+mod listorderfrontmatterkeys;
 mod list;
 mod orderbook_address;
 mod remove;
@@ -14,7 +14,7 @@ use anyhow::Result;
 use calldata::AddOrderCalldata;
 use clap::Parser;
 use compose::Compose;
-use keys::Keys;
+use listorderfrontmatterkeys::ListOrderFrontmatterKeys;
 
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
@@ -49,8 +49,11 @@ pub enum Order {
     )]
     OrderbookAddress(OrderbookAddress),
 
-    #[command(about = "Get yaml keys from a dotrain file")]
-    Keys(Keys),
+    #[command(
+        about = "Get frontmatter keys from a dotrain file",
+        alias = "keys"
+    )]
+    ListOrderFrontmatterKeys(ListOrderFrontmatterKeys),
 }
 
 impl Execute for Order {
@@ -63,7 +66,7 @@ impl Execute for Order {
             Order::Compose(compose) => compose.execute().await,
             Order::Calldata(calldata) => calldata.execute().await,
             Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
-            Order::Keys(keys) => keys.execute().await,
+            Order::ListOrderFrontmatterKeys(keys) => keys.execute().await,
         }
     }
 }
