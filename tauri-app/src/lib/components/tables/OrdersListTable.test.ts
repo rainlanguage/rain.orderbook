@@ -106,7 +106,7 @@ test('renders the orders list table with correct data', async () => {
     expect(screen.getByTestId('orderListHeadingID')).toHaveTextContent('Order');
     expect(screen.getByTestId('orderListHeadingOwner')).toHaveTextContent('Owner');
     expect(screen.getByTestId('orderListHeadingOrderbook')).toHaveTextContent('Orderbook');
-    expect(screen.getByTestId('orderListHeadingCreatedAt')).toHaveTextContent('Created At');
+    expect(screen.getByTestId('orderListHeadingLastAdded')).toHaveTextContent('Last Added');
     expect(screen.getByTestId('orderListHeadingInputs')).toHaveTextContent('Input Token(s)');
     expect(screen.getByTestId('orderListHeadingOutputs')).toHaveTextContent('Output Token(s)');
 
@@ -116,7 +116,7 @@ test('renders the orders list table with correct data', async () => {
     expect(await screen.findAllByTestId('orderListRowID')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowOrderbook')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowOwner')).toHaveLength(2);
-    expect(await screen.findAllByTestId('orderListRowCreatedAt')).toHaveLength(2);
+    expect(await screen.findAllByTestId('orderListRowLastAdded')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowInputs')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowOutputs')).toHaveLength(2);
 
@@ -130,10 +130,10 @@ test('renders the orders list table with correct data', async () => {
     expect((await screen.findAllByTestId('orderListRowOwner'))[1]).toHaveTextContent(
       '0xOwn...wner2',
     );
-    expect((await screen.findAllByTestId('orderListRowCreatedAt'))[0]).toHaveTextContent(
+    expect((await screen.findAllByTestId('orderListRowLastAdded'))[0]).toHaveTextContent(
       formatTimestampSecondsAsLocal(BigInt(mockOrders[0].timestamp_added)),
     );
-    expect((await screen.findAllByTestId('orderListRowCreatedAt'))[1]).toHaveTextContent(
+    expect((await screen.findAllByTestId('orderListRowLastAdded'))[1]).toHaveTextContent(
       formatTimestampSecondsAsLocal(BigInt(mockOrders[1].timestamp_added)),
     );
     expect((await screen.findAllByTestId('orderListRowInputs'))[0]).toHaveTextContent('ETH');
