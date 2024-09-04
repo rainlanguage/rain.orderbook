@@ -201,11 +201,7 @@ impl DotrainOrder {
     pub async fn validate_raindex_version(&self) -> Result<(), DotrainOrderError> {
         let app_sha = GH_COMMIT_SHA.to_string();
 
-        let frontmatter = RainDocument::get_front_matter(&self.dotrain).unwrap();
-        let frontmatter_config = ConfigSource::try_from_string(frontmatter.to_string()).await?;
-        let config: Config = frontmatter_config.try_into()?;
-
-        if let Some(raindex_version) = config.raindex_version {
+        if let Some(raindex_version) = &self.config.raindex_version {
             if app_sha != *raindex_version {
                 return Err(DotrainOrderError::RaindexVersionMismatch(
                     app_sha,

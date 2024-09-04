@@ -5,12 +5,12 @@ export type TransformedHexAndFormattedData = { [key: string]: [number, Hex] };
 
 // Transform the data from the backend to the format required by the plot library
 export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndFormattedData[] => {
-  if (fuzzResult.data.some((row) => row.length !== fuzzResult.column_names.length)) {
+  if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.column_names.length)) {
     throw new Error('Number of column names does not match data length');
   }
-  return fuzzResult.data.map((row) => {
+  return fuzzResult.data.rows.map((row) => {
     const rowObject: TransformedHexAndFormattedData = {};
-    fuzzResult.column_names.forEach((columnName, index) => {
+    fuzzResult.data.column_names.forEach((columnName, index) => {
       rowObject[columnName] = [+formatUnits(hexToBigInt(row[index] as Hex), 18), row[index] as Hex];
     });
     return rowObject;
@@ -20,12 +20,12 @@ export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndForm
 export type TransformedPlotData = { [key: string]: number };
 
 export const transformDataForPlot = (fuzzResult: FuzzResultFlat): TransformedPlotData[] => {
-  if (fuzzResult.data.some((row) => row.length !== fuzzResult.column_names.length)) {
+  if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.column_names.length)) {
     throw new Error('Number of column names does not match data length');
   }
-  return fuzzResult.data.map((row) => {
+  return fuzzResult.data.rows.map((row) => {
     const rowObject: TransformedPlotData = {};
-    fuzzResult.column_names.forEach((columnName, index) => {
+    fuzzResult.data.column_names.forEach((columnName, index) => {
       rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
     });
     return rowObject;
@@ -37,13 +37,15 @@ if (import.meta.vitest) {
 
   it('data transforms correctly and errors are caught', () => {
     const fuzzResult = {
-      data: [
-        ['0xDE0B6B3A7640000', '0x29A2241AF62C0000'],
-        ['0x1BC16D674EC80000', '0x3782DACE9D900000'],
-        ['0x29A2241AF62C0000', '0x5678'],
-        ['0x1234', '0x5678'],
-      ],
-      column_names: ['col1', 'col2'],
+      data: {
+        rows: [
+          ['0xDE0B6B3A7640000', '0x29A2241AF62C0000'],
+          ['0x1BC16D674EC80000', '0x3782DACE9D900000'],
+          ['0x29A2241AF62C0000', '0x5678'],
+          ['0x1234', '0x5678'],
+        ],
+        column_names: ['col1', 'col2'],
+      },
       scenario: 'test',
     };
 
@@ -61,13 +63,15 @@ if (import.meta.vitest) {
     expect(transformedData[1].col2[1]).toEqual('0x3782DACE9D900000');
 
     const fuzzResult3 = {
-      data: [
-        ['0x1234', '0x5678'],
-        ['0x1234', '0x5678'],
-        ['0x1234', '0x5678'],
-        ['0x1234', '0x5678'],
-      ],
-      column_names: ['col1'],
+      data: {
+        rows: [
+          ['0x1234', '0x5678'],
+          ['0x1234', '0x5678'],
+          ['0x1234', '0x5678'],
+          ['0x1234', '0x5678'],
+        ],
+        column_names: ['col1'],
+      },
       scenario: 'test',
     };
 
