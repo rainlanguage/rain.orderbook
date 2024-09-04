@@ -2,7 +2,7 @@ name: Subgraph unit tests
 on: [push]
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.ref }}-subgraph
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:

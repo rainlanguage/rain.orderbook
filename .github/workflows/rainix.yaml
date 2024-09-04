@@ -2,7 +2,7 @@ name: Rainix CI
 on: [push]
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.ref }}-rainix
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
