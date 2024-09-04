@@ -45,14 +45,14 @@ impl Execute for ListOrderFrontmatterKeys {
 
         let keys_string = match self.key_type {
             KeyType::Deployment => {
-                let deployment_keys = order.config.deployments.keys();
+                let deployment_keys = order.config().deployments.keys();
                 deployment_keys
                     .map(|key| key.to_string())
                     .collect::<Vec<String>>()
                     .join(" ")
             }
             KeyType::Scenario => {
-                let scenario_keys = order.config.scenarios.keys();
+                let scenario_keys = order.config().scenarios.keys();
                 scenario_keys
                     .map(|key| key.to_string())
                     .collect::<Vec<String>>()
