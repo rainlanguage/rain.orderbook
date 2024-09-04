@@ -24,6 +24,14 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   };
 });
 
+vi.mock('$lib/services/modal', async () => {
+  return {
+    handleDepositGenericModal: vi.fn(),
+    handleDepositModal: vi.fn(),
+    handleWithdrawModal: vi.fn(),
+  };
+});
+
 const mockTakeOrdersList: Trade[] = [
   {
     id: '1',
@@ -64,6 +72,9 @@ const mockTakeOrdersList: Trade[] = [
         },
       },
       amount: '50',
+    },
+    orderbook: {
+      id: '0x00',
     },
   },
   {
@@ -106,6 +117,9 @@ const mockTakeOrdersList: Trade[] = [
       },
       amount: '50',
     },
+    orderbook: {
+      id: '0x00',
+    },
   },
 ];
 
@@ -140,5 +154,25 @@ test('renders table with correct data', async () => {
       const expectedRatio = Number(inputDisplay) / Number(outputDisplay);
       expect(rows[i]).toHaveTextContent(expectedRatio.toString());
     }
+  });
+});
+
+test('renders a debug button for each trade', async () => {
+  const queryClient = new QueryClient();
+
+  mockIPC((cmd) => {
+    if (cmd === 'order_takes_list') {
+      return mockTakeOrdersList;
+    }
+  });
+
+  render(OrderTradesListTable, {
+    context: new Map([['$$_queryClient', queryClient]]),
+    props: { id: '1' },
+  });
+
+  await waitFor(async () => {
+    const buttons = screen.getAllByTestId('debug-trade-button');
+    expect(buttons).toHaveLength(mockTakeOrdersList.length);
   });
 });

@@ -75,6 +75,19 @@ impl QuoteTarget {
                 .unwrap(),
         )
     }
+
+    /// Validate the quote target
+    /// Checks if the requested input and output indexes are valid
+    pub fn validate(&self) -> Result<(), Error> {
+        if self.quote_config.inputIOIndex >= U256::from(self.quote_config.order.validInputs.len()) {
+            return Err(Error::InvalidQuoteTarget(self.quote_config.inputIOIndex));
+        }
+        if self.quote_config.outputIOIndex >= U256::from(self.quote_config.order.validOutputs.len())
+        {
+            return Err(Error::InvalidQuoteTarget(self.quote_config.outputIOIndex));
+        }
+        Ok(())
+    }
 }
 
 /// Specifies a batch of [QuoteTarget]s
@@ -309,6 +322,7 @@ mod tests {
                 "balance": "0",
                 "vaultId": order.validInputs[0].vaultId.to_string(),
             }],
+            "orderbook": { "id": encode_prefixed(B256::random()) },
             "active": true,
             "addEvents": [{
                 "transaction": {

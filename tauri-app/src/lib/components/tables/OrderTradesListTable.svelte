@@ -3,13 +3,15 @@
   import TanstackAppTable from './TanstackAppTable.svelte';
   import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
   import { orderTradesList } from '$lib/queries/orderTradesList';
-  import { subgraphUrl } from '$lib/stores/settings';
+  import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { formatUnits } from 'viem';
+  import { handleDebugTradeModal } from '$lib/services/modal';
+  import { BugOutline } from 'flowbite-svelte-icons';
 
   export let id: string;
 
@@ -35,6 +37,7 @@
     <TableHeadCell padding="p-0">Input</TableHeadCell>
     <TableHeadCell padding="p-0">Output</TableHeadCell>
     <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
+    <TableHeadCell padding="p-0"></TableHeadCell>
   </svelte:fragment>
 
   <svelte:fragment slot="bodyRow" let:item>
@@ -78,6 +81,17 @@
       )}
       {item.input_vault_balance_change.vault.token.symbol}/{item.output_vault_balance_change.vault
         .token.symbol}
+    </TableBodyCell>
+    <TableBodyCell tdClass="py-2">
+      <button
+        data-testid="debug-trade-button"
+        class="text-gray-500 hover:text-gray-700"
+        on:click={() => {
+          if ($rpcUrl) handleDebugTradeModal(item.trade_event.transaction.id, $rpcUrl);
+        }}
+      >
+        <BugOutline size="xs" />
+      </button>
     </TableBodyCell>
   </svelte:fragment>
 </TanstackAppTable>

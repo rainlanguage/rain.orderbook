@@ -43,5 +43,8 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       amount
     }
     timestamp
+    orderbook {
+      id
+    }
   }
 }

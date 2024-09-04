@@ -5,6 +5,9 @@ import type { Vault } from '$lib/typeshare/vaultsList';
 import ModalOrderRemove from '$lib/components/modal/ModalOrderRemove.svelte';
 import type { Order as OrderDetailOrder } from '$lib/typeshare/orderDetail';
 import type { Order as OrderListOrder } from '$lib/typeshare/ordersList';
+import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
+import type { Hex } from 'viem';
+import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
 
 export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
@@ -20,4 +23,30 @@ export const handleWithdrawModal = (vault: Vault) => {
 
 export const handleOrderRemoveModal = (order: OrderDetailOrder | OrderListOrder) => {
   new ModalOrderRemove({ target: document.body, props: { order } });
+};
+
+export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
+  new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrl } });
+};
+
+export const handleQuoteDebugModal = (
+  order: OrderDetailOrder,
+  rpcUrl: string,
+  orderbook: string,
+  inputIOIndex: number,
+  outputIOIndex: number,
+  pair: string,
+) => {
+  new ModalQuoteDebug({
+    target: document.body,
+    props: {
+      open: true,
+      order,
+      rpcUrl,
+      orderbook: orderbook as Hex,
+      inputIOIndex,
+      outputIOIndex,
+      pair,
+    },
+  });
 };

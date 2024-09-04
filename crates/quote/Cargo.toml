@@ -31,6 +31,7 @@ typeshare = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
+rain-interpreter-eval = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 js-sys = { version = "0.3.69" }
@@ -45,3 +46,6 @@ httpmock = "0.7.0"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.42"
+
+[dev-dependencies]
+rain-orderbook-env = { workspace = true }
