@@ -5,7 +5,9 @@ expression: request_body.query
 query VaultDetailQuery($id: ID!) {
   vault(id: $id) {
     id
+    owner
     vaultId
+    balance
     token {
       id
       address
@@ -13,7 +15,9 @@ query VaultDetailQuery($id: ID!) {
       symbol
       decimals
     }
-    owner
+    orderbook {
+      id
+    }
     ordersAsOutput {
       id
       orderHash
@@ -30,27 +34,83 @@ query VaultDetailQuery($id: ID!) {
         id
         __typename
         amount
-        oldVaultBalance
         newVaultBalance
+        oldVaultBalance
+        vault {
+          id
+          token {
+            id
+            address
+            name
+            symbol
+            decimals
+          }
+        }
+        timestamp
+        transaction {
+          id
+          from
+          blockNumber
+          timestamp
+        }
+        orderbook {
+          id
+        }
       }
       ... on TradeVaultBalanceChange {
         id
         __typename
         amount
-        oldVaultBalance
         newVaultBalance
+        oldVaultBalance
+        vault {
+          id
+          token {
+            id
+            address
+            name
+            symbol
+            decimals
+          }
+        }
+        timestamp
+        transaction {
+          id
+          from
+          blockNumber
+          timestamp
+        }
+        orderbook {
+          id
+        }
       }
       ... on Deposit {
         id
         __typename
         amount
-        oldVaultBalance
         newVaultBalance
+        oldVaultBalance
+        vault {
+          id
+          token {
+            id
+            address
+            name
+            symbol
+            decimals
+          }
+        }
+        timestamp
+        transaction {
+          id
+          from
+          blockNumber
+          timestamp
+        }
+        orderbook {
+          id
+        }
       }
-    }
-    balance
-    orderbook {
-      id
     }
   }
 }

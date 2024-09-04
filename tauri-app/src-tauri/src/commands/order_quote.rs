@@ -1,7 +1,7 @@
 use crate::error::{CommandError, CommandResult};
 use alloy::primitives::{Address, U256};
 use rain_orderbook_quote::{BatchQuoteSpec, OrderQuoteValue, QuoteSpec};
-use rain_orderbook_subgraph_client::types::order_detail;
+use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
@@ -17,7 +17,7 @@ pub struct BatchOrderQuotesResponse {
 
 #[tauri::command]
 pub async fn batch_order_quotes(
-    orders: Vec<order_detail::Order>,
+    orders: Vec<Order>,
     subgraph_url: String,
     rpc_url: String,
 ) -> CommandResult<Vec<BatchOrderQuotesResponse>> {

@@ -1,27 +1,25 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy::primitives::{utils::format_units, I256};
-use rain_orderbook_subgraph_client::types::vault_balance_changes_list::{
-    self, BigInt, VaultBalanceChange,
-};
+use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
 use super::FlattenError;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VaultBalanceChangeFlattened {
-    pub timestamp: vault_balance_changes_list::BigInt,
+    pub timestamp: BigInt,
     pub timestamp_display: String,
-    pub from: vault_balance_changes_list::Bytes,
-    pub amount: vault_balance_changes_list::BigInt,
+    pub from: Bytes,
+    pub amount: BigInt,
     pub amount_display_signed: String,
     pub change_type_display: String,
-    pub balance: vault_balance_changes_list::BigInt,
+    pub balance: BigInt,
 }
 
-impl TryFrom<VaultBalanceChange> for VaultBalanceChangeFlattened {
+impl TryFrom<VaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
     type Error = FlattenError;
 
-    fn try_from(val: VaultBalanceChange) -> Result<Self, Self::Error> {
+    fn try_from(val: VaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
         let amount_display_signed = format_units(
             val.amount.0.parse::<I256>()?,
             val.vault
