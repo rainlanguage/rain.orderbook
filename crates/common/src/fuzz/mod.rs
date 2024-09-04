@@ -8,7 +8,9 @@ use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
 use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
 use rain_interpreter_eval::fork::NewForkedEvm;
-use rain_interpreter_eval::trace::TraceSearchError;
+pub use rain_interpreter_eval::trace::{
+    RainEvalResultError, RainEvalResults, RainEvalResultsTable, TraceSearchError,
+};
 use rain_interpreter_eval::{
     error::ForkCallError, eval::ForkEvalArgs, fork::Forker, trace::RainEvalResult,
 };
@@ -32,82 +34,23 @@ pub struct ChartData {
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: Vec<RainEvalResult>,
+    pub runs: RainEvalResults,
 }
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FuzzResultFlat {
     pub scenario: String,
-    pub column_names: Vec<String>,
-    #[typeshare(serialized_as = "Vec<Vec<String>>")]
-    pub data: Vec<Vec<U256>>,
+    pub data: RainEvalResultsTable,
 }
 
 impl FuzzResult {
-    pub fn collect_data_by_path(&self, path: &str) -> Result<Vec<U256>, TraceSearchError> {
-        let mut collection: Vec<U256> = vec![];
-        // loop over the runs and search_trace_by_path for each
-        for run in self.runs.iter() {
-            let stack = run.search_trace_by_path(path)?;
-            collection.push(stack);
-        }
-        Ok(collection)
-    }
-
     pub fn flatten_traces(&self) -> Result<FuzzResultFlat, FuzzRunnerError> {
-        let mut column_names: Vec<String> = vec![];
-        let mut source_paths: Vec<String> = vec![];
+        let result_table = self.runs.into_flattened_table()?;
 
-        let first_run_traces = &self
-            .runs
-            .first()
-            .ok_or(FuzzRunnerError::ScenarioNoRuns)?
-            .traces;
-
-        for trace in first_run_traces.iter() {
-            let current_path = if trace.parent_source_index == trace.source_index {
-                format!("{}", trace.source_index)
-            } else {
-                source_paths
-                    .iter()
-                    .rev()
-                    .find_map(|recent_path| {
-                        recent_path.split('.').last().and_then(|last_part| {
-                            if last_part == trace.parent_source_index.to_string() {
-                                Some(format!("{}.{}", recent_path, trace.source_index))
-                            } else {
-                                None
-                            }
-                        })
-                    })
-                    .ok_or_else(|| FuzzRunnerError::CorruptTraces)?
-            };
-
-            for (index, _) in trace.stack.iter().enumerate() {
-                column_names.push(format!("{}.{}", current_path, index));
-            }
-
-            source_paths.push(current_path);
-        }
-
-        let mut data: Vec<Vec<U256>> = vec![];
-
-        for run in self.runs.iter() {
-            let mut run_data: Vec<U256> = vec![];
-            for trace in run.traces.iter() {
-                let mut stack = trace.stack.clone();
-                stack.reverse();
-                for stack_item in stack.iter() {
-                    run_data.push(*stack_item);
-                }
-            }
-            data.push(run_data);
-        }
         Ok(FuzzResultFlat {
             scenario: self.scenario.clone(),
-            column_names,
-            data,
+            data: result_table,
         })
     }
 }
@@ -144,6 +87,8 @@ pub enum FuzzRunnerError {
     ReadableClientHttpError(#[from] ReadableClientError),
     #[error(transparent)]
     BlockError(#[from] BlockError),
+    #[error(transparent)]
+    RainEvalResultError(#[from] RainEvalResultError),
 }
 
 impl FuzzRunner {
@@ -296,7 +241,7 @@ impl FuzzRunner {
 
         Ok(FuzzResult {
             scenario: scenario.name.clone(),
-            runs,
+            runs: runs.into(),
         })
     }
 
@@ -477,10 +422,15 @@ d: 4;
         let flattened = res.flatten_traces().unwrap();
 
         // find the column index of 0.2.3.0
-        let column_index = flattened.column_names.iter().position(|x| x == "0.2.3.0");
+        let column_index = flattened
+            .data
+            .column_names
+            .iter()
+            .position(|x| x == "0.2.3.0");
         // get that from the first row of data
         let value = flattened
             .data
+            .rows
             .first()
             .unwrap()
             .get(column_index.unwrap())
@@ -528,7 +478,7 @@ _: context<4 4>();
 
         let flattened = res.flatten_traces().unwrap();
 
-        for row in flattened.data.iter() {
+        for row in flattened.data.rows.iter() {
             for col in row.iter() {
                 assert!(col == &U256::from(0));
             }
@@ -618,7 +568,12 @@ _: context<1 0>();
 
         // flatten the result and check all context order id hashes
         // dont match each oher, ie ensuring their randomness
-        let result = flattened.data.into_iter().flatten().collect::<Vec<_>>();
+        let result = flattened
+            .data
+            .rows
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
         for (i, cell_value) in result.iter().enumerate() {
             for (j, other_cell_value) in result.iter().enumerate() {
                 if i != j {
