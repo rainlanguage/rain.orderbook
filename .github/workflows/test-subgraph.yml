@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   test:
-    runs-on: warp-ubuntu-2404-x64-32x-spot
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository

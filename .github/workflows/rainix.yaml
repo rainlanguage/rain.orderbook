@@ -5,26 +5,26 @@ jobs:
   standard-tests:
     strategy:
       matrix:
-        os: [warp-macos-14-arm64-6x, warp-ubuntu-2404-x64-32x-spot]
+        os: [ubuntu-latest, macos-latest]
         task: [ob-rs-test, rainix-rs-artifacts]
         include:
           # Solidity doesn't need to be tested on multiple platforms
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: rainix-sol-test
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: rainix-sol-static
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: rainix-sol-artifacts
           # We don't need to do rust static analysis on multiple platforms
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: rainix-rs-static
           # Wasm target doesnt need to run on multiple platforms
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: rainix-wasm-artifacts
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: rainix-wasm-test
           # Testing JS/TS bindings doesnt need to run on multiple platforms
-          - os: warp-ubuntu-2404-x64-32x-spot
+          - os: ubuntu-latest
             task: test-js-bindings
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -76,3 +76,4 @@ jobs:
           DEPLOY_VERIFIER: ""
 
         run: nix develop -c ${{ matrix.task }}
+
