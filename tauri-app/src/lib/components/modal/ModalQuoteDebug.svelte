@@ -3,10 +3,11 @@
   import { queryClient } from '$lib/queries/queryClient';
   import type { Order } from '$lib/typeshare/orderDetail';
   import { createQuery } from '@tanstack/svelte-query';
-  import { Alert, Modal, Spinner } from 'flowbite-svelte';
-  import { type Hex } from 'viem';
+  import { Alert, Modal } from 'flowbite-svelte';
+  import { hexToBigInt, isHex, type Hex } from 'viem';
   import Refresh from '../icon/Refresh.svelte';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
+  import { fade } from 'svelte/transition';
 
   export let open: boolean;
   export let order: Order;
@@ -18,38 +19,51 @@
 
   $: debugQuery = createQuery(
     {
-      queryKey: [order + rpcUrl],
+      queryKey: [order + rpcUrl + pair],
       queryFn: () => {
         return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrl);
       },
       retry: 0,
+      refetchOnWindowFocus: false,
+      refetchInterval: false,
+      refetchOnMount: false,
     },
     queryClient,
   );
 </script>
 
 <Modal title={`Debugging quote for pair ${pair}`} bind:open outsideclose size="lg">
-  <div class="flex w-full justify-end">
-    <Refresh
-      data-testid="refreshButton"
-      class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
-      on:click={() => $debugQuery.refetch()}
-      spin={$debugQuery.isLoading || $debugQuery.isFetching}
-    />
-  </div>
-  {#if $debugQuery.isLoading}
-    <div class="flex items-center gap-x-2">
-      <Spinner size="4" />
-      <span data-testid="modal-quote-debug-loading-message">Getting quote stack...</span>
+  <div class="flex items-center">
+    {#if $debugQuery.data}
+      <div class="flex flex-col text-sm">
+        <span class="whitespace-nowrap">
+          Block number: {isHex($debugQuery.data.block_number)
+            ? hexToBigInt($debugQuery.data.block_number).toString()
+            : 'Not found'}
+        </span>
+        <span class="whitespace-nowrap" data-testid="modal-quote-debug-rpc-url">RPC: {rpcUrl}</span>
+      </div>
+    {/if}
+    <div class="flex w-full items-center justify-end">
+      {#if $debugQuery.isLoading || $debugQuery.isFetching}
+        <span class="text-sm" transition:fade data-testid="modal-quote-debug-loading-message"
+          >Getting quote stack...</span
+        >
+      {/if}
+      <Refresh
+        data-testid="refreshButton"
+        class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
+        on:click={() => $debugQuery.refetch()}
+        spin={$debugQuery.isLoading || $debugQuery.isFetching}
+      />
     </div>
-  {/if}
+  </div>
+
   {#if $debugQuery.isError}
     <Alert data-testid="modal-quote-debug-error" color="red">{$debugQuery.error}</Alert>
   {/if}
   {#if $debugQuery.data}
     <EvalResultsTable table={$debugQuery.data} />
   {/if}
-  <div class="flex flex-col gap-y-2 text-sm">
-    <span data-testid="modal-quote-debug-rpc-url">RPC: {rpcUrl}</span>
-  </div>
+  <div class="flex flex-col gap-y-2 text-sm"></div>
 </Modal>

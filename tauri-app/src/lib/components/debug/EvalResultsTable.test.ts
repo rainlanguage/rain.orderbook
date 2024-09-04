@@ -7,6 +7,7 @@ import { formatEther, hexToBigInt, isHex } from 'viem';
 
 test('renders table with the correct data', async () => {
   const table: RainEvalResultsTable = {
+    block_number: '0x1234',
     column_names: ['Column1', 'Column2', 'Column3'],
     rows: [
       ['0x01', '0x02', '0x03'],

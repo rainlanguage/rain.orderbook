@@ -38,6 +38,7 @@ if (import.meta.vitest) {
   it('data transforms correctly and errors are caught', () => {
     const fuzzResult = {
       data: {
+        block_number: '0x1234',
         rows: [
           ['0xDE0B6B3A7640000', '0x29A2241AF62C0000'],
           ['0x1BC16D674EC80000', '0x3782DACE9D900000'],
@@ -64,6 +65,7 @@ if (import.meta.vitest) {
 
     const fuzzResult3 = {
       data: {
+        block_number: '0x1234',
         rows: [
           ['0x1234', '0x5678'],
           ['0x1234', '0x5678'],
