@@ -1,18 +1,20 @@
 use alloy::primitives::{B256, U256};
-use rain_orderbook_common::replays::{NewTradeReplayer, TradeReplayer};
+use rain_orderbook_common::{
+    fuzz::{RainEvalResults, RainEvalResultsTable},
+    replays::{NewTradeReplayer, TradeReplayer},
+};
 
 use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<Vec<U256>> {
+pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<RainEvalResultsTable> {
     let mut replayer: TradeReplayer = TradeReplayer::new(NewTradeReplayer {
         fork_url: rpc_url.parse()?,
     })
     .await?;
     let tx_hash = tx_hash.parse::<B256>()?;
-    let res = replayer.replay_tx(tx_hash).await?;
-    let stack = res.traces[1].stack.to_vec();
-    Ok(stack)
+    let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
+    Ok(res.into_flattened_table()?)
 }
 
 #[cfg(test)]
@@ -46,6 +48,6 @@ mod tests {
 
         let expected_stack: Vec<U256> = vec.into_iter().map(U256::from).collect();
 
-        assert_eq!(res, expected_stack);
+        assert_eq!(res.rows[0], expected_stack);
     }
 }

@@ -1,15 +1,18 @@
+import type { RainEvalResultsTable } from '$lib/typeshare/config';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Hex } from 'viem';
 
 export const tradeDebug = async (txHash: string, rpcUrl: string) => {
-  return await invoke<Hex[]>('debug_trade', {
+  return await invoke<RainEvalResultsTable>('debug_trade', {
     txHash,
     rpcUrl,
   });
 };
 
-export const mockTradeDebug = ['0x01', '0x02', '0x03'];
+export const mockTradeDebug: RainEvalResultsTable = {
+  column_names: ['1', '2', '3'],
+  rows: [['0x01', '0x02', '0x03']],
+};
 
 if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;

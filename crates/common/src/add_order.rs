@@ -70,12 +70,6 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: Deployment,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        // check the raindex version of the dotrain
-        DotrainOrder::new(dotrain.clone(), None)
-            .await?
-            .validate_raindex_version()
-            .await?;
-
         let random_vault_id: U256 = rand::random();
         let mut inputs = vec![];
         for input in &deployment.order.inputs {
