@@ -6,7 +6,12 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04]
+        os:
+          [
+            warp-macos-13-arm64-6x,
+            warp-macos-14-arm64-6x,
+            warp-ubuntu-2404-x64-32x-spot,
+          ]
 
     runs-on: ${{ matrix.os }}
     env:
@@ -20,7 +25,7 @@ jobs:
       COMMIT_SHA: ${{ github.sha }}
     steps:
       - name: Free up disk space in action runner
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'warp-ubuntu-2404-x64-32x-spot'
         run: |
           sudo apt-get clean
           sudo rm -rf "/usr/local/share/boost"
