@@ -11,7 +11,6 @@ use rain_orderbook_common::{
     withdraw::WithdrawArgs,
 };
 use rain_orderbook_subgraph_client::types::common::*;
-// use rain_orderbook_subgraph_client::types::vault_balance_changes_list::VaultBalanceChange;
 use rain_orderbook_subgraph_client::PaginationArgs;
 use std::fs;
 use std::path::PathBuf;

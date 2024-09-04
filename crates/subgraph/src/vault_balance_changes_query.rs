@@ -1,6 +1,5 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PageQueryClient, PageQueryVariables};
-// use crate::types::vault_balance_changes_list::VaultBalanceChangeFlatten;
 use crate::types::common::*;
 use crate::types::vault::VaultBalanceChangesListQuery;
 use chrono::DateTime;

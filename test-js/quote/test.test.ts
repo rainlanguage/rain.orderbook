@@ -54,6 +54,9 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
                   ordersAsOutput: [],
                   ordersAsInput: [],
                   balanceChanges: [],
+                  orderbook: {
+                    id: "0x0000000000000000000000000000000000000000",
+                  },
                 },
               ],
               inputs: [
@@ -72,6 +75,9 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
                   ordersAsOutput: [],
                   ordersAsInput: [],
                   balanceChanges: [],
+                  orderbook: {
+                    id: "0x0000000000000000000000000000000000000000",
+                  },
                 },
               ],
               active: true,

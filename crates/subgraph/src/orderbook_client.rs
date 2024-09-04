@@ -7,28 +7,7 @@ use crate::types::order::{
 };
 use crate::types::order_take::{OrderTakeDetailQuery, OrderTakesListQuery};
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
-// use crate::types::vault_balance_changes_list::Bytes;
-// use crate::types::{
-//     order_detail,
-//     order_detail::{
-//         BatchOrderDetailQuery, BatchOrderDetailQueryVariables, Bytes as OrderId, OrderDetailQuery,
-//         OrderDetailQueryVariables, OrderIdList,
-//     },
-//     order_take_detail,
-//     order_take_detail::{OrderTakeDetailQuery, OrderTakeDetailQueryVariables},
-//     order_takes_list,
-//     order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
-//     orders_list,
-//     orders_list::{OrdersListQuery, OrdersListQueryVariables},
-//     vault_balance_changes_list::VaultBalanceChange,
-//     vault_balance_changes_list::VaultBalanceChangesListQueryVariables,
-//     vault_detail,
-//     vault_detail::{VaultDetailQuery, VaultDetailQueryVariables},
-//     vaults_list,
-//     vaults_list::{VaultsListQuery, VaultsListQueryVariables},
-// };
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
-
 use cynic::Id;
 use reqwest::Url;
 use thiserror::Error;
