@@ -1,4 +1,4 @@
-use alloy::primitives::hex::FromHexError;
+use alloy::primitives::{hex::FromHexError, U256};
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
@@ -38,6 +38,8 @@ pub enum Error {
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+    #[error("Invalid quote target: index {0} is out of bounds for this Order")]
+    InvalidQuoteTarget(U256),
 }
 
 #[cfg(target_family = "wasm")]

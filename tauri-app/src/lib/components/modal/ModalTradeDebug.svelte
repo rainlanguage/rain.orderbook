@@ -2,18 +2,8 @@
   import { queryClient } from '$lib/queries/queryClient';
   import { tradeDebug } from '$lib/queries/tradeDebug';
   import { createQuery } from '@tanstack/svelte-query';
-  import {
-    Alert,
-    Modal,
-    Spinner,
-    Table,
-    TableBody,
-    TableBodyCell,
-    TableBodyRow,
-    TableHead,
-    TableHeadCell,
-  } from 'flowbite-svelte';
-  import { formatEther, hexToBigInt } from 'viem';
+  import { Alert, Modal, Spinner } from 'flowbite-svelte';
+  import EvalResultsTable from '../debug/EvalResultsTable.svelte';
 
   export let open: boolean;
   export let txHash: string;
@@ -46,23 +36,6 @@
     <Alert data-testid="modal-trade-debug-error" color="red">{$debugQuery.error}</Alert>
   {/if}
   {#if $debugQuery.data}
-    <Table divClass="cursor-pointer rounded-lg overflow-hidden dark:border-none border">
-      <TableHead>
-        <TableHeadCell>Stack item</TableHeadCell>
-        <TableHeadCell>Value</TableHeadCell>
-        <TableHeadCell>Hex</TableHeadCell>
-      </TableHead>
-      <TableBody>
-        {#each $debugQuery.data as value, i}
-          <TableBodyRow>
-            <TableBodyCell data-testid="modal-trade-debug-stack">{i}</TableBodyCell>
-            <TableBodyCell data-testid="modal-trade-debug-value"
-              >{formatEther(hexToBigInt(value))}</TableBodyCell
-            >
-            <TableBodyCell data-testid="modal-trade-debug-value-hex">{value}</TableBodyCell>
-          </TableBodyRow>
-        {/each}
-      </TableBody>
-    </Table>
+    <EvalResultsTable table={$debugQuery.data} />
   {/if}
 </Modal>
