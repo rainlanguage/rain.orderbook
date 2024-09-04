@@ -13,7 +13,7 @@ pub struct OrdersListQueryVariables {
 #[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
 #[typeshare]
 pub struct OrdersListQuery {
-    #[arguments(orderDirection: "desc", skip: $skip, first: $first)]
+    #[arguments(orderBy: timestampAdded, orderDirection: "desc", skip: $skip, first: $first)]
     pub orders: Vec<Order>,
 }
 
