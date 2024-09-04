@@ -121,7 +121,7 @@ export const activeWatchlist = derived(
   [watchlist, activeWatchlistItems],
   ([$watchlist, $activeWatchlistItems]) => {
     if ($activeWatchlistItems.length === 0) {
-      return $watchlist;
+      return [];
     }
     return $watchlist.filter((item) => $activeWatchlistItems.includes(item));
   },
