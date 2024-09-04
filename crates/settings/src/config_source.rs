@@ -38,7 +38,7 @@ pub struct ConfigSource {
     pub sentry: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub watchlist: Option<Vec<String>>,
 }
 
@@ -203,9 +203,6 @@ pub enum ConfigSourceError {
 impl ConfigSource {
     pub async fn try_from_string(val: String) -> Result<ConfigSource, ConfigSourceError> {
         let mut conf: ConfigSource = serde_yaml::from_str(&val)?;
-
-        println!("Parsed watchlist: {:?}", conf.watchlist);
-
         if !conf.using_networks_from.is_empty() {
             for (_key, item) in conf.using_networks_from.iter() {
                 let remote_networks =
