@@ -45,7 +45,6 @@ pub struct Order {
     pub active: bool,
     pub timestamp_added: BigInt,
     pub meta: Option<RainMetaV1>,
-    #[arguments(first: 1, orderBy: "transaction__timestamp", orderDirection: "desc")]
     pub add_events: Vec<AddOrder>,
 }
 
@@ -95,6 +94,7 @@ pub struct VaultBalanceChangeUnwrapped {
 }
 
 #[derive(cynic::InlineFragments, Debug, Clone, Serialize)]
+#[serde(tag = "__typename", content = "data")]
 #[typeshare]
 pub enum VaultBalanceChange {
     Withdrawal(Withdrawal),

@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from './constants';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Order } from '$lib/typeshare/ordersList';
+import type { Order } from '$lib/typeshare/subgraphTypes';
 
 export type OrdersListArgs = {
   subgraphArgs: {

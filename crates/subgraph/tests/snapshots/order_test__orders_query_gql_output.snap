@@ -234,7 +234,7 @@ query OrderDetailQuery($id: ID!) {
     active
     timestampAdded
     meta
-    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+    addEvents {
       transaction {
         id
         from
