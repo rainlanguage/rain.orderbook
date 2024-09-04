@@ -53,7 +53,7 @@
   <Dropdown class="w-full min-w-72 py-0">
     {#if isEmpty(options)}
       <div class="ml-2 w-full rounded-lg p-3">{emptyMessage}</div>
-    {:else}
+    {:else if options.length > 1}
       <Checkbox
         class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
         on:click={toggleAll}
