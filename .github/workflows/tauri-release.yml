@@ -13,13 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [
-            macos-13,
-            macos-14,
-            ubuntu-22.04,
-            # Someone who cares can make windows work.
-            # windows-latest
+        platform:
+          [
+            warp-macos-13-arm64-6x,
+            warp-macos-14-arm64-6x,
+            warp-ubuntu-2404-x64-32x-spot,
           ]
+          # Someone who cares can make windows work.
+          # windows-latest
 
     runs-on: ${{ matrix.platform }}
     env:
