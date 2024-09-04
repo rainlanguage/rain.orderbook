@@ -8129,6 +8129,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "typeshare 1.0.1",
 ]
 
 [[package]]
