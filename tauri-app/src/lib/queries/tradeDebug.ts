@@ -10,6 +10,7 @@ export const tradeDebug = async (txHash: string, rpcUrl: string) => {
 };
 
 export const mockTradeDebug: RainEvalResultsTable = {
+  block_number: '0x1234',
   column_names: ['1', '2', '3'],
   rows: [['0x01', '0x02', '0x03']],
 };
