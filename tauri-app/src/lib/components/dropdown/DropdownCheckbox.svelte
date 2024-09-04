@@ -39,6 +39,7 @@
   <Button
     color="alternative"
     class="flex w-full justify-between overflow-hidden overflow-ellipsis pl-2 pr-0 text-left"
+    data-testid="dropdown-checkbox-button"
   >
     <div class="flex-grow overflow-hidden text-ellipsis whitespace-nowrap">
       {selectedCount === 0
@@ -50,11 +51,12 @@
     <ChevronDownSolid class="mx-2 h-3 w-3 text-black dark:text-white" />
   </Button>
 
-  <Dropdown class="w-full min-w-72 py-0">
+  <Dropdown class="w-full min-w-72 py-0" data-testid="dropdown-checkbox">
     {#if isEmpty(options)}
       <div class="ml-2 w-full rounded-lg p-3">{emptyMessage}</div>
     {:else if options.length > 1}
       <Checkbox
+        data-testid="dropdown-checkbox-option"
         class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
         on:click={toggleAll}
         checked={value.length === options.length}
@@ -65,6 +67,7 @@
 
     {#each options as item}
       <Checkbox
+        data-testid="dropdown-checkbox-option"
         class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
         on:click={() => toggleItem(item)}
         checked={value.includes(item)}
