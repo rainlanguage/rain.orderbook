@@ -15,8 +15,8 @@ use anyhow::Result;
 use calldata::AddOrderCalldata;
 use clap::Parser;
 use compose::Compose;
-use listorderfrontmatterkeys::ListOrderFrontmatterKeys;
 use filter::Filter;
+use listorderfrontmatterkeys::ListOrderFrontmatterKeys;
 
 use detail::CliOrderDetailArgs;
 use list::CliOrderListArgs;
