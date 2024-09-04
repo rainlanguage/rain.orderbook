@@ -1,12 +1,14 @@
-<script lang="ts" generics="T">
+<script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { Button, Dropdown, Label, Checkbox } from 'flowbite-svelte';
   import { ChevronDownSolid } from 'flowbite-svelte-icons';
   import { isEmpty } from 'lodash';
 
   const dispatch = createEventDispatcher();
-  export let options: T[] = [];
-  export let value: T[] = [];
+
+  export let options: string[] = [];
+  export let value: string[] = [];
+
   export let label: string = 'Select items';
   export let allLabel: string = 'All items';
   export let emptyMessage: string = 'No items available';
@@ -20,7 +22,7 @@
     dispatch('change', value);
   }
 
-  function toggleItem(item: T) {
+  function toggleItem(item: string) {
     if (value.includes(item)) {
       value = value.filter((i) => i !== item);
     } else {
