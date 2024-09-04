@@ -9,7 +9,7 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  class="hover:text-primary-600 cursor-pointer"
+  class="cursor-pointer hover:text-primary-600"
   on:click={() => goto(`/vaults/${tokenVault.id}`)}
 >
   <div class="grid grid-cols-2 gap-x-2 break-normal">
