@@ -48,14 +48,14 @@ test('renders table with the correct data', async () => {
     );
   });
 
-  const stacks = await screen.findAllByTestId('modal-quote-debug-stack');
+  const stacks = await screen.findAllByTestId('debug-stack');
   expect(stacks).toHaveLength(3);
-  const values = await screen.findAllByTestId('modal-quote-debug-value');
+  const values = await screen.findAllByTestId('debug-value');
   expect(values).toHaveLength(3);
-  const hexValues = await screen.findAllByTestId('modal-quote-debug-value-hex');
+  const hexValues = await screen.findAllByTestId('debug-value-hex');
   for (let i = 0; i < 3; i++) {
-    expect(stacks[i]).toHaveTextContent(i.toString());
-    expect(values[i]).toHaveTextContent(formatEther(BigInt(mockQuoteDebug[i])));
-    expect(hexValues[i]).toHaveTextContent(mockQuoteDebug[i]);
+    expect(stacks[i]).toHaveTextContent(mockQuoteDebug.column_names[i]);
+    expect(values[i]).toHaveTextContent(formatEther(BigInt(mockQuoteDebug.rows[0][i])));
+    expect(hexValues[i]).toHaveTextContent(mockQuoteDebug.rows[0][i]);
   }
 });
