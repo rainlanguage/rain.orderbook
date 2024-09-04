@@ -105,6 +105,27 @@ export const hasRequiredSettings = derived(
 
 // watchlist
 export const watchlist = derived(settings, ($settings) => $settings?.watchlist ?? []);
+export const activeWatchlistItems = cachedWritableStore<string[]>(
+  'settings.activeWatchlistItems',
+  [],
+  (s) => JSON.stringify(s),
+  (s) => {
+    try {
+      return JSON.parse(s);
+    } catch (e) {
+      return [];
+    }
+  },
+);
+export const activeWatchlist = derived(
+  [watchlist, activeWatchlistItems],
+  ([$watchlist, $activeWatchlistItems]) => {
+    if ($activeWatchlistItems.length === 0) {
+      return $watchlist;
+    }
+    return $watchlist.filter((item) => $activeWatchlistItems.includes(item));
+  },
+);
 
 // When networks / orderbooks settings updated, reset active network / orderbook
 settings.subscribe(async () => {
