@@ -38,8 +38,8 @@ pub struct ConfigSource {
     pub sentry: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub watchlist: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub watchlist: HashMap<String, String>,
 }
 
 #[typeshare]
@@ -376,8 +376,8 @@ deployments:
 sentry: true
 
 watchlist:
-    - address-one
-    - address-two"#,
+    name-one: address-one
+    name-two: address-two"#,
             mocked_chain_id_server.url("/json")
         );
 
@@ -483,10 +483,8 @@ watchlist:
 
         assert_eq!(config.raindex_version, Some("123".to_string()));
 
-        assert_eq!(
-            config.watchlist,
-            Some(vec!["address-one".to_string(), "address-two".to_string()])
-        );
+        assert_eq!(config.watchlist.get("name-one").unwrap(), "address-one");
+        assert_eq!(config.watchlist.get("name-two").unwrap(), "address-two");
     }
 
     #[tokio::test]

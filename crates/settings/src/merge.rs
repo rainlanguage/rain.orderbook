@@ -36,6 +36,9 @@ pub enum MergeError {
 
     #[error("There is already a remote networks definition called {0}")]
     RemoteNetworksCollision(String),
+
+    #[error("There is already a watchlist called {0}")]
+    WatchlistCollision(String),
 }
 
 impl ConfigSource {
@@ -148,15 +151,13 @@ impl ConfigSource {
         }?;
 
         // Watchlist
-        self.watchlist = match (self.watchlist.take(), other.watchlist) {
-            (Some(mut a), Some(b)) => {
-                a.extend(b);
-                Some(a)
+        let watchlist = &mut self.watchlist;
+        for (key, value) in other.watchlist {
+            if watchlist.contains_key(&key) {
+                return Err(MergeError::WatchlistCollision(key));
             }
-            (Some(a), None) => Some(a),
-            (None, Some(b)) => Some(b),
-            (None, None) => None,
-        };
+            watchlist.insert(key, value);
+        }
 
         Ok(())
     }
@@ -263,15 +264,13 @@ impl Config {
         }?;
 
         // Watchlist
-        self.watchlist = match (self.watchlist.take(), other.watchlist) {
-            (Some(mut a), Some(b)) => {
-                a.extend(b);
-                Some(a)
+        let watchlist = &mut self.watchlist;
+        for (key, value) in other.watchlist {
+            if watchlist.contains_key(&key) {
+                return Err(MergeError::WatchlistCollision(key));
             }
-            (Some(a), None) => Some(a),
-            (None, Some(b)) => Some(b),
-            (None, None) => None,
-        };
+            watchlist.insert(key, value);
+        }
 
         Ok(())
     }
@@ -299,7 +298,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None,
+            watchlist: HashMap::new(),
         };
 
         let other = ConfigSource {
@@ -316,7 +315,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None,
+            watchlist: HashMap::new(),
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -338,7 +337,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None,
+            watchlist: HashMap::new(),
         };
 
         let mut other = ConfigSource {
@@ -355,7 +354,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None,
+            watchlist: HashMap::new(),
         };
 
         // Add a collision to cause an unsuccessful merge
@@ -391,7 +390,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None,
+            watchlist: HashMap::new(),
         };
 
         let mut other = ConfigSource {
@@ -408,7 +407,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None,
+            watchlist: HashMap::new(),
         };
 
         other.metaboards.insert(
