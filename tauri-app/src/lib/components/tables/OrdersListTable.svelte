@@ -57,7 +57,7 @@
       <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
-      <TableHeadCell data-testid="orderListHeadingCreatedAt" padding="p-4">Created At</TableHeadCell
+      <TableHeadCell data-testid="orderListHeadingLastAdded" padding="p-4">Last Added</TableHeadCell
       >
       <TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
         >Input Token(s)</TableHeadCell
@@ -85,7 +85,7 @@
       <TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2"
         ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
       >
-      <TableBodyCell data-testid="orderListRowCreatedAt" tdClass="break-word px-4 py-2">
+      <TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
         {formatTimestampSecondsAsLocal(BigInt(item.timestamp_added))}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">

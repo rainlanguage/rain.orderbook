@@ -328,6 +328,7 @@ mod tests {
                     "owner": encode_prefixed(order.owner),
                     "outputs": [{
                         "id": encode_prefixed(Address::random().0.0),
+                        "owner": encode_prefixed(order.owner),
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
@@ -337,9 +338,14 @@ mod tests {
                         },
                         "balance": "0",
                         "vaultId": order.validOutputs[0].vaultId.to_string(),
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "inputs": [{
                         "id": encode_prefixed(Address::random().0.0),
+                        "owner": encode_prefixed(order.owner),
                         "token": {
                             "id": encode_prefixed(order.validInputs[0].token.0.0),
                             "address": encode_prefixed(order.validInputs[0].token.0.0),
@@ -349,13 +355,19 @@ mod tests {
                         },
                         "balance": "0",
                         "vaultId": order.validInputs[0].vaultId.to_string(),
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "orderbook": { "id": encode_prefixed(B256::random()) },
                     "active": true,
                     "addEvents": [{
                         "transaction": {
+                            "id": encode_prefixed(B256::random()),
                             "blockNumber": "0",
-                            "timestamp": "0"
+                            "timestamp": "0",
+                            "from": encode_prefixed(Address::random())
                         }
                     }],
                     "meta": null,

@@ -6211,6 +6211,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "typeshare",
  "url",
  "validator",
 ]
@@ -6369,6 +6370,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "httpmock",
  "js-sys",
  "once_cell",
  "proptest",

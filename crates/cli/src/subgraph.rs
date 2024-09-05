@@ -1,7 +1,7 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
-    types::orders_list::{Bytes, OrdersListFilterArgs},
+    types::common::{Bytes, OrdersListFilterArgs},
     PaginationArgs,
 };
 

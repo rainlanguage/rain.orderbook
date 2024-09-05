@@ -5,7 +5,7 @@
   import { HashType } from '$lib/types/hash';
   import AppTable from '$lib/components/AppTable.svelte';
   import type { ListStore } from '$lib/storesGeneric/listStore';
-  import type { Trade } from '$lib/typeshare/orderTakesList';
+  import type { Trade } from '$lib/typeshare/subgraphTypes';
   import { formatUnits } from 'viem';
 
   export let orderTakesList: ListStore<Trade>;

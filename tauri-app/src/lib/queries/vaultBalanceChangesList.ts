@@ -1,4 +1,4 @@
-import type { VaultBalanceChange } from '$lib/typeshare/vaultBalanceChangesList';
+import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from './constants';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -23,7 +23,7 @@ export const vaultBalanceChangesList = async (
   if (!url) {
     return [];
   }
-  return await invoke<VaultBalanceChange[]>('vault_balance_changes_list', {
+  return await invoke<VaultBalanceChangeUnwrapped[]>('vault_balance_changes_list', {
     id,
     subgraphArgs: { url },
     paginationArgs: { page: pageParam + 1, page_size: pageSize },
@@ -34,7 +34,7 @@ if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
 
   it('uses the vault_balance_changes_list command correctly', async () => {
-    const mockVaultBalanceChanges: VaultBalanceChange[] = [
+    const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
       {
         __typename: 'Withdrawal',
         amount: '1000',
@@ -54,6 +54,8 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx1',
           from: '0xUser1',
+          block_number: '0',
+          timestamp: '0',
         },
         orderbook: {
           id: '0x00',
@@ -78,6 +80,8 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx2',
           from: '0xUser2',
+          block_number: '0',
+          timestamp: '0',
         },
         orderbook: {
           id: '0x00',
@@ -102,6 +106,8 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx3',
           from: '0xUser3',
+          block_number: '0',
+          timestamp: '0',
         },
         orderbook: {
           id: '0x00',

@@ -1,7 +1,7 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
-import type { Order } from '$lib/typeshare/orderDetail';
+import { rpcUrl } from '$lib/stores/settings';
+import type { Order } from '$lib/typeshare/subgraphTypes';
 import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -29,7 +29,10 @@ const formatOrder = (order: Order) => ({
   timestampAdded: order.timestamp_added,
 });
 
-export async function batchOrderQuotes(orders: Order[]): Promise<BatchOrderQuotesResponse[]> {
+export async function batchOrderQuotes(
+  orders: Order[],
+  blockNumber?: number,
+): Promise<BatchOrderQuotesResponse[]> {
   const formattedOrders = orders.map((order) => ({
     ...order,
     orderBytes: order.order_bytes,
@@ -53,7 +56,7 @@ export async function batchOrderQuotes(orders: Order[]): Promise<BatchOrderQuote
   }));
   return invoke('batch_order_quotes', {
     orders: formattedOrders,
-    subgraphUrl: get(subgraphUrl),
+    blockNumber,
     rpcUrl: get(rpcUrl),
   });
 }
