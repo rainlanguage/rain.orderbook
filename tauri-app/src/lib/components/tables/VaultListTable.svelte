@@ -19,11 +19,12 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
+  import { activeWatchlist } from '$lib/stores/settings';
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS],
     queryFn: ({ pageParam }) => {
-      return vaultList($subgraphUrl, pageParam);
+      return vaultList($subgraphUrl, $activeWatchlist, pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
