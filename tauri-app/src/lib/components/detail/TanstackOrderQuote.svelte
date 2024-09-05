@@ -2,7 +2,7 @@
   import { orderbookAddress, rpcUrl } from '$lib/stores/settings';
   import { handleQuoteDebugModal } from '$lib/services/modal';
   import Refresh from '../icon/Refresh.svelte';
-  import type { Order } from '$lib/typeshare/orderDetail';
+  import type { Order } from '$lib/typeshare/subgraphTypes';
   import { QKEY_ORDER_QUOTE } from '$lib/queries/keys';
   import { batchOrderQuotes } from '$lib/queries/orderQuote';
   import { formatUnits, hexToNumber, isHex } from 'viem';

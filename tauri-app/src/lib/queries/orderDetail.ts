@@ -1,4 +1,4 @@
-import type { OrderDetailExtended } from '$lib/typeshare/orderDetail';
+import type { OrderDetailExtended } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
@@ -37,6 +37,11 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
         },
         balance: '1000',
         vault_id: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        orderbook: { id: '0x1111111111111111111111111111111111111111' },
+        owner: '0x1111111111111111111111111111111111111111',
+        orders_as_output: [],
+        orders_as_input: [],
+        balance_changes: [],
       },
     ],
     inputs: [
@@ -51,12 +56,19 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
         },
         balance: '500',
         vault_id: '0x2222222222222222222222222222222222222222222222222222222222222222',
+        orderbook: { id: '0x1111111111111111111111111111111111111111' },
+        owner: '0x1111111111111111111111111111111111111111',
+        orders_as_output: [],
+        orders_as_input: [],
+        balance_changes: [],
       },
     ],
     active: true,
     add_events: [
       {
         transaction: {
+          id: '0x2222222222222222222222222222222222222222222222222222222222222222',
+          from: '0x1111111111111111111111111111111111111111',
           block_number: '12345',
           timestamp: '1620000000',
         },

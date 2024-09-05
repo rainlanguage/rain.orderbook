@@ -178,14 +178,17 @@ mod tests {
                     "ordersAsInput": [{
                         "id": encode_prefixed(B256::random()),
                         "orderHash": encode_prefixed(B256::random()),
+                        "active": true,
                     }],
                     "ordersAsOutput": [{
                         "id": encode_prefixed(B256::random()),
                         "orderHash": encode_prefixed(B256::random()),
+                        "active": true,
                     }],
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
                     },
+                    "balanceChanges": []
                 }]
             }
         })

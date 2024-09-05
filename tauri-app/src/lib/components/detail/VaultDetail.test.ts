@@ -4,7 +4,7 @@ import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from './VaultDetail.svelte';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Vault } from '$lib/typeshare/vaultDetail';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 import { goto } from '$app/navigation';
 import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
 

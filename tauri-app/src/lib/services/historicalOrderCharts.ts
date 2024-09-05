@@ -1,4 +1,4 @@
-import type { Trade } from '$lib/typeshare/orderTakesList';
+import type { Trade } from '$lib/typeshare/subgraphTypes';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
 import { sortBy } from 'lodash';
@@ -68,11 +68,13 @@ if (import.meta.vitest) {
             id: 'transaction_id',
             from: 'sender_address',
             timestamp: '1632000000',
+            block_number: '0',
           },
         },
         output_vault_balance_change: {
           amount: '100',
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -81,14 +83,37 @@ if (import.meta.vitest) {
               decimals: '1',
             },
           },
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         order: {
           id: 'order_id',
           order_hash: 'order_hash',
           timestamp_added: '1632000000',
+          order_bytes: '0x123456',
+          owner: '0x1111111111111111111111111111111111111111',
+          outputs: [],
+          inputs: [],
+          active: true,
+          add_events: [],
+          meta: 'metadata1',
+          orderbook: {
+            id: '0x00',
+          },
         },
         input_vault_balance_change: {
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -98,6 +123,18 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         orderbook: {
           id: '0x00',
@@ -112,11 +149,13 @@ if (import.meta.vitest) {
             id: 'transaction_id',
             from: 'sender_address',
             timestamp: '1631000000',
+            block_number: '0',
           },
         },
         output_vault_balance_change: {
           amount: '100',
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -125,14 +164,37 @@ if (import.meta.vitest) {
               decimals: '1',
             },
           },
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         order: {
           id: 'order_id',
           order_hash: 'order_hash',
           timestamp_added: '1631000000',
+          order_bytes: '0x123456',
+          owner: '0x1111111111111111111111111111111111111111',
+          outputs: [],
+          inputs: [],
+          active: true,
+          add_events: [],
+          meta: 'metadata1',
+          orderbook: {
+            id: '0x00',
+          },
         },
         input_vault_balance_change: {
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -142,6 +204,18 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         orderbook: {
           id: '0x00',
@@ -156,11 +230,13 @@ if (import.meta.vitest) {
             id: 'transaction_id',
             from: 'sender_address',
             timestamp: '1630000000',
+            block_number: '0',
           },
         },
         output_vault_balance_change: {
           amount: '100',
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -169,14 +245,37 @@ if (import.meta.vitest) {
               decimals: '1',
             },
           },
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         order: {
           id: 'order_id',
           order_hash: 'order_hash',
           timestamp_added: '1630000000',
+          order_bytes: '0x123456',
+          owner: '0x1111111111111111111111111111111111111111',
+          outputs: [],
+          inputs: [],
+          active: true,
+          add_events: [],
+          meta: 'metadata1',
+          orderbook: {
+            id: '0x00',
+          },
         },
         input_vault_balance_change: {
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -186,6 +285,18 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         orderbook: {
           id: '0x00',
@@ -220,11 +331,13 @@ if (import.meta.vitest) {
             id: 'transaction_id',
             from: 'sender_address',
             timestamp: '1632000000',
+            block_number: '0',
           },
         },
         output_vault_balance_change: {
           amount: '100',
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -233,14 +346,37 @@ if (import.meta.vitest) {
               decimals: '1',
             },
           },
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         order: {
           id: 'order_id',
           order_hash: 'order_hash',
           timestamp_added: '1632000000',
+          order_bytes: '0x123456',
+          owner: '0x1111111111111111111111111111111111111111',
+          outputs: [],
+          inputs: [],
+          active: true,
+          add_events: [],
+          meta: 'metadata1',
+          orderbook: {
+            id: '0x00',
+          },
         },
         input_vault_balance_change: {
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -250,6 +386,18 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         orderbook: {
           id: '0x00',
@@ -264,11 +412,13 @@ if (import.meta.vitest) {
             id: 'transaction_id',
             from: 'sender_address',
             timestamp: '1632000000',
+            block_number: '0',
           },
         },
         output_vault_balance_change: {
           amount: '200',
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -277,14 +427,37 @@ if (import.meta.vitest) {
               decimals: '1',
             },
           },
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         order: {
           id: 'order_id',
           order_hash: 'order_hash',
           timestamp_added: '1632000000',
+          order_bytes: '0x123456',
+          owner: '0x1111111111111111111111111111111111111111',
+          outputs: [],
+          inputs: [],
+          active: true,
+          add_events: [],
+          meta: 'metadata1',
+          orderbook: {
+            id: '0x00',
+          },
         },
         input_vault_balance_change: {
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -294,6 +467,18 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         orderbook: {
           id: '0x00',
@@ -308,11 +493,13 @@ if (import.meta.vitest) {
             id: 'transaction_id',
             from: 'sender_address',
             timestamp: '1632000000',
+            block_number: '0',
           },
         },
         output_vault_balance_change: {
           amount: '400',
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -321,14 +508,37 @@ if (import.meta.vitest) {
               decimals: '1',
             },
           },
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         order: {
           id: 'order_id',
           order_hash: 'order_hash',
           timestamp_added: '1632000000',
+          order_bytes: '0x123456',
+          owner: '0x1111111111111111111111111111111111111111',
+          outputs: [],
+          inputs: [],
+          active: true,
+          add_events: [],
+          meta: 'metadata1',
+          orderbook: {
+            id: '0x00',
+          },
         },
         input_vault_balance_change: {
           vault: {
+            id: '1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -338,6 +548,18 @@ if (import.meta.vitest) {
             },
           },
           amount: '50',
+          id: '1',
+          __typename: 'Withdraw',
+          new_vault_balance: '0',
+          old_vault_balance: '0',
+          timestamp: '0',
+          transaction: {
+            id: 'transaction_id',
+            from: 'sender_address',
+            timestamp: '1632000000',
+            block_number: '0',
+          },
+          orderbook: { id: '1' },
         },
         orderbook: {
           id: '0x00',

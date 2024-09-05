@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import type { Vault } from '$lib/typeshare/orderDetail';
+  import type { Vault } from '$lib/typeshare/subgraphTypes';
   import { bigintStringToHex } from '$lib/utils/hex';
 
   export let tokenVault: Vault;

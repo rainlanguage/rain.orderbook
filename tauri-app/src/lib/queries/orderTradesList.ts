@@ -1,4 +1,4 @@
-import type { Trade } from '$lib/typeshare/orderTakesList';
+import type { Trade } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from './constants';
 import { prepareHistoricalOrderChartData } from '$lib/services/historicalOrderCharts';
