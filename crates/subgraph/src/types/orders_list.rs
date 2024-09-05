@@ -1,28 +1,34 @@
 use crate::schema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrdersListFilterArgs {
+    pub owners: Vec<Bytes>,
+}
+
+#[derive(cynic::InputObject, Debug, Clone)]
+#[cynic(graphql_type = "Order_filter")]
+#[typeshare]
+pub struct OrdersListQueryFilters {
+    #[cynic(rename = "owner_in")]
+    pub owner_in: Vec<Bytes>,
+}
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
 pub struct OrdersListQueryVariables {
     pub first: Option<i32>,
     pub skip: Option<i32>,
-    pub owners: Option<Vec<Bytes>>,
+    #[cynic(rename = "filters")]
+    pub filters: Option<OrdersListQueryFilters>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
 #[typeshare]
 pub struct OrdersListQuery {
-    #[arguments(orderDirection: "desc", skip: $skip, first: $first)]
-    pub orders: Vec<Order>,
-}
-
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
-#[typeshare]
-pub struct OrdersListByOwnersQuery {
-    #[arguments(orderDirection: "desc", skip: $skip, first: $first, where: { owner_in: $owners })]
+    #[arguments(orderDirection: "desc", skip: $skip, first: $first, where: $filters)]
     pub orders: Vec<Order>,
 }
 

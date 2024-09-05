@@ -1,5 +1,6 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
+use crate::types::orders_list::OrdersListFilterArgs;
 use crate::types::vault_balance_changes_list::Bytes;
 use crate::types::{
     order_detail,
@@ -12,7 +13,7 @@ use crate::types::{
     order_takes_list,
     order_takes_list::{OrderTakesListQuery, OrderTakesListQueryVariables},
     orders_list,
-    orders_list::{OrdersListByOwnersQuery, OrdersListQuery, OrdersListQueryVariables},
+    orders_list::{OrdersListQuery, OrdersListQueryVariables},
     vault_balance_changes_list::VaultBalanceChange,
     vault_balance_changes_list::VaultBalanceChangesListQueryVariables,
     vault_detail,
@@ -86,34 +87,26 @@ impl OrderbookSubgraphClient {
     /// Fetch all orders, paginated
     pub async fn orders_list(
         &self,
+        filter_args: OrdersListFilterArgs,
         pagination_args: PaginationArgs,
     ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
-        let data = self
-            .query::<OrdersListQuery, OrdersListQueryVariables>(OrdersListQueryVariables {
-                first: pagination_variables.first,
-                skip: pagination_variables.skip,
-                owners: None,
-            })
-            .await?;
-        Ok(data.orders)
-    }
 
-    /// Fetch all order for a list of owner addresses
-    pub async fn orders_list_by_owners(
-        &self,
-        owners: Option<Vec<orders_list::Bytes>>,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<orders_list::Order>, OrderbookSubgraphClientError> {
-        let pagination_variables = Self::parse_pagination_args(pagination_args);
-        let data = self
-            .query::<OrdersListByOwnersQuery, OrdersListQueryVariables>(OrdersListQueryVariables {
-                first: pagination_variables.first,
-                skip: pagination_variables.skip,
-                owners,
-            })
-            .await?;
+        let variables = OrdersListQueryVariables {
+            first: pagination_variables.first,
+            skip: pagination_variables.skip,
+            filters: if filter_args.owners.is_empty() {
+                None
+            } else {
+                Some(orders_list::OrdersListQueryFilters {
+                    owner_in: filter_args.owners,
+                })
+            },
+        };
 
+        let data = self
+            .query::<OrdersListQuery, OrdersListQueryVariables>(variables)
+            .await?;
         Ok(data.orders)
     }
 
@@ -126,10 +119,13 @@ impl OrderbookSubgraphClient {
 
         loop {
             let page_data = self
-                .orders_list(PaginationArgs {
-                    page,
-                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
-                })
+                .orders_list(
+                    OrdersListFilterArgs { owners: vec![] },
+                    PaginationArgs {
+                        page,
+                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                    },
+                )
                 .await?;
             if page_data.is_empty() {
                 break;

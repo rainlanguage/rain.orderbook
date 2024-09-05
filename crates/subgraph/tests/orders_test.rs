@@ -10,7 +10,7 @@ fn orders_query_gql_output() {
     let request_body = OrdersListQuery::build(OrdersListQueryVariables {
         skip: Some(0),
         first: Some(10),
-        owners: None,
+        filters: None,
     });
 
     assert_snapshot!(request_body.query);
