@@ -3,22 +3,12 @@
   import DropdownCheckbox from './DropdownCheckbox.svelte';
 
   $: options = $watchlist;
-  $: value = $activeWatchlistItems;
-
-  function handleChange(event: CustomEvent<string[]>) {
-    $activeWatchlistItems = event.detail;
-  }
 </script>
 
 <DropdownCheckbox
-  bind:options
-  bind:value
-  on:change={handleChange}
+  {options}
+  bind:value={$activeWatchlistItems}
   label="Watchlist"
   allLabel="All addresses"
   emptyMessage="No watchlist added"
->
-  <svelte:fragment slot="item" let:item>
-    {item}
-  </svelte:fragment>
-</DropdownCheckbox>
+/>

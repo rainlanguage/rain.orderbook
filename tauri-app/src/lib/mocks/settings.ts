@@ -31,7 +31,10 @@ const mockConfigSource: ConfigSource = {
   metaboards: {
     metaboard1: 'https://example.com/metaboard1',
   },
-  watchlist: ['address1', 'address2', 'address3'],
+  watchlist: {
+    first: '0xfirstaddress',
+    second: '0xsecondaddress',
+  },
 };
 
 export const mockSettingsStore = writable<ConfigSource>(mockConfigSource);

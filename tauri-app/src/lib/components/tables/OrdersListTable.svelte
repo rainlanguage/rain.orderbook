@@ -26,7 +26,7 @@
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS],
     queryFn: ({ pageParam }) => {
-      return ordersList($subgraphUrl, $activeWatchlist, pageParam);
+      return ordersList($subgraphUrl, Object.values($activeWatchlist), pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
