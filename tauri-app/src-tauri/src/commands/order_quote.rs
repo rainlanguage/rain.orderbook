@@ -1,14 +1,12 @@
-use crate::error::{CommandError, CommandResult};
+use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
+use alloy_ethers_typecast::transaction::ReadableClient;
 use rain_orderbook_bindings::IOrderBookV4::Quote;
-use rain_orderbook_common::{
-    fuzz::{RainEvalResults, RainEvalResultsTable},
-    subgraph::SubgraphArgs,
-};
+use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{
-    BatchQuoteSpec, NewQuoteDebugger, OrderQuoteValue, QuoteDebugger, QuoteSpec, QuoteTarget,
+    BatchQuoteTarget, NewQuoteDebugger, OrderQuoteValue, QuoteDebugger, QuoteTarget,
 };
-use rain_orderbook_subgraph_client::types::order_detail;
+use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
@@ -16,75 +14,82 @@ use typeshare::typeshare;
 #[typeshare]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct BatchOrderQuotesResponse {
-    pub pair_name: String,
-    pub inputIOIndex: u32,
-    pub outputIOIndex: u32,
+    pub pair: Pair,
+    #[typeshare(typescript(type = "string"))]
+    pub block_number: U256,
     pub data: Option<OrderQuoteValue>,
     pub success: bool,
     pub error: Option<String>,
 }
 
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+pub struct Pair {
+    pub pair_name: String,
+    pub input_index: u32,
+    pub output_index: u32,
+}
+
 #[tauri::command]
 pub async fn batch_order_quotes(
-    orders: Vec<order_detail::Order>,
-    subgraph_url: String,
+    orders: Vec<Order>,
+    block_number: Option<u64>,
     rpc_url: String,
 ) -> CommandResult<Vec<BatchOrderQuotesResponse>> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     for order in &orders {
+        let mut pairs: Vec<Pair> = Vec::new();
+        let mut quote_targets: Vec<QuoteTarget> = Vec::new();
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
-        let pairs: Vec<(String, usize, usize, Address)> = order
-            .inputs
-            .iter()
-            .enumerate()
-            .flat_map(|(input_index, input)| {
-                order
-                    .outputs
-                    .iter()
-                    .enumerate()
-                    .map(move |(output_index, output)| {
-                        let pair_name = format!(
-                            "{}/{}",
-                            input.token.symbol.as_deref().unwrap_or("UNKNOWN"),
-                            output.token.symbol.as_deref().unwrap_or("UNKNOWN")
-                        );
-                        (pair_name, input_index, output_index, orderbook)
-                    })
-            })
-            .collect();
 
-        let order_hash =
-            U256::from_str_radix(&order.order_hash.0[2..], 16).map_err(CommandError::from)?;
+        for (input_index, input) in order.inputs.iter().enumerate() {
+            for (output_index, output) in order.outputs.iter().enumerate() {
+                let pair_name = format!(
+                    "{}/{}",
+                    input.token.symbol.as_deref().unwrap_or("UNKNOWN"),
+                    output.token.symbol.as_deref().unwrap_or("UNKNOWN"),
+                );
 
-        let mut quote_specs = Vec::new();
+                let quote = order.clone().try_into()?;
+                let quote_target = QuoteTarget {
+                    orderbook,
+                    quote_config: Quote {
+                        order: quote,
+                        inputIOIndex: U256::from(input_index),
+                        outputIOIndex: U256::from(output_index),
+                        signedContext: vec![],
+                    },
+                };
 
-        for (pair_name, input_index, output_index, orderbook) in pairs {
-            let quote_spec = QuoteSpec {
-                order_hash,
-                input_io_index: input_index as u8,
-                output_io_index: output_index as u8,
-                signed_context: vec![],
-                orderbook,
-            };
-
-            quote_specs.push((quote_spec, pair_name));
+                if input.token.address.0 != output.token.address.0 {
+                    pairs.push(Pair {
+                        pair_name,
+                        input_index: input_index as u32,
+                        output_index: output_index as u32,
+                    });
+                    quote_targets.push(quote_target);
+                }
+            }
         }
 
-        let quote_values =
-            BatchQuoteSpec(quote_specs.iter().map(|(spec, _)| spec.clone()).collect())
-                .do_quote(&subgraph_url, &rpc_url, None, None)
-                .await;
+        let req_block_number = block_number.unwrap_or(
+            ReadableClient::new_from_url(rpc_url.clone())?
+                .get_block_number()
+                .await?,
+        );
+
+        let quote_values = BatchQuoteTarget(quote_targets)
+            .do_quote(&rpc_url, Some(req_block_number), None)
+            .await;
 
         if let Ok(quote_values) = quote_values {
-            for (quote_value_result, (spec, pair_name)) in quote_values.into_iter().zip(quote_specs)
-            {
+            for (quote_value_result, pair) in quote_values.into_iter().zip(pairs) {
                 match quote_value_result {
                     Ok(quote_value) => {
                         results.push(BatchOrderQuotesResponse {
-                            inputIOIndex: spec.input_io_index as u32,
-                            outputIOIndex: spec.output_io_index as u32,
-                            pair_name,
+                            pair,
+                            block_number: U256::from(req_block_number),
                             success: true,
                             data: Some(quote_value),
                             error: None,
@@ -92,9 +97,8 @@ pub async fn batch_order_quotes(
                     }
                     Err(e) => {
                         results.push(BatchOrderQuotesResponse {
-                            inputIOIndex: spec.input_io_index as u32,
-                            outputIOIndex: spec.output_io_index as u32,
-                            pair_name,
+                            pair,
+                            block_number: U256::from(req_block_number),
                             success: false,
                             data: None,
                             error: Some(e.to_string()),
@@ -103,11 +107,10 @@ pub async fn batch_order_quotes(
                 }
             }
         } else if let Err(e) = quote_values {
-            for (spec, pair_name) in quote_specs {
+            for pair in pairs {
                 results.push(BatchOrderQuotesResponse {
-                    inputIOIndex: spec.input_io_index as u32,
-                    outputIOIndex: spec.output_io_index as u32,
-                    pair_name,
+                    pair,
+                    block_number: U256::from(req_block_number),
                     success: false,
                     data: None,
                     error: Some(e.to_string()),
@@ -121,9 +124,9 @@ pub async fn batch_order_quotes(
 
 #[tauri::command]
 pub async fn debug_order_quote(
-    order: order_detail::Order,
-    inputIOIndex: u32,
-    outputIOIndex: u32,
+    order: Order,
+    input_io_index: u32,
+    output_io_index: u32,
     orderbook: Address,
     rpc_url: String,
 ) -> CommandResult<RainEvalResultsTable> {
@@ -131,8 +134,8 @@ pub async fn debug_order_quote(
         orderbook,
         quote_config: Quote {
             order: order.try_into()?,
-            inputIOIndex: U256::from(inputIOIndex),
-            outputIOIndex: U256::from(outputIOIndex),
+            inputIOIndex: U256::from(input_io_index),
+            outputIOIndex: U256::from(output_io_index),
             signedContext: vec![],
         },
     };
@@ -151,18 +154,13 @@ pub async fn debug_order_quote(
 mod tests {
     use super::*;
     use rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL;
-    use rain_orderbook_subgraph_client::types::order_detail::{self, Bytes};
     use std::str::FromStr;
 
     #[tokio::test]
     async fn test_debug_order_quote() {
-        let order = order_detail::Order {
-            id: order_detail::RainMetaV1 {
-                0: "0x01".to_string(),
-            },
-            orderbook: order_detail::Orderbook {
-                id: Bytes("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()),
-            },
+        let order = Order {
+            id: Bytes("0x01".to_string()),
+            orderbook: Orderbook{id: Bytes("0x00".to_string())},
             order_bytes: Bytes("0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000008e4bdeec7ceb9570d440676345da1dce10329f5b00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000076000000000000000000000000000000000000000000000000000000000000007e0eccd7aa9a9f8af012d11a874253fdd8b48fd35c63f21cf97d0c33f6d141268db0000000000000000000000006352593f4018c99df731de789e2a147c7fb29370000000000000000000000000de38ad4b13d5258a5653e530ecdf0ca71b4e8a51000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000006250000000000000000000000000000000000000000000000000000000000000019000000000000000000000000000000000000000000000001158e460913d000000000000000000000000000000000000000000000000000001bc16d674ec8000000000000000000000000000000000000000000000000000340aad21b3b7000008d5061727469616c2074726164650000000000000000000000000000000000008c636f6f6c646f776e2d6b65790000000000000000000000000000000000000088636f6f6c646f776e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000000029a2241af62c00000000000000000000000000000000000000000000000000003782dace9d90000000000000000000000000000000000000000000000000000003782dace9d900008764656661756c7400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006f05b59d3b20000000000000000000000000000e1b3eb06806601828976e491914e3de18b5d6b280000000000000000000000003c499c542cef5e3811e1192ce70d8cc03d5c33590000000000000000000000005757371414417b8c6caad45baef941abc7d3ab3296e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f00000000000000000000000000000000000000000000000000b1a2bc2ec50000896d696e20726174696f000000000000000000000000000000000000000000008d5072696365206368616e67652e000000000000000000000000000000000000000000000000000000000000000000000000000000000000002386f26fc1000000000000000000000000000000000000000000000000000000470de4df8200000000000000000000000000000000000000000000000000008ac7230489e800000000000000000000000000000000000000000000000000000214e8348c4f0000000000000000000000010001bc609623f5020f6fc7481024862cd5ee3fff52d700000000000000000000000000000000000000000000000000000000000002c50c00000060008000c801b401e00204021c0220026c02840288170900070b200002001000000b1100030010000201100001011000003d1200003d120000001000030b11000401100002001000012b120000001000004812000100100004001000030b230005001000060b01000600100006001000050b020007070300000110000303100002031001044412000003100404211200001d020000110500021a10000001100004031000010c120000491100000110000501100002001000012b12000000100000211200001d0200000010000001100004031000010c1200004a0200003a14010701100006001000000b12000801100007001000000b12000801100001001000000b12000801100008001000000b12000801100009001000000b1200080110000c0110000b001000050110000700100005251200000110000a00100005211200001f120000001000040110000700100004251200000110000a00100004211200001f120000001000030110000700100003251200000110000a00100003211200001f120000001000020110000700100002251200000110000a00100002211200001f120000001000010110000700100001251200000110000a00100001211200001f1200001c1c00000a060104011000100110000f001000000110000e0110000d02250018001000020b010009001000010b11000a0806030600100000001000020b11000b00100001481200012e120000001000000010000305040101011000120110001100100000201200001d020000000202021207020600100001001000000c12000007111400061100000110000701100006001000000c1200003c12000000100003001000022b12000001100000011000072b120000001000042e12000005040101011000131a10000000100000241200001d0200000001010108050102011000170010000001100016011000152e12000001100014271300003b12000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000003c499c542cef5e3811e1192ce70d8cc03d5c33590000000000000000000000000000000000000000000000000000000000000006d302fedcbf6b3ea84812cde736439a97478b93fce4b546bc445f837f255893840000000000000000000000000000000000000000000000000000000000000001000000000000000000000000e1b3eb06806601828976e491914e3de18b5d6b280000000000000000000000000000000000000000000000000000000000000012d302fedcbf6b3ea84812cde736439a97478b93fce4b546bc445f837f25589384".to_string()) ,
             order_hash: Bytes("0x01".to_string()),
             owner: Bytes("0x01".to_string()),
@@ -171,20 +169,101 @@ mod tests {
             active: true,
             add_events: vec![],
             meta: None,
-            timestamp_added: order_detail::BigInt(0.to_string()),
+            timestamp_added: BigInt(0.to_string()),
         };
 
-        let inputIOIndex = 0;
-        let outputIOIndex = 0;
+        let input_io_index = 0;
+        let output_io_index = 0;
 
         let orderbook = Address::from_str("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb").unwrap();
 
         let rpc_url = CI_DEPLOY_POLYGON_RPC_URL.to_string();
 
         let result =
-            debug_order_quote(order, inputIOIndex, outputIOIndex, orderbook, rpc_url).await;
+            debug_order_quote(order, input_io_index, output_io_index, orderbook, rpc_url).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().rows[0].len(), 8);
+    }
+
+    #[tokio::test]
+    async fn test_batch_order_quotes_block() {
+        let inputs = vec![Vault {
+            id: Bytes(
+                "0x27f5bff763e6259fd669d77cd555ab51379fbea5e48112a4285d825ccbf1ffbd".to_string(),
+            ),
+            token: Erc20 {
+                id: Bytes("0x3c499c542cef5e3811e1192ce70d8cc03d5c3359".to_string()),
+                address: Bytes("0x3c499c542cef5e3811e1192ce70d8cc03d5c3359".to_string()),
+                name: Some("USD Coin".to_string()),
+                symbol: Some("USDC".to_string()),
+                decimals: Some(BigInt(6.to_string())),
+            },
+            balance: BigInt(0.to_string()),
+            vault_id: BigInt(
+                "95443303740117881933855164131236327093370255923991692405803730600908765565828"
+                    .to_string(),
+            ),
+            owner: Bytes("0x3c499c542cef5e3811e1192ce70d8cc03d5c3359".to_string()),
+            orderbook: Orderbook {
+                id: Bytes("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()),
+            },
+            orders_as_input: vec![],
+            orders_as_output: vec![],
+            balance_changes: vec![],
+        }];
+
+        let outputs = vec![Vault {
+            id: Bytes(
+                "0x72c4da80ebaa93c2910df258e43f68cdb4d049b6a63585c1f32c3295d9bd4dc6".to_string(),
+            ),
+            token: Erc20 {
+                id: Bytes("0xe1b3eb06806601828976e491914e3de18b5d6b28".to_string()),
+                address: Bytes("0xe1b3eb06806601828976e491914e3de18b5d6b28".to_string()),
+                name: Some("zkRace".to_string()),
+                symbol: Some("ZERC".to_string()),
+                decimals: Some(BigInt(18.to_string())),
+            },
+            balance: BigInt("550278125006539343".to_string()),
+            vault_id: BigInt(
+                "95443303740117881933855164131236327093370255923991692405803730600908765565828"
+                    .to_string(),
+            ),
+            owner: Bytes("0x3c499c542cef5e3811e1192ce70d8cc03d5c3359".to_string()),
+            orderbook: Orderbook {
+                id: Bytes("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string()),
+            },
+            orders_as_input: vec![],
+            orders_as_output: vec![],
+            balance_changes: vec![],
+        }];
+
+        let order = Order {
+            id: Bytes("0x01".to_string()),
+            orderbook: Orderbook{id: Bytes("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb".to_string())},
+            order_bytes: Bytes("0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000008e4bdeec7ceb9570d440676345da1dce10329f5b00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000076000000000000000000000000000000000000000000000000000000000000007e0eccd7aa9a9f8af012d11a874253fdd8b48fd35c63f21cf97d0c33f6d141268db0000000000000000000000006352593f4018c99df731de789e2a147c7fb29370000000000000000000000000de38ad4b13d5258a5653e530ecdf0ca71b4e8a51000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000006250000000000000000000000000000000000000000000000000000000000000019000000000000000000000000000000000000000000000001158e460913d000000000000000000000000000000000000000000000000000001bc16d674ec8000000000000000000000000000000000000000000000000000340aad21b3b7000008d5061727469616c2074726164650000000000000000000000000000000000008c636f6f6c646f776e2d6b65790000000000000000000000000000000000000088636f6f6c646f776e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000000029a2241af62c00000000000000000000000000000000000000000000000000003782dace9d90000000000000000000000000000000000000000000000000000003782dace9d900008764656661756c7400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006f05b59d3b20000000000000000000000000000e1b3eb06806601828976e491914e3de18b5d6b280000000000000000000000003c499c542cef5e3811e1192ce70d8cc03d5c33590000000000000000000000005757371414417b8c6caad45baef941abc7d3ab3296e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f00000000000000000000000000000000000000000000000000b1a2bc2ec50000896d696e20726174696f000000000000000000000000000000000000000000008d5072696365206368616e67652e000000000000000000000000000000000000000000000000000000000000000000000000000000000000002386f26fc1000000000000000000000000000000000000000000000000000000470de4df8200000000000000000000000000000000000000000000000000008ac7230489e800000000000000000000000000000000000000000000000000000214e8348c4f0000000000000000000000010001bc609623f5020f6fc7481024862cd5ee3fff52d700000000000000000000000000000000000000000000000000000000000002c50c00000060008000c801b401e00204021c0220026c02840288170900070b200002001000000b1100030010000201100001011000003d1200003d120000001000030b11000401100002001000012b120000001000004812000100100004001000030b230005001000060b01000600100006001000050b020007070300000110000303100002031001044412000003100404211200001d020000110500021a10000001100004031000010c120000491100000110000501100002001000012b12000000100000211200001d0200000010000001100004031000010c1200004a0200003a14010701100006001000000b12000801100007001000000b12000801100001001000000b12000801100008001000000b12000801100009001000000b1200080110000c0110000b001000050110000700100005251200000110000a00100005211200001f120000001000040110000700100004251200000110000a00100004211200001f120000001000030110000700100003251200000110000a00100003211200001f120000001000020110000700100002251200000110000a00100002211200001f120000001000010110000700100001251200000110000a00100001211200001f1200001c1c00000a060104011000100110000f001000000110000e0110000d02250018001000020b010009001000010b11000a0806030600100000001000020b11000b00100001481200012e120000001000000010000305040101011000120110001100100000201200001d020000000202021207020600100001001000000c12000007111400061100000110000701100006001000000c1200003c12000000100003001000022b12000001100000011000072b120000001000042e12000005040101011000131a10000000100000241200001d0200000001010108050102011000170010000001100016011000152e12000001100014271300003b12000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000003c499c542cef5e3811e1192ce70d8cc03d5c33590000000000000000000000000000000000000000000000000000000000000006d302fedcbf6b3ea84812cde736439a97478b93fce4b546bc445f837f255893840000000000000000000000000000000000000000000000000000000000000001000000000000000000000000e1b3eb06806601828976e491914e3de18b5d6b280000000000000000000000000000000000000000000000000000000000000012d302fedcbf6b3ea84812cde736439a97478b93fce4b546bc445f837f25589384".to_string()) ,
+            order_hash: Bytes("0x01".to_string()),
+            owner: Bytes("0x01".to_string()),
+            outputs,
+            inputs,
+            active: true,
+            add_events: vec![],
+            meta: None,
+            timestamp_added: BigInt(0.to_string()),
+        };
+
+        let rpc_url = CI_DEPLOY_POLYGON_RPC_URL.to_string();
+
+        let result = batch_order_quotes(vec![order], 61389449.into(), rpc_url)
+            .await
+            .unwrap();
+
+        let quote = result[0].data.unwrap();
+
+        assert_eq!(
+            quote.max_output,
+            "550278125006539343".parse::<U256>().unwrap()
+        );
+        assert_eq!(quote.ratio, "108778218651598467".parse::<U256>().unwrap());
     }
 }

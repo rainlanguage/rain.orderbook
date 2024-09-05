@@ -50,6 +50,13 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
                   },
                   balance: "0",
                   vaultId: "0",
+                  owner: "0x0000000000000000000000000000000000000000",
+                  ordersAsOutput: [],
+                  ordersAsInput: [],
+                  balanceChanges: [],
+                  orderbook: {
+                    id: "0x0000000000000000000000000000000000000000",
+                  },
                 },
               ],
               inputs: [
@@ -64,6 +71,13 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
                   },
                   balance: "0",
                   vaultId: "0",
+                  owner: "0x0000000000000000000000000000000000000000",
+                  ordersAsOutput: [],
+                  ordersAsInput: [],
+                  balanceChanges: [],
+                  orderbook: {
+                    id: "0x0000000000000000000000000000000000000000",
+                  },
                 },
               ],
               active: true,
@@ -72,6 +86,8 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
                   transaction: {
                     blockNumber: "0",
                     timestamp: "0",
+                    id: "0x0000000000000000000000000000000000000000",
+                    from: "0x0000000000000000000000000000000000000000",
                   },
                 },
               ],

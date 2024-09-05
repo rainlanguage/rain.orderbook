@@ -186,6 +186,7 @@ mod tests {
                         encode_prefixed(order.abi_encode())
                     },
                     "outputs": [{
+                        "id": encode_prefixed(B256::random()),
                         "balance": "0",
                         "vaultId": io.vaultId.to_string(),
                         "token": {
@@ -195,8 +196,14 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": io.decimals.to_string(),
                         },
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "owner": encode_prefixed(order.owner),
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "inputs": [{
+                        "id": encode_prefixed(B256::random()),
                         "balance": "0",
                         "vaultId": io.vaultId.to_string(),
                         "token": {
@@ -206,10 +213,16 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": io.decimals.to_string(),
                         },
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "owner": encode_prefixed(order.owner),
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
                     },
+                    "meta": null,
                     "active": true,
                     "timestampAdded": "0",
                     "addEvents": [{
@@ -217,6 +230,7 @@ mod tests {
                             "id": encode_prefixed(B256::random()),
                             "blockNumber": "0",
                             "timestamp": "0",
+                            "from": encode_prefixed(alloy::primitives::Address::random())
                         }
                     }],
                 }]

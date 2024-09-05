@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ExtAuthoringMetaV2 } from '$lib/typeshare/authoringMeta';
+  import type { AuthoringMetaV2 } from '$lib/typeshare/authoringMeta';
   import {
     Input,
     Table,
@@ -11,7 +11,7 @@
   } from 'flowbite-svelte';
   import Fuse from 'fuse.js';
 
-  export let authoringMeta: ExtAuthoringMetaV2;
+  export let authoringMeta: AuthoringMetaV2;
   export let pragma: string;
 
   let search: string;

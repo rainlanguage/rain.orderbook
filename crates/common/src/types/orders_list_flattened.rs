@@ -3,7 +3,7 @@ use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy::dyn_abi::SolType;
 use alloy::primitives::hex::{decode, encode};
 use rain_orderbook_bindings::IOrderBookV4::OrderV3;
-use rain_orderbook_subgraph_client::types::orders_list::*;
+use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
 use super::FlattenError;

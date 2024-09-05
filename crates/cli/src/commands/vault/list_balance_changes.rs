@@ -187,7 +187,9 @@ mod tests {
                     },
                     "transaction": {
                         "id": encode_prefixed(B256::random()),
-                        "from": encode_prefixed(Address::random()),
+                        "blockNumber": "0",
+                        "timestamp": "0",
+                        "from": encode_prefixed(Address::random())
                     },
                     "timestamp": "0",
                     "orderbook": {
