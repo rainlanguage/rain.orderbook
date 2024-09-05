@@ -32,7 +32,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(BigInt(vault.vault_id), vault.token.id, amount);
+      await vaultDeposit(BigInt(vault.vaultId), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -47,7 +47,7 @@
       const allowance = await checkAllowance(vault.token.id, $orderbookAddress);
       if (allowance.lt(amount)) {
         const approveCalldata = (await vaultDepositApproveCalldata(
-          BigInt(vault.vault_id),
+          BigInt(vault.vaultId),
           vault.token.id,
           amount,
           allowance.toBigInt(),
@@ -58,7 +58,7 @@
       }
 
       const depositCalldata = (await vaultDepositCalldata(
-        BigInt(vault.vault_id),
+        BigInt(vault.vaultId),
         vault.token.id,
         amount,
       )) as Uint8Array;
@@ -81,7 +81,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vault_id)}
+        {bigintStringToHex(vault.vaultId)}
       </p>
     </div>
 
