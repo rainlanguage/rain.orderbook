@@ -4,7 +4,7 @@
   import type { Order } from '$lib/typeshare/subgraphTypes';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
-  import { hexToBigInt, isHex, type Hex } from 'viem';
+  import { type Hex } from 'viem';
   import Refresh from '../icon/Refresh.svelte';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
   import { fade } from 'svelte/transition';
@@ -36,11 +36,6 @@
   <div class="flex items-center">
     {#if $debugQuery.data}
       <div class="flex flex-col text-sm">
-        <span class="whitespace-nowrap">
-          Block number: {isHex($debugQuery.data.block_number)
-            ? hexToBigInt($debugQuery.data.block_number).toString()
-            : 'Not found'}
-        </span>
         <span class="whitespace-nowrap" data-testid="modal-quote-debug-rpc-url">RPC: {rpcUrl}</span>
       </div>
     {/if}
