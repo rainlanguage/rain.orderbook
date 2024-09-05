@@ -6,11 +6,10 @@
   import { toasts } from '$lib/stores/toasts';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import type { Order as OrderDetailOrder } from '$lib/typeshare/orderDetail';
-  import type { Order as OrderListOrder } from '$lib/typeshare/ordersList';
+  import type { Order as OrderDetailOrder } from '$lib/typeshare/subgraphTypes';
 
   let openOrderRemoveModal = true;
-  export let order: OrderDetailOrder | OrderListOrder;
+  export let order: OrderDetailOrder;
   let isSubmitting = false;
 
   async function executeLedger() {

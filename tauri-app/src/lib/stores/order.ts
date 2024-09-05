@@ -1,9 +1,9 @@
-import type { OrderDetailExtended } from '$lib/typeshare/orderDetail';
+import type { OrderDetailExtended } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
 import { detailStore } from '$lib/storesGeneric/detailStore';
 import { listStore } from '$lib/storesGeneric/listStore';
-import type { Trade } from '$lib/typeshare/orderTakesList';
+import type { Trade } from '$lib/typeshare/subgraphTypes';
 
 export const orderDetail = detailStore<OrderDetailExtended>(
   'orders.orderDetail',

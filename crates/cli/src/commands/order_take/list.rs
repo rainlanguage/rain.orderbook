@@ -178,12 +178,25 @@ mod tests {
                     "id": encode_prefixed(B256::random()),
                     "order": {
                         "id": encode_prefixed(B256::random()),
+                        "owner": encode_prefixed(B256::random()),
                         "orderHash": encode_prefixed(B256::random()),
+                        "orderBytes": encode_prefixed(B256::random()),
+                        "outputs": [],
+                        "inputs": [],
+                        "orderbook": {
+                            "id": encode_prefixed(B256::random()),
+                        },
+                        "meta": null,
+                        "active": true,
                         "timestampAdded": "0",
+                        "addEvents": [],
                     },
                     "outputVaultBalanceChange": {
+                        "id": encode_prefixed(B256::random()),
                         "amount": "0",
+                        "__typename": "Withdraw",
                         "vault": {
+                            "id": encode_prefixed(B256::random()),
                             "token": {
                                 "name": "T1",
                                 "symbol": "T1",
@@ -191,11 +204,26 @@ mod tests {
                                 "address": encode_prefixed(Address::random()),
                                 "decimals": "6"
                             }
-                        }
+                        },
+                        "newVaultBalance": "0",
+                        "oldVaultBalance": "0",
+                        "timestamp": "0",
+                        "transaction": {
+                            "id": encode_prefixed(B256::random()),
+                            "blockNumber": "0",
+                            "timestamp": "0",
+                            "from": encode_prefixed(Address::random())
+                        },
+                        "orderbook": {
+                            "id": encode_prefixed(B256::random()),
+                        },
                     },
                     "inputVaultBalanceChange": {
+                        "id": encode_prefixed(B256::random()),
                         "amount": "0",
+                        "__typename": "Withdraw",
                         "vault": {
+                            "id": encode_prefixed(B256::random()),
                             "token": {
                                 "name": "T2",
                                 "symbol": "T2",
@@ -204,14 +232,27 @@ mod tests {
                                 "decimals": "18"
                             }
                         },
+                        "newVaultBalance": "0",
+                        "oldVaultBalance": "0",
+                        "timestamp": "0",
+                        "transaction": {
+                            "id": encode_prefixed(B256::random()),
+                            "blockNumber": "0",
+                            "timestamp": "0",
+                            "from": encode_prefixed(Address::random())
+                        },
+                        "orderbook": {
+                            "id": encode_prefixed(B256::random()),
+                        },
                     },
                     "timestamp": "0",
                     "tradeEvent": {
                         "sender": encode_prefixed(Address::random()),
                         "transaction": {
                             "id": encode_prefixed(B256::random()),
-                            "from": encode_prefixed(Address::random()),
+                            "blockNumber": "0",
                             "timestamp": "0",
+                            "from": encode_prefixed(Address::random())
                         }
                     },
                     "orderbook": {

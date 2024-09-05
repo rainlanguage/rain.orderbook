@@ -22,6 +22,8 @@ query VaultBalanceChangesListQuery($first: Int, $id: Bytes!, $skip: Int) {
     transaction {
       id
       from
+      blockNumber
+      timestamp
     }
     orderbook {
       id

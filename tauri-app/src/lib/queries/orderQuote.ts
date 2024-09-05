@@ -1,7 +1,7 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl } from '$lib/stores/settings';
-import type { Order } from '$lib/typeshare/orderDetail';
+import type { Order } from '$lib/typeshare/subgraphTypes';
 import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -78,7 +78,6 @@ export async function debugOrderQuote(
 }
 
 export const mockQuoteDebug: RainEvalResultsTable = {
-  block_number: '0x01',
   column_names: ['1', '2', '3'],
   rows: [['0x01', '0x02', '0x03']],
 };
