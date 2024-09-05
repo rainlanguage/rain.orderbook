@@ -79,6 +79,28 @@ pub struct OrderAsIO {
     pub active: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VaultsListFilterArgs {
+    pub owners: Vec<Bytes>,
+}
+
+#[derive(cynic::InputObject, Debug, Clone)]
+#[cynic(graphql_type = "Vault_filter")]
+#[typeshare]
+pub struct VaultsListQueryFilters {
+    #[cynic(rename = "owner_in")]
+    pub owner_in: Vec<Bytes>,
+}
+
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
+pub struct VaultsListQueryVariables {
+    pub first: Option<i32>,
+    pub skip: Option<i32>,
+    #[cynic(rename = "filters")]
+    pub filters: Option<VaultsListQueryFilters>,
+}
+
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[typeshare]
 pub struct Vault {
