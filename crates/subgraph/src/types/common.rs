@@ -99,6 +99,7 @@ pub struct VaultBalanceChangeUnwrapped {
 
 #[derive(cynic::InlineFragments, Debug, Clone, Serialize)]
 #[serde(tag = "__typename", content = "data")]
+#[serde(rename_all = "camelCase")]
 #[typeshare]
 pub enum VaultBalanceChange {
     Withdrawal(Withdrawal),
