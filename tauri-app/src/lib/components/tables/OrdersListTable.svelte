@@ -1,6 +1,6 @@
 <script lang="ts">
   import { QKEY_ORDERS } from '$lib/queries/keys';
-  import { ordersList, ordersListByOwners } from '$lib/queries/ordersList';
+  import { ordersList } from '$lib/queries/ordersList';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
   import TanstackAppTable from './TanstackAppTable.svelte';
@@ -26,9 +26,7 @@
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS],
     queryFn: ({ pageParam }) => {
-      if ($activeWatchlist.length > 0)
-        return ordersListByOwners($subgraphUrl, $activeWatchlist, pageParam);
-      else return ordersList($subgraphUrl, pageParam);
+      return ordersList($subgraphUrl, $activeWatchlist, pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
