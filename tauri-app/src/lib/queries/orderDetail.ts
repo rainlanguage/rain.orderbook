@@ -22,8 +22,8 @@ export const orderDetail = async (id: string, url: string | undefined) => {
 export const mockOrderDetailsExtended: OrderDetailExtended = {
   order: {
     id: 'order1',
-    order_bytes: '0x123456',
-    order_hash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef',
+    orderBytes: '0x123456',
+    orderHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef',
     owner: '0x1111111111111111111111111111111111111111',
     outputs: [
       {
@@ -36,12 +36,12 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
           decimals: '18',
         },
         balance: '1000',
-        vault_id: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        vaultId: '0x1111111111111111111111111111111111111111111111111111111111111111',
         orderbook: { id: '0x1111111111111111111111111111111111111111' },
         owner: '0x1111111111111111111111111111111111111111',
-        orders_as_output: [],
-        orders_as_input: [],
-        balance_changes: [],
+        ordersAsOutput: [],
+        ordersAsInput: [],
+        balanceChanges: [],
       },
     ],
     inputs: [
@@ -55,27 +55,27 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
           decimals: '18',
         },
         balance: '500',
-        vault_id: '0x2222222222222222222222222222222222222222222222222222222222222222',
+        vaultId: '0x2222222222222222222222222222222222222222222222222222222222222222',
         orderbook: { id: '0x1111111111111111111111111111111111111111' },
         owner: '0x1111111111111111111111111111111111111111',
-        orders_as_output: [],
-        orders_as_input: [],
-        balance_changes: [],
+        ordersAsOutput: [],
+        ordersAsInput: [],
+        balanceChanges: [],
       },
     ],
     active: true,
-    add_events: [
+    addEvents: [
       {
         transaction: {
           id: '0x2222222222222222222222222222222222222222222222222222222222222222',
           from: '0x1111111111111111111111111111111111111111',
-          block_number: '12345',
+          blockNumber: '12345',
           timestamp: '1620000000',
         },
       },
     ],
     meta: 'metadata1',
-    timestamp_added: '1620000000',
+    timestampAdded: '1620000000',
     orderbook: {
       id: '0x00',
     },
