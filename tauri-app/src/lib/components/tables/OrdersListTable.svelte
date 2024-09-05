@@ -76,7 +76,7 @@
         {/if}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4"
-        ><Hash type={HashType.Identifier} value={item.order_hash} /></TableBodyCell
+        ><Hash type={HashType.Identifier} value={item.orderHash} /></TableBodyCell
       >
       <TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2"
         ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
@@ -85,7 +85,7 @@
         ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
       >
       <TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
-        {formatTimestampSecondsAsLocal(BigInt(item.timestamp_added))}
+        {formatTimestampSecondsAsLocal(BigInt(item.timestampAdded))}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
         {item.inputs?.map((t) => t.token.symbol)}

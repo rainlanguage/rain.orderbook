@@ -6,6 +6,7 @@ import { mockIPC } from '@tauri-apps/api/mocks';
 import { goto } from '$app/navigation';
 import { handleOrderRemoveModal } from '$lib/services/modal';
 import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+import type { Order } from '$lib/typeshare/subgraphTypes';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
   () => import('$lib/mocks/wallets'),
@@ -44,53 +45,82 @@ vi.mock('$app/navigation', () => ({
   goto: vi.fn(),
 }));
 
-const mockOrders = [
+const mockOrders: Order[] = [
   {
     id: 'order1',
-    order_hash: 'order1',
-    active: true,
+    orderHash: 'order1',
+    orderBytes: '0x00',
+    addEvents: [],
+    active: false,
     owner: '0xOwner1',
-    timestamp_added: '1625247600',
-    inputs: [{ token: { symbol: 'ETH' } }],
-    outputs: [{ token: { symbol: 'USDC' } }],
+    timestampAdded: '1625247300',
+    inputs: [
+      {
+        id: '0x00',
+        owner: '0x00',
+        vaultId: '0x00',
+        balance: '100',
+        orderbook: { id: '0x00' },
+        ordersAsInput: [],
+        ordersAsOutput: [],
+        balanceChanges: [],
+        token: { id: '0x00', address: '0x00', symbol: 'ETH' },
+      },
+    ],
+    outputs: [
+      {
+        id: '0x00',
+        owner: '0x00',
+        vaultId: '0x00',
+        balance: '100',
+        orderbook: { id: '0x00' },
+        ordersAsInput: [],
+        ordersAsOutput: [],
+        balanceChanges: [],
+        token: { id: '0x00', address: '0x00', symbol: 'USDC' },
+      },
+    ],
     orderbook: { id: '0x00' },
   },
   {
     id: 'order2',
-    order_hash: 'order2',
-    active: false,
+    orderHash: 'order2',
+    orderBytes: '0x00',
+    addEvents: [],
+    active: true,
     owner: '0xOwner2',
-    timestamp_added: '1625347600',
-    inputs: [{ token: { symbol: 'BTC' } }],
-    outputs: [{ token: { symbol: 'DAI' } }],
+    timestampAdded: '1625247600',
+    inputs: [
+      {
+        id: '0x00',
+        owner: '0x00',
+        vaultId: '0x00',
+        balance: '100',
+        orderbook: { id: '0x00' },
+        ordersAsInput: [],
+        ordersAsOutput: [],
+        balanceChanges: [],
+        token: { id: '0x00', address: '0x00', symbol: 'USDT' },
+      },
+    ],
+    outputs: [
+      {
+        id: '0x00',
+        owner: '0x00',
+        vaultId: '0x00',
+        balance: '100',
+        orderbook: { id: '0x00' },
+        ordersAsInput: [],
+        ordersAsOutput: [],
+        balanceChanges: [],
+        token: { id: '0x00', address: '0x00', symbol: 'DAI' },
+      },
+    ],
     orderbook: { id: '0x00' },
   },
 ];
 
 test('renders the orders list table with correct data', async () => {
-  const mockOrders = [
-    {
-      id: 'order1',
-      order_hash: 'order1',
-      active: false,
-      owner: '0xOwner1',
-      timestamp_added: '1625247600',
-      inputs: [{ token: { symbol: 'ETH' } }],
-      outputs: [{ token: { symbol: 'USDC' } }],
-      orderbook: { id: '0x00' },
-    },
-    {
-      id: 'order2',
-      order_hash: 'order2',
-      active: true,
-      owner: '0xOwner2',
-      timestamp_added: '1625247400',
-      inputs: [{ token: { symbol: 'USDT' } }],
-      outputs: [{ token: { symbol: 'DAI' } }],
-      orderbook: { id: '0x00' },
-    },
-  ];
-
   const queryClient = new QueryClient();
 
   mockIPC((cmd) => {
@@ -131,10 +161,10 @@ test('renders the orders list table with correct data', async () => {
       '0xOwn...wner2',
     );
     expect((await screen.findAllByTestId('orderListRowLastAdded'))[0]).toHaveTextContent(
-      formatTimestampSecondsAsLocal(BigInt(mockOrders[0].timestamp_added)),
+      formatTimestampSecondsAsLocal(BigInt(mockOrders[0].timestampAdded)),
     );
     expect((await screen.findAllByTestId('orderListRowLastAdded'))[1]).toHaveTextContent(
-      formatTimestampSecondsAsLocal(BigInt(mockOrders[1].timestamp_added)),
+      formatTimestampSecondsAsLocal(BigInt(mockOrders[1].timestampAdded)),
     );
     expect((await screen.findAllByTestId('orderListRowInputs'))[0]).toHaveTextContent('ETH');
     expect((await screen.findAllByTestId('orderListRowInputs'))[1]).toHaveTextContent('USDT');
@@ -182,9 +212,12 @@ test('clicking a row links to the order detail page', async () => {
 test('does not show the dropdown menu if the wallet address does not match', async () => {
   const queryClient = new QueryClient();
 
+  const modifiedMockOrders = [...mockOrders];
+  modifiedMockOrders[0].active = true;
+
   mockIPC((cmd) => {
     if (cmd === 'orders_list') {
-      return mockOrders;
+      return modifiedMockOrders;
     }
   });
 
@@ -206,9 +239,12 @@ test('clicking the remove option in the dropdown menu opens the remove modal', a
 
   mockWalletAddressMatchesOrBlankStore.set(() => true);
 
+  const modifiedMockOrders = [...mockOrders];
+  modifiedMockOrders[0].active = true;
+
   mockIPC((cmd) => {
     if (cmd === 'orders_list') {
-      return mockOrders;
+      return modifiedMockOrders;
     }
   });
 

@@ -7,55 +7,12 @@ import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { RainEvalResultsTable } from '$lib/typeshare/config';
 
-const formatOrder = (order: Order) => ({
-  ...order,
-  orderBytes: order.order_bytes,
-  orderHash: order.order_hash,
-  outputs: order.outputs.map((output) => ({
-    ...output,
-    vaultId: output.vault_id,
-  })),
-  inputs: order.inputs.map((input) => ({
-    ...input,
-    vaultId: input.vault_id,
-  })),
-  addEvents: order.add_events.map((event) => ({
-    ...event,
-    transaction: {
-      ...event.transaction,
-      blockNumber: event.transaction.block_number,
-    },
-  })),
-  timestampAdded: order.timestamp_added,
-});
-
 export async function batchOrderQuotes(
   orders: Order[],
   blockNumber?: number,
 ): Promise<BatchOrderQuotesResponse[]> {
-  const formattedOrders = orders.map((order) => ({
-    ...order,
-    orderBytes: order.order_bytes,
-    orderHash: order.order_hash,
-    outputs: order.outputs.map((output) => ({
-      ...output,
-      vaultId: output.vault_id,
-    })),
-    inputs: order.inputs.map((input) => ({
-      ...input,
-      vaultId: input.vault_id,
-    })),
-    addEvents: order.add_events.map((event) => ({
-      ...event,
-      transaction: {
-        ...event.transaction,
-        blockNumber: event.transaction.block_number,
-      },
-    })),
-    timestampAdded: order.timestamp_added,
-  }));
   return invoke('batch_order_quotes', {
-    orders: formattedOrders,
+    orders,
     blockNumber,
     rpcUrl: get(rpcUrl),
   });
@@ -69,7 +26,7 @@ export async function debugOrderQuote(
   rpcUrl: string,
 ) {
   return await invoke<RainEvalResultsTable>('debug_order_quote', {
-    order: formatOrder(order),
+    order,
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,
     orderbook,
@@ -96,14 +53,14 @@ if (import.meta.vitest) {
       {
         id: '1',
         orderbook: { id: '0x00' },
-        order_bytes: '0x123',
-        order_hash: '0x123',
+        orderBytes: '0x123',
+        orderHash: '0x123',
         owner: '0x123',
         outputs: [],
         inputs: [],
         active: true,
-        add_events: [],
-        timestamp_added: '123',
+        addEvents: [],
+        timestampAdded: '123',
       },
       0,
       0,
