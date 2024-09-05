@@ -1,4 +1,4 @@
-use crate::types::order_detail;
+use super::common::*;
 use crate::utils::base10_str_to_u256;
 use alloy::primitives::{
     hex::{decode, FromHexError},
@@ -9,8 +9,6 @@ use alloy::sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
 use std::num::TryFromIntError;
 use thiserror::Error;
-
-use super::order_detail::BigInt;
 
 #[derive(Error, Debug)]
 pub enum OrderDetailError {
@@ -28,7 +26,7 @@ pub enum OrderDetailError {
     AbiDecode(#[from] alloy::sol_types::Error),
 }
 
-impl TryInto<IO> for order_detail::Vault {
+impl TryInto<IO> for Vault {
     type Error = OrderDetailError;
 
     fn try_into(self) -> Result<IO, OrderDetailError> {
@@ -48,7 +46,7 @@ impl TryInto<IO> for order_detail::Vault {
     }
 }
 
-impl TryInto<OrderV3> for order_detail::Order {
+impl TryInto<OrderV3> for Order {
     type Error = OrderDetailError;
 
     fn try_into(self) -> Result<OrderV3, Self::Error> {
@@ -67,11 +65,11 @@ mod tests {
     use alloy::primitives::U256;
 
     use super::*;
-    use crate::types::order_detail::{BigInt, Bytes};
+    use crate::types::common::{BigInt, Bytes};
 
     #[test]
     fn test_try_into_call() {
-        let order_detail = order_detail::Order {
+        let order_detail = Order {
             // This is a dummy order detail object
             // All of these values are actually ignored by the conversion
             id: Bytes("1".into()),
@@ -83,7 +81,7 @@ mod tests {
             inputs: vec![],
             outputs: vec![],
             meta: None,
-            orderbook: order_detail::Orderbook {
+            orderbook: Orderbook {
                 id: Bytes("1".into()),
             },
             // Only the order_bytes field is used for the conversion

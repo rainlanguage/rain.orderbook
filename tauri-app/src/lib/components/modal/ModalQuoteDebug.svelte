@@ -1,7 +1,7 @@
 <script lang="ts">
   import { debugOrderQuote } from '$lib/queries/orderQuote';
   import { queryClient } from '$lib/queries/queryClient';
-  import type { Order } from '$lib/typeshare/orderDetail';
+  import type { Order } from '$lib/typeshare/subgraphTypes';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
   import { hexToBigInt, isHex, type Hex } from 'viem';

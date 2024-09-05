@@ -1,4 +1,4 @@
-import type { Vault } from '$lib/typeshare/vaultDetail';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
 

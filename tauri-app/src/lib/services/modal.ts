@@ -1,10 +1,10 @@
 import ModalVaultDeposit from '$lib/components/ModalVaultDeposit.svelte';
 import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
 import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
-import type { Vault } from '$lib/typeshare/vaultsList';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 import ModalOrderRemove from '$lib/components/modal/ModalOrderRemove.svelte';
-import type { Order as OrderDetailOrder } from '$lib/typeshare/orderDetail';
-import type { Order as OrderListOrder } from '$lib/typeshare/ordersList';
+import type { Order as OrderDetailOrder } from '$lib/typeshare/subgraphTypes';
+import type { Order as OrderListOrder } from '$lib/typeshare/subgraphTypes';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import type { Hex } from 'viem';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
