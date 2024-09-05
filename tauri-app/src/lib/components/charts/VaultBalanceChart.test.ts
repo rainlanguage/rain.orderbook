@@ -5,8 +5,8 @@ import { mockIPC } from '@tauri-apps/api/mocks';
 import VaultBalanceChart from './VaultBalanceChart.svelte';
 import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
 import { bigintToFloat } from '$lib/utils/number';
-import type { Vault } from '$lib/typeshare/vaultDetail';
-import type { VaultBalanceChange } from '$lib/typeshare/vaultBalanceChangesList';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
+import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
 
 // Mock settings and subgraphUrl
 vi.mock('$lib/stores/settings', async (importOriginal) => {
@@ -46,7 +46,7 @@ vi.mock('lightweight-charts', async () => {
   };
 });
 
-const mockVaultBalanceChanges: VaultBalanceChange[] = [
+const mockVaultBalanceChangeUnwrappeds: VaultBalanceChangeUnwrapped[] = [
   {
     __typename: 'Withdrawal',
     amount: '1000',
@@ -66,13 +66,15 @@ const mockVaultBalanceChanges: VaultBalanceChange[] = [
     transaction: {
       id: 'tx1',
       from: '0xUser1',
+      timestamp: '0',
+      block_number: '0',
     },
     orderbook: {
       id: '0x00',
     },
   },
   {
-    __typename: 'TradeVaultBalanceChange',
+    __typename: 'TradeVaultBalanceChangeUnwrapped',
     amount: '1500',
     old_vault_balance: '4000',
     new_vault_balance: '2500',
@@ -90,6 +92,8 @@ const mockVaultBalanceChanges: VaultBalanceChange[] = [
     transaction: {
       id: 'tx2',
       from: '0xUser2',
+      timestamp: '0',
+      block_number: '0',
     },
     orderbook: {
       id: '0x00',
@@ -114,6 +118,8 @@ const mockVaultBalanceChanges: VaultBalanceChange[] = [
     transaction: {
       id: 'tx3',
       from: '0xUser3',
+      timestamp: '0',
+      block_number: '0',
     },
     orderbook: {
       id: '0x00',
@@ -146,7 +152,7 @@ test('renders the chart with correct data and transformations', async () => {
 
   mockIPC((cmd) => {
     if (cmd === 'vault_balance_changes_list') {
-      return mockVaultBalanceChanges;
+      return mockVaultBalanceChangeUnwrappeds;
     }
   });
 
@@ -165,16 +171,16 @@ test('renders the chart with correct data and transformations', async () => {
   await waitFor(() => {
     expect(setDataMock).toHaveBeenCalledWith([
       {
-        value: bigintToFloat(BigInt(mockVaultBalanceChanges[0].new_vault_balance), 18),
-        time: timestampSecondsToUTCTimestamp(BigInt(mockVaultBalanceChanges[0].timestamp)),
+        value: bigintToFloat(BigInt(mockVaultBalanceChangeUnwrappeds[0].new_vault_balance), 18),
+        time: timestampSecondsToUTCTimestamp(BigInt(mockVaultBalanceChangeUnwrappeds[0].timestamp)),
       },
       {
-        value: bigintToFloat(BigInt(mockVaultBalanceChanges[1].new_vault_balance), 18),
-        time: timestampSecondsToUTCTimestamp(BigInt(mockVaultBalanceChanges[1].timestamp)),
+        value: bigintToFloat(BigInt(mockVaultBalanceChangeUnwrappeds[1].new_vault_balance), 18),
+        time: timestampSecondsToUTCTimestamp(BigInt(mockVaultBalanceChangeUnwrappeds[1].timestamp)),
       },
       {
-        value: bigintToFloat(BigInt(mockVaultBalanceChanges[2].new_vault_balance), 18),
-        time: timestampSecondsToUTCTimestamp(BigInt(mockVaultBalanceChanges[2].timestamp)),
+        value: bigintToFloat(BigInt(mockVaultBalanceChangeUnwrappeds[2].new_vault_balance), 18),
+        time: timestampSecondsToUTCTimestamp(BigInt(mockVaultBalanceChangeUnwrappeds[2].timestamp)),
       },
     ]);
   });
@@ -183,11 +189,11 @@ test('renders the chart with correct data and transformations', async () => {
 test('renders the empty message correctly', async () => {
   const queryClient = new QueryClient();
 
-  const mockVaultBalanceChanges: VaultBalanceChange[] = [];
+  const mockVaultBalanceChangeUnwrappeds: VaultBalanceChangeUnwrapped[] = [];
 
   mockIPC((cmd) => {
     if (cmd === 'vault_balance_changes_list') {
-      return mockVaultBalanceChanges;
+      return mockVaultBalanceChangeUnwrappeds;
     }
   });
 

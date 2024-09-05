@@ -1,95 +1,85 @@
 import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import Words from './Words.svelte';
-import type { ScenarioAuthoringMeta } from '$lib/typeshare/authoringMeta';
+import type { ScenarioWords } from '$lib/typeshare/authoringMeta';
 import { expect } from '$lib/test/matchers';
 import userEvent from '@testing-library/user-event';
 
-const authoringMetas: ScenarioAuthoringMeta[] = [
+const authoringMetas: ScenarioWords[] = [
   {
-    scenario_name: 'scenario1',
-    result: {
-      type: 'Success',
-      data: {
-        deployer: {
-          address: '0x4567',
-          result: {
-            type: 'Success',
-            data: {
-              words: [
-                { word: 'dog', description: 'an animal' },
-                { word: 'cat', description: 'another animal' },
-                { word: 'fish', description: 'yet another animal' },
-              ],
-            },
-          },
+    scenario: 'scenario1',
+    deployer_words: {
+      address: '0x4567',
+      words: {
+        type: 'Success',
+        data: {
+          words: [
+            { word: 'dog', description: 'an animal' },
+            { word: 'cat', description: 'another animal' },
+            { word: 'fish', description: 'yet another animal' },
+          ],
         },
-        pragmas: [
-          {
-            address: '0x0123',
-            result: {
-              type: 'Success',
-              data: {
-                words: [
-                  { word: 'apple', description: 'a fruit' },
-                  { word: 'banana', description: 'another fruit' },
-                  { word: 'carrot', description: 'a vegetable' },
-                ],
-              },
-            },
-          },
-        ],
       },
     },
+    pragma_words: [
+      {
+        address: '0x0123',
+        words: {
+          type: 'Success',
+          data: {
+            words: [
+              { word: 'apple', description: 'a fruit' },
+              { word: 'banana', description: 'another fruit' },
+              { word: 'carrot', description: 'a vegetable' },
+            ],
+          },
+        },
+      },
+    ],
   },
   {
-    scenario_name: 'scenario2',
-    result: {
-      type: 'Success',
-      data: {
-        deployer: {
-          address: '0x4567',
-          result: {
-            type: 'Success',
-            data: {
-              words: [
-                { word: 'dog', description: 'an animal' },
-                { word: 'cat', description: 'another animal' },
-                { word: 'fish', description: 'yet another animal' },
-              ],
-            },
-          },
+    scenario: 'scenario2',
+    deployer_words: {
+      address: '0x4567',
+      words: {
+        type: 'Success',
+        data: {
+          words: [
+            { word: 'dog', description: 'an animal' },
+            { word: 'cat', description: 'another animal' },
+            { word: 'fish', description: 'yet another animal' },
+          ],
         },
-        pragmas: [
-          {
-            address: '0x89ab',
-            result: {
-              type: 'Success',
-              data: {
-                words: [
-                  { word: 'red', description: 'a color' },
-                  { word: 'blue', description: 'another color' },
-                  { word: 'green', description: 'yet another color' },
-                ],
-              },
-            },
-          },
-          {
-            address: '0xcdef',
-            result: {
-              type: 'Success',
-              data: {
-                words: [
-                  { word: 'house', description: 'a building' },
-                  { word: 'car', description: 'a vehicle' },
-                  { word: 'tree', description: 'a plant' },
-                ],
-              },
-            },
-          },
-        ],
       },
     },
+    pragma_words: [
+      {
+        address: '0x89ab',
+        words: {
+          type: 'Success',
+          data: {
+            words: [
+              { word: 'red', description: 'a color' },
+              { word: 'blue', description: 'another color' },
+              { word: 'green', description: 'yet another color' },
+            ],
+          },
+        },
+      },
+      {
+        address: '0xcdef',
+        words: {
+          type: 'Success',
+          data: {
+            words: [
+              { word: 'house', description: 'a building' },
+              { word: 'car', description: 'a vehicle' },
+              { word: 'tree', description: 'a plant' },
+            ],
+          },
+        },
+      },
+    ],
   },
 ];
 
@@ -140,55 +130,31 @@ test('shows error message when error is present', async () => {
   expect(errorMsg).toHaveTextContent('Test error');
 });
 
-const authoringMetaWithScenarioError: ScenarioAuthoringMeta[] = [
+const authoringMetaWithPragmaError: ScenarioWords[] = [
   {
-    scenario_name: 'scenario1',
-    result: {
-      type: 'Error',
-      data: 'Test error',
-    },
-  },
-];
-
-test('shows error message when error is present in authoring meta', async () => {
-  render(Words, { authoringMetas: authoringMetaWithScenarioError, error: undefined });
-
-  await userEvent.click(screen.getByText('scenario1'));
-
-  const errorMsg = screen.getByTestId('scenario-error-msg');
-  expect(errorMsg).toHaveTextContent('Test error');
-});
-
-const authoringMetaWithPragmaError: ScenarioAuthoringMeta[] = [
-  {
-    scenario_name: 'scenario1',
-    result: {
-      type: 'Success',
-      data: {
-        deployer: {
-          address: '0x4567',
-          result: {
-            type: 'Success',
-            data: {
-              words: [
-                { word: 'dog', description: 'an animal' },
-                { word: 'cat', description: 'another animal' },
-                { word: 'fish', description: 'yet another animal' },
-              ],
-            },
-          },
+    scenario: 'scenario1',
+    deployer_words: {
+      address: '0x4567',
+      words: {
+        type: 'Success',
+        data: {
+          words: [
+            { word: 'dog', description: 'an animal' },
+            { word: 'cat', description: 'another animal' },
+            { word: 'fish', description: 'yet another animal' },
+          ],
         },
-        pragmas: [
-          {
-            address: '0x0123',
-            result: {
-              type: 'Error',
-              data: 'Test error',
-            },
-          },
-        ],
       },
     },
+    pragma_words: [
+      {
+        address: '0x0123',
+        words: {
+          type: 'Error',
+          data: 'Test error',
+        },
+      },
+    ],
   },
 ];
 
@@ -201,22 +167,17 @@ test('shows error message when error is present in pragma', async () => {
   expect(errorMsg).toHaveTextContent('Test error');
 });
 
-const authoringMetaWithDeployerError: ScenarioAuthoringMeta[] = [
+const authoringMetaWithDeployerError: ScenarioWords[] = [
   {
-    scenario_name: 'scenario1',
-    result: {
-      type: 'Success',
-      data: {
-        deployer: {
-          address: '0x4567',
-          result: {
-            type: 'Error',
-            data: 'Test error',
-          },
-        },
-        pragmas: [],
+    scenario: 'scenario1',
+    deployer_words: {
+      address: '0x4567',
+      words: {
+        type: 'Error',
+        data: 'Test error',
       },
     },
+    pragma_words: [],
   },
 ];
 

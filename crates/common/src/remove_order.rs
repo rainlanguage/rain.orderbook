@@ -7,9 +7,7 @@ use alloy_ethers_typecast::transaction::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
-use rain_orderbook_subgraph_client::types::{
-    order_detail::Order, order_detail_traits::OrderDetailError,
-};
+use rain_orderbook_subgraph_client::types::{common::Order, order_detail_traits::OrderDetailError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

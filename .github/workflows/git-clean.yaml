@@ -1,6 +1,10 @@
 name: Git is clean
 on: [push]
 
+concurrency:
+  group: ${{ github.ref }}-git-clean
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   git-clean:
     runs-on: ubuntu-latest

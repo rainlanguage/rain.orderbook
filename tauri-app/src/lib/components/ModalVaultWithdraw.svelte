@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { Vault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
-  import type { Vault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
+  import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
@@ -13,7 +12,7 @@
   import { formatEthersTransactionError } from '$lib/utils/transaction';
 
   export let open = false;
-  export let vault: TokenVaultDetail | TokenVaultListItem;
+  export let vault: TokenVaultDetail;
   let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;

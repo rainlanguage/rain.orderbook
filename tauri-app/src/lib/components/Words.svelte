@@ -1,9 +1,9 @@
 <script lang="ts">
   import { P, TabItem, Tabs } from 'flowbite-svelte';
   import WordTable from '$lib/components/WordTable.svelte';
-  import type { ScenarioAuthoringMeta } from '$lib/typeshare/authoringMeta';
+  import type { ScenarioWords } from '$lib/typeshare/authoringMeta';
 
-  export let authoringMetas: ScenarioAuthoringMeta[] | undefined;
+  export let authoringMetas: ScenarioWords[] | undefined;
   export let error: unknown | undefined;
 </script>
 
@@ -14,45 +14,35 @@
     defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
   >
     {#each authoringMetas as scenario}
-      <TabItem title={scenario.scenario_name}>
+      <TabItem title={scenario.scenario}>
         <div class="flex gap-x-2 text-sm">
-          {#if scenario.result.type === 'Success'}
-            {#if scenario.result.data.deployer.result.type === 'Success'}
-              <WordTable
-                authoringMeta={scenario.result.data.deployer.result.data}
-                pragma={scenario.result.data.deployer.address}
-              />
-            {:else if scenario.result.data.deployer.result.type === 'Error'}
-              <div
-                data-testid="deployer-error-msg"
-                class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
-              >
-                <p>Error getting words for this deployer:</p>
-                <p>{scenario.result.data.deployer.result.data}</p>
-              </div>
-            {/if}
-            {#each scenario.result.data.pragmas as pragma}
-              {#if pragma.result.type === 'Success'}
-                <WordTable authoringMeta={pragma.result.data} pragma={pragma.address} />
-              {:else if pragma.result.type === 'Error'}
-                <div
-                  class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
-                  data-testid="pragma-error-msg"
-                >
-                  <p>Error getting words for the pragma {pragma.address}:</p>
-                  <p>{pragma.result.data}</p>
-                </div>
-              {/if}
-            {/each}
-          {:else if scenario.result.type === 'Error'}
+          {#if scenario.deployer_words.words.type === 'Success'}
+            <WordTable
+              authoringMeta={scenario.deployer_words.words.data}
+              pragma={scenario.deployer_words.address}
+            />
+          {:else if scenario.deployer_words.words.type === 'Error'}
             <div
+              data-testid="deployer-error-msg"
               class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
-              data-testid="scenario-error-msg"
             >
-              <p>Error getting words for this scenario:</p>
-              <p>{scenario.result.data}</p>
+              <p>Error getting words for this deployer:</p>
+              <p>{scenario.deployer_words.words.data}</p>
             </div>
           {/if}
+          {#each scenario.pragma_words as pragma}
+            {#if pragma.words.type === 'Success'}
+              <WordTable authoringMeta={pragma.words.data} pragma={pragma.address} />
+            {:else if pragma.words.type === 'Error'}
+              <div
+                class="relative h-[500px] w-[450px] overflow-y-scroll rounded-lg border bg-white p-4 dark:border-none dark:bg-gray-800"
+                data-testid="pragma-error-msg"
+              >
+                <p>Error getting words for the pragma {pragma.address}:</p>
+                <p>{pragma.words.data}</p>
+              </div>
+            {/if}
+          {/each}
         </div>
       </TabItem>
     {/each}
