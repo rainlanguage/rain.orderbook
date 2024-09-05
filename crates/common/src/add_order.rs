@@ -1,5 +1,5 @@
 use crate::{
-    dotrain_order::{DotrainOrder, DotrainOrderError},
+    dotrain_order::DotrainOrderError,
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
