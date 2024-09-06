@@ -20,11 +20,16 @@
     handleWithdrawModal,
   } from '$lib/services/modal';
   import { activeWatchlist } from '$lib/stores/settings';
+  import { get, derived } from 'svelte/store';
 
+  $: watchlistVersion = derived(activeWatchlist, () => {
+    return Date.now();
+  });
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS],
+    queryKey: [QKEY_VAULTS, watchlistVersion],
     queryFn: ({ pageParam }) => {
-      return vaultList($subgraphUrl, $activeWatchlist, pageParam);
+      const currentWatchlist = get(activeWatchlist);
+      return vaultList($subgraphUrl, Object.values(currentWatchlist), pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
