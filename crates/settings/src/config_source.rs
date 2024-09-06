@@ -38,8 +38,8 @@ pub struct ConfigSource {
     pub sentry: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub watchlist: HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub watchlist: Option<HashMap<String, String>>,
 }
 
 #[typeshare]
@@ -483,8 +483,9 @@ watchlist:
 
         assert_eq!(config.raindex_version, Some("123".to_string()));
 
-        assert_eq!(config.watchlist.get("name-one").unwrap(), "address-one");
-        assert_eq!(config.watchlist.get("name-two").unwrap(), "address-two");
+        let watchlist = config.watchlist.unwrap();
+        assert_eq!(watchlist.get("name-one").unwrap(), "address-one");
+        assert_eq!(watchlist.get("name-two").unwrap(), "address-two");
     }
 
     #[tokio::test]
