@@ -29,11 +29,11 @@ pub type LocalEvmProvider =
 /// The first signer wallet is the main wallet that would sign any transactions
 /// that dont specify a sender ('to' field)
 pub struct LocalEvm {
-    /// The alloy provider instance of this local blockchain
-    pub provider: LocalEvmProvider,
-
     /// The Anvil instance, ie the local blockchain
     pub anvil: AnvilInstance,
+
+    /// The alloy provider instance of this local blockchain
+    pub provider: LocalEvmProvider,
 
     /// Alloy orderbook contract instance deployed on this blockchain
     pub orderbook: Orderbook::OrderbookInstance<Http<Client>, LocalEvmProvider>,
@@ -68,18 +68,18 @@ impl LocalEvm {
     pub async fn new() -> Self {
         let anvil = Anvil::new().try_spawn().unwrap();
 
-        let signers: Vec<EthereumWallet> = anvil
+        // set up signers from anvil accounts
+        let signer_wallets: Vec<EthereumWallet> = anvil
             .keys()
             .iter()
             .map(|v| EthereumWallet::from(PrivateKeySigner::from(v.clone())))
             .collect();
 
-        // Create a provider with the wallet.
-        let rpc_url = anvil.endpoint_url();
+        // Create a provider with the wallet and fillers
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
-            .wallet(signers[0].clone())
-            .on_http(rpc_url);
+            .wallet(signer_wallets[0].clone())
+            .on_http(anvil.endpoint_url());
 
         // deploy rain contracts
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
@@ -104,7 +104,7 @@ impl LocalEvm {
             parser,
             deployer,
             tokens: vec![],
-            signer_wallets: signers,
+            signer_wallets,
         }
     }
 
@@ -121,7 +121,7 @@ impl LocalEvm {
                     &format!("Token{}", i),
                     &format!("Token{}", i),
                     18,
-                    parse_units("1000000", 18).unwrap().into(),
+                    parse_units("1_000_000", 18).unwrap().into(),
                     local_evm.anvil.addresses()[0],
                 )
                 .await;
