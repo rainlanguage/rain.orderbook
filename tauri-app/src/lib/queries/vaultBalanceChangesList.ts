@@ -36,10 +36,10 @@ if (import.meta.vitest) {
   it('uses the vault_balance_changes_list command correctly', async () => {
     const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
       {
-        __typename: 'Withdrawal',
+        typename: 'Withdrawal',
         amount: '1000',
-        old_vault_balance: '5000',
-        new_vault_balance: '4000',
+        oldVaultBalance: '5000',
+        newVaultBalance: '4000',
         vault: {
           id: 'vault1',
           token: {
@@ -54,7 +54,7 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx1',
           from: '0xUser1',
-          block_number: '0',
+          blockNumber: '0',
           timestamp: '0',
         },
         orderbook: {
@@ -62,10 +62,10 @@ if (import.meta.vitest) {
         },
       },
       {
-        __typename: 'TradeVaultBalanceChange',
+        typename: 'TradeVaultBalanceChange',
         amount: '1500',
-        old_vault_balance: '4000',
-        new_vault_balance: '2500',
+        oldVaultBalance: '4000',
+        newVaultBalance: '2500',
         vault: {
           id: 'vault2',
           token: {
@@ -80,7 +80,7 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx2',
           from: '0xUser2',
-          block_number: '0',
+          blockNumber: '0',
           timestamp: '0',
         },
         orderbook: {
@@ -88,10 +88,10 @@ if (import.meta.vitest) {
         },
       },
       {
-        __typename: 'Deposit',
+        typename: 'Deposit',
         amount: '2000',
-        old_vault_balance: '2500',
-        new_vault_balance: '4500',
+        oldVaultBalance: '2500',
+        newVaultBalance: '4500',
         vault: {
           id: 'vault3',
           token: {
@@ -106,7 +106,7 @@ if (import.meta.vitest) {
         transaction: {
           id: 'tx3',
           from: '0xUser3',
-          block_number: '0',
+          blockNumber: '0',
           timestamp: '0',
         },
         orderbook: {

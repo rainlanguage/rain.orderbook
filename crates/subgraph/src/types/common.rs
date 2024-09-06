@@ -56,6 +56,7 @@ pub type RainMetaV1 = Bytes;
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct Order {
     pub id: Bytes,
     pub order_bytes: Bytes,
@@ -72,6 +73,7 @@ pub struct Order {
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cynic(graphql_type = "Order")]
+#[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct OrderAsIO {
     pub id: Bytes,
@@ -81,6 +83,7 @@ pub struct OrderAsIO {
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct Vault {
     pub id: Bytes,
     pub owner: Bytes,
@@ -104,6 +107,7 @@ pub struct VaultBalanceChangeVault {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "VaultBalanceChange")]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeUnwrapped {
     pub __typename: String,
     pub amount: BigInt,
@@ -117,6 +121,7 @@ pub struct VaultBalanceChangeUnwrapped {
 
 #[derive(cynic::InlineFragments, Debug, Clone, Serialize)]
 #[serde(tag = "__typename", content = "data")]
+#[serde(rename_all = "camelCase")]
 #[typeshare]
 pub enum VaultBalanceChange {
     Withdrawal(Withdrawal),
@@ -128,6 +133,7 @@ pub enum VaultBalanceChange {
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct Deposit {
     pub id: Bytes,
     pub __typename: String,
@@ -142,6 +148,7 @@ pub struct Deposit {
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
     pub id: Bytes,
     pub __typename: String,
@@ -156,6 +163,7 @@ pub struct Withdrawal {
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct TradeVaultBalanceChange {
     pub id: Bytes,
     pub __typename: String,
@@ -177,6 +185,7 @@ pub struct TradeEvent {
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct Trade {
     pub id: Bytes,
     pub trade_event: TradeEvent,
@@ -200,6 +209,7 @@ pub struct Erc20 {
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct Transaction {
     pub id: Bytes,
     pub from: Bytes,

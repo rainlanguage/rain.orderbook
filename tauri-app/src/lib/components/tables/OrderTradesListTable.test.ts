@@ -36,16 +36,16 @@ const mockTakeOrdersList: Trade[] = [
   {
     id: '1',
     timestamp: '1632000000',
-    trade_event: {
+    tradeEvent: {
       sender: 'sender_address',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
-        block_number: '0',
+        blockNumber: '0',
       },
     },
-    output_vault_balance_change: {
+    outputVaultBalanceChange: {
       amount: '100',
       vault: {
         id: 'id',
@@ -58,34 +58,34 @@ const mockTakeOrdersList: Trade[] = [
         },
       },
       id: '1',
-      __typename: 'Withdraw',
-      new_vault_balance: '0',
-      old_vault_balance: '0',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
       timestamp: '0',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
-        block_number: '0',
+        blockNumber: '0',
       },
       orderbook: { id: '1' },
     },
     order: {
       id: 'order_id',
-      order_hash: 'order_hash',
-      timestamp_added: '1632000000',
-      order_bytes: '0x123456',
+      orderHash: 'orderHash',
+      timestampAdded: '1632000000',
+      orderBytes: '0x123456',
       owner: '0x1111111111111111111111111111111111111111',
       outputs: [],
       inputs: [],
       active: true,
-      add_events: [],
+      addEvents: [],
       meta: 'metadata1',
       orderbook: {
         id: '0x00',
       },
     },
-    input_vault_balance_change: {
+    inputVaultBalanceChange: {
       vault: {
         id: 'id',
         token: {
@@ -98,15 +98,15 @@ const mockTakeOrdersList: Trade[] = [
       },
       amount: '50',
       id: '1',
-      __typename: 'Withdraw',
-      new_vault_balance: '0',
-      old_vault_balance: '0',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
       timestamp: '0',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
-        block_number: '0',
+        blockNumber: '0',
       },
       orderbook: { id: '1' },
     },
@@ -117,16 +117,16 @@ const mockTakeOrdersList: Trade[] = [
   {
     id: '2',
     timestamp: '1632000000',
-    trade_event: {
+    tradeEvent: {
       sender: 'sender_address',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
-        block_number: '0',
+        blockNumber: '0',
       },
     },
-    output_vault_balance_change: {
+    outputVaultBalanceChange: {
       amount: '100',
       vault: {
         id: 'id',
@@ -139,34 +139,34 @@ const mockTakeOrdersList: Trade[] = [
         },
       },
       id: '1',
-      __typename: 'Withdraw',
-      new_vault_balance: '0',
-      old_vault_balance: '0',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
       timestamp: '0',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
-        block_number: '0',
+        blockNumber: '0',
       },
       orderbook: { id: '1' },
     },
     order: {
       id: 'order_id',
-      order_hash: 'order_hash',
-      timestamp_added: '1632000000',
-      order_bytes: '0x123456',
+      orderHash: 'orderHash',
+      timestampAdded: '1632000000',
+      orderBytes: '0x123456',
       owner: '0x1111111111111111111111111111111111111111',
       outputs: [],
       inputs: [],
       active: true,
-      add_events: [],
+      addEvents: [],
       meta: 'metadata1',
       orderbook: {
         id: '0x00',
       },
     },
-    input_vault_balance_change: {
+    inputVaultBalanceChange: {
       vault: {
         id: 'id',
         token: {
@@ -179,15 +179,15 @@ const mockTakeOrdersList: Trade[] = [
       },
       amount: '50',
       id: '1',
-      __typename: 'Withdraw',
-      new_vault_balance: '0',
-      old_vault_balance: '0',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
       timestamp: '0',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
-        block_number: '0',
+        blockNumber: '0',
       },
       orderbook: { id: '1' },
     },
@@ -218,12 +218,12 @@ test('renders table with correct data', async () => {
     // checking the io ratios
     for (let i = 0; i < mockTakeOrdersList.length; i++) {
       const inputDisplay = formatUnits(
-        BigInt(mockTakeOrdersList[i].input_vault_balance_change.amount),
-        Number(mockTakeOrdersList[i].input_vault_balance_change.vault.token.decimals),
+        BigInt(mockTakeOrdersList[i].inputVaultBalanceChange.amount),
+        Number(mockTakeOrdersList[i].inputVaultBalanceChange.vault.token.decimals),
       );
       const outputDisplay = formatUnits(
-        BigInt(mockTakeOrdersList[i].output_vault_balance_change.amount),
-        Number(mockTakeOrdersList[i].output_vault_balance_change.vault.token.decimals),
+        BigInt(mockTakeOrdersList[i].outputVaultBalanceChange.amount),
+        Number(mockTakeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
       );
       const expectedRatio = Number(inputDisplay) / Number(outputDisplay);
       expect(rows[i]).toHaveTextContent(expectedRatio.toString());
