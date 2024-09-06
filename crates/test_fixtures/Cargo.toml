@@ -8,8 +8,8 @@ homepage.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alloy = { workspace = true, features = ["full", "node-bindings"] }
 serde_json = { workspace = true }
+alloy = { workspace = true, features = ["node-bindings", "sol-types", "rpc-types", "provider-http", "network", "contract", "signer-local"] }
 
-[dev-dependencies]
-tokio = { workspace = true }
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "0.2.15", features = ["js", "js-sys"] }

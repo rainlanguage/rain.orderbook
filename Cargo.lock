@@ -6472,8 +6472,8 @@ name = "rain_orderbook_test_fixtures"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "getrandom",
  "serde_json",
- "tokio",
 ]
 
 [[package]]
