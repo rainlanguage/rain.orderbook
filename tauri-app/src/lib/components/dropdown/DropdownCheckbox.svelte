@@ -45,10 +45,10 @@
 <div>
   <Button
     color="alternative"
-    class="flex w-full justify-between overflow-hidden overflow-ellipsis pl-2 pr-0 text-left"
+    class="flex w-full justify-between overflow-hidden pl-2 pr-0 text-left"
     data-testid="dropdown-checkbox-button"
   >
-    <div class="flex-grow overflow-hidden text-ellipsis whitespace-nowrap">
+    <div class="w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
       {buttonText}
     </div>
     <ChevronDownSolid class="mx-2 h-3 w-3 text-black dark:text-white" />
