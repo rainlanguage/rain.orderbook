@@ -117,7 +117,7 @@ test('shows the correct data when the query returns data', async () => {
     expect(screen.getByText('0x1111111111111111111111111111111111111111')).toBeInTheDocument();
     expect(screen.getByText('Created')).toBeInTheDocument();
     expect(
-      screen.getByText(formatTimestampSecondsAsLocal(BigInt(mockData.order.timestamp_added))),
+      screen.getByText(formatTimestampSecondsAsLocal(BigInt(mockData.order.timestampAdded))),
     ).toBeInTheDocument(); // Adjust this to match your date formatting
   });
 });

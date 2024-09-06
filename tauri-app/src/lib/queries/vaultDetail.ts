@@ -25,7 +25,7 @@ if (import.meta.vitest) {
   it('uses the vault_detail command correctly', async () => {
     const mockData: Vault = {
       id: '1',
-      vault_id: '1',
+      vaultId: '1',
       owner: '0x123',
       token: {
         id: '1',
@@ -35,9 +35,9 @@ if (import.meta.vitest) {
         decimals: '6',
       },
       balance: '100000000000',
-      orders_as_input: [],
-      orders_as_output: [],
-      balance_changes: [],
+      ordersAsInput: [],
+      ordersAsOutput: [],
+      balanceChanges: [],
       orderbook: {
         id: '0x00',
       },

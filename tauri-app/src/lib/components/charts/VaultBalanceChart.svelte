@@ -26,7 +26,7 @@
     {query}
     timeTransform={(d) => timestampSecondsToUTCTimestamp(BigInt(d.timestamp))}
     valueTransform={(d) =>
-      bigintToFloat(BigInt(d.new_vault_balance), Number(vault.token.decimals ?? 0))}
+      bigintToFloat(BigInt(d.newVaultBalance), Number(vault.token.decimals ?? 0))}
     emptyMessage="No deposits or withdrawals found"
   />
 {/if}

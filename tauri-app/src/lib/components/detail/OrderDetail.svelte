@@ -34,7 +34,7 @@
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       <div class="flex gap-x-2">
         <span class="font-light">Order</span>
-        <Hash shorten value={data.order.order_hash} />
+        <Hash shorten value={data.order.orderHash} />
       </div>
       <BadgeActive active={data.order.active} large />
     </div>
@@ -61,7 +61,7 @@
       <CardProperty>
         <svelte:fragment slot="key">Created</svelte:fragment>
         <svelte:fragment slot="value">
-          {formatTimestampSecondsAsLocal(BigInt(data.order.timestamp_added))}
+          {formatTimestampSecondsAsLocal(BigInt(data.order.timestampAdded))}
         </svelte:fragment>
       </CardProperty>
 
