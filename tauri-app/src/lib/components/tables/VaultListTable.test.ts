@@ -10,6 +10,7 @@ import {
   handleDepositModal,
   handleWithdrawModal,
 } from '$lib/services/modal';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
   () => import('$lib/mocks/wallets'),
@@ -58,7 +59,7 @@ test('renders the vault list table with correct data', async () => {
       return [
         {
           id: '1',
-          vault_id: '0xabc',
+          vaultId: '0xabc',
           owner: '0x123',
           token: {
             id: '1',
@@ -68,8 +69,8 @@ test('renders the vault list table with correct data', async () => {
             decimals: '6',
           },
           balance: '100000000000',
-          orders_as_input: [],
-          orders_as_output: [],
+          ordersAsInput: [],
+          ordersAsOutput: [],
           orderbook: { id: '0x00' },
         },
       ];
@@ -120,7 +121,7 @@ test('clicking a row links to the vault detail page', async () => {
       return [
         {
           id: '0xabc',
-          vault_id: '0xabc',
+          vaultId: '0xabc',
           owner: '0x123',
           token: {
             id: '1',
@@ -130,11 +131,12 @@ test('clicking a row links to the vault detail page', async () => {
             decimals: '6',
           },
           balance: '100000000000',
-          orders_as_input: [],
-          orders_as_output: [],
+          ordersAsInput: [],
+          ordersAsOutput: [],
           orderbook: { id: '0x00' },
+          balanceChanges: [],
         },
-      ];
+      ] as Vault[];
     }
   });
 
@@ -186,7 +188,7 @@ test('shows an ellipsis if there is more than three orders as input or output', 
       return [
         {
           id: '0xabc',
-          vault_id: '0xabc',
+          vaultId: '0xabc',
           owner: '0x123',
           token: {
             id: '1',
@@ -196,13 +198,13 @@ test('shows an ellipsis if there is more than three orders as input or output', 
             decimals: '6',
           },
           balance: '100000000000',
-          orders_as_input: [
+          ordersAsInput: [
             { id: '1', order_id: '0x123', amount: '100000000000' },
             { id: '2', order_id: '0x456', amount: '100000000000' },
             { id: '3', order_id: '0x789', amount: '100000000000' },
             { id: '4', order_id: '0xabc', amount: '100000000000' },
           ],
-          orders_as_output: [
+          ordersAsOutput: [
             { id: '1', order_id: '0x123', amount: '100000000000' },
             { id: '2', order_id: '0x456', amount: '100000000000' },
             { id: '3', order_id: '0x789', amount: '100000000000' },
@@ -232,7 +234,7 @@ test('clicking on an order links to the order detail page', async () => {
       return [
         {
           id: '0xabc',
-          vault_id: '0xabc',
+          vaultId: '0xabc',
           owner: '0x123',
           token: {
             id: '1',
@@ -242,8 +244,8 @@ test('clicking on an order links to the order detail page', async () => {
             decimals: '6',
           },
           balance: '100000000000',
-          orders_as_input: [{ id: '0x123', order_id: '0x123', amount: '100000000000' }],
-          orders_as_output: [{ id: '0x456', order_id: '0x456', amount: '100000000000' }],
+          ordersAsInput: [{ id: '0x123', order_id: '0x123', amount: '100000000000' }],
+          ordersAsOutput: [{ id: '0x456', order_id: '0x456', amount: '100000000000' }],
           orderbook: { id: '0x00' },
         },
       ];
@@ -273,7 +275,7 @@ test('doesnt show the row dropdown menu if the wallet address does not match', a
       return [
         {
           id: '0xabc',
-          vault_id: '0xabc',
+          vaultId: '0xabc',
           owner: '0x123',
           token: {
             id: '1',
@@ -283,11 +285,12 @@ test('doesnt show the row dropdown menu if the wallet address does not match', a
             decimals: '6',
           },
           balance: '100000000000',
-          orders_as_input: [],
-          orders_as_output: [],
+          ordersAsInput: [],
+          ordersAsOutput: [],
           orderbook: { id: '0x00' },
+          balanceChanges: [],
         },
-      ];
+      ] as Vault[];
     }
   });
 
@@ -307,9 +310,9 @@ test('doesnt show the row dropdown menu if the wallet address does not match', a
 test('clicking the deposit option in the row dropdown menu opens the deposit modal', async () => {
   const queryClient = new QueryClient();
 
-  const vault = {
+  const vault: Vault = {
     id: '0xabc',
-    vault_id: '0xabc',
+    vaultId: '0xabc',
     owner: '0x123',
     token: {
       id: '1',
@@ -319,9 +322,10 @@ test('clicking the deposit option in the row dropdown menu opens the deposit mod
       decimals: '6',
     },
     balance: '100000000000',
-    orders_as_input: [],
-    orders_as_output: [],
+    ordersAsInput: [],
+    ordersAsOutput: [],
     orderbook: { id: '0x00' },
+    balanceChanges: [],
   };
 
   mockIPC((cmd) => {

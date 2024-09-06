@@ -6,32 +6,39 @@
 
   const dispatch = createEventDispatcher();
 
-  export let options: string[] = [];
-  export let value: string[] = [];
-
+  export let options: Record<string, string> = {};
+  export let value: Record<string, string> = {};
   export let label: string = 'Select items';
   export let allLabel: string = 'All items';
   export let emptyMessage: string = 'No items available';
 
+  $: selectedCount = Object.keys(value).length;
+  $: allSelected = selectedCount === Object.keys(options).length;
+  $: buttonText =
+    selectedCount === 0
+      ? 'Select items'
+      : allSelected
+        ? allLabel
+        : `${selectedCount} item${selectedCount > 1 ? 's' : ''}`;
+
+  function updateValue(newValue: Record<string, string>) {
+    value = newValue;
+    dispatch('change', value);
+  }
+
   function toggleAll() {
-    if (value.length === options.length) {
-      value = [];
-    } else {
-      value = [...options];
-    }
-    dispatch('change', value);
+    updateValue(allSelected ? {} : { ...options });
   }
 
-  function toggleItem(item: string) {
-    if (value.includes(item)) {
-      value = value.filter((i) => i !== item);
+  function toggleItem(key: string) {
+    const newValue = { ...value };
+    if (key in newValue) {
+      delete newValue[key];
     } else {
-      value = [...value, item];
+      newValue[key] = options[key];
     }
-    dispatch('change', value);
+    updateValue(newValue);
   }
-
-  $: selectedCount = value.length;
 </script>
 
 <Label>{label}</Label>
@@ -42,11 +49,7 @@
     data-testid="dropdown-checkbox-button"
   >
     <div class="flex-grow overflow-hidden text-ellipsis whitespace-nowrap">
-      {selectedCount === 0
-        ? `Select items`
-        : selectedCount === options.length
-          ? allLabel
-          : `${selectedCount} item${selectedCount > 1 ? 's' : ''}`}
+      {buttonText}
     </div>
     <ChevronDownSolid class="mx-2 h-3 w-3 text-black dark:text-white" />
   </Button>
@@ -54,28 +57,27 @@
   <Dropdown class="w-full min-w-72 py-0" data-testid="dropdown-checkbox">
     {#if isEmpty(options)}
       <div class="ml-2 w-full rounded-lg p-3">{emptyMessage}</div>
-    {:else if options.length > 1}
+    {:else if Object.keys(options).length > 1}
       <Checkbox
         data-testid="dropdown-checkbox-option"
         class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
         on:click={toggleAll}
-        checked={value.length === options.length}
+        checked={allSelected}
       >
         <div class="ml-2">{allLabel}</div>
       </Checkbox>
     {/if}
 
-    {#each options as item}
+    {#each Object.entries(options) as [key, optionValue]}
       <Checkbox
         data-testid="dropdown-checkbox-option"
         class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
-        on:click={() => toggleItem(item)}
-        checked={value.includes(item)}
+        on:click={() => toggleItem(key)}
+        checked={key in value}
       >
         <div class="ml-2">
-          <slot name="item" {item}>
-            {item}
-          </slot>
+          <div class="text-sm font-medium">{key}</div>
+          <div class="text-xs text-gray-500">{optionValue}</div>
         </div>
       </Checkbox>
     {/each}

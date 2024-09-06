@@ -34,8 +34,8 @@ pub struct Config {
     pub deployments: HashMap<String, Arc<Deployment>>,
     pub sentry: Option<bool>,
     pub raindex_version: Option<String>,
-    #[typeshare(typescript(type = "string[]"))]
-    pub watchlist: Option<Vec<String>>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
+    pub watchlist: Option<HashMap<String, Arc<String>>>,
 }
 
 pub type Subgraph = Url;
@@ -171,6 +171,12 @@ impl TryFrom<ConfigSource> for Config {
             })
             .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
 
+        let watchlist = item.watchlist.map(|wl| {
+            wl.into_iter()
+                .map(|(name, address)| (name, Arc::new(address)))
+                .collect::<HashMap<String, Arc<String>>>()
+        });
+
         let config = Config {
             raindex_version: item.raindex_version,
             networks,
@@ -184,7 +190,7 @@ impl TryFrom<ConfigSource> for Config {
             charts,
             deployments,
             sentry: item.sentry,
-            watchlist: item.watchlist,
+            watchlist,
         };
 
         Ok(config)
@@ -276,9 +282,10 @@ mod tests {
         let charts = HashMap::new();
         let deployments = HashMap::new();
         let sentry = Some(true);
-        let watchlist = Some(vec![
-            "0x1234567890123456789012345678901234567890".to_string()
-        ]);
+        let watchlist = Some(HashMap::from([(
+            "name-one".to_string(),
+            "address-one".to_string(),
+        )]));
 
         let config_string = ConfigSource {
             raindex_version: Some("0x123".to_string()),
@@ -356,8 +363,10 @@ mod tests {
 
         // Verify watchlist
         assert!(config.watchlist.is_some());
-        let watchlist = config.watchlist.unwrap();
+        let watchlist = config.watchlist.as_ref().unwrap();
         assert_eq!(watchlist.len(), 1);
-        assert_eq!(watchlist[0], "0x1234567890123456789012345678901234567890");
+        let (name, address) = watchlist.iter().next().unwrap();
+        assert_eq!(name, "name-one");
+        assert_eq!(address.as_str(), "address-one");
     }
 }

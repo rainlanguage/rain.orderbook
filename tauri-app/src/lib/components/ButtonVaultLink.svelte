@@ -19,7 +19,7 @@
     <div>
       <span class="text-gray-500 dark:text-gray-400">ID</span>
       <span class="mb-1 break-all">
-        {bigintStringToHex(tokenVault.vault_id)}
+        {bigintStringToHex(tokenVault.vaultId)}
       </span>
     </div>
   </div>

@@ -36,6 +36,9 @@ pub enum MergeError {
 
     #[error("There is already a remote networks definition called {0}")]
     RemoteNetworksCollision(String),
+
+    #[error("There is already a watchlist called {0}")]
+    WatchlistCollision(String),
 }
 
 impl ConfigSource {
@@ -148,15 +151,20 @@ impl ConfigSource {
         }?;
 
         // Watchlist
-        self.watchlist = match (self.watchlist.take(), other.watchlist) {
-            (Some(mut a), Some(b)) => {
-                a.extend(b);
-                Some(a)
+        match (&mut self.watchlist, other.watchlist) {
+            (Some(watchlist), Some(other_watchlist)) => {
+                for (key, value) in other_watchlist {
+                    if watchlist.contains_key(&key) {
+                        return Err(MergeError::WatchlistCollision(key));
+                    }
+                    watchlist.insert(key, value);
+                }
             }
-            (Some(a), None) => Some(a),
-            (None, Some(b)) => Some(b),
-            (None, None) => None,
-        };
+            (None, Some(other_watchlist)) => {
+                self.watchlist = Some(other_watchlist);
+            }
+            _ => {}
+        }
 
         Ok(())
     }
@@ -263,15 +271,20 @@ impl Config {
         }?;
 
         // Watchlist
-        self.watchlist = match (self.watchlist.take(), other.watchlist) {
-            (Some(mut a), Some(b)) => {
-                a.extend(b);
-                Some(a)
+        match (&mut self.watchlist, other.watchlist) {
+            (Some(watchlist), Some(other_watchlist)) => {
+                for (key, value) in other_watchlist {
+                    if watchlist.contains_key(&key) {
+                        return Err(MergeError::WatchlistCollision(key));
+                    }
+                    watchlist.insert(key, value);
+                }
             }
-            (Some(a), None) => Some(a),
-            (None, Some(b)) => Some(b),
-            (None, None) => None,
-        };
+            (None, Some(other_watchlist)) => {
+                self.watchlist = Some(other_watchlist);
+            }
+            _ => {}
+        }
 
         Ok(())
     }

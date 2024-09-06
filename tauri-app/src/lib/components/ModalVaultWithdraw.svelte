@@ -31,7 +31,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(BigInt(vault.vault_id), vault.token.id, amount);
+      await vaultWithdraw(BigInt(vault.vaultId), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -43,7 +43,7 @@
     isSubmitting = true;
     try {
       const calldata = (await vaultWithdrawCalldata(
-        BigInt(vault.vault_id),
+        BigInt(vault.vaultId),
         vault.token.id,
         amount,
       )) as Uint8Array;
@@ -72,7 +72,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vault_id)}
+        {bigintStringToHex(vault.vaultId)}
       </p>
     </div>
 

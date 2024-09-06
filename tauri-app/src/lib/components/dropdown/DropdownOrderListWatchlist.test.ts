@@ -9,9 +9,13 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   return {
     ...((await importOriginal()) as object),
     settings: mockSettingsStore,
-    watchlist: writable(['address1', 'address2', 'address3']),
-    activeWatchlist: writable([]),
-    activeWatchlistItems: writable([]),
+    watchlist: writable({
+      address1: 'Label 1',
+      address2: 'Label 2',
+      address3: 'Label 3',
+    }),
+    activeWatchlist: writable({}),
+    activeWatchlistItems: writable({}),
   };
 });
 
@@ -35,10 +39,10 @@ test('updates active watchlist when an option is selected', async () => {
   render(DropdownOrderListWatchlist);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
-  await fireEvent.click(screen.getByLabelText('address1'));
+  await fireEvent.click(screen.getByText('Label 1'));
 
   await waitFor(() => {
-    expect(get(activeWatchlistItems)).toEqual(['address1']);
+    expect(get(activeWatchlistItems)).toEqual({ address1: 'Label 1' });
   });
 });
 
@@ -49,7 +53,11 @@ test('selects all items when "All addresses" is clicked', async () => {
   await fireEvent.click(screen.getByText('All addresses'));
 
   await waitFor(() => {
-    expect(get(activeWatchlistItems)).toEqual(['address1', 'address2', 'address3']);
+    expect(get(activeWatchlistItems)).toEqual({
+      address1: 'Label 1',
+      address2: 'Label 2',
+      address3: 'Label 3',
+    });
   });
 });
 
@@ -60,6 +68,7 @@ test('displays "No watchlist added" when watchlist is empty', async () => {
   const { default: DropdownOrderListWatchlist } = await import(
     './DropdownOrderListWatchlist.svelte'
   );
+
   render(DropdownOrderListWatchlist);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
