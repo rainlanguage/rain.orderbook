@@ -116,16 +116,15 @@ impl LocalEvm {
 
         // deploy tokens contracts and mint 1 milion of each for the default address (first signer wallet)
         for i in 1..=token_count {
-            let token = ERC20::deploy(
-                local_evm.provider.clone(),
-                format!("Token{}", i),
-                format!("Token{}", i),
-                local_evm.signer_wallets[0].default_signer().address(),
-                parse_units("1000000", 18).unwrap().into(),
-            )
-            .await
-            .unwrap();
-            local_evm.tokens.push(token);
+            local_evm
+                .deploy_new_token(
+                    &format!("Token{}", i),
+                    &format!("Token{}", i),
+                    18,
+                    parse_units("1000000", 18).unwrap().into(),
+                    local_evm.anvil.addresses()[0],
+                )
+                .await;
         }
         local_evm
     }
@@ -140,13 +139,15 @@ impl LocalEvm {
         &mut self,
         name: &str,
         symbol: &str,
-        recipient: Address,
+        decimals: u8,
         supply: U256,
+        recipient: Address,
     ) -> ERC20::ERC20Instance<Http<Client>, LocalEvmProvider> {
         let token = ERC20::deploy(
             self.provider.clone(),
             name.to_string(),
             symbol.to_string(),
+            decimals,
             recipient,
             supply,
         )
