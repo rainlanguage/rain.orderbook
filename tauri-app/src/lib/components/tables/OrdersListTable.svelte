@@ -22,11 +22,18 @@
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeWatchlist } from '$lib/stores/settings';
+  import { get } from 'svelte/store';
+  import { derived } from 'svelte/store';
+
+  $: watchlistVersion = derived(activeWatchlist, () => {
+    return Date.now();
+  });
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_ORDERS],
+    queryKey: [QKEY_ORDERS, $watchlistVersion],
     queryFn: ({ pageParam }) => {
-      return ordersList($subgraphUrl, Object.values($activeWatchlist), pageParam);
+      const currentWatchlist = get(activeWatchlist);
+      return ordersList($subgraphUrl, Object.values(currentWatchlist), pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
