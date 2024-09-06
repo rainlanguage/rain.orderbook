@@ -1,4 +1,3 @@
-use super::*;
 use alloy::{
     contract::CallBuilder,
     network::{Ethereum, EthereumWallet},
@@ -10,6 +9,7 @@ use alloy::{
     },
     rpc::types::{TransactionReceipt, TransactionRequest},
     signers::local::PrivateKeySigner,
+    sol,
     sol_types::SolCall,
     transports::{
         http::{Client, Http},
@@ -18,6 +18,45 @@ use alloy::{
 };
 use serde_json::value::RawValue;
 use std::marker::PhantomData;
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    Orderbook, "../../out/OrderBook.sol/OrderBook.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    OrderbookSubParser, "../../out/OrderBookSubParser.sol/OrderBookSubParser.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    ERC20, "../../out/TestERC20.sol/TestERC20.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    Interpreter,
+    "../../out/RainterpreterNPE2.sol/RainterpreterNPE2.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    Store,
+    "../../out/RainterpreterStoreNPE2.sol/RainterpreterStoreNPE2.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    Parser,
+    "../../out/RainterpreterParserNPE2.sol/RainterpreterParserNPE2.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
+    Deployer,
+    "../../out/RainterpreterExpressionDeployerNPE2.sol/RainterpreterExpressionDeployerNPE2.json"
+);
 
 // type aliases for LocalEvm provider type
 pub type LocalEvmFillers = JoinFill<RecommendedFiller, WalletFiller<EthereumWallet>>;
@@ -69,17 +108,27 @@ impl LocalEvm {
         let anvil = Anvil::new().try_spawn().unwrap();
 
         // set up signers from anvil accounts
-        let signer_wallets: Vec<EthereumWallet> = anvil
-            .keys()
+        let mut signer_wallets = vec![];
+        let mut default_signer =
+            EthereumWallet::from(PrivateKeySigner::from(anvil.keys()[0].clone()));
+        let other_signer_wallets: Vec<EthereumWallet> = anvil.keys()[1..]
             .iter()
             .map(|v| EthereumWallet::from(PrivateKeySigner::from(v.clone())))
             .collect();
+
+        for s in &other_signer_wallets {
+            default_signer.register_signer(s.default_signer())
+        }
+        signer_wallets.push(default_signer);
+        signer_wallets.extend(other_signer_wallets);
 
         // Create a provider with the wallet and fillers
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .wallet(signer_wallets[0].clone())
             .on_http(anvil.endpoint_url());
+
+        // provider.wallet_mut().register_signer(signer)
 
         // deploy rain contracts
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();

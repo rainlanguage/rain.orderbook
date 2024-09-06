@@ -1,50 +1,5 @@
-use alloy::sol;
-
-mod local_evm;
-pub use local_evm::*;
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    Orderbook, "../../out/OrderBook.sol/OrderBook.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    OrderbookSubParser, "../../out/OrderBookSubParser.sol/OrderBookSubParser.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    ERC20, "../../out/TestERC20.sol/TestERC20.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    Interpreter,
-    "../../out/RainterpreterNPE2.sol/RainterpreterNPE2.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    Store,
-    "../../out/RainterpreterStoreNPE2.sol/RainterpreterStoreNPE2.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    Parser,
-    "../../out/RainterpreterParserNPE2.sol/RainterpreterParserNPE2.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    Deployer,
-    "../../out/RainterpreterExpressionDeployerNPE2.sol/RainterpreterExpressionDeployerNPE2.json"
-);
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloy::sol_types::SolCall;
     use alloy::{
         network::TransactionBuilder,
@@ -52,7 +7,7 @@ mod tests {
         rpc::types::TransactionRequest,
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use Orderbook::*;
+    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::*};
 
     #[tokio::test]
     async fn test_post_task_set() {
