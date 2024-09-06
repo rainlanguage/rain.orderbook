@@ -14,6 +14,12 @@
 
   $: selectedCount = Object.keys(value).length;
   $: allSelected = selectedCount === Object.keys(options).length;
+  $: buttonText =
+    selectedCount === 0
+      ? 'Select items'
+      : allSelected
+        ? allLabel
+        : `${selectedCount} item${selectedCount > 1 ? 's' : ''}`;
 
   function updateValue(newValue: Record<string, string>) {
     value = newValue;
@@ -33,12 +39,6 @@
     }
     updateValue(newValue);
   }
-
-  function getButtonText() {
-    if (selectedCount === 0) return 'Select items';
-    if (allSelected) return allLabel;
-    return `${selectedCount} item${selectedCount > 1 ? 's' : ''}`;
-  }
 </script>
 
 <Label>{label}</Label>
@@ -49,7 +49,7 @@
     data-testid="dropdown-checkbox-button"
   >
     <div class="flex-grow overflow-hidden text-ellipsis whitespace-nowrap">
-      {getButtonText()}
+      {buttonText}
     </div>
     <ChevronDownSolid class="mx-2 h-3 w-3 text-black dark:text-white" />
   </Button>
