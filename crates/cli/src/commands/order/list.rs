@@ -1,6 +1,6 @@
 use crate::{
     execute::Execute,
-    subgraph::{CliPaginationArgs, CliSubgraphArgs},
+    subgraph::{CliFilterArgs, CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::Result;
 use clap::Args;
@@ -19,6 +19,9 @@ pub struct CliOrderListArgs {
 
     #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
+
+    #[clap(flatten)]
+    pub filter_args: CliFilterArgs,
 }
 
 impl Execute for CliOrderListArgs {
@@ -42,7 +45,10 @@ impl Execute for CliOrderListArgs {
                 subgraph_args
                     .to_subgraph_client()
                     .await?
-                    .orders_list(self.pagination_args.clone().into())
+                    .orders_list(
+                        self.filter_args.clone().into(),
+                        self.pagination_args.clone().into(),
+                    )
                     .await?
                     .into_iter()
                     .map(|o| o.try_into())
@@ -112,6 +118,9 @@ mod tests {
                 page_size: 25,
                 page: 1,
             },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+            },
         };
 
         // should succeed
@@ -135,6 +144,9 @@ mod tests {
                 page_size: 25,
                 page: 1,
             },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+            },
         };
 
         // should succeed
@@ -157,6 +169,9 @@ mod tests {
                 csv: false,
                 page_size: 25,
                 page: 1,
+            },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
             },
         };
 

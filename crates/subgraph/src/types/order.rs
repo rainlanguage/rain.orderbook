@@ -27,10 +27,10 @@ pub struct BatchOrderDetailQuery {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "PaginationQueryVariables")]
+#[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
 #[typeshare]
 pub struct OrdersListQuery {
-    #[arguments(orderBy: "timestampAdded", orderDirection: "desc", skip: $skip, first: $first)]
+    #[arguments(orderBy: "timestampAdded", orderDirection: "desc", skip: $skip, first: $first, where: $filters)]
     pub orders: Vec<Order>,
 }
 

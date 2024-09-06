@@ -1,5 +1,5 @@
 use crate::schema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -8,11 +8,33 @@ pub struct IdQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrdersListFilterArgs {
+    pub owners: Vec<Bytes>,
+}
+
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
 pub struct PaginationQueryVariables {
     pub first: Option<i32>,
     pub skip: Option<i32>,
+}
+
+#[derive(cynic::InputObject, Debug, Clone)]
+#[cynic(graphql_type = "Order_filter")]
+#[typeshare]
+pub struct OrdersListQueryFilters {
+    #[cynic(rename = "owner_in")]
+    pub owner_in: Vec<Bytes>,
+}
+
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
+pub struct OrdersListQueryVariables {
+    pub first: Option<i32>,
+    pub skip: Option<i32>,
+    #[cynic(rename = "filters")]
+    pub filters: Option<OrdersListQueryFilters>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]

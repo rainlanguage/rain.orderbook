@@ -69,16 +69,26 @@ impl OrderbookSubgraphClient {
     /// Fetch all orders, paginated
     pub async fn orders_list(
         &self,
+        filter_args: OrdersListFilterArgs,
         pagination_args: PaginationArgs,
     ) -> Result<Vec<Order>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
-        let data = self
-            .query::<OrdersListQuery, PaginationQueryVariables>(PaginationQueryVariables {
-                first: pagination_variables.first,
-                skip: pagination_variables.skip,
-            })
-            .await?;
 
+        let variables = OrdersListQueryVariables {
+            first: pagination_variables.first,
+            skip: pagination_variables.skip,
+            filters: if filter_args.owners.is_empty() {
+                None
+            } else {
+                Some(OrdersListQueryFilters {
+                    owner_in: filter_args.owners,
+                })
+            },
+        };
+
+        let data = self
+            .query::<OrdersListQuery, OrdersListQueryVariables>(variables)
+            .await?;
         Ok(data.orders)
     }
 
@@ -89,10 +99,13 @@ impl OrderbookSubgraphClient {
 
         loop {
             let page_data = self
-                .orders_list(PaginationArgs {
-                    page,
-                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
-                })
+                .orders_list(
+                    OrdersListFilterArgs { owners: vec![] },
+                    PaginationArgs {
+                        page,
+                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                    },
+                )
                 .await?;
             if page_data.is_empty() {
                 break;
