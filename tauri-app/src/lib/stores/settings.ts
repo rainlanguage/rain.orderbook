@@ -103,6 +103,9 @@ export const hasRequiredSettings = derived(
     $activeNetworkRef !== undefined && $activeOrderbookRef !== undefined,
 );
 
+// watchlist
+export const watchlist = derived(settings, ($settings) => $settings?.watchlist ?? []);
+
 // When networks / orderbooks settings updated, reset active network / orderbook
 settings.subscribe(async () => {
   const $settings = await settings.load();

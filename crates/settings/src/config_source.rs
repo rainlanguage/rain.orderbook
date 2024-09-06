@@ -38,6 +38,8 @@ pub struct ConfigSource {
     pub sentry: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub watchlist: Option<HashMap<String, String>>,
 }
 
 #[typeshare]
@@ -371,7 +373,11 @@ deployments:
         scenario: mainScenario
         order: buyETH
         
-sentry: true"#,
+sentry: true
+
+watchlist:
+    name-one: address-one
+    name-two: address-two"#,
             mocked_chain_id_server.url("/json")
         );
 
@@ -476,6 +482,10 @@ sentry: true"#,
         assert_eq!(order.orderbook, expected_order.orderbook);
 
         assert_eq!(config.raindex_version, Some("123".to_string()));
+
+        let watchlist = config.watchlist.unwrap();
+        assert_eq!(watchlist.get("name-one").unwrap(), "address-one");
+        assert_eq!(watchlist.get("name-two").unwrap(), "address-two");
     }
 
     #[tokio::test]
