@@ -176,6 +176,10 @@ deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
+
+watchlist:
+    name-one: address-one
+    name-two: address-two
 ---
 #calculate-io
 _ _: 0 0;
