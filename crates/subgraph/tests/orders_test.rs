@@ -6,9 +6,10 @@ use rain_orderbook_subgraph_client::types::order::OrdersListQuery;
 fn orders_query_gql_output() {
     use cynic::QueryBuilder;
 
-    let request_body = OrdersListQuery::build(PaginationQueryVariables {
+    let request_body = OrdersListQuery::build(OrdersListQueryVariables {
         skip: Some(0),
         first: Some(10),
+        filters: None,
     });
 
     assert_snapshot!(request_body.query);

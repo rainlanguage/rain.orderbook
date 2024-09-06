@@ -2,8 +2,8 @@
 source: crates/subgraph/tests/orders_test.rs
 expression: request_body.query
 ---
-query OrdersListQuery($first: Int, $skip: Int) {
-  orders(orderBy: timestampAdded, orderDirection: desc, skip: $skip, first: $first) {
+query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
+  orders(orderBy: timestampAdded, orderDirection: desc, skip: $skip, first: $first, where: $filters) {
     id
     orderBytes
     orderHash

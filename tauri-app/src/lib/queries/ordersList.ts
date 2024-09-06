@@ -15,6 +15,7 @@ export type OrdersListArgs = {
 
 export const ordersList = async (
   url: string | undefined,
+  owners: string[] = [],
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
 ) => {
@@ -23,6 +24,9 @@ export const ordersList = async (
   }
   return await invoke<Order[]>('orders_list', {
     subgraphArgs: { url },
+    filterArgs: {
+      owners,
+    },
     paginationArgs: { page: pageParam + 1, page_size: pageSize },
   } as OrdersListArgs);
 };
@@ -50,10 +54,10 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await ordersList(undefined, 0)).toEqual([]);
+    expect(await ordersList(undefined, [], 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await ordersList('http://localhost:8000', 0)).toEqual([
+    expect(await ordersList('http://localhost:8000', [], 0)).toEqual([
       {
         id: '1',
         order_bytes: '0x123',

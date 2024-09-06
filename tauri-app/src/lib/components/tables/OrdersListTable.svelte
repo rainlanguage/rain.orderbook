@@ -21,11 +21,13 @@
   import { subgraphUrl } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
+  import { activeWatchlist } from '$lib/stores/settings';
+  import { get } from 'svelte/store';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_ORDERS],
+    queryKey: [QKEY_ORDERS, $activeWatchlist],
     queryFn: ({ pageParam }) => {
-      return ordersList($subgraphUrl, pageParam);
+      return ordersList($subgraphUrl, Object.values(get(activeWatchlist)), pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {

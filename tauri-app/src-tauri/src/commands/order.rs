@@ -15,12 +15,13 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn orders_list(
     subgraph_args: SubgraphArgs,
+    filter_args: OrdersListFilterArgs,
     pagination_args: PaginationArgs,
 ) -> CommandResult<Vec<Order>> {
     let orders = subgraph_args
         .to_subgraph_client()
         .await?
-        .orders_list(pagination_args)
+        .orders_list(filter_args, pagination_args)
         .await?;
     Ok(orders)
 }
