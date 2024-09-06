@@ -10,6 +10,11 @@ sol!(
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
+    OrderbookSubParser, "../../out/OrderBookSubParser.sol/OrderBookSubParser.json"
+);
+
+sol!(
+    #![sol(all_derives = true, rpc = true)]
     ERC20, "../../out/TestERC20.sol/TestERC20.json"
 );
 
@@ -52,11 +57,13 @@ mod tests {
     #[tokio::test]
     async fn test_post_task_set() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
+
         let orderbook = &local_evm.orderbook;
-        let tokens = local_evm.tokens.values().collect::<Vec<_>>();
-        let token1 = tokens[0].clone();
-        let token2 = tokens[1].clone();
+
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
+
+        let token1 = local_evm.tokens[0].clone();
+        let token2 = local_evm.tokens[1].clone();
 
         let dotrain = format!(
             r#"
@@ -100,7 +107,7 @@ deployments:
         order: polygon
 ---
 #calculate-io
-/* using-words-from 0xe80e7438ce6b1055c8e9CDE1b6336a4F9D53C666 */
+using-words-from {orderbook_subparser}
 amount price: get("amount") 52;
 #handle-add-order
 :set("amount" 100);
@@ -109,6 +116,7 @@ amount price: get("amount") 52;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
+            orderbook_subparser = local_evm.orderbook_subparser.address(),
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
@@ -135,14 +143,14 @@ amount price: get("amount") 52;
 
         // approve and deposit Token1
         local_evm
-            .send_contract_call_transaction(
+            .send_contract_transaction(
                 token1.approve(*orderbook.address(), parse_ether("1000").unwrap()),
             )
             .await
             .unwrap();
 
         local_evm
-            .send_contract_call_transaction(orderbook.deposit2(
+            .send_contract_transaction(orderbook.deposit2(
                 *token1.address(),
                 U256::from(0x01),
                 parse_ether("1000").unwrap(),
@@ -151,15 +159,15 @@ amount price: get("amount") 52;
             .await
             .unwrap();
 
-        let quote = orderbook
-            .quote(Quote {
+        let quote = local_evm
+            .call_contract(orderbook.quote(Quote {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
                 signedContext: vec![],
-            })
-            .call()
+            }))
             .await
+            .unwrap()
             .unwrap();
 
         let amount = quote._1;
@@ -171,7 +179,7 @@ amount price: get("amount") 52;
 
     #[tokio::test]
     async fn test_post_task_revert() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
         let orderbook = &local_evm.orderbook;
 
         let dotrain = format!(
@@ -240,13 +248,11 @@ amount price: get("amount") 52;
             .with_input(calldata)
             .with_to(*orderbook.address());
 
-        let res = local_evm.send_transaction(tx).await;
+        let res = local_evm
+            .send_transaction(tx)
+            .await
+            .expect_err("Transaction should have reverted");
 
-        match res {
-            Ok(_) => panic!("Transaction should have reverted"),
-            Err(e) => {
-                assert!(e.to_string().contains("should fail"));
-            }
-        }
+        assert!(res.to_string().contains("should fail"));
     }
 }

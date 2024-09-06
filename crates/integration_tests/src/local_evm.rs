@@ -3,12 +3,12 @@ use alloy::{
     contract::CallBuilder,
     network::{Ethereum, EthereumWallet},
     node_bindings::{Anvil, AnvilInstance},
-    primitives::{utils::parse_units, Address, FixedBytes, U256},
+    primitives::{utils::parse_units, Address, Bytes, U256},
     providers::{
         fillers::{FillProvider, JoinFill, RecommendedFiller, WalletFiller},
         Provider, ProviderBuilder, RootProvider,
     },
-    rpc::types::TransactionRequest,
+    rpc::types::{TransactionReceipt, TransactionRequest},
     signers::local::PrivateKeySigner,
     sol_types::SolCall,
     transports::{
@@ -16,7 +16,7 @@ use alloy::{
         RpcError, TransportErrorKind,
     },
 };
-use std::collections::HashMap;
+use serde_json::value::RawValue;
 use std::marker::PhantomData;
 
 // type aliases for LocalEvm provider type
@@ -25,25 +25,48 @@ pub type LocalEvmProvider =
     FillProvider<LocalEvmFillers, RootProvider<Http<Client>>, Http<Client>, Ethereum>;
 
 /// A local evm instance that wraps an Anvil instance and provider with
-/// its signers, and with rain contract already deployed on it.
+/// its signers, and with rain contracts already deployed on it.
 /// The first signer wallet is the main wallet that would sign any transactions
 /// that dont specify a sender ('to' field)
 pub struct LocalEvm {
+    /// The alloy provider instance of this local blockchain
     pub provider: LocalEvmProvider,
+
+    /// The Anvil instance, ie the local blockchain
     pub anvil: AnvilInstance,
+
+    /// Alloy orderbook contract instance deployed on this blockchain
     pub orderbook: Orderbook::OrderbookInstance<Http<Client>, LocalEvmProvider>,
+
+    /// Alloy orderbook subparser contract instance deployed on this blockchain
+    pub orderbook_subparser:
+        OrderbookSubParser::OrderbookSubParserInstance<Http<Client>, LocalEvmProvider>,
+
+    /// Alloy interpreter contract instance deployed on this blockchain
     pub interpreter: Interpreter::InterpreterInstance<Http<Client>, LocalEvmProvider>,
+
+    /// Alloy store contract instance deployed on this blockchain
     pub store: Store::StoreInstance<Http<Client>, LocalEvmProvider>,
+
+    /// Alloy parser contract instance deployed on this blockchain
     pub parser: Parser::ParserInstance<Http<Client>, LocalEvmProvider>,
+
+    /// Alloy expression deployer contract instance deployed on this blockchain
     pub deployer: Deployer::DeployerInstance<Http<Client>, LocalEvmProvider>,
-    pub tokens: HashMap<Address, ERC20::ERC20Instance<Http<Client>, LocalEvmProvider>>,
+
+    /// Array of alloy ERC20 contract instances deployed on this blockchain
+    pub tokens: Vec<ERC20::ERC20Instance<Http<Client>, LocalEvmProvider>>,
+
+    /// All wallets of this local blockchain that can be used to perform transactions
+    /// the first wallet is the blockchain's default wallet, ie transactions that dont
+    /// explicitly specify a sender address will use this as the sender
     pub signer_wallets: Vec<EthereumWallet>,
 }
 
 impl LocalEvm {
     /// Instantiates this struct with rain contracts deployed and no ERC20 tokens
     pub async fn new() -> Self {
-        let anvil = Anvil::new().spawn();
+        let anvil = Anvil::new().try_spawn().unwrap();
 
         let signers: Vec<EthereumWallet> = anvil
             .keys()
@@ -60,6 +83,7 @@ impl LocalEvm {
 
         // deploy rain contracts
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
+        let orderbook_subparser = OrderbookSubParser::deploy(provider.clone()).await.unwrap();
         let interpreter = Interpreter::deploy(provider.clone()).await.unwrap();
         let store = Store::deploy(provider.clone()).await.unwrap();
         let parser = Parser::deploy(provider.clone()).await.unwrap();
@@ -74,16 +98,19 @@ impl LocalEvm {
             anvil,
             provider,
             orderbook,
+            orderbook_subparser,
             interpreter,
             store,
             parser,
             deployer,
-            tokens: HashMap::new(),
+            tokens: vec![],
             signer_wallets: signers,
         }
     }
 
-    /// Instantiates with number of ERC20 tokens
+    /// Instantiates with number of ERC20 tokens with 18 decimals.
+    /// Each token after being deployed will mint 1 milion tokens to the
+    /// default address, which is the first signer wallet of this instance
     pub async fn new_with_tokens(token_count: u8) -> Self {
         let mut local_evm = Self::new().await;
 
@@ -98,12 +125,12 @@ impl LocalEvm {
             )
             .await
             .unwrap();
-            local_evm.tokens.insert(*token.address(), token);
+            local_evm.tokens.push(token);
         }
         local_evm
     }
 
-    /// Get the local rpc url the underlying anvil is running on
+    /// Get the local rpc url of the underlying anvil instance
     pub fn url(&self) -> String {
         self.anvil.endpoint()
     }
@@ -125,27 +152,56 @@ impl LocalEvm {
         )
         .await
         .unwrap();
-        self.tokens.insert(*token.address(), token.clone());
+        self.tokens.push(token.clone());
         token
     }
 
-    /// Sends a contract write call transaction to the evm instance and returns the tx hash
-    pub async fn send_contract_call_transaction<T: SolCall>(
+    /// Sends a contract write transaction to the blockchain and returns the tx receipt
+    pub async fn send_contract_transaction<T: SolCall>(
         &self,
         contract_call: CallBuilder<Http<Client>, &LocalEvmProvider, PhantomData<T>>,
-    ) -> Result<FixedBytes<32>, RpcError<TransportErrorKind>> {
+    ) -> Result<TransactionReceipt, RpcError<TransportErrorKind, Box<RawValue>>> {
         self.provider
             .send_transaction(contract_call.into_transaction_request())
             .await?
-            .watch()
+            .get_receipt()
             .await
     }
 
-    /// Sends a raw transaction request to the evm instance and returns the tx hash
+    /// Sends (write call) a raw transaction request to the blockchain and returns the tx receipt
     pub async fn send_transaction(
         &self,
         tx: TransactionRequest,
-    ) -> Result<FixedBytes<32>, RpcError<TransportErrorKind>> {
-        self.provider.send_transaction(tx).await?.watch().await
+    ) -> Result<TransactionReceipt, RpcError<TransportErrorKind, Box<RawValue>>> {
+        self.provider
+            .send_transaction(tx)
+            .await?
+            .get_receipt()
+            .await
+    }
+
+    /// Calls (readonly call) contract method and returns the decoded result
+    pub async fn call_contract<T: SolCall>(
+        &self,
+        contract_call: CallBuilder<Http<Client>, &LocalEvmProvider, PhantomData<T>>,
+    ) -> Result<
+        Result<T::Return, alloy::sol_types::Error>,
+        RpcError<TransportErrorKind, Box<RawValue>>,
+    > {
+        Ok(T::abi_decode_returns(
+            &self
+                .provider
+                .call(&contract_call.into_transaction_request())
+                .await?,
+            true,
+        ))
+    }
+
+    /// Calls (readonly call) a raw transaction and returns the result
+    pub async fn call(
+        &self,
+        tx: &TransactionRequest,
+    ) -> Result<Bytes, RpcError<TransportErrorKind, Box<RawValue>>> {
+        self.provider.call(tx).await
     }
 }
