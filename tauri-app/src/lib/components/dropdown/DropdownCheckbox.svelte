@@ -10,7 +10,9 @@
   export let value: Record<string, string> = {};
   export let label: string = 'Select items';
   export let allLabel: string = 'All items';
+  export let showAllLabel: boolean = true;
   export let emptyMessage: string = 'No items available';
+  export let onlyTitle: boolean = false;
 
   $: selectedCount = Object.keys(value).length;
   $: allSelected = selectedCount === Object.keys(options).length;
@@ -57,7 +59,7 @@
   <Dropdown class="w-full min-w-72 py-0" data-testid="dropdown-checkbox">
     {#if isEmpty(options)}
       <div class="ml-2 w-full rounded-lg p-3">{emptyMessage}</div>
-    {:else if Object.keys(options).length > 1}
+    {:else if Object.keys(options).length > 1 && showAllLabel}
       <Checkbox
         data-testid="dropdown-checkbox-option"
         class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -77,7 +79,9 @@
       >
         <div class="ml-2">
           <div class="text-sm font-medium">{key}</div>
-          <div class="text-xs text-gray-500">{optionValue}</div>
+          {#if !onlyTitle}
+            <div class="text-xs text-gray-500">{optionValue}</div>
+          {/if}
         </div>
       </Checkbox>
     {/each}
