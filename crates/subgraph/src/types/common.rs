@@ -11,6 +11,7 @@ pub struct IdQueryVariables<'a> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrdersListFilterArgs {
     pub owners: Vec<Bytes>,
+    pub active: Option<bool>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -24,8 +25,10 @@ pub struct PaginationQueryVariables {
 #[cynic(graphql_type = "Order_filter")]
 #[typeshare]
 pub struct OrdersListQueryFilters {
-    #[cynic(rename = "owner_in")]
+    #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
     pub owner_in: Vec<Bytes>,
+    #[cynic(rename = "active", skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]

@@ -74,16 +74,19 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<Order>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
+        let filters = if !filter_args.owners.is_empty() || filter_args.active.is_some() {
+            Some(OrdersListQueryFilters {
+                owner_in: filter_args.owners,
+                active: filter_args.active,
+            })
+        } else {
+            None
+        };
+
         let variables = OrdersListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
-            filters: if filter_args.owners.is_empty() {
-                None
-            } else {
-                Some(OrdersListQueryFilters {
-                    owner_in: filter_args.owners,
-                })
-            },
+            filters,
         };
 
         let data = self
@@ -100,7 +103,10 @@ impl OrderbookSubgraphClient {
         loop {
             let page_data = self
                 .orders_list(
-                    OrdersListFilterArgs { owners: vec![] },
+                    OrdersListFilterArgs {
+                        owners: vec![],
+                        active: None,
+                    },
                     PaginationArgs {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
