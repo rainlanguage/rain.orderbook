@@ -1,17 +1,15 @@
 [package]
 name = "rain_orderbook_integration_tests"
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-alloy = { workspace = true, features = ["full", "node-bindings"] }
-rain-orderbook-env = { workspace = true }
-rain_orderbook_common = { workspace = true }
-rain_orderbook_app_settings = { workspace = true }
-
 [dev-dependencies]
 tokio = { workspace = true }
+rain_orderbook_test_fixtures = { workspace = true }
+alloy = { workspace = true, features = ["full", "node-bindings"] }
+rain_orderbook_common = { workspace = true }
+serde_json = { workspace = true }
