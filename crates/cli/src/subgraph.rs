@@ -69,12 +69,16 @@ pub struct CliFilterArgs {
         value_delimiter = ','
     )]
     pub owners: Vec<String>,
+
+    #[arg(long, help = "Filter orders by active status", default_value = "true")]
+    pub active: Option<bool>,
 }
 
 impl From<CliFilterArgs> for OrdersListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
         Self {
             owners: val.owners.into_iter().map(Bytes).collect(),
+            active: val.active,
         }
     }
 }

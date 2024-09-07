@@ -119,6 +119,7 @@ mod tests {
             },
             filter_args: CliFilterArgs {
                 owners: vec!["addr1".to_string()],
+                active: Some(true),
             },
         };
 
@@ -145,6 +146,7 @@ mod tests {
             },
             filter_args: CliFilterArgs {
                 owners: vec!["addr1".to_string()],
+                active: Some(true),
             },
         };
 
@@ -165,6 +167,7 @@ mod tests {
             },
             filter_args: CliFilterArgs {
                 owners: vec!["addr1".to_string()],
+                active: Some(true),
             },
         };
 
