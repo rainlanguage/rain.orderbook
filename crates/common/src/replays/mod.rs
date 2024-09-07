@@ -159,7 +159,7 @@ amount price: 2 1;
         // approve and deposit Token1
         token1
             .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm.provider)
+            .do_send(&local_evm)
             .await
             .unwrap();
         orderbook
@@ -169,7 +169,7 @@ amount price: 2 1;
                 parse_ether("10").unwrap(),
                 vec![],
             )
-            .do_send(&local_evm.provider)
+            .do_send(&local_evm)
             .await
             .unwrap();
 
@@ -177,7 +177,7 @@ amount price: 2 1;
         token2
             .approve(*orderbook.address(), parse_ether("1000").unwrap())
             .from(token2_holder)
-            .do_send(&local_evm.provider)
+            .do_send(&local_evm)
             .await
             .unwrap();
         // take order from token2 holder
@@ -196,7 +196,7 @@ amount price: 2 1;
         let tx = orderbook
             .takeOrders2(config)
             .from(token2_holder)
-            .do_send(&local_evm.provider)
+            .do_send(&local_evm)
             .await
             .unwrap();
 

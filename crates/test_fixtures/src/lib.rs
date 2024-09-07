@@ -72,7 +72,7 @@ pub struct LocalEvm {
     /// Alloy expression deployer contract instance deployed on this blockchain
     pub deployer: Deployer::DeployerInstance<Http<Client>, LocalEvmProvider>,
 
-    /// Alloy multicall3 contract instance deployed on this blockchain
+    /// Alloy multicall3 contract instance deployed at the official multicall3 address on this blockchain
     pub multicall3: IMulticall3::IMulticall3Instance<Http<Client>, LocalEvmProvider>,
 
     /// Array of alloy ERC20 contract instances deployed on this blockchain
@@ -109,8 +109,6 @@ impl LocalEvm {
             .with_recommended_fillers()
             .wallet(signer_wallets[0].clone())
             .on_http(anvil.endpoint_url());
-
-        // provider.wallet_mut().register_signer(signer)
 
         // deploy rain contracts
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
@@ -258,14 +256,14 @@ pub trait ContractTxHandler<T: SolCall> {
     #[allow(async_fn_in_trait)]
     async fn do_call(
         &self,
-        provider: &LocalEvmProvider,
+        evm: &LocalEvm,
     ) -> Result<Result<T::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>>;
 
     /// Sends the contract call transaction, ie commiting a transction (write call) and returns the tx receipt
     #[allow(async_fn_in_trait)]
     async fn do_send(
         &self,
-        provider: &LocalEvmProvider,
+        evm: &LocalEvm,
     ) -> Result<TransactionReceipt, RpcError<TransportErrorKind>>;
 }
 
@@ -274,11 +272,11 @@ impl<'a, T: SolCall> ContractTxHandler<T>
 {
     async fn do_call(
         &self,
-        provider: &LocalEvmProvider,
+        evm: &LocalEvm,
     ) -> Result<Result<<T as SolCall>::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>>
     {
         Ok(T::abi_decode_returns(
-            &provider
+            &evm.provider
                 .call(&self.clone().into_transaction_request())
                 .await?,
             true,
@@ -287,9 +285,9 @@ impl<'a, T: SolCall> ContractTxHandler<T>
 
     async fn do_send(
         &self,
-        provider: &LocalEvmProvider,
+        evm: &LocalEvm,
     ) -> Result<TransactionReceipt, RpcError<TransportErrorKind>> {
-        provider
+        evm.provider
             .send_transaction(self.clone().into_transaction_request())
             .await?
             .get_receipt()

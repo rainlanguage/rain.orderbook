@@ -157,7 +157,7 @@ amount price: 16 52;
         // approve and deposit Token1
         token1
             .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm.provider)
+            .do_send(&local_evm)
             .await
             .unwrap();
         orderbook
@@ -167,7 +167,7 @@ amount price: 16 52;
                 parse_ether("1000").unwrap(),
                 vec![],
             )
-            .do_send(&local_evm.provider)
+            .do_send(&local_evm)
             .await
             .unwrap();
 
