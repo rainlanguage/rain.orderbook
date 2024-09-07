@@ -15,6 +15,7 @@ export type VaultsListArgs = {
 
 export const vaultList = async (
   url: string | undefined,
+  owners: string[] = [],
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
 ) => {
@@ -23,6 +24,9 @@ export const vaultList = async (
   }
   return await invoke<Vault[]>('vaults_list', {
     subgraphArgs: { url },
+    filterArgs: {
+      owners,
+    },
     paginationArgs: { page: pageParam + 1, page_size: pageSize },
   } as VaultsListArgs);
 };
@@ -54,10 +58,10 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await vaultList(undefined, 0)).toEqual([]);
+    expect(await vaultList(undefined, [], 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await vaultList('http://localhost:8000', 0)).toEqual([
+    expect(await vaultList('http://localhost:8000', [], 0)).toEqual([
       {
         id: '1',
         vault_id: '1',

@@ -1,7 +1,7 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
-    types::common::{Bytes, OrdersListFilterArgs},
+    types::common::{Bytes, OrdersListFilterArgs, VaultsListFilterArgs},
     PaginationArgs,
 };
 
@@ -72,6 +72,13 @@ pub struct CliFilterArgs {
 }
 
 impl From<CliFilterArgs> for OrdersListFilterArgs {
+    fn from(val: CliFilterArgs) -> Self {
+        Self {
+            owners: val.owners.into_iter().map(Bytes).collect(),
+        }
+    }
+}
+impl From<CliFilterArgs> for VaultsListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
         Self {
             owners: val.owners.into_iter().map(Bytes).collect(),

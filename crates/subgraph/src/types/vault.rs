@@ -4,10 +4,10 @@ use serde::Serialize;
 use typeshare::typeshare;
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "PaginationQueryVariables")]
+#[cynic(graphql_type = "Query", variables = "VaultsListQueryVariables")]
 #[typeshare]
 pub struct VaultsListQuery {
-    #[arguments(orderBy: "id", orderDirection: "desc", skip: $skip, first: $first)]
+    #[arguments(orderBy: "id", orderDirection: "desc", skip: $skip, first: $first, where: $filters)]
     pub vaults: Vec<Vault>,
 }
 

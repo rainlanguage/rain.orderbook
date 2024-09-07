@@ -19,11 +19,13 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
+  import { activeWatchlist } from '$lib/stores/settings';
+  import { get } from 'svelte/store';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS],
+    queryKey: [QKEY_VAULTS, $activeWatchlist],
     queryFn: ({ pageParam }) => {
-      return vaultList($subgraphUrl, pageParam);
+      return vaultList($subgraphUrl, Object.values(get(activeWatchlist)), pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
