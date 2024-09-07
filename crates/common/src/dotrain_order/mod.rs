@@ -1,3 +1,4 @@
+use crate::GH_COMMIT_SHA;
 use crate::{
     add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
     rainlang::compose_to_rainlang,
@@ -13,7 +14,6 @@ use rain_orderbook_app_settings::{
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
-use rain_orderbook_env::GH_COMMIT_SHA;
 use serde::Serialize;
 use thiserror::Error;
 use typeshare::typeshare;

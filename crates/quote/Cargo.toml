@@ -49,4 +49,5 @@ httpmock = "0.7.0"
 wasm-bindgen-test = "0.3.42"
 
 [dev-dependencies]
-rain-orderbook-env = { workspace = true }
+rain_orderbook_test_fixtures = { workspace = true }
+rain_orderbook_common = { workspace = true }

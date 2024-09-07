@@ -275,21 +275,27 @@ impl FuzzRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::{
+        primitives::utils::parse_ether,
+        providers::{ext::AnvilApi, Provider},
+    };
     use rain_orderbook_app_settings::config_source::ConfigSource;
+    use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
         bindings:
             bound: 3
@@ -302,7 +308,8 @@ b: fuzzed;
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -314,7 +321,7 @@ b: fuzzed;
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -324,27 +331,40 @@ b: fuzzed;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_block_range() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+
+        let start_block_number = local_evm.provider.get_block_number().await.unwrap();
+        let last_block_number = start_block_number + 10;
+        local_evm
+            .provider
+            .anvil_mine(Some(U256::from(10)), None)
+            .await
+            .unwrap();
+
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         blocks:
-            range: [5789000..5789010]
-            interval: 10
+            range: [{start_block}..{end_block}]
+            interval: 2
 ---
 #calculate-io
 _: block-number();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address(),
+            start_block = start_block_number,
+            end_block = last_block_number
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -356,31 +376,35 @@ _: block-number();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 2);
+        assert_eq!(res.runs.len(), 6);
 
         res.runs.iter().enumerate().for_each(|(i, run)| {
-            assert!(run.traces[0].stack[0] == U256::from(5789000 + i as u64 * 10));
+            assert_eq!(
+                run.traces[0].stack[0],
+                parse_ether(&(start_block_number + (i as u64 * 2)).to_string()).unwrap()
+            );
         });
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_nested_flattened_fuzz() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
         bindings:
             bound: 3
@@ -402,7 +426,8 @@ d: 4;
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -414,7 +439,7 @@ d: 4;
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -435,22 +460,23 @@ d: 4;
             .unwrap()
             .get(column_index.unwrap())
             .unwrap();
-        assert!(value == &U256::from(6));
+        assert_eq!(value, &parse_ether("6").unwrap());
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_happy() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
 ---
 #calculate-io
@@ -459,7 +485,8 @@ _: context<4 4>();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -471,7 +498,7 @@ _: context<4 4>();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -488,18 +515,18 @@ _: context<4 4>();
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_unhappy() {
         // if we try to access a context value that is out of bounds, we should get an error
-
+        let local_evm = LocalEvm::new_with_tokens(2).await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
 ---
 #calculate-io
@@ -507,7 +534,8 @@ _: context<50 50>();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -519,7 +547,7 @@ _: context<50 50>();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e));
 
@@ -528,18 +556,20 @@ _: context<50 50>();
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_random_order_hash() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+
         // random order hash is at <1 0> context cell, ie column1 row0
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 20
 ---
 #calculate-io
@@ -547,7 +577,8 @@ _: context<1 0>();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -559,7 +590,7 @@ _: context<1 0>();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
