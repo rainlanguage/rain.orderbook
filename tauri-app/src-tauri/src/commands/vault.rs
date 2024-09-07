@@ -19,12 +19,13 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn vaults_list(
     subgraph_args: SubgraphArgs,
+    filter_args: VaultsListFilterArgs,
     pagination_args: PaginationArgs,
 ) -> CommandResult<Vec<Vault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
         .await?
-        .vaults_list(pagination_args)
+        .vaults_list(filter_args, pagination_args)
         .await?;
     Ok(vaults)
 }

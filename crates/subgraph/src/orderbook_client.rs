@@ -188,13 +188,21 @@ impl OrderbookSubgraphClient {
     /// Fetch all vaults, paginated
     pub async fn vaults_list(
         &self,
+        filter_args: VaultsListFilterArgs,
         pagination_args: PaginationArgs,
     ) -> Result<Vec<Vault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<VaultsListQuery, PaginationQueryVariables>(PaginationQueryVariables {
+            .query::<VaultsListQuery, VaultsListQueryVariables>(VaultsListQueryVariables {
                 first: pagination_variables.first,
                 skip: pagination_variables.skip,
+                filters: if filter_args.owners.is_empty() {
+                    None
+                } else {
+                    Some(VaultsListQueryFilters {
+                        owner_in: filter_args.owners,
+                    })
+                },
             })
             .await?;
 
@@ -208,10 +216,13 @@ impl OrderbookSubgraphClient {
 
         loop {
             let page_data = self
-                .vaults_list(PaginationArgs {
-                    page,
-                    page_size: ALL_PAGES_QUERY_PAGE_SIZE,
-                })
+                .vaults_list(
+                    VaultsListFilterArgs { owners: vec![] },
+                    PaginationArgs {
+                        page,
+                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                    },
+                )
                 .await?;
             if page_data.is_empty() {
                 break;

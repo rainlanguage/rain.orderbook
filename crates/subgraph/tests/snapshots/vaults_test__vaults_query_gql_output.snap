@@ -2,8 +2,8 @@
 source: crates/subgraph/tests/vaults_test.rs
 expression: request_body.query
 ---
-query VaultsListQuery($first: Int, $skip: Int) {
-  vaults(orderBy: id, orderDirection: desc, skip: $skip, first: $first) {
+query VaultsListQuery($first: Int, $skip: Int, $filters: Vault_filter) {
+  vaults(orderBy: id, orderDirection: desc, skip: $skip, first: $first, where: $filters) {
     id
     owner
     vaultId
