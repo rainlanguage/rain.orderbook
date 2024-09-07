@@ -43,7 +43,7 @@
           };
 
           tauri-rs-test = rainix.mkTask.${system} {
-            name = "ob-rs-test";
+            name = "tauri-rs-test";
             body = ''
               set -euxo pipefail
               cd tauri-app/src-tauri 

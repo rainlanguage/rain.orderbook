@@ -161,7 +161,7 @@ mod tests {
         sol_types::{SolCall, SolValue},
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_debug_order_quote() {
@@ -246,19 +246,19 @@ amount price: 16 52;
         let order = logs[0].0.order.clone();
 
         // approve and deposit Token1
-        local_evm
-            .send_contract_transaction(
-                token1.approve(*orderbook.address(), parse_ether("1000").unwrap()),
-            )
+        token1
+            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
-        local_evm
-            .send_contract_transaction(orderbook.deposit2(
+        orderbook
+            .deposit2(
                 *token1.address(),
                 U256::from(0x01),
                 parse_ether("1000").unwrap(),
                 vec![],
-            ))
+            )
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
 
@@ -382,19 +382,19 @@ amount price: 16 52;
         let order = encode_prefixed(logs[0].0.order.clone().abi_encode());
 
         // approve and deposit Token1
-        local_evm
-            .send_contract_transaction(
-                token1.approve(*orderbook.address(), parse_ether("1000").unwrap()),
-            )
+        token1
+            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
-        local_evm
-            .send_contract_transaction(orderbook.deposit2(
+        orderbook
+            .deposit2(
                 *token1.address(),
                 U256::from(0x01),
                 parse_ether("1000").unwrap(),
                 vec![],
-            ))
+            )
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
 

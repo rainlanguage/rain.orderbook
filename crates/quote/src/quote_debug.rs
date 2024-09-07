@@ -69,7 +69,7 @@ mod tests {
     use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
     use rain_orderbook_common::add_order::AddOrderArgs;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm};
     use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -155,19 +155,19 @@ amount price: 16 52;
         let order = logs[0].0.order.clone();
 
         // approve and deposit Token1
-        local_evm
-            .send_contract_transaction(
-                token1.approve(*orderbook.address(), parse_ether("1000").unwrap()),
-            )
+        token1
+            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
-        local_evm
-            .send_contract_transaction(orderbook.deposit2(
+        orderbook
+            .deposit2(
                 *token1.address(),
                 U256::from(0x01),
                 parse_ether("1000").unwrap(),
                 vec![],
-            ))
+            )
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
 

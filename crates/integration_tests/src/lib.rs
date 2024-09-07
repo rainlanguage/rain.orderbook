@@ -7,7 +7,7 @@ mod tests {
         rpc::types::TransactionRequest,
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::*};
+    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook::*};
 
     #[tokio::test]
     async fn test_post_task_set() {
@@ -23,43 +23,43 @@ mod tests {
         let dotrain = format!(
             r#"
 networks:
-    polygon:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
-        network-id: 137
-        currency: MATIC
+        chain-id: 123
+        network-id: 123
+        currency: ETH
 deployers:
-    polygon:
+    some-key:
         address: {deployer}
 tokens:
     eth:
-        network: polygon
+        network: some-key
         address: {token2}
         decimals: 18
         label: Ethereum
         symbol: ETH
     dai:
-        network: polygon
+        network: some-key
         address: {token1}
         decimals: 18
         label: Dai
         symbol: DAI
 orderbook:
-    polygon:
+    some-key:
         address: {orderbook}
 orders:
-    polygon:
+    some-key:
         inputs:
             - token: eth
         outputs:
             - token: dai
               vault-id: 0x01
 scenarios:
-    polygon:
+    some-key:
 deployments:
-    polygon:
-        scenario: polygon
-        order: polygon
+    some-key:
+        scenario: some-key
+        order: some-key
 ---
 #calculate-io
 using-words-from {orderbook_subparser}
@@ -78,7 +78,7 @@ amount price: get("amount") 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["polygon"].as_ref().clone();
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -97,20 +97,19 @@ amount price: get("amount") 52;
         let order = logs[0].0.order.clone();
 
         // approve and deposit Token1
-        local_evm
-            .send_contract_transaction(
-                token1.approve(*orderbook.address(), parse_ether("1000").unwrap()),
-            )
+        token1
+            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
-
-        local_evm
-            .send_contract_transaction(orderbook.deposit2(
+        orderbook
+            .deposit2(
                 *token1.address(),
                 U256::from(0x01),
                 parse_ether("1000").unwrap(),
                 vec![],
-            ))
+            )
+            .do_send(&local_evm.provider)
             .await
             .unwrap();
 
@@ -140,43 +139,43 @@ amount price: get("amount") 52;
         let dotrain = format!(
             r#"
 networks:
-    polygon:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
-        network-id: 137
-        currency: MATIC
+        chain-id: 123
+        network-id: 123
+        currency: ETH
 deployers:
-    polygon:
+    some-key:
         address: {deployer}
 tokens:
     eth:
-        network: polygon
+        network: some-key
         address: 0xabc0000000000000000000000000000000000003
         decimals: 18
         label: Ethereum
         symbol: ETH
     dai:
-        network: polygon
+        network: some-key
         address: 0xabc0000000000000000000000000000000000004
         decimals: 18
         label: Dai
         symbol: DAI
 orderbook:
-    polygon:
+    some-key:
         address: {orderbook}
 orders:
-    polygon:
+    some-key:
         inputs:
             - token: eth
             - token: dai
         outputs:
             - token: dai
 scenarios:
-    polygon:
+    some-key:
 deployments:
-    polygon:
-        scenario: polygon
-        order: polygon
+    some-key:
+        scenario: some-key
+        order: some-key
 ---
 #calculate-io
 amount price: get("amount") 52;
@@ -191,7 +190,7 @@ amount price: get("amount") 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["polygon"].as_ref().clone();
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
