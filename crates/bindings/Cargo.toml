@@ -1,7 +1,7 @@
 [package]
 name = "rain_orderbook_bindings"
 description = "Bindings for the Rain Orderbook Solidity contracts to Rust types."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true

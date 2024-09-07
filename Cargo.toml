@@ -6,6 +6,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "CAL-1.0"
+version = "0.0.0-alpha.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
@@ -71,3 +72,6 @@ path = "crates/settings"
 
 [workspace.dependencies.rain_orderbook_quote]
 path = "crates/quote"
+
+[workspace.dependencies.rain_orderbook_test_fixtures]
+path = "crates/test_fixtures"
