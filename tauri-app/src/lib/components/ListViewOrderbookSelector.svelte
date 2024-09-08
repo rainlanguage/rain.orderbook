@@ -3,6 +3,7 @@
   import DropdownActiveNetwork from './DropdownActiveNetwork.svelte';
   import DropdownActiveOrderbook from './DropdownActiveOrderbook.svelte';
   import DropdownOrderListWatchlist from './dropdown/DropdownOrderListWatchlist.svelte';
+  import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
   import { settings } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
 </script>
@@ -13,6 +14,7 @@
       >No networks added to <a class="underline" href="/settings">settings</a></Alert
     >
   {:else}
+    <DropdownOrderStatus />
     <DropdownOrderListWatchlist />
     <DropdownActiveNetwork />
     <DropdownActiveOrderbook />
