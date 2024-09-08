@@ -48,6 +48,4 @@ jobs:
         working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
-      - run: |
-          rm -r -d ./tauri-app/src-tauri/target
-          nix develop .#tauri-shell --command tauri-rs-test
+      - run: nix develop .#tauri-shell --command tauri-rs-test
