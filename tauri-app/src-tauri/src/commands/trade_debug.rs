@@ -21,12 +21,10 @@ pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<Rain
 mod tests {
     use super::*;
     use alloy::{
-        network::TransactionBuilder,
         primitives::{
             utils::{parse_ether, parse_units},
             Bytes, U256,
         },
-        rpc::types::TransactionRequest,
         sol_types::SolCall,
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
@@ -124,32 +122,18 @@ amount price: 7 4;
             .await
             .unwrap()
             .abi_encode();
-        let tx = TransactionRequest::default()
-            .with_input(calldata)
-            .with_to(*orderbook.address())
-            .with_from(token1_holder);
-        local_evm.send_transaction(tx).await.unwrap();
 
-        let filter = orderbook.AddOrderV2_filter();
-        let logs = filter.query().await.unwrap();
-        let order = logs[0].0.order.clone();
-
-        // approve and deposit Token1
-        token1
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm)
-            .await
-            .unwrap();
-        orderbook
-            .deposit2(
+        let order = local_evm
+            .add_order_and_deposit(
+                &calldata,
+                token1_holder,
                 *token1.address(),
-                U256::from(0x01),
-                parse_ether("10").unwrap(),
-                vec![],
+                parse_ether("1000").unwrap(),
+                U256::from(1),
             )
-            .do_send(&local_evm)
             .await
-            .unwrap();
+            .0
+            .order;
 
         // approve T2 spending for token2 holder for orderbook
         token2
@@ -182,8 +166,10 @@ amount price: 7 4;
             .await
             .unwrap();
 
-        let vec = vec![7000000000000000000u128, 4000000000000000000u128];
-        let expected_stack: Vec<U256> = vec.into_iter().map(U256::from).collect();
+        let expected_stack = vec![
+            U256::from(7000000000000000000u128),
+            U256::from(4000000000000000000u128),
+        ];
 
         assert_eq!(res.rows[0], expected_stack);
     }

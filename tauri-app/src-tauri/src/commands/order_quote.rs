@@ -155,13 +155,11 @@ mod tests {
     use super::*;
     use alloy::{
         hex::encode_prefixed,
-        network::TransactionBuilder,
         primitives::{utils::parse_ether, B256},
-        rpc::types::TransactionRequest,
         sol_types::{SolCall, SolValue},
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm};
+    use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_debug_order_quote() {
@@ -236,31 +234,18 @@ amount price: 16 52;
             .await
             .unwrap()
             .abi_encode();
-        let tx = TransactionRequest::default()
-            .with_input(calldata)
-            .with_to(*orderbook.address())
-            .with_from(token1_holder);
-        local_evm.send_transaction(tx).await.unwrap();
-        let filter = orderbook.AddOrderV2_filter();
-        let logs = filter.query().await.unwrap();
-        let order = logs[0].0.order.clone();
 
-        // approve and deposit Token1
-        token1
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm)
-            .await
-            .unwrap();
-        orderbook
-            .deposit2(
+        let order = local_evm
+            .add_order_and_deposit(
+                &calldata,
+                token1_holder,
                 *token1.address(),
-                U256::from(0x01),
                 parse_ether("1000").unwrap(),
-                vec![],
+                U256::from(1),
             )
-            .do_send(&local_evm)
             .await
-            .unwrap();
+            .0
+            .order;
 
         let order = Order {
             id: Bytes("0x01".to_string()),
@@ -372,31 +357,21 @@ amount price: 16 52;
             .await
             .unwrap()
             .abi_encode();
-        let tx = TransactionRequest::default()
-            .with_input(calldata)
-            .with_to(*orderbook.address())
-            .with_from(token1_holder);
-        local_evm.send_transaction(tx).await.unwrap();
-        let filter = orderbook.AddOrderV2_filter();
-        let logs = filter.query().await.unwrap();
-        let order = encode_prefixed(logs[0].0.order.clone().abi_encode());
 
-        // approve and deposit Token1
-        token1
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm)
-            .await
-            .unwrap();
-        orderbook
-            .deposit2(
-                *token1.address(),
-                U256::from(0x01),
-                parse_ether("1000").unwrap(),
-                vec![],
-            )
-            .do_send(&local_evm)
-            .await
-            .unwrap();
+        let order = encode_prefixed(
+            local_evm
+                .add_order_and_deposit(
+                    &calldata,
+                    token1_holder,
+                    *token1.address(),
+                    parse_ether("1000").unwrap(),
+                    U256::from(1),
+                )
+                .await
+                .0
+                .order
+                .abi_encode(),
+        );
 
         let inputs = vec![Vault {
             id: Bytes(B256::random().to_string()),

@@ -61,15 +61,13 @@ impl QuoteDebugger {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::network::TransactionBuilder;
     use alloy::primitives::utils::parse_ether;
     use alloy::primitives::U256;
-    use alloy::rpc::types::TransactionRequest;
     use alloy::sol_types::{SolCall, SolValue};
     use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
     use rain_orderbook_common::add_order::AddOrderArgs;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
-    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm};
+    use rain_orderbook_test_fixtures::LocalEvm;
     use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -145,31 +143,18 @@ amount price: 16 52;
             .await
             .unwrap()
             .abi_encode();
-        let tx = TransactionRequest::default()
-            .with_input(calldata)
-            .with_to(*orderbook.address())
-            .with_from(token1_holder);
-        local_evm.send_transaction(tx).await.unwrap();
-        let filter = orderbook.AddOrderV2_filter();
-        let logs = filter.query().await.unwrap();
-        let order = logs[0].0.order.clone();
 
-        // approve and deposit Token1
-        token1
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm)
-            .await
-            .unwrap();
-        orderbook
-            .deposit2(
+        let order = local_evm
+            .add_order_and_deposit(
+                &calldata,
+                token1_holder,
                 *token1.address(),
-                U256::from(0x01),
                 parse_ether("1000").unwrap(),
-                vec![],
+                U256::from(1),
             )
-            .do_send(&local_evm)
             .await
-            .unwrap();
+            .0
+            .order;
 
         let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
             fork_url: Url::from_str(&local_evm.url()).unwrap(),

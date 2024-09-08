@@ -7,7 +7,7 @@ mod tests {
         rpc::types::TransactionRequest,
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook::*};
+    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::*};
 
     #[tokio::test]
     async fn test_post_task_set() {
@@ -86,32 +86,18 @@ amount price: get("amount") 52;
             .await
             .unwrap()
             .abi_encode();
-        let tx = TransactionRequest::default()
-            .with_input(calldata)
-            .with_to(*orderbook.address())
-            .with_from(token1_holder);
-        local_evm.send_transaction(tx).await.unwrap();
 
-        let filter = orderbook.AddOrderV2_filter();
-        let logs = filter.query().await.unwrap();
-        let order = logs[0].0.order.clone();
-
-        // approve and deposit Token1
-        token1
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .do_send(&local_evm)
-            .await
-            .unwrap();
-        orderbook
-            .deposit2(
+        let order = local_evm
+            .add_order_and_deposit(
+                &calldata,
+                token1_holder,
                 *token1.address(),
-                U256::from(0x01),
                 parse_ether("1000").unwrap(),
-                vec![],
+                U256::from(1),
             )
-            .do_send(&local_evm)
             .await
-            .unwrap();
+            .0
+            .order;
 
         let quote = local_evm
             .call_contract(orderbook.quote(Quote {

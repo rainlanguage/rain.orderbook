@@ -1,7 +1,7 @@
 use alloy::{
     contract::CallBuilder,
     hex::decode,
-    network::{Ethereum, EthereumWallet},
+    network::{Ethereum, EthereumWallet, TransactionBuilder},
     node_bindings::{Anvil, AnvilInstance},
     primitives::{utils::parse_units, Address, Bytes, U256},
     providers::{
@@ -246,6 +246,62 @@ impl LocalEvm {
     ) -> Result<Bytes, RpcError<TransportErrorKind, Box<RawValue>>> {
         self.provider.call(tx).await
     }
+
+    /// Adds an order with given calldata and deposit the specified amount into the given token vault,
+    /// returns the AddOrder event and addOrder2() and deposit2() transaction receipts
+    pub async fn add_order_and_deposit(
+        &self,
+        add_order_calldata: &[u8],
+        from: Address,
+        token: Address,
+        deposit_amount: U256,
+        vault_id: U256,
+    ) -> (
+        Orderbook::AddOrderV2,
+        TransactionReceipt,
+        TransactionReceipt,
+    ) {
+        // add the order
+        let tx1 = self
+            .send_transaction(
+                TransactionRequest::default()
+                    .with_input(add_order_calldata.to_vec())
+                    .with_to(*self.orderbook.address())
+                    .with_from(from),
+            )
+            .await
+            .unwrap();
+
+        // decode the logs
+        let log = tx1
+            .inner
+            .logs()
+            .iter()
+            .find_map(|v| v.log_decode::<Orderbook::AddOrderV2>().ok())
+            .unwrap()
+            .inner
+            .data;
+
+        // approve and deposit Token1
+        let token_contract = self
+            .tokens
+            .iter()
+            .find(|v| *v.address() == token)
+            .expect("Token with given address is not deployed");
+        token_contract
+            .approve(*self.orderbook.address(), deposit_amount)
+            .do_send(self)
+            .await
+            .unwrap();
+        let tx2 = self
+            .orderbook
+            .deposit2(token, vault_id, deposit_amount, vec![])
+            .do_send(self)
+            .await
+            .unwrap();
+
+        (log, tx1, tx2)
+    }
 }
 
 const MULTICALL3_ADDRESS: &str = "0xcA11bde05977b3631167028862bE2a173976CA11";
@@ -273,8 +329,7 @@ impl<'a, T: SolCall> ContractTxHandler<T>
     async fn do_call(
         &self,
         evm: &LocalEvm,
-    ) -> Result<Result<<T as SolCall>::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>>
-    {
+    ) -> Result<Result<T::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>> {
         Ok(T::abi_decode_returns(
             &evm.provider
                 .call(&self.clone().into_transaction_request())

@@ -284,7 +284,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
@@ -331,7 +331,7 @@ b: fuzzed;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_block_range() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
 
         let start_block_number = local_evm.provider.get_block_number().await.unwrap();
         let last_block_number = start_block_number + 10;
@@ -393,7 +393,7 @@ _: block-number();
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_nested_flattened_fuzz() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
@@ -465,7 +465,7 @@ d: 4;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_happy() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
@@ -515,7 +515,7 @@ _: context<4 4>();
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_unhappy() {
         // if we try to access a context value that is out of bounds, we should get an error
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
@@ -556,7 +556,7 @@ _: context<50 50>();
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_random_order_hash() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let local_evm = LocalEvm::new().await;
 
         // random order hash is at <1 0> context cell, ie column1 row0
         let dotrain = format!(
