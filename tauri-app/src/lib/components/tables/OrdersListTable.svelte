@@ -71,6 +71,7 @@
       <TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4"
         >Output Token(s)</TableHeadCell
       >
+      <TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
       <TableHeadCell padding="px-4 py-4"></TableHeadCell>
     </svelte:fragment>
 
@@ -82,15 +83,15 @@
           <Badge color="yellow">Inactive</Badge>
         {/if}
       </TableBodyCell>
-      <TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4"
-        ><Hash type={HashType.Identifier} value={item.orderHash} /></TableBodyCell
-      >
-      <TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2"
-        ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
-      >
-      <TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2"
-        ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
-      >
+      <TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
+        <Hash type={HashType.Identifier} value={item.orderHash} />
+      </TableBodyCell>
+      <TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
+        <Hash type={HashType.Wallet} value={item.owner} />
+      </TableBodyCell>
+      <TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
+        <Hash type={HashType.Identifier} value={item.orderbook.id} />
+      </TableBodyCell>
       <TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
         {formatTimestampSecondsAsLocal(BigInt(item.timestampAdded))}
       </TableBodyCell>
@@ -100,6 +101,9 @@
       <TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
         {item.outputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
+      <TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
+        >{item.trades.length}</TableBodyCell
+      >
       <TableBodyCell tdClass="px-0 text-right">
         {#if $walletAddressMatchesOrBlank(item.owner) && item.active}
           <Button
