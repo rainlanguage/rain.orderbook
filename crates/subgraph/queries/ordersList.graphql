@@ -36,5 +36,8 @@ query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
         timestamp
       }
     }
+    trades(first: 1) {
+      id 
+    }
   }
 }

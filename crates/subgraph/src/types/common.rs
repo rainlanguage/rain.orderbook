@@ -72,6 +72,7 @@ pub struct Order {
     pub timestamp_added: BigInt,
     pub meta: Option<RainMetaV1>,
     pub add_events: Vec<AddOrder>,
+    pub trades: Vec<Trade>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]

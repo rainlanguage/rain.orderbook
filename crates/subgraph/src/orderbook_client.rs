@@ -92,6 +92,7 @@ impl OrderbookSubgraphClient {
         let data = self
             .query::<OrdersListQuery, OrdersListQueryVariables>(variables)
             .await?;
+
         Ok(data.orders)
     }
 
