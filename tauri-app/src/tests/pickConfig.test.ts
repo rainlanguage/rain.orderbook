@@ -151,7 +151,7 @@ export const config: Config = {
       },
     },
   },
-  watchlist: {
+  accounts: {
     name_one: 'address_one',
     name_two: 'address_two',
   },
@@ -218,7 +218,7 @@ export const configSource: ConfigSource = {
       order: 'sell',
     },
   },
-  watchlist: {
+  accounts: {
     name_one: 'address_one',
     name_two: 'address_two',
   },

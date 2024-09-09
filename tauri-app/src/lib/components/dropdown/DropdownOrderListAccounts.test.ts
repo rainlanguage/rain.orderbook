@@ -1,7 +1,7 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable } from 'svelte/store';
-import DropdownOrderListWatchlist from './DropdownOrderListWatchlist.svelte';
-import { activeWatchlistItems } from '$lib/stores/settings';
+import DropdownOrderListAccounts from './DropdownOrderListAccounts.svelte';
+import { activeAccountsItems } from '$lib/stores/settings';
 import { expect, test, vi } from 'vitest';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
@@ -9,23 +9,23 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   return {
     ...((await importOriginal()) as object),
     settings: mockSettingsStore,
-    watchlist: writable({
+    accounts: writable({
       address1: 'Label 1',
       address2: 'Label 2',
       address3: 'Label 3',
     }),
-    activeWatchlist: writable({}),
-    activeWatchlistItems: writable({}),
+    activeAccounts: writable({}),
+    activeAccountItems: writable({}),
   };
 });
 
 test('renders correctly', () => {
-  render(DropdownOrderListWatchlist);
-  expect(screen.getByText('Watchlist')).toBeInTheDocument();
+  render(DropdownOrderListAccounts);
+  expect(screen.getByText('Accounts')).toBeInTheDocument();
 });
 
 test('displays the correct number of options', async () => {
-  render(DropdownOrderListWatchlist);
+  render(DropdownOrderListAccounts);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
 
@@ -35,25 +35,25 @@ test('displays the correct number of options', async () => {
   });
 });
 
-test('updates active watchlist when an option is selected', async () => {
-  render(DropdownOrderListWatchlist);
+test('updates active accounts when an option is selected', async () => {
+  render(DropdownOrderListAccounts);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
   await fireEvent.click(screen.getByText('Label 1'));
 
   await waitFor(() => {
-    expect(get(activeWatchlistItems)).toEqual({ address1: 'Label 1' });
+    expect(get(activeAccountsItems)).toEqual({ address1: 'Label 1' });
   });
 });
 
-test('selects all items when "All addresses" is clicked', async () => {
-  render(DropdownOrderListWatchlist);
+test('selects all items when "All accounts" is clicked', async () => {
+  render(DropdownOrderListAccounts);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
-  await fireEvent.click(screen.getByText('All addresses'));
+  await fireEvent.click(screen.getByText('All accounts'));
 
   await waitFor(() => {
-    expect(get(activeWatchlistItems)).toEqual({
+    expect(get(activeAccountsItems)).toEqual({
       address1: 'Label 1',
       address2: 'Label 2',
       address3: 'Label 3',
@@ -61,19 +61,17 @@ test('selects all items when "All addresses" is clicked', async () => {
   });
 });
 
-test('displays "No watchlist added" when watchlist is empty', async () => {
+test('displays "No accounts added" when accounts list is empty', async () => {
   vi.doUnmock('$lib/stores/settings');
   vi.resetModules();
 
-  const { default: DropdownOrderListWatchlist } = await import(
-    './DropdownOrderListWatchlist.svelte'
-  );
+  const { default: DropdownOrderListAccounts } = await import('./DropdownOrderListAccounts.svelte');
 
-  render(DropdownOrderListWatchlist);
+  render(DropdownOrderListAccounts);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
 
   await waitFor(() => {
-    expect(screen.getByText('No watchlist added')).toBeInTheDocument();
+    expect(screen.getByText('No accounts added')).toBeInTheDocument();
   });
 });
