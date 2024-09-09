@@ -170,6 +170,7 @@ mod tests {
             add_events: vec![],
             meta: None,
             timestamp_added: BigInt(0.to_string()),
+            trades: vec![]
         };
 
         let input_io_index = 0;
@@ -250,6 +251,7 @@ mod tests {
             add_events: vec![],
             meta: None,
             timestamp_added: BigInt(0.to_string()),
+            trades: vec![]
         };
 
         let rpc_url = CI_DEPLOY_POLYGON_RPC_URL.to_string();
