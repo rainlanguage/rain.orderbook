@@ -52,7 +52,7 @@ mod tests {
         rpc::types::TransactionRequest,
         sol_types::SolCall,
     };
-    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook};
+    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_trade_replayer() {
@@ -157,29 +157,27 @@ amount price: 2 1;
         let order = logs[0].0.order.clone();
 
         // approve and deposit Token1
-        local_evm
-            .send_contract_transaction(
-                token1.approve(*orderbook.address(), parse_ether("1000").unwrap()),
-            )
+        token1
+            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .do_send(&local_evm)
             .await
             .unwrap();
-        local_evm
-            .send_contract_transaction(orderbook.deposit2(
+        orderbook
+            .deposit2(
                 *token1.address(),
                 U256::from(0x01),
                 parse_ether("10").unwrap(),
                 vec![],
-            ))
+            )
+            .do_send(&local_evm)
             .await
             .unwrap();
 
         // approve T2 spending for token2 holder for orderbook
-        local_evm
-            .send_contract_transaction(
-                token2
-                    .approve(*orderbook.address(), parse_ether("1000").unwrap())
-                    .from(token2_holder),
-            )
+        token2
+            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .from(token2_holder)
+            .do_send(&local_evm)
             .await
             .unwrap();
         // take order from token2 holder
@@ -195,8 +193,10 @@ amount price: 2 1;
             minimumInput: U256::from(1),
             data: Bytes::new(),
         };
-        let tx = local_evm
-            .send_contract_transaction(orderbook.takeOrders2(config).from(token2_holder))
+        let tx = orderbook
+            .takeOrders2(config)
+            .from(token2_holder)
+            .do_send(&local_evm)
             .await
             .unwrap();
 

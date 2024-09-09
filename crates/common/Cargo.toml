@@ -40,7 +40,6 @@ csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
-rain-orderbook-env = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }

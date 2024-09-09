@@ -22,3 +22,5 @@ pub mod js_api;
 
 pub use dotrain;
 pub use dotrain_lsp;
+
+pub const GH_COMMIT_SHA: &str = env!("COMMIT_SHA", "$COMMIT_SHA not set.");
