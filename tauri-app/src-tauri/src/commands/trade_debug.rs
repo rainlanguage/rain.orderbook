@@ -42,7 +42,7 @@ mod tests {
                 "T1",
                 "T1",
                 18,
-                parse_units("100", 18).unwrap().into(),
+                parse_units("100000", 18).unwrap().into(),
                 token1_holder,
             )
             .await;
@@ -51,7 +51,7 @@ mod tests {
                 "T2",
                 "T2",
                 18,
-                parse_units("100", 18).unwrap().into(),
+                parse_units("100000", 18).unwrap().into(),
                 token2_holder,
             )
             .await;
@@ -128,7 +128,7 @@ amount price: 7 4;
                 &calldata,
                 token1_holder,
                 *token1.address(),
-                parse_ether("1000").unwrap(),
+                parse_ether("100").unwrap(),
                 U256::from(1),
             )
             .await
@@ -137,7 +137,7 @@ amount price: 7 4;
 
         // approve T2 spending for token2 holder for orderbook
         token2
-            .approve(*orderbook.address(), parse_ether("1000").unwrap())
+            .approve(*orderbook.address(), parse_ether("100").unwrap())
             .from(token2_holder)
             .do_send(&local_evm)
             .await
