@@ -46,11 +46,11 @@ test('updates active accounts when an option is selected', async () => {
   });
 });
 
-test('selects all items when "All addresses" is clicked', async () => {
+test('selects all items when "All accounts" is clicked', async () => {
   render(DropdownOrderListAccounts);
 
   await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
-  await fireEvent.click(screen.getByText('All addresses'));
+  await fireEvent.click(screen.getByText('All accounts'));
 
   await waitFor(() => {
     expect(get(activeAccountsItems)).toEqual({
