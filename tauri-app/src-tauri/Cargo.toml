@@ -20,7 +20,6 @@ rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
 rain_orderbook_bindings = { path = "../../crates/bindings" }
 alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "0881930a22e84db49ba955c5b88e790e1266ac66" }
-rain-orderbook-env = { path = "../../crates/env" }
 alloy = { version = "0.1.4", features = ["full", "node-bindings"] }
 typeshare = "1.0.1"
 reqwest = { version = "0.11.22", features = ["json"] }
@@ -43,4 +42,4 @@ tauri-cli = "1.5"
 tokio = { version = "1.28.0", features = ["full"] }
 httpmock = "0.7.0"
 rain-metadata = { path = "../../lib/rain.interpreter/lib/rain.metadata/crates/cli" }
-
+rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }

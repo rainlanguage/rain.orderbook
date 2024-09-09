@@ -30,8 +30,33 @@ jobs:
       CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       COMMIT_SHA: ${{ github.sha }}
-
     steps:
+      - name: Free up disk space in action runner (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get clean
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Free up disk space in action runner (Macos)
+        if: matrix.platform == 'macos-13' || matrix.platform == 'macos-14'
+        run: |
+          sudo rm -rf \
+          "$AGENT_TOOLSDIRECTORY" \
+          /opt/google/chrome \
+          /opt/microsoft/msedge \
+          /opt/microsoft/powershell \
+          /opt/pipx \
+          /usr/lib/mono \
+          /usr/local/julia* \
+          /usr/local/lib/android \
+          /usr/local/lib/node_modules \
+          /usr/local/share/chromium \
+          /usr/local/share/powershell \
+          /usr/share/dotnet \
+          /usr/share/swift
+          df -h /
+          find /Applications/ -name "Xcode*" | sort -r | tail --lines=+2 | xargs rm -rf
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0

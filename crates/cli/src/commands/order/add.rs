@@ -177,7 +177,7 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;"#,
-            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            raindex_version = "1234"
         )
         .to_string()
     }
