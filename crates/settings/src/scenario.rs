@@ -213,7 +213,7 @@ mod tests {
             charts: HashMap::new(), // Assuming no charts for simplification
             deployments: HashMap::new(),
             sentry: None,
-            watchlist: None, // Assuming no watchlist for simplification
+            accounts: None, // Assuming no accounts for simplification
         };
 
         // Perform the conversion
