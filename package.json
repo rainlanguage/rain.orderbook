@@ -1,7 +1,7 @@
 {
     "name": "@rainlanguage/orderbook",
     "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
-    "version": "0.0.1-alpha.1",
+    "version": "0.0.1-alpha.2",
     "author": "Rain Language",
     "license": "CAL-1.0",
     "repository": {
