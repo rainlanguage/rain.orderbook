@@ -72,8 +72,16 @@ pub struct Order {
     pub timestamp_added: BigInt,
     pub meta: Option<RainMetaV1>,
     pub add_events: Vec<AddOrder>,
-    #[arguments(first: 1000)]
-    pub trades: Vec<TradePartial>,
+    pub trades: Vec<OrderStructPartialTrade>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[cynic(graphql_type = "Order")]
+#[serde(rename_all = "camelCase")]
+#[typeshare]
+pub struct TradeStructPartialOrder {
+    pub id: Bytes,
+    pub order_hash: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
@@ -217,7 +225,7 @@ pub struct Trade {
     pub id: Bytes,
     pub trade_event: TradeEvent,
     pub output_vault_balance_change: TradeVaultBalanceChange,
-    pub order: Order,
+    pub order: TradeStructPartialOrder,
     pub input_vault_balance_change: TradeVaultBalanceChange,
     pub timestamp: BigInt,
     pub orderbook: Orderbook,
@@ -226,7 +234,7 @@ pub struct Trade {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Trade")]
 #[typeshare]
-pub struct TradePartial {
+pub struct OrderStructPartialTrade {
     pub id: Bytes,
 }
 
