@@ -31,6 +31,7 @@ test('renders table with the correct data', async () => {
         active: true,
         addEvents: [],
         timestampAdded: '123',
+        trades: [],
       },
       rpcUrl: 'https://rpc-url.com',
       inputIOIndex: 0,
