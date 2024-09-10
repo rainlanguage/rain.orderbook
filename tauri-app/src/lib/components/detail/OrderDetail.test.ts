@@ -7,6 +7,7 @@ import { mockIPC } from '@tauri-apps/api/mocks';
 import { mockOrderDetailsExtended } from '$lib/queries/orderDetail';
 import { handleOrderRemoveModal } from '$lib/services/modal';
 import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+import { formatUnits } from 'viem';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
   () => import('$lib/mocks/wallets'),
@@ -138,8 +139,29 @@ test('shows the correct data when the query returns data with inputs and outputs
   });
 
   await waitFor(async () => {
-    expect(await screen.findAllByText('Token1')).toHaveLength(1);
-    expect(await screen.findAllByText('Token2')).toHaveLength(1);
+    // Check for input vaults
+    for (const input of mockData.order.inputs) {
+      expect(
+        await screen.findByText(`${input.token.name} (${input.token.symbol})`),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          `Balance: ${formatUnits(BigInt(input.balance), parseInt(input.token.decimals || '18'))}`,
+        ),
+      ).toBeInTheDocument();
+    }
+
+    // Check for output vaults
+    for (const output of mockData.order.outputs) {
+      expect(
+        await screen.findByText(`${output.token.name} (${output.token.symbol})`),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          `Balance: ${formatUnits(BigInt(output.balance), parseInt(output.token.decimals || '18'))}`,
+        ),
+      ).toBeInTheDocument();
+    }
   });
 });
 
