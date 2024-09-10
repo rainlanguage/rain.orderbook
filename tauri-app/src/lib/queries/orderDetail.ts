@@ -79,6 +79,7 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
     orderbook: {
       id: '0x00',
     },
+    trades: [],
   },
   rainlang: 'rainlang1',
 };

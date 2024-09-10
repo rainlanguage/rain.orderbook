@@ -84,6 +84,7 @@ const mockTakeOrdersList: Trade[] = [
       orderbook: {
         id: '0x00',
       },
+      trades: [],
     },
     inputVaultBalanceChange: {
       vault: {
@@ -165,6 +166,7 @@ const mockTakeOrdersList: Trade[] = [
       orderbook: {
         id: '0x00',
       },
+      trades: [],
     },
     inputVaultBalanceChange: {
       vault: {

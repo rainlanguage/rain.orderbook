@@ -61,6 +61,7 @@ if (import.meta.vitest) {
         active: true,
         addEvents: [],
         timestampAdded: '123',
+        trades: [],
       },
       0,
       0,

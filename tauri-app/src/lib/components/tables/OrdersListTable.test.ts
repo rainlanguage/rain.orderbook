@@ -81,6 +81,7 @@ const mockOrders: Order[] = [
       },
     ],
     orderbook: { id: '0x00' },
+    trades: [],
   },
   {
     id: 'order2',
@@ -117,6 +118,7 @@ const mockOrders: Order[] = [
       },
     ],
     orderbook: { id: '0x00' },
+    trades: [],
   },
 ];
 

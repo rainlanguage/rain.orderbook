@@ -110,6 +110,7 @@ if (import.meta.vitest) {
           orderbook: {
             id: '0x00',
           },
+          trades: [],
         },
         inputVaultBalanceChange: {
           vault: {
@@ -191,6 +192,7 @@ if (import.meta.vitest) {
           orderbook: {
             id: '0x00',
           },
+          trades: [],
         },
         inputVaultBalanceChange: {
           vault: {
@@ -272,6 +274,7 @@ if (import.meta.vitest) {
           orderbook: {
             id: '0x00',
           },
+          trades: [],
         },
         inputVaultBalanceChange: {
           vault: {
@@ -373,6 +376,7 @@ if (import.meta.vitest) {
           orderbook: {
             id: '0x00',
           },
+          trades: [],
         },
         inputVaultBalanceChange: {
           vault: {
@@ -454,6 +458,7 @@ if (import.meta.vitest) {
           orderbook: {
             id: '0x00',
           },
+          trades: [],
         },
         inputVaultBalanceChange: {
           vault: {
@@ -535,6 +540,7 @@ if (import.meta.vitest) {
           orderbook: {
             id: '0x00',
           },
+          trades: [],
         },
         inputVaultBalanceChange: {
           vault: {
