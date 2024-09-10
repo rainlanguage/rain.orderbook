@@ -42,6 +42,15 @@
             '';
           };
 
+          tauri-rs-test = rainix.mkTask.${system} {
+            name = "tauri-rs-test";
+            body = ''
+              set -euxo pipefail
+              cd tauri-app/src-tauri 
+              cargo test
+            '';
+          };
+
           ob-tauri-prelude = rainix.mkTask.${system} {
             name = "ob-tauri-prelude";
             body = ''
@@ -269,6 +278,7 @@
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
+            packages.tauri-rs-test
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];

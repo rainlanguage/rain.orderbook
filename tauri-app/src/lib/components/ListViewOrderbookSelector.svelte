@@ -2,7 +2,7 @@
   import { isEmpty } from 'lodash';
   import DropdownActiveNetwork from './DropdownActiveNetwork.svelte';
   import DropdownActiveOrderbook from './DropdownActiveOrderbook.svelte';
-  import DropdownOrderListWatchlist from './dropdown/DropdownOrderListWatchlist.svelte';
+  import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
   import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
   import { settings } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
@@ -15,7 +15,7 @@
     >
   {:else}
     <DropdownOrderStatus />
-    <DropdownOrderListWatchlist />
+    <DropdownOrderListAccounts />
     <DropdownActiveNetwork />
     <DropdownActiveOrderbook />
   {/if}

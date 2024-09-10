@@ -269,17 +269,17 @@ impl AddOrderArgs {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use rain_orderbook_app_settings::deployer::Deployer;
-    use rain_orderbook_app_settings::network::Network;
-    use rain_orderbook_app_settings::order::{Order, OrderIO};
-    use rain_orderbook_app_settings::scenario::Scenario;
-    use rain_orderbook_app_settings::token::Token;
-    use rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL;
-    use url::Url;
-
     use super::*;
+    use rain_orderbook_app_settings::{
+        deployer::Deployer,
+        network::Network,
+        order::{Order, OrderIO},
+        scenario::Scenario,
+        token::Token,
+    };
+    use rain_orderbook_test_fixtures::LocalEvm;
+    use std::sync::Arc;
+    use url::Url;
 
     #[test]
     fn test_try_generate_meta() {
@@ -378,7 +378,7 @@ price: 2e18;
     async fn test_add_order_random_vault_id_generation() {
         let network = Network {
             name: "test-network".to_string(),
-            rpc: Url::parse(CI_DEPLOY_POLYGON_RPC_URL).unwrap(),
+            rpc: Url::parse("https://some-rpc.com").unwrap(),
             chain_id: 137,
             label: None,
             network_id: None,
@@ -458,7 +458,7 @@ _ _: 0 0;
 #handle-add-order
 _ _: 0 0;
 "#,
-            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            raindex_version = "1234"
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
@@ -473,9 +473,10 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_into_add_order_call() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
         let network = Network {
             name: "test-network".to_string(),
-            rpc: Url::parse(CI_DEPLOY_POLYGON_RPC_URL).unwrap(),
+            rpc: Url::parse(&local_evm.url()).unwrap(),
             chain_id: 137,
             label: None,
             network_id: None,
@@ -484,9 +485,7 @@ _ _: 0 0;
         let network_arc = Arc::new(network);
         let deployer = Deployer {
             network: network_arc.clone(),
-            address: "0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba"
-                .parse::<Address>()
-                .unwrap(),
+            address: *local_evm.deployer.address(),
             label: None,
         };
         let deployer_arc = Arc::new(deployer);
@@ -556,16 +555,13 @@ _ _: 0 0;
 #handle-add-order
 _ _: 0 0;
 "#,
-            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            raindex_version = "1234"
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
 
-        let add_order_call = result
-            .try_into_call(CI_DEPLOY_POLYGON_RPC_URL.to_string())
-            .await
-            .unwrap();
+        let add_order_call = result.try_into_call(local_evm.url()).await.unwrap();
 
         assert_eq!(add_order_call.config.validInputs.len(), 2);
         assert_eq!(add_order_call.config.validOutputs.len(), 1);
@@ -596,16 +592,12 @@ _ _: 0 0;
 
         assert_eq!(
             add_order_call.tasks[0].evaluable.interpreter,
-            "0x6352593f4018c99df731de789e2a147c7fb29370"
-                .parse::<Address>()
-                .unwrap()
+            *local_evm.interpreter.address()
         );
 
         assert_eq!(
             add_order_call.tasks[0].evaluable.store,
-            "0xde38ad4b13d5258a5653e530ecdf0ca71b4e8a51"
-                .parse::<Address>()
-                .unwrap()
+            *local_evm.store.address()
         );
 
         assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
@@ -616,7 +608,7 @@ _ _: 0 0;
     async fn test_add_order_post_action() {
         let network = Network {
             name: "test-network".to_string(),
-            rpc: Url::parse(CI_DEPLOY_POLYGON_RPC_URL).unwrap(),
+            rpc: Url::parse("https://some-rpc.com").unwrap(),
             chain_id: 137,
             label: None,
             network_id: None,
@@ -696,7 +688,7 @@ _ _: 0 0;
 #handle-add-order
 _ _: 0 0;
 "#,
-            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            raindex_version = "1234"
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
             .await

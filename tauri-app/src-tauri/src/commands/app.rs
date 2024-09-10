@@ -1,4 +1,4 @@
-use rain_orderbook_env::GH_COMMIT_SHA;
+use rain_orderbook_common::GH_COMMIT_SHA;
 
 use crate::error::CommandResult;
 

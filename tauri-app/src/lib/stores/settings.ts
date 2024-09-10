@@ -103,11 +103,11 @@ export const hasRequiredSettings = derived(
     $activeNetworkRef !== undefined && $activeOrderbookRef !== undefined,
 );
 
-// watchlist
-export const watchlist = derived(settings, ($settings) => $settings?.watchlist ?? {});
+// accounts
+export const accounts = derived(settings, ($settings) => $settings?.accounts ?? {});
 
-export const activeWatchlistItems = cachedWritableStore<Record<string, string>>(
-  'settings.activeWatchlistItems',
+export const activeAccountsItems = cachedWritableStore<Record<string, string>>(
+  'settings.activeAccountsItems',
   {},
   JSON.stringify,
   (s) => {
@@ -119,13 +119,13 @@ export const activeWatchlistItems = cachedWritableStore<Record<string, string>>(
   },
 );
 
-export const activeWatchlist = derived(
-  [watchlist, activeWatchlistItems],
-  ([$watchlist, $activeWatchlistItems]) =>
-    Object.keys($activeWatchlistItems).length === 0
+export const activeAccounts = derived(
+  [accounts, activeAccountsItems],
+  ([$accounts, $activeAccountsItems]) =>
+    Object.keys($activeAccountsItems).length === 0
       ? {}
       : Object.fromEntries(
-          Object.entries($watchlist).filter(([key]) => key in $activeWatchlistItems),
+          Object.entries($accounts).filter(([key]) => key in $activeAccountsItems),
         ),
 );
 

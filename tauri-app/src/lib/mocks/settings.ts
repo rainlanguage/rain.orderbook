@@ -31,7 +31,7 @@ const mockConfigSource: ConfigSource = {
   metaboards: {
     metaboard1: 'https://example.com/metaboard1',
   },
-  watchlist: {
+  accounts: {
     name_one: 'address_one',
     name_two: 'address_two',
   },
