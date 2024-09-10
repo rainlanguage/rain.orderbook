@@ -68,18 +68,22 @@
       <CardProperty>
         <svelte:fragment slot="key">Input vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          {#each data.order.inputs || [] as t}
-            <ButtonVaultLink tokenVault={t} />
-          {/each}
+          <div class="space-y-4">
+            {#each data.order.inputs || [] as t}
+              <ButtonVaultLink tokenVault={t} />
+            {/each}
+          </div>
         </svelte:fragment>
       </CardProperty>
 
       <CardProperty>
         <svelte:fragment slot="key">Output vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          {#each data.order.outputs || [] as t}
-            <ButtonVaultLink tokenVault={t} />
-          {/each}
+          <div class="space-y-4">
+            {#each data.order.outputs || [] as t}
+              <ButtonVaultLink tokenVault={t} />
+            {/each}
+          </div>
         </svelte:fragment>
       </CardProperty>
     </div>
