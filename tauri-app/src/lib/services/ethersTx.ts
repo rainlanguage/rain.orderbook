@@ -43,7 +43,6 @@ export async function checkERC20Balance(tokenAddress: string): Promise<BigNumber
   } else {
     const ethersProvider = new ethers.providers.Web3Provider(walletconnectProvider);
     const signer = ethersProvider.getSigner();
-    console.log('signer', signer);
     const contract = new ethers.Contract(tokenAddress, balanceOfAbi, signer);
     return contract.balanceOf(await signer.getAddress()) as BigNumber;
   }
