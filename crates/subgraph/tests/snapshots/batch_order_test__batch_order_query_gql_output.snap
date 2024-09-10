@@ -242,5 +242,8 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
         timestamp
       }
     }
+    trades {
+      id
+    }
   }
 }

@@ -408,6 +408,7 @@ mod tests {
             }],
             "meta": null,
             "timestampAdded": "0",
+            "trades": []
         });
         let retrun_sg_data = if batch {
             json!({

@@ -242,5 +242,8 @@ query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
         timestamp
       }
     }
+    trades {
+      id
+    }
   }
 }
