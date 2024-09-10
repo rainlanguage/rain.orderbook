@@ -102,7 +102,7 @@
         {item.outputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
-        >{item.trades.length}</TableBodyCell
+        >{item.trades.length > 99 ? '>99' : item.trades.length}</TableBodyCell
       >
       <TableBodyCell tdClass="px-0 text-right">
         {#if $walletAddressMatchesOrBlank(item.owner) && item.active}
