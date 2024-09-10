@@ -8,7 +8,7 @@ use comfy_table::Table;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     subgraph::SubgraphArgs,
-    types::{FlattenError, OrderFlattened},
+    types::{FlattenError, OrderFlattened, LIST_DELIMITER},
 };
 use tracing::info;
 
@@ -73,6 +73,7 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
             "Owner",
             "Input Tokens",
             "Output Tokens",
+            "Trades",
         ]);
 
     for order in orders.into_iter() {
@@ -83,6 +84,12 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
             order.owner.0,
             order.valid_inputs_token_symbols_display,
             order.valid_outputs_token_symbols_display,
+            order
+                .trades
+                .split(LIST_DELIMITER)
+                .collect::<Vec<&str>>()
+                .len()
+                .to_string(),
         ]);
     }
 
@@ -251,6 +258,7 @@ mod tests {
                             "from": encode_prefixed(alloy::primitives::Address::random())
                         }
                     }],
+                    "trades": []
                 }]
             }
         })

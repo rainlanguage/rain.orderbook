@@ -242,5 +242,8 @@ query OrderDetailQuery($id: ID!) {
         timestamp
       }
     }
+    trades {
+      id
+    }
   }
 }

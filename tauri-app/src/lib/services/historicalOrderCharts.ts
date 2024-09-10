@@ -99,17 +99,6 @@ if (import.meta.vitest) {
         order: {
           id: 'order_id',
           orderHash: 'orderHash',
-          timestampAdded: '1632000000',
-          orderBytes: '0x123456',
-          owner: '0x1111111111111111111111111111111111111111',
-          outputs: [],
-          inputs: [],
-          active: true,
-          addEvents: [],
-          meta: 'metadata1',
-          orderbook: {
-            id: '0x00',
-          },
         },
         inputVaultBalanceChange: {
           vault: {
@@ -180,17 +169,6 @@ if (import.meta.vitest) {
         order: {
           id: 'order_id',
           orderHash: 'orderHash',
-          timestampAdded: '1631000000',
-          orderBytes: '0x123456',
-          owner: '0x1111111111111111111111111111111111111111',
-          outputs: [],
-          inputs: [],
-          active: true,
-          addEvents: [],
-          meta: 'metadata1',
-          orderbook: {
-            id: '0x00',
-          },
         },
         inputVaultBalanceChange: {
           vault: {
@@ -261,17 +239,6 @@ if (import.meta.vitest) {
         order: {
           id: 'order_id',
           orderHash: 'orderHash',
-          timestampAdded: '1630000000',
-          orderBytes: '0x123456',
-          owner: '0x1111111111111111111111111111111111111111',
-          outputs: [],
-          inputs: [],
-          active: true,
-          addEvents: [],
-          meta: 'metadata1',
-          orderbook: {
-            id: '0x00',
-          },
         },
         inputVaultBalanceChange: {
           vault: {
@@ -362,17 +329,6 @@ if (import.meta.vitest) {
         order: {
           id: 'order_id',
           orderHash: 'orderHash',
-          timestampAdded: '1632000000',
-          orderBytes: '0x123456',
-          owner: '0x1111111111111111111111111111111111111111',
-          outputs: [],
-          inputs: [],
-          active: true,
-          addEvents: [],
-          meta: 'metadata1',
-          orderbook: {
-            id: '0x00',
-          },
         },
         inputVaultBalanceChange: {
           vault: {
@@ -443,17 +399,6 @@ if (import.meta.vitest) {
         order: {
           id: 'order_id',
           orderHash: 'orderHash',
-          timestampAdded: '1632000000',
-          orderBytes: '0x123456',
-          owner: '0x1111111111111111111111111111111111111111',
-          outputs: [],
-          inputs: [],
-          active: true,
-          addEvents: [],
-          meta: 'metadata1',
-          orderbook: {
-            id: '0x00',
-          },
         },
         inputVaultBalanceChange: {
           vault: {
@@ -524,17 +469,6 @@ if (import.meta.vitest) {
         order: {
           id: 'order_id',
           orderHash: 'orderHash',
-          timestampAdded: '1632000000',
-          orderBytes: '0x123456',
-          owner: '0x1111111111111111111111111111111111111111',
-          outputs: [],
-          inputs: [],
-          active: true,
-          addEvents: [],
-          meta: 'metadata1',
-          orderbook: {
-            id: '0x00',
-          },
         },
         inputVaultBalanceChange: {
           vault: {

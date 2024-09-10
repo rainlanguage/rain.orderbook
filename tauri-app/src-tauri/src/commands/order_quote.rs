@@ -261,6 +261,7 @@ amount price: 16 52;
             add_events: vec![],
             meta: None,
             timestamp_added: BigInt(0.to_string()),
+            trades: vec![]
         };
 
         let input_io_index = 0;
@@ -427,6 +428,7 @@ amount price: 16 52;
             add_events: vec![],
             meta: None,
             timestamp_added: BigInt(0.to_string()),
+            trades: vec![]
         };
 
         let rpc_url = local_evm.url();
