@@ -118,7 +118,7 @@ const mockOrders: Order[] = [
       },
     ],
     orderbook: { id: '0x00' },
-    trades: [],
+    trades: Array.from({ length: 100 }, (_, i) => ({ id: `trade${i}` })),
   },
 ];
 
@@ -141,6 +141,7 @@ test('renders the orders list table with correct data', async () => {
     expect(screen.getByTestId('orderListHeadingLastAdded')).toHaveTextContent('Last Added');
     expect(screen.getByTestId('orderListHeadingInputs')).toHaveTextContent('Input Token(s)');
     expect(screen.getByTestId('orderListHeadingOutputs')).toHaveTextContent('Output Token(s)');
+    expect(screen.getByTestId('orderListHeadingTrades')).toHaveTextContent('Trades');
 
     expect(await screen.findAllByTestId('bodyRow')).toHaveLength(2);
 
@@ -151,6 +152,7 @@ test('renders the orders list table with correct data', async () => {
     expect(await screen.findAllByTestId('orderListRowLastAdded')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowInputs')).toHaveLength(2);
     expect(await screen.findAllByTestId('orderListRowOutputs')).toHaveLength(2);
+    expect(await screen.findAllByTestId('orderListRowTrades')).toHaveLength(2);
 
     expect((await screen.findAllByTestId('orderListRowActive'))[0]).toHaveTextContent('Inactive');
     expect((await screen.findAllByTestId('orderListRowActive'))[1]).toHaveTextContent('Active');
@@ -172,6 +174,8 @@ test('renders the orders list table with correct data', async () => {
     expect((await screen.findAllByTestId('orderListRowInputs'))[1]).toHaveTextContent('USDT');
     expect((await screen.findAllByTestId('orderListRowOutputs'))[0]).toHaveTextContent('USDC');
     expect((await screen.findAllByTestId('orderListRowOutputs'))[1]).toHaveTextContent('DAI');
+    expect((await screen.findAllByTestId('orderListRowTrades'))[0]).toHaveTextContent('0');
+    expect((await screen.findAllByTestId('orderListRowTrades'))[1]).toHaveTextContent('>99');
   });
 });
 
