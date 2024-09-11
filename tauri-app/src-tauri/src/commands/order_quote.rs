@@ -180,7 +180,7 @@ mod tests {
         sol_types::{SolCall, SolValue},
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm};
+    use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_debug_order_quote() {
@@ -388,35 +388,23 @@ amount price: context<3 0>() context<4 0>();
             .unwrap()
             .abi_encode();
 
-        // deploy order and deposit in token 1 vault
-        // deposit MAX so we can get token addresses as the quote result
+        // add order
         let order = encode_prefixed(
             local_evm
-                .add_order_and_deposit(
-                    &calldata,
-                    owner,
-                    *token1.address(),
-                    U256::MAX,
-                    U256::from(1),
-                )
+                .add_order(&calldata, owner)
                 .await
                 .0
                 .order
                 .abi_encode(),
         );
-        // deposit in token2 vault
+        // deposit in token1 and token2 vaults
         // deposit MAX so we can get token addresses as the quote result
-        token2
-            .approve(*local_evm.orderbook.address(), U256::MAX)
-            .do_send(&local_evm)
-            .await
-            .unwrap();
         local_evm
-            .orderbook
-            .deposit2(*token2.address(), U256::from(1), U256::MAX, vec![])
-            .do_send(&local_evm)
-            .await
-            .unwrap();
+            .deposit(owner, *token1.address(), U256::MAX, U256::from(1))
+            .await;
+        local_evm
+            .deposit(owner, *token2.address(), U256::MAX, U256::from(1))
+            .await;
 
         let vault1 = Vault {
             id: Bytes(B256::random().to_string()),
