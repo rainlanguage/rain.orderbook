@@ -262,7 +262,20 @@ impl LocalEvm {
         TransactionReceipt,
     ) {
         // add the order
-        let tx1 = self
+        let (log, tx1) = self.add_order(add_order_calldata, from).await;
+        // deposit
+        let tx2 = self.deposit(from, token, deposit_amount, vault_id).await;
+        (log, tx1, tx2)
+    }
+
+    /// Adds an order with given calldata, returns the AddOrder event and addOrder2() transaction receipts
+    pub async fn add_order(
+        &self,
+        add_order_calldata: &[u8],
+        from: Address,
+    ) -> (Orderbook::AddOrderV2, TransactionReceipt) {
+        // add the order
+        let tx = self
             .send_transaction(
                 TransactionRequest::default()
                     .with_input(add_order_calldata.to_vec())
@@ -272,8 +285,8 @@ impl LocalEvm {
             .await
             .unwrap();
 
-        // decode the logs
-        let log = tx1
+        // decode the logs to get AddOrderV2 event struct
+        let log = tx
             .inner
             .logs()
             .iter()
@@ -282,7 +295,18 @@ impl LocalEvm {
             .inner
             .data;
 
-        // approve and deposit Token1
+        (log, tx)
+    }
+
+    /// Deposit the specified amount into the given token vault, returns the deposit2() transaction receipts
+    pub async fn deposit(
+        &self,
+        from: Address,
+        token: Address,
+        deposit_amount: U256,
+        vault_id: U256,
+    ) -> TransactionReceipt {
+        // approve and deposit
         let token_contract = self
             .tokens
             .iter()
@@ -290,17 +314,16 @@ impl LocalEvm {
             .expect("Token with given address is not deployed");
         token_contract
             .approve(*self.orderbook.address(), deposit_amount)
+            .from(from)
             .do_send(self)
             .await
             .unwrap();
-        let tx2 = self
-            .orderbook
+        self.orderbook
             .deposit2(token, vault_id, deposit_amount, vec![])
+            .from(from)
             .do_send(self)
             .await
-            .unwrap();
-
-        (log, tx1, tx2)
+            .unwrap()
     }
 }
 
