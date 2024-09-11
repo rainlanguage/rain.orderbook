@@ -310,12 +310,12 @@ amount price: 16 52;
     async fn test_batch_order_quotes_block() {
         let mut local_evm = LocalEvm::new().await;
 
-        let token1_holder = local_evm.signer_wallets[0].default_signer().address();
+        let owner = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm
-            .deploy_new_token("Token1", "Token1", 18, U256::MAX, token1_holder)
+            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
             .await;
         let token2 = local_evm
-            .deploy_new_token("Token2", "Token2", 18, U256::MAX, token1_holder)
+            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
             .await;
         let orderbook = &local_evm.orderbook;
 
@@ -364,6 +364,7 @@ deployments:
         order: some-key
 ---
 #calculate-io
+/* use io addresses in context as calculate-io maxoutput and ratio */
 amount price: context<3 0>() context<4 0>();
 #handle-add-order
 :;
@@ -388,11 +389,12 @@ amount price: context<3 0>() context<4 0>();
             .abi_encode();
 
         // deploy order and deposit in token 1 vault
+        // deposit MAX so we can get token addresses as the quote result
         let order = encode_prefixed(
             local_evm
                 .add_order_and_deposit(
                     &calldata,
-                    token1_holder,
+                    owner,
                     *token1.address(),
                     U256::MAX,
                     U256::from(1),
@@ -403,6 +405,7 @@ amount price: context<3 0>() context<4 0>();
                 .abi_encode(),
         );
         // deposit in token2 vault
+        // deposit MAX so we can get token addresses as the quote result
         token2
             .approve(*local_evm.orderbook.address(), U256::MAX)
             .do_send(&local_evm)
@@ -415,7 +418,7 @@ amount price: context<3 0>() context<4 0>();
             .await
             .unwrap();
 
-        let v1 = Vault {
+        let vault1 = Vault {
             id: Bytes(B256::random().to_string()),
             token: Erc20 {
                 id: Bytes(token1.address().to_string()),
@@ -434,7 +437,7 @@ amount price: context<3 0>() context<4 0>();
             orders_as_output: vec![],
             balance_changes: vec![],
         };
-        let v2 = Vault {
+        let vault2 = Vault {
             id: Bytes(B256::random().to_string()),
             token: Erc20 {
                 id: Bytes(token2.address().to_string()),
@@ -454,9 +457,9 @@ amount price: context<3 0>() context<4 0>();
             balance_changes: vec![],
         };
 
-        // does not follow the actuall original order's io
-        let inputs = vec![v2.clone(), v1.clone()];
-        let outputs = vec![v1.clone(), v2.clone()];
+        // does not follow the actual original order's io order
+        let inputs = vec![vault2.clone(), vault1.clone()];
+        let outputs = vec![vault2.clone(), vault1.clone()];
 
         let order = Order {
             id: Bytes(B256::random().to_string()),
@@ -475,14 +478,12 @@ amount price: context<3 0>() context<4 0>();
             trades: vec![],
         };
 
-        let rpc_url = local_evm.url();
-
-        let result = batch_order_quotes(vec![order], None, rpc_url)
+        let result = batch_order_quotes(vec![order], None, local_evm.url())
             .await
             .unwrap();
 
-        let t1_u256 = U256::from_str(&token1.address().to_string()).unwrap();
-        let t2_u256 = U256::from_str(&token2.address().to_string()).unwrap();
+        let token1_as_u256 = U256::from_str(&token1.address().to_string()).unwrap();
+        let token2_as_u256 = U256::from_str(&token2.address().to_string()).unwrap();
         let block_number = U256::from(local_evm.provider.get_block_number().await.unwrap());
         let expected = vec![
             BatchOrderQuotesResponse {
@@ -493,8 +494,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: t1_u256,
-                    ratio: t2_u256,
+                    max_output: token1_as_u256,
+                    ratio: token2_as_u256,
                 }),
                 success: true,
                 error: None,
@@ -507,8 +508,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: t2_u256,
-                    ratio: t1_u256,
+                    max_output: token2_as_u256,
+                    ratio: token1_as_u256,
                 }),
                 success: true,
                 error: None,
