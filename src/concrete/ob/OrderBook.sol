@@ -90,6 +90,12 @@ error UnsupportedCalculateInputs(uint256 inputs);
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
 
+/// Thrown when a negative input is being recorded against vault balances.
+error NegativeInput();
+
+/// Thrown when a negative output is being recorded against vault balances.
+error NegativeOutput();
+
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
@@ -838,37 +844,61 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// vault.
     /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
-    function recordVaultIO(uint256 input, uint256 output, OrderIOCalculationV2 memory orderIOCalculation) internal {
-        unchecked {
-            orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
-            LibFixedPointDecimalScale.scale18(
-                input,
-                orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
-                0
+    function recordVaultIO(
+        int256 inputSignedCoefficient,
+        int256 inputExponent,
+        int256 outputSignedCoefficient,
+        int256 outputExponent,
+        OrderIOCalculationV2 memory orderIOCalculation
+    ) internal {
+        orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibDecimalFloat.pack(inputSignedCoefficient, inputExponent);
+        orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibDecimalFloat.pack(outputSignedCoefficient, outputExponent);
+
+        if (LibDecimalFloat.lt(inputSignedCoefficient, inputExponent, 0, 0)) {
+            revert NegativeInput();
+        }
+
+        if (LibDecimalFloat.lt(outputSignedCoefficient, outputExponent, 0, 0)) {
+            revert NegativeOutput();
+        }
+
+        if (LibDecimalFloat.gt(inputSignedCoefficient, inputExponent, 0, 0)) {
+            (int256 inputVaultBalanceSignedCoefficient, int256 inputVaultBalanceExponent) = LibDecimalFloat.unpack(
+                sVaultBalances[orderIOCalculation.order.owner][address(
+                    uint160(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+                )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]]
             );
-            orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
-            LibFixedPointDecimalScale.scale18(
-                output,
-                orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
-                // Round outputs diff up if the scaling causes a rounding error.
-                // This only happens if the token has more than 18 decimals.
-                // Generally it's safer to overestimate output than
-                // underestimate.
-                FLAG_ROUND_UP
+
+            sVaultBalances[orderIOCalculation.order.owner][address(
+                uint160(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] = LibDecimalFloat
+                .pack(
+                LibDecimalFloat.add(
+                    inputVaultBalanceSignedCoefficient, inputVaultBalanceExponent, inputSignedCoefficient, inputExponent
+                )
             );
         }
 
-        if (input > 0) {
-            // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.
-            sVaultBalances[orderIOCalculation.order.owner][address(
-                uint160(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] += input;
-        }
-        if (output > 0) {
-            // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID UNDERFLOW.
+        if (LibDecimalFloat.gt(outputSignedCoefficient, outputExponent, 0, 0)) {
+            (int256 outputVaultBalanceSignedCoefficient, int256 outputVaultBalanceExponent) = LibDecimalFloat.unpack(
+                sVaultBalances[orderIOCalculation.order.owner][address(
+                    uint160(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
+                )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]]
+            );
+
             sVaultBalances[orderIOCalculation.order.owner][address(
                 uint160(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] -= output;
+            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] = LibDecimalFloat
+                .pack(
+                LibDecimalFloat.sub(
+                    outputVaultBalanceSignedCoefficient,
+                    outputVaultBalanceExponent,
+                    outputSignedCoefficient,
+                    outputExponent
+                )
+            );
         }
 
         // Emit the context only once in its fully populated form rather than two
