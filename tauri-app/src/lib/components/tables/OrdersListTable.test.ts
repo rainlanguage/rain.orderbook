@@ -265,6 +265,6 @@ test('clicking the remove option in the dropdown menu opens the remove modal', a
   });
 
   await waitFor(() => {
-    expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrders[0]);
+    expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrders[0], expect.any(Function));
   });
 });
