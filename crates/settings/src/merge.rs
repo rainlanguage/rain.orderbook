@@ -36,6 +36,9 @@ pub enum MergeError {
 
     #[error("There is already a remote networks definition called {0}")]
     RemoteNetworksCollision(String),
+
+    #[error("There is already a accounts called {0}")]
+    AccountsCollision(String),
 }
 
 impl ConfigSource {
@@ -147,6 +150,22 @@ impl ConfigSource {
             (Some(_), Some(_)) => Err(MergeError::DeploymentCollision("sentry".into())),
         }?;
 
+        // Accounts
+        match (&mut self.accounts, other.accounts) {
+            (Some(accounts), Some(other_accounts)) => {
+                for (key, value) in other_accounts {
+                    if accounts.contains_key(&key) {
+                        return Err(MergeError::AccountsCollision(key));
+                    }
+                    accounts.insert(key, value);
+                }
+            }
+            (None, Some(other_accounts)) => {
+                self.accounts = Some(other_accounts);
+            }
+            _ => {}
+        }
+
         Ok(())
     }
 }
@@ -251,6 +270,22 @@ impl Config {
             (Some(_), Some(_)) => Err(MergeError::DeploymentCollision("sentry".into())),
         }?;
 
+        // Accounts
+        match (&mut self.accounts, other.accounts) {
+            (Some(accounts), Some(other_accounts)) => {
+                for (key, value) in other_accounts {
+                    if accounts.contains_key(&key) {
+                        return Err(MergeError::AccountsCollision(key));
+                    }
+                    accounts.insert(key, value);
+                }
+            }
+            (None, Some(other_accounts)) => {
+                self.accounts = Some(other_accounts);
+            }
+            _ => {}
+        }
+
         Ok(())
     }
 }
@@ -264,6 +299,7 @@ mod tests {
     #[test]
     fn test_successful_merge() {
         let mut config = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -276,9 +312,11 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None,
         };
 
         let other = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -291,6 +329,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None,
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -299,6 +338,7 @@ mod tests {
     #[test]
     fn test_unsuccessful_merge() {
         let mut config = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -311,9 +351,11 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None,
         };
 
         let mut other = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -326,6 +368,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None,
         };
 
         // Add a collision to cause an unsuccessful merge
@@ -348,6 +391,7 @@ mod tests {
     #[test]
     fn test_successful_merge_metaboard() {
         let mut config = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -360,9 +404,11 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None,
         };
 
         let mut other = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -375,6 +421,7 @@ mod tests {
             networks: HashMap::new(),
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None,
         };
 
         other.metaboards.insert(

@@ -2,7 +2,7 @@
   "editor.rulers": [80],
   "svelte.enable-ts-plugin": true,
    
-  "rust-analyzer.linkedProjects": ["tauri-app/src-tauri/Cargo.toml"],
+  "rust-analyzer.linkedProjects": ["./Cargo.toml", "tauri-app/src-tauri/Cargo.toml"],
 
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
@@ -45,6 +45,7 @@
     "CI_SEPOLIA_METABOARD_URL": "",
     "RPC_URL_ETHEREUM_FORK": "",
     "CI_FORK_SEPOLIA_DEPLOYER_ADDRESS": "",
-    "CI_FORK_SEPOLIA_BLOCK_NUMBER": ""
+    "CI_FORK_SEPOLIA_BLOCK_NUMBER": "",
+    "COMMIT_SHA": ""
   }
 }

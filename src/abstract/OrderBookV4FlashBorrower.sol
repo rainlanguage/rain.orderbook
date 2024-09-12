@@ -6,22 +6,19 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
+import {
+    LibEncodedDispatch,
+    EncodedDispatch
+} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {
-    IOrderBookV4, TakeOrdersConfigV3, NoOrders
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {IOrderBookV4, TakeOrdersConfigV3, NoOrders, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {
-    BadLender,
-    MinimumOutput,
-    NonZeroBeforeArbStack,
-    OrderBookV4ArbConfigV1,
-    OrderBookV4ArbCommon
-} from "./OrderBookV4ArbCommon.sol";
-import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
+import {OrderBookV4ArbConfigV2, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
+import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
+import {LibOrderBook} from "../lib/LibOrderBook.sol";
+import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -67,7 +64,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     using Address for address;
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV1 memory config) OrderBookV4ArbCommon(config) {}
+    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -91,10 +88,6 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         returns (bytes32)
     {
         // As per reference implementation.
-        if (msg.sender != address(iOrderBook)) {
-            revert BadLender(msg.sender);
-        }
-        // As per reference implementation.
         if (initiator != address(this)) {
             revert BadInitiator(initiator);
         }
@@ -111,7 +104,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (uint256 totalInput, uint256 totalOutput) = iOrderBook.takeOrders2(takeOrders);
+        (uint256 totalInput, uint256 totalOutput) = IOrderBookV4(msg.sender).takeOrders2(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
@@ -133,24 +126,17 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// sender.
     ///
     /// @param takeOrders As per `IOrderBookV4.takeOrders2`.
-    /// @param minimumSenderOutput The minimum output that must be sent to the
-    /// sender by the end of the arb call. This, in combination with the
-    /// orderbook's own asset handling, is expected to REPLACE the standard
-    /// slippage protection that would be provided by a DEX. The sender is
-    /// expected to calculate absolute values based on prevailing conditions
-    /// such as gas price and the risk of holding the assets any arb profit is
-    /// denominated in.
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
     /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
     /// uses this data as a literal encoded external call.
-    function arb2(
+    function arb3(
+        IOrderBookV4 orderBook,
         TakeOrdersConfigV3 calldata takeOrders,
-        uint256 minimumSenderOutput,
         bytes calldata exchangeData,
-        EvaluableV3 calldata evaluable
-    ) external payable nonReentrant onlyValidEvaluable(evaluable) {
+        TaskV1 calldata task
+    ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert NoOrders();
@@ -170,33 +156,13 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), type(uint256).max);
-        if (!iOrderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
+        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
+        if (!orderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
-        IERC20(ordersInputToken).safeApprove(address(iOrderBook), 0);
+        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
-        // Send all unspent input tokens to the sender.
-        uint256 inputBalance = IERC20(ordersInputToken).balanceOf(address(this));
-        if (inputBalance < minimumSenderOutput) {
-            revert MinimumOutput(minimumSenderOutput, inputBalance);
-        }
-        if (inputBalance > 0) {
-            IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
-        }
-        // Send all unspent output tokens to the sender.
-        uint256 outputBalance = IERC20(ordersOutputToken).balanceOf(address(this));
-        if (outputBalance > 0) {
-            IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
-        }
-
-        // Send any remaining gas to the sender.
-        // Slither false positive here. We want to send everything to the sender
-        // because the borrower contract should be empty of all gas and tokens
-        // between uses. Anyone who sends tokens or gas to an arb contract
-        // without calling `arb` is going to lose their tokens/gas.
-        // See https://github.com/crytic/slither/issues/1658
-        Address.sendValue(payable(msg.sender), address(this).balance);
+        LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken);
     }
 }

@@ -1,5 +1,6 @@
+use alloy::hex::FromHexError;
+use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
-use alloy_primitives::ruint::FromUintError;
 use dotrain::error::ComposeError;
 use rain_orderbook_app_settings::config::ParseConfigSourceError;
 use rain_orderbook_app_settings::config_source::ConfigSourceError;
@@ -12,6 +13,7 @@ use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
     rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
 };
+use rain_orderbook_quote::QuoteDebuggerError;
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{ser::Serializer, Serialize};
 use thiserror::Error;
@@ -81,6 +83,32 @@ pub enum CommandError {
 
     #[error(transparent)]
     FlattenError(#[from] rain_orderbook_common::types::FlattenError),
+
+    #[error(transparent)]
+    QuoteError(#[from] rain_orderbook_quote::error::Error),
+
+    #[error(transparent)]
+    FailedQuoteError(#[from] rain_orderbook_quote::error::FailedQuote),
+
+    #[error(transparent)]
+    FromUintParseError(#[from] FromUintParseError),
+
+    #[error(transparent)]
+    FromHexError(#[from] FromHexError),
+
+    #[error(transparent)]
+    TradeReplayerError(#[from] rain_orderbook_common::replays::TradeReplayerError),
+
+    #[error(transparent)]
+    QuoteDebuggerError(#[from] QuoteDebuggerError),
+
+    #[error(transparent)]
+    OrderDetailError(
+        #[from] rain_orderbook_subgraph_client::types::order_detail_traits::OrderDetailError,
+    ),
+
+    #[error(transparent)]
+    RainEvalResultError(#[from] rain_orderbook_common::fuzz::RainEvalResultError),
 }
 
 impl Serialize for CommandError {

@@ -5,8 +5,8 @@ import {Test} from "forge-std/Test.sol";
 
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
-import {ISubParserV2} from "rain.interpreter.interface/interface/ISubParserV2.sol";
-import {IDescribedByMetaV1} from "rain.metadata/interface/unstable/IDescribedByMetaV1.sol";
+import {ISubParserV2} from "rain.interpreter.interface/interface/deprecated/ISubParserV2.sol";
+import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
 
 contract OrderBookSubParserIERC165Test is Test {
     function testOrderBookSubParserIERC165(bytes4 badInterfaceId) external {

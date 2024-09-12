@@ -1,7 +1,7 @@
 use crate::error::CommandResult;
 use crate::toast::toast_error;
 use crate::transaction_status::TransactionStatusNoticeRwLock;
-use alloy_primitives::{Bytes, U256};
+use alloy::primitives::{Bytes, U256};
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     deposit::DepositArgs,
@@ -10,11 +10,8 @@ use rain_orderbook_common::{
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_client::types::vault_balance_changes_list::VaultBalanceChange;
-use rain_orderbook_subgraph_client::{
-    types::{vault_detail, vaults_list},
-    PaginationArgs,
-};
+use rain_orderbook_subgraph_client::types::common::*;
+use rain_orderbook_subgraph_client::PaginationArgs;
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -22,12 +19,13 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn vaults_list(
     subgraph_args: SubgraphArgs,
+    filter_args: VaultsListFilterArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<vaults_list::Vault>> {
+) -> CommandResult<Vec<Vault>> {
     let vaults = subgraph_args
         .to_subgraph_client()
         .await?
-        .vaults_list(pagination_args)
+        .vaults_list(filter_args, pagination_args)
         .await?;
     Ok(vaults)
 }
@@ -58,7 +56,7 @@ pub async fn vault_balance_changes_list(
     id: String,
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<VaultBalanceChange>> {
+) -> CommandResult<Vec<VaultBalanceChangeUnwrapped>> {
     let data = subgraph_args
         .to_subgraph_client()
         .await?
@@ -89,10 +87,7 @@ pub async fn vault_balance_changes_list_write_csv(
 }
 
 #[tauri::command]
-pub async fn vault_detail(
-    id: String,
-    subgraph_args: SubgraphArgs,
-) -> CommandResult<vault_detail::Vault> {
+pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<Vault> {
     let vault = subgraph_args
         .to_subgraph_client()
         .await?

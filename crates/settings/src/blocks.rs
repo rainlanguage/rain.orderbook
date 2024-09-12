@@ -1,4 +1,4 @@
-use alloy_primitives::BlockNumber;
+use alloy::primitives::BlockNumber;
 use serde::{
     de::{self, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
@@ -127,8 +127,7 @@ fn parse_range(s: &str) -> Result<BlockRange, String> {
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
-#[serde(tag = "type", content = "value")]
-#[typeshare]
+#[serde(untagged)]
 pub enum Blocks {
     RangeWithInterval { range: BlockRange, interval: u32 },
     SimpleRange(BlockRange),

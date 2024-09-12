@@ -1,14 +1,16 @@
 use crate::{
-    dotrain_add_order_lsp::LANG_SERVICES,
+    dotrain_order::DotrainOrderError,
+    rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
+use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
+use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
-    WriteTransaction, WriteTransactionStatus,
 };
-use alloy_primitives::{hex::FromHexError, Address, U256};
-use alloy_sol_types::SolCall;
-use dotrain::{error::ComposeError, RainDocument, Rebind};
+#[cfg(not(target_family = "wasm"))]
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
+use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{
@@ -17,7 +19,7 @@ use rain_metadata::{
 };
 use rain_orderbook_app_settings::deployment::Deployment;
 use rain_orderbook_bindings::{
-    IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, IO},
+    IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, TaskV1, IO},
     ERC20::decimalsCall,
 };
 use serde::{Deserialize, Serialize};
@@ -26,6 +28,7 @@ use std::collections::HashMap;
 use thiserror::Error;
 
 pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
+pub static ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS: [&str; 1] = ["handle-add-order"];
 
 #[derive(Error, Debug)]
 pub enum AddOrderArgsError {
@@ -47,9 +50,11 @@ pub enum AddOrderArgsError {
     RainMetaError(#[from] RainMetaError),
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
+    #[error(transparent)]
+    DotrainOrderError(#[from] DotrainOrderError),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename = "kebab-case")]
 pub struct AddOrderArgs {
     pub dotrain: String,
@@ -142,7 +147,7 @@ impl AddOrderArgs {
             .await
             .map_err(AddOrderArgsError::ParserError)?;
 
-        Ok(rainlang_parsed.bytecode)
+        Ok(rainlang_parsed.bytecode.into())
     }
 
     /// Generate RainlangSource meta
@@ -165,35 +170,54 @@ impl AddOrderArgs {
 
     /// Compose to rainlang string
     pub fn compose_to_rainlang(&self) -> Result<String, AddOrderArgsError> {
-        // Parse file into dotrain document
-        let meta_store = LANG_SERVICES.meta_store();
+        let res = compose_to_rainlang(
+            self.dotrain.clone(),
+            self.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?;
+        Ok(res)
+    }
 
-        let mut rebinds = None;
-        if !self.bindings.is_empty() {
-            rebinds = Some(
-                self.bindings
-                    .iter()
-                    .map(|(key, value)| Rebind(key.clone(), value.clone()))
-                    .collect(),
-            );
-        };
-        let dotrain_doc =
-            RainDocument::create(self.dotrain.clone(), Some(meta_store), None, rebinds);
-
-        Ok(dotrain_doc.compose(&ORDERBOOK_ORDER_ENTRYPOINTS)?)
+    /// Compose the addOrder2 post action
+    pub fn compose_addorder_post_task(&self) -> Result<String, AddOrderArgsError> {
+        let res = compose_to_rainlang(
+            self.dotrain.clone(),
+            self.bindings.clone(),
+            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
+        )?;
+        Ok(res)
     }
 
     /// Generate an addOrder call from given dotrain
-    async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
+    pub async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpc_url.clone(), rainlang.clone())
             .await?;
+
         let meta = self.try_generate_meta(rainlang)?;
 
         let deployer = self.deployer;
         let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url)?).await?;
+            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url.clone())?)
+                .await?;
+
+        // get the evaluable for the post action
+        let post_rainlang = self.compose_addorder_post_task()?;
+        let post_bytecode = self
+            .try_parse_rainlang(rpc_url.clone(), post_rainlang.clone())
+            .await?;
+
+        let post_evaluable = EvaluableV3 {
+            interpreter: dispair.interpreter,
+            store: dispair.store,
+            bytecode: post_bytecode.into(),
+        };
+
+        let post_task = TaskV1 {
+            evaluable: post_evaluable,
+            signedContext: vec![],
+        };
 
         Ok(addOrder2Call {
             config: OrderConfigV3 {
@@ -202,16 +226,17 @@ impl AddOrderArgs {
                 evaluable: EvaluableV3 {
                     interpreter: dispair.interpreter,
                     store: dispair.store,
-                    bytecode,
+                    bytecode: bytecode.into(),
                 },
-                meta,
-                nonce: alloy_primitives::private::rand::random::<U256>().into(),
-                secret: alloy_primitives::private::rand::random::<U256>().into(),
+                meta: meta.into(),
+                nonce: alloy::primitives::private::rand::random::<U256>().into(),
+                secret: alloy::primitives::private::rand::random::<U256>().into(),
             },
-            post: vec![],
+            tasks: vec![post_task],
         })
     }
 
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<addOrder2Call>)>(
         &self,
         transaction_args: TransactionArgs,
@@ -244,17 +269,17 @@ impl AddOrderArgs {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use rain_orderbook_app_settings::deployer::Deployer;
-    use rain_orderbook_app_settings::network::Network;
-    use rain_orderbook_app_settings::order::{Order, OrderIO};
-    use rain_orderbook_app_settings::scenario::Scenario;
-    use rain_orderbook_app_settings::token::Token;
-    use rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL;
-    use url::Url;
-
     use super::*;
+    use rain_orderbook_app_settings::{
+        deployer::Deployer,
+        network::Network,
+        order::{Order, OrderIO},
+        scenario::Scenario,
+        token::Token,
+    };
+    use rain_orderbook_test_fixtures::LocalEvm;
+    use std::sync::Arc;
+    use url::Url;
 
     #[test]
     fn test_try_generate_meta() {
@@ -336,9 +361,9 @@ price: 2e18;
             evaluable: EvaluableV3 {
                 interpreter,
                 store,
-                bytecode: bytecode.clone(),
+                bytecode: bytecode.clone().into(),
             },
-            meta: meta.clone(),
+            meta: meta.clone().into(),
         };
 
         assert_eq!(order_config_v2.validInputs, inputs);
@@ -353,7 +378,7 @@ price: 2e18;
     async fn test_add_order_random_vault_id_generation() {
         let network = Network {
             name: "test-network".to_string(),
-            rpc: Url::parse(CI_DEPLOY_POLYGON_RPC_URL).unwrap(),
+            rpc: Url::parse("https://some-rpc.com").unwrap(),
             chain_id: 137,
             label: None,
             network_id: None,
@@ -422,13 +447,19 @@ price: 2e18;
             order: Arc::new(order),
         };
 
-        let dotrain = r#"
-some front matter
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
 ---
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;"#;
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = "1234"
+        );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -438,5 +469,233 @@ _ _: 0 0;
 
         // input0 and output0 vaults should be the same random value
         assert_eq!(result.inputs[0].vaultId, result.outputs[0].vaultId);
+    }
+
+    #[tokio::test]
+    async fn test_into_add_order_call() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let network = Network {
+            name: "test-network".to_string(),
+            rpc: Url::parse(&local_evm.url()).unwrap(),
+            chain_id: 137,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+        let network_arc = Arc::new(network);
+        let deployer = Deployer {
+            network: network_arc.clone(),
+            address: *local_evm.deployer.address(),
+            label: None,
+        };
+        let deployer_arc = Arc::new(deployer);
+        let scenario = Scenario {
+            name: "test-scenario".to_string(),
+            bindings: HashMap::new(),
+            runs: None,
+            blocks: None,
+            deployer: deployer_arc.clone(),
+        };
+        let token1 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token1".to_string()),
+        };
+        let token2 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token2".to_string()),
+        };
+        let token3 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token3".to_string()),
+        };
+        let token1_arc = Arc::new(token1);
+        let token2_arc = Arc::new(token2);
+        let token3_arc = Arc::new(token3);
+        let order = Order {
+            inputs: vec![
+                OrderIO {
+                    token: token1_arc.clone(),
+                    vault_id: Some(U256::from(2)),
+                },
+                OrderIO {
+                    token: token2_arc.clone(),
+                    vault_id: Some(U256::from(1)),
+                },
+            ],
+            outputs: vec![OrderIO {
+                token: token3_arc.clone(),
+                vault_id: Some(U256::from(4)),
+            }],
+            network: network_arc.clone(),
+            deployer: None,
+            orderbook: None,
+        };
+        let deployment = Deployment {
+            scenario: Arc::new(scenario),
+            order: Arc::new(order),
+        };
+
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = "1234"
+        );
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+
+        let add_order_call = result.try_into_call(local_evm.url()).await.unwrap();
+
+        assert_eq!(add_order_call.config.validInputs.len(), 2);
+        assert_eq!(add_order_call.config.validOutputs.len(), 1);
+        assert_eq!(add_order_call.tasks.len(), 1);
+
+        assert_eq!(add_order_call.config.validInputs[0].vaultId, U256::from(2));
+        assert_eq!(add_order_call.config.validInputs[1].vaultId, U256::from(1));
+        assert_eq!(add_order_call.config.validOutputs[0].vaultId, U256::from(4));
+
+        assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
+
+        assert_eq!(add_order_call.config.meta.len(), 105);
+
+        assert_eq!(
+            add_order_call.config.validInputs[0].token,
+            Address::default()
+        );
+
+        assert_eq!(
+            add_order_call.config.validInputs[1].token,
+            Address::default()
+        );
+
+        assert_eq!(
+            add_order_call.config.validOutputs[0].token,
+            Address::default()
+        );
+
+        assert_eq!(
+            add_order_call.tasks[0].evaluable.interpreter,
+            *local_evm.interpreter.address()
+        );
+
+        assert_eq!(
+            add_order_call.tasks[0].evaluable.store,
+            *local_evm.store.address()
+        );
+
+        assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
+        assert_eq!(add_order_call.tasks[0].signedContext.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_add_order_post_action() {
+        let network = Network {
+            name: "test-network".to_string(),
+            rpc: Url::parse("https://some-rpc.com").unwrap(),
+            chain_id: 137,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+        let network_arc = Arc::new(network);
+        let deployer = Deployer {
+            network: network_arc.clone(),
+            address: Address::default(),
+            label: None,
+        };
+        let deployer_arc = Arc::new(deployer);
+        let scenario = Scenario {
+            name: "test-scenario".to_string(),
+            bindings: HashMap::new(),
+            runs: None,
+            blocks: None,
+            deployer: deployer_arc.clone(),
+        };
+        let token1 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token1".to_string()),
+        };
+        let token2 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token2".to_string()),
+        };
+        let token3 = Token {
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token3".to_string()),
+        };
+        let token1_arc = Arc::new(token1);
+        let token2_arc = Arc::new(token2);
+        let token3_arc = Arc::new(token3);
+        let known_vault_id = U256::from(1);
+        let order = Order {
+            inputs: vec![
+                OrderIO {
+                    token: token1_arc.clone(),
+                    vault_id: None,
+                },
+                OrderIO {
+                    token: token2_arc.clone(),
+                    vault_id: Some(known_vault_id),
+                },
+            ],
+            outputs: vec![OrderIO {
+                token: token3_arc.clone(),
+                vault_id: None,
+            }],
+            network: network_arc.clone(),
+            deployer: None,
+            orderbook: None,
+        };
+        let deployment = Deployment {
+            scenario: Arc::new(scenario),
+            order: Arc::new(order),
+        };
+
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = "1234"
+        );
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
+            .await
+            .unwrap();
+
+        let post_action = result.compose_addorder_post_task().unwrap();
+
+        assert_eq!(post_action, "/* 0. handle-add-order */ \n_ _: 0 0;");
     }
 }

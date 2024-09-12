@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CAL
 pragma solidity ^0.8.19;
 
-import {AuthoringMetaV2, Operand} from "rain.interpreter.interface/interface/ISubParserV2.sol";
+import {AuthoringMetaV2, Operand} from "rain.interpreter.interface/interface/ISubParserV3.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {LibSubParse} from "rain.interpreter/lib/parse/LibSubParse.sol";
 import {
@@ -32,7 +32,16 @@ import {
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS,
     CONTEXT_SIGNED_CONTEXT_START_COLUMN,
     CONTEXT_SIGNED_CONTEXT_START_ROW,
-    CONTEXT_SIGNED_CONTEXT_START_ROWS
+    CONTEXT_SIGNED_CONTEXT_START_ROWS,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BALANCE,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_AMOUNT,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TARGET_AMOUNT
 } from "./LibOrderBook.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
@@ -48,13 +57,41 @@ bytes constant WORD_CALCULATED_IO_RATIO = "calculated-io-ratio";
 bytes constant WORD_INPUT_TOKEN = "input-token";
 bytes constant WORD_INPUT_TOKEN_DECIMALS = "input-token-decimals";
 bytes constant WORD_INPUT_VAULT_ID = "input-vault-id";
-bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "uint256-input-vault-before";
-bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "uint256-input-vault-increase";
+bytes constant WORD_INPUT_VAULT_BALANCE_BEFORE = "input-vault-before";
+bytes constant WORD_INPUT_VAULT_BALANCE_INCREASE = "input-vault-increase";
 bytes constant WORD_OUTPUT_TOKEN = "output-token";
 bytes constant WORD_OUTPUT_TOKEN_DECIMALS = "output-token-decimals";
 bytes constant WORD_OUTPUT_VAULT_ID = "output-vault-id";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "uint256-output-vault-before";
-bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "uint256-output-vault-decrease";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_BEFORE = "output-vault-before";
+bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "output-vault-decrease";
+
+bytes constant WORD_DEPOSITOR = "depositor";
+bytes constant WORD_DEPOSIT_TOKEN = "deposit-token";
+bytes constant WORD_DEPOSIT_VAULT_ID = "deposit-vault-id";
+bytes constant WORD_DEPOSIT_VAULT_BALANCE = "deposit-vault-balance";
+bytes constant WORD_DEPOSIT_AMOUNT = "deposit-amount";
+
+bytes constant WORD_WITHDRAWER = "withdrawer";
+bytes constant WORD_WITHDRAW_TOKEN = "withdraw-token";
+bytes constant WORD_WITHDRAW_VAULT_ID = "withdraw-vault-id";
+bytes constant WORD_WITHDRAW_VAULT_BALANCE = "withdraw-vault-balance";
+bytes constant WORD_WITHDRAW_AMOUNT = "withdraw-amount";
+bytes constant WORD_WITHDRAW_TARGET_AMOUNT = "withdraw-target-amount";
+
+uint256 constant DEPOSIT_WORD_DEPOSITOR = 0;
+uint256 constant DEPOSIT_WORD_TOKEN = 1;
+uint256 constant DEPOSIT_WORD_VAULT_ID = 2;
+uint256 constant DEPOSIT_WORD_VAULT_BALANCE = 3;
+uint256 constant DEPOSIT_WORD_AMOUNT = 4;
+uint256 constant DEPOSIT_WORDS_LENGTH = 5;
+
+uint256 constant WITHDRAW_WORD_WITHDRAWER = 0;
+uint256 constant WITHDRAW_WORD_TOKEN = 1;
+uint256 constant WITHDRAW_WORD_VAULT_ID = 2;
+uint256 constant WITHDRAW_WORD_VAULT_BALANCE = 3;
+uint256 constant WITHDRAW_WORD_AMOUNT = 4;
+uint256 constant WITHDRAW_WORD_TARGET_AMOUNT = 5;
+uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 
 /// @title LibOrderBookSubParser
 library LibOrderBookSubParser {
@@ -215,6 +252,95 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, Operand.unwrap(operand));
     }
 
+    function subParserDepositToken(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN);
+    }
+
+    function subParserDepositVaultId(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return
+            LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
+    }
+
+    function subParserDepositVaultBalance(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE
+        );
+    }
+
+    function subParserDepositAmount(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT);
+    }
+
+    function subParserWithdrawToken(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN);
+    }
+
+    function subParserWithdrawVaultId(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return
+            LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID);
+    }
+
+    function subParserWithdrawVaultBalance(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BALANCE
+        );
+    }
+
+    function subParserWithdrawAmount(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_AMOUNT);
+    }
+
+    function subParserWithdrawTargetAmount(uint256, uint256, Operand)
+        internal
+        pure
+        returns (bool, bytes memory, uint256[] memory)
+    {
+        //slither-disable-next-line unused-return
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TARGET_AMOUNT
+        );
+    }
+
     function subParserSignedContext(uint256, uint256, Operand operand)
         internal
         pure
@@ -229,7 +355,9 @@ library LibOrderBookSubParser {
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
         // Add 2 for the signed context signers and signed context start columns.
-        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2);
+        // 1 for the deposit context.
+        // 1 for the withdraw context.
+        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2 + 1 + 1);
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
@@ -313,6 +441,44 @@ library LibOrderBookSubParser {
         meta[CONTEXT_VAULT_OUTPUTS_COLUMN] = contextVaultOutputsMeta;
         meta[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersMeta;
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedMeta;
+
+        AuthoringMetaV2[] memory depositMeta = new AuthoringMetaV2[](DEPOSIT_WORDS_LENGTH);
+        depositMeta[0] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSITOR), "The address of the depositor that is depositing the token.");
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSIT_TOKEN), "The address of the token that is being deposited.");
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_VAULT_ID), "The ID of the vault that the token is being deposited into."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE + 1] = AuthoringMetaV2(
+            bytes32(WORD_DEPOSIT_VAULT_BALANCE),
+            "The starting balance of the vault that the token is being deposited into, before the deposit."
+        );
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSIT_AMOUNT), "The amount of the token that is being deposited.");
+
+        meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
+
+        AuthoringMetaV2[] memory withdrawMeta = new AuthoringMetaV2[](WITHDRAW_WORDS_LENGTH);
+        withdrawMeta[WITHDRAW_WORD_WITHDRAWER] =
+            AuthoringMetaV2(bytes32(WORD_WITHDRAWER), "The address of the withdrawer that is withdrawing the token.");
+        withdrawMeta[WITHDRAW_WORD_TOKEN] =
+            AuthoringMetaV2(bytes32(WORD_WITHDRAW_TOKEN), "The address of the token that is being withdrawn.");
+        withdrawMeta[WITHDRAW_WORD_VAULT_ID] = AuthoringMetaV2(
+            bytes32(WORD_WITHDRAW_VAULT_ID), "The ID of the vault that the token is being withdrawn from."
+        );
+        withdrawMeta[WITHDRAW_WORD_VAULT_BALANCE] = AuthoringMetaV2(
+            bytes32(WORD_WITHDRAW_VAULT_BALANCE),
+            "The starting balance of the vault that the token is being withdrawn from, before the withdrawal."
+        );
+        withdrawMeta[WITHDRAW_WORD_AMOUNT] =
+            AuthoringMetaV2(bytes32(WORD_WITHDRAW_AMOUNT), "The amount of the token that is being withdrawn.");
+        withdrawMeta[WITHDRAW_WORD_TARGET_AMOUNT] = AuthoringMetaV2(
+            bytes32(WORD_WITHDRAW_TARGET_AMOUNT),
+            "The target amount of the token that the withdrawer is trying to withdraw. This is the amount that the withdrawer is trying to withdraw, but it MAY NOT be the amount that the withdrawer actually receives."
+        );
+
+        meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = withdrawMeta;
 
         uint256[][] memory metaUint256;
         assembly {

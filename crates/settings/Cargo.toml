@@ -1,22 +1,25 @@
 [package]
 name = "rain_orderbook_app_settings"
-version = "0.0.1"
-edition = "2021"
-license = "CAL-1.0"
 description = "Rain Orderbook app settings parsing & validation"
-homepage = "https://github.com/rainprotocol/rain.orderbook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 derive_builder = { workspace = true }
-url = { workspace = true }
+url = { workspace = true, features = ["serde"] }
 thiserror = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive", "rc"] }
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
 strict-yaml-rust = { workspace = true }
-alloy-primitives = { workspace = true }
+alloy = { workspace = true, features = ["serde", "rand"] }
 typeshare = { workspace = true }
-tokio = { workspace = true }
 reqwest = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+httpmock = "0.7.0"

@@ -6,6 +6,7 @@ pub mod toast;
 pub mod transaction_status;
 
 mod commands;
+use commands::app::get_app_commit_sha;
 use commands::authoring_meta::get_authoring_meta_v2_for_scenarios;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::make_charts;
@@ -14,9 +15,11 @@ use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
     compose_from_scenario, order_add, order_add_calldata, order_detail, order_remove,
-    order_remove_calldata, orders_list, orders_list_write_csv,
+    order_remove_calldata, orders_list, orders_list_write_csv, validate_raindex_version,
 };
+use commands::order_quote::{batch_order_quotes, debug_order_quote};
 use commands::order_take::{order_takes_list, order_takes_list_write_csv};
+use commands::trade_debug::debug_trade;
 use commands::vault::{
     vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
     vault_deposit_approve_calldata, vault_deposit_calldata, vault_detail, vault_withdraw,
@@ -71,6 +74,11 @@ fn run_tauri_app() {
             vault_withdraw_calldata,
             get_authoring_meta_v2_for_scenarios,
             compose_from_scenario,
+            batch_order_quotes,
+            debug_order_quote,
+            debug_trade,
+            get_app_commit_sha,
+            validate_raindex_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

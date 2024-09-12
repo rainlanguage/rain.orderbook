@@ -1,0 +1,39 @@
+query MultiOrderDetailQuery($ids: [Bytes!]!) {
+  orders(where: {id_in: $ids}) {
+    orderBytes
+    orderHash
+    owner
+    outputs {
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
+      balance
+      vaultId
+    }
+    inputs {
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
+      balance
+      vaultId
+    }
+    orderbook {
+      id
+    }
+    active
+    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+      transaction {
+        blockNumber
+        timestamp
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ keep=(
   -k CI_DEPLOY_POLYGON_RPC_URL
   -k CI_SEPOLIA_METABOARD_URL
   -k RPC_URL_ETHEREUM_FORK
+  -k COMMIT_SHA
 )
 
 # Run commands in the current working directory
@@ -22,7 +23,7 @@ nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prel
 (cd lib/rain.interpreter && nix develop -i ${keep[@]} -c bash -c i9r-prelude)
 
 # Run commands in lib/rain.metadata
-nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.metadata && rainix-sol-prelude)'
+nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-sol-prelude)'
 
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-unit-test

@@ -1,6 +1,6 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
-use alloy_primitives::{utils::format_units, I256};
-use rain_orderbook_subgraph_client::types::order_takes_list::*;
+use alloy::primitives::{utils::format_units, I256};
+use rain_orderbook_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
 use super::FlattenError;

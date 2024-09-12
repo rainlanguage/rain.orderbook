@@ -1,7 +1,10 @@
-use crate::transaction::{TransactionArgs, WritableTransactionExecuteError};
+#[cfg(not(target_family = "wasm"))]
+use crate::transaction::TransactionArgs;
+use crate::transaction::WritableTransactionExecuteError;
+use alloy::primitives::{Address, U256};
+use alloy::sol_types::SolCall;
+#[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
-use alloy_primitives::{Address, U256};
-use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::IOrderBookV4::withdraw2Call;
 use serde::{Deserialize, Serialize};
 
@@ -18,13 +21,14 @@ impl From<WithdrawArgs> for withdraw2Call {
             token: val.token,
             vaultId: val.vault_id,
             targetAmount: val.target_amount,
-            post: vec![],
+            tasks: vec![],
         }
     }
 }
 
 impl WithdrawArgs {
     /// Execute OrderbookV3 withdraw call
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<withdraw2Call>)>(
         &self,
         transaction_args: TransactionArgs,

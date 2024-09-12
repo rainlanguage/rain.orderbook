@@ -1,8 +1,8 @@
 use crate::error::CommandResult;
 use rain_orderbook_common::{
-    csv::TryIntoCsv, subgraph::SubgraphArgs, types::OrderTakeFlattened, types::FlattenError
+    csv::TryIntoCsv, subgraph::SubgraphArgs, types::FlattenError, types::OrderTakeFlattened,
 };
-use rain_orderbook_subgraph_client::{types::order_takes_list, PaginationArgs};
+use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;
 
@@ -11,7 +11,7 @@ pub async fn order_takes_list(
     order_id: String,
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<order_takes_list::Trade>> {
+) -> CommandResult<Vec<Trade>> {
     let order_takes = subgraph_args
         .to_subgraph_client()
         .await?

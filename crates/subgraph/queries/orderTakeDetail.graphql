@@ -9,15 +9,30 @@ query OrderTakeDetailQuery($id: Bytes!) {
     outputVaultBalanceChange {
       amount
       vault {
-        token
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
       }
     }
     order {
       orderHash
     }
+    orderbook {
+      id
+    }
     inputVaultBalanceChange {
       vault {
-        token
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
       }
       amount
     }

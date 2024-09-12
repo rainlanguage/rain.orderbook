@@ -2,13 +2,17 @@
 source: crates/subgraph/tests/orders_test.rs
 expression: request_body.query
 ---
-query OrdersListQuery($first: Int, $skip: Int) {
-  orders(orderDirection: desc, skip: $skip, first: $first) {
+query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
+  orders(orderBy: timestampAdded, orderDirection: desc, skip: $skip, first: $first, where: $filters) {
     id
     orderBytes
     orderHash
     owner
     outputs {
+      id
+      owner
+      vaultId
+      balance
       token {
         id
         address
@@ -16,10 +20,109 @@ query OrdersListQuery($first: Int, $skip: Int) {
         symbol
         decimals
       }
-      balance
-      vaultId
+      orderbook {
+        id
+      }
+      ordersAsOutput {
+        id
+        orderHash
+        active
+      }
+      ordersAsInput {
+        id
+        orderHash
+        active
+      }
+      balanceChanges {
+        __typename
+        ... on Withdrawal {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on TradeVaultBalanceChange {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on Deposit {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+      }
     }
     inputs {
+      id
+      owner
+      vaultId
+      balance
       token {
         id
         address
@@ -27,17 +130,120 @@ query OrdersListQuery($first: Int, $skip: Int) {
         symbol
         decimals
       }
-      balance
-      vaultId
+      orderbook {
+        id
+      }
+      ordersAsOutput {
+        id
+        orderHash
+        active
+      }
+      ordersAsInput {
+        id
+        orderHash
+        active
+      }
+      balanceChanges {
+        __typename
+        ... on Withdrawal {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on TradeVaultBalanceChange {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on Deposit {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+      }
+    }
+    orderbook {
+      id
     }
     active
-    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+    timestampAdded
+    meta
+    addEvents {
       transaction {
         id
+        from
         blockNumber
         timestamp
       }
     }
-    timestampAdded
+    trades {
+      id
+    }
   }
 }

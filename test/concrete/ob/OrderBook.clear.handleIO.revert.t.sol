@@ -11,8 +11,8 @@ import {
     OrderConfigV3,
     EvaluableV3,
     SignedContextV1,
-    ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+    TaskV1
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookClearHandleIORevertTest
@@ -43,7 +43,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new ActionV1[](0));
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV1[](0));
         assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
 
         bytes memory bytecode = iParserV2.parse2(rainString);
@@ -52,7 +52,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
 
         vm.prank(owner);
         vm.recordLogs();
-        iOrderbook.addOrder2(config, new ActionV1[](0));
+        iOrderbook.addOrder2(config, new TaskV1[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
         (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
@@ -142,9 +142,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021810000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021810000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -158,9 +158,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021810000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021810000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }
@@ -174,9 +174,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         // This is a bit fragile but the error message includes the inner
         // executable bytecode only, not the outer parsed bytecode.
         bytes memory aliceErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021810000001100000");
         bytes memory bobErr =
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200021810000001100000", 1);
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200021810000001100000");
 
         checkClearOrderHandleIO(aliceString, bobString, aliceErr, bobErr);
     }

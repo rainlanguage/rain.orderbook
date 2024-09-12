@@ -38,7 +38,16 @@
             name = "ob-rs-test";
             body = ''
               set -euxo pipefail
-              cargo test --workspace .
+              cargo test --workspace
+            '';
+          };
+
+          tauri-rs-test = rainix.mkTask.${system} {
+            name = "tauri-rs-test";
+            body = ''
+              set -euxo pipefail
+              cd tauri-app/src-tauri 
+              cargo test
             '';
           };
 
@@ -54,19 +63,13 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/vault_balance_changes_list.rs  crates/subgraph/src/types/vault_balance_change.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultBalanceChangesList.ts;
-              typeshare crates/subgraph/src/types/order_detail.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderDetail.ts;
-
-              typeshare crates/subgraph/src/types/vault_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultDetail.ts;
-              typeshare crates/subgraph/src/types/vaults_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/vaultsList.ts;
-              typeshare crates/subgraph/src/types/orders_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/ordersList.ts;
-              typeshare crates/subgraph/src/types/order_takes_list.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakesList.ts;
-              typeshare crates/subgraph/src/types/order_take_detail.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderTakeDetail.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_take.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
-              typeshare tauri-app/src-tauri/src/commands/authoring_meta.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
+              typeshare crates/common/src/dotrain_order/mod.rs lib/rain.interpreter/lib/rain.metadata/crates/cli/src/meta/types/authoring/v2.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
+              typeshare tauri-app/src-tauri/src/commands/order_quote.rs crates/quote/src/quote.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderQuote.ts;
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
 
@@ -104,6 +107,7 @@
               echo VITE_SENTRY_ENVIRONMENT=release >> .env
               echo VITE_SENTRY_FORCE_DISABLED=false >> .env
               echo VITE_SENTRY_DSN=''${SENTRY_DSN} >> .env
+              echo COMMIT_SHA=''${COMMIT_SHA} >> .env
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli
@@ -203,12 +207,61 @@
             '';
           };
 
+          rainix-wasm-artifacts = rainix.mkTask.${system} {
+            name = "rainix-wasm-artifacts";
+            body = ''
+              set -euxo pipefail
+
+              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests
+            '';
+          };
+
+          rainix-wasm-test = rainix.mkTask.${system} {
+            name = "rainix-wasm-test";
+            body = ''
+              set -euxo pipefail
+
+              CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown --lib -p rain_orderbook_quote -p rain_orderbook_bindings
+            '';
+          };
+
+          js-install = rainix.mkTask.${system} {
+            name = "js-install";
+            body = ''
+              set -euxo pipefail
+              npm install --no-check
+            '';
+          };
+
+          build-js-bindings = rainix.mkTask.${system} {
+            name = "build-js-bindings";
+            body = ''
+              set -euxo pipefail
+              npm run build
+            '';
+          };
+
+          test-js-bindings = rainix.mkTask.${system} {
+            name = "test-js-bindings";
+            body = ''
+              set -euxo pipefail
+              npm install --no-check
+              npm run build
+              npm test
+            '';
+          };
+
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
           packages = [
             packages.raindex-prelude
             packages.ob-rs-test
+            packages.rainix-wasm-artifacts
+            packages.rainix-wasm-test
+            packages.js-install
+            packages.build-js-bindings
+            packages.test-js-bindings
             rain.defaultPackage.${system}
           ];
 
@@ -225,6 +278,7 @@
             packages.ob-tauri-before-build
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
+            packages.tauri-rs-test
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];

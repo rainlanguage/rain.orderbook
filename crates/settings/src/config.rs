@@ -1,6 +1,6 @@
 use super::config_source::ConfigSourceError;
 use crate::*;
-use alloy_primitives::U256;
+use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,6 +33,9 @@ pub struct Config {
     #[typeshare(typescript(type = "Record<string, Deployment>"))]
     pub deployments: HashMap<String, Arc<Deployment>>,
     pub sentry: Option<bool>,
+    pub raindex_version: Option<String>,
+    #[typeshare(typescript(type = "Record<string, string>"))]
+    pub accounts: Option<HashMap<String, Arc<String>>>,
 }
 
 pub type Subgraph = Url;
@@ -168,7 +171,14 @@ impl TryFrom<ConfigSource> for Config {
             })
             .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
 
+        let accounts = item.accounts.map(|wl| {
+            wl.into_iter()
+                .map(|(name, address)| (name, Arc::new(address)))
+                .collect::<HashMap<String, Arc<String>>>()
+        });
+
         let config = Config {
+            raindex_version: item.raindex_version,
             networks,
             subgraphs,
             metaboards,
@@ -180,6 +190,7 @@ impl TryFrom<ConfigSource> for Config {
             charts,
             deployments,
             sentry: item.sentry,
+            accounts,
         };
 
         Ok(config)
@@ -196,7 +207,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
     use std::collections::HashMap;
     use url::Url;
 
@@ -271,8 +282,13 @@ mod tests {
         let charts = HashMap::new();
         let deployments = HashMap::new();
         let sentry = Some(true);
+        let accounts = Some(HashMap::from([(
+            "name-one".to_string(),
+            "address-one".to_string(),
+        )]));
 
         let config_string = ConfigSource {
+            raindex_version: Some("0x123".to_string()),
             using_networks_from,
             networks,
             subgraphs,
@@ -285,6 +301,7 @@ mod tests {
             charts,
             deployments,
             sentry,
+            accounts,
         };
 
         let config_result = Config::try_from(config_string);
@@ -340,5 +357,16 @@ mod tests {
 
         // Verify sentry
         assert!(config.sentry.unwrap());
+
+        // Verify raindex_version
+        assert_eq!(config.raindex_version, Some("0x123".to_string()));
+
+        // Verify accounts
+        assert!(config.accounts.is_some());
+        let accounts = config.accounts.as_ref().unwrap();
+        assert_eq!(accounts.len(), 1);
+        let (name, address) = accounts.iter().next().unwrap();
+        assert_eq!(name, "name-one");
+        assert_eq!(address.as_str(), "address-one");
     }
 }

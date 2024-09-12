@@ -2,37 +2,37 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {
-    OrderConfigV3, OrderV3, EvaluableV3, ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {OrderConfigV3, OrderV3, EvaluableV3, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
 contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
     using LibOrder for OrderV3;
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderNonceSameOrderNoop(address owner, OrderConfigV3 memory config) public {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder2(config, new ActionV1[](0));
+        bool stateChange = iOrderbook.addOrder2(config, new TaskV1[](0));
         assert(stateChange);
         assert(iOrderbook.orderExists(order.hash()));
 
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder2(config, new ActionV1[](0));
+        stateChange = iOrderbook.addOrder2(config, new TaskV1[](0));
         assert(!stateChange);
         assert(iOrderbook.orderExists(order.hash()));
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderNonceDifferentNonceStateChange(address owner, OrderConfigV3 memory config, bytes32 otherNonce)
         public
     {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(config.nonce != otherNonce);
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder2(config, new ActionV1[](0));
+        bool stateChange = iOrderbook.addOrder2(config, new TaskV1[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(
@@ -42,7 +42,7 @@ contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
 
         config.nonce = otherNonce;
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder2(config, new ActionV1[](0));
+        stateChange = iOrderbook.addOrder2(config, new TaskV1[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(
@@ -51,6 +51,7 @@ contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
         );
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testAddOrderNonceSameNonceDifferentOrderStateChange(
         address owner,
         OrderConfigV3 memory config0,
@@ -62,7 +63,7 @@ contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
         config1.nonce = config0.nonce;
         vm.assume(keccak256(abi.encode(config0)) != keccak256(abi.encode(config1)));
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder2(config0, new ActionV1[](0));
+        bool stateChange = iOrderbook.addOrder2(config0, new TaskV1[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(
@@ -71,7 +72,7 @@ contract OrderBookAddOrderNonceTest is OrderBookExternalRealTest {
         );
 
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder2(config1, new ActionV1[](0));
+        stateChange = iOrderbook.addOrder2(config1, new TaskV1[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(

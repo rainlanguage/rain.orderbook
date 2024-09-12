@@ -3,9 +3,7 @@
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
-  import { Helper, Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
-  import InputBlockNumber from '$lib/components/InputBlockNumber.svelte';
-  import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
+  import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
@@ -19,7 +17,12 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/config';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import { orderAdd, orderAddCalldata, orderAddComposeRainlang } from '$lib/services/order';
+  import {
+    orderAdd,
+    orderAddCalldata,
+    orderAddComposeRainlang,
+    validateRaindexVersion,
+  } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
@@ -35,6 +38,7 @@
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
+  import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -181,7 +185,11 @@
       composedRainlangForScenarios = new Map();
       for (const scenario of Object.values(scenarios)) {
         try {
-          const composedRainlang = await orderAddComposeRainlang(dotrainText, scenario);
+          const composedRainlang = await orderAddComposeRainlang(
+            dotrainText,
+            $settingsText,
+            scenario,
+          );
           composedRainlangForScenarios.set(scenario, composedRainlang);
         } catch (e) {
           composedRainlangForScenarios.set(
@@ -195,11 +203,20 @@
       reportErrorToSentry(e);
     }
   }
+
+  const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
+    useDebouncedFn(validateRaindexVersion, 500);
+
+  $: debounceValidateRaindexVersion($globalDotrainFile.text, $settingsText);
 </script>
 
 <PageHeader title="Add Order" />
 
 <FileTextarea textFile={globalDotrainFile} title="New Order">
+  <svelte:fragment slot="alert">
+    <RaindexVersionValidator error={$raindexVersionError} />
+  </svelte:fragment>
+
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
       bind:value={$globalDotrainFile.text}
@@ -231,26 +248,12 @@
         class="min-w-fit"
         color="green"
         loading={isSubmitting}
-        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef)}
+        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef) || !!$raindexVersionError}
         on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
       >
     </div>
   </svelte:fragment>
 </FileTextarea>
-
-<div class="my-8">
-  <Label class="mb-2">Parse at Block Number</Label>
-  <InputBlockNumber
-    bind:value={$forkBlockNumber.value}
-    isFetching={$forkBlockNumber.isFetching}
-    on:clickGetLatest={forkBlockNumber.fetch}
-    required={false}
-  />
-  <Helper class="mt-2 text-sm">
-    The block number at which to parse the rain while drafting. Resets to the latest block on app
-    launch.
-  </Helper>
-</div>
 
 <Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
   ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button

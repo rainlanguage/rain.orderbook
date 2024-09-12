@@ -13,7 +13,7 @@ pub struct Scenario {
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
-    #[typeshare(typescript(type = "Blocks"))]
+    #[typeshare(skip)]
     pub blocks: Option<Blocks>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
@@ -126,7 +126,7 @@ impl ScenarioConfigSource {
 
 mod tests {
     use crate::test::mock_deployer;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
     use url::Url;
 
     use super::*;
@@ -200,6 +200,7 @@ mod tests {
 
         // Construct ConfigSource with the above scenarios
         let config_string = ConfigSource {
+            raindex_version: None,
             using_networks_from: HashMap::new(),
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification
@@ -212,6 +213,7 @@ mod tests {
             charts: HashMap::new(), // Assuming no charts for simplification
             deployments: HashMap::new(),
             sentry: None,
+            accounts: None, // Assuming no accounts for simplification
         };
 
         // Perform the conversion

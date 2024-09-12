@@ -4,16 +4,32 @@ query OrderDetailQuery($id: Bytes!) {
     orderHash
     owner
     outputs {
-      token
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
       balance
       vaultId
     }
     inputs {
-      token
+      token {
+        id
+        address
+        name
+        symbol
+        decimals
+      }
       balance
       vaultId
     }
+    orderbook {
+      id
+    }
     active
+    timestampAdded
     addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
       transaction {
         blockNumber

@@ -1,6 +1,10 @@
 name: Git is clean
 on: [push]
 
+concurrency:
+  group: ${{ github.ref }}-git-clean
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   git-clean:
     runs-on: ubuntu-latest
@@ -14,9 +18,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
       # Build metas etc. required to do a correct pointer build.
-      - run: nix develop -c raindex-prelude
-
-      - run: nix develop -c forge script ./script/BuildPointers.sol
+      - run: ./pointers.sh
 
       # Format the repo after generating pointers so that the pointer files are
       # formatted too.

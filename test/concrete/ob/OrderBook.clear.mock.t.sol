@@ -13,14 +13,15 @@ import {
     EvaluableV3,
     SignedContextV1,
     IInterpreterV3,
-    ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+    TaskV1
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
 contract OrderBookClearTest is OrderBookExternalMockTest {
+    /// forge-config: default.fuzz.runs = 100
     function testClearSimple(
         address alice,
         OrderConfigV3 memory aliceConfig,
@@ -138,7 +139,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(token, vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(token), vaultId, amount, new TaskV1[](0));
 
         assertEq(iOrderbook.vaultBalance(depositor, token, vaultId), amount);
     }

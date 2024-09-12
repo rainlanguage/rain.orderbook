@@ -11,14 +11,15 @@ import {
     IO,
     EvaluableV3,
     OrderConfigV3,
-    ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV2.sol";
+    TaskV1
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// If there is some live order(s) but the maxTakerInput is zero we error as
     /// the caller has full control over this, and it would cause none of the
     /// orders to be taken.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderNoopZeroMaxTakerInput(OrderV3 memory order, SignedContextV1 memory signedContext) external {
         vm.assume(order.validInputs.length > 0);
         vm.assume(order.validOutputs.length > 0);
@@ -71,7 +72,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
                 vm.prank(testOrders[i].owner);
                 vm.recordLogs();
-                iOrderbook.addOrder2(orderConfig, new ActionV1[](0));
+                iOrderbook.addOrder2(orderConfig, new TaskV1[](0));
                 Vm.Log[] memory entries = vm.getRecordedLogs();
                 assertEq(entries.length, 1);
                 (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
@@ -98,7 +99,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 );
                 uint256 balanceBefore = iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId);
                 vm.prank(testVaults[i].owner);
-                iOrderbook.deposit2(testVaults[i].token, vaultId, testVaults[i].deposit, new ActionV1[](0));
+                iOrderbook.deposit2(testVaults[i].token, vaultId, testVaults[i].deposit, new TaskV1[](0));
                 assertEq(
                     iOrderbook.vaultBalance(testVaults[i].owner, testVaults[i].token, vaultId),
                     balanceBefore + testVaults[i].deposit,
@@ -151,6 +152,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
     /// Add an order with unlimited maximum output and take it with a maximum
     /// input. Only the maximum input should be taken.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputSingleOrderUnlimitedMax(uint256 expectedTakerInput) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
 
@@ -169,6 +171,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
     /// Add an order with less than the maximum output. Only the limit from the
     /// order should be taken.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputSingleOrderLessThanMaximumOutput(uint256 maximumTakerInput) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         maximumTakerInput = bound(maximumTakerInput, 1000, type(uint256).max);
@@ -187,6 +190,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
     /// If the vault balance is less than both the maximum input and the order
     /// limit, the vault balance should be taken.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputSingleOrderLessThanMaximumInput(
         uint256 ownerDepositAmount,
         uint256 maximumTakerInput
@@ -210,6 +214,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
     /// The deposit amount can be anything actually, the order taking should
     /// adjust accordingly, and leave any unspent deposited tokens in the vault.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputSingleAnyDeposit(uint256 ownerDepositAmount, uint256 maximumTakerInput)
         external
     {
@@ -237,6 +242,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// The taker input can be sourced from multiple orders. Tests two orders
     /// that combined make up the maximum taker input. Both orders have the
     /// same owner.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputMultipleOrders(uint256 ownerDepositAmount, uint256 maximumTakerInput) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit = 1500;
@@ -263,6 +269,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// The taker input can be source from multiple orders with multiple owners.
     /// Tests two orders that combined make up the maximum taker input. Both
     /// orders have different owners.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputMultipleOrdersMultipleOwners(
         uint256 ownerOneDepositAmount,
         uint256 ownerTwoDepositAmount,

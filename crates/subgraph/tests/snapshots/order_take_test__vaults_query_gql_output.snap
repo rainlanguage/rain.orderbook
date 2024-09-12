@@ -4,15 +4,24 @@ expression: request_body.query
 ---
 query OrderTakeDetailQuery($id: ID!) {
   trade(id: $id) {
+    id
     tradeEvent {
       transaction {
         id
         from
+        blockNumber
+        timestamp
       }
+      sender
     }
     outputVaultBalanceChange {
+      id
+      __typename
       amount
+      newVaultBalance
+      oldVaultBalance
       vault {
+        id
         token {
           id
           address
@@ -20,13 +29,30 @@ query OrderTakeDetailQuery($id: ID!) {
           symbol
           decimals
         }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
       }
     }
     order {
+      id
       orderHash
     }
     inputVaultBalanceChange {
+      id
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
       vault {
+        id
         token {
           id
           address
@@ -35,7 +61,20 @@ query OrderTakeDetailQuery($id: ID!) {
           decimals
         }
       }
-      amount
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
+    }
+    timestamp
+    orderbook {
+      id
     }
   }
 }

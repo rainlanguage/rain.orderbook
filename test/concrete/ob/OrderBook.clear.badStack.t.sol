@@ -9,8 +9,8 @@ import {
     EvaluableV3,
     ClearConfig,
     SignedContextV1,
-    ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+    TaskV1
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
@@ -28,7 +28,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);
         LibTestAddOrder.conformConfig(configBob, iInterpreter, iStore);
         configBob.validOutputs[0] = configAlice.validInputs[0];
-        configAlice.validOutputs[0] = configBob.validInputs[0];
+        configBob.validInputs[0] = configAlice.validOutputs[0];
 
         configAlice.evaluable.bytecode = iParserV2.parse2(rainStringAlice);
         configBob.evaluable.bytecode = iParserV2.parse2(rainStringBob);
@@ -39,10 +39,10 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
             OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new ActionV1[](0));
+        iOrderbook.addOrder2(configAlice, new TaskV1[](0));
 
         vm.prank(bob);
-        iOrderbook.addOrder2(configBob, new ActionV1[](0));
+        iOrderbook.addOrder2(configBob, new TaskV1[](0));
 
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));
         iOrderbook.clear2(
@@ -50,6 +50,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         );
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testClearOrderBadStackEmptyStack(
         address alice,
         address bob,
@@ -59,6 +60,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         checkBadStack(alice, bob, configAlice, configBob, ":;:;", ":;:;", 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testClearOrderBadStackOneStack(
         address alice,
         address bob,
@@ -68,6 +70,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         checkBadStack(alice, bob, configAlice, configBob, "_:1;:;", "_:1;:;", 1);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testClearOrderBadStackOneEmpty(
         address alice,
         address bob,
@@ -77,6 +80,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         checkBadStack(alice, bob, configAlice, configBob, "_ _:1 1;:;", ":;:;", 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testClearOrderBadStackOtherEmpty(
         address alice,
         address bob,
@@ -86,6 +90,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         checkBadStack(alice, bob, configAlice, configBob, ":;:;", "_ _:1 1;:;", 0);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testClearOrderBadStackOneOne(
         address alice,
         address bob,
@@ -95,6 +100,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         checkBadStack(alice, bob, configAlice, configBob, "_ _:1 1;:;", "_:1;:;", 1);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testClearOrderBadStackOneOtherOne(
         address alice,
         address bob,

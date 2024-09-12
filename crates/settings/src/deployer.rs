@@ -1,5 +1,5 @@
 use crate::*;
-use alloy_primitives::Address;
+use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -18,8 +18,8 @@ pub struct Deployer {
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseDeployerConfigSourceError {
     #[error("Failed to parse address")]
-    AddressParseError(alloy_primitives::hex::FromHexError),
-    #[error("Network not found: {0}")]
+    AddressParseError(alloy::primitives::hex::FromHexError),
+    #[error("Network not found for Deployer: {0}")]
     NetworkNotFoundError(String),
 }
 
@@ -56,18 +56,6 @@ impl DeployerConfigSource {
 mod tests {
     use super::*;
     use crate::test::*;
-
-    // Mock a simple Network struct for testing purposes
-    #[derive(Debug, Clone)]
-    struct MockNetwork {
-        name: String,
-    }
-
-    impl PartialEq for MockNetwork {
-        fn eq(&self, other: &Self) -> bool {
-            self.name == other.name
-        }
-    }
 
     #[test]
     fn test_try_into_deployer_success() {

@@ -1,12 +1,20 @@
 [package]
 name = "rain_orderbook_bindings"
 description = "Bindings for the Rain Orderbook Solidity contracts to Rust types."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-alloy-sol-types = { workspace = true, features = ["json"] }
-alloy-primitives = { workspace = true }
-serde = { workspace = true }
+alloy = { workspace = true, features = ["sol-types", "json"] }
+serde = { workspace = true, features = ["derive", "rc"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+js-sys = { version = "0.3.69" }
+wasm-bindgen = { version = "0.2.92" }
+serde-wasm-bindgen = { version = "0.6.5" }
+tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.42"

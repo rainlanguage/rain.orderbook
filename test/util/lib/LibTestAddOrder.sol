@@ -3,11 +3,11 @@ pragma solidity ^0.8.19;
 
 import {META_MAGIC_NUMBER_V1} from "rain.metadata/lib/LibMeta.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderConfigV3, OrderV3, IO} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IInterpreterV3, SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {OrderConfigV3, OrderV3, IO} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IInterpreterV3, SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
-import {EvaluableV3} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
+import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 import {HANDLE_IO_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 
@@ -43,7 +43,11 @@ library LibTestAddOrder {
         }
         if (config.validOutputs.length == 0) {
             config.validOutputs = new IO[](1);
-            config.validOutputs[0] = IO(address(0), 0, 0);
+            config.validOutputs[0] = IO(address(1), 0, 0);
+        }
+        if (config.validInputs[0].token == config.validOutputs[0].token) {
+            config.validInputs[0].token = address(0);
+            config.validOutputs[0].token = address(1);
         }
         // Taken from parser for "_ _:1e18 1e18;:;".
         config.evaluable.bytecode = hex"020000000c02020002010000000100000000000000";

@@ -4,10 +4,15 @@ expression: request_body.query
 ---
 query OrderDetailQuery($id: ID!) {
   order(id: $id) {
+    id
     orderBytes
     orderHash
     owner
     outputs {
+      id
+      owner
+      vaultId
+      balance
       token {
         id
         address
@@ -15,10 +20,109 @@ query OrderDetailQuery($id: ID!) {
         symbol
         decimals
       }
-      balance
-      vaultId
+      orderbook {
+        id
+      }
+      ordersAsOutput {
+        id
+        orderHash
+        active
+      }
+      ordersAsInput {
+        id
+        orderHash
+        active
+      }
+      balanceChanges {
+        __typename
+        ... on Withdrawal {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on TradeVaultBalanceChange {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on Deposit {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+      }
     }
     inputs {
+      id
+      owner
+      vaultId
+      balance
       token {
         id
         address
@@ -26,16 +130,120 @@ query OrderDetailQuery($id: ID!) {
         symbol
         decimals
       }
-      balance
-      vaultId
+      orderbook {
+        id
+      }
+      ordersAsOutput {
+        id
+        orderHash
+        active
+      }
+      ordersAsInput {
+        id
+        orderHash
+        active
+      }
+      balanceChanges {
+        __typename
+        ... on Withdrawal {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on TradeVaultBalanceChange {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+        ... on Deposit {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+        }
+      }
+    }
+    orderbook {
+      id
     }
     active
-    addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
+    timestampAdded
+    meta
+    addEvents {
       transaction {
+        id
+        from
         blockNumber
         timestamp
       }
     }
-    meta
+    trades {
+      id
+    }
   }
 }

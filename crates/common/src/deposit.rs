@@ -1,13 +1,15 @@
 use crate::transaction::{TransactionArgs, TransactionArgsError, WritableTransactionExecuteError};
+use alloy::primitives::{Address, U256};
+use alloy::sol_types::SolCall;
+use alloy_ethers_typecast::transaction::{
+    ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
+    ReadableClientError, WritableClientError,
+};
+#[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::{
     ethers_address_to_alloy,
-    transaction::{
-        ReadContractParametersBuilder, ReadContractParametersBuilderError, ReadableClient,
-        ReadableClientError, WritableClientError, WriteTransaction, WriteTransactionStatus,
-    },
+    transaction::{WriteTransaction, WriteTransactionStatus},
 };
-use alloy_primitives::{Address, U256};
-use alloy_sol_types::SolCall;
 use rain_orderbook_bindings::{
     IOrderBookV4::deposit2Call,
     IERC20::{allowanceCall, approveCall},
@@ -46,7 +48,7 @@ impl From<DepositArgs> for deposit2Call {
             token: val.token,
             vaultId: val.vault_id,
             amount: val.amount,
-            post: vec![],
+            tasks: vec![],
         }
     }
 }
@@ -72,6 +74,7 @@ impl DepositArgs {
     }
 
     /// Execute IERC20 approve call
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute_approve<S: Fn(WriteTransactionStatus<approveCall>)>(
         &self,
         transaction_args: TransactionArgs,
@@ -118,6 +121,7 @@ impl DepositArgs {
     }
 
     /// Execute OrderbookV3 deposit call
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit2Call>)>(
         &self,
         transaction_args: TransactionArgs,
@@ -146,7 +150,7 @@ impl DepositArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
 
     #[test]
     fn test_deposit_args_into() {

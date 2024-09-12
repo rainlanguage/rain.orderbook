@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { Vault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
-  import type { Vault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
+  import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import {
     vaultDeposit,
@@ -10,17 +9,20 @@
   } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
   import { orderbookAddress } from '$lib/stores/settings';
-  import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
+  import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
   import ModalExecute from './ModalExecute.svelte';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { reportErrorToSentry } from '$lib/services/sentry';
+  import { formatUnits } from 'viem';
+  import { onMount } from 'svelte';
 
   export let open = false;
-  export let vault: TokenVaultDetail | TokenVaultListItem;
+  export let vault: TokenVaultDetail;
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
+  let userBalance: bigint = 0n;
 
   function reset() {
     open = false;
@@ -33,7 +35,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultDeposit(BigInt(vault.vault_id), vault.token.id, amount);
+      await vaultDeposit(BigInt(vault.vaultId), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -48,7 +50,7 @@
       const allowance = await checkAllowance(vault.token.id, $orderbookAddress);
       if (allowance.lt(amount)) {
         const approveCalldata = (await vaultDepositApproveCalldata(
-          BigInt(vault.vault_id),
+          BigInt(vault.vaultId),
           vault.token.id,
           amount,
           allowance.toBigInt(),
@@ -59,7 +61,7 @@
       }
 
       const depositCalldata = (await vaultDepositCalldata(
-        BigInt(vault.vault_id),
+        BigInt(vault.vaultId),
         vault.token.id,
         amount,
       )) as Uint8Array;
@@ -73,6 +75,18 @@
     isSubmitting = false;
     reset();
   }
+
+  async function fetchUserBalance() {
+    try {
+      userBalance = (await checkERC20Balance(vault.token.id)).toBigInt();
+    } catch (e) {
+      userBalance = 0n;
+    }
+  }
+
+  onMount(() => {
+    fetchUserBalance();
+  });
 </script>
 
 {#if !selectWallet}
@@ -82,7 +96,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vault_id)}
+        {bigintStringToHex(vault.vaultId)}
       </p>
     </div>
 
@@ -104,13 +118,23 @@
       </p>
     </div>
 
-    <div>
-      <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Balance
-      </h5>
-      <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.balance}
-      </p>
+    <div class="flex justify-between">
+      <div class="w-1/2">
+        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Your Balance
+        </h5>
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+          {formatUnits(userBalance, Number(vault.token.decimals ?? 0))}
+        </p>
+      </div>
+      <div class="w-1/2">
+        <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Vault Balance
+        </h5>
+        <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
+          {formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
+        </p>
+      </div>
     </div>
 
     <div class="mb-6">

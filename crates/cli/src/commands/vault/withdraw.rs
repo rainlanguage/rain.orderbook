@@ -1,6 +1,6 @@
 use crate::status::display_write_transaction_status;
 use crate::{execute::Execute, transaction::CliTransactionArgs};
-use alloy_primitives::{Address, U256};
+use alloy::primitives::{Address, U256};
 use anyhow::Result;
 use clap::Args;
 use rain_orderbook_common::transaction::TransactionArgs;

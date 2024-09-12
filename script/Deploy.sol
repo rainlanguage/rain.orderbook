@@ -2,16 +2,16 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook, EvaluableV3} from "src/concrete/ob/OrderBook.sol";
+import {OrderBook, EvaluableV3, TaskV1, SignedContextV1} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
 import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
-import {OrderBookV4ArbConfigV1} from "src/abstract/OrderBookV4ArbCommon.sol";
-import {IMetaBoardV1} from "rain.metadata/interface/IMetaBoardV1.sol";
+import {OrderBookV4ArbConfigV2} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 
 bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
@@ -38,7 +38,7 @@ contract Deploy is Script {
         return new OrderBook();
     }
 
-    function deploySubParser(IMetaBoardV1 metaboard) internal {
+    function deploySubParser(IMetaBoardV1_2 metaboard) internal {
         OrderBookSubParser subParser = new OrderBookSubParser();
         bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParser.rain.meta");
         LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
@@ -55,7 +55,7 @@ contract Deploy is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        IMetaBoardV1 metaboard = IMetaBoardV1(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
+        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
         string memory suiteString = vm.envOr("DEPLOYMENT_SUITE", string("all"));
         bytes32 suite = keccak256(bytes(suiteString));
 
@@ -86,23 +86,36 @@ contract Deploy is Script {
 
             // Order takers.
             new GenericPoolOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV1(
-                    address(raindex), EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""), ""
+                OrderBookV4ArbConfigV2(
+                    address(raindex),
+                    TaskV1({
+                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                        signedContext: new SignedContextV1[](0)
+                    }),
+                    ""
                 )
             );
 
             new RouteProcessorOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV1(
+                OrderBookV4ArbConfigV2(
                     address(raindex),
-                    EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),
+                    TaskV1({
+                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                        signedContext: new SignedContextV1[](0)
+                    }),
                     abi.encode(routeProcessor)
                 )
             );
 
             // Flash borrowers.
             new GenericPoolOrderBookV4FlashBorrower(
-                OrderBookV4ArbConfigV1(
-                    raindex, EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""), ""
+                OrderBookV4ArbConfigV2(
+                    raindex,
+                    TaskV1({
+                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                        signedContext: new SignedContextV1[](0)
+                    }),
+                    ""
                 )
             );
         }

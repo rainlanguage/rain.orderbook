@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::path::PathBuf;
 
-#[derive(clap::ValueEnum, Clone)]
+#[derive(Debug, clap::ValueEnum, Clone, PartialEq)]
 pub enum SupportedOutputEncoding {
     Binary,
     Hex,
@@ -16,7 +16,7 @@ pub fn output(
     let encoded_bytes: &[u8] = match output_encoding {
         SupportedOutputEncoding::Binary => bytes,
         SupportedOutputEncoding::Hex => {
-            hex_encoded = alloy_primitives::hex::encode_prefixed(bytes);
+            hex_encoded = alloy::primitives::hex::encode_prefixed(bytes);
             hex_encoded.as_bytes()
         }
     };

@@ -12,8 +12,8 @@ import {
     TakeOrdersConfigV3,
     EvaluableV3,
     SignedContextV1,
-    ActionV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+    TaskV1
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
@@ -41,7 +41,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             vm.mockCall(outputToken, "", abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new ActionV1[](0));
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV1[](0));
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
         TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](configs.length);
@@ -52,7 +52,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
 
             vm.recordLogs();
-            iOrderbook.addOrder2(config, new ActionV1[](0));
+            iOrderbook.addOrder2(config, new TaskV1[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 1);
             (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
@@ -123,6 +123,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         checkTakeOrderHandleIO(configs, "err 2", type(uint256).max);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO7(uint256 toClear) external {
         toClear = bound(toClear, 3e18 + 1, type(uint256).max);
         bytes[] memory configs = new bytes[](4);
@@ -133,6 +134,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         checkTakeOrderHandleIO(configs, "err 2", toClear);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO8(uint256 toClear) external {
         toClear = bound(toClear, 4e18 + 1, type(uint256).max);
         bytes[] memory configs = new bytes[](5);
@@ -146,6 +148,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO9(uint256 toClear) external {
         toClear = bound(toClear, 1, 4e18);
         bytes[] memory configs = new bytes[](5);
@@ -159,6 +162,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     // This one WONT error because the take orders stops executing the handle IO
     // before it clears 4e18 + 1, so it never hits the second ensure condition.
+    /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO10(uint256 toClear) external {
         toClear = bound(toClear, 1, 3e18);
         bytes[] memory configs = new bytes[](4);
@@ -176,7 +180,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[0] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             type(uint256).max
         );
     }
@@ -189,7 +193,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[1] = "_ _:1 1;";
         checkTakeOrderHandleIO(
             configs,
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             type(uint256).max
         );
     }
@@ -202,7 +206,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         configs[1] = "_ _:1 1;:;";
         checkTakeOrderHandleIO(
             configs,
-            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, hex"010000020200020110000001100000", 1),
+            abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             type(uint256).max
         );
     }

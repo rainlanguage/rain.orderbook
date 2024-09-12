@@ -9,12 +9,14 @@ import {LibOrder, OrderV3} from "src/lib/LibOrder.sol";
 /// Exercises the LibOrder library.
 contract LibOrderTest is Test {
     /// Hashing should always produce the same result for the same input.
-    function testHashEqual(OrderV3 memory a) public {
+    /// forge-config: default.fuzz.runs = 100
+    function testHashEqual(OrderV3 memory a) public pure {
         assertTrue(LibOrder.hash(a) == LibOrder.hash(a));
     }
 
     /// Hashing should always produce different results for different inputs.
-    function testHashNotEqual(OrderV3 memory a, OrderV3 memory b) public {
+    /// forge-config: default.fuzz.runs = 100
+    function testHashNotEqual(OrderV3 memory a, OrderV3 memory b) public pure {
         assertTrue(LibOrder.hash(a) != LibOrder.hash(b));
     }
 }

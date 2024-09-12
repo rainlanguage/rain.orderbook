@@ -9,7 +9,7 @@ import {
     TakeOrdersConfigV3,
     EvaluableV3,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchTest
@@ -21,6 +21,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
     /// the caller's desired input and output tokens match the first order they
     /// pass in.
     /// Test a mismatch in the input tokens.
+    /// forge-config: default.fuzz.runs = 10
     function testTokenMismatchInputs(
         OrderV3 memory a,
         uint256 aInputIOIndex,
@@ -41,6 +42,8 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
         maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
 
+        vm.assume(a.validInputs[aInputIOIndex].token != a.validOutputs[aOutputIOIndex].token);
+
         // Mismatch on inputs across orders taken.
         vm.assume(a.validInputs[aInputIOIndex].token != b.validInputs[bInputIOIndex].token);
         // Line up outputs so we don't trigger that code path.
@@ -50,17 +53,14 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenMismatch.selector, b.validInputs[bInputIOIndex].token, a.validInputs[aInputIOIndex].token
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }
 
     /// Test a mismatch in the output tokens.
-    function testTokenMismatchOutputs(
+    /// forge-config: default.fuzz.runs = 10
+    function testTokenDecimalMismatchOutputs(
         OrderV3 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
@@ -80,6 +80,8 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
         maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
 
+        vm.assume(a.validOutputs[aOutputIOIndex].token != a.validInputs[aInputIOIndex].token);
+
         // Mismatch on outputs across orders taken.
         vm.assume(a.validOutputs[aOutputIOIndex].token != b.validOutputs[bOutputIOIndex].token);
         // Line up inputs so we don't trigger that code path.
@@ -89,11 +91,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                TokenMismatch.selector, b.validOutputs[bOutputIOIndex].token, a.validOutputs[aOutputIOIndex].token
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
     }

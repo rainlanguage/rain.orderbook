@@ -1,13 +1,13 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
-use alloy_primitives::Bytes;
+use alloy::primitives::Bytes;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, csv::TryIntoCsv, rainlang::compose_to_rainlang,
+    add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
-    types::OrderDetailExtended, types::OrderFlattened, types::FlattenError
+    types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
 };
-use rain_orderbook_subgraph_client::{types::orders_list, PaginationArgs};
+use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -15,12 +15,13 @@ use tauri::AppHandle;
 #[tauri::command]
 pub async fn orders_list(
     subgraph_args: SubgraphArgs,
+    filter_args: OrdersListFilterArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<orders_list::Order>> {
+) -> CommandResult<Vec<Order>> {
     let orders = subgraph_args
         .to_subgraph_client()
         .await?
-        .orders_list(pagination_args)
+        .orders_list(filter_args, pagination_args)
         .await?;
     Ok(orders)
 }
@@ -168,6 +169,17 @@ pub async fn order_remove_calldata(
 }
 
 #[tauri::command]
-pub async fn compose_from_scenario(dotrain: String, scenario: Scenario) -> CommandResult<String> {
-    Ok(compose_to_rainlang(dotrain, scenario.bindings)?)
+pub async fn compose_from_scenario(
+    dotrain: String,
+    settings: Option<String>,
+    scenario: Scenario,
+) -> CommandResult<String> {
+    let order = DotrainOrder::new(dotrain.clone(), settings).await?;
+    Ok(order.compose_scenario_to_rainlang(scenario.name).await?)
+}
+
+#[tauri::command]
+pub async fn validate_raindex_version(dotrain: String, settings: String) -> CommandResult<()> {
+    let order = DotrainOrder::new(dotrain.clone(), Some(settings)).await?;
+    Ok(order.validate_raindex_version().await?)
 }

@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 import {stdError} from "forge-std/Test.sol";
 import {REVERTING_MOCK_BYTECODE, CONSOLE_ADDRESS} from "test/util/lib/LibTestConstants.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {ActionV1, EvaluableV3, IOrderBookV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+import {TaskV1, EvaluableV3, IOrderBookV4} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
@@ -12,6 +12,7 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 /// Tests depositing to an order book.
 contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// Tests that we can deposit some amount and view the new vault balance.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositSimple(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
         vm.prank(depositor);
@@ -21,11 +22,12 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
 
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new TaskV1[](0));
         assertEq(iOrderbook.vaultBalance(depositor, address(iToken0), vaultId), amount);
     }
 
     /// Depositing zero should revert.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositZero(address depositor, uint256 vaultId) external {
         vm.prank(depositor);
         vm.expectRevert(
@@ -33,7 +35,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
                 IOrderBookV4.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, 0, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, 0, new TaskV1[](0));
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -47,14 +49,14 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), 0, 1, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), 0, 1, new TaskV1[](0));
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit2(address(iToken0), 0, 1, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), 0, 1, new TaskV1[](0));
     }
 
     /// Test a cold deposit, which is the worst case scenario for gas. In this
@@ -69,17 +71,18 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit2(address(iToken0), 0, 1, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), 0, 1, new TaskV1[](0));
     }
 
     /// Any failure in the deposit should revert the entire transaction.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositFail(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
 
         // The token contract always reverts when not mocked.
         vm.prank(depositor);
         vm.expectRevert(bytes("SafeERC20: low-level call failed"));
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new TaskV1[](0));
 
         // Mocking the token to return false should also revert.
         vm.prank(depositor);
@@ -90,7 +93,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         );
         // This error string appears when the call completes but returns false.
         vm.expectRevert(bytes("SafeERC20: ERC20 operation did not succeed"));
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new TaskV1[](0));
     }
 
     /// Defines a deposit to be used in testDepositMany.
@@ -107,6 +110,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
 
     /// Any combination of depositors, tokens, vaults, amounts should not cause
     /// collisions or other illogical outcomes.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
@@ -137,7 +141,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             emit Deposit(actions[i].depositor, actions[i].token, actions[i].vaultId, uint256(actions[i].amount));
             vm.record();
             vm.recordLogs();
-            iOrderbook.deposit2(actions[i].token, actions[i].vaultId, actions[i].amount, new ActionV1[](0));
+            iOrderbook.deposit2(actions[i].token, actions[i].vaultId, actions[i].amount, new TaskV1[](0));
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
             assertEq(vm.getRecordedLogs().length, 1, "logs");
             // - reentrancy guard x3
@@ -155,6 +159,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     }
 
     /// Depositing should emit an event with the sender and all deposit details.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositEvent(address depositor, uint256 vaultId, uint256 amount) external {
         vm.assume(amount != 0);
         vm.prank(depositor);
@@ -165,10 +170,11 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         );
         vm.expectEmit(false, false, false, true);
         emit Deposit(depositor, address(iToken0), vaultId, amount);
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, amount, new TaskV1[](0));
     }
 
     /// Depositing should NOT allow reentrancy.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositReentrancy(
         address depositor,
         uint256 vaultId,
@@ -182,13 +188,14 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         vm.prank(depositor);
         Reenteroor reenteroor = new Reenteroor();
         reenteroor.reenterWith(
-            abi.encodeWithSelector(IOrderBookV4.deposit2.selector, reToken, reVaultId, reAmount, new ActionV1[](0))
+            abi.encodeWithSelector(IOrderBookV4.deposit2.selector, reToken, reVaultId, reAmount, new TaskV1[](0))
         );
         vm.expectRevert(bytes("ReentrancyGuard: reentrant call"));
-        iOrderbook.deposit2(address(reenteroor), vaultId, amount, new ActionV1[](0));
+        iOrderbook.deposit2(address(reenteroor), vaultId, amount, new TaskV1[](0));
     }
 
     /// Vault balances MUST NOT silently overflow.
+    /// forge-config: default.fuzz.runs = 100
     function testDepositOverflow(address depositor, uint256 vaultId, uint256 amountOne, uint256 amountTwo) external {
         amountOne = bound(amountOne, type(uint128).max, type(uint256).max);
         amountTwo = bound(amountTwo, type(uint128).max, type(uint256).max);
@@ -205,7 +212,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amountOne),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, amountOne, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, amountOne, new TaskV1[](0));
 
         vm.prank(depositor);
         vm.mockCall(
@@ -214,7 +221,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         vm.expectRevert(stdError.arithmeticError);
-        iOrderbook.deposit2(address(iToken0), vaultId, amountTwo, new ActionV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, amountTwo, new TaskV1[](0));
     }
 
     // Invariant testing doesn't seem to work currently.

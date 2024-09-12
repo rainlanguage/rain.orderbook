@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { Vault as TokenVaultDetail } from '$lib/typeshare/vaultDetail';
-  import type { Vault as TokenVaultListItem } from '$lib/typeshare/vaultsList';
+  import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex } from '$lib/utils/hex';
@@ -11,9 +10,10 @@
   import ModalExecute from './ModalExecute.svelte';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
+  import { formatUnits } from 'viem';
 
   export let open = false;
-  export let vault: TokenVaultDetail | TokenVaultListItem;
+  export let vault: TokenVaultDetail;
   let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;
@@ -32,7 +32,7 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      await vaultWithdraw(BigInt(vault.vault_id), vault.token.id, amount);
+      await vaultWithdraw(BigInt(vault.vaultId), vault.token.id, amount);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -44,7 +44,7 @@
     isSubmitting = true;
     try {
       const calldata = (await vaultWithdrawCalldata(
-        BigInt(vault.vault_id),
+        BigInt(vault.vaultId),
         vault.token.id,
         amount,
       )) as Uint8Array;
@@ -73,7 +73,7 @@
         Vault ID
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {bigintStringToHex(vault.vault_id)}
+        {bigintStringToHex(vault.vaultId)}
       </p>
     </div>
 
@@ -97,10 +97,10 @@
 
     <div>
       <h5 class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-        Balance
+        Vault Balance
       </h5>
       <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-        {vault.balance}
+        {formatUnits(BigInt(vault.balance), Number(vault.token.decimals ?? 0))}
       </p>
     </div>
 

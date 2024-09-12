@@ -1,14 +1,13 @@
-use crate::transaction::{TransactionArgs, TransactionArgsError};
-use alloy_ethers_typecast::transaction::{
-    WritableClientError, WriteTransaction, WriteTransactionStatus,
-};
-use alloy_primitives::hex::FromHexError;
-
-use alloy_sol_types::SolCall;
+#[cfg(not(target_family = "wasm"))]
+use crate::transaction::TransactionArgs;
+use crate::transaction::TransactionArgsError;
+use alloy::primitives::hex::FromHexError;
+use alloy::sol_types::SolCall;
+use alloy_ethers_typecast::transaction::WritableClientError;
+#[cfg(not(target_family = "wasm"))]
+use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
-use rain_orderbook_subgraph_client::types::{
-    order_detail::Order, order_detail_traits::OrderDetailError,
-};
+use rain_orderbook_subgraph_client::types::{common::Order, order_detail_traits::OrderDetailError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -41,12 +40,13 @@ impl TryInto<removeOrder2Call> for RemoveOrderArgs {
     fn try_into(self) -> Result<removeOrder2Call, OrderDetailError> {
         Ok(removeOrder2Call {
             order: self.order.try_into()?,
-            post: vec![],
+            tasks: vec![],
         })
     }
 }
 
 impl RemoveOrderArgs {
+    #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<removeOrder2Call>)>(
         self,
         transaction_args: TransactionArgs,

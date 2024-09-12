@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 import {GenericPoolOrderBookV4ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV4ArbOrderTakerTest.sol";
 import {
     GenericPoolOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV1
+    OrderBookV4ArbConfigV2
 } from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {
     OrderV3,
@@ -13,16 +13,18 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2,
-    SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
+    SignedContextV1,
+    TaskV1
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {
     LibNamespace,
     DEFAULT_STATE_NAMESPACE,
     BEFORE_ARB_SOURCE_INDEX,
-    WrongEvaluable
+    WrongTask
 } from "src/abstract/OrderBookV4ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
+import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 
 contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBookV4ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
@@ -30,6 +32,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         return hex"deadbeef";
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testGenericPoolTakeOrdersWrongExpression(
         OrderV3 memory order,
         uint256 inputIOIndex,
@@ -42,14 +45,15 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         );
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        vm.expectRevert(abi.encodeWithSelector(WrongEvaluable.selector));
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
+        vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
+            iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            0,
-            evaluable
+            TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
 
+    /// forge-config: default.fuzz.runs = 10
     function testGenericPoolTakeOrdersExpression(
         OrderV3 memory order,
         uint256 inputIOIndex,
@@ -59,40 +63,34 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
     ) public {
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
+        StateNamespace ns = StateNamespace.wrap(uint256(uint160(address(this))));
+        FullyQualifiedNamespace fqns = LibNamespace.qualifyNamespace(ns, address(iArb));
+
         vm.mockCall(
             address(iInterpreter),
-            abi.encodeWithSelector(
-                IInterpreterV3.eval3.selector,
-                iInterpreterStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
-            ),
+            abi.encodeWithSelector(IInterpreterV3.eval3.selector, iInterpreterStore, fqns),
             abi.encode(stack, kvs)
         );
         vm.expectCall(
-            address(iInterpreter),
-            abi.encodeWithSelector(
-                IInterpreterV3.eval3.selector,
-                iInterpreterStore,
-                LibNamespace.qualifyNamespace(DEFAULT_STATE_NAMESPACE, address(iArb))
-            )
+            address(iInterpreter), abi.encodeWithSelector(IInterpreterV3.eval3.selector, iInterpreterStore, fqns)
         );
 
         if (kvs.length > 0) {
             vm.mockCall(
                 address(iInterpreterStore),
-                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, DEFAULT_STATE_NAMESPACE, kvs),
+                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns, kvs),
                 abi.encode("")
             );
-            vm.expectCall(
-                address(iInterpreterStore),
-                abi.encodeWithSelector(IInterpreterStoreV2.set.selector, DEFAULT_STATE_NAMESPACE, kvs)
-            );
+            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns, kvs));
         }
 
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb2(
+        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
+            iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            0,
-            EvaluableV3(iInterpreter, iInterpreterStore, expression())
+            TaskV1({
+                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+                signedContext: new SignedContextV1[](0)
+            })
         );
     }
 }

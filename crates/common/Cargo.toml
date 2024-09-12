@@ -1,20 +1,22 @@
 [package]
 name = "rain_orderbook_common"
-version = "0.0.1"
-edition = "2021"
-license = "CAL-1.0"
 description = "Rain Orderbook CLI."
-homepage = "https://github.com/rainprotocol/rain.orderbook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
-alloy-primitives = { workspace = true }
+alloy = { workspace = true, features = [ "dyn-abi" ] }
 alloy-ethers-typecast = { workspace = true }
-alloy-sol-types = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -22,8 +24,6 @@ serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 once_cell = { workspace = true }
-alloy-json-abi = { workspace = true }
-alloy-dyn-abi = { workspace = true }
 reqwest = { workspace = true }
 strict-yaml-rust = { workspace = true }
 dotrain = { workspace = true }
@@ -34,17 +34,26 @@ rain-metadata-bindings = { workspace = true }
 rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
-rain-interpreter-eval = { workspace = true }
-rain-orderbook-env = { workspace = true }
 serde_bytes = { workspace = true }
-tokio = { workspace = true }
-proptest = { workspace = true }
 typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
-rand = "0.8.5"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { workspace = true, features = ["full"] }
+rain-interpreter-eval = { workspace = true }
+proptest = { workspace = true }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+js-sys = { version = "0.3.69" }
+wasm-bindgen = { version = "0.2.92" }
+serde-wasm-bindgen = { version = "0.6.5" }
+wasm-bindgen-futures = { version = "0.4.42" }
+tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
 [dev-dependencies]
-tokio = { workspace = true }
+httpmock = "0.7.0"
+rain_orderbook_test_fixtures = { workspace = true }

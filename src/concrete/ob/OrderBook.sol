@@ -6,25 +6,26 @@ import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointDecimalConstants.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
-import {LibEncodedDispatch, EncodedDispatch} from "rain.interpreter.interface/lib/caller/LibEncodedDispatch.sol";
+import {
+    LibEncodedDispatch,
+    EncodedDispatch
+} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {
-    SourceIndexV2,
-    StateNamespace,
-    IInterpreterV3
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV3.sol";
+import {SourceIndexV2, StateNamespace, IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
+import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
-import {IMetaV1} from "rain.metadata/interface/IMetaV1.sol";
+import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 
 import {
@@ -39,16 +40,17 @@ import {
     ZeroMaximumInput,
     SignedContextV1,
     EvaluableV3,
-    ActionV1,
+    TaskV1,
     Quote
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4.sol";
-import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV4OrderTaker.sol";
+} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV4OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
     CONTEXT_VAULT_IO_BALANCE_DIFF,
+    CONTEXT_VAULT_IO_TOKEN_DECIMALS,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_VAULT_IO_TOKEN,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
@@ -66,15 +68,14 @@ error ReentrancyGuardReentrantCall();
 error NotOrderOwner(address sender, address owner);
 
 /// Thrown when the input and output tokens don't match, in either direction.
-/// @param aliceToken The input or output of one order.
-/// @param bobToken The input or output of the other order that doesn't match a.
-error TokenMismatch(address aliceToken, address bobToken);
+error TokenMismatch();
+
+/// Thrown when the input token is the output token.
+error TokenSelfTrade();
 
 /// Thrown when the input and output token decimals don't match, in either
 /// direction.
-/// @param aliceTokenDecimals The input or output decimals of one order.
-/// @param bobTokenDecimals The input or output decimals of the other order.
-error TokenDecimalsMismatch(uint8 aliceTokenDecimals, uint8 bobTokenDecimals);
+error TokenDecimalsMismatch();
 
 /// Thrown when the minimum input is not met.
 /// @param minimumInput The minimum input required.
@@ -82,8 +83,7 @@ error TokenDecimalsMismatch(uint8 aliceTokenDecimals, uint8 bobTokenDecimals);
 error MinimumInput(uint256 minimumInput, uint256 input);
 
 /// Thrown when two orders have the same owner during clear.
-/// @param owner The owner of both orders.
-error SameOwner(address owner);
+error SameOwner();
 
 /// Thrown when calculate order expression wants inputs.
 /// @param inputs The inputs the expression wants.
@@ -164,7 +164,7 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
+contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV3;
@@ -203,28 +203,57 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     }
 
     /// @inheritdoc IOrderBookV4
-    function enact(ActionV1[] calldata post) external nonReentrant {
+    function entask(TaskV1[] calldata post) external nonReentrant {
         LibOrderBook.doPost(new uint256[][](0), post);
     }
 
     /// @inheritdoc IOrderBookV4
-    function deposit2(address token, uint256 vaultId, uint256 amount, ActionV1[] calldata post) external nonReentrant {
-        if (amount == 0) {
+    function deposit2(address token, uint256 vaultId, uint256 depositAmount, TaskV1[] calldata post)
+        external
+        nonReentrant
+    {
+        if (depositAmount == 0) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
-        emit Deposit(msg.sender, token, vaultId, amount);
+        emit Deposit(msg.sender, token, vaultId, depositAmount);
         //slither-disable-next-line reentrancy-benign
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        sVaultBalances[msg.sender][token][vaultId] += amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
+        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance + depositAmount;
 
-        LibOrderBook.doPost(new uint256[][](0), post);
+        if (post.length != 0) {
+            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+            // It's incredibly common anyway. Please let us know if this actually a
+            // problem in practice.
+            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+            uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
+                currentVaultBalance,
+                tokenDecimals,
+                // Error on overflow.
+                // Rounding down is the default.
+                0
+            );
+            uint256 depositAmount18 = LibFixedPointDecimalScale.scale18(
+                depositAmount,
+                tokenDecimals,
+                // Error on overflow.
+                // Rounding down is the default.
+                0
+            );
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, currentVaultBalance18, depositAmount18)
+                ),
+                post
+            );
+        }
     }
 
     /// @inheritdoc IOrderBookV4
-    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, ActionV1[] calldata post)
+    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, TaskV1[] calldata post)
         external
         nonReentrant
     {
@@ -242,12 +271,48 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            if (post.length != 0) {
+                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
+                // It's incredibly common anyway. Please let us know if this actually a
+                // problem in practice.
+                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
+
+                LibOrderBook.doPost(
+                    LibUint256Matrix.matrixFrom(
+                        LibUint256Array.arrayFrom(
+                            uint256(uint160(token)),
+                            vaultId,
+                            LibFixedPointDecimalScale.scale18(
+                                currentVaultBalance,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            LibFixedPointDecimalScale.scale18(
+                                withdrawAmount,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            ),
+                            LibFixedPointDecimalScale.scale18(
+                                targetAmount,
+                                tokenDecimals,
+                                // Error on overflow.
+                                // Rounding down is the default.
+                                0
+                            )
+                        )
+                    ),
+                    post
+                );
+            }
         }
     }
 
     /// @inheritdoc IOrderBookV4
-    function addOrder2(OrderConfigV3 calldata orderConfig, ActionV1[] calldata post)
+    function addOrder2(OrderConfigV3 calldata orderConfig, TaskV1[] calldata post)
         external
         nonReentrant
         returns (bool)
@@ -282,17 +347,20 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             // that the meta self describes as a Rain meta document.
             if (orderConfig.meta.length > 0) {
                 LibMeta.checkMetaUnhashedV1(orderConfig.meta);
-                emit MetaV1(order.owner, uint256(orderHash), orderConfig.meta);
+                emit MetaV1_2(order.owner, orderHash, orderConfig.meta);
             }
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
 
         return stateChange;
     }
 
     /// @inheritdoc IOrderBookV4
-    function removeOrder2(OrderV3 calldata order, ActionV1[] calldata post)
+    function removeOrder2(OrderV3 calldata order, TaskV1[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)
@@ -306,7 +374,10 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV2(msg.sender, orderHash, order);
 
-            LibOrderBook.doPost(new uint256[][](0), post);
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
+                post
+            );
         }
     }
 
@@ -316,6 +387,13 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
 
         if (sOrders[orderHash] != ORDER_LIVE) {
             return (false, 0, 0);
+        }
+
+        if (
+            quoteConfig.order.validInputs[quoteConfig.inputIOIndex].token
+                == quoteConfig.order.validOutputs[quoteConfig.outputIOIndex].token
+        ) {
+            revert TokenSelfTrade();
         }
 
         OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(
@@ -370,44 +448,40 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                 takeOrderConfig = config.orders[i];
                 order = takeOrderConfig.order;
                 // Every order needs the same input token.
-                if (
-                    order.validInputs[takeOrderConfig.inputIOIndex].token
-                        != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
-                ) {
-                    revert TokenMismatch(
-                        order.validInputs[takeOrderConfig.inputIOIndex].token,
-                        config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
-                    );
-                }
                 // Every order needs the same output token.
                 if (
-                    order.validOutputs[takeOrderConfig.outputIOIndex].token
-                        != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+                    (
+                        order.validInputs[takeOrderConfig.inputIOIndex].token
+                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
+                    )
+                        || (
+                            order.validOutputs[takeOrderConfig.outputIOIndex].token
+                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
+                        )
                 ) {
-                    revert TokenMismatch(
-                        order.validOutputs[takeOrderConfig.outputIOIndex].token,
-                        config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
-                    );
+                    revert TokenMismatch();
                 }
-                // Every order needs the same input token decimals.
+
                 if (
-                    order.validInputs[takeOrderConfig.inputIOIndex].decimals
-                        != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
+                    order.validInputs[takeOrderConfig.inputIOIndex].token
+                        == order.validOutputs[takeOrderConfig.outputIOIndex].token
                 ) {
-                    revert TokenDecimalsMismatch(
-                        order.validInputs[takeOrderConfig.inputIOIndex].decimals,
-                        config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
-                    );
+                    revert TokenSelfTrade();
                 }
+
+                // Every order needs the same input token decimals.
                 // Every order needs the same output token decimals.
                 if (
-                    order.validOutputs[takeOrderConfig.outputIOIndex].decimals
-                        != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
+                    (
+                        order.validInputs[takeOrderConfig.inputIOIndex].decimals
+                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
+                    )
+                        || (
+                            order.validOutputs[takeOrderConfig.outputIOIndex].decimals
+                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
+                        )
                 ) {
-                    revert TokenDecimalsMismatch(
-                        order.validOutputs[takeOrderConfig.outputIOIndex].decimals,
-                        config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
-                    );
+                    revert TokenDecimalsMismatch();
                 }
 
                 bytes32 orderHash = order.hash();
@@ -547,46 +621,39 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     ) external nonReentrant {
         {
             if (aliceOrder.owner == bobOrder.owner) {
-                revert SameOwner(aliceOrder.owner);
+                revert SameOwner();
             }
             if (
-                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
-                    != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
+                (
+                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
+                        != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
+                )
+                    || (
+                        bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
+                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
+                    )
             ) {
-                revert TokenMismatch(
-                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token,
-                    bobOrder.validInputs[clearConfig.bobInputIOIndex].token
-                );
-            }
-
-            if (
-                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals
-                    != bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
-            ) {
-                revert TokenDecimalsMismatch(
-                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals,
-                    bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
-                );
+                revert TokenMismatch();
             }
 
             if (
-                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
-                    != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
+                aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
+                    == aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
             ) {
-                revert TokenMismatch(
-                    aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token,
-                    bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
-                );
+                revert TokenSelfTrade();
             }
 
             if (
-                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
-                    != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals
+                (
+                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].decimals
+                        != bobOrder.validInputs[clearConfig.bobInputIOIndex].decimals
+                )
+                    || (
+                        bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
+                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals
+                    )
             ) {
-                revert TokenDecimalsMismatch(
-                    aliceOrder.validInputs[clearConfig.aliceInputIOIndex].decimals,
-                    bobOrder.validOutputs[clearConfig.bobOutputIOIndex].decimals
-                );
+                revert TokenDecimalsMismatch();
             }
 
             // If either order is dead the clear is a no-op other than emitting
@@ -665,25 +732,36 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
                     uint256(orderHash), uint256(uint160(order.owner)), uint256(uint160(counterparty))
                 );
 
-                callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order.validInputs[inputIOIndex].token)),
-                    order.validInputs[inputIOIndex].decimals,
-                    order.validInputs[inputIOIndex].vaultId,
-                    sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order.validInputs[inputIOIndex]
-                        .vaultId],
-                    // Don't know the balance diff yet!
-                    0
-                );
+                {
+                    uint256 inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order
+                        .validInputs[inputIOIndex].vaultId];
+                    callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                        uint256(uint160(order.validInputs[inputIOIndex].token)),
+                        order.validInputs[inputIOIndex].decimals * 1e18,
+                        order.validInputs[inputIOIndex].vaultId,
+                        LibFixedPointDecimalScale.scale18(
+                            inputTokenVaultBalance, order.validInputs[inputIOIndex].decimals, 0
+                        ),
+                        // Don't know the balance diff yet!
+                        0
+                    );
+                }
 
-                callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
-                    uint256(uint160(order.validOutputs[outputIOIndex].token)),
-                    order.validOutputs[outputIOIndex].decimals,
-                    order.validOutputs[outputIOIndex].vaultId,
-                    sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order.validOutputs[outputIOIndex]
-                        .vaultId],
-                    // Don't know the balance diff yet!
-                    0
-                );
+                {
+                    uint256 outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex]
+                        .token][order.validOutputs[outputIOIndex].vaultId];
+                    callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibUint256Array.arrayFrom(
+                        uint256(uint160(order.validOutputs[outputIOIndex].token)),
+                        order.validOutputs[outputIOIndex].decimals * 1e18,
+                        order.validOutputs[outputIOIndex].vaultId,
+                        LibFixedPointDecimalScale.scale18(
+                            outputTokenVaultBalance, order.validOutputs[outputIOIndex].decimals, 0
+                        ),
+                        // Don't know the balance diff yet!
+                        0
+                    );
+                }
+
                 context = LibContext.build(callingContext, signedContext);
             }
 
@@ -767,8 +845,24 @@ contract OrderBook is IOrderBookV4, IMetaV1, ReentrancyGuard, Multicall, OrderBo
     /// @param orderIOCalculation The verbatim order IO calculation returned by
     /// `_calculateOrderIO`.
     function recordVaultIO(uint256 input, uint256 output, OrderIOCalculationV2 memory orderIOCalculation) internal {
-        orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = input;
-        orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = output;
+        unchecked {
+            orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibFixedPointDecimalScale.scale18(
+                input,
+                orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
+                0
+            );
+            orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
+            LibFixedPointDecimalScale.scale18(
+                output,
+                orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN_DECIMALS] / 1e18,
+                // Round outputs diff up if the scaling causes a rounding error.
+                // This only happens if the token has more than 18 decimals.
+                // Generally it's safer to overestimate output than
+                // underestimate.
+                FLAG_ROUND_UP
+            );
+        }
 
         if (input > 0) {
             // IMPORTANT! THIS MATH MUST BE CHECKED TO AVOID OVERFLOW.

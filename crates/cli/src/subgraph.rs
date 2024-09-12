@@ -1,6 +1,9 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::PaginationArgs;
+use rain_orderbook_subgraph_client::{
+    types::common::{Bytes, OrdersListFilterArgs, VaultsListFilterArgs},
+    PaginationArgs,
+};
 
 #[derive(Args, Clone)]
 pub struct CliSubgraphArgs {
@@ -54,6 +57,35 @@ impl From<CliPaginationArgs> for PaginationArgs {
         Self {
             page: val.page,
             page_size: val.page_size,
+        }
+    }
+}
+
+#[derive(Args, Clone)]
+pub struct CliFilterArgs {
+    #[arg(
+        long,
+        help = "Filter orders by owner addresses (comma-separated)",
+        value_delimiter = ','
+    )]
+    pub owners: Vec<String>,
+
+    #[arg(long, help = "Filter orders by active status", default_value = "true")]
+    pub active: Option<bool>,
+}
+
+impl From<CliFilterArgs> for OrdersListFilterArgs {
+    fn from(val: CliFilterArgs) -> Self {
+        Self {
+            owners: val.owners.into_iter().map(Bytes).collect(),
+            active: val.active,
+        }
+    }
+}
+impl From<CliFilterArgs> for VaultsListFilterArgs {
+    fn from(val: CliFilterArgs) -> Self {
+        Self {
+            owners: val.owners.into_iter().map(Bytes).collect(),
         }
     }
 }

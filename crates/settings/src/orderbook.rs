@@ -1,6 +1,6 @@
 use crate::*;
-use alloy_primitives::hex::FromHexError;
-use alloy_primitives::Address;
+use alloy::primitives::hex::FromHexError;
+use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -24,7 +24,7 @@ pub struct Orderbook {
 pub enum ParseOrderbookConfigSourceError {
     #[error("Failed to parse address")]
     AddressParseError(FromHexError),
-    #[error("Network not found: {0}")]
+    #[error("Network not found for Orderbook: {0}")]
     NetworkNotFoundError(String),
     #[error("Subgraph not found: {0}")]
     SubgraphNotFoundError(String),
@@ -80,7 +80,7 @@ impl OrderbookConfigSource {
 mod tests {
     use super::*;
     use crate::test::*;
-    use alloy_primitives::Address;
+    use alloy::primitives::Address;
 
     fn setup() -> (
         HashMap<String, Arc<Network>>,
