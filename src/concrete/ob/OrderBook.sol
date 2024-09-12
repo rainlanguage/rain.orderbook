@@ -8,10 +8,6 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {FLAG_SATURATE, FLAG_ROUND_UP} from "rain.math.fixedpoint/lib/FixedPointDecimalConstants.sol";
-import {LibFixedPointDecimalArithmeticOpenZeppelin} from
-    "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
-import {LibFixedPointDecimalScale} from "rain.math.fixedpoint/lib/LibFixedPointDecimalScale.sol";
 import {
     LibEncodedDispatch,
     EncodedDispatch
@@ -27,6 +23,7 @@ import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 import {
     IOrderBookV4,
@@ -169,9 +166,6 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     using SafeERC20 for IERC20;
     using LibOrder for OrderV3;
     using LibUint256Array for uint256;
-    using Math for uint256;
-    using LibFixedPointDecimalScale for uint256;
-    using LibFixedPointDecimalArithmeticOpenZeppelin for uint256;
 
     /// All hashes of all active orders. There's nothing interesting in the value
     /// it's just nonzero if the order is live. The key is the hash of the order.
@@ -952,38 +946,36 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     function calculateClearStateAlice(
         OrderIOCalculationV2 memory aliceOrderIOCalculation,
         OrderIOCalculationV2 memory bobOrderIOCalculation
-    ) internal pure returns (uint256 aliceInput, uint256 aliceOutput) {
-        // Always round IO calculations up so that the counterparty pays more.
-        // This is the max input that bob can afford, given his own IO ratio
-        // and maximum spend/output.
-        Input18Amount bobInputMax18 = Input18Amount.wrap(
-            Output18Amount.unwrap(bobOrderIOCalculation.outputMax).fixedPointMul(
-                bobOrderIOCalculation.IORatio, Math.Rounding.Up
-            )
+    )
+        internal
+        pure
+        returns (
+            int256 aliceInputSignedCoefficient,
+            int256 aliceInputExponent,
+            int256 aliceOutputMaxSignedCoefficient,
+            int256 aliceOutputMaxExponent
+        )
+    {
+        (int256 bobInputMaxSignedCoefficient, int256 bobInputMaxExponent) = LibDecimalFloat.mul(
+            bobOrderIOCalculation.outputMaxSignedCoefficient,
+            bobOrderIOCalculation.outputMaxExponent,
+            bobOrderIOCalculation.IORatioSignedCoefficient,
+            bobOrderIOCalculation.IORatioExponent
         );
-        Output18Amount aliceOutputMax18 = aliceOrderIOCalculation.outputMax;
-        // Alice's doesn't need to provide more output than bob's max input.
-        if (Output18Amount.unwrap(aliceOutputMax18) > Input18Amount.unwrap(bobInputMax18)) {
-            aliceOutputMax18 = Output18Amount.wrap(Input18Amount.unwrap(bobInputMax18));
-        }
-        // Alice's final output is the scaled version of the 18 decimal output,
-        // rounded down to benefit Alice.
-        aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(
-            aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals, 0
+
+        (aliceOutputMaxSignedCoefficient, aliceOutputMaxExponent) = LibDecimalFloat.min(
+            aliceOrderIOCalculation.outputMaxSignedCoefficient,
+            aliceOrderIOCalculation.outputMaxExponent,
+            bobInputMaxSignedCoefficient,
+            bobInputMaxExponent
         );
 
         // Alice's input is her bob-capped output * her IO ratio, rounded up.
-        Input18Amount aliceInput18 = Input18Amount.wrap(
-            Output18Amount.unwrap(aliceOutputMax18).fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
-        );
-        aliceInput =
-        // Use bob's output decimals as alice's input decimals.
-        //
-        // This is only safe if we have previously checked that the decimals
-        // match for alice and bob per token, otherwise bob could manipulate
-        // alice's intent.
-        Input18Amount.unwrap(aliceInput18).scaleN(
-            bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
+        (aliceInputSignedCoefficient, aliceInputExponent) = LibDecimalFloat.mul(
+            aliceOutputMaxSignedCoefficient,
+            aliceOutputMaxExponent,
+            aliceOrderIOCalculation.IORatioSignedCoefficient,
+            aliceOrderIOCalculation.IORatioExponent
         );
     }
 }
