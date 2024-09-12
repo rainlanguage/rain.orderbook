@@ -305,6 +305,7 @@ amount price: 16 52;
             output_io_index,
             *orderbook.address(),
             rpc_url,
+            None,
         )
         .await;
 
