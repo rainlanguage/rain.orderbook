@@ -7,15 +7,19 @@
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import type { Order as OrderDetailOrder } from '$lib/typeshare/subgraphTypes';
+  import { createEventDispatcher } from 'svelte';
 
   let openOrderRemoveModal = true;
   export let order: OrderDetailOrder;
   let isSubmitting = false;
 
+  const dispatch = createEventDispatcher();
+
   async function executeLedger() {
     isSubmitting = true;
     try {
       await orderRemove(order.id);
+      dispatch('orderRemoved');
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -28,6 +32,7 @@
       const tx = await ethersExecute(calldata, $orderbookAddress!);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
+      dispatch('orderRemoved');
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
