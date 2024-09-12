@@ -68,7 +68,10 @@
       <CardProperty>
         <svelte:fragment slot="key">Input vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          <div class="space-y-4">
+          <div class="mb-2 flex justify-end">
+            <span>Balance</span>
+          </div>
+          <div class="space-y-2">
             {#each data.order.inputs || [] as t}
               <ButtonVaultLink tokenVault={t} />
             {/each}
@@ -79,7 +82,10 @@
       <CardProperty>
         <svelte:fragment slot="key">Output vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          <div class="space-y-4">
+          <div class="mb-2 flex justify-end">
+            <span>Balance</span>
+          </div>
+          <div class="space-y-2">
             {#each data.order.outputs || [] as t}
               <ButtonVaultLink tokenVault={t} />
             {/each}
