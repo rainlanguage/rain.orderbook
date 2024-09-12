@@ -24,6 +24,7 @@ export async function debugOrderQuote(
   outputIOIndex: number,
   orderbook: Hex,
   rpcUrl: string,
+  blockNumber?: number,
 ) {
   return await invoke<[RainEvalResultsTable, string | undefined]>('debug_order_quote', {
     order,
@@ -31,6 +32,7 @@ export async function debugOrderQuote(
     outputIoIndex: outputIOIndex,
     orderbook,
     rpcUrl,
+    blockNumber,
   });
 }
 

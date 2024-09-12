@@ -122,6 +122,7 @@
                       item.pair.input_index,
                       item.pair.output_index,
                       item.pair.pair_name,
+                      blockNumber,
                     )}
                 >
                   <BugOutline size="sm" color="grey" />
@@ -154,6 +155,7 @@
                       item.pair.input_index,
                       item.pair.output_index,
                       item.pair.pair_name,
+                      blockNumber,
                     )}
                 >
                   <BugOutline size="sm" color="grey" />

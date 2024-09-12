@@ -12,6 +12,7 @@ use url::Url;
 
 pub struct NewQuoteDebugger {
     pub fork_url: Url,
+    pub fork_block_number: Option<u64>,
 }
 pub struct QuoteDebugger {
     forker: Forker,
@@ -30,7 +31,7 @@ impl QuoteDebugger {
         let forker = Forker::new_with_fork(
             NewForkedEvm {
                 fork_url: args.fork_url.to_string(),
-                fork_block_number: None,
+                fork_block_number: args.fork_block_number,
             },
             None,
             None,

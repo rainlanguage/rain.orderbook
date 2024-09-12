@@ -149,6 +149,7 @@ pub async fn debug_order_quote(
     output_io_index: u32,
     orderbook: Address,
     rpc_url: String,
+    block_number: Option<u32>,
 ) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
     let quote_target = QuoteTarget {
         orderbook,
@@ -162,6 +163,7 @@ pub async fn debug_order_quote(
 
     let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
         fork_url: rpc_url.parse()?,
+        fork_block_number: block_number.map(|s| s.into()),
     })
     .await?;
 
