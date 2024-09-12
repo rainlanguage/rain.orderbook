@@ -1,10 +1,10 @@
 [package]
 name = "rain_orderbook_cli"
-version = "0.0.4"
-edition = "2021"
-license = "CAL-1.0"
 description = "Rain Orderbook CLI."
-homepage = "https://github.com/rainprotocol/rain.orderbook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -38,4 +38,3 @@ tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time
 httpmock = "0.7.0"
 serde_json = { workspace = true }
 rain-metadata = { workspace = true }
-rain-orderbook-env = { workspace = true }

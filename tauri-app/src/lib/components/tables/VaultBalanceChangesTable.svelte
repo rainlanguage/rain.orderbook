@@ -62,11 +62,11 @@
       {item.vault.token.symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableBalance">
-      {formatUnits(BigInt(item.new_vault_balance), Number(item.vault.token.decimals ?? 0))}
+      {formatUnits(BigInt(item.newVaultBalance), Number(item.vault.token.decimals ?? 0))}
       {item.vault.token.symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
-      {item.__typename}
+      {item.typename}
     </TableBodyCell>
   </svelte:fragment>
 </TanstackAppTable>

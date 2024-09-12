@@ -1,4 +1,4 @@
-import type { OrderDetailExtended } from '$lib/typeshare/orderDetail';
+import type { OrderDetailExtended } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
@@ -22,8 +22,8 @@ export const orderDetail = async (id: string, url: string | undefined) => {
 export const mockOrderDetailsExtended: OrderDetailExtended = {
   order: {
     id: 'order1',
-    order_bytes: '0x123456',
-    order_hash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef',
+    orderBytes: '0x123456',
+    orderHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef',
     owner: '0x1111111111111111111111111111111111111111',
     outputs: [
       {
@@ -36,7 +36,12 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
           decimals: '18',
         },
         balance: '1000',
-        vault_id: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        vaultId: '0x1111111111111111111111111111111111111111111111111111111111111111',
+        orderbook: { id: '0x1111111111111111111111111111111111111111' },
+        owner: '0x1111111111111111111111111111111111111111',
+        ordersAsOutput: [],
+        ordersAsInput: [],
+        balanceChanges: [],
       },
     ],
     inputs: [
@@ -50,23 +55,31 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
           decimals: '18',
         },
         balance: '500',
-        vault_id: '0x2222222222222222222222222222222222222222222222222222222222222222',
+        vaultId: '0x2222222222222222222222222222222222222222222222222222222222222222',
+        orderbook: { id: '0x1111111111111111111111111111111111111111' },
+        owner: '0x1111111111111111111111111111111111111111',
+        ordersAsOutput: [],
+        ordersAsInput: [],
+        balanceChanges: [],
       },
     ],
     active: true,
-    add_events: [
+    addEvents: [
       {
         transaction: {
-          block_number: '12345',
+          id: '0x2222222222222222222222222222222222222222222222222222222222222222',
+          from: '0x1111111111111111111111111111111111111111',
+          blockNumber: '12345',
           timestamp: '1620000000',
         },
       },
     ],
     meta: 'metadata1',
-    timestamp_added: '1620000000',
+    timestampAdded: '1620000000',
     orderbook: {
       id: '0x00',
     },
+    trades: [],
   },
   rainlang: 'rainlang1',
 };

@@ -9,33 +9,37 @@ use typeshare::typeshare;
 use url::Url;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigSource {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub using_networks_from: HashMap<String, RemoteNetworksConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub networks: HashMap<String, NetworkConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub subgraphs: HashMap<String, Url>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub orderbooks: HashMap<String, OrderbookConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub tokens: HashMap<String, TokenConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub deployers: HashMap<String, DeployerConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub orders: HashMap<String, OrderConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub scenarios: HashMap<String, ScenarioConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub charts: HashMap<String, ChartConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub deployments: HashMap<String, DeploymentConfigSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub metaboards: HashMap<String, Url>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sentry: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accounts: Option<HashMap<String, String>>,
 }
 
 #[typeshare]
@@ -63,20 +67,23 @@ pub type TokenRef = String;
 pub type MetaboardRef = String;
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct NetworkConfigSource {
     pub rpc: Url,
     #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[typeshare(typescript(type = "number"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub network_id: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<String>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct RemoteNetworksConfigSource {
     pub url: String,
@@ -84,37 +91,45 @@ pub struct RemoteNetworksConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderbookConfigSource {
     pub address: Address,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub network: Option<NetworkRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subgraph: Option<SubgraphRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct TokenConfigSource {
     pub network: NetworkRef,
     pub address: Address,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub decimals: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub symbol: Option<String>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeployerConfigSource {
     pub address: Address,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub network: Option<NetworkRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct DeploymentConfigSource {
     pub scenario: ScenarioRef,
@@ -122,44 +137,54 @@ pub struct DeploymentConfigSource {
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct IOString {
     pub token: TokenRef,
     #[typeshare(typescript(type = "bigint"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub vault_id: Option<U256>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderConfigSource {
     pub inputs: Vec<IOString>,
     pub outputs: Vec<IOString>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deployer: Option<DeployerRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub orderbook: Option<OrderbookRef>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ScenarioConfigSource {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub runs: Option<u64>,
     #[typeshare(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blocks: Option<Blocks>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deployer: Option<DeployerRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
 }
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct ChartConfigSource {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub scenario: Option<ScenarioRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub plots: Option<HashMap<String, Plot>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub metrics: Option<Vec<Metric>>,
 }
 
@@ -348,7 +373,11 @@ deployments:
         scenario: mainScenario
         order: buyETH
         
-sentry: true"#,
+sentry: true
+
+accounts:
+    name-one: address-one
+    name-two: address-two"#,
             mocked_chain_id_server.url("/json")
         );
 
@@ -453,6 +482,10 @@ sentry: true"#,
         assert_eq!(order.orderbook, expected_order.orderbook);
 
         assert_eq!(config.raindex_version, Some("123".to_string()));
+
+        let accounts = config.accounts.unwrap();
+        assert_eq!(accounts.get("name-one").unwrap(), "address-one");
+        assert_eq!(accounts.get("name-two").unwrap(), "address-two");
     }
 
     #[tokio::test]

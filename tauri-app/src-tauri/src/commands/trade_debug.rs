@@ -1,51 +1,176 @@
-use alloy::primitives::{B256, U256};
-use rain_orderbook_common::replays::{NewTradeReplayer, TradeReplayer};
+use alloy::primitives::B256;
+use rain_orderbook_common::{
+    fuzz::{RainEvalResults, RainEvalResultsTable},
+    replays::{NewTradeReplayer, TradeReplayer},
+};
 
 use crate::error::CommandResult;
 
 #[tauri::command]
-pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<Vec<U256>> {
+pub async fn debug_trade(tx_hash: String, rpc_url: String) -> CommandResult<RainEvalResultsTable> {
     let mut replayer: TradeReplayer = TradeReplayer::new(NewTradeReplayer {
         fork_url: rpc_url.parse()?,
     })
     .await?;
     let tx_hash = tx_hash.parse::<B256>()?;
-    let res = replayer.replay_tx(tx_hash).await?;
-    let stack = res.traces[1].stack.to_vec();
-    Ok(stack)
+    let res: RainEvalResults = vec![replayer.replay_tx(tx_hash).await?].into();
+    Ok(res.into_flattened_table()?)
 }
 
 #[cfg(test)]
 mod tests {
-    use rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL;
-    use std::str::FromStr;
-
     use super::*;
+    use alloy::{
+        primitives::{
+            utils::{parse_ether, parse_units},
+            Bytes, U256,
+        },
+        sol_types::SolCall,
+    };
+    use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
+    use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_trade_replayer() {
-        let tx_hash: Result<alloy::primitives::FixedBytes<32>, alloy::hex::FromHexError> =
-            B256::from_str("0xceb48768613542fe2a05504200caa47dc19c4e508bd70ec3b18e648eebf58177");
+        let mut local_evm = LocalEvm::new().await;
 
-        let res = debug_trade(
-            tx_hash.unwrap().to_string(),
-            CI_DEPLOY_POLYGON_RPC_URL.to_string(),
-        )
-        .await
-        .unwrap();
+        let token1_holder = local_evm.signer_wallets[0].default_signer().address();
+        let token2_holder = local_evm.signer_wallets[1].default_signer().address();
 
-        let vec = vec![
-            8255747967003398332u128,
-            5195342786557434200u128,
-            43067440648007307827u128,
-            5195342786557434200u128,
-            519534278655743420u128,
-            1724872944000000000000000000u128,
-            1724873082000000000000000000u128,
+        let token1 = local_evm
+            .deploy_new_token(
+                "T1",
+                "T1",
+                18,
+                parse_units("100000", 18).unwrap().into(),
+                token1_holder,
+            )
+            .await;
+        let token2 = local_evm
+            .deploy_new_token(
+                "T2",
+                "T2",
+                18,
+                parse_units("100000", 18).unwrap().into(),
+                token2_holder,
+            )
+            .await;
+        let orderbook = &local_evm.orderbook;
+
+        let dotrain = format!(
+            r#"
+networks:
+    some-key:
+        rpc: {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    some-key:
+        address: {deployer}
+tokens:
+    t2:
+        network: some-key
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+    t1:
+        network: some-key
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+orderbook:
+    some-key:
+        address: {orderbook}
+orders:
+    some-key:
+        inputs:
+            - token: t2
+        outputs:
+            - token: t1
+              vault-id: 0x01
+scenarios:
+    some-key:
+deployments:
+    some-key:
+        scenario: some-key
+        order: some-key
+---
+#calculate-io
+amount price: 7 4;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = local_evm.url(),
+            orderbook = orderbook.address(),
+            deployer = local_evm.deployer.address(),
+            token1 = token1.address(),
+            token2 = token2.address(),
+        );
+
+        // add order
+        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+            .await
+            .unwrap()
+            .try_into_call(local_evm.url())
+            .await
+            .unwrap()
+            .abi_encode();
+
+        let order = local_evm
+            .add_order_and_deposit(
+                &calldata,
+                token1_holder,
+                *token1.address(),
+                parse_ether("100").unwrap(),
+                U256::from(1),
+            )
+            .await
+            .0
+            .order;
+
+        // approve T2 spending for token2 holder for orderbook
+        token2
+            .approve(*orderbook.address(), parse_ether("100").unwrap())
+            .from(token2_holder)
+            .do_send(&local_evm)
+            .await
+            .unwrap();
+        // take order from token2 holder
+        let config = Orderbook::TakeOrdersConfigV3 {
+            orders: vec![Orderbook::TakeOrderConfigV3 {
+                order,
+                inputIOIndex: U256::from(0),
+                outputIOIndex: U256::from(0),
+                signedContext: vec![],
+            }],
+            maximumIORatio: U256::MAX,
+            maximumInput: U256::MAX,
+            minimumInput: U256::from(1),
+            data: Bytes::new(),
+        };
+        let tx = orderbook
+            .takeOrders2(config)
+            .from(token2_holder)
+            .do_send(&local_evm)
+            .await
+            .unwrap();
+
+        let res = debug_trade(tx.transaction_hash.to_string(), local_evm.url())
+            .await
+            .unwrap();
+
+        let expected_stack = vec![
+            U256::from(7000000000000000000u128),
+            U256::from(4000000000000000000u128),
         ];
 
-        let expected_stack: Vec<U256> = vec.into_iter().map(U256::from).collect();
-
-        assert_eq!(res, expected_stack);
+        assert_eq!(res.rows[0], expected_stack);
     }
 }

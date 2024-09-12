@@ -19,11 +19,13 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
+  import { activeAccounts } from '$lib/stores/settings';
+  import { get } from 'svelte/store';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS],
+    queryKey: [QKEY_VAULTS, $activeAccounts],
     queryFn: ({ pageParam }) => {
-      return vaultList($subgraphUrl, pageParam);
+      return vaultList($subgraphUrl, Object.values(get(activeAccounts)), pageParam);
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
@@ -74,7 +76,7 @@
 
     <svelte:fragment slot="bodyRow" let:item>
       <TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
-        >{bigintStringToHex(item.vault_id)}</TableBodyCell
+        >{bigintStringToHex(item.vaultId)}</TableBodyCell
       >
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook"
         ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
@@ -90,9 +92,9 @@
         {item.token.symbol}
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {#if item.orders_as_input.length > 0}
+        {#if item.ordersAsInput.length > 0}
           <div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
-            {#each item.orders_as_input.slice(0, 3) as order}
+            {#each item.ordersAsInput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color="alternative"
@@ -101,19 +103,19 @@
                 on:click={() => goto(`/orders/${order.id}`)}
                 ><Hash
                   type={HashType.Identifier}
-                  value={order.order_hash}
+                  value={order.orderHash}
                   copyOnClick={false}
                 /></Button
               >
             {/each}
-            {#if item.orders_as_input.length > 3}...{/if}
+            {#if item.ordersAsInput.length > 3}...{/if}
           </div>
         {/if}
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {#if item.orders_as_output.length > 0}
+        {#if item.ordersAsOutput.length > 0}
           <div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
-            {#each item.orders_as_output.slice(0, 3) as order}
+            {#each item.ordersAsOutput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color="alternative"
@@ -122,12 +124,12 @@
                 on:click={() => goto(`/orders/${order.id}`)}
                 ><Hash
                   type={HashType.Identifier}
-                  value={order.order_hash}
+                  value={order.orderHash}
                   copyOnClick={false}
                 /></Button
               >
             {/each}
-            {#if item.orders_as_output.length > 3}...{/if}
+            {#if item.ordersAsOutput.length > 3}...{/if}
           </div>
         {/if}
       </TableBodyCell>

@@ -1,4 +1,4 @@
-import type { Vault } from '$lib/typeshare/vaultsList';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 import { formatUnits } from 'viem';
 
 export const vaultBalanceDisplay = (vault: Vault) => {
@@ -17,10 +17,11 @@ if (import.meta.vitest) {
         decimals: '18',
         address: '0x00',
       },
-      vault_id: '1',
+      vaultId: '1',
       owner: '0x00',
-      orders_as_input: [],
-      orders_as_output: [],
+      ordersAsInput: [],
+      ordersAsOutput: [],
+      balanceChanges: [],
       orderbook: {
         id: '0x00',
       },

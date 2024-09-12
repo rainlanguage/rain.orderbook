@@ -1,9 +1,7 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PageQueryClient, PageQueryVariables};
-use crate::types::vault_balance_changes_list::VaultBalanceChange;
-use crate::types::vault_balance_changes_list::{
-    VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables,
-};
+use crate::types::common::*;
+use crate::types::vault::VaultBalanceChangesListQuery;
 use chrono::DateTime;
 use reqwest::Url;
 use std::cmp::Reverse;
@@ -24,24 +22,24 @@ impl CynicClient for VaultBalanceChangesListPageQueryClient {
     }
 }
 
-impl PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables>
+impl PageQueryClient<VaultBalanceChangeUnwrapped, PaginationWithIdQueryVariables>
     for VaultBalanceChangesListPageQueryClient
 {
     async fn query_page(
         &self,
-        variables: VaultBalanceChangesListQueryVariables,
-    ) -> Result<Vec<VaultBalanceChange>, CynicClientError> {
+        variables: PaginationWithIdQueryVariables,
+    ) -> Result<Vec<VaultBalanceChangeUnwrapped>, CynicClientError> {
         let res: Result<VaultBalanceChangesListQuery, CynicClientError> = self
-            .query::<VaultBalanceChangesListQuery, VaultBalanceChangesListQueryVariables>(variables)
+            .query::<VaultBalanceChangesListQuery, PaginationWithIdQueryVariables>(variables)
             .await;
 
-        let list: Vec<VaultBalanceChange> = res?.vault_balance_changes;
+        let list: Vec<VaultBalanceChangeUnwrapped> = res?.vault_balance_changes;
 
         Ok(list)
     }
 
     /// Sort by timestamp, descending
-    fn sort_results(results: Vec<VaultBalanceChange>) -> Vec<VaultBalanceChange> {
+    fn sort_results(results: Vec<VaultBalanceChangeUnwrapped>) -> Vec<VaultBalanceChangeUnwrapped> {
         let mut sorted_results = results.clone();
         sorted_results.sort_by_key(|r| {
             Reverse(DateTime::from_timestamp(
@@ -54,7 +52,7 @@ impl PageQueryClient<VaultBalanceChange, VaultBalanceChangesListQueryVariables>
     }
 }
 
-impl PageQueryVariables for VaultBalanceChangesListQueryVariables {
+impl PageQueryVariables for PaginationWithIdQueryVariables {
     fn with_pagination(&self, skip: Option<i32>, first: Option<i32>) -> Self {
         Self {
             skip,

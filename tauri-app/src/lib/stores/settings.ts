@@ -103,6 +103,32 @@ export const hasRequiredSettings = derived(
     $activeNetworkRef !== undefined && $activeOrderbookRef !== undefined,
 );
 
+// accounts
+export const accounts = derived(settings, ($settings) => $settings?.accounts ?? {});
+
+export const activeAccountsItems = cachedWritableStore<Record<string, string>>(
+  'settings.activeAccountsItems',
+  {},
+  JSON.stringify,
+  (s) => {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return {};
+    }
+  },
+);
+
+export const activeAccounts = derived(
+  [accounts, activeAccountsItems],
+  ([$accounts, $activeAccountsItems]) =>
+    Object.keys($activeAccountsItems).length === 0
+      ? {}
+      : Object.fromEntries(
+          Object.entries($accounts).filter(([key]) => key in $activeAccountsItems),
+        ),
+);
+
 // When networks / orderbooks settings updated, reset active network / orderbook
 settings.subscribe(async () => {
   const $settings = await settings.load();
@@ -172,3 +198,17 @@ export async function resetActiveNetworkRef() {
     activeNetworkRef.set(undefined);
   }
 }
+
+export const activeOrderStatus = cachedWritableStore<boolean | undefined>(
+  'settings.activeOrderStatus',
+  undefined,
+  (value) => JSON.stringify(value),
+  (str) => {
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'boolean' ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  },
+);

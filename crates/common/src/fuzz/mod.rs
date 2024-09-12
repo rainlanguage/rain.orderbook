@@ -8,7 +8,9 @@ use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
 use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
 use rain_interpreter_eval::fork::NewForkedEvm;
-use rain_interpreter_eval::trace::TraceSearchError;
+pub use rain_interpreter_eval::trace::{
+    RainEvalResultError, RainEvalResults, RainEvalResultsTable, TraceSearchError,
+};
 use rain_interpreter_eval::{
     error::ForkCallError, eval::ForkEvalArgs, fork::Forker, trace::RainEvalResult,
 };
@@ -32,82 +34,23 @@ pub struct ChartData {
 #[derive(Debug)]
 pub struct FuzzResult {
     pub scenario: String,
-    pub runs: Vec<RainEvalResult>,
+    pub runs: RainEvalResults,
 }
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FuzzResultFlat {
     pub scenario: String,
-    pub column_names: Vec<String>,
-    #[typeshare(serialized_as = "Vec<Vec<String>>")]
-    pub data: Vec<Vec<U256>>,
+    pub data: RainEvalResultsTable,
 }
 
 impl FuzzResult {
-    pub fn collect_data_by_path(&self, path: &str) -> Result<Vec<U256>, TraceSearchError> {
-        let mut collection: Vec<U256> = vec![];
-        // loop over the runs and search_trace_by_path for each
-        for run in self.runs.iter() {
-            let stack = run.search_trace_by_path(path)?;
-            collection.push(stack);
-        }
-        Ok(collection)
-    }
-
     pub fn flatten_traces(&self) -> Result<FuzzResultFlat, FuzzRunnerError> {
-        let mut column_names: Vec<String> = vec![];
-        let mut source_paths: Vec<String> = vec![];
+        let result_table = self.runs.into_flattened_table()?;
 
-        let first_run_traces = &self
-            .runs
-            .first()
-            .ok_or(FuzzRunnerError::ScenarioNoRuns)?
-            .traces;
-
-        for trace in first_run_traces.iter() {
-            let current_path = if trace.parent_source_index == trace.source_index {
-                format!("{}", trace.source_index)
-            } else {
-                source_paths
-                    .iter()
-                    .rev()
-                    .find_map(|recent_path| {
-                        recent_path.split('.').last().and_then(|last_part| {
-                            if last_part == trace.parent_source_index.to_string() {
-                                Some(format!("{}.{}", recent_path, trace.source_index))
-                            } else {
-                                None
-                            }
-                        })
-                    })
-                    .ok_or_else(|| FuzzRunnerError::CorruptTraces)?
-            };
-
-            for (index, _) in trace.stack.iter().enumerate() {
-                column_names.push(format!("{}.{}", current_path, index));
-            }
-
-            source_paths.push(current_path);
-        }
-
-        let mut data: Vec<Vec<U256>> = vec![];
-
-        for run in self.runs.iter() {
-            let mut run_data: Vec<U256> = vec![];
-            for trace in run.traces.iter() {
-                let mut stack = trace.stack.clone();
-                stack.reverse();
-                for stack_item in stack.iter() {
-                    run_data.push(*stack_item);
-                }
-            }
-            data.push(run_data);
-        }
         Ok(FuzzResultFlat {
             scenario: self.scenario.clone(),
-            column_names,
-            data,
+            data: result_table,
         })
     }
 }
@@ -144,6 +87,8 @@ pub enum FuzzRunnerError {
     ReadableClientHttpError(#[from] ReadableClientError),
     #[error(transparent)]
     BlockError(#[from] BlockError),
+    #[error(transparent)]
+    RainEvalResultError(#[from] RainEvalResultError),
 }
 
 impl FuzzRunner {
@@ -296,7 +241,7 @@ impl FuzzRunner {
 
         Ok(FuzzResult {
             scenario: scenario.name.clone(),
-            runs,
+            runs: runs.into(),
         })
     }
 
@@ -330,21 +275,27 @@ impl FuzzRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::{
+        primitives::utils::parse_ether,
+        providers::{ext::AnvilApi, Provider},
+    };
     use rain_orderbook_app_settings::config_source::ConfigSource;
+    use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
         bindings:
             bound: 3
@@ -357,7 +308,8 @@ b: fuzzed;
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -369,7 +321,7 @@ b: fuzzed;
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -379,27 +331,40 @@ b: fuzzed;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_block_range() {
+        let local_evm = LocalEvm::new().await;
+
+        let start_block_number = local_evm.provider.get_block_number().await.unwrap();
+        let last_block_number = start_block_number + 10;
+        local_evm
+            .provider
+            .anvil_mine(Some(U256::from(10)), None)
+            .await
+            .unwrap();
+
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         blocks:
-            range: [5789000..5789010]
-            interval: 10
+            range: [{start_block}..{end_block}]
+            interval: 2
 ---
 #calculate-io
 _: block-number();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address(),
+            start_block = start_block_number,
+            end_block = last_block_number
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -411,31 +376,35 @@ _: block-number();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        assert!(res.runs.len() == 2);
+        assert_eq!(res.runs.len(), 6);
 
         res.runs.iter().enumerate().for_each(|(i, run)| {
-            assert!(run.traces[0].stack[0] == U256::from(5789000 + i as u64 * 10));
+            assert_eq!(
+                run.traces[0].stack[0],
+                parse_ether(&(start_block_number + (i as u64 * 2)).to_string()).unwrap()
+            );
         });
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_nested_flattened_fuzz() {
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
         bindings:
             bound: 3
@@ -457,7 +426,8 @@ d: 4;
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -469,7 +439,7 @@ d: 4;
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -477,30 +447,36 @@ d: 4;
         let flattened = res.flatten_traces().unwrap();
 
         // find the column index of 0.2.3.0
-        let column_index = flattened.column_names.iter().position(|x| x == "0.2.3.0");
+        let column_index = flattened
+            .data
+            .column_names
+            .iter()
+            .position(|x| x == "0.2.3.0");
         // get that from the first row of data
         let value = flattened
             .data
+            .rows
             .first()
             .unwrap()
             .get(column_index.unwrap())
             .unwrap();
-        assert!(value == &U256::from(6));
+        assert_eq!(value, &parse_ether("6").unwrap());
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_happy() {
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
 ---
 #calculate-io
@@ -509,7 +485,8 @@ _: context<4 4>();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -521,14 +498,14 @@ _: context<4 4>();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
         let flattened = res.flatten_traces().unwrap();
 
-        for row in flattened.data.iter() {
+        for row in flattened.data.rows.iter() {
             for col in row.iter() {
                 assert!(col == &U256::from(0));
             }
@@ -538,18 +515,18 @@ _: context<4 4>();
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_unhappy() {
         // if we try to access a context value that is out of bounds, we should get an error
-
+        let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 50
 ---
 #calculate-io
@@ -557,7 +534,8 @@ _: context<50 50>();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -569,7 +547,7 @@ _: context<50 50>();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e));
 
@@ -578,18 +556,20 @@ _: context<50 50>();
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_context_random_order_hash() {
+        let local_evm = LocalEvm::new().await;
+
         // random order hash is at <1 0> context cell, ie column1 row0
         let dotrain = format!(
             r#"
 deployers:
-    sepolia:
-        address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
+    some-key:
+        address: {deployer}
 networks:
-    sepolia:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
+        chain-id: 123
 scenarios:
-    sepolia:
+    some-key:
         runs: 20
 ---
 #calculate-io
@@ -597,7 +577,8 @@ _: context<1 0>();
 #handle-io
 :;
     "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_SEPOLIA_RPC_URL
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
@@ -609,7 +590,7 @@ _: context<1 0>();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
-            .run_scenario_by_name("sepolia")
+            .run_scenario_by_name("some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -618,7 +599,12 @@ _: context<1 0>();
 
         // flatten the result and check all context order id hashes
         // dont match each oher, ie ensuring their randomness
-        let result = flattened.data.into_iter().flatten().collect::<Vec<_>>();
+        let result = flattened
+            .data
+            .rows
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
         for (i, cell_value) in result.iter().enumerate() {
             for (j, other_cell_value) in result.iter().enumerate() {
                 if i != j {

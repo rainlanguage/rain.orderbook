@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Trade } from '$lib/typeshare/orderTakesList';
+import type { Trade } from '$lib/typeshare/subgraphTypes';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from './OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
@@ -36,17 +36,19 @@ const mockTakeOrdersList: Trade[] = [
   {
     id: '1',
     timestamp: '1632000000',
-    trade_event: {
+    tradeEvent: {
       sender: 'sender_address',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
+        blockNumber: '0',
       },
     },
-    output_vault_balance_change: {
+    outputVaultBalanceChange: {
       amount: '100',
       vault: {
+        id: 'id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -55,14 +57,26 @@ const mockTakeOrdersList: Trade[] = [
           decimals: '1',
         },
       },
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
     },
     order: {
       id: 'order_id',
-      order_hash: 'order_hash',
-      timestamp_added: '1632000000',
+      orderHash: 'orderHash',
     },
-    input_vault_balance_change: {
+    inputVaultBalanceChange: {
       vault: {
+        id: 'id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -72,6 +86,18 @@ const mockTakeOrdersList: Trade[] = [
         },
       },
       amount: '50',
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
     },
     orderbook: {
       id: '0x00',
@@ -80,17 +106,19 @@ const mockTakeOrdersList: Trade[] = [
   {
     id: '2',
     timestamp: '1632000000',
-    trade_event: {
+    tradeEvent: {
       sender: 'sender_address',
       transaction: {
         id: 'transaction_id',
         from: 'sender_address',
         timestamp: '1632000000',
+        blockNumber: '0',
       },
     },
-    output_vault_balance_change: {
+    outputVaultBalanceChange: {
       amount: '100',
       vault: {
+        id: 'id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -99,14 +127,26 @@ const mockTakeOrdersList: Trade[] = [
           decimals: '1',
         },
       },
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
     },
     order: {
       id: 'order_id',
-      order_hash: 'order_hash',
-      timestamp_added: '1632000000',
+      orderHash: 'orderHash',
     },
-    input_vault_balance_change: {
+    inputVaultBalanceChange: {
       vault: {
+        id: 'id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -116,6 +156,18 @@ const mockTakeOrdersList: Trade[] = [
         },
       },
       amount: '50',
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
     },
     orderbook: {
       id: '0x00',
@@ -144,12 +196,12 @@ test('renders table with correct data', async () => {
     // checking the io ratios
     for (let i = 0; i < mockTakeOrdersList.length; i++) {
       const inputDisplay = formatUnits(
-        BigInt(mockTakeOrdersList[i].input_vault_balance_change.amount),
-        Number(mockTakeOrdersList[i].input_vault_balance_change.vault.token.decimals),
+        BigInt(mockTakeOrdersList[i].inputVaultBalanceChange.amount),
+        Number(mockTakeOrdersList[i].inputVaultBalanceChange.vault.token.decimals),
       );
       const outputDisplay = formatUnits(
-        BigInt(mockTakeOrdersList[i].output_vault_balance_change.amount),
-        Number(mockTakeOrdersList[i].output_vault_balance_change.vault.token.decimals),
+        BigInt(mockTakeOrdersList[i].outputVaultBalanceChange.amount),
+        Number(mockTakeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
       );
       const expectedRatio = Number(inputDisplay) / Number(outputDisplay);
       expect(rows[i]).toHaveTextContent(expectedRatio.toString());

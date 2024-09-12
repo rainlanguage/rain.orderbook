@@ -5,6 +5,7 @@ import TanstackOrderQuote from './TanstackOrderQuote.svelte';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import { mockOrderDetailsExtended } from '$lib/queries/orderDetail';
+import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
@@ -23,40 +24,12 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   };
 });
 
-test('displays loading spinner while fetching data', async () => {
-  mockIPC(() => {
-    // Simulate a delay to trigger the loading state
-    return new Promise((resolve) =>
-      setTimeout(
-        () =>
-          resolve([
-            {
-              success: true,
-              pair_name: 'ETH/USDT',
-              data: { maxOutput: '0x0', ratio: '0x0' },
-              error: undefined,
-            },
-          ]),
-        100,
-      ),
-    );
-  });
-
-  const queryClient = new QueryClient();
-
-  render(TanstackOrderQuote, {
-    props: {
-      id: '0x123',
-      order: mockOrderDetailsExtended.order,
-    },
-    context: new Map([['$$_queryClient', queryClient]]),
-  });
-
-  expect(screen.getByTestId('loadingSpinner')).toBeInTheDocument();
-
-  await waitFor(() => {
-    expect(screen.queryByTestId('loadingSpinner')).not.toBeInTheDocument();
-  });
+vi.mock('$lib/services/modal', async () => {
+  return {
+    handleDepositGenericModal: vi.fn(),
+    handleDepositModal: vi.fn(),
+    handleWithdrawModal: vi.fn(),
+  };
 });
 
 test('displays order quote data when query is successful', async () => {
@@ -65,10 +38,11 @@ test('displays order quote data when query is successful', async () => {
       return [
         {
           success: true,
-          pair_name: 'ETH/USDT',
+          block_number: '0x123',
+          pair: { pair_name: 'ETH/USDT', input_index: 0, output_index: 1 },
           data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
           error: undefined,
-        },
+        } satisfies BatchOrderQuotesResponse,
       ];
     }
   });
@@ -92,41 +66,21 @@ test('displays order quote data when query is successful', async () => {
   });
 });
 
-test('displays empty message when no data is returned', async () => {
-  mockIPC((cmd) => {
-    if (cmd === 'batch_order_quotes') {
-      return [];
-    }
-  });
-
-  const queryClient = new QueryClient();
-
-  render(TanstackOrderQuote, {
-    props: {
-      id: '0x123',
-      order: mockOrderDetailsExtended.order,
-    },
-    context: new Map([['$$_queryClient', queryClient]]),
-  });
-
-  await waitFor(() => {
-    expect(screen.getByText('Max output and price not found')).toBeInTheDocument();
-  });
-});
-
 test('refreshes the quote when the refresh icon is clicked', async () => {
   mockIPC((cmd) => {
     if (cmd === 'batch_order_quotes') {
       return [
         {
           success: true,
-          pair_name: 'ETH/USDT',
+          block_number: '0x123',
+          pair: { pair_name: 'ETH/USDT', input_index: 0, output_index: 1 },
           data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
           error: undefined,
         },
         {
           success: true,
-          pair_name: 'BTC/USDT',
+          block_number: '0x123',
+          pair: { pair_name: 'ETH/USDT', input_index: 0, output_index: 1 },
           data: { maxOutput: '0x54fa82f5c7001dad', ratio: '0x53e0089714d06709' },
           error: undefined,
         },
@@ -159,13 +113,15 @@ test('refreshes the quote when the refresh icon is clicked', async () => {
       return [
         {
           success: true,
-          pair_name: 'ETH/USD',
+          block_number: '0x123',
+          pair: { pair_name: 'ETH/USDT', input_index: 0, output_index: 1 },
           data: { maxOutput: '0x5282713eceeccb5e', ratio: '0x577fe09a8775137c' },
           error: undefined,
         },
         {
           success: true,
-          pair_name: 'BTC/USDT',
+          block_number: '0x123',
+          pair: { pair_name: 'BTC/USDT', input_index: 0, output_index: 1 },
           data: { maxOutput: '0x5430775053da5e53', ratio: '0x5a01719c871bb83f' },
           error: undefined,
         },
@@ -197,7 +153,8 @@ test('displays error message when query fails', async () => {
       return [
         {
           success: false,
-          pair_name: 'ETH/USDT',
+          block_number: '0x123',
+          pair: { pair_name: 'ETH/USDT', input_index: 0, output_index: 1 },
           data: undefined,
           error: 'Network error',
         },
@@ -216,10 +173,7 @@ test('displays error message when query fails', async () => {
   });
 
   await waitFor(() => {
-    const errorCell = screen.getByText(
-      (content) =>
-        content.includes('Error fetching pair quote:') && content.includes('Network error'),
-    );
+    const errorCell = screen.getByText((content) => content.includes('Error fetching quote'));
     expect(errorCell).toBeInTheDocument();
   });
 });

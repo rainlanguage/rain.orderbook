@@ -45,49 +45,49 @@
       {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2 min-w-32">
-      <Hash type={HashType.Wallet} value={item.trade_event.transaction.from} />
+      <Hash type={HashType.Wallet} value={item.tradeEvent.transaction.from} />
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2 min-w-32">
-      <Hash type={HashType.Transaction} value={item.trade_event.transaction.id} />
+      <Hash type={HashType.Transaction} value={item.tradeEvent.transaction.id} />
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2">
       {formatUnits(
-        BigInt(item.input_vault_balance_change.amount),
-        Number(item.input_vault_balance_change.vault.token.decimals ?? 0),
+        BigInt(item.inputVaultBalanceChange.amount),
+        Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
       )}
-      {item.input_vault_balance_change.vault.token.symbol}
+      {item.inputVaultBalanceChange.vault.token.symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2">
       {formatUnits(
-        BigInt(item.output_vault_balance_change.amount),
-        Number(item.output_vault_balance_change.vault.token.decimals ?? 0),
+        BigInt(item.outputVaultBalanceChange.amount),
+        Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
       )}
-      {item.output_vault_balance_change.vault.token.symbol}
+      {item.outputVaultBalanceChange.vault.token.symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2" data-testid="io-ratio">
       {Math.abs(
         Number(
           formatUnits(
-            BigInt(item.input_vault_balance_change.amount),
-            Number(item.input_vault_balance_change.vault.token.decimals ?? 0),
+            BigInt(item.inputVaultBalanceChange.amount),
+            Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
           ),
         ) /
           Number(
             formatUnits(
-              BigInt(item.output_vault_balance_change.amount),
-              Number(item.output_vault_balance_change.vault.token.decimals ?? 0),
+              BigInt(item.outputVaultBalanceChange.amount),
+              Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
             ),
           ),
       )}
-      {item.input_vault_balance_change.vault.token.symbol}/{item.output_vault_balance_change.vault
-        .token.symbol}
+      {item.inputVaultBalanceChange.vault.token.symbol}/{item.outputVaultBalanceChange.vault.token
+        .symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="py-2">
       <button
         data-testid="debug-trade-button"
         class="text-gray-500 hover:text-gray-700"
         on:click={() => {
-          if ($rpcUrl) handleDebugTradeModal(item.trade_event.transaction.id, $rpcUrl);
+          if ($rpcUrl) handleDebugTradeModal(item.tradeEvent.transaction.id, $rpcUrl);
         }}
       >
         <BugOutline size="xs" />

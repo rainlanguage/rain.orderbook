@@ -1,169 +1,113 @@
-use alloy::sol;
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    Orderbook, "../../out/OrderBook.sol/OrderBook.json"
-);
-
-sol!(
-    #![sol(all_derives = true, rpc = true)]
-    ERC20, "../../out/ERC20.sol/ERC20.json"
-);
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use alloy::primitives::Address;
-    use alloy::providers::ext::AnvilApi;
     use alloy::sol_types::SolCall;
     use alloy::{
-        network::{EthereumWallet, TransactionBuilder},
-        node_bindings::Anvil,
+        network::TransactionBuilder,
         primitives::{utils::parse_ether, U256},
-        providers::{Provider, ProviderBuilder},
         rpc::types::TransactionRequest,
-        signers::local::PrivateKeySigner,
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use Orderbook::*;
+    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::*};
 
     #[tokio::test]
     async fn test_post_task_set() {
-        let dai_holder = "0x788F5c68331a773f226747edCef20Ce60E9d78E7"
-            .parse::<Address>()
-            .unwrap();
+        let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        const DAI_ADDRESS: &str = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
+        let orderbook = &local_evm.orderbook;
 
-        let provider = ProviderBuilder::new().on_anvil_with_config(|anvil| {
-            anvil.fork(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL)
-        });
-        provider.anvil_auto_impersonate_account(true).await.unwrap();
+        let token1_holder = local_evm.signer_wallets[0].default_signer().address();
+
+        let token1 = local_evm.tokens[0].clone();
+        let token2 = local_evm.tokens[1].clone();
 
         let dotrain = format!(
             r#"
-raindex-version: {raindex_version}
 networks:
-    polygon:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
-        network-id: 137
-        currency: MATIC
+        chain-id: 123
+        network-id: 123
+        currency: ETH
 deployers:
-    polygon:
-        address: 0xB3aC858bEAf7814892d3946A8C109A7D701DF8E7
+    some-key:
+        address: {deployer}
 tokens:
     eth:
-        network: polygon
-        address: 0xabc0000000000000000000000000000000000003
+        network: some-key
+        address: {token2}
         decimals: 18
         label: Ethereum
         symbol: ETH
     dai:
-        network: polygon
-        address: {dai}
+        network: some-key
+        address: {token1}
         decimals: 18
         label: Dai
         symbol: DAI
 orderbook:
-    polygon:
-        address: 0x1234567890123456789012345678901234567891
+    some-key:
+        address: {orderbook}
 orders:
-    polygon:
+    some-key:
         inputs:
             - token: eth
         outputs:
             - token: dai
               vault-id: 0x01
 scenarios:
-    polygon:
+    some-key:
 deployments:
-    polygon:
-        scenario: polygon
-        order: polygon
+    some-key:
+        scenario: some-key
+        order: some-key
 ---
 #calculate-io
-using-words-from 0xe80e7438ce6b1055c8e9CDE1b6336a4F9D53C666
+using-words-from {orderbook_subparser}
 amount price: get("amount") 52;
 #handle-add-order
 :set("amount" 100);
 #handle-io
 :;
 "#,
-            rpc_url = rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL,
-            dai = DAI_ADDRESS,
-            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            rpc_url = local_evm.url(),
+            orderbook = orderbook.address(),
+            orderbook_subparser = local_evm.orderbook_subparser.address(),
+            deployer = local_evm.deployer.address(),
+            token1 = token1.address(),
+            token2 = token2.address(),
         );
 
-        let orderbook = Orderbook::deploy(&provider).await.unwrap();
-
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-
-        let deployment = order.config.deployments["polygon"].as_ref().clone();
-
-        let args = AddOrderArgs::new_from_deployment(dotrain, deployment)
-            .await
-            .unwrap();
-
-        let call = args
-            .try_into_call(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL.into())
-            .await
-            .unwrap();
-
-        let calldata = call.abi_encode();
-
-        let tx = TransactionRequest::default()
-            .with_input(calldata)
-            .with_to(*orderbook.address())
-            .with_from(dai_holder);
-
-        let _tx_hash = provider
-            .send_transaction(tx)
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .watch()
-            .await
-            .unwrap();
-
-        let filter = orderbook.AddOrderV2_filter();
-        let logs = filter.query().await.unwrap();
-        let order = logs[0].0.order.clone();
-
-        // approve and deposit DAI
-        let dai = ERC20::new(DAI_ADDRESS.parse::<Address>().unwrap(), &provider);
-        dai.approve(*orderbook.address(), parse_ether("1000").unwrap())
-            .from(dai_holder)
-            .send()
+            .try_into_call(local_evm.url())
             .await
             .unwrap()
-            .watch()
-            .await
-            .unwrap();
+            .abi_encode();
 
-        orderbook
-            .deposit2(
-                DAI_ADDRESS.parse::<Address>().unwrap(),
-                U256::from(0x01),
+        let order = local_evm
+            .add_order_and_deposit(
+                &calldata,
+                token1_holder,
+                *token1.address(),
                 parse_ether("1000").unwrap(),
-                vec![],
+                U256::from(1),
             )
-            .from(dai_holder)
-            .send()
             .await
-            .unwrap()
-            .watch()
-            .await
-            .unwrap();
+            .0
+            .order;
 
-        let quote = orderbook
-            .quote(Quote {
+        let quote = local_evm
+            .call_contract(orderbook.quote(Quote {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
                 signedContext: vec![],
-            })
-            .call()
+            }))
             .await
+            .unwrap()
             .unwrap();
 
         let amount = quote._1;
@@ -175,65 +119,49 @@ amount price: get("amount") 52;
 
     #[tokio::test]
     async fn test_post_task_revert() {
-        // Spin up a local Anvil node.
-        // Ensure `anvil` is available in $PATH.
-        let anvil = Anvil::new()
-            .fork(rain_orderbook_env::CI_DEPLOY_POLYGON_RPC_URL)
-            .try_spawn()
-            .unwrap();
-
-        // Set up signer from the first default Anvil account (Alice).
-        let signer: PrivateKeySigner = anvil.keys()[0].clone().into();
-        let wallet = EthereumWallet::from(signer);
-
-        // Create a provider with the wallet.
-        let rpc_url = anvil.endpoint().parse().unwrap();
-        let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(wallet)
-            .on_http(rpc_url);
+        let local_evm = LocalEvm::new().await;
+        let orderbook = &local_evm.orderbook;
 
         let dotrain = format!(
             r#"
-raindex-version: {raindex_version}
 networks:
-    polygon:
+    some-key:
         rpc: {rpc_url}
-        chain-id: 137
-        network-id: 137
-        currency: MATIC
+        chain-id: 123
+        network-id: 123
+        currency: ETH
 deployers:
-    polygon:
-        address: 0xB3aC858bEAf7814892d3946A8C109A7D701DF8E7
+    some-key:
+        address: {deployer}
 tokens:
     eth:
-        network: polygon
+        network: some-key
         address: 0xabc0000000000000000000000000000000000003
         decimals: 18
         label: Ethereum
         symbol: ETH
     dai:
-        network: polygon
+        network: some-key
         address: 0xabc0000000000000000000000000000000000004
         decimals: 18
         label: Dai
         symbol: DAI
 orderbook:
-    polygon:
-        address: 0x1234567890123456789012345678901234567891
+    some-key:
+        address: {orderbook}
 orders:
-    polygon:
+    some-key:
         inputs:
             - token: eth
             - token: dai
         outputs:
             - token: dai
 scenarios:
-    polygon:
+    some-key:
 deployments:
-    polygon:
-        scenario: polygon
-        order: polygon
+    some-key:
+        scenario: some-key
+        order: some-key
 ---
 #calculate-io
 amount price: get("amount") 52;
@@ -242,34 +170,29 @@ amount price: get("amount") 52;
 #handle-add-order
 :ensure(0 "should fail");
 "#,
-            rpc_url = anvil.endpoint(),
-            raindex_version = rain_orderbook_env::GH_COMMIT_SHA
+            rpc_url = local_evm.url(),
+            orderbook = orderbook.address(),
+            deployer = local_evm.deployer.address(),
         );
 
-        let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
-
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-
-        let deployment = order.config.deployments["polygon"].as_ref().clone();
-
-        let args = AddOrderArgs::new_from_deployment(dotrain, deployment)
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
-            .unwrap();
-
-        let call = args.try_into_call(anvil.endpoint()).await.unwrap();
-        let calldata = call.abi_encode();
-
+            .unwrap()
+            .try_into_call(local_evm.url())
+            .await
+            .unwrap()
+            .abi_encode();
         let tx = TransactionRequest::default()
             .with_input(calldata)
             .with_to(*orderbook.address());
 
-        let res = provider.send_transaction(tx).await;
+        let res = local_evm
+            .send_transaction(tx)
+            .await
+            .expect_err("Transaction should have reverted");
 
-        match res {
-            Ok(_) => panic!("Transaction should have reverted"),
-            Err(e) => {
-                assert!(e.to_string().contains("should fail"));
-            }
-        }
+        assert!(res.to_string().contains("should fail"));
     }
 }

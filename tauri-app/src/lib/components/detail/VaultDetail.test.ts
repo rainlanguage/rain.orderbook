@@ -4,7 +4,7 @@ import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from './VaultDetail.svelte';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Vault } from '$lib/typeshare/vaultDetail';
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 import { goto } from '$app/navigation';
 import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
 
@@ -95,7 +95,7 @@ test('shows the correct empty message when the query returns no data', async () 
 test('shows the correct data when the query returns data', async () => {
   const mockData: Vault = {
     id: '1',
-    vault_id: '0xabc',
+    vaultId: '0xabc',
     owner: '0x123',
     token: {
       id: '0x456',
@@ -105,9 +105,9 @@ test('shows the correct data when the query returns data', async () => {
       decimals: '6',
     },
     balance: '100000000000',
-    orders_as_input: [],
-    orders_as_output: [],
-    balance_changes: [],
+    ordersAsInput: [],
+    ordersAsOutput: [],
+    balanceChanges: [],
     orderbook: {
       id: '0x00',
     },
@@ -143,7 +143,7 @@ test('shows the correct data when the query returns data', async () => {
 test('shows the correct data when the query returns data with orders', async () => {
   const mockData: Vault = {
     id: '1',
-    vault_id: '0xabc',
+    vaultId: '0xabc',
     owner: '0x123',
     token: {
       id: '0x456',
@@ -153,31 +153,31 @@ test('shows the correct data when the query returns data with orders', async () 
       decimals: '6',
     },
     balance: '100000000000',
-    orders_as_input: [
+    ordersAsInput: [
       {
         id: '1',
-        order_hash: '0x123',
+        orderHash: '0x123',
         active: true,
       },
       {
         id: '2',
-        order_hash: '0x456',
+        orderHash: '0x456',
         active: false,
       },
     ],
-    orders_as_output: [
+    ordersAsOutput: [
       {
         id: '3',
-        order_hash: '0x789',
+        orderHash: '0x789',
         active: true,
       },
       {
         id: '4',
-        order_hash: '0xabc',
+        orderHash: '0xabc',
         active: false,
       },
     ],
-    balance_changes: [],
+    balanceChanges: [],
     orderbook: {
       id: '0x00',
     },
@@ -221,7 +221,7 @@ test('shows the correct data when the query returns data with orders', async () 
 test('orders link to the correct order', async () => {
   const mockData: Vault = {
     id: '1',
-    vault_id: '0xabc',
+    vaultId: '0xabc',
     owner: '0x123',
     token: {
       id: '0x456',
@@ -231,31 +231,31 @@ test('orders link to the correct order', async () => {
       decimals: '6',
     },
     balance: '100000000000',
-    orders_as_input: [
+    ordersAsInput: [
       {
         id: '1',
-        order_hash: '0x123',
+        orderHash: '0x123',
         active: true,
       },
       {
         id: '2',
-        order_hash: '0x456',
+        orderHash: '0x456',
         active: false,
       },
     ],
-    orders_as_output: [
+    ordersAsOutput: [
       {
         id: '3',
-        order_hash: '0x789',
+        orderHash: '0x789',
         active: true,
       },
       {
         id: '4',
-        order_hash: '0xabc',
+        orderHash: '0xabc',
         active: false,
       },
     ],
-    balance_changes: [],
+    balanceChanges: [],
     orderbook: {
       id: '0x00',
     },
@@ -301,7 +301,7 @@ test('orders link to the correct order', async () => {
 test('shows deposit and withdraw buttons if owner wallet matches, opens correct modals', async () => {
   const mockData: Vault = {
     id: '1',
-    vault_id: '0xabc',
+    vaultId: '0xabc',
     owner: '0x123',
     token: {
       id: '0x456',
@@ -311,9 +311,9 @@ test('shows deposit and withdraw buttons if owner wallet matches, opens correct 
       decimals: '6',
     },
     balance: '100000000000',
-    orders_as_input: [],
-    orders_as_output: [],
-    balance_changes: [],
+    ordersAsInput: [],
+    ordersAsOutput: [],
+    balanceChanges: [],
     orderbook: {
       id: '0x00',
     },

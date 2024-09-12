@@ -1,10 +1,11 @@
 [package]
 name = "rain_orderbook_quote"
-version = "0.0.0"
-edition = "2021"
-license = "CAL-1.0"
 description = "Quote Rain Orderbook Orders"
-homepage = "https://github.com/rainprotocol/rain.orderbook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -31,6 +32,7 @@ typeshare = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
+rain-interpreter-eval = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 js-sys = { version = "0.3.69" }
@@ -45,3 +47,7 @@ httpmock = "0.7.0"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
 wasm-bindgen-test = "0.3.42"
+
+[dev-dependencies]
+rain_orderbook_test_fixtures = { workspace = true }
+rain_orderbook_common = { workspace = true }

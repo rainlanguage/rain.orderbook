@@ -1,6 +1,6 @@
 use crate::{
     execute::Execute,
-    subgraph::{CliPaginationArgs, CliSubgraphArgs},
+    subgraph::{CliFilterArgs, CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::Result;
 use clap::Args;
@@ -20,6 +20,9 @@ pub struct CliVaultListArgs {
 
     #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
+
+    #[clap(flatten)]
+    pub filter_args: CliFilterArgs,
 }
 
 impl Execute for CliVaultListArgs {
@@ -41,10 +44,11 @@ impl Execute for CliVaultListArgs {
             println!("{}", csv_text);
         } else {
             let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let filter_args = self.filter_args.clone().into();
             let vaults = subgraph_args
                 .to_subgraph_client()
                 .await?
-                .vaults_list(pagination_args)
+                .vaults_list(filter_args, pagination_args)
                 .await?;
             let vaults_flattened: Vec<TokenVaultFlattened> = vaults
                 .into_iter()
@@ -113,6 +117,10 @@ mod tests {
                 page_size: 25,
                 page: 1,
             },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+                active: Some(true),
+            },
         };
 
         // should succeed
@@ -136,6 +144,10 @@ mod tests {
                 page_size: 25,
                 page: 1,
             },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+                active: Some(true),
+            },
         };
 
         // should succeed
@@ -152,6 +164,10 @@ mod tests {
                 csv: false,
                 page_size: 25,
                 page: 1,
+            },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+                active: Some(true),
             },
         };
 
@@ -178,14 +194,17 @@ mod tests {
                     "ordersAsInput": [{
                         "id": encode_prefixed(B256::random()),
                         "orderHash": encode_prefixed(B256::random()),
+                        "active": true,
                     }],
                     "ordersAsOutput": [{
                         "id": encode_prefixed(B256::random()),
                         "orderHash": encode_prefixed(B256::random()),
+                        "active": true,
                     }],
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
                     },
+                    "balanceChanges": []
                 }]
             }
         })

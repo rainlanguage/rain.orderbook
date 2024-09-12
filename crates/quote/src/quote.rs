@@ -9,7 +9,7 @@ use alloy::primitives::{
 use alloy::sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
 use rain_orderbook_subgraph_client::{
-    types::{order_detail::Bytes, Id},
+    types::{common::Bytes, Id},
     utils::make_order_id,
     OrderbookSubgraphClient,
 };
@@ -74,6 +74,19 @@ impl QuoteTarget {
                 .next()
                 .unwrap(),
         )
+    }
+
+    /// Validate the quote target
+    /// Checks if the requested input and output indexes are valid
+    pub fn validate(&self) -> Result<(), Error> {
+        if self.quote_config.inputIOIndex >= U256::from(self.quote_config.order.validInputs.len()) {
+            return Err(Error::InvalidQuoteTarget(self.quote_config.inputIOIndex));
+        }
+        if self.quote_config.outputIOIndex >= U256::from(self.quote_config.order.validOutputs.len())
+        {
+            return Err(Error::InvalidQuoteTarget(self.quote_config.outputIOIndex));
+        }
+        Ok(())
     }
 }
 
@@ -287,6 +300,7 @@ mod tests {
             "owner": encode_prefixed(order.owner),
             "outputs": [{
                 "id": encode_prefixed(Address::random().0.0),
+                "owner": encode_prefixed(order.owner),
                 "token": {
                     "id": encode_prefixed(order.validOutputs[0].token.0.0),
                     "address": encode_prefixed(order.validOutputs[0].token.0.0),
@@ -296,9 +310,46 @@ mod tests {
                 },
                 "balance": "0",
                 "vaultId": order.validOutputs[0].vaultId.to_string(),
+                "orderbook": { "id": encode_prefixed(B256::random()) },
+                "ordersAsOutput": [{
+                    "id": encode_prefixed(B256::random()),
+                    "orderHash": encode_prefixed(B256::random()),
+                    "active": true
+                }],
+                "ordersAsInput": [{
+                    "id": encode_prefixed(B256::random()),
+                    "orderHash": encode_prefixed(B256::random()),
+                    "active": true
+                }],
+                "balanceChanges": [{
+                    "__typename": "Withdrawal",
+                    "id": encode_prefixed(B256::random()),
+                    "amount": "0",
+                    "newVaultBalance": "0",
+                    "oldVaultBalance": "0",
+                    "vault": {
+                        "id": encode_prefixed(B256::random()),
+                        "token": {
+                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "name": "T1",
+                            "symbol": "T1",
+                            "decimals": order.validOutputs[0].decimals.to_string()
+                        },
+                    },
+                    "timestamp": "0",
+                    "transaction": {
+                        "id": encode_prefixed(B256::random()),
+                        "blockNumber": "0",
+                        "timestamp": "0",
+                        "from": encode_prefixed(Address::random())
+                    },
+                    "orderbook": { "id": encode_prefixed(B256::random()) }
+                }],
             }],
             "inputs": [{
                 "id": encode_prefixed(Address::random().0.0),
+                "owner": encode_prefixed(order.owner),
                 "token": {
                     "id": encode_prefixed(order.validInputs[0].token.0.0),
                     "address": encode_prefixed(order.validInputs[0].token.0.0),
@@ -308,17 +359,56 @@ mod tests {
                 },
                 "balance": "0",
                 "vaultId": order.validInputs[0].vaultId.to_string(),
+                "orderbook": { "id": encode_prefixed(B256::random()) },
+                "ordersAsOutput": [{
+                    "id": encode_prefixed(B256::random()),
+                    "orderHash": encode_prefixed(B256::random()),
+                    "active": true
+                }],
+                "ordersAsInput": [{
+                    "id": encode_prefixed(B256::random()),
+                    "orderHash": encode_prefixed(B256::random()),
+                    "active": true
+                }],
+                "balanceChanges": [{
+                    "__typename": "Withdrawal",
+                    "id": encode_prefixed(B256::random()),
+                    "amount": "0",
+                    "newVaultBalance": "0",
+                    "oldVaultBalance": "0",
+                    "vault": {
+                        "id": encode_prefixed(B256::random()),
+                        "token": {
+                            "id": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "address": encode_prefixed(order.validOutputs[0].token.0.0),
+                            "name": "T1",
+                            "symbol": "T1",
+                            "decimals": order.validOutputs[0].decimals.to_string()
+                        },
+                    },
+                    "timestamp": "0",
+                    "transaction": {
+                        "id": encode_prefixed(B256::random()),
+                        "blockNumber": "0",
+                        "timestamp": "0",
+                        "from": encode_prefixed(Address::random())
+                    },
+                    "orderbook": { "id": encode_prefixed(B256::random()) }
+                }],
             }],
             "orderbook": { "id": encode_prefixed(B256::random()) },
             "active": true,
             "addEvents": [{
                 "transaction": {
+                    "id": encode_prefixed(B256::random()),
                     "blockNumber": "0",
-                    "timestamp": "0"
+                    "timestamp": "0",
+                    "from": encode_prefixed(Address::random())
                 }
             }],
             "meta": null,
             "timestampAdded": "0",
+            "trades": []
         });
         let retrun_sg_data = if batch {
             json!({

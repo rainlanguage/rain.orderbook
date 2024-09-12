@@ -1,7 +1,6 @@
 use insta::assert_snapshot;
-use rain_orderbook_subgraph_client::types::orders_list::{
-    OrdersListQuery, OrdersListQueryVariables,
-};
+use rain_orderbook_subgraph_client::types::common::*;
+use rain_orderbook_subgraph_client::types::order::OrdersListQuery;
 
 #[test]
 fn orders_query_gql_output() {
@@ -10,6 +9,7 @@ fn orders_query_gql_output() {
     let request_body = OrdersListQuery::build(OrdersListQueryVariables {
         skip: Some(0),
         first: Some(10),
+        filters: None,
     });
 
     assert_snapshot!(request_body.query);

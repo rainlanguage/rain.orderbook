@@ -1,6 +1,10 @@
 name: Tauri builds
 on: [push]
 
+concurrency:
+  group: ${{ github.ref }}-tauri-build
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build-tauri:
     strategy:
@@ -19,12 +23,31 @@ jobs:
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       COMMIT_SHA: ${{ github.sha }}
     steps:
-      - name: Free up disk space in action runner
+      - name: Free up disk space in action runner (Ubuntu)
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get clean
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Free up disk space in action runner (Macos)
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+        run: |
+          sudo rm -rf \
+          "$AGENT_TOOLSDIRECTORY" \
+          /opt/google/chrome \
+          /opt/microsoft/msedge \
+          /opt/microsoft/powershell \
+          /opt/pipx \
+          /usr/lib/mono \
+          /usr/local/julia* \
+          /usr/local/lib/android \
+          /usr/local/lib/node_modules \
+          /usr/local/share/chromium \
+          /usr/local/share/powershell \
+          /usr/share/dotnet \
+          /usr/share/swift
+          df -h /
+          find /Applications/ -name "Xcode*" | sort -r | tail --lines=+2 | xargs rm -rf
 
       - uses: actions/checkout@v4
         with:
@@ -44,3 +67,4 @@ jobs:
         working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
+      - run: nix develop .#tauri-shell --command tauri-rs-test

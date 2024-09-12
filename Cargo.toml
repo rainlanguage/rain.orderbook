@@ -6,6 +6,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "CAL-1.0"
+version = "0.0.0-alpha.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
@@ -50,7 +51,6 @@ derive_builder = "0.20.0"
 thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
-rain-orderbook-env = { path = "crates/env" }
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "80bb411b161c1ee992a7974d325a783214046d5b" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
 
@@ -71,3 +71,6 @@ path = "crates/settings"
 
 [workspace.dependencies.rain_orderbook_quote]
 path = "crates/quote"
+
+[workspace.dependencies.rain_orderbook_test_fixtures]
+path = "crates/test_fixtures"

@@ -1,6 +1,6 @@
 use crate::{
     execute::Execute,
-    subgraph::{CliPaginationArgs, CliSubgraphArgs},
+    subgraph::{CliFilterArgs, CliPaginationArgs, CliSubgraphArgs},
 };
 use anyhow::Result;
 use clap::Args;
@@ -8,7 +8,7 @@ use comfy_table::Table;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     subgraph::SubgraphArgs,
-    types::{FlattenError, OrderFlattened},
+    types::{FlattenError, OrderFlattened, LIST_DELIMITER},
 };
 use tracing::info;
 
@@ -19,6 +19,9 @@ pub struct CliOrderListArgs {
 
     #[clap(flatten)]
     pub subgraph_args: CliSubgraphArgs,
+
+    #[clap(flatten)]
+    pub filter_args: CliFilterArgs,
 }
 
 impl Execute for CliOrderListArgs {
@@ -42,7 +45,10 @@ impl Execute for CliOrderListArgs {
                 subgraph_args
                     .to_subgraph_client()
                     .await?
-                    .orders_list(self.pagination_args.clone().into())
+                    .orders_list(
+                        self.filter_args.clone().into(),
+                        self.pagination_args.clone().into(),
+                    )
                     .await?
                     .into_iter()
                     .map(|o| o.try_into())
@@ -67,6 +73,7 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
             "Owner",
             "Input Tokens",
             "Output Tokens",
+            "Trades",
         ]);
 
     for order in orders.into_iter() {
@@ -77,6 +84,12 @@ fn build_table(orders: Vec<OrderFlattened>) -> Result<Table> {
             order.owner.0,
             order.valid_inputs_token_symbols_display,
             order.valid_outputs_token_symbols_display,
+            order
+                .trades
+                .split(LIST_DELIMITER)
+                .collect::<Vec<&str>>()
+                .len()
+                .to_string(),
         ]);
     }
 
@@ -112,6 +125,10 @@ mod tests {
                 page_size: 25,
                 page: 1,
             },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+                active: Some(true),
+            },
         };
 
         // should succeed
@@ -135,6 +152,10 @@ mod tests {
                 page_size: 25,
                 page: 1,
             },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+                active: Some(true),
+            },
         };
 
         // should succeed
@@ -157,6 +178,10 @@ mod tests {
                 csv: false,
                 page_size: 25,
                 page: 1,
+            },
+            filter_args: CliFilterArgs {
+                owners: vec!["addr1".to_string()],
+                active: Some(true),
             },
         };
 
@@ -186,6 +211,7 @@ mod tests {
                         encode_prefixed(order.abi_encode())
                     },
                     "outputs": [{
+                        "id": encode_prefixed(B256::random()),
                         "balance": "0",
                         "vaultId": io.vaultId.to_string(),
                         "token": {
@@ -195,8 +221,14 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": io.decimals.to_string(),
                         },
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "owner": encode_prefixed(order.owner),
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "inputs": [{
+                        "id": encode_prefixed(B256::random()),
                         "balance": "0",
                         "vaultId": io.vaultId.to_string(),
                         "token": {
@@ -206,10 +238,16 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": io.decimals.to_string(),
                         },
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "owner": encode_prefixed(order.owner),
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
                     },
+                    "meta": null,
                     "active": true,
                     "timestampAdded": "0",
                     "addEvents": [{
@@ -217,8 +255,10 @@ mod tests {
                             "id": encode_prefixed(B256::random()),
                             "blockNumber": "0",
                             "timestamp": "0",
+                            "from": encode_prefixed(alloy::primitives::Address::random())
                         }
                     }],
+                    "trades": []
                 }]
             }
         })

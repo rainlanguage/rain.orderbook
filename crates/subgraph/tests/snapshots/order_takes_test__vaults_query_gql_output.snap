@@ -9,13 +9,19 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       transaction {
         id
         from
+        blockNumber
         timestamp
       }
       sender
     }
     outputVaultBalanceChange {
+      id
+      __typename
       amount
+      newVaultBalance
+      oldVaultBalance
       vault {
+        id
         token {
           id
           address
@@ -23,15 +29,30 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
           symbol
           decimals
         }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
       }
     }
     order {
       id
       orderHash
-      timestampAdded
     }
     inputVaultBalanceChange {
+      id
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
       vault {
+        id
         token {
           id
           address
@@ -40,7 +61,16 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
           decimals
         }
       }
-      amount
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
     }
     timestamp
     orderbook {

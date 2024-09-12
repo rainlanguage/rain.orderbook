@@ -151,6 +151,10 @@ export const config: Config = {
       },
     },
   },
+  accounts: {
+    name_one: 'address_one',
+    name_two: 'address_two',
+  },
 };
 
 export const configSource: ConfigSource = {
@@ -213,6 +217,10 @@ export const configSource: ConfigSource = {
       scenario: 'network1.sell',
       order: 'sell',
     },
+  },
+  accounts: {
+    name_one: 'address_one',
+    name_two: 'address_two',
   },
 };
 

@@ -29,6 +29,7 @@ query OrderDetailQuery($id: Bytes!) {
       id
     }
     active
+    timestampAdded
     addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
       transaction {
         blockNumber

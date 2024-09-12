@@ -4,7 +4,7 @@ import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import VaultBalanceChangesTable from './VaultBalanceChangesTable.svelte';
-import type { VaultBalanceChange } from '$lib/typeshare/vaultBalanceChangesList';
+import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
 import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
@@ -27,12 +27,12 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
 test('renders the vault list table with correct data', async () => {
   const queryClient = new QueryClient();
 
-  const mockVaultBalanceChanges: VaultBalanceChange[] = [
+  const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
     {
-      __typename: 'Withdrawal',
+      typename: 'Withdrawal',
       amount: '1000',
-      old_vault_balance: '5000',
-      new_vault_balance: '4000',
+      oldVaultBalance: '5000',
+      newVaultBalance: '4000',
       vault: {
         id: 'vault1',
         token: {
@@ -47,16 +47,18 @@ test('renders the vault list table with correct data', async () => {
       transaction: {
         id: 'tx1',
         from: '0xUser1',
+        timestamp: '0',
+        blockNumber: '0',
       },
       orderbook: {
         id: '0x00',
       },
     },
     {
-      __typename: 'TradeVaultBalanceChange',
+      typename: 'TradeVaultBalanceChange',
       amount: '1500',
-      old_vault_balance: '4000',
-      new_vault_balance: '2500',
+      oldVaultBalance: '4000',
+      newVaultBalance: '2500',
       vault: {
         id: 'vault2',
         token: {
@@ -71,16 +73,18 @@ test('renders the vault list table with correct data', async () => {
       transaction: {
         id: 'tx2',
         from: '0xUser2',
+        timestamp: '0',
+        blockNumber: '0',
       },
       orderbook: {
         id: '0x00',
       },
     },
     {
-      __typename: 'Deposit',
+      typename: 'Deposit',
       amount: '2000',
-      old_vault_balance: '2500',
-      new_vault_balance: '4500',
+      oldVaultBalance: '2500',
+      newVaultBalance: '4500',
       vault: {
         id: 'vault3',
         token: {
@@ -95,6 +99,8 @@ test('renders the vault list table with correct data', async () => {
       transaction: {
         id: 'tx3',
         from: '0xUser3',
+        timestamp: '0',
+        blockNumber: '0',
       },
       orderbook: {
         id: '0x00',
@@ -122,12 +128,12 @@ test('renders the vault list table with correct data', async () => {
 test('it shows the correct data in the table', async () => {
   const queryClient = new QueryClient();
 
-  const mockVaultBalanceChanges: VaultBalanceChange[] = [
+  const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
     {
-      __typename: 'Withdrawal',
+      typename: 'Withdrawal',
       amount: '1000',
-      old_vault_balance: '5000',
-      new_vault_balance: '4000',
+      oldVaultBalance: '5000',
+      newVaultBalance: '4000',
       vault: {
         id: 'vault1',
         token: {
@@ -142,6 +148,8 @@ test('it shows the correct data in the table', async () => {
       transaction: {
         id: 'tx1',
         from: '0xUser1',
+        timestamp: '0',
+        blockNumber: '0',
       },
       orderbook: {
         id: '0x00',

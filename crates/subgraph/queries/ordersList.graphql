@@ -1,5 +1,5 @@
 query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
-  orders(orderDirection: desc, skip: $skip, first: $first) {
+  orders(orderBy: timestampAdded, orderDirection: desc, skip: $skip, first: $first) {
     orderBytes
     orderHash
     owner
@@ -29,11 +29,15 @@ query OrdersListQuery($skip: Int = 0, $first: Int = 25) {
       id
     }
     active
+    timestampAdded
     addEvents(first: 1, orderBy: transaction__timestamp, orderDirection: desc) {
       transaction {
         blockNumber
         timestamp
       }
+    }
+    trades(first: 1) {
+      id 
     }
   }
 }

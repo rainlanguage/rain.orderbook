@@ -99,6 +99,11 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": io.decimals.to_string(),
                         },
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "owner": encode_prefixed(order.owner),
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "inputs": [{
                         "id": encode_prefixed(B256::random()),
@@ -111,6 +116,11 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": io.decimals.to_string(),
                         },
+                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "owner": encode_prefixed(order.owner),
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
                     }],
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
@@ -120,10 +130,13 @@ mod tests {
                     "timestampAdded": "0",
                     "addEvents": [{
                         "transaction": {
+                            "id": encode_prefixed(B256::random()),
                             "blockNumber": "0",
                             "timestamp": "0",
+                            "from": encode_prefixed(alloy::primitives::Address::random())
                         }
                     }],
+                    "trades": []
                 }
             }
         })

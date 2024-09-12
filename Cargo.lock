@@ -6154,7 +6154,7 @@ dependencies = [
 
 [[package]]
 name = "rain-interpreter-eval"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "eyre",
@@ -6167,6 +6167,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "typeshare",
 ]
 
 [[package]]
@@ -6210,6 +6211,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "typeshare",
  "url",
  "validator",
 ]
@@ -6253,22 +6255,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "rain-orderbook-env"
-version = "0.0.0"
-dependencies = [
- "once_cell",
-]
-
-[[package]]
 name = "rain_interpreter_bindings"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
 ]
 
 [[package]]
 name = "rain_interpreter_dispair"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
@@ -6284,7 +6279,7 @@ dependencies = [
 
 [[package]]
 name = "rain_interpreter_parser"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
@@ -6298,8 +6293,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_interpreter_test_fixtures"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "getrandom",
+ "serde_json",
+]
+
+[[package]]
 name = "rain_orderbook_app_settings"
-version = "0.0.1"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "derive_builder 0.20.0",
@@ -6317,7 +6321,7 @@ dependencies = [
 
 [[package]]
 name = "rain_orderbook_bindings"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "js-sys",
@@ -6330,7 +6334,7 @@ dependencies = [
 
 [[package]]
 name = "rain_orderbook_cli"
-version = "0.0.4"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
@@ -6341,7 +6345,6 @@ dependencies = [
  "csv",
  "httpmock",
  "rain-metadata 0.0.2-alpha.6",
- "rain-orderbook-env",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
@@ -6359,7 +6362,7 @@ dependencies = [
 
 [[package]]
 name = "rain_orderbook_common"
-version = "0.0.1"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
@@ -6368,6 +6371,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "httpmock",
  "js-sys",
  "once_cell",
  "proptest",
@@ -6376,13 +6380,13 @@ dependencies = [
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
  "rain-metadata-bindings",
- "rain-orderbook-env",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
  "rain_interpreter_parser",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
+ "rain_orderbook_test_fixtures",
  "reqwest 0.12.5",
  "serde",
  "serde-wasm-bindgen 0.6.5",
@@ -6402,18 +6406,18 @@ dependencies = [
 
 [[package]]
 name = "rain_orderbook_integration_tests"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "rain-orderbook-env",
- "rain_orderbook_app_settings",
  "rain_orderbook_common",
+ "rain_orderbook_test_fixtures",
+ "serde_json",
  "tokio",
 ]
 
 [[package]]
 name = "rain_orderbook_quote"
-version = "0.0.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
@@ -6423,8 +6427,11 @@ dependencies = [
  "js-sys",
  "once_cell",
  "rain-error-decoding",
+ "rain-interpreter-eval",
  "rain_orderbook_bindings",
+ "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
+ "rain_orderbook_test_fixtures",
  "reqwest 0.12.5",
  "serde",
  "serde-wasm-bindgen 0.6.5",
@@ -6443,7 +6450,7 @@ dependencies = [
 
 [[package]]
 name = "rain_orderbook_subgraph_client"
-version = "0.0.1"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "chrono",
@@ -6459,6 +6466,16 @@ dependencies = [
  "thiserror",
  "tokio",
  "typeshare",
+]
+
+[[package]]
+name = "rain_orderbook_test_fixtures"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "getrandom",
+ "rain_interpreter_test_fixtures",
+ "serde_json",
 ]
 
 [[package]]
