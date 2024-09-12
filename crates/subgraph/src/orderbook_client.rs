@@ -199,18 +199,32 @@ impl OrderbookSubgraphClient {
         pagination_args: PaginationArgs,
     ) -> Result<Vec<Vault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
+
+        println!("filter_args: {:?}", filter_args);
+
+        let mut filters = VaultsListQueryFilters {
+            owner_in: filter_args.owners.clone(),
+            balance_gt: None,
+        };
+
+        if filter_args.hide_zero_balance {
+            filters.balance_gt = Some(BigInt("0".to_string()));
+        }
+
+        let variables = VaultsListQueryVariables {
+            first: pagination_variables.first,
+            skip: pagination_variables.skip,
+            filters: if !filter_args.owners.is_empty() || filter_args.hide_zero_balance {
+                Some(filters)
+            } else {
+                None
+            },
+        };
+
+        println!("variables: {:?}", variables);
+
         let data = self
-            .query::<VaultsListQuery, VaultsListQueryVariables>(VaultsListQueryVariables {
-                first: pagination_variables.first,
-                skip: pagination_variables.skip,
-                filters: if filter_args.owners.is_empty() {
-                    None
-                } else {
-                    Some(VaultsListQueryFilters {
-                        owner_in: filter_args.owners,
-                    })
-                },
-            })
+            .query::<VaultsListQuery, VaultsListQueryVariables>(variables)
             .await?;
 
         Ok(data.vaults)
@@ -224,7 +238,10 @@ impl OrderbookSubgraphClient {
         loop {
             let page_data = self
                 .vaults_list(
-                    VaultsListFilterArgs { owners: vec![] },
+                    VaultsListFilterArgs {
+                        owners: vec![],
+                        hide_zero_balance: true,
+                    },
                     PaginationArgs {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
