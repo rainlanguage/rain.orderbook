@@ -20,14 +20,14 @@
 
   $: debugQuery = createQuery(
     {
-      queryKey: [order + rpcUrl + pair],
+      queryKey: [order + rpcUrl + pair + blockNumber],
       queryFn: () => {
         return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrl, blockNumber);
       },
       retry: 0,
       refetchOnWindowFocus: false,
       refetchInterval: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
     },
     queryClient,
   );

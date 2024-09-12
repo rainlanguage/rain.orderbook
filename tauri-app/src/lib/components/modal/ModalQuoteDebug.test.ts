@@ -38,6 +38,7 @@ test('renders table with the correct data', async () => {
       outputIOIndex: 0,
       orderbook: '0x123',
       pair: 'ETH/USDC',
+      blockNumber: 123,
     },
   });
 

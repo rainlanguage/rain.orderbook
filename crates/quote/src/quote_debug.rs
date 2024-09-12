@@ -173,6 +173,7 @@ amount price: 16 52;
 
         let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
             fork_url: Url::from_str(&local_evm.url()).unwrap(),
+            fork_block_number: None,
         })
         .await
         .unwrap();
@@ -291,6 +292,7 @@ _: 1;
 
         let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
             fork_url: Url::from_str(&local_evm.url()).unwrap(),
+            fork_block_number: None,
         })
         .await
         .unwrap();
