@@ -58,7 +58,10 @@
     <Alert data-testid="modal-quote-debug-error" color="red">{$debugQuery.error}</Alert>
   {/if}
   {#if $debugQuery.data}
-    <EvalResultsTable table={$debugQuery.data} />
+    <EvalResultsTable table={$debugQuery.data[0]} />
+    {#if !!$debugQuery.data[1]}
+      <Alert data-testid="modal-quote-debug-error-partial" color="red">{$debugQuery.data[1]}</Alert>
+    {/if}
   {/if}
   <div class="flex flex-col gap-y-2 text-sm"></div>
 </Modal>

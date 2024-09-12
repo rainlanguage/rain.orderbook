@@ -55,8 +55,10 @@ test('renders table with the correct data', async () => {
   expect(values).toHaveLength(3);
   const hexValues = await screen.findAllByTestId('debug-value-hex');
   for (let i = 0; i < 3; i++) {
-    expect(stacks[i]).toHaveTextContent(mockQuoteDebug.column_names[i]);
-    expect(values[i]).toHaveTextContent(formatEther(BigInt(mockQuoteDebug.rows[0][i])));
-    expect(hexValues[i]).toHaveTextContent(mockQuoteDebug.rows[0][i]);
+    expect(stacks[i]).toHaveTextContent(mockQuoteDebug[0].column_names[i]);
+    expect(values[i]).toHaveTextContent(formatEther(BigInt(mockQuoteDebug[0].rows[0][i])));
+    expect(hexValues[i]).toHaveTextContent(mockQuoteDebug[0].rows[0][i]);
   }
+  const partialError = await screen.findAllByTestId('modal-quote-debug-error-partial');
+  expect(partialError[0]).toHaveTextContent(mockQuoteDebug[1]!);
 });

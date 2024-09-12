@@ -144,7 +144,21 @@
               </TableBodyCell>
               <TableBodyCell />
               <TableBodyCell />
-              <TableBodyCell />
+              <TableBodyCell>
+                <button
+                  on:click={() =>
+                    handleQuoteDebugModal(
+                      order,
+                      $rpcUrl || '',
+                      $orderbookAddress || '',
+                      item.pair.input_index,
+                      item.pair.output_index,
+                      item.pair.pair_name,
+                    )}
+                >
+                  <BugOutline size="sm" color="grey" />
+                </button>
+              </TableBodyCell>
             </TableBodyRow>
           {/if}
         {/each}
