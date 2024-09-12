@@ -413,7 +413,12 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     function takeOrders2(TakeOrdersConfigV3 calldata config)
         external
         nonReentrant
-        returns (uint256 totalTakerInput, uint256 totalTakerOutput)
+        returns (
+            int256 totalTakerInputSignedCoefficient,
+            int256 totalTakerInputExponent,
+            int256 totalTakerOutputSignedCoefficient,
+            int256 totalTakerOutputExponent
+        )
     {
         if (config.orders.length == 0) {
             revert NoOrders();
@@ -469,21 +474,6 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     revert TokenSelfTrade();
                 }
 
-                // Every order needs the same input token decimals.
-                // Every order needs the same output token decimals.
-                if (
-                    (
-                        order.validInputs[takeOrderConfig.inputIOIndex].decimals
-                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].decimals
-                    )
-                        || (
-                            order.validOutputs[takeOrderConfig.outputIOIndex].decimals
-                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].decimals
-                        )
-                ) {
-                    revert TokenDecimalsMismatch();
-                }
-
                 bytes32 orderHash = order.hash();
                 if (sOrders[orderHash] == ORDER_DEAD) {
                     emit OrderNotFound(msg.sender, order.owner, orderHash);
@@ -500,51 +490,65 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     // no way of knowing if a specific order becomes too expensive
                     // between submitting to mempool and execution, but other orders may
                     // be valid so we want to take advantage of those if possible.
-                    if (orderIOCalculation.IORatio > config.maximumIORatio) {
+                    if (
+                        LibDecimalFloat.gt(
+                            orderIOCalculation.IORatioSignedCoefficient,
+                            orderIOCalculation.IORatioExponent,
+                            config.maximumIORatioSignedCoefficient,
+                            config.maximumIORatioExponent
+                        )
+                    ) {
                         emit OrderExceedsMaxRatio(msg.sender, order.owner, orderHash);
-                    } else if (Output18Amount.unwrap(orderIOCalculation.outputMax) == 0) {
+                    } else if (
+                        LibDecimalFloat.isZero(
+                            orderIOCalculation.outputMaxSignedCoefficient, orderIOCalculation.outputMaxExponent
+                        )
+                    ) {
                         emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                     } else {
-                        uint8 takerInputDecimals = order.validOutputs[takeOrderConfig.outputIOIndex].decimals;
                         // Taker is just "market buying" the order output max.
-                        Input18Amount takerInput18 =
-                            Input18Amount.wrap(Output18Amount.unwrap(orderIOCalculation.outputMax));
-                        // Cap the taker input at the remaining input before
-                        // calculating the taker output. Keep everything in 18
-                        // decimals at this point, which requires rescaling the
-                        // remaining taker input to match.
-                        {
-                            // Round down and saturate when converting remaining taker input to 18 decimals.
-                            Input18Amount remainingTakerInput18 =
-                                Input18Amount.wrap(remainingTakerInput.scale18(takerInputDecimals, FLAG_SATURATE));
-                            if (Input18Amount.unwrap(takerInput18) > Input18Amount.unwrap(remainingTakerInput18)) {
-                                takerInput18 = remainingTakerInput18;
-                            }
-                        }
+                        // Can't exceed the remaining taker input.
+                        (int256 takerInputSignedCoefficient, int256 takerInputExponent) = LibDecimalFloat.min(
+                            orderIOCalculation.outputMaxSignedCoefficient,
+                            orderIOCalculation.outputMaxExponent,
+                            remainingTakerInputSignedCoefficient,
+                            remainingTakerInputExponent
+                        );
 
-                        uint256 takerOutput;
-                        {
-                            // Always round IO calculations up so the taker pays more.
-                            Output18Amount takerOutput18 = Output18Amount.wrap(
-                                // Use the capped taker input to calculate the taker
-                                // output.
-                                Input18Amount.unwrap(takerInput18).fixedPointMul(
-                                    orderIOCalculation.IORatio, Math.Rounding.Up
-                                )
-                            );
-                            takerOutput = Output18Amount.unwrap(takerOutput18).scaleN(
-                                order.validInputs[takeOrderConfig.inputIOIndex].decimals, FLAG_ROUND_UP
-                            );
-                        }
+                        (int256 takerOutputSignedCoefficient, int256 takerOutputExponent) = LibDecimalFloat.mul(
+                            orderIOCalculation.IORatioSignedCoefficient,
+                            orderIOCalculation.IORatioExponent,
+                            takerInputSignedCoefficient,
+                            takerInputExponent
+                        );
 
-                        uint256 takerInput =
-                            Input18Amount.unwrap(takerInput18).scaleN(takerInputDecimals, FLAG_SATURATE);
+                        (remainingTakerInputSignedCoefficient, remainingTakerInputExponent) = LibDecimalFloat.sub(
+                            remainingTakerInputSignedCoefficient,
+                            remainingTakerInputExponent,
+                            takerInputSignedCoefficient,
+                            takerInputExponent
+                        );
 
-                        remainingTakerInput -= takerInput;
-                        totalTakerOutput += takerOutput;
+                        (totalTakerOutputSignedCoefficient, totalTakerOutputExponent) = LibDecimalFloat.add(
+                            totalTakerOutputSignedCoefficient,
+                            totalTakerOutputExponent,
+                            takerOutputSignedCoefficient,
+                            takerOutputExponent
+                        );
 
-                        recordVaultIO(takerOutput, takerInput, orderIOCalculation);
-                        emit TakeOrderV2(msg.sender, takeOrderConfig, takerInput, takerOutput);
+                        recordVaultIO(
+                            takerOutputSignedCoefficient,
+                            takerOutputExponent,
+                            takerInputSignedCoefficient,
+                            takerInputExponent,
+                            orderIOCalculation
+                        );
+                        emit TakeOrderV2(
+                            msg.sender,
+                            takeOrderConfig,
+                            LibDecimalFloat.pack(takerInputSignedCoefficient, takerInputExponent),
+                            LibDecimalFloat.pack(takerOutputSignedCoefficient, takerOutputExponent)
+                        );
 
                         // Add the pointer to the order IO calculation to the array
                         // of order IO calculations to handle. This is
@@ -567,8 +571,21 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             totalTakerInput = config.maximumInput - remainingTakerInput;
         }
 
-        if (totalTakerInput < config.minimumInput) {
-            revert MinimumInput(config.minimumInput, totalTakerInput);
+        {
+            (int256 minimumInputSignedCoefficient, int256 minimumInputExponent) =
+                LibDecimalFloat.unpack(config.minimumInput);
+            if (
+                LibDecimalFloat.lt(
+                    totalTakerInputSignedCoefficient,
+                    totalTakerInputExponent,
+                    minimumInputSignedCoefficient,
+                    minimumInputExponent
+                )
+            ) {
+                revert MinimumInput(
+                    config.minimumInput, LibDecimalFloat.pack(totalTakerInputSignedCoefficient, totalTakerInputExponent)
+                );
+            }
         }
 
         // We send the tokens to `msg.sender` first adopting a similar pattern to
@@ -582,27 +599,27 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        if (totalTakerInput > 0) {
-            IERC20(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token).safeTransfer(
-                msg.sender, totalTakerInput
-            );
-        }
+        pushTokens(
+            IERC20(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token),
+            totalTakerInputSignedCoefficient,
+            totalTakerInputExponent
+        );
 
         if (config.data.length > 0) {
-            IOrderBookV4OrderTaker(msg.sender).onTakeOrders(
+            IOrderBookV5OrderTaker(msg.sender).onTakeOrders2(
                 config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
                 config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
-                totalTakerInput,
-                totalTakerOutput,
+                LibDecimalFloat.pack(totalTakerInputSignedCoefficient, totalTakerInputExponent),
+                LibDecimalFloat.pack(totalTakerOutputSignedCoefficient, totalTakerOutputExponent),
                 config.data
             );
         }
 
-        if (totalTakerOutput > 0) {
-            IERC20(config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token).safeTransferFrom(
-                msg.sender, address(this), totalTakerOutput
-            );
-        }
+        pullTokens(
+            IERC20(config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token),
+            totalTakerOutputSignedCoefficient,
+            totalTakerOutputExponent
+        );
 
         unchecked {
             for (uint256 i = 0; i < orderIOCalculationsToHandle.length; i++) {
@@ -739,9 +756,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         uint256(uint160(order.validInputs[inputIOIndex].token)),
                         order.validInputs[inputIOIndex].decimals * 1e18,
                         order.validInputs[inputIOIndex].vaultId,
-                        LibFixedPointDecimalScale.scale18(
-                            inputTokenVaultBalance, order.validInputs[inputIOIndex].decimals, 0
-                        ),
+                        inputTokenVaultBalance,
                         // Don't know the balance diff yet!
                         0
                     );
@@ -754,9 +769,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         uint256(uint160(order.validOutputs[outputIOIndex].token)),
                         order.validOutputs[outputIOIndex].decimals * 1e18,
                         order.validOutputs[outputIOIndex].vaultId,
-                        LibFixedPointDecimalScale.scale18(
-                            outputTokenVaultBalance, order.validOutputs[outputIOIndex].decimals, 0
-                        ),
+                        outputTokenVaultBalance,
                         // Don't know the balance diff yet!
                         0
                     );
@@ -1007,5 +1020,41 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             aliceOrderIOCalculation.IORatioSignedCoefficient,
             aliceOrderIOCalculation.IORatioExponent
         );
+    }
+
+    function pullTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent) internal {
+        uint8 decimals = decimalsForToken(token);
+        (uint256 amount, bool lossless) =
+            LibDecimalFloat.toFixedDecimalLossy(amountSignedCoefficient, amountExponent, decimals);
+        // Round truncation up when pulling.
+        if (!lossless) {
+            ++amount;
+        }
+        if (amount > 0) {
+            token.safeTransferFrom(msg.sender, address(this), amount);
+        }
+    }
+
+    function pushTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent) internal {
+        uint8 decimals = decimalsForToken(token);
+        (uint256 amount, bool lossless) =
+            LibDecimalFloat.toFixedDecimalLossy(amountSignedCoefficient, amountExponent, decimals);
+        // Truncate when pushing.
+        (lossless);
+        if (amount > 0) {
+            token.safeTransfer(msg.sender, amount);
+        }
+    }
+
+    // @TODO enforce the decimals never change for trades and deposits. If it
+    // changes only allow withdrawals.
+    function decimalsForToken(IERC20 token) internal view returns (uint8) {
+        // @TODO fix the path where decimals does not exist and the return can't
+        // deserialize to a uint8, whic will error instead of entering the catch.
+        try IERC20Metadata(address(token)).decimals() returns (uint8 decimals) {
+            return decimals;
+        } catch {
+            return 18;
+        }
     }
 }
