@@ -200,8 +200,6 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<Vault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
-        println!("filter_args: {:?}", filter_args);
-
         let mut filters = VaultsListQueryFilters {
             owner_in: filter_args.owners.clone(),
             balance_gt: None,
@@ -220,8 +218,6 @@ impl OrderbookSubgraphClient {
                 None
             },
         };
-
-        println!("variables: {:?}", variables);
 
         let data = self
             .query::<VaultsListQuery, VaultsListQueryVariables>(variables)
