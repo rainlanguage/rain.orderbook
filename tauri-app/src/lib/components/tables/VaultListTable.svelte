@@ -19,13 +19,18 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
-  import { activeAccounts } from '$lib/stores/settings';
+  import { activeAccounts, hideZeroBalanceVaults } from '$lib/stores/settings';
   import { get } from 'svelte/store';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS, $activeAccounts],
+    queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults],
     queryFn: ({ pageParam }) => {
-      return vaultList($subgraphUrl, Object.values(get(activeAccounts)), pageParam);
+      return vaultList(
+        $subgraphUrl,
+        Object.values(get(activeAccounts)),
+        $hideZeroBalanceVaults,
+        pageParam,
+      );
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
