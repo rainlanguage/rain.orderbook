@@ -122,6 +122,7 @@
                       item.pair.input_index,
                       item.pair.output_index,
                       item.pair.pair_name,
+                      parseInt($orderQuoteQuery.data[0].block_number),
                     )}
                 >
                   <BugOutline size="sm" color="grey" />
@@ -144,7 +145,22 @@
               </TableBodyCell>
               <TableBodyCell />
               <TableBodyCell />
-              <TableBodyCell />
+              <TableBodyCell>
+                <button
+                  on:click={() =>
+                    handleQuoteDebugModal(
+                      order,
+                      $rpcUrl || '',
+                      $orderbookAddress || '',
+                      item.pair.input_index,
+                      item.pair.output_index,
+                      item.pair.pair_name,
+                      parseInt($orderQuoteQuery.data[0].block_number),
+                    )}
+                >
+                  <BugOutline size="sm" color="grey" />
+                </button>
+              </TableBodyCell>
             </TableBodyRow>
           {/if}
         {/each}
