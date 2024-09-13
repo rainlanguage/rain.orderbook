@@ -146,7 +146,7 @@ test('shows the correct data when the query returns data with inputs and outputs
       ).toBeInTheDocument();
       expect(
         await screen.findByText(
-          `Balance: ${formatUnits(BigInt(input.balance), parseInt(input.token.decimals || '18'))}`,
+          `${formatUnits(BigInt(input.balance), parseInt(input.token.decimals || '18'))}`,
         ),
       ).toBeInTheDocument();
     }
@@ -158,7 +158,7 @@ test('shows the correct data when the query returns data with inputs and outputs
       ).toBeInTheDocument();
       expect(
         await screen.findByText(
-          `Balance: ${formatUnits(BigInt(output.balance), parseInt(output.token.decimals || '18'))}`,
+          `${formatUnits(BigInt(output.balance), parseInt(output.token.decimals || '18'))}`,
         ),
       ).toBeInTheDocument();
     }
