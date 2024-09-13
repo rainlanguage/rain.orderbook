@@ -27,6 +27,7 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { mockSettingsStore } = await import('$lib/mocks/settings');
 
   const _activeOrderbook = writable();
+  const _hideZeroBalanceVaults = writable(true);
 
   return {
     ...((await importOriginal()) as object),
@@ -36,6 +37,7 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
       ..._activeOrderbook,
       load: vi.fn(() => _activeOrderbook.set(true)),
     },
+    hideZeroBalanceVaults: _hideZeroBalanceVaults,
   };
 });
 
@@ -50,6 +52,13 @@ vi.mock('$lib/services/modal', async () => {
 vi.mock('$app/navigation', () => ({
   goto: vi.fn(),
 }));
+
+vi.mock('$app/stores', async () => {
+  const { writable } = await import('svelte/store');
+  return {
+    page: writable({ url: { pathname: '/vaults' } }),
+  };
+});
 
 test('renders the vault list table with correct data', async () => {
   const queryClient = new QueryClient();
@@ -354,5 +363,180 @@ test('clicking the deposit option in the row dropdown menu opens the deposit mod
 
   await waitFor(() => {
     expect(handleWithdrawModal).toHaveBeenCalledWith(vault);
+  });
+});
+
+test('hides zero balance vaults when hideZeroBalanceVaults is true', async () => {
+  const queryClient = new QueryClient();
+  const { hideZeroBalanceVaults } = await import('$lib/stores/settings');
+
+  mockIPC((cmd) => {
+    if (cmd === 'vaults_list') {
+      return [
+        {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
+          },
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+        },
+      ];
+    }
+  });
+
+  hideZeroBalanceVaults.set(true);
+
+  render(VaultListTable, { context: new Map([['$$_queryClient', queryClient]]) });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('vault-id')).toHaveTextContent('0xabc');
+  });
+});
+
+test('shows all vaults when hideZeroBalanceVaults is false', async () => {
+  const queryClient = new QueryClient();
+  const { hideZeroBalanceVaults } = await import('$lib/stores/settings');
+
+  mockIPC((cmd) => {
+    if (cmd === 'vaults_list') {
+      return [
+        {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
+          },
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+        },
+        {
+          id: '2',
+          vaultId: '0xdef',
+          owner: '0x456',
+          token: {
+            id: '2',
+            address: '0x789',
+            name: 'ETH coin',
+            symbol: 'ETH',
+            decimals: '18',
+          },
+          balance: '0',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+        },
+      ];
+    }
+  });
+
+  hideZeroBalanceVaults.set(false);
+
+  render(VaultListTable, { context: new Map([['$$_queryClient', queryClient]]) });
+
+  await waitFor(() => {
+    expect(screen.getByText('0xabc')).toBeInTheDocument();
+    expect(screen.getByText('0xdef')).toBeInTheDocument();
+  });
+});
+
+test('updates the vault list when hideZeroBalanceVaults changes', async () => {
+  const queryClient = new QueryClient();
+  const { hideZeroBalanceVaults } = await import('$lib/stores/settings');
+
+  mockIPC((cmd) => {
+    if (cmd === 'vaults_list') {
+      return [
+        {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
+          },
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+        },
+      ];
+    }
+  });
+
+  hideZeroBalanceVaults.set(true);
+
+  render(VaultListTable, {
+    context: new Map([['$$_queryClient', queryClient]]),
+  });
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId('vault-id')).toHaveLength(1);
+    expect(screen.getByTestId('vault-id')).toHaveTextContent('0xabc');
+  });
+
+  hideZeroBalanceVaults.set(false);
+
+  mockIPC((cmd) => {
+    if (cmd === 'vaults_list') {
+      return [
+        {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
+          },
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+        },
+        {
+          id: '2',
+          vaultId: '0xdef',
+          owner: '0x456',
+          token: {
+            id: '2',
+            address: '0x789',
+            name: 'ETH coin',
+            symbol: 'ETH',
+            decimals: '18',
+          },
+          balance: '0',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+        },
+      ];
+    }
+  });
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId('vault-id')).toHaveLength(2);
+    expect(screen.getAllByTestId('vault-id')[0]).toHaveTextContent('0xabc');
+    expect(screen.getAllByTestId('vault-id')[1]).toHaveTextContent('0xdef');
   });
 });

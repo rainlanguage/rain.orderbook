@@ -149,7 +149,8 @@ pub async fn debug_order_quote(
     output_io_index: u32,
     orderbook: Address,
     rpc_url: String,
-) -> CommandResult<RainEvalResultsTable> {
+    block_number: Option<u32>,
+) -> CommandResult<(RainEvalResultsTable, Option<String>)> {
     let quote_target = QuoteTarget {
         orderbook,
         quote_config: Quote {
@@ -162,12 +163,20 @@ pub async fn debug_order_quote(
 
     let mut debugger = QuoteDebugger::new(NewQuoteDebugger {
         fork_url: rpc_url.parse()?,
+        fork_block_number: block_number.map(|s| s.into()),
     })
     .await?;
 
-    let res: RainEvalResults = vec![debugger.debug(quote_target).await?].into();
+    let res = debugger.debug(quote_target).await?;
+    let eval_res: RainEvalResults = vec![res.0.clone()].into();
 
-    Ok(res.into_flattened_table()?)
+    Ok((
+        eval_res.into_flattened_table()?,
+        res.1.map(|v| match v {
+            Ok(e) => e.to_string(),
+            Err(e) => e.to_string(),
+        }),
+    ))
 }
 
 #[cfg(test)]
@@ -296,12 +305,13 @@ amount price: 16 52;
             output_io_index,
             *orderbook.address(),
             rpc_url,
+            None,
         )
         .await;
 
         assert!(result.is_ok());
         assert_eq!(
-            result.unwrap().rows[0],
+            result.unwrap().0.rows[0],
             [parse_ether("16").unwrap(), parse_ether("52").unwrap()]
         );
     }

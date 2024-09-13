@@ -16,17 +16,18 @@
   export let pair: string;
   export let orderbook: Hex;
   export let rpcUrl: string;
+  export let blockNumber: number | undefined;
 
   $: debugQuery = createQuery(
     {
-      queryKey: [order + rpcUrl + pair],
+      queryKey: [order + rpcUrl + pair + blockNumber],
       queryFn: () => {
-        return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrl);
+        return debugOrderQuote(order, inputIOIndex, outputIOIndex, orderbook, rpcUrl, blockNumber);
       },
       retry: 0,
       refetchOnWindowFocus: false,
       refetchInterval: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
     },
     queryClient,
   );
@@ -37,6 +38,9 @@
     {#if $debugQuery.data}
       <div class="flex flex-col text-sm">
         <span class="whitespace-nowrap" data-testid="modal-quote-debug-rpc-url">RPC: {rpcUrl}</span>
+        <span class="whitespace-nowrap" data-testid="modal-quote-debug-block-number"
+          >Block: {blockNumber}</span
+        >
       </div>
     {/if}
     <div class="flex w-full items-center justify-end">
@@ -53,12 +57,11 @@
       />
     </div>
   </div>
-
-  {#if $debugQuery.isError}
-    <Alert data-testid="modal-quote-debug-error" color="red">{$debugQuery.error}</Alert>
-  {/if}
   {#if $debugQuery.data}
-    <EvalResultsTable table={$debugQuery.data} />
+    {#if !!$debugQuery.data[1]}
+      <Alert data-testid="modal-quote-debug-error-partial" color="red">{$debugQuery.data[1]}</Alert>
+    {/if}
+    <EvalResultsTable table={$debugQuery.data[0]} />
   {/if}
   <div class="flex flex-col gap-y-2 text-sm"></div>
 </Modal>

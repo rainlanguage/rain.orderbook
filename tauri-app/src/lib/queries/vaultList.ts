@@ -16,6 +16,7 @@ export type VaultsListArgs = {
 export const vaultList = async (
   url: string | undefined,
   owners: string[] = [],
+  hideZeroBalance: boolean = true,
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
 ) => {
@@ -26,6 +27,7 @@ export const vaultList = async (
     subgraphArgs: { url },
     filterArgs: {
       owners,
+      hideZeroBalance,
     },
     paginationArgs: { page: pageParam + 1, page_size: pageSize },
   } as VaultsListArgs);
@@ -58,10 +60,29 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await vaultList(undefined, [], 0)).toEqual([]);
+    expect(await vaultList(undefined, [], true, 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await vaultList('http://localhost:8000', [], 0)).toEqual([
+    expect(await vaultList('http://localhost:8000', [], true, 0)).toEqual([
+      {
+        id: '1',
+        vault_id: '1',
+        owner: '0x123',
+        token: {
+          id: '1',
+          address: '0x456',
+          name: 'USDC',
+          symbol: 'USDC',
+          decimals: '6',
+        },
+        balance: '100000000000',
+        orders_as_input: [],
+        orders_as_output: [],
+      },
+    ]);
+
+    // check with hideZeroBalance set to false
+    expect(await vaultList('http://localhost:8000', [], false, 0)).toEqual([
       {
         id: '1',
         vault_id: '1',

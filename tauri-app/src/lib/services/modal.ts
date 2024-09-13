@@ -36,6 +36,7 @@ export const handleQuoteDebugModal = (
   inputIOIndex: number,
   outputIOIndex: number,
   pair: string,
+  blockNumber?: number,
 ) => {
   new ModalQuoteDebug({
     target: document.body,
@@ -47,6 +48,7 @@ export const handleQuoteDebugModal = (
       inputIOIndex,
       outputIOIndex,
       pair,
+      blockNumber,
     },
   });
 };
