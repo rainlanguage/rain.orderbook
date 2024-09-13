@@ -21,6 +21,14 @@
 
     activeOrderStatus.set(status);
   }
+
+  $: value = (
+    $activeOrderStatus === undefined
+      ? {}
+      : $activeOrderStatus
+        ? { Active: 'active' }
+        : { Inactive: 'inactive' }
+  ) as Record<string, string>;
 </script>
 
 <DropdownCheckbox
@@ -29,4 +37,5 @@
   label="Status"
   showAllLabel={false}
   onlyTitle={true}
+  {value}
 />
