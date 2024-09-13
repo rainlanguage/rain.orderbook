@@ -3,22 +3,12 @@
   import { InfoCircleSolid } from 'flowbite-svelte-icons';
   import { formatUnits, parseUnits } from 'viem';
   import type { InputMask } from 'imask';
-  // import { imask } from '@imask/svelte';
 
   export let symbol: string | undefined = undefined;
   export let decimals: number = 0;
   export let maxValue: bigint | undefined = undefined;
   let valueRaw: string = '';
   export let value: bigint | undefined;
-
-  // $: maskOptions = {
-  //   mask: Number,
-  //   min: 0,
-  //   lazy: false,
-  //   scale: decimals,
-  //   thousandsSeparator: '',
-  //   radix: '.',
-  // };
 
   $: {
     if (value !== undefined) {
