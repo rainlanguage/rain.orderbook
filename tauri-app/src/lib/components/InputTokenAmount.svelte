@@ -3,22 +3,12 @@
   import { InfoCircleSolid } from 'flowbite-svelte-icons';
   import { formatUnits, parseUnits } from 'viem';
   import type { InputMask } from 'imask';
-  import { imask } from '@imask/svelte';
 
   export let symbol: string | undefined = undefined;
   export let decimals: number = 0;
   export let maxValue: bigint | undefined = undefined;
   let valueRaw: string = '';
   export let value: bigint | undefined;
-
-  $: maskOptions = {
-    mask: Number,
-    min: 0,
-    lazy: false,
-    scale: decimals,
-    thousandsSeparator: '',
-    radix: '.',
-  };
 
   $: {
     if (value !== undefined) {
@@ -54,7 +44,6 @@
         type="text"
         class={`block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500 rtl:text-right ${symbol && '!rounded-none !rounded-l-lg'}`}
         value={valueRaw}
-        use:imask={maskOptions}
         on:complete={complete}
       />
 
