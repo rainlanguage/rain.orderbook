@@ -194,6 +194,6 @@ test('shows remove button if owner wallet matches and order is active, opens cor
   screen.getByText('Remove').click();
 
   await waitFor(() => {
-    expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockData.order);
+    expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockData.order, expect.any(Function));
   });
 });

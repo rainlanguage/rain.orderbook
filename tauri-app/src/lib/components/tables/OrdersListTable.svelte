@@ -125,7 +125,7 @@
           <DropdownItem
             on:click={(e) => {
               e.stopPropagation();
-              handleOrderRemoveModal(item);
+              handleOrderRemoveModal(item, $query.refetch);
             }}>Remove</DropdownItem
           >
         </Dropdown>

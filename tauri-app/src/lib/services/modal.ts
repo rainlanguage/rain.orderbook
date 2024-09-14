@@ -21,8 +21,11 @@ export const handleWithdrawModal = (vault: Vault) => {
   new ModalVaultWithdraw({ target: document.body, props: { open: true, vault } });
 };
 
-export const handleOrderRemoveModal = (order: OrderDetailOrder | OrderListOrder) => {
-  new ModalOrderRemove({ target: document.body, props: { order } });
+export const handleOrderRemoveModal = (
+  order: OrderDetailOrder | OrderListOrder,
+  onOrderRemoved: () => void,
+) => {
+  new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };
 
 export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
