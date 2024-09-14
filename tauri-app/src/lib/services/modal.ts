@@ -23,13 +23,9 @@ export const handleWithdrawModal = (vault: Vault) => {
 
 export const handleOrderRemoveModal = (
   order: OrderDetailOrder | OrderListOrder,
-  callback?: () => void,
+  onOrderRemoved?: () => void,
 ) => {
-  const modal = new ModalOrderRemove({ target: document.body, props: { order } });
-  modal.$on('orderRemoved', () => {
-    if (callback) callback();
-  });
-  return modal;
+  new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };
 
 export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
