@@ -11,13 +11,13 @@
   let openOrderRemoveModal = true;
   export let order: OrderDetailOrder;
   let isSubmitting = false;
-  export let onOrderRemoved: (() => void) | undefined;
+  export let onOrderRemoved: () => void;
 
   async function executeLedger() {
     isSubmitting = true;
     try {
       await orderRemove(order.id);
-      if (onOrderRemoved) onOrderRemoved();
+      onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -30,7 +30,7 @@
       const tx = await ethersExecute(calldata, $orderbookAddress!);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
-      if (onOrderRemoved) onOrderRemoved();
+      onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));

@@ -23,7 +23,7 @@ export const handleWithdrawModal = (vault: Vault) => {
 
 export const handleOrderRemoveModal = (
   order: OrderDetailOrder | OrderListOrder,
-  onOrderRemoved?: () => void,
+  onOrderRemoved: () => void,
 ) => {
   new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };

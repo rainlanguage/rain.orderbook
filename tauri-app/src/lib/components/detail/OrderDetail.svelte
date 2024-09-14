@@ -39,7 +39,12 @@
       <BadgeActive active={data.order.active} large />
     </div>
     {#if data.order && $walletAddressMatchesOrBlank(data.order.owner) && data.order.active}
-      <Button color="dark" on:click={() => handleOrderRemoveModal(data.order)}>Remove</Button>
+      <Button
+        color="dark"
+        on:click={() => handleOrderRemoveModal(data.order, $orderDetailQuery.refetch)}
+      >
+        Remove
+      </Button>
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="card" let:data>
