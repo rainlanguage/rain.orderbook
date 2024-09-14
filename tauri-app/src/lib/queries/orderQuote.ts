@@ -24,20 +24,25 @@ export async function debugOrderQuote(
   outputIOIndex: number,
   orderbook: Hex,
   rpcUrl: string,
+  blockNumber?: number,
 ) {
-  return await invoke<RainEvalResultsTable>('debug_order_quote', {
+  return await invoke<[RainEvalResultsTable, string | undefined]>('debug_order_quote', {
     order,
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,
     orderbook,
     rpcUrl,
+    blockNumber,
   });
 }
 
-export const mockQuoteDebug: RainEvalResultsTable = {
-  column_names: ['1', '2', '3'],
-  rows: [['0x01', '0x02', '0x03']],
-};
+export const mockQuoteDebug: [RainEvalResultsTable, string | undefined] = [
+  {
+    column_names: ['1', '2', '3'],
+    rows: [['0x01', '0x02', '0x03']],
+  },
+  'some error msg',
+];
 
 if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
