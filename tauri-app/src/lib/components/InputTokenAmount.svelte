@@ -19,7 +19,6 @@
       try {
         value = parseUnits(inputValue, decimals);
       } catch (e) {
-        console.error('Error parsing token amount:', e);
         value = 0n;
       }
     }
