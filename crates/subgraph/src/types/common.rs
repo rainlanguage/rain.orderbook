@@ -9,9 +9,11 @@ pub struct IdQueryVariables<'a> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrdersListFilterArgs {
     pub owners: Vec<Bytes>,
     pub active: Option<bool>,
+    pub order_hash: Option<Bytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -29,6 +31,8 @@ pub struct OrdersListQueryFilters {
     pub owner_in: Vec<Bytes>,
     #[cynic(rename = "active", skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
+    #[cynic(rename = "orderHash", skip_serializing_if = "Option::is_none")]
+    pub order_hash: Option<Bytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
