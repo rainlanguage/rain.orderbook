@@ -8,9 +8,11 @@
   import { settings } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
   import { page } from '$app/stores';
+  import InputOrderHash from './input/InputOrderHash.svelte';
 
   $: currentRoute = $page.url.pathname;
   $: isVaultsPage = currentRoute.startsWith('/vaults');
+  $: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
 <div class="flex min-w-[600px] items-center justify-end gap-x-2">
@@ -21,9 +23,13 @@
   {:else}
     {#if isVaultsPage}
       <CheckboxZeroBalanceVault />
-    {:else}
+    {/if}
+
+    {#if isOrdersPage}
+      <InputOrderHash />
       <DropdownOrderStatus />
     {/if}
+
     <DropdownOrderListAccounts />
     <DropdownActiveNetwork />
     <DropdownActiveOrderbook />
