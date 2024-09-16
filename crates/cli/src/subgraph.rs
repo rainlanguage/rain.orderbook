@@ -79,6 +79,9 @@ pub struct CliFilterArgs {
         default_value = "true"
     )]
     pub hide_zero_balance: Option<bool>,
+
+    #[arg(long, help = "Filter orders by order hash")]
+    pub order_hash: Option<String>,
 }
 
 impl From<CliFilterArgs> for OrdersListFilterArgs {
@@ -86,6 +89,7 @@ impl From<CliFilterArgs> for OrdersListFilterArgs {
         Self {
             owners: val.owners.into_iter().map(Bytes).collect(),
             active: val.active,
+            order_hash: val.order_hash.map(Bytes),
         }
     }
 }
