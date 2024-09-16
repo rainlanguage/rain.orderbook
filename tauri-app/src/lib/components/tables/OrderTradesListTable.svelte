@@ -14,6 +14,7 @@
   import { BugOutline } from 'flowbite-svelte-icons';
 
   export let id: string;
+  export let queryInvalidator: number;
 
   $: orderTradesQuery = createInfiniteQuery({
     queryKey: [QKEY_ORDER_TRADES_LIST + id],
@@ -24,7 +25,10 @@
     getNextPageParam(lastPage, _allPages, lastPageParam) {
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
-    refetchInterval: 10000,
+    refetchInterval: () => {
+      queryInvalidator = Date.now();
+      return 10000;
+    },
     enabled: !!$subgraphUrl,
   });
 </script>

@@ -19,9 +19,10 @@
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
 
   export let id: string;
+  $: queryInvalidator = Date.now();
 
   $: orderDetailQuery = createQuery({
-    queryKey: [QKEY_ORDER + id],
+    queryKey: [QKEY_ORDER + id, queryInvalidator],
     queryFn: () => {
       return orderDetail(id, $subgraphUrl || '');
     },
@@ -121,7 +122,7 @@
         {/if}
       </TabItem>
       <TabItem title="Trades">
-        <OrderTradesListTable {id} />
+        <OrderTradesListTable {id} bind:queryInvalidator />
       </TabItem>
     </Tabs>
   </svelte:fragment>
