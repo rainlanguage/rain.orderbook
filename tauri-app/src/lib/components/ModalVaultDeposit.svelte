@@ -19,6 +19,7 @@
 
   export let open = false;
   export let vault: TokenVaultDetail;
+  export let onDeposit: () => void;
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
@@ -36,6 +37,7 @@
     isSubmitting = true;
     try {
       await vaultDeposit(BigInt(vault.vaultId), vault.token.id, amount);
+      onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -68,6 +70,7 @@
       const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
       toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
+      onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
