@@ -129,6 +129,7 @@ mod tests {
                 owners: vec!["addr1".to_string()],
                 active: Some(true),
                 hide_zero_balance: None,
+                order_hash: None,
             },
         };
 
@@ -157,6 +158,7 @@ mod tests {
                 owners: vec!["addr1".to_string()],
                 active: Some(true),
                 hide_zero_balance: None,
+                order_hash: None,
             },
         };
 
@@ -185,6 +187,7 @@ mod tests {
                 owners: vec!["addr1".to_string()],
                 active: Some(true),
                 hide_zero_balance: None,
+                order_hash: None,
             },
         };
 
