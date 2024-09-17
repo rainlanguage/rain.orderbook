@@ -41,12 +41,13 @@
     initialPageParam,
     getNextPageParam,
   });
-  const unsubscribe = observer.subscribe(async () => {
-    await queryClient.invalidateQueries({
-      queryKey: [QKEY_ORDER + id],
-      refetchType: 'active',
-      exact: true,
-    });
+  const unsubscribe = observer.subscribe(async (result) => {
+    if (result.isSuccess)
+      await queryClient.invalidateQueries({
+        queryKey: [QKEY_ORDER + id],
+        refetchType: 'active',
+        exact: true,
+      });
   });
   onDestroy(() => {
     unsubscribe();
