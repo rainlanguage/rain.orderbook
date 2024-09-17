@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { createInfiniteQuery } from '@tanstack/svelte-query';
+  import { createInfiniteQuery, InfiniteQueryObserver } from '@tanstack/svelte-query';
   import TanstackAppTable from './TanstackAppTable.svelte';
-  import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
+  import { QKEY_ORDER, QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
   import { orderTradesList } from '$lib/queries/orderTradesList';
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
@@ -12,24 +12,44 @@
   import { formatUnits } from 'viem';
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
+  import { queryClient } from '$lib/queries/queryClient';
+  import { onDestroy } from 'svelte';
+  import type { Trade } from '$lib/typeshare/subgraphTypes';
 
   export let id: string;
-  export let queryInvalidator: number;
+  let queryKey = [QKEY_ORDER_TRADES_LIST + id];
+  let queryFn = ({ pageParam }: { pageParam: number }) => {
+    return orderTradesList(id, $subgraphUrl || '', pageParam);
+  };
+  let initialPageParam = 0;
+  let getNextPageParam = (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
+    return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+  };
 
   $: orderTradesQuery = createInfiniteQuery({
-    queryKey: [QKEY_ORDER_TRADES_LIST + id],
-    queryFn: ({ pageParam }) => {
-      return orderTradesList(id, $subgraphUrl || '', pageParam);
-    },
-    initialPageParam: 0,
-    getNextPageParam(lastPage, _allPages, lastPageParam) {
-      return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
-    },
-    refetchInterval: () => {
-      queryInvalidator = Date.now();
-      return 10000;
-    },
+    queryKey,
+    queryFn,
+    initialPageParam,
+    getNextPageParam,
+    refetchInterval: 10000,
     enabled: !!$subgraphUrl,
+  });
+
+  const observer = new InfiniteQueryObserver(queryClient, {
+    queryKey,
+    queryFn,
+    initialPageParam,
+    getNextPageParam,
+  });
+  const unsubscribe = observer.subscribe(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: [QKEY_ORDER + id],
+      refetchType: 'active',
+      exact: true,
+    });
+  });
+  onDestroy(() => {
+    unsubscribe();
   });
 </script>
 
