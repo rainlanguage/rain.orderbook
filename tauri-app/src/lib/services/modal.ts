@@ -13,12 +13,12 @@ export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
 };
 
-export const handleDepositModal = (vault: Vault) => {
-  new ModalVaultDeposit({ target: document.body, props: { open: true, vault } });
+export const handleDepositModal = (vault: Vault, onDeposit: () => void) => {
+  new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit } });
 };
 
-export const handleWithdrawModal = (vault: Vault) => {
-  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault } });
+export const handleWithdrawModal = (vault: Vault, onWithdraw: () => void) => {
+  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw } });
 };
 
 export const handleOrderRemoveModal = (

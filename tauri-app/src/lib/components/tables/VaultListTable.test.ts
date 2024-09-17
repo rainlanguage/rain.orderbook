@@ -354,7 +354,7 @@ test('clicking the deposit option in the row dropdown menu opens the deposit mod
   });
 
   await waitFor(() => {
-    expect(handleDepositModal).toHaveBeenCalledWith(vault);
+    expect(handleDepositModal).toHaveBeenCalledWith(vault, expect.any(Function));
   });
 
   await waitFor(() => {
@@ -362,7 +362,7 @@ test('clicking the deposit option in the row dropdown menu opens the deposit mod
   });
 
   await waitFor(() => {
-    expect(handleWithdrawModal).toHaveBeenCalledWith(vault);
+    expect(handleWithdrawModal).toHaveBeenCalledWith(vault, expect.any(Function));
   });
 });
 

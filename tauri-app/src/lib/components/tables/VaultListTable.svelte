@@ -164,14 +164,14 @@
             data-testid="deposit-button"
             on:click={(e) => {
               e.stopPropagation();
-              handleDepositModal(item);
+              handleDepositModal(item, $query.refetch);
             }}>Deposit</DropdownItem
           >
           <DropdownItem
             data-testid="withdraw-button"
             on:click={(e) => {
               e.stopPropagation();
-              handleWithdrawModal(item);
+              handleWithdrawModal(item, $query.refetch);
             }}>Withdraw</DropdownItem
           >
         </Dropdown>
