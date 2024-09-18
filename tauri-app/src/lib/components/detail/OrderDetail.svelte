@@ -17,15 +17,31 @@
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
+  import { onDestroy } from 'svelte';
+  import { queryClient } from '$lib/queries/queryClient';
 
   export let id: string;
 
   $: orderDetailQuery = createQuery({
-    queryKey: [QKEY_ORDER + id],
+    queryKey: [id, QKEY_ORDER + id],
     queryFn: () => {
       return orderDetail(id, $subgraphUrl || '');
     },
     enabled: !!$subgraphUrl,
+  });
+
+  const interval = setInterval(async () => {
+    // This invalidate function invalidates
+    // both order detail and order trades list queries
+    await queryClient.invalidateQueries({
+      queryKey: [id],
+      refetchType: 'active',
+      exact: false,
+    });
+  }, 10000);
+
+  onDestroy(() => {
+    clearInterval(interval);
   });
 </script>
 
