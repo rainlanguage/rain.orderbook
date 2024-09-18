@@ -225,3 +225,10 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
     }
   },
 );
+
+export const orderHash = cachedWritableStore<string>(
+  'settings.orderHash',
+  '',
+  (value) => value,
+  (str) => str || '',
+);

@@ -74,10 +74,14 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<Order>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
-        let filters = if !filter_args.owners.is_empty() || filter_args.active.is_some() {
+        let filters = if !filter_args.owners.is_empty()
+            || filter_args.active.is_some()
+            || filter_args.order_hash.is_some()
+        {
             Some(OrdersListQueryFilters {
                 owner_in: filter_args.owners,
                 active: filter_args.active,
+                order_hash: filter_args.order_hash,
             })
         } else {
             None
@@ -107,6 +111,7 @@ impl OrderbookSubgraphClient {
                     OrdersListFilterArgs {
                         owners: vec![],
                         active: None,
+                        order_hash: None,
                     },
                     PaginationArgs {
                         page,

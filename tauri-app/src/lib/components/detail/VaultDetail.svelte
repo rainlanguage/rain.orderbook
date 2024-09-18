@@ -41,13 +41,13 @@
         <Button
           data-testid="vaultDetailDepositButton"
           color="dark"
-          on:click={() => handleDepositModal(data)}
+          on:click={() => handleDepositModal(data, $vaultDetailQuery.refetch)}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
         <Button
           data-testid="vaultDetailWithdrawButton"
           color="dark"
-          on:click={() => handleWithdrawModal(data)}
+          on:click={() => handleWithdrawModal(data, $vaultDetailQuery.refetch)}
           ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
         >
       {/if}
