@@ -190,8 +190,8 @@ test('renders table with correct data', async () => {
   });
 
   await waitFor(async () => {
-    // get all the io ratios
-    const rows = screen.getAllByTestId('io-ratio');
+    const inputOutputRatios = screen.getAllByTestId('input-output-ratio');
+    const outputInputRatios = screen.getAllByTestId('output-input-ratio');
 
     // checking the io ratios
     for (let i = 0; i < mockTakeOrdersList.length; i++) {
@@ -203,8 +203,10 @@ test('renders table with correct data', async () => {
         BigInt(mockTakeOrdersList[i].outputVaultBalanceChange.amount),
         Number(mockTakeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
       );
-      const expectedRatio = Number(inputDisplay) / Number(outputDisplay);
-      expect(rows[i]).toHaveTextContent(expectedRatio.toString());
+      const expectedInputOutputRatio = Math.abs(Number(inputDisplay) / Number(outputDisplay));
+      const expectedOutputInputRatio = Math.abs(Number(outputDisplay) / Number(inputDisplay));
+      expect(inputOutputRatios[i]).toHaveTextContent(expectedInputOutputRatio.toString());
+      expect(outputInputRatios[i]).toHaveTextContent(expectedOutputInputRatio.toString());
     }
   });
 });
