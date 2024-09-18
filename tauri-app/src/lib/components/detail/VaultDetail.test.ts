@@ -347,12 +347,12 @@ test('shows deposit and withdraw buttons if owner wallet matches, opens correct 
   screen.getByTestId('vaultDetailDepositButton').click();
 
   await waitFor(() => {
-    expect(handleDepositModal).toHaveBeenCalledWith(mockData);
+    expect(handleDepositModal).toHaveBeenCalledWith(mockData, expect.any(Function));
   });
 
   screen.getByTestId('vaultDetailWithdrawButton').click();
 
   await waitFor(() => {
-    expect(handleWithdrawModal).toHaveBeenCalledWith(mockData);
+    expect(handleWithdrawModal).toHaveBeenCalledWith(mockData, expect.any(Function));
   });
 });
