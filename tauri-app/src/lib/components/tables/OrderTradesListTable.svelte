@@ -12,19 +12,19 @@
   import { formatUnits } from 'viem';
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
+  import type { Trade } from '$lib/typeshare/subgraphTypes';
 
   export let id: string;
 
   $: orderTradesQuery = createInfiniteQuery({
-    queryKey: [QKEY_ORDER_TRADES_LIST + id],
-    queryFn: ({ pageParam }) => {
+    queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
+    queryFn: ({ pageParam }: { pageParam: number }) => {
       return orderTradesList(id, $subgraphUrl || '', pageParam);
     },
     initialPageParam: 0,
-    getNextPageParam(lastPage, _allPages, lastPageParam) {
+    getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
-    refetchInterval: 10000,
     enabled: !!$subgraphUrl,
   });
 </script>
