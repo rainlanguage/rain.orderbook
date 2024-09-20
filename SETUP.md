@@ -12,14 +12,14 @@ and run the following command if you are using goldsky as your subgraph infra:
 cd subgraph && goldsky subgraph deploy 'subgraph-name/subgraph-version'
 ```
 
-For deploying the contracts locally you need to have foundry (either installed locally or enter nix shell that put everything on your path) and run the following command: 
+For deploying the contracts locally you need to have foundry (either installed locally or enter nix shell that puts everything on your path) and run the following command: 
 deploy only
 ```sh
 forge script script/Deploy.sol:Deploy -vvvvv --rpc-url <rpc-url> --broadcast --legacy
 ```
 deploy and verify
 ```sh
-forge script script/Deploy.sol:Deploy -vvvvv --rpc-url <rpc-url> --broadcast --legacy --verify --verifier-url <explorer-etherscan-url> --etherscan-api-key <api=key>
+forge script script/Deploy.sol:Deploy -vvvvv --rpc-url <rpc-url> --broadcast --legacy --verify --verifier-url <explorer-etherscan-url> --etherscan-api-key <api-key>
 ```
 
 ### Deploying all contracts including ob, arbs, dispair and subparsers and orderbook subgraph
@@ -35,14 +35,14 @@ and run the following command if you are using goldsky as your subgraph infra:
 cd subgraph && goldsky subgraph deploy 'subgraph-name/subgraph-version'
 ```
 
-For deploying the contracts locally you need to have foundry (either installed locally or enter nix shell that put everything on your path) and run the following command: 
+For deploying the contracts locally you need to have foundry (either installed locally or enter nix shell that puts everything on your path) and run the following command: 
 deploy only
 ```sh
 forge script script/Deploy.sol:Deploy -vvvvv --rpc-url <rpc-url> --broadcast --legacy
 ```
 deploy and verify
 ```sh
-forge script script/Deploy.sol:Deploy -vvvvv --rpc-url <rpc-url> --broadcast --legacy --verify --verifier-url <explorer-etherscan-url> --etherscan-api-key <api=key>
+forge script script/Deploy.sol:Deploy -vvvvv --rpc-url <rpc-url> --broadcast --legacy --verify --verifier-url <explorer-etherscan-url> --etherscan-api-key <api-key>
 ```
 
 ### Setup bot
@@ -71,3 +71,6 @@ These args are set through env vars, their cli arg alternative are documentated 
 Other bot options are also documented on `README.md`, which for most usecases should not be necessary.
 
 The realtime bot otel logs/spans will be forwarded to the specified `HYPERDX_API_KEY` under the specified `TRACER_SERVICE_NAME`.
+
+### Add the new setup to Pubstrats
+Lastly, add Metaboard subgraph, ExpressionDeployer contract and Orderbook contract and subgraph with the chain's details (rpc url, chaid id, etc) to [H20 Pubstrats Repo](https://github.com/rainlanguage/rain.dex.pubstrats) to `src/settings.yml` file, each item should go under its respective field which is self explanatory.
