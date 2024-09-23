@@ -17,10 +17,13 @@ use rain_orderbook_app_settings::{
 use serde::Serialize;
 use thiserror::Error;
 use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::prelude::*;
 
 pub mod filter;
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct DotrainOrder {
     config: Config,
     dotrain: String,
@@ -69,6 +72,13 @@ pub enum DotrainOrderError {
     MissingRaindexVersion(String),
 }
 
+#[cfg(target_family = "wasm")]
+impl From<DotrainOrderError> for JsValue {
+    fn from(value: DotrainOrderError) -> Self {
+        JsError::new(&value.to_string()).into()
+    }
+}
+
 #[typeshare]
 #[derive(Serialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -101,8 +111,13 @@ pub struct ScenarioWords {
     pub deployer_words: ContractWords,
 }
 
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 impl DotrainOrder {
-    pub async fn new(dotrain: String, config: Option<String>) -> Result<Self, DotrainOrderError> {
+    #[cfg_attr(target_family = "wasm", wasm_bindgen(js_name = "create"))]
+    pub async fn new(
+        dotrain: String,
+        config: Option<String>,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         match config {
             Some(config) => {
                 let config_string = ConfigSource::try_from_string(config.clone()).await?;
@@ -128,6 +143,56 @@ impl DotrainOrder {
         }
     }
 
+    // get this instance's dotrain string
+    #[cfg_attr(target_family = "wasm", wasm_bindgen(getter, js_name = "dotrain"))]
+    pub fn dotrain_getter_js(&self) -> String {
+        self.dotrain.clone()
+    }
+
+    #[cfg_attr(
+        target_family = "wasm",
+        wasm_bindgen(js_name = "composeScenarioToRainlang")
+    )]
+    pub async fn compose_scenario_to_rainlang(
+        &self,
+        scenario: String,
+    ) -> Result<String, DotrainOrderError> {
+        let scenario = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+
+        Ok(compose_to_rainlang(
+            self.dotrain.clone(),
+            scenario.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?)
+    }
+
+    #[cfg_attr(
+        target_family = "wasm",
+        wasm_bindgen(js_name = "composeScenarioToPostTaskRainlang")
+    )]
+    pub async fn compose_scenario_to_post_task_rainlang(
+        &self,
+        scenario: String,
+    ) -> Result<String, DotrainOrderError> {
+        let scenario = self
+            .config
+            .scenarios
+            .get(&scenario)
+            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+
+        Ok(compose_to_rainlang(
+            self.dotrain.clone(),
+            scenario.bindings.clone(),
+            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
+        )?)
+    }
+}
+
+impl DotrainOrder {
     // get this instance's config
     pub fn config(&self) -> &Config {
         &self.config
@@ -151,40 +216,6 @@ impl DotrainOrder {
     // get this instance's config source mut
     pub fn config_source_mut(&mut self) -> &mut ConfigSource {
         &mut self.config_source
-    }
-
-    pub async fn compose_scenario_to_rainlang(
-        &self,
-        scenario: String,
-    ) -> Result<String, DotrainOrderError> {
-        let scenario = self
-            .config
-            .scenarios
-            .get(&scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
-
-        Ok(compose_to_rainlang(
-            self.dotrain.clone(),
-            scenario.bindings.clone(),
-            &ORDERBOOK_ORDER_ENTRYPOINTS,
-        )?)
-    }
-
-    pub async fn compose_scenario_to_post_task_rainlang(
-        &self,
-        scenario: String,
-    ) -> Result<String, DotrainOrderError> {
-        let scenario = self
-            .config
-            .scenarios
-            .get(&scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
-
-        Ok(compose_to_rainlang(
-            self.dotrain.clone(),
-            scenario.bindings.clone(),
-            &ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS,
-        )?)
     }
 
     pub async fn get_pragmas_for_scenario(

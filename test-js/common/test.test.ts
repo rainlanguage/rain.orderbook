@@ -1,7 +1,7 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
-import { getAddOrderCalldata } from "../../dist/cjs/common";
 import { describe, it, beforeEach, afterEach } from "vitest";
+import { getAddOrderCalldata, DotrainOrder } from "../../dist/cjs/common";
 
 describe("Rain Orderbook Common Package Bindgen Tests", async function () {
   const mockServer = getLocal();
@@ -137,5 +137,18 @@ _ _: 0 0;
         "deployers.some-deployer: missing field `address` at line 4 column 19"
       );
     }
+  });
+
+  it("should compose scenario to rainlang", async () => {
+    const dotrainOrder = await DotrainOrder.create(dotrain);
+    const result =
+      await dotrainOrder.composeScenarioToRainlang("some-scenario");
+    const expected = `/* 0. calculate-io */ 
+_ _: 0 0;
+
+/* 1. handle-io */ 
+:;`;
+
+    assert.equal(result, expected);
   });
 });
