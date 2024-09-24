@@ -832,6 +832,7 @@ _ _: 16 52;
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
         let orderbook = &local_evm.orderbook;
+        let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
 
@@ -897,11 +898,12 @@ _ _: 16 52;
             .unwrap()
             .simulate_execute(
                 TransactionArgs {
-                    orderbook_address: *orderbook.address(),
+                    // send the tx to random address
+                    orderbook_address: Address::random(),
                     rpc_url: local_evm.url(),
                     ..Default::default()
                 },
-                None,
+                Some(token1_holder),
             )
             .await
             .expect_err("expected to fail but resolved");
