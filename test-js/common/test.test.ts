@@ -137,10 +137,10 @@ _ _: 0 0;
     }
   });
 
-  it("should compose scenario to rainlang without config", async () => {
+  it("should compose deployment to rainlang", async () => {
     const dotrainOrder = await DotrainOrder.create(dotrain);
     const result =
-      await dotrainOrder.composeScenarioToRainlang("some-scenario");
+      await dotrainOrder.composeDeploymentToRainlang("some-deployment");
     const expected = `/* 0. calculate-io */ 
 _ _: 0 0;
 
