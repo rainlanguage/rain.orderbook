@@ -27,7 +27,7 @@ pub struct CliOrderAddArgs {
     #[clap(flatten)]
     pub transaction_args: CliTransactionArgs,
 
-    /// Do NOT broadcasts the transaction to the network, only simulates the transaction
+    /// Do NOT broadcast the transaction to the network, only simulate the transaction
     #[arg(long, action = ArgAction::SetTrue)]
     pub no_broadcast: bool,
 }
