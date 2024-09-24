@@ -1,7 +1,7 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
-import { getAddOrderCalldata, DotrainOrder } from "../../dist/cjs/common";
+import { getAddOrderCalldata, DotrainOrder } from "../../dist/cjs/common.js";
 
 describe("Rain Orderbook Common Package Bindgen Tests", async function () {
   const mockServer = getLocal();
@@ -9,7 +9,6 @@ describe("Rain Orderbook Common Package Bindgen Tests", async function () {
   afterEach(() => mockServer.stop());
 
   const dotrain = `
-raindex-version: ${process.env.COMMIT_SHA}
 networks:
     some-network:
         rpc: http://localhost:8080/rpc-url
@@ -117,7 +116,6 @@ _ _: 0 0;
   it("should throw frontmatter missing field error", async () => {
     try {
       const dotrain = `
-raindex-version: ${process.env.COMMIT_SHA}
 deployers:
     some-deployer:
         ---
@@ -134,15 +132,34 @@ _ _: 0 0;
       assert.ok(error instanceof Error);
       assert.equal(
         error.message,
-        "deployers.some-deployer: missing field `address` at line 4 column 19"
+        "deployers.some-deployer: missing field `address` at line 3 column 19"
       );
     }
   });
 
-  it("should compose scenario to rainlang", async () => {
+  it("should compose scenario to rainlang without config", async () => {
     const dotrainOrder = await DotrainOrder.create(dotrain);
     const result =
       await dotrainOrder.composeScenarioToRainlang("some-scenario");
+    const expected = `/* 0. calculate-io */ 
+_ _: 0 0;
+
+/* 1. handle-io */ 
+:;`;
+
+    assert.equal(result, expected);
+  });
+
+  it("should compose scenario to rainlang with config", async () => {
+    const config = `
+scenarios:
+    config-scenario:
+        network: some-network
+        deployer: some-deployer
+`;
+    const dotrainOrder = await DotrainOrder.create(dotrain, config);
+    const result =
+      await dotrainOrder.composeScenarioToRainlang("config-scenario");
     const expected = `/* 0. calculate-io */ 
 _ _: 0 0;
 
