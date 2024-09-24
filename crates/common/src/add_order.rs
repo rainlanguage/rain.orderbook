@@ -298,16 +298,16 @@ impl AddOrderArgs {
             None,
         )
         .await?;
-        let calldata = self.try_into_call(transaction_args.rpc_url.clone()).await?;
+        let call = self.try_into_call(transaction_args.rpc_url.clone()).await?;
         forker
-            .call_committing(
-                &from_address,
-                transaction_args.orderbook_address.as_slice(),
-                &calldata.abi_encode(),
+            .alloy_call_committing(
+                Address::from(from_address),
+                transaction_args.orderbook_address,
+                call,
                 U256::ZERO,
-            )?
-            .into_result(None)
-            .map_err(|e| ForkCallError::ExecutorError(e.to_string()))?;
+                true,
+            )
+            .await?;
         Ok(())
     }
 }
