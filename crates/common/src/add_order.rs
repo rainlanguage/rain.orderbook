@@ -12,6 +12,7 @@ use alloy_ethers_typecast::transaction::{
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
+#[cfg(not(target_family = "wasm"))]
 use rain_interpreter_eval::{
     error::ForkCallError,
     fork::{Forker, NewForkedEvm},
@@ -56,6 +57,7 @@ pub enum AddOrderArgsError {
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
+    #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
     ForkCallError(#[from] ForkCallError),
 }
