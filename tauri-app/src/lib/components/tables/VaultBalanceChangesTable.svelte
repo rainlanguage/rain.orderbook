@@ -14,7 +14,7 @@
   export let id: string;
 
   $: balanceChangesQuery = createInfiniteQuery({
-    queryKey: [QKEY_VAULT_CHANGES + id],
+    queryKey: [id, QKEY_VAULT_CHANGES + id],
     queryFn: ({ pageParam }) => {
       return vaultBalanceChangesList(id, $subgraphUrl || '', pageParam);
     },
@@ -22,7 +22,6 @@
     getNextPageParam(lastPage, _allPages, lastPageParam) {
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
-    refetchInterval: 10000,
     enabled: !!$subgraphUrl,
   });
 </script>
