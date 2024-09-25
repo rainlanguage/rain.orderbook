@@ -14,12 +14,12 @@ pub use rain_interpreter_eval::trace::{
 use rain_interpreter_eval::{
     error::ForkCallError, eval::ForkEvalArgs, fork::Forker, trace::RainEvalResult,
 };
-use rain_orderbook_app_settings::blocks::BlockError;
-use rain_orderbook_app_settings::chart::Chart;
-use rain_orderbook_app_settings::config::*;
-use rain_orderbook_app_settings::scenario::Scenario;
+use rain_orderbook_app_settings::{
+    blocks::BlockError, chart::Chart, config::*, order::OrderIO, scenario::Scenario,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
@@ -29,6 +29,21 @@ use typeshare::typeshare;
 pub struct ChartData {
     scenarios_data: HashMap<String, FuzzResultFlat>,
     charts: HashMap<String, Chart>,
+}
+
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeploymentDebugData {
+    pub result: HashMap<String, Vec<DeploymentDebugPairData>>,
+    #[typeshare(typescript(type = "string"))]
+    pub block_number: U256,
+}
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeploymentDebugPairData {
+    pub order_name: String,
+    pub pair: String,
+    pub fuzz_result: FuzzResultFlat,
 }
 
 #[derive(Debug)]
@@ -67,6 +82,10 @@ pub struct FuzzRunner {
 pub enum FuzzRunnerError {
     #[error("Scenario not found")]
     ScenarioNotFound(String),
+    #[error("Deployment not found")]
+    DeploymentNotFound(String),
+    #[error("Order not found")]
+    OrderNotFound,
     #[error("Scenario has no runs defined")]
     ScenarioNoRuns,
     #[error("Corrupt traces")]
@@ -245,6 +264,138 @@ impl FuzzRunner {
         })
     }
 
+    pub async fn run_debug(
+        &mut self,
+        block_number: u64,
+        input: OrderIO,
+        output: OrderIO,
+        scenario: &Arc<Scenario>,
+    ) -> Result<FuzzResult, FuzzRunnerError> {
+        let deployer = scenario.deployer.clone();
+
+        // Create a fork with the first block number
+        self.forker
+            .add_or_select(
+                NewForkedEvm {
+                    fork_url: deployer.network.rpc.clone().into(),
+                    fork_block_number: Some(block_number),
+                },
+                None,
+            )
+            .await?;
+
+        // Pull out the bindings from the scenario
+        let scenario_bindings: Vec<Rebind> = scenario
+            .bindings
+            .clone()
+            .into_iter()
+            .map(|(k, v)| Rebind(k, v))
+            .collect();
+
+        // Create a new RainDocument with the dotrain and the bindings
+        // The bindings in the dotrain string are ignored by the RainDocument
+        let rain_document = RainDocument::create(
+            self.dotrain.clone(),
+            None,
+            None,
+            Some(scenario_bindings.clone()),
+        );
+
+        // Search the namespace hash map for NamespaceItems that are elided and make a vec of the keys
+        let elided_binding_keys = Arc::new(
+            rain_document
+                .namespace()
+                .iter()
+                .filter(|(_, v)| v.is_elided_binding())
+                .map(|(k, _)| k.clone())
+                .collect::<Vec<String>>(),
+        );
+
+        let dotrain = Arc::new(self.dotrain.clone());
+        let mut handles = vec![];
+
+        self.forker.roll_fork(Some(block_number), None)?;
+        let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
+        let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
+        let elided_binding_keys = Arc::clone(&elided_binding_keys);
+        let deployer = Arc::clone(&deployer);
+        let scenario_bindings = scenario_bindings.clone();
+        let dotrain = Arc::clone(&dotrain);
+
+        let mut final_bindings: Vec<Rebind> = vec![];
+
+        // For each scenario.fuzz_binds, add a random value
+        for elided_binding in elided_binding_keys.as_slice() {
+            let mut val: [u8; 32] = [0; 32];
+            self.rng.fill_bytes(&mut val);
+            let hex = alloy::primitives::hex::encode_prefixed(val);
+            final_bindings.push(Rebind(elided_binding.to_string(), hex));
+        }
+
+        let handle = tokio::spawn(async move {
+            final_bindings.extend(scenario_bindings.clone());
+
+            let rainlang_string = RainDocument::compose_text(
+                &dotrain,
+                &ORDERBOOK_ORDER_ENTRYPOINTS,
+                None,
+                Some(final_bindings),
+            )?;
+
+            // Create a 5x5 grid of zero values for context - later we'll
+            // replace these with sane values based on Orderbook context
+            let mut context = vec![vec![U256::from(0); 5]; 5];
+            // set random hash for context order hash cell
+            context[1][0] = rand::random();
+
+            // set input values in context
+            // input token
+            context[3][0] = U256::from_be_slice(input.token.address.0.as_slice());
+            // input decimals
+            context[3][1] = U256::from(input.token.decimals.unwrap_or(18));
+            // input vault id
+            context[3][2] = input.vault_id.unwrap_or(U256::from(0));
+            // input vault balance before
+            context[3][3] = U256::from(0);
+
+            // set output values in context
+            // output token
+            context[4][0] = U256::from_be_slice(output.token.address.0.as_slice());
+            // output decimals
+            context[4][1] = U256::from(output.token.decimals.unwrap_or(18));
+            // output vault id
+            context[4][2] = output.vault_id.unwrap_or(U256::from(0));
+            // output vault balance before
+            context[4][3] = U256::from(0);
+
+            let args = ForkEvalArgs {
+                rainlang_string,
+                source_index: 0,
+                deployer: deployer.address,
+                namespace: FullyQualifiedNamespace::default(),
+                context,
+                decode_errors: true,
+            };
+            fork_clone
+                .fork_eval(args)
+                .map_err(FuzzRunnerError::ForkCallError)
+                .await
+        });
+        handles.push(handle);
+
+        let mut runs: Vec<RainEvalResult> = Vec::new();
+
+        for handle in handles {
+            let res = handle.await??;
+            runs.push(res.into());
+        }
+
+        Ok(FuzzResult {
+            scenario: scenario.name.clone(),
+            runs: runs.into(),
+        })
+    }
+
     pub async fn make_chart_data(&self) -> Result<ChartData, FuzzRunnerError> {
         let charts = self.settings.charts.clone();
         let mut scenarios_data: HashMap<String, FuzzResultFlat> = HashMap::new();
@@ -270,13 +421,79 @@ impl FuzzRunner {
             charts,
         })
     }
+
+    pub async fn make_debug_data(
+        &self,
+        block_number: Option<u64>,
+    ) -> Result<DeploymentDebugData, FuzzRunnerError> {
+        let mut block = block_number.unwrap_or(0);
+        let mut pair_datas: HashMap<String, Vec<DeploymentDebugPairData>> = HashMap::new();
+
+        let deployments = self.settings.deployments.clone();
+
+        for (deployment_name, deployment) in deployments.clone() {
+            let scenario = deployment.scenario.clone();
+
+            if block_number.is_none() {
+                // Fetch the latest block number
+                block =
+                    ReadableClientHttp::new_from_url(scenario.deployer.network.rpc.to_string())?
+                        .get_block_number()
+                        .await?;
+            }
+
+            let order_name = self
+                .settings
+                .orders
+                .iter()
+                .find(|(_, order)| *order == &deployment.order)
+                .map(|(key, _)| key.clone())
+                .ok_or(FuzzRunnerError::OrderNotFound)?;
+
+            for input in &deployment.order.inputs {
+                for output in &deployment.order.outputs {
+                    if input.token.address != output.token.address {
+                        let pair = format!(
+                            "{}/{}",
+                            input.token.symbol.clone().unwrap_or("UNKNOWN".to_string()),
+                            output.token.symbol.clone().unwrap_or("UNKNOWN".to_string())
+                        );
+
+                        let mut runner = self.clone();
+                        let fuzz_result = runner
+                            .run_debug(block, input.clone(), output.clone(), &scenario)
+                            .await?
+                            .flatten_traces()?;
+
+                        let pair_data = DeploymentDebugPairData {
+                            order_name: order_name.clone(),
+                            pair,
+                            fuzz_result,
+                        };
+
+                        pair_datas
+                            .entry(deployment_name.clone())
+                            .or_insert_with(Vec::new)
+                            .push(pair_data);
+                    }
+                }
+            }
+        }
+
+        let result = DeploymentDebugData {
+            result: pair_datas,
+            block_number: U256::from(block),
+        };
+
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use alloy::{
-        primitives::utils::parse_ether,
+        primitives::{utils::parse_ether, Address},
         providers::{ext::AnvilApi, Provider},
     };
     use rain_orderbook_app_settings::config_source::ConfigSource;
@@ -612,5 +829,108 @@ _: context<1 0>();
                 }
             }
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_debug() {
+        let local_evm = LocalEvm::new().await;
+        let dotrain = format!(
+            r#"
+deployers:
+    flare:
+        address: {deployer}
+networks:
+    flare:
+        rpc: {rpc_url}
+        chain-id: 123
+tokens:
+    wflr:
+        network: flare
+        address: 0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d
+        decimals: 18
+    usdce:
+        network: flare
+        address: 0xFbDa5F676cB37624f28265A144A48B0d6e87d3b6
+        decimals: 6
+scenarios:
+    flare:
+        deployer: flare
+        runs: 1
+        bindings:
+            orderbook-subparser: {orderbook_subparser} 
+orders:
+    sell-wflr:
+        network: flare
+        inputs:
+            - token: usdce
+              vault-id: 10
+        outputs:
+            - token: wflr
+              vault-id: 20
+deployments:
+    sell-wflr:
+        order: sell-wflr
+        scenario: flare
+---
+#orderbook-subparser !
+
+#calculate-io
+using-words-from orderbook-subparser
+
+_: input-token(),
+_: input-token-decimals(),
+_: input-vault-id(),
+_: output-token(),
+_: output-token-decimals(),
+_: output-vault-id(),
+
+max-output: 30,
+io-ratio: mul(0.99 20);
+#handle-io
+:;
+    "#,
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address(),
+            orderbook_subparser = local_evm.orderbook_subparser.address()
+        );
+
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
+        let config = settings
+            .try_into()
+            .map_err(|e| println!("{:?}", e))
+            .unwrap();
+
+        let runner = FuzzRunner::new(&dotrain, config, None).await;
+
+        let res = runner
+            .make_debug_data(None)
+            .await
+            .map_err(|e| println!("{:#?}", e))
+            .unwrap();
+
+        let result_rows = res.result["sell-wflr"][0].fuzz_result.data.rows[0].clone();
+        assert_eq!(
+            result_rows[0],
+            U256::from_be_slice(
+                Address::from_str("0xFbDa5F676cB37624f28265A144A48B0d6e87d3b6")
+                    .unwrap()
+                    .0
+                    .as_slice()
+            )
+        );
+        assert_eq!(result_rows[1], U256::from(6));
+        assert_eq!(result_rows[2], U256::from(10));
+        assert_eq!(
+            result_rows[3],
+            U256::from_be_slice(
+                Address::from_str("0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d")
+                    .unwrap()
+                    .0
+                    .as_slice()
+            )
+        );
+        assert_eq!(result_rows[4], U256::from(18));
+        assert_eq!(result_rows[5], U256::from(20));
     }
 }
