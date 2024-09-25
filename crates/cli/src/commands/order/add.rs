@@ -2,7 +2,7 @@ use crate::{
     execute::Execute, status::display_write_transaction_status, transaction::CliTransactionArgs,
 };
 use anyhow::{anyhow, Result};
-use clap::Args;
+use clap::{ArgAction, Args};
 use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::frontmatter::parse_frontmatter;
@@ -26,6 +26,10 @@ pub struct CliOrderAddArgs {
 
     #[clap(flatten)]
     pub transaction_args: CliTransactionArgs,
+
+    /// Do NOT broadcast the transaction to the network, only simulate the transaction
+    #[arg(long, action = ArgAction::SetTrue)]
+    pub no_broadcast: bool,
 }
 
 impl CliOrderAddArgs {
@@ -50,12 +54,20 @@ impl Execute for CliOrderAddArgs {
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
 
-        info!("----- Add Order -----");
+        info!("----- Simulating Transaction -----");
         add_order_args
-            .execute(tx_args, |status| {
-                display_write_transaction_status(status);
-            })
+            .simulate_execute(tx_args.clone(), None)
             .await?;
+        info!("----- Finished Simulation Successfully -----");
+
+        if !self.no_broadcast {
+            info!("----- Add Order -----");
+            add_order_args
+                .execute(tx_args, |status| {
+                    display_write_transaction_status(status);
+                })
+                .await?;
+        }
 
         Ok(())
     }
@@ -76,6 +88,7 @@ mod tests {
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let cli_order_add_args = CliOrderAddArgs {
+            no_broadcast: false,
             dotrain_file: dotrain_path.into(),
             deployment: "some-deployment".to_string(),
             transaction_args: CliTransactionArgs {
