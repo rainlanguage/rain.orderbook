@@ -472,7 +472,7 @@ impl FuzzRunner {
 
                         pair_datas
                             .entry(deployment_name.clone())
-                            .or_insert_with(Vec::new)
+                            .or_default()
                             .push(pair_data);
                     }
                 }
