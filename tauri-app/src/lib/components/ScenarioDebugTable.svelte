@@ -42,7 +42,7 @@
   };
 </script>
 
-<div class="mt-4">
+<div class="">
   <div class="flex items-center justify-end">
     <div class="flex items-center gap-x-1">
       {#if $data && isHex($data.block_number)}
@@ -84,7 +84,7 @@
   </div>
 
   {#each Object.entries($data?.result ?? {}) as [deploymentName, results]}
-    <h2 class="my-4 text-lg">Deployment: <strong>{deploymentName}</strong></h2>
+    <h2 class="mb-4 text-lg">Deployment: <strong>{deploymentName}</strong></h2>
     <Table divClass="rounded-lg overflow-hidden dark:border-none border">
       <TableHead>
         <TableHeadCell>Order</TableHeadCell>
