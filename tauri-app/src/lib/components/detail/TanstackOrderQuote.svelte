@@ -103,7 +103,9 @@
               <TableBodyCell
                 >{formatUnits(BigInt(item.data.ratio), 18)}
                 <span class="text-gray-400"
-                  >({formatUnits(10n ** 36n / BigInt(item.data.ratio), 18)})</span
+                  >({BigInt(item.data.ratio) > 0n
+                    ? formatUnits(10n ** 36n / BigInt(item.data.ratio), 18)
+                    : '0'})</span
                 ></TableBodyCell
               >
               <TableBodyCell
