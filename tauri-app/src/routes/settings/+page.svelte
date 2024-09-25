@@ -1,15 +1,27 @@
 <script lang="ts">
   import { Alert } from 'flowbite-svelte';
-  import { hasRequiredSettings, settingsText } from '$lib/stores/settings';
+  import { hasRequiredSettings, settingsText, settings, settingsFile } from '$lib/stores/settings';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
-  import { settingsFile } from '$lib/stores/settings';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
+  import { useDebouncedFn } from '$lib/utils/asyncDebounce';
+  import { parseConfigSource } from '$lib/services/config';
+  import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
+  import { toasts } from '$lib/stores/toasts';
+  import { ToastMessageType } from '$lib/typeshare/toast';
 
-  function apply() {
-    settingsText.set($settingsFile.text);
+  async function apply(settingsContent: string): Promise<void> {
+    try {
+      settingsText.set(settingsContent);
+      settings.set(await parseConfigSource(settingsContent));
+    } catch (error) {
+      reportErrorToSentry(error, SentrySeverityLevel.Info);
+      toasts.error('Failed to apply settings', { message_type: ToastMessageType.Warning });
+    }
   }
+
+  const { debouncedFn: debouncedApply } = useDebouncedFn(apply, 1000);
+  $: debouncedApply($settingsFile.text);
 </script>
 
 <PageHeader title="Settings" />
@@ -38,12 +50,5 @@
       bind:value={$settingsFile.text}
       styles={{ '&': { minHeight: '400px' } }}
     />
-  </svelte:fragment>
-
-  <svelte:fragment slot="submit">
-    <ButtonLoading color="green" disabled={$settingsFile.isEmpty} on:click={apply}>
-      Apply Settings
-      <span data-testid="button-applysettings"></span>
-    </ButtonLoading>
   </svelte:fragment>
 </FileTextarea>
