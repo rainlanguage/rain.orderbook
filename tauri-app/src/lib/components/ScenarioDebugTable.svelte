@@ -22,13 +22,9 @@
   let loading = false;
   let blockNumber: number | undefined;
 
-  const fetchData = async () => {
+  const fetchData = async (dotrain: string, settings: string, blockNumber?: number) => {
     loading = true;
-    const res = await makeDeploymentDebugData(
-      $globalDotrainFile.text,
-      $settingsText,
-      enabled ? undefined : blockNumber,
-    );
+    const res = await makeDeploymentDebugData(dotrain, settings, enabled ? undefined : blockNumber);
 
     blockNumber = parseInt(res.block_number);
 
@@ -39,7 +35,11 @@
     fetchData,
     500,
   );
-  $: debounceMakeDeploymentDebugData();
+  $: debounceMakeDeploymentDebugData($globalDotrainFile.text, $settingsText, blockNumber);
+
+  const handleRefresh = () => {
+    fetchData($globalDotrainFile.text, $settingsText, blockNumber);
+  };
 </script>
 
 <div class="mt-4">
@@ -53,7 +53,7 @@
           }}
           on:blur={({ detail: { value } }) => {
             blockNumber = parseInt(value);
-            fetchData();
+            handleRefresh();
           }}
         />
       {/if}
@@ -62,7 +62,7 @@
         <Refresh
           data-testid="refreshButton"
           class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
-          on:click={fetchData}
+          on:click={handleRefresh}
           spin={loading}
         />
         <PauseSolid
@@ -75,7 +75,7 @@
           on:click={() => {
             enabled = true;
             blockNumber = undefined;
-            fetchData();
+            handleRefresh();
           }}
           class={`ml-2 h-8 w-3 cursor-pointer text-gray-400 dark:text-gray-400 ${enabled ? 'hidden' : ''}`}
         />

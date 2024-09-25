@@ -19,7 +19,6 @@ use rain_orderbook_app_settings::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
@@ -498,6 +497,7 @@ mod tests {
     };
     use rain_orderbook_app_settings::config_source::ConfigSource;
     use rain_orderbook_test_fixtures::LocalEvm;
+    use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
