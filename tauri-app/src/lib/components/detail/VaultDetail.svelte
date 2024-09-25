@@ -16,15 +16,31 @@
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import TanstackContentDetail from '$lib/components/detail/TanstackPageContentDetail.svelte';
   import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
+  import { onDestroy } from 'svelte';
+  import { queryClient } from '$lib/queries/queryClient';
 
   export let id: string;
 
   $: vaultDetailQuery = createQuery({
-    queryKey: [QKEY_VAULT + id],
+    queryKey: [id, QKEY_VAULT + id],
     queryFn: () => {
       return vaultDetail(id, $subgraphUrl || '');
     },
     enabled: !!$subgraphUrl,
+  });
+
+  const interval = setInterval(async () => {
+    // This invalidate function invalidates
+    // both vault detail and vault balance changes queries
+    await queryClient.invalidateQueries({
+      queryKey: [id],
+      refetchType: 'active',
+      exact: false,
+    });
+  }, 10000);
+
+  onDestroy(() => {
+    clearInterval(interval);
   });
 </script>
 

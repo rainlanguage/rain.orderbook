@@ -36,8 +36,7 @@
     <TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
     <TableHeadCell padding="p-0">Input</TableHeadCell>
     <TableHeadCell padding="p-0">Output</TableHeadCell>
-    <TableHeadCell padding="p-0">Input/Output Ratio</TableHeadCell>
-    <TableHeadCell padding="p-0">Output/Input Ratio</TableHeadCell>
+    <TableHeadCell padding="p-0">IO Ratio</TableHeadCell>
     <TableHeadCell padding="p-0"></TableHeadCell>
   </svelte:fragment>
 
@@ -65,7 +64,7 @@
       )}
       {item.outputVaultBalanceChange.vault.token.symbol}
     </TableBodyCell>
-    <TableBodyCell tdClass="break-all py-2" data-testid="input-output-ratio">
+    <TableBodyCell tdClass="break-all py-2" data-testid="io-ratio">
       {Math.abs(
         Number(
           formatUnits(
@@ -80,22 +79,22 @@
             ),
           ),
       )}
-    </TableBodyCell>
-    <TableBodyCell tdClass="break-all py-2" data-testid="output-input-ratio">
-      {Math.abs(
-        Number(
-          formatUnits(
-            BigInt(item.outputVaultBalanceChange.amount),
-            Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
-          ),
-        ) /
+      <span class="text-gray-400">
+        ({Math.abs(
           Number(
             formatUnits(
-              BigInt(item.inputVaultBalanceChange.amount),
-              Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
+              BigInt(item.outputVaultBalanceChange.amount),
+              Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
             ),
-          ),
-      )}
+          ) /
+            Number(
+              formatUnits(
+                BigInt(item.inputVaultBalanceChange.amount),
+                Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
+              ),
+            ),
+        )})
+      </span>
     </TableBodyCell>
     <TableBodyCell tdClass="py-2">
       <button
