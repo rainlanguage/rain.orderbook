@@ -8,12 +8,12 @@
   let now = Math.floor(new Date().getTime() / 1000);
   let timeDelta: number | undefined = TIME_DELTA_24_HOURS;
 
-  export let startTimestamp: number | undefined = now - TIME_DELTA_24_HOURS;
-  export let endTimestamp: number | undefined = now;
-
   function setNow() {
     now = Math.floor(new Date().getTime() / 1000);
   }
+
+  export let startTimestamp: number | undefined = now - TIME_DELTA_24_HOURS;
+  export let endTimestamp: number | undefined = now;
 </script>
 
 <ButtonGroup class="bg-gray-800" data-testid="lightweightChartYearButtons">

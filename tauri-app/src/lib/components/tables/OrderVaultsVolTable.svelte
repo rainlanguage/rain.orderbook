@@ -9,11 +9,13 @@
   import { HashType } from '$lib/types/hash';
   import { formatUnits } from 'viem';
   import TableTimeFilters from '../charts/TableTimeFilters.svelte';
-
-  let startTimestamp: number | undefined;
-  let endTimestamp: number | undefined;
+  import { bigintStringToHex } from '$lib/utils/hex';
 
   export let id: string;
+
+  const now = Math.floor(new Date().getTime() / 1000);
+  let startTimestamp: number | undefined = now - 60 * 60 * 24;
+  let endTimestamp: number | undefined = now;
 
   $: vaultsVol = createInfiniteQuery({
     queryKey: [id, QKEY_VAULTS_VOL_LIST + id],
@@ -38,11 +40,11 @@
 
   <svelte:fragment slot="bodyRow" let:item>
     <TableBodyCell tdClass="px-4 py-2">
-      <Hash type={HashType.Identifier} shorten value={item.id} />
+      <Hash type={HashType.Identifier} shorten value={bigintStringToHex(item.id)} />
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2 min-w-32">
       <div class="flex gap-x-3">
-        <Hash type={HashType.Identifier} shorten value={item.token.address} />
+        <Hash type={HashType.Address} shorten value={item.token.address} />
         {item.token.symbol}
       </div>
     </TableBodyCell>

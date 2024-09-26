@@ -1,7 +1,12 @@
 <script lang="ts">
   import { toasts } from '$lib/stores/toasts';
   import { Tooltip } from 'flowbite-svelte';
-  import { WalletOutline, FingerprintOutline, ClipboardListOutline } from 'flowbite-svelte-icons';
+  import {
+    WalletOutline,
+    FingerprintOutline,
+    ClipboardListOutline,
+    ClipboardOutline,
+  } from 'flowbite-svelte-icons';
   import { HashType } from '$lib/types/hash';
 
   export let value: string;
@@ -35,6 +40,8 @@
     <FingerprintOutline size="sm" />
   {:else if type === HashType.Transaction}
     <ClipboardListOutline size="sm" />
+  {:else if type === HashType.Address}
+    <ClipboardOutline size="sm" />
   {/if}
   <div>{displayValue}</div>
 </button>
@@ -48,6 +55,8 @@
         <FingerprintOutline size="sm" />
       {:else if type === HashType.Transaction}
         <ClipboardListOutline size="sm" />
+      {:else if type === HashType.Address}
+        <ClipboardOutline size="sm" />
       {/if}
       <div>{value}</div>
     </div>
