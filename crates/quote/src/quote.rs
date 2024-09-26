@@ -329,6 +329,7 @@ mod tests {
                     "oldVaultBalance": "0",
                     "vault": {
                         "id": encode_prefixed(B256::random()),
+                        "vaultId": encode_prefixed(B256::random()),
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
@@ -378,6 +379,7 @@ mod tests {
                     "oldVaultBalance": "0",
                     "vault": {
                         "id": encode_prefixed(B256::random()),
+                        "vaultId": encode_prefixed(B256::random()),
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
