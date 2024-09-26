@@ -13,13 +13,24 @@
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
   import type { Trade } from '$lib/typeshare/subgraphTypes';
+  import TableTimeFilters from '../charts/TableTimeFilters.svelte';
+
+  let startTimestamp: number | undefined;
+  let endTimestamp: number | undefined;
 
   export let id: string;
 
   $: orderTradesQuery = createInfiniteQuery({
     queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
     queryFn: ({ pageParam }: { pageParam: number }) => {
-      return orderTradesList(id, $subgraphUrl || '', pageParam);
+      return orderTradesList(
+        id,
+        $subgraphUrl || '',
+        pageParam,
+        undefined,
+        startTimestamp,
+        endTimestamp,
+      );
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
@@ -30,6 +41,9 @@
 </script>
 
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
+  <svelte:fragment slot="timeFilter">
+    <TableTimeFilters bind:startTimestamp bind:endTimestamp />
+  </svelte:fragment>
   <svelte:fragment slot="head">
     <TableHeadCell padding="p-4">Date</TableHeadCell>
     <TableHeadCell padding="p-0">Sender</TableHeadCell>

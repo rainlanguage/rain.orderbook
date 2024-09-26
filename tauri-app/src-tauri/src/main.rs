@@ -18,7 +18,7 @@ use commands::order::{
     order_remove_calldata, orders_list, orders_list_write_csv, validate_raindex_version,
 };
 use commands::order_quote::{batch_order_quotes, debug_order_quote};
-use commands::order_take::{order_takes_list, order_takes_list_write_csv};
+use commands::order_take::{order_takes_list, order_takes_list_write_csv, order_vaults_volume};
 use commands::trade_debug::debug_trade;
 use commands::vault::{
     vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
@@ -78,7 +78,8 @@ fn run_tauri_app() {
             debug_order_quote,
             debug_trade,
             get_app_commit_sha,
-            validate_raindex_version
+            validate_raindex_version,
+            order_vaults_volume
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

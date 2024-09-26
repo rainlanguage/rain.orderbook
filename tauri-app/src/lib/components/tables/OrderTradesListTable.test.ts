@@ -49,6 +49,7 @@ const mockTakeOrdersList: Trade[] = [
       amount: '100',
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -77,6 +78,7 @@ const mockTakeOrdersList: Trade[] = [
     inputVaultBalanceChange: {
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -119,6 +121,7 @@ const mockTakeOrdersList: Trade[] = [
       amount: '100',
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -147,6 +150,7 @@ const mockTakeOrdersList: Trade[] = [
     inputVaultBalanceChange: {
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',

@@ -4,10 +4,23 @@ use serde::Serialize;
 use typeshare::typeshare;
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "PaginationWithIdQueryVariables")]
+#[cynic(
+    graphql_type = "Query",
+    variables = "PaginationWithTimestampQueryVariables"
+)]
 #[typeshare]
 pub struct OrderTakesListQuery {
-    #[arguments(skip: $skip, first: $first, orderBy: "timestamp", orderDirection: "desc", where: { order_: { id: $id } })]
+    #[arguments(
+        skip: $skip,
+        first: $first,
+        orderBy: "timestamp",
+        orderDirection: "desc",
+        where: {
+            order_: { id: $id },
+            timestamp_gte: $timestamp_gte,
+            timestamp_lte: $timestamp_lte
+        }
+    )]
     pub trades: Vec<Trade>,
 }
 

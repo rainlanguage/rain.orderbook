@@ -8,6 +8,7 @@ use crate::types::order::{
 use crate::types::order_take::{OrderTakeDetailQuery, OrderTakesListQuery};
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
+use crate::vol::{get_vaults_vol, VaultVolume};
 use cynic::Id;
 use reqwest::Url;
 use thiserror::Error;
@@ -22,6 +23,8 @@ pub enum OrderbookSubgraphClientError {
     Empty,
     #[error(transparent)]
     PaginationClientError(#[from] PaginationClientError),
+    #[error(transparent)]
+    ParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 
 pub struct OrderbookSubgraphClient {
@@ -144,14 +147,23 @@ impl OrderbookSubgraphClient {
         &self,
         order_id: cynic::Id,
         pagination_args: PaginationArgs,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
     ) -> Result<Vec<Trade>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<OrderTakesListQuery, PaginationWithIdQueryVariables>(
-                PaginationWithIdQueryVariables {
+            .query::<OrderTakesListQuery, PaginationWithTimestampQueryVariables>(
+                PaginationWithTimestampQueryVariables {
                     id: Bytes(order_id.inner().to_string()),
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
+                    timestamp_gte: Some(
+                        start_timestamp.map_or(BigInt("0".to_string()), |v| BigInt(v.to_string())),
+                    ),
+                    timestamp_lte: Some(
+                        end_timestamp
+                            .map_or(BigInt(u64::MAX.to_string()), |v| BigInt(v.to_string())),
+                    ),
                 },
             )
             .await?;
@@ -163,6 +175,8 @@ impl OrderbookSubgraphClient {
     pub async fn order_takes_list_all(
         &self,
         order_id: cynic::Id,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
     ) -> Result<Vec<Trade>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
@@ -175,6 +189,8 @@ impl OrderbookSubgraphClient {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
+                    start_timestamp,
+                    end_timestamp,
                 )
                 .await?;
             if page_data.is_empty() {
@@ -185,6 +201,19 @@ impl OrderbookSubgraphClient {
             }
         }
         Ok(all_pages_merged)
+    }
+
+    /// Fetch all pages of order_takes_list query and calculate vaults' vol
+    pub async fn order_vaults_volume(
+        &self,
+        order_id: cynic::Id,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<Vec<VaultVolume>, OrderbookSubgraphClientError> {
+        let trades = self
+            .order_takes_list_all(order_id, start_timestamp, end_timestamp)
+            .await?;
+        Ok(get_vaults_vol(&trades)?)
     }
 
     /// Fetch single vault

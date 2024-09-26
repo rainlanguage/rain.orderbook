@@ -32,7 +32,7 @@ impl Execute for CliOrderTakesListArgs {
             let csv_text = subgraph_args
                 .to_subgraph_client()
                 .await?
-                .order_takes_list_all(self.order_id.clone().into())
+                .order_takes_list_all(self.order_id.clone().into(), None, None)
                 .await?
                 .into_iter()
                 .map(|o| o.try_into())
@@ -48,6 +48,8 @@ impl Execute for CliOrderTakesListArgs {
                     .order_takes_list(
                         self.order_id.clone().into(),
                         self.pagination_args.clone().into(),
+                        None,
+                        None,
                     )
                     .await?
                     .into_iter()
