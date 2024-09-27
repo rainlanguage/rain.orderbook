@@ -50,7 +50,7 @@
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
   <svelte:fragment slot="info">
     {#if tradesCount !== undefined}
-      <div class="px-2">Total Count: {tradesCount}</div>
+      <div class="px-2">{tradesCount} Trades</div>
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="timeFilter">
