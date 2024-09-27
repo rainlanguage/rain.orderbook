@@ -116,7 +116,9 @@
               <TableBodyCell>
                 {ioRatio[1][0]}
                 <span class="text-gray-400">
-                  ({formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
+                  ({BigInt(ioRatio[1][1]) === 0n
+                    ? '0'
+                    : formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
                 </span>
               </TableBodyCell>
             {/if}
