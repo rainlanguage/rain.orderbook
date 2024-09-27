@@ -98,21 +98,28 @@
       <TableBody>
         {#each results as item}
           {@const data = transformData(item.fuzz_result)[0]}
-          {@const ioRatio = Object.entries(data)[Object.entries(data).length - 1]}
-          {@const maxOutput = Object.entries(data)[Object.entries(data).length - 2]}
+          {@const dataEntries = Object.entries(data)}
           <TableBodyRow>
             <TableBodyCell>{item.order_name}</TableBodyCell>
             <TableBodyCell>{item.fuzz_result.scenario}</TableBodyCell>
             <TableBodyCell>{item.pair}</TableBodyCell>
-            <TableBodyCell>
-              {maxOutput[1][0]}
-            </TableBodyCell>
-            <TableBodyCell>
-              {ioRatio[1][0]}
-              <span class="text-gray-400">
-                ({formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
-              </span>
-            </TableBodyCell>
+            {#if dataEntries.length === 1}
+              <TableBodyCell colspan="2" class="text-red-500"
+                >Missing stack data for max output and ratio</TableBodyCell
+              >
+            {:else}
+              {@const maxOutput = dataEntries[dataEntries.length - 2]}
+              {@const ioRatio = dataEntries[dataEntries.length - 1]}
+              <TableBodyCell>
+                {maxOutput[1][0]}
+              </TableBodyCell>
+              <TableBodyCell>
+                {ioRatio[1][0]}
+                <span class="text-gray-400">
+                  ({formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
+                </span>
+              </TableBodyCell>
+            {/if}
             <TableBodyCell>
               <button on:click={() => handleScenarioDebugModal(item.pair, item.fuzz_result.data)}>
                 <BugOutline size="sm" color="grey" />
