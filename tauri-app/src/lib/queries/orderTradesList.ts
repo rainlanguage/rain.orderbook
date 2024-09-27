@@ -75,3 +75,20 @@ export const orderVaultsVolume = async (
     endTimestamp,
   } as OrderTradesListArgs);
 };
+
+export const orderTradesCount = async (
+  id: string,
+  url: string | undefined,
+  startTimestamp?: number,
+  endTimestamp?: number,
+) => {
+  if (!url) {
+    return [];
+  }
+  return await invoke<number>('order_takes_count', {
+    orderId: id,
+    subgraphArgs: { url },
+    startTimestamp,
+    endTimestamp,
+  } as OrderTradesListArgs);
+};

@@ -13,6 +13,7 @@
 </script>
 
 <div data-testid="title" class="flex h-16 w-full items-center justify-end">
+  <slot name="info" />
   <slot name="timeFilter" />
   <slot name="title" />
   <Refresh

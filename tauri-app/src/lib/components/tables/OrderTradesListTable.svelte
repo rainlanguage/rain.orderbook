@@ -2,7 +2,7 @@
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import TanstackAppTable from './TanstackAppTable.svelte';
   import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
-  import { orderTradesList } from '$lib/queries/orderTradesList';
+  import { orderTradesCount, orderTradesList } from '$lib/queries/orderTradesList';
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -15,10 +15,12 @@
   import type { Trade } from '$lib/typeshare/subgraphTypes';
   import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
-  let startTimestamp: number | undefined;
-  let endTimestamp: number | undefined;
-
   export let id: string;
+
+  const now = Math.floor(new Date().getTime() / 1000);
+  let startTimestamp: number | undefined = now - 60 * 60 * 24;
+  let endTimestamp: number | undefined = now;
+  let tradesCount: number | undefined;
 
   $: orderTradesQuery = createInfiniteQuery({
     queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
@@ -38,9 +40,19 @@
     },
     enabled: !!$subgraphUrl,
   });
+
+  $: $orderTradesQuery.isFetching || $orderTradesQuery.isLoading,
+    orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp)
+      .then((v) => (typeof v === 'number' ? (tradesCount = v) : (tradesCount = undefined)))
+      .catch(() => (tradesCount = undefined));
 </script>
 
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
+  <svelte:fragment slot="info">
+    {#if tradesCount !== undefined}
+      <div class="px-2">Total Count: {tradesCount}</div>
+    {/if}
+  </svelte:fragment>
   <svelte:fragment slot="timeFilter">
     <TableTimeFilters bind:startTimestamp bind:endTimestamp />
   </svelte:fragment>

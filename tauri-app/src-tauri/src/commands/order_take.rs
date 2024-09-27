@@ -64,3 +64,18 @@ pub async fn order_vaults_volume(
         .order_vaults_volume(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?)
 }
+
+#[tauri::command]
+pub async fn order_takes_count(
+    order_id: String,
+    subgraph_args: SubgraphArgs,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> CommandResult<usize> {
+    Ok(subgraph_args
+        .to_subgraph_client()
+        .await?
+        .order_takes_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
+        .await?
+        .len())
+}
