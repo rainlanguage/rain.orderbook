@@ -40,9 +40,11 @@ pub struct DeploymentDebugData {
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeploymentDebugPairData {
-    pub order_name: String,
+    pub order: String,
+    pub scenario: String,
     pub pair: String,
-    pub fuzz_result: FuzzResultFlat,
+    pub result: Option<FuzzResultFlat>,
+    pub error: Option<String>,
 }
 
 #[derive(Debug)]
@@ -311,8 +313,6 @@ impl FuzzRunner {
         );
 
         let dotrain = Arc::new(self.dotrain.clone());
-        let mut handles = vec![];
-
         self.forker.roll_fork(Some(block_number), None)?;
         let fork = Arc::new(self.forker.clone()); // Wrap in Arc for shared ownership
         let fork_clone = Arc::clone(&fork); // Clone the Arc for each thread
@@ -380,18 +380,10 @@ impl FuzzRunner {
                 .map_err(FuzzRunnerError::ForkCallError)
                 .await
         });
-        handles.push(handle);
-
-        let mut runs: Vec<RainEvalResult> = Vec::new();
-
-        for handle in handles {
-            let res = handle.await??;
-            runs.push(res.into());
-        }
 
         Ok(FuzzResult {
             scenario: scenario.name.clone(),
-            runs: runs.into(),
+            runs: vec![handle.await??.into()].into(),
         })
     }
 
@@ -458,17 +450,34 @@ impl FuzzRunner {
                             output.token.symbol.clone().unwrap_or("UNKNOWN".to_string())
                         );
 
-                        let mut runner = self.clone();
-                        let fuzz_result = runner
-                            .run_debug(block, input.clone(), output.clone(), &scenario)
-                            .await?
-                            .flatten_traces()?;
-
-                        let pair_data = DeploymentDebugPairData {
-                            order_name: order_name.clone(),
+                        let mut pair_data = DeploymentDebugPairData {
+                            order: order_name.clone(),
+                            scenario: scenario.name.clone(),
                             pair,
-                            fuzz_result,
+                            result: None,
+                            error: None,
                         };
+
+                        let mut runner = self.clone();
+                        match runner
+                            .run_debug(block, input.clone(), output.clone(), &scenario)
+                            .await
+                        {
+                            Ok(fuzz_result) => match fuzz_result.flatten_traces() {
+                                Ok(fuzz_result) => {
+                                    pair_data.result = Some(fuzz_result);
+                                }
+                                Err(e) => {
+                                    pair_data.error = Some(e.to_string());
+                                }
+                            },
+                            Err(e) => {
+                                if matches!(e, FuzzRunnerError::ComposeError(_)) {
+                                    return Err(e);
+                                }
+                                pair_data.error = Some(e.to_string());
+                            }
+                        }
 
                         pair_datas
                             .entry(deployment_name.clone())
@@ -909,7 +918,13 @@ io-ratio: mul(0.99 20);
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
-        let result_rows = res.result["sell-wflr"][0].fuzz_result.data.rows[0].clone();
+        let result_rows = res.result["sell-wflr"][0]
+            .result
+            .as_ref()
+            .unwrap()
+            .data
+            .rows[0]
+            .clone();
         assert_eq!(
             result_rows[0],
             U256::from_be_slice(
