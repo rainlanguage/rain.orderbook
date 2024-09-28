@@ -63,7 +63,7 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_take.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
