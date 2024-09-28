@@ -8,7 +8,7 @@ use tracing::info;
 
 #[derive(Args, Clone)]
 pub struct CliOrderTradeDetailArgs {
-    #[arg(short = 'i', long, help = "ID of the Order Take")]
+    #[arg(short = 'i', long, help = "Subgraph ID of the Order")]
     id: String,
 
     #[clap(flatten)]

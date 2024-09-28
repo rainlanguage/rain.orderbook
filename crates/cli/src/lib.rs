@@ -37,7 +37,7 @@ impl Orderbook {
         match self {
             Orderbook::Order(order) => order.execute().await,
             Orderbook::Vault(vault) => (*vault).execute().await,
-            Orderbook::Trade(order_take) => (order_take).execute().await,
+            Orderbook::Trade(trade) => (trade).execute().await,
             Orderbook::Chart(chart) => chart.execute().await,
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,
