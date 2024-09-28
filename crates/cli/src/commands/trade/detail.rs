@@ -1,95 +1,32 @@
-use crate::{
-    execute::Execute,
-    subgraph::{CliPaginationArgs, CliSubgraphArgs},
-};
+use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
-use comfy_table::Table;
-use rain_orderbook_common::{
-    csv::TryIntoCsv,
-    subgraph::SubgraphArgs,
-    types::{FlattenError, OrderTakeFlattened, NO_SYMBOL},
-};
+
+use rain_orderbook_common::subgraph::SubgraphArgs;
+
 use tracing::info;
 
 #[derive(Args, Clone)]
-pub struct CliOrderTakesListArgs {
-    #[arg(short = 'i', long, help = "ID of the Order")]
-    order_id: String,
+pub struct CliOrderTradeDetailArgs {
+    #[arg(short = 'i', long, help = "ID of the Order Take")]
+    id: String,
 
     #[clap(flatten)]
-    pagination_args: CliPaginationArgs,
-
-    #[clap(flatten)]
-    subgraph_args: CliSubgraphArgs,
+    pub subgraph_args: CliSubgraphArgs,
 }
 
-impl Execute for CliOrderTakesListArgs {
+impl Execute for CliOrderTradeDetailArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
-
-        if self.pagination_args.csv {
-            let csv_text = subgraph_args
-                .to_subgraph_client()
-                .await?
-                .order_takes_list_all(self.order_id.clone().into(), None, None)
-                .await?
-                .into_iter()
-                .map(|o| o.try_into())
-                .collect::<Result<Vec<OrderTakeFlattened>, FlattenError>>()?
-                .try_into_csv()?;
-
-            println!("{}", csv_text);
-        } else {
-            let table = build_table(
-                subgraph_args
-                    .to_subgraph_client()
-                    .await?
-                    .order_takes_list(
-                        self.order_id.clone().into(),
-                        self.pagination_args.clone().into(),
-                        None,
-                        None,
-                    )
-                    .await?
-                    .into_iter()
-                    .map(|o| o.try_into())
-                    .collect::<Result<Vec<OrderTakeFlattened>, FlattenError>>()?,
-            )?;
-
-            info!("\n{}", table);
-        }
+        let order_take = subgraph_args
+            .to_subgraph_client()
+            .await?
+            .order_trade_detail(self.id.clone().into())
+            .await?;
+        info!("{:#?}", order_take);
 
         Ok(())
     }
-}
-
-fn build_table(order_take: Vec<OrderTakeFlattened>) -> Result<Table> {
-    let mut table = comfy_table::Table::new();
-    table
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
-        .set_header(vec!["ID", "Taken At", "Sender", "Input", "Output"]);
-
-    for order_take in order_take.into_iter() {
-        table.add_row(vec![
-            order_take.id,
-            order_take.timestamp_display,
-            order_take.sender.0,
-            format!(
-                "{} {}",
-                order_take.input_display,
-                order_take.input_token_symbol.unwrap_or(NO_SYMBOL.into())
-            ),
-            format!(
-                "{} {}",
-                order_take.output_display,
-                order_take.output_token_symbol.unwrap_or(NO_SYMBOL.into())
-            ),
-        ]);
-    }
-
-    Ok(table)
 }
 
 #[cfg(test)]
@@ -103,80 +40,47 @@ mod tests {
     use serde_json::{json, Value};
 
     #[tokio::test]
-    async fn test_csv_execute_happy() {
-        // mock subgraph with pagination
-        let sg_server = MockServer::start();
-        sg_server.mock(|when, then| {
-            when.body_contains("\"skip\":0");
-            then.json_body_obj(&get_sg_response());
-        });
-        sg_server.mock(|_when, then| {
-            then.json_body_obj(&json!({"data": {"trades": []}}));
-        });
-
-        let cli_order_take_list_args = CliOrderTakesListArgs {
-            order_id: encode_prefixed(B256::random()),
-            subgraph_args: CliSubgraphArgs {
-                subgraph_url: sg_server.url("/sg"),
-            },
-            pagination_args: CliPaginationArgs {
-                csv: true,
-                page_size: 25,
-                page: 1,
-            },
-        };
-
-        // should succeed
-        assert!(cli_order_take_list_args.execute().await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_no_csv_execute_happy() {
-        // mock subgraph
+    async fn test_execute_happy() {
         let sg_server = MockServer::start();
         sg_server.mock(|_when, then| {
             then.json_body_obj(&get_sg_response());
         });
 
-        let cli_order_take_list_args = CliOrderTakesListArgs {
-            order_id: encode_prefixed(B256::random()),
+        let cli_order_take_detail_args = CliOrderTradeDetailArgs {
             subgraph_args: CliSubgraphArgs {
                 subgraph_url: sg_server.url("/sg"),
             },
-            pagination_args: CliPaginationArgs {
-                csv: false,
-                page_size: 25,
-                page: 1,
-            },
+            id: encode_prefixed(B256::random()),
         };
 
         // should succeed
-        assert!(cli_order_take_list_args.execute().await.is_ok());
+        assert!(cli_order_take_detail_args.execute().await.is_ok());
     }
 
     #[tokio::test]
     async fn test_execute_unhappy() {
-        let cli_order_take_list_args = CliOrderTakesListArgs {
-            order_id: encode_prefixed(B256::random()),
+        // mock sg with corrupt response
+        let sg_server = MockServer::start();
+        sg_server.mock(|_when, then| {
+            then.json_body_obj(&json!({"data": {"trade": null}}));
+        });
+
+        let cli_order_take_detail_args = CliOrderTradeDetailArgs {
             subgraph_args: CliSubgraphArgs {
-                subgraph_url: "https://bad-url".to_string(),
+                subgraph_url: sg_server.url("/sg"),
             },
-            pagination_args: CliPaginationArgs {
-                csv: false,
-                page_size: 25,
-                page: 1,
-            },
+            id: encode_prefixed(B256::random()),
         };
 
         // should error
-        assert!(cli_order_take_list_args.execute().await.is_err());
+        assert!(cli_order_take_detail_args.execute().await.is_err());
     }
 
     // helper function that returns mocked sg response in json
     fn get_sg_response() -> Value {
         json!({
             "data": {
-                "trades": [{
+                "trade": {
                     "id": encode_prefixed(B256::random()),
                     "order": {
                         "id": encode_prefixed(B256::random()),
@@ -262,7 +166,7 @@ mod tests {
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
                     },
-                }]
+                }
             }
         })
     }

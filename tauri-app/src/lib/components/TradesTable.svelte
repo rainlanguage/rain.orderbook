@@ -8,10 +8,10 @@
   import type { Trade } from '$lib/typeshare/subgraphTypes';
   import { formatUnits } from 'viem';
 
-  export let orderTakesList: ListStore<Trade>;
+  export let orderTradesList: ListStore<Trade>;
 </script>
 
-<AppTable listStore={orderTakesList} emptyMessage="No trades found" rowHoverable={false}>
+<AppTable listStore={orderTradesList} emptyMessage="No trades found" rowHoverable={false}>
   <svelte:fragment slot="head">
     <TableHeadCell padding="p-4">Date</TableHeadCell>
     <TableHeadCell padding="p-0">Sender</TableHeadCell>
