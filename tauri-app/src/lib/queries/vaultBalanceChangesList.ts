@@ -42,6 +42,7 @@ if (import.meta.vitest) {
         newVaultBalance: '4000',
         vault: {
           id: 'vault1',
+          vault_id: 'vault-id1',
           token: {
             id: 'token1',
             address: '0xTokenAddress1',
@@ -68,6 +69,7 @@ if (import.meta.vitest) {
         newVaultBalance: '2500',
         vault: {
           id: 'vault2',
+          vault_id: 'vault-id2',
           token: {
             id: 'token2',
             address: '0xTokenAddress2',
@@ -94,6 +96,7 @@ if (import.meta.vitest) {
         newVaultBalance: '4500',
         vault: {
           id: 'vault3',
+          vault_id: 'vault-id3',
           token: {
             id: 'token3',
             address: '0xTokenAddress3',

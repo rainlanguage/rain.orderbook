@@ -22,6 +22,7 @@ query OrderTakeDetailQuery($id: ID!) {
       oldVaultBalance
       vault {
         id
+        vaultId
         token {
           id
           address
@@ -53,6 +54,7 @@ query OrderTakeDetailQuery($id: ID!) {
       oldVaultBalance
       vault {
         id
+        vaultId
         token {
           id
           address
