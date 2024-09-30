@@ -81,9 +81,6 @@ contract Deploy is Script {
         }
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
-            if (raindex == address(0)) {
-                raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
-            }
             if (routeProcessor == address(0)) {
                 routeProcessor = vm.envAddress("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS");
             }
@@ -94,6 +91,10 @@ contract Deploy is Script {
             }
             if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
                 revert BadRouteProcessor(ROUTE_PROCESSOR_4_BYTECODE_HASH, routeProcessor4BytecodeHash);
+            }
+
+            if (raindex == address(0)) {
+                raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
             }
 
             // Order takers.
