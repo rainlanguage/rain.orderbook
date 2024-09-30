@@ -29,7 +29,6 @@ on:
           - all
           - raindex
           - subparser
-          - route-processor
           - arb
 
 jobs:
@@ -44,6 +43,7 @@ jobs:
           echo "verifier_secret_name=CI_DEPLOY_${network^^}_VERIFIER" >> $GITHUB_ENV
           echo "verifier_url_secret_name=CI_DEPLOY_${network^^}_VERIFIER_URL" >> $GITHUB_ENV
           echo "metaboard_address_secret_name=CI_DEPLOY_${network^^}_METABOARD_ADDRESS" >> $GITHUB_ENV
+          echo "rp4_address=${network^^}_RP4_ADDRESS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
@@ -69,3 +69,4 @@ jobs:
           DEPLOY_VERIFIER: ${{ secrets[env.verifier_secret_name] || vars[env.verifier_secret_name] || '' }}
           DEPLOY_VERIFIER_URL: ${{ secrets[env.verifier_url_secret_name] || vars[env.verifier_url_secret_name] || '' }}
           DEPLOY_METABOARD_ADDRESS: ${{ secrets[env.metaboard_address_secret_name] || vars[env.metaboard_address_secret_name] || '' }}
+          RP4_ADDRESS: ${{ secrets[env.rp4_address] || '' }}
