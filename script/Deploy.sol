@@ -66,7 +66,7 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         address raindex = address(0);
-        address routeProcessor = address(0);
+        address routeProcessor = vm.envOr("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS", address(0));
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
             raindex = address(deployRaindex());
@@ -76,23 +76,18 @@ contract Deploy is Script {
             deploySubParser(metaboard);
         }
 
-        if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || suite == DEPLOYMENT_SUITE_ALL) {
+        if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || (suite == DEPLOYMENT_SUITE_ALL && routeProcessor == address(0))) {
             routeProcessor = deployRouter();
+        }
+        bytes32 routeProcessor4BytecodeHash;
+        assembly {
+            routeProcessor4BytecodeHash := extcodehash(routeProcessor)
+        }
+        if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
+            revert BadRouteProcessor(ROUTE_PROCESSOR_4_BYTECODE_HASH, routeProcessor4BytecodeHash);
         }
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
-            if (routeProcessor == address(0)) {
-                routeProcessor = vm.envAddress("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS");
-            }
-
-            bytes32 routeProcessor4BytecodeHash;
-            assembly {
-                routeProcessor4BytecodeHash := extcodehash(routeProcessor)
-            }
-            if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
-                revert BadRouteProcessor(ROUTE_PROCESSOR_4_BYTECODE_HASH, routeProcessor4BytecodeHash);
-            }
-
             if (raindex == address(0)) {
                 raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
             }
