@@ -145,6 +145,17 @@ impl FuzzRunner {
 
         let deployer = scenario.deployer.clone();
 
+        // Create entrypoints from the scenario's entrypoint field
+        let entrypoints: Vec<String> = if let Some(entrypoint) = &scenario.entrypoint {
+            vec![entrypoint.clone()]
+        } else {
+            ORDERBOOK_ORDER_ENTRYPOINTS
+                .iter()
+                .map(|&s| s.to_string())
+                .collect()
+        };
+        let entrypoints = Arc::new(entrypoints);
+
         // Fetch the latest block number
         let block_number = ReadableClientHttp::new_from_url(deployer.network.rpc.to_string())?
             .get_block_number()
@@ -208,6 +219,7 @@ impl FuzzRunner {
                 let deployer = Arc::clone(&deployer);
                 let scenario_bindings = scenario_bindings.clone();
                 let dotrain = Arc::clone(&dotrain);
+                let entrypoints = Arc::clone(&entrypoints);
 
                 let mut final_bindings: Vec<Rebind> = vec![];
 
@@ -224,7 +236,7 @@ impl FuzzRunner {
 
                     let rainlang_string = RainDocument::compose_text(
                         &dotrain,
-                        &ORDERBOOK_ORDER_ENTRYPOINTS,
+                        &entrypoints.iter().map(AsRef::as_ref).collect::<Vec<&str>>(),
                         None,
                         Some(final_bindings),
                     )?;
@@ -838,6 +850,59 @@ _: context<1 0>();
                 }
             }
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_custom_entrypoint() {
+        let local_evm = LocalEvm::new().await;
+        let dotrain = format!(
+            r#"
+deployers:
+    some-key:
+        address: {deployer}
+networks:
+    some-key:
+        rpc: {rpc_url}
+        chain-id: 123
+scenarios:
+    some-key:
+        runs: 1
+        entrypoint: "some-entrypoint"
+charts:
+    some-key:
+        scenario: some-key
+---
+#some-entrypoint
+a: 20,
+b: 30;
+    "#,
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address()
+        );
+        let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
+        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
+        let config = settings
+            .try_into()
+            .map_err(|e| println!("{:?}", e))
+            .unwrap();
+
+        let runner = FuzzRunner::new(&dotrain, config, None).await;
+
+        let res = runner
+            .make_chart_data()
+            .await
+            .map_err(|e| println!("{:#?}", e))
+            .unwrap();
+
+        let scenario_data = res.scenarios_data.get("some-key").unwrap();
+        assert_eq!(
+            scenario_data.data.rows[0][0],
+            U256::from(20000000000000000000u128)
+        );
+        assert_eq!(
+            scenario_data.data.rows[0][1],
+            U256::from(30000000000000000000u128)
+        );
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
