@@ -10,7 +10,7 @@
     <div class="flex-grow">
       <slot name="alert" />
     </div>
-    <div class="flex flex-col items-end">
+    <div class="flex flex-col items-end justify-end gap-2">
       <div class="flex gap-x-2">
         {#if $textFile.path}
           <ButtonLoading loading={$textFile.isSaving} color="green" on:click={textFile.saveFile}
@@ -24,17 +24,17 @@
           >Load</ButtonLoading
         >
       </div>
+
+      {#if $textFile.path}
+        <div
+          class="flex w-full justify-end overflow-hidden overflow-ellipsis text-xs text-gray-500 dark:text-gray-400"
+        >
+          {$textFile.path}
+        </div>
+      {/if}
     </div>
   </div>
 </div>
-
-{#if $textFile.path}
-  <div
-    class="my-4 flex w-full justify-end overflow-hidden overflow-ellipsis text-xs text-gray-500 dark:text-gray-400"
-  >
-    {$textFile.path}
-  </div>
-{/if}
 
 <div class="my-4 overflow-hidden rounded-lg border dark:border-none">
   <slot name="textarea" />
