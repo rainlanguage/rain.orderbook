@@ -43,6 +43,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -70,6 +71,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -97,6 +99,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -153,6 +156,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -180,6 +184,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -207,6 +212,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
