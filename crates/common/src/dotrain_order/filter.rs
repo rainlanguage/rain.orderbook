@@ -1,15 +1,22 @@
 use crate::dotrain_order::{DotrainOrder, DotrainOrderError};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::config_source::ConfigSource;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::prelude::*;
 
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 impl DotrainOrder {
     /// Creates a new instance with a clean frontmatter that only includes the
     /// specified deployments and their related fields
+    #[cfg_attr(
+        target_family = "wasm",
+        wasm_bindgen(js_name = "newWithFrontmatterFilteredByDeployment")
+    )]
     pub async fn new_with_frontmatter_filtered_by_deployment(
         dotrain: String,
+        deployments: Vec<String>,
         config: Option<String>,
-        deployments: &[&str],
-    ) -> Result<Self, DotrainOrderError> {
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         Self::new(dotrain, config)
             .await?
             .filter_by_deployment(deployments)
@@ -18,17 +25,18 @@ impl DotrainOrder {
 
     /// Generates a new instance with a frontmatter that only includes the
     /// specified deployments and their related fields
+    #[cfg_attr(target_family = "wasm", wasm_bindgen(js_name = "filterByDeployment"))]
     pub async fn filter_by_deployment(
         &self,
-        deployments: &[&str],
-    ) -> Result<Self, DotrainOrderError> {
+        deployments: Vec<String>,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         // new empty config to copy used fields into
         let mut new_config_source = ConfigSource::default();
         let config_source = &self.config_source;
 
         for deployment in deployments {
             // find and insert the specified deployment
-            let deployment_ref = self.config.deployments.get(*deployment).ok_or(
+            let deployment_ref = self.config.deployments.get(&deployment).ok_or(
                 DotrainOrderError::CleanUnusedFrontmatterError(format!(
                     "Deployment \"{}\" not found",
                     deployment
@@ -38,7 +46,7 @@ impl DotrainOrder {
                 deployment.to_string(),
                 config_source
                     .deployments
-                    .get(*deployment)
+                    .get(&deployment)
                     .ok_or(DotrainOrderError::CleanUnusedFrontmatterError(format!(
                         "Deployment \"{}\" not found",
                         deployment
@@ -545,8 +553,8 @@ _ _: 0 0;
 
         let result = DotrainOrder::new_with_frontmatter_filtered_by_deployment(
             dotrain.to_string(),
+            vec!["some-deployment".to_string()],
             Some(setting.to_string()),
-            &["some-deployment"],
         )
         .await
         .unwrap();
@@ -698,8 +706,8 @@ _ _: 0 0;
 
         let result = DotrainOrder::new_with_frontmatter_filtered_by_deployment(
             dotrain.to_string(),
+            vec!["some-other-deployment".to_string()],
             Some(setting.to_string()),
-            &["some-other-deployment"],
         )
         .await;
 

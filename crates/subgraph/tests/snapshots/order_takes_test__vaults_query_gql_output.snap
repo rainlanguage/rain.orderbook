@@ -2,8 +2,8 @@
 source: crates/subgraph/tests/order_takes_test.rs
 expression: request_body.query
 ---
-query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
-  trades(skip: $skip, first: $first, orderBy: timestamp, orderDirection: desc, where: {order_: {id: $id, }, }) {
+query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte: BigInt, $timestampLte: BigInt) {
+  trades(skip: $skip, first: $first, orderBy: timestamp, orderDirection: desc, where: {order_: {id: $id, }, timestamp_gte: $timestampGte, timestamp_lte: $timestampLte, }) {
     id
     tradeEvent {
       transaction {
@@ -22,6 +22,7 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       oldVaultBalance
       vault {
         id
+        vaultId
         token {
           id
           address
@@ -53,6 +54,7 @@ query OrderTakesListQuery($first: Int, $id: Bytes!, $skip: Int) {
       oldVaultBalance
       vault {
         id
+        vaultId
         token {
           id
           address

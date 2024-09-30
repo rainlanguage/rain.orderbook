@@ -5,6 +5,7 @@ pub mod types;
 pub mod utils;
 pub mod validate;
 mod vault_balance_changes_query;
+pub mod vol;
 
 #[cynic::schema("orderbook")]
 pub mod schema {}

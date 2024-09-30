@@ -75,6 +75,7 @@ if (import.meta.vitest) {
           amount: '100',
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -103,6 +104,7 @@ if (import.meta.vitest) {
         inputVaultBalanceChange: {
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -145,6 +147,7 @@ if (import.meta.vitest) {
           amount: '100',
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -173,6 +176,7 @@ if (import.meta.vitest) {
         inputVaultBalanceChange: {
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -215,6 +219,7 @@ if (import.meta.vitest) {
           amount: '100',
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -243,6 +248,7 @@ if (import.meta.vitest) {
         inputVaultBalanceChange: {
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -305,6 +311,7 @@ if (import.meta.vitest) {
           amount: '100',
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -333,6 +340,7 @@ if (import.meta.vitest) {
         inputVaultBalanceChange: {
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -375,6 +383,7 @@ if (import.meta.vitest) {
           amount: '200',
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -403,6 +412,7 @@ if (import.meta.vitest) {
         inputVaultBalanceChange: {
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -445,6 +455,7 @@ if (import.meta.vitest) {
           amount: '400',
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
@@ -473,6 +484,7 @@ if (import.meta.vitest) {
         inputVaultBalanceChange: {
           vault: {
             id: '1',
+            vault_id: 'vault-id1',
             token: {
               id: 'output_token',
               address: 'output_token',
