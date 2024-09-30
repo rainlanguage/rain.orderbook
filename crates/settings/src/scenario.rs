@@ -15,6 +15,7 @@ pub struct Scenario {
     pub runs: Option<u64>,
     #[typeshare(skip)]
     pub blocks: Option<Blocks>,
+    pub entrypoint: Option<String>,
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
 }
@@ -96,6 +97,7 @@ impl ScenarioConfigSource {
             bindings: bindings.clone(),
             runs: self.runs,
             blocks: self.blocks.clone(),
+            entrypoint: self.entrypoint.clone(),
             deployer: deployer_ref.clone(),
         });
 
@@ -168,6 +170,7 @@ mod tests {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(2),
                 blocks: None,
+                entrypoint: None,
                 deployer: None,
                 scenarios: None, // No further nesting
             },
@@ -180,6 +183,7 @@ mod tests {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(5),
                 blocks: None,
+                entrypoint: None,
                 deployer: None,
                 scenarios: Some(nested_scenario2), // Include nested_scenario2
             },
@@ -193,6 +197,7 @@ mod tests {
                 bindings: HashMap::new(), // Assuming no bindings for simplification
                 runs: Some(10),
                 blocks: None,
+                entrypoint: None,
                 deployer: Some("mainnet".to_string()),
                 scenarios: Some(nested_scenario1), // Include nested_scenario1
             },
@@ -266,6 +271,7 @@ mod tests {
             bindings: child_bindings,
             runs: None,
             blocks: None,
+            entrypoint: None,
             deployer: None,
             scenarios: None,
         };
