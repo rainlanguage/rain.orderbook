@@ -19,6 +19,7 @@
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
+  import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 
   export let id: string;
 
@@ -138,6 +139,9 @@
       </TabItem>
       <TabItem title="Trades">
         <OrderTradesListTable {id} />
+      </TabItem>
+      <TabItem title="Volume">
+        <OrderVaultsVolTable {id} />
       </TabItem>
     </Tabs>
   </svelte:fragment>
