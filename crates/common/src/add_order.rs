@@ -160,18 +160,19 @@ impl AddOrderArgs {
 
     /// Generate RainlangSource meta
     fn try_generate_meta(&self, rainlang: String) -> Result<Vec<u8>, AddOrderArgsError> {
+        let content_encoding = ContentEncoding::Deflate; // compress metas
         let rainlang_meta_doc = RainMetaDocumentV1Item {
-            payload: ByteBuf::from(rainlang.as_bytes()),
+            payload: ByteBuf::from(content_encoding.encode(rainlang.as_bytes())),
             magic: KnownMagic::RainlangSourceV1,
             content_type: ContentType::OctetStream,
-            content_encoding: ContentEncoding::None,
+            content_encoding,
             content_language: ContentLanguage::None,
         };
         let dotrain_meta_doc = RainMetaDocumentV1Item {
-            payload: ByteBuf::from(self.dotrain.clone().as_bytes()),
+            payload: ByteBuf::from(content_encoding.encode(self.dotrain.as_bytes())),
             magic: KnownMagic::DotrainV1,
             content_type: ContentType::OctetStream,
-            content_encoding: ContentEncoding::None,
+            content_encoding,
             content_language: ContentLanguage::None,
         };
         let meta_doc_bytes = RainMetaDocumentV1Item::cbor_encode_seq(
@@ -362,14 +363,16 @@ price: 2e18;
         assert_eq!(
             meta_bytes,
             vec![
-                255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 88, 93, 10, 35, 99, 97, 108, 99,
-                117, 108, 97, 116, 101, 45, 105, 111, 10, 109, 97, 120, 45, 97, 109, 111, 117, 110,
-                116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10, 112, 114, 105, 99, 101, 58, 32, 50,
-                101, 49, 56, 59, 10, 10, 35, 104, 97, 110, 100, 108, 101, 45, 105, 111, 10, 109,
-                97, 120, 45, 97, 109, 111, 117, 110, 116, 58, 32, 49, 48, 48, 101, 49, 56, 44, 10,
-                112, 114, 105, 99, 101, 58, 32, 50, 101, 49, 56, 59, 10, 1, 27, 255, 19, 16, 158,
-                65, 51, 111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110,
-                47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
+                255, 10, 137, 198, 116, 238, 120, 116, 164, 0, 88, 64, 120, 156, 227, 82, 78, 78,
+                204, 73, 46, 205, 73, 44, 73, 213, 205, 204, 231, 202, 77, 172, 208, 77, 204, 205,
+                47, 205, 43, 177, 82, 48, 52, 48, 72, 53, 180, 208, 225, 42, 40, 202, 76, 78, 181,
+                82, 48, 2, 114, 172, 185, 184, 148, 51, 18, 243, 82, 114, 136, 83, 12, 0, 82, 135,
+                27, 227, 1, 27, 255, 19, 16, 158, 65, 51, 111, 242, 2, 120, 24, 97, 112, 112, 108,
+                105, 99, 97, 116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45, 115, 116, 114,
+                101, 97, 109, 3, 103, 100, 101, 102, 108, 97, 116, 101, 164, 0, 72, 120, 156, 3, 0,
+                0, 0, 0, 1, 1, 27, 255, 218, 194, 242, 243, 123, 232, 148, 2, 120, 24, 97, 112,
+                112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111, 99, 116, 101, 116, 45, 115,
+                116, 114, 101, 97, 109, 3, 103, 100, 101, 102, 108, 97, 116, 101
             ]
         );
     }
@@ -629,7 +632,7 @@ _ _: 0 0;
 
         assert_eq!(add_order_call.tasks[0].evaluable.bytecode.len(), 111);
 
-        assert_eq!(add_order_call.config.meta.len(), 105);
+        assert_eq!(add_order_call.config.meta.len(), 244);
 
         assert_eq!(
             add_order_call.config.validInputs[0].token,

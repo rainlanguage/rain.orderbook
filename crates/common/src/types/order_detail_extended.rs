@@ -1,4 +1,4 @@
-use crate::meta::{TryDecodeOrderMeta, TryDecodeRainlangSourceError};
+use crate::meta::{TryDecodeOrderMeta, TryDecodeOrderMetaError};
 use rain_orderbook_subgraph_client::types::common::Order;
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
@@ -12,9 +12,9 @@ pub struct OrderDetailExtended {
 }
 
 impl TryFrom<Order> for OrderDetailExtended {
-    type Error = TryDecodeRainlangSourceError;
+    type Error = TryDecodeOrderMetaError;
 
-    fn try_from(val: Order) -> Result<Self, TryDecodeRainlangSourceError> {
+    fn try_from(val: Order) -> Result<Self, TryDecodeOrderMetaError> {
         let (rainlang, dotrain) = val
             .clone()
             .meta

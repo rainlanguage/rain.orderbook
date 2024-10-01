@@ -100,7 +100,7 @@ _ _: 0 0;
       );
 
     const result = await getAddOrderCalldata(dotrain, "some-deployment");
-    assert.equal(result.length, 1156);
+    assert.equal(result.length, 1668);
   });
 
   it("should throw undefined deployment error", async () => {

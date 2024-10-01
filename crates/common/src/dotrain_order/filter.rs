@@ -38,7 +38,7 @@ impl DotrainOrder {
 
         if let Some(include_gui) = include_gui {
             if include_gui {
-                new_config_source.gui = config_source.gui.clone();
+                new_config_source.gui.clone_from(&config_source.gui)
             }
         }
 

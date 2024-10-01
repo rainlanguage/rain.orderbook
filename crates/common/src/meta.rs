@@ -5,7 +5,7 @@ use std::string::FromUtf8Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum TryDecodeRainlangSourceError {
+pub enum TryDecodeOrderMetaError {
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
@@ -19,31 +19,40 @@ pub enum TryDecodeRainlangSourceError {
 }
 
 pub trait TryDecodeOrderMeta {
-    fn try_decode_meta(&self) -> Result<(String, Option<String>), TryDecodeRainlangSourceError>;
+    fn try_decode_meta(&self) -> Result<(String, Option<String>), TryDecodeOrderMetaError>;
 }
 
 impl TryDecodeOrderMeta for RainMetaV1 {
-    fn try_decode_meta(&self) -> Result<(String, Option<String>), TryDecodeRainlangSourceError> {
+    fn try_decode_meta(&self) -> Result<(String, Option<String>), TryDecodeOrderMetaError> {
         // Ensure meta has expected magic prefix
         let meta_bytes = decode(self.clone().0)?;
         if !meta_bytes
             .clone()
             .starts_with(&KnownMagic::RainMetaDocumentV1.to_prefix_bytes())
         {
-            return Err(TryDecodeRainlangSourceError::MissingRainlangSourceV1);
+            return Err(TryDecodeOrderMetaError::MissingRainlangSourceV1);
         }
 
-        // Decode meta to string
-        let meta_bytes_slice = meta_bytes.as_slice();
-        let rain_meta_document_item = RainMetaDocumentV1Item::cbor_decode(meta_bytes_slice)?;
+        // Decode meta to rainlang and dotrain
+        let rain_meta_document_item = RainMetaDocumentV1Item::cbor_decode(&meta_bytes)?;
         let rainlangsource_item = rain_meta_document_item
             .first()
-            .ok_or(TryDecodeRainlangSourceError::MissingRainlangSourceV1)?;
-        let rainlangsource = String::from_utf8(rainlangsource_item.payload.to_vec())?;
+            .ok_or(TryDecodeOrderMetaError::MissingRainlangSourceV1)?;
+        if rainlangsource_item.magic != KnownMagic::RainlangSourceV1
+            && rainlangsource_item.magic != KnownMagic::RainlangV1
+        {
+            return Err(TryDecodeOrderMetaError::MissingRainlangSourceV1);
+        }
+        // decompresses and unpacks into the original string
+        let rainlangsource = rainlangsource_item.clone().unpack_into::<String>()?;
 
         let mut dotrain = None;
-        if let Some(v) = rain_meta_document_item.get(1) {
-            dotrain = Some(v.clone().unpack_into::<String>()?);
+        for item in &rain_meta_document_item[1..] {
+            if item.magic == KnownMagic::DotrainV1 {
+                // decompresses and unpacks into the original string
+                dotrain = Some(item.clone().unpack_into::<String>()?);
+                break;
+            }
         }
 
         Ok((rainlangsource, dotrain))
