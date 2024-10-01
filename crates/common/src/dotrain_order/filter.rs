@@ -16,10 +16,11 @@ impl DotrainOrder {
         dotrain: String,
         deployments: Vec<String>,
         config: Option<String>,
+        include_gui: Option<bool>, // use Option for wasm/js api
     ) -> Result<DotrainOrder, DotrainOrderError> {
         Self::new(dotrain, config)
             .await?
-            .filter_by_deployment(deployments)
+            .filter_by_deployment(deployments, include_gui)
             .await
     }
 
@@ -29,10 +30,17 @@ impl DotrainOrder {
     pub async fn filter_by_deployment(
         &self,
         deployments: Vec<String>,
+        include_gui: Option<bool>, // use Option for wasm/js api
     ) -> Result<DotrainOrder, DotrainOrderError> {
         // new empty config to copy used fields into
         let mut new_config_source = ConfigSource::default();
         let config_source = &self.config_source;
+
+        if let Some(include_gui) = include_gui {
+            if include_gui {
+                new_config_source.gui = config_source.gui.clone();
+            }
+        }
 
         for deployment in deployments {
             // find and insert the specified deployment
@@ -555,6 +563,7 @@ _ _: 0 0;
             dotrain.to_string(),
             vec!["some-deployment".to_string()],
             Some(setting.to_string()),
+            None,
         )
         .await
         .unwrap();
@@ -708,6 +717,7 @@ _ _: 0 0;
             dotrain.to_string(),
             vec!["some-other-deployment".to_string()],
             Some(setting.to_string()),
+            None,
         )
         .await;
 

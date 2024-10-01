@@ -11,7 +11,7 @@ use commands::authoring_meta::get_authoring_meta_v2_for_scenarios;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::make_charts;
 use commands::config::{convert_configstring_to_config, merge_configstrings, parse_configstring};
-use commands::dotrain::parse_dotrain;
+use commands::dotrain::{dotrain_filter_by_deployment, parse_dotrain};
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
     compose_from_scenario, order_add, order_add_calldata, order_detail, order_remove,
@@ -82,7 +82,8 @@ fn run_tauri_app() {
             get_app_commit_sha,
             validate_raindex_version,
             order_vaults_volume,
-            order_trades_count
+            order_trades_count,
+            dotrain_filter_by_deployment
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

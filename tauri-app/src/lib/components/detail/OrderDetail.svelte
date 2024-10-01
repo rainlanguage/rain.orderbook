@@ -126,16 +126,35 @@
       contentClass="mt-4"
       defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
     >
-      <TabItem open title="Rainlang source">
-        {#if data.rainlang}
-          <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-            <CodeMirrorRainlang disabled={true} value={data.rainlang} />
-          </div>
-        {:else}
-          <div class="w-full tracking-tight text-gray-900 dark:text-white">
-            Rain source not included in order meta
-          </div>
-        {/if}
+      <TabItem open title="Sources">
+        <Tabs
+          style="underline"
+          contentClass="mt-4"
+          defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+        >
+          <TabItem open title="Rainlang">
+            {#if data.rainlang}
+              <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+                <CodeMirrorRainlang disabled={true} value={data.rainlang} />
+              </div>
+            {:else}
+              <div class="w-full tracking-tight text-gray-900 dark:text-white">
+                Rainlang source not included in order meta
+              </div>
+            {/if}
+          </TabItem>
+          <TabItem open title="Dotrain">
+            {#if data.dotrain}
+              <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+                <CodeMirrorRainlang disabled={true} value={data.dotrain} />
+              </div>
+            {:else}
+              <div class="w-full tracking-tight text-gray-900 dark:text-white">
+                Dotrain source not included in order meta
+              </div>
+            {/if}
+          </TabItem>
+        </Tabs>
       </TabItem>
       <TabItem title="Trades">
         <OrderTradesListTable {id} />

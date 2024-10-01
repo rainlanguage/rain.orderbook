@@ -28,6 +28,10 @@ pub struct Filter {
     /// Print the result on console (send result to std out)
     #[arg(long, action = ArgAction::SetTrue)]
     pub stdout: bool,
+
+    /// Include 'gui' field in final result
+    #[arg(long, action = ArgAction::SetTrue)]
+    pub include_gui: bool,
 }
 
 impl Execute for Filter {
@@ -46,6 +50,7 @@ impl Execute for Filter {
             dotrain,
             self.deployments.clone(),
             settings,
+            Some(self.include_gui),
         )
         .await?;
 
@@ -152,6 +157,7 @@ _ _: 0 0;
             deployments: vec!["some-deployment".to_string()],
             output: None,
             stdout: true,
+            include_gui: false,
         };
 
         assert!(filter.execute().await.is_ok());
@@ -168,6 +174,7 @@ _ _: 0 0;
             deployments: vec!["some-deployment".to_string()],
             output: None,
             stdout: true,
+            include_gui: true,
         };
 
         assert!(filter.execute().await.is_err());

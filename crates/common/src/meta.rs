@@ -18,12 +18,12 @@ pub enum TryDecodeRainlangSourceError {
     RainlangSourceMismatch,
 }
 
-pub trait TryDecodeRainlangSource {
-    fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError>;
+pub trait TryDecodeOrderMeta {
+    fn try_decode_meta(&self) -> Result<(String, Option<String>), TryDecodeRainlangSourceError>;
 }
 
-impl TryDecodeRainlangSource for RainMetaV1 {
-    fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError> {
+impl TryDecodeOrderMeta for RainMetaV1 {
+    fn try_decode_meta(&self) -> Result<(String, Option<String>), TryDecodeRainlangSourceError> {
         // Ensure meta has expected magic prefix
         let meta_bytes = decode(self.clone().0)?;
         if !meta_bytes
@@ -41,6 +41,11 @@ impl TryDecodeRainlangSource for RainMetaV1 {
             .ok_or(TryDecodeRainlangSourceError::MissingRainlangSourceV1)?;
         let rainlangsource = String::from_utf8(rainlangsource_item.payload.to_vec())?;
 
-        Ok(rainlangsource)
+        let mut dotrain = None;
+        if let Some(v) = rain_meta_document_item.get(1) {
+            dotrain = Some(v.clone().unpack_into::<String>()?);
+        }
+
+        Ok((rainlangsource, dotrain))
     }
 }

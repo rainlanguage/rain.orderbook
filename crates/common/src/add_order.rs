@@ -160,15 +160,22 @@ impl AddOrderArgs {
 
     /// Generate RainlangSource meta
     fn try_generate_meta(&self, rainlang: String) -> Result<Vec<u8>, AddOrderArgsError> {
-        let meta_doc = RainMetaDocumentV1Item {
+        let rainlang_meta_doc = RainMetaDocumentV1Item {
             payload: ByteBuf::from(rainlang.as_bytes()),
             magic: KnownMagic::RainlangSourceV1,
             content_type: ContentType::OctetStream,
             content_encoding: ContentEncoding::None,
             content_language: ContentLanguage::None,
         };
+        let dotrain_meta_doc = RainMetaDocumentV1Item {
+            payload: ByteBuf::from(self.dotrain.clone().as_bytes()),
+            magic: KnownMagic::DotrainV1,
+            content_type: ContentType::OctetStream,
+            content_encoding: ContentEncoding::None,
+            content_language: ContentLanguage::None,
+        };
         let meta_doc_bytes = RainMetaDocumentV1Item::cbor_encode_seq(
-            &vec![meta_doc],
+            &vec![rainlang_meta_doc, dotrain_meta_doc],
             KnownMagic::RainMetaDocumentV1,
         )
         .map_err(AddOrderArgsError::RainMetaError)?;
