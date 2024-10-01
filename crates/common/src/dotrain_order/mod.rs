@@ -73,9 +73,6 @@ pub enum DotrainOrderError {
 
     #[error("Deployment {0} not found")]
     DeploymentNotFound(String),
-
-    #[error("Unknown field {0}")]
-    UnknownField(String),
 }
 
 #[cfg(target_family = "wasm")]
