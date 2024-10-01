@@ -5,7 +5,7 @@ use crate::types::order::{
     BatchOrderDetailQuery, BatchOrderDetailQueryVariables, OrderDetailQuery, OrderIdList,
     OrdersListQuery,
 };
-use crate::types::order_take::{OrderTakeDetailQuery, OrderTakesListQuery};
+use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use crate::vol::{get_vaults_vol, VaultVolume};
@@ -133,9 +133,9 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch single order take
-    pub async fn order_take_detail(&self, id: Id) -> Result<Trade, OrderbookSubgraphClientError> {
+    pub async fn order_trade_detail(&self, id: Id) -> Result<Trade, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrderTakeDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .query::<OrderTradeDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
             .await?;
         let order_take = data.trade.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -143,7 +143,7 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all order takes paginated for a single order
-    pub async fn order_takes_list(
+    pub async fn order_trades_list(
         &self,
         order_id: cynic::Id,
         pagination_args: PaginationArgs,
@@ -152,7 +152,7 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<Trade>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<OrderTakesListQuery, PaginationWithTimestampQueryVariables>(
+            .query::<OrderTradesListQuery, PaginationWithTimestampQueryVariables>(
                 PaginationWithTimestampQueryVariables {
                     id: Bytes(order_id.inner().to_string()),
                     first: pagination_variables.first,
@@ -172,7 +172,7 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of order_takes_list query
-    pub async fn order_takes_list_all(
+    pub async fn order_trades_list_all(
         &self,
         order_id: cynic::Id,
         start_timestamp: Option<u64>,
@@ -183,7 +183,7 @@ impl OrderbookSubgraphClient {
 
         loop {
             let page_data = self
-                .order_takes_list(
+                .order_trades_list(
                     order_id.clone(),
                     PaginationArgs {
                         page,
@@ -211,7 +211,7 @@ impl OrderbookSubgraphClient {
         end_timestamp: Option<u64>,
     ) -> Result<Vec<VaultVolume>, OrderbookSubgraphClientError> {
         let trades = self
-            .order_takes_list_all(order_id, start_timestamp, end_timestamp)
+            .order_trades_list_all(order_id, start_timestamp, end_timestamp)
             .await?;
         Ok(get_vaults_vol(&trades)?)
     }

@@ -9,7 +9,7 @@ use typeshare::typeshare;
     variables = "PaginationWithTimestampQueryVariables"
 )]
 #[typeshare]
-pub struct OrderTakesListQuery {
+pub struct OrderTradesListQuery {
     #[arguments(
         skip: $skip,
         first: $first,
@@ -27,7 +27,7 @@ pub struct OrderTakesListQuery {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "IdQueryVariables")]
 #[typeshare]
-pub struct OrderTakeDetailQuery {
+pub struct OrderTradeDetailQuery {
     #[arguments(id: $id)]
     pub trade: Option<Trade>,
 }
