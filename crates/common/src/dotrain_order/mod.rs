@@ -121,29 +121,17 @@ impl DotrainOrder {
         dotrain: String,
         config: Option<String>,
     ) -> Result<DotrainOrder, DotrainOrderError> {
-        match config {
-            Some(config) => {
-                let config_string = ConfigSource::try_from_string(config.clone()).await?;
-                let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-                let mut frontmatter_config =
-                    ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                frontmatter_config.merge(config_string)?;
-                Ok(Self {
-                    dotrain,
-                    config_source: frontmatter_config.clone(),
-                    config: frontmatter_config.try_into()?,
-                })
-            }
-            None => {
-                let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-                let config_source = ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                Ok(Self {
-                    dotrain,
-                    config_source: config_source.clone(),
-                    config: config_source.try_into()?,
-                })
-            }
-        }
+        let frontmatter = RainDocument::get_front_matter(&dotrain)
+            .unwrap_or("")
+            .to_string();
+        let (mut frontmatter_config, config_string) =
+            ConfigSource::try_from_string(frontmatter, config).await?;
+        frontmatter_config.merge(config_string)?;
+        Ok(Self {
+            dotrain,
+            config_source: frontmatter_config.clone(),
+            config: frontmatter_config.try_into()?,
+        })
     }
 
     // get this instance's dotrain string
