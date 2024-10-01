@@ -8,7 +8,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[tauri::command]
-pub async fn order_takes_list(
+pub async fn order_trades_list(
     order_id: String,
     subgraph_args: SubgraphArgs,
     pagination_args: PaginationArgs,
@@ -18,7 +18,7 @@ pub async fn order_takes_list(
     let order_takes = subgraph_args
         .to_subgraph_client()
         .await?
-        .order_takes_list(
+        .order_trades_list(
             order_id.clone().into(),
             pagination_args,
             start_timestamp,
@@ -29,7 +29,7 @@ pub async fn order_takes_list(
 }
 
 #[tauri::command]
-pub async fn order_takes_list_write_csv(
+pub async fn order_trades_list_write_csv(
     path: PathBuf,
     order_id: String,
     subgraph_args: SubgraphArgs,
@@ -39,7 +39,7 @@ pub async fn order_takes_list_write_csv(
     let order_takes = subgraph_args
         .to_subgraph_client()
         .await?
-        .order_takes_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
+        .order_trades_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?;
     let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
         .into_iter()
@@ -66,7 +66,7 @@ pub async fn order_vaults_volume(
 }
 
 #[tauri::command]
-pub async fn order_takes_count(
+pub async fn order_trades_count(
     order_id: String,
     subgraph_args: SubgraphArgs,
     start_timestamp: Option<u64>,
@@ -75,7 +75,7 @@ pub async fn order_takes_count(
     Ok(subgraph_args
         .to_subgraph_client()
         .await?
-        .order_takes_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
+        .order_trades_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?
         .len())
 }

@@ -29,7 +29,7 @@ export const orderTradesList = async (
   if (!url) {
     return [];
   }
-  return await invoke<Trade[]>('order_takes_list', {
+  return await invoke<Trade[]>('order_trades_list', {
     orderId: id,
     subgraphArgs: { url },
     paginationArgs: { page: pageParam + 1, page_size: pageSize },
@@ -49,7 +49,7 @@ export const orderTradesListForChart = async (
   if (!url) {
     return [];
   }
-  const data = await invoke<Trade[]>('order_takes_list', {
+  const data = await invoke<Trade[]>('order_trades_list', {
     orderId: id,
     subgraphArgs: { url },
     paginationArgs: { page: pageParam + 1, page_size: pageSize },
@@ -85,7 +85,7 @@ export const orderTradesCount = async (
   if (!url) {
     return [];
   }
-  return await invoke<number>('order_takes_count', {
+  return await invoke<number>('order_trades_count', {
     orderId: id,
     subgraphArgs: { url },
     startTimestamp,
