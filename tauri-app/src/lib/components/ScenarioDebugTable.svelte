@@ -102,7 +102,7 @@
 
 {#each Object.entries($data?.result ?? {}) as [deploymentName, results]}
   <h2 class="text-md my-4">Deployment: <strong>{deploymentName}</strong></h2>
-  <Table divClass="rounded-lg overflow-hidden dark:border-none border">
+  <Table divClass="rounded-lg overflow-hidden dark:border-none border overflow-x-scroll">
     <TableHead>
       <TableHeadCell>Order</TableHeadCell>
       <TableHeadCell>Scenario</TableHeadCell>
