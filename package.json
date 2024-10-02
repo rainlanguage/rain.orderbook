@@ -15,7 +15,7 @@
     "homepage": "https://github.com/rainlanguage/rain.orderbook#readme",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
-    "types": "./dist/types/index.d.ts",
+    "typings": "./dist/types/index.d.ts",
     "browser": {
         "./dist/cjs/index.js": "./dist/cjs/index.js",
         "./dist/esm/index.js": "./dist/esm/index.js"
