@@ -100,57 +100,59 @@
   </div>
 </div>
 
-{#each Object.entries($data?.result ?? {}) as [deploymentName, results]}
-  <h2 class="text-md my-4">Deployment: <strong>{deploymentName}</strong></h2>
-  <Table divClass="rounded-lg overflow-hidden dark:border-none border overflow-x-scroll">
-    <TableHead>
-      <TableHeadCell>Order</TableHeadCell>
-      <TableHeadCell>Scenario</TableHeadCell>
-      <TableHeadCell>Pair</TableHeadCell>
-      <TableHeadCell>Maximum Output</TableHeadCell>
-      <TableHeadCell>Ratio</TableHeadCell>
-      <TableHeadCell class="w-[50px]" />
-    </TableHead>
+{#if !debugError}
+  {#each Object.entries($data?.result ?? {}) as [deploymentName, results]}
+    <h2 class="text-md my-4">Deployment: <strong>{deploymentName}</strong></h2>
+    <Table divClass="rounded-lg overflow-hidden dark:border-none border overflow-x-scroll">
+      <TableHead>
+        <TableHeadCell>Order</TableHeadCell>
+        <TableHeadCell>Scenario</TableHeadCell>
+        <TableHeadCell>Pair</TableHeadCell>
+        <TableHeadCell>Maximum Output</TableHeadCell>
+        <TableHeadCell>Ratio</TableHeadCell>
+        <TableHeadCell class="w-[50px]" />
+      </TableHead>
 
-    <TableBody>
-      {#each results as item}
-        <TableBodyRow>
-          <TableBodyCell>{item.order}</TableBodyCell>
-          <TableBodyCell>{item.scenario}</TableBodyCell>
-          <TableBodyCell>{item.pair}</TableBodyCell>
-          {#if item.result}
-            {@const fuzzResult = item.result}
-            {@const data = transformData(fuzzResult)[0]}
-            {@const dataEntries = Object.entries(data)}
-            {#if dataEntries.length === 1}
-              <TableBodyCell colspan="2" class="text-red-500"
-                >Missing stack data for max output and ratio</TableBodyCell
-              >
+      <TableBody>
+        {#each results as item}
+          <TableBodyRow>
+            <TableBodyCell>{item.order}</TableBodyCell>
+            <TableBodyCell>{item.scenario}</TableBodyCell>
+            <TableBodyCell>{item.pair}</TableBodyCell>
+            {#if item.result}
+              {@const fuzzResult = item.result}
+              {@const data = transformData(fuzzResult)[0]}
+              {@const dataEntries = Object.entries(data)}
+              {#if dataEntries.length === 1}
+                <TableBodyCell colspan="2" class="text-red-500"
+                  >Missing stack data for max output and ratio</TableBodyCell
+                >
+              {:else}
+                {@const maxOutput = dataEntries[dataEntries.length - 2]}
+                {@const ioRatio = dataEntries[dataEntries.length - 1]}
+                <TableBodyCell>
+                  {maxOutput[1][0]}
+                </TableBodyCell>
+                <TableBodyCell>
+                  {ioRatio[1][0]}
+                  <span class="text-gray-400">
+                    ({BigInt(ioRatio[1][1]) === 0n
+                      ? '0'
+                      : formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
+                  </span>
+                </TableBodyCell>
+              {/if}
+              <TableBodyCell>
+                <button on:click={() => handleScenarioDebugModal(item.pair, fuzzResult.data)}>
+                  <BugOutline size="sm" color="grey" />
+                </button>
+              </TableBodyCell>
             {:else}
-              {@const maxOutput = dataEntries[dataEntries.length - 2]}
-              {@const ioRatio = dataEntries[dataEntries.length - 1]}
-              <TableBodyCell>
-                {maxOutput[1][0]}
-              </TableBodyCell>
-              <TableBodyCell>
-                {ioRatio[1][0]}
-                <span class="text-gray-400">
-                  ({BigInt(ioRatio[1][1]) === 0n
-                    ? '0'
-                    : formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
-                </span>
-              </TableBodyCell>
+              <TableBodyCell colspan="5" class="text-red-500">{item.error}</TableBodyCell>
             {/if}
-            <TableBodyCell>
-              <button on:click={() => handleScenarioDebugModal(item.pair, fuzzResult.data)}>
-                <BugOutline size="sm" color="grey" />
-              </button>
-            </TableBodyCell>
-          {:else}
-            <TableBodyCell colspan="5" class="text-red-500">{item.error}</TableBodyCell>
-          {/if}
-        </TableBodyRow>
-      {/each}
-    </TableBody>
-  </Table>
-{/each}
+          </TableBodyRow>
+        {/each}
+      </TableBody>
+    </Table>
+  {/each}
+{/if}
