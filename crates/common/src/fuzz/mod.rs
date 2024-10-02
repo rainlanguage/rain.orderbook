@@ -17,6 +17,7 @@ use rain_interpreter_eval::{
 use rain_orderbook_app_settings::{
     blocks::BlockError, chart::Chart, config::*, order::OrderIO, scenario::Scenario,
 };
+use rain_orderbook_bindings::IERC20;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -271,7 +272,7 @@ impl FuzzRunner {
         input: OrderIO,
         output: OrderIO,
         scenario: &Arc<Scenario>,
-    ) -> Result<FuzzResult, FuzzRunnerError> {
+    ) -> Result<(String, FuzzResult), FuzzRunnerError> {
         let deployer = scenario.deployer.clone();
 
         // Create a fork with the first block number
@@ -331,6 +332,29 @@ impl FuzzRunner {
             final_bindings.push(Rebind(elided_binding.to_string(), hex));
         }
 
+        let input_symbol_res = self
+            .forker
+            .alloy_call(
+                deployer.address,
+                input.token.address,
+                IERC20::symbolCall {},
+                false,
+            )
+            .await?;
+        let output_symbol_res = self
+            .forker
+            .alloy_call(
+                deployer.address,
+                output.token.address,
+                IERC20::symbolCall {},
+                false,
+            )
+            .await?;
+        let pair_symbols = format!(
+            "{}/{}",
+            input_symbol_res.typed_return._0, output_symbol_res.typed_return._0
+        );
+
         let handle = tokio::spawn(async move {
             final_bindings.extend(scenario_bindings.clone());
 
@@ -381,10 +405,13 @@ impl FuzzRunner {
                 .await
         });
 
-        Ok(FuzzResult {
-            scenario: scenario.name.clone(),
-            runs: vec![handle.await??.into()].into(),
-        })
+        Ok((
+            pair_symbols,
+            FuzzResult {
+                scenario: scenario.name.clone(),
+                runs: vec![handle.await??.into()].into(),
+            },
+        ))
     }
 
     pub async fn make_chart_data(&self) -> Result<ChartData, FuzzRunnerError> {
@@ -444,16 +471,10 @@ impl FuzzRunner {
             for input in &deployment.order.inputs {
                 for output in &deployment.order.outputs {
                     if input.token.address != output.token.address {
-                        let pair = format!(
-                            "{}/{}",
-                            input.token.symbol.clone().unwrap_or("UNKNOWN".to_string()),
-                            output.token.symbol.clone().unwrap_or("UNKNOWN".to_string())
-                        );
-
                         let mut pair_data = DeploymentDebugPairData {
                             order: order_name.clone(),
                             scenario: scenario.name.clone(),
-                            pair,
+                            pair: "".to_string(),
                             result: None,
                             error: None,
                         };
@@ -463,8 +484,9 @@ impl FuzzRunner {
                             .run_debug(block, input.clone(), output.clone(), &scenario)
                             .await
                         {
-                            Ok(fuzz_result) => match fuzz_result.flatten_traces() {
+                            Ok((pair_symbols, fuzz_result)) => match fuzz_result.flatten_traces() {
                                 Ok(fuzz_result) => {
+                                    pair_data.pair = pair_symbols;
                                     pair_data.result = Some(fuzz_result);
                                 }
                                 Err(e) => {
