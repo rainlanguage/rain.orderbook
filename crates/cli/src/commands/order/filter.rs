@@ -44,12 +44,8 @@ impl Execute for Filter {
         // generate new dotrain order instance with cleaned up frontmatter
         let order = DotrainOrder::new_with_frontmatter_filtered_by_deployment(
             dotrain,
+            self.deployments.clone(),
             settings,
-            &self
-                .deployments
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<&str>>(),
         )
         .await?;
 

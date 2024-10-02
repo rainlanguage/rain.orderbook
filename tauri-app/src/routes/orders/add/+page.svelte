@@ -212,7 +212,7 @@
 
 <PageHeader title="Add Order" />
 
-<FileTextarea textFile={globalDotrainFile} title="New Order">
+<FileTextarea textFile={globalDotrainFile}>
   <svelte:fragment slot="alert">
     <RaindexVersionValidator error={$raindexVersionError} />
   </svelte:fragment>

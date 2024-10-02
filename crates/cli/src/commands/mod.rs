@@ -1,12 +1,11 @@
 mod chart;
 mod order;
-mod order_take;
 mod quote;
 mod subgraph;
+mod trade;
 mod vault;
 mod words;
 
 pub use self::{
-    chart::Chart, order::Order, order_take::OrderTake, subgraph::Subgraph, vault::Vault,
-    words::Words,
+    chart::Chart, order::Order, subgraph::Subgraph, trade::Trade, vault::Vault, words::Words,
 };

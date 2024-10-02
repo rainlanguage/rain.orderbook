@@ -13,12 +13,12 @@ export const orderDetail = detailStore<OrderDetailExtended>(
   },
 );
 
-export const useOrderTakesList = (orderId: string) =>
+export const useOrderTradesList = (orderId: string) =>
   listStore<Trade>(
     `orderTakesList-${orderId}`,
     async (page) => {
       const url = await subgraphUrl.load();
-      return invoke('order_takes_list', {
+      return invoke('order_trades_list', {
         subgraphArgs: { url },
         orderId,
         paginationArgs: { page: page + 1, page_size: 10 },
@@ -26,6 +26,6 @@ export const useOrderTakesList = (orderId: string) =>
     },
     async (path) => {
       const url = await subgraphUrl.load();
-      return invoke('order_takes_list_write_csv', { path, subgraphArgs: { url }, orderId });
+      return invoke('order_trades_list_write_csv', { path, subgraphArgs: { url }, orderId });
     },
   );

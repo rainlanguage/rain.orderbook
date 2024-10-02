@@ -32,7 +32,7 @@ vi.mock('$lib/services/modal', async () => {
   };
 });
 
-const mockTakeOrdersList: Trade[] = [
+const mockTradeOrdersList: Trade[] = [
   {
     id: '1',
     timestamp: '1632000000',
@@ -49,6 +49,7 @@ const mockTakeOrdersList: Trade[] = [
       amount: '100',
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -77,6 +78,7 @@ const mockTakeOrdersList: Trade[] = [
     inputVaultBalanceChange: {
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -119,6 +121,7 @@ const mockTakeOrdersList: Trade[] = [
       amount: '100',
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -147,6 +150,7 @@ const mockTakeOrdersList: Trade[] = [
     inputVaultBalanceChange: {
       vault: {
         id: 'id',
+        vault_id: 'vault-id',
         token: {
           id: 'output_token',
           address: 'output_token',
@@ -179,8 +183,8 @@ test('renders table with correct data', async () => {
   const queryClient = new QueryClient();
 
   mockIPC((cmd) => {
-    if (cmd === 'order_takes_list') {
-      return mockTakeOrdersList;
+    if (cmd === 'order_trades_list') {
+      return mockTradeOrdersList;
     }
   });
 
@@ -194,14 +198,14 @@ test('renders table with correct data', async () => {
     const rows = screen.getAllByTestId('io-ratio');
 
     // checking the io ratios
-    for (let i = 0; i < mockTakeOrdersList.length; i++) {
+    for (let i = 0; i < mockTradeOrdersList.length; i++) {
       const inputDisplay = formatUnits(
-        BigInt(mockTakeOrdersList[i].inputVaultBalanceChange.amount),
-        Number(mockTakeOrdersList[i].inputVaultBalanceChange.vault.token.decimals),
+        BigInt(mockTradeOrdersList[i].inputVaultBalanceChange.amount),
+        Number(mockTradeOrdersList[i].inputVaultBalanceChange.vault.token.decimals),
       );
       const outputDisplay = formatUnits(
-        BigInt(mockTakeOrdersList[i].outputVaultBalanceChange.amount),
-        Number(mockTakeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
+        BigInt(mockTradeOrdersList[i].outputVaultBalanceChange.amount),
+        Number(mockTradeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
       );
       const ioRatio = Number(inputDisplay) / Number(outputDisplay);
       const oiRatio = Number(outputDisplay) / Number(inputDisplay);
@@ -215,8 +219,8 @@ test('renders a debug button for each trade', async () => {
   const queryClient = new QueryClient();
 
   mockIPC((cmd) => {
-    if (cmd === 'order_takes_list') {
-      return mockTakeOrdersList;
+    if (cmd === 'order_trades_list') {
+      return mockTradeOrdersList;
     }
   });
 
@@ -227,6 +231,6 @@ test('renders a debug button for each trade', async () => {
 
   await waitFor(async () => {
     const buttons = screen.getAllByTestId('debug-trade-button');
-    expect(buttons).toHaveLength(mockTakeOrdersList.length);
+    expect(buttons).toHaveLength(mockTradeOrdersList.length);
   });
 });

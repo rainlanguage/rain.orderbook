@@ -1,8 +1,8 @@
 ---
-source: crates/subgraph/tests/order_take_test.rs
+source: crates/subgraph/tests/order_trade_test.rs
 expression: request_body.query
 ---
-query OrderTakeDetailQuery($id: ID!) {
+query OrderTradeDetailQuery($id: ID!) {
   trade(id: $id) {
     id
     tradeEvent {
@@ -22,6 +22,7 @@ query OrderTakeDetailQuery($id: ID!) {
       oldVaultBalance
       vault {
         id
+        vaultId
         token {
           id
           address
@@ -53,6 +54,7 @@ query OrderTakeDetailQuery($id: ID!) {
       oldVaultBalance
       vault {
         id
+        vaultId
         token {
           id
           address
