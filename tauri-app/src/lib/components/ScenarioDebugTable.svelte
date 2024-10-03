@@ -18,30 +18,33 @@
   import { settingsText } from '$lib/stores/settings';
   import { createQuery } from '@tanstack/svelte-query';
   import type { DeploymentDebugData } from '$lib/typeshare/config';
+  import { useDebouncedFn } from '$lib/utils/asyncDebounce';
+  import { writable } from 'svelte/store';
 
   let enabled = true;
   let blockNumber: number | undefined;
 
-  $: scenarioDebugQuery = createQuery<DeploymentDebugData>({
-    queryKey: [$globalDotrainFile.text, $settingsText],
-    queryFn: async () => {
-      return new Promise((resolve, reject) => {
-        setTimeout(async () => {
-          try {
-            const res = await makeDeploymentDebugData(
-              $globalDotrainFile.text,
-              $settingsText,
-              enabled ? undefined : blockNumber,
-            );
+  $: queryKey = writable([$globalDotrainFile.text, $settingsText]);
 
-            blockNumber = parseInt(res.block_number);
-            resolve(res);
-          } catch (error) {
-            reject(error);
-          }
-        }, 500);
-      });
-    },
+  const fetchData = async () => {
+    const res = await makeDeploymentDebugData(
+      $queryKey[0],
+      $queryKey[1],
+      enabled ? undefined : blockNumber,
+    );
+    blockNumber = parseInt(res.block_number);
+    return res;
+  };
+
+  const fileUpdate = async (dotrain: string, settings: string): Promise<void> => {
+    queryKey.set([dotrain, settings]);
+  };
+  const { debouncedFn: debounceFileUpdate } = useDebouncedFn(fileUpdate, 500);
+  $: debounceFileUpdate($globalDotrainFile.text, $settingsText);
+
+  $: scenarioDebugQuery = createQuery<DeploymentDebugData>({
+    queryKey: $queryKey,
+    queryFn: fetchData,
     refetchOnWindowFocus: false,
     enabled: $globalDotrainFile.text !== '' && $settingsText !== '',
   });
