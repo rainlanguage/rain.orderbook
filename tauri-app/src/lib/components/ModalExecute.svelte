@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import { settings } from '$lib/stores/settings';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
@@ -98,7 +99,10 @@
       </ButtonLoading>
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500">
-          Please connect your wallet to {overrideNetwork?.name || $activeNetworkRef} network
+          You are connected to {Object.entries($settings?.networks || {}).find(
+            ([_, network]) => network['chain-id'] === $walletConnectNetwork,
+          )?.[0] || 'unknown'} network. Please connect your wallet to {overrideNetwork?.name ||
+            $activeNetworkRef} network.
         </div>
       {/if}
     </div>
