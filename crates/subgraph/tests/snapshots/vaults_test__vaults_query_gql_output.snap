@@ -18,12 +18,12 @@ query VaultsListQuery($first: Int, $skip: Int, $filters: Vault_filter) {
     orderbook {
       id
     }
-    ordersAsOutput {
+    ordersAsOutput(orderBy: timestampAdded, orderDirection: desc) {
       id
       orderHash
       active
     }
-    ordersAsInput {
+    ordersAsInput(orderBy: timestampAdded, orderDirection: desc) {
       id
       orderHash
       active

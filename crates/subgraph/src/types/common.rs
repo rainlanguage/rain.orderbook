@@ -144,7 +144,11 @@ pub struct Vault {
     pub balance: BigInt,
     pub token: Erc20,
     pub orderbook: Orderbook,
+    // latest orders
+    #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_output: Vec<OrderAsIO>,
+    // latest orders
+    #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_input: Vec<OrderAsIO>,
     pub balance_changes: Vec<VaultBalanceChange>,
 }
