@@ -36,6 +36,7 @@
     <TableHeadCell padding="p-0">In Volume</TableHeadCell>
     <TableHeadCell padding="p-0">Out Volume</TableHeadCell>
     <TableHeadCell padding="p-0">Net Volume</TableHeadCell>
+    <TableHeadCell padding="p-0">Total Volume</TableHeadCell>
   </svelte:fragment>
 
   <svelte:fragment slot="bodyRow" let:item>
@@ -56,6 +57,9 @@
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2" data-testid="net-vol">
       {formatUnits(BigInt(item.netVol), Number(item.token.decimals ?? 0))}
+    </TableBodyCell>
+    <TableBodyCell tdClass="break-all py-2" data-testid="total-vol">
+      {formatUnits(BigInt(item.totalVol), Number(item.token.decimals ?? 0))}
     </TableBodyCell>
   </svelte:fragment>
 </TanstackAppTable>
