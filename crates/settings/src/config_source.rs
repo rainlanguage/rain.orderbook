@@ -3,6 +3,7 @@ use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNet
 use crate::{Metric, Plot};
 use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use thiserror::Error;
 use typeshare::typeshare;
@@ -40,6 +41,9 @@ pub struct ConfigSource {
     pub raindex_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accounts: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[typeshare(typescript(type = "object"))]
+    pub gui: Option<Value>,
 }
 
 #[typeshare]

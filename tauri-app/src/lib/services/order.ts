@@ -1,12 +1,13 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, chainId, subgraphUrl } from '$lib/stores/settings';
+import { rpcUrl, orderbookAddress, chainId, subgraphUrl, settingsText } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import type { Deployment, Scenario } from '$lib/typeshare/config';
 
-export async function orderAdd(dotrain: string, deployment: Deployment) {
+export async function orderAdd(dotrain: string, deployment: Deployment, deploymentKey: string) {
+  const filteredDotrain = await getFilteredDotrain(dotrain, deploymentKey);
   await invoke('order_add', {
-    dotrain,
+    dotrain: filteredDotrain,
     deployment,
     transactionArgs: {
       rpc_url: deployment.order.network.rpc,
@@ -32,9 +33,14 @@ export async function orderRemove(id: string) {
   });
 }
 
-export async function orderAddCalldata(dotrain: string, deployment: Deployment) {
+export async function orderAddCalldata(
+  dotrain: string,
+  deployment: Deployment,
+  deploymentKey: string,
+) {
+  const filteredDotrain = await getFilteredDotrain(dotrain, deploymentKey);
   return await invoke('order_add_calldata', {
-    dotrain,
+    dotrain: filteredDotrain,
     deployment,
     transactionArgs: {
       rpc_url: deployment.order.network.rpc,
@@ -73,5 +79,14 @@ export async function validateRaindexVersion(
   return await invoke('validate_raindex_version', {
     dotrain,
     settings,
+  });
+}
+
+export async function getFilteredDotrain(dotrain: string, deployment: string): Promise<string> {
+  return await invoke('dotrain_filter_by_deployment', {
+    dotrain,
+    deployment: [deployment],
+    config: get(settingsText),
+    includeGui: true,
   });
 }

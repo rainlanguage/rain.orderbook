@@ -2,6 +2,7 @@ use super::config_source::ConfigSourceError;
 use crate::*;
 use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
@@ -36,6 +37,8 @@ pub struct Config {
     pub raindex_version: Option<String>,
     #[typeshare(typescript(type = "Record<string, string>"))]
     pub accounts: Option<HashMap<String, Arc<String>>>,
+    #[typeshare(typescript(type = "object"))]
+    pub gui: Option<Value>,
 }
 
 pub type Subgraph = Url;
@@ -191,6 +194,7 @@ impl TryFrom<ConfigSource> for Config {
             deployments,
             sentry: item.sentry,
             accounts,
+            gui: None,
         };
 
         Ok(config)
@@ -302,6 +306,7 @@ mod tests {
             deployments,
             sentry,
             accounts,
+            gui: None,
         };
 
         let config_result = Config::try_from(config_string);

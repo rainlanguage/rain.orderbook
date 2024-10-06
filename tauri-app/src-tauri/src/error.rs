@@ -10,7 +10,7 @@ use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::remove_order::RemoveOrderArgsError;
 use rain_orderbook_common::transaction::WritableTransactionExecuteError;
 use rain_orderbook_common::{
-    add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
+    add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeOrderMetaError,
     rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
 };
 use rain_orderbook_quote::QuoteDebuggerError;
@@ -52,7 +52,7 @@ pub enum CommandError {
     IOError(#[from] std::io::Error),
 
     #[error(transparent)]
-    TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
+    TryDecodeOrderMetaError(#[from] TryDecodeOrderMetaError),
 
     #[error(transparent)]
     FuzzRunnerError(#[from] FuzzRunnerError),
