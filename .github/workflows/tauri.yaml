@@ -2,7 +2,7 @@ name: Tauri builds
 on: [push]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.os }}
+  group: ${{ github.ref }}-tauri-build
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
