@@ -100,7 +100,7 @@
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500">
           You are connected to {Object.entries($settings?.networks || {}).find(
-            ([_, network]) => network['chain-id'] === $walletConnectNetwork,
+            (entry) => entry[1]['chain-id'] === $walletConnectNetwork,
           )?.[0] || 'unknown'} network. Please connect your wallet to {overrideNetwork?.name ||
             $activeNetworkRef} network.
         </div>
