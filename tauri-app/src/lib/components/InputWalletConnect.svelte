@@ -12,7 +12,7 @@
     walletconnectIsDisconnecting,
   } from '$lib/stores/walletconnect';
 
-  export let priorityChainIds: number[] = [];
+  export let priorityChainIds: number[] | undefined = undefined;
 </script>
 
 <div>
@@ -28,7 +28,7 @@
       size="lg"
       pill
       loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
-      on:click={() => walletconnectConnect(priorityChainIds)}
+      on:click={() => walletconnectConnect(priorityChainIds ?? [])}
     >
       {#if $walletconnectAccount}
         <Hash type={HashType.Wallet} value={$walletconnectAccount} />
