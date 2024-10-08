@@ -523,12 +523,11 @@ impl FuzzRunner {
 mod tests {
     use super::*;
     use alloy::{
-        primitives::{utils::parse_ether, Address},
+        primitives::utils::parse_ether,
         providers::{ext::AnvilApi, Provider},
     };
     use rain_orderbook_app_settings::config_source::ConfigSource;
     use rain_orderbook_test_fixtures::LocalEvm;
-    use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
@@ -864,7 +863,30 @@ _: context<1 0>();
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_debug() {
-        let local_evm = LocalEvm::new().await;
+        let mut local_evm = LocalEvm::new().await;
+
+        let usdce = local_evm
+            .deploy_new_token(
+                "USDCe",
+                "USDCe",
+                6,
+                U256::from(1_000_000_000_000_000_000u128),
+                *local_evm.deployer.address(),
+            )
+            .await;
+        let wflr = local_evm
+            .deploy_new_token(
+                "WFLR",
+                "Wrapped Flare",
+                18,
+                U256::from(1_000_000_000_000_000_000u128),
+                *local_evm.deployer.address(),
+            )
+            .await;
+
+        let usdce_address = usdce.address();
+        let wflr_address = wflr.address();
+
         let dotrain = format!(
             r#"
 deployers:
@@ -877,11 +899,11 @@ networks:
 tokens:
     wflr:
         network: flare
-        address: 0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d
+        address: {wflr_address}
         decimals: 18
     usdce:
         network: flare
-        address: 0xFbDa5F676cB37624f28265A144A48B0d6e87d3b6
+        address: {usdce_address}
         decimals: 6
 scenarios:
     flare:
@@ -922,7 +944,9 @@ io-ratio: mul(0.99 20);
     "#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
-            orderbook_subparser = local_evm.orderbook_subparser.address()
+            orderbook_subparser = local_evm.orderbook_subparser.address(),
+            wflr_address = wflr_address,
+            usdce_address = usdce_address,
         );
 
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
@@ -940,6 +964,8 @@ io-ratio: mul(0.99 20);
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
+        println!("{:#?}", res);
+
         let result_rows = res.result["sell-wflr"][0]
             .result
             .as_ref()
@@ -949,24 +975,11 @@ io-ratio: mul(0.99 20);
             .clone();
         assert_eq!(
             result_rows[0],
-            U256::from_be_slice(
-                Address::from_str("0xFbDa5F676cB37624f28265A144A48B0d6e87d3b6")
-                    .unwrap()
-                    .0
-                    .as_slice()
-            )
+            U256::from_be_slice(usdce_address.as_slice())
         );
         assert_eq!(result_rows[1], U256::from(6));
         assert_eq!(result_rows[2], U256::from(10));
-        assert_eq!(
-            result_rows[3],
-            U256::from_be_slice(
-                Address::from_str("0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d")
-                    .unwrap()
-                    .0
-                    .as_slice()
-            )
-        );
+        assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice()));
         assert_eq!(result_rows[4], U256::from(18));
         assert_eq!(result_rows[5], U256::from(20));
     }
