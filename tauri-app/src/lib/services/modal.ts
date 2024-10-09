@@ -8,6 +8,8 @@ import type { Order as OrderListOrder } from '$lib/typeshare/subgraphTypes';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import type { Hex } from 'viem';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
+import ModalScenarioDebug from '$lib/components/modal/ModalScenarioDebug.svelte';
+import type { RainEvalResultsTable } from '$lib/typeshare/config';
 
 export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
@@ -54,4 +56,8 @@ export const handleQuoteDebugModal = (
       blockNumber,
     },
   });
+};
+
+export const handleScenarioDebugModal = (pair: string, data: RainEvalResultsTable) => {
+  new ModalScenarioDebug({ target: document.body, props: { open: true, pair, data } });
 };
