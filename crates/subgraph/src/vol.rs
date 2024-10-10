@@ -1,5 +1,5 @@
 use crate::types::common::{Erc20, Trade};
-use alloy::primitives::{ruint::ParseError, U256};
+use alloy::primitives::{ruint::ParseError, I256, U256};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
@@ -16,6 +16,8 @@ pub struct VaultVolume {
     total_out: U256,
     #[typeshare(typescript(type = "string"))]
     total_vol: U256,
+    #[typeshare(typescript(type = "string"))]
+    net_vol: I256,
 }
 
 /// Get the vaults volume from array of trades
@@ -30,23 +32,28 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
                 vault_vol.total_out += amount;
                 vault_vol.total_vol += amount;
+                vault_vol.net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
                 vault_vol.total_in += amount;
                 vault_vol.total_vol += amount;
+                vault_vol.net_vol += I256::from_raw(amount);
             }
         } else {
             let mut total_in = U256::ZERO;
             let mut total_out = U256::ZERO;
             let mut total_vol = U256::ZERO;
+            let mut net_vol = I256::ZERO;
             if trade.input_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
                 total_out += amount;
                 total_vol += amount;
+                net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
                 total_in += amount;
                 total_vol += amount;
+                net_vol += I256::from_raw(amount);
             }
             vaults_vol.push(VaultVolume {
                 id: trade.input_vault_balance_change.vault.vault_id.0.clone(),
@@ -54,6 +61,7 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
                 total_in,
                 total_out,
                 total_vol,
+                net_vol,
             })
         }
         if let Some(vault_vol) = vaults_vol.iter_mut().find(|v| {
@@ -64,23 +72,28 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
                 vault_vol.total_out += amount;
                 vault_vol.total_vol += amount;
+                vault_vol.net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
                 vault_vol.total_in += amount;
                 vault_vol.total_vol += amount;
+                vault_vol.net_vol += I256::from_raw(amount);
             }
         } else {
             let mut total_in = U256::ZERO;
             let mut total_out = U256::ZERO;
             let mut total_vol = U256::ZERO;
+            let mut net_vol = I256::ZERO;
             if trade.output_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
                 total_out += amount;
                 total_vol += amount;
+                net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
                 total_in += amount;
                 total_vol += amount;
+                net_vol += I256::from_raw(amount);
             }
             vaults_vol.push(VaultVolume {
                 id: trade.output_vault_balance_change.vault.vault_id.0.clone(),
@@ -88,6 +101,7 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
                 total_in,
                 total_out,
                 total_vol,
+                net_vol,
             })
         }
     }
@@ -250,6 +264,7 @@ mod test {
                 total_in: U256::from(5),
                 total_out: U256::from(7),
                 total_vol: U256::from(12),
+                net_vol: I256::from_str("-2").unwrap(),
             },
             VaultVolume {
                 id: vault_id1.to_string(),
@@ -257,6 +272,7 @@ mod test {
                 total_in: U256::from(3),
                 total_out: U256::from(2),
                 total_vol: U256::from(5),
+                net_vol: I256::from_str("1").unwrap(),
             },
         ];
 
