@@ -14,6 +14,7 @@ pub mod replays;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
+pub mod unit_tests;
 pub mod utils;
 pub mod withdraw;
 
