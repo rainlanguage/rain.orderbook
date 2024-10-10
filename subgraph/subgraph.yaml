@@ -36,7 +36,7 @@ dataSources:
           handler: handleTakeOrder
         - event: MetaV1_2(address,bytes32,bytes)
           handler: handleMeta
-        - event: ClearV2(address, (address,(address,(uint256,uint256,address,address,address,address),uint256,bytes,bytes32),bytes32)[], (address,(address,(uint256,uint256,address,address,address,address),uint256,bytes,bytes32),bytes32)[],(uint256,uint256,uint256,uint256,uint256,uint256)))
+        - event: ClearV2(address,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(uint256,uint256,uint256,uint256,uint256,uint256))
           handler: handleClear
         - event: AfterClear(address,(uint256,uint256,uint256,uint256))
           handler: handleAfterClear
