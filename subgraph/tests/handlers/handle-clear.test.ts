@@ -5,13 +5,13 @@ import {
   describe,
   afterEach,
   clearInBlockStore,
-} from "matchstick-as"
-import { Bytes, BigInt, Address, log } from "@graphprotocol/graph-ts"
+} from "matchstick-as";
+import { Bytes, BigInt, Address, log } from "@graphprotocol/graph-ts";
 import {
   clearTemporaryDataEntityId,
   handleAfterClear,
   handleClear,
-} from "../../src/clear"
+} from "../../src/clear";
 import {
   AfterClearClearStateChangeStruct,
   ClearV2ClearConfigStruct,
@@ -20,13 +20,13 @@ import {
   createClearEvent,
   Evaluable,
   IO,
-} from "../event-mocks.test"
+} from "../event-mocks.test";
 
 describe("Clear", () => {
   afterEach(() => {
-    clearStore()
-    clearInBlockStore()
-  })
+    clearStore();
+    clearInBlockStore();
+  });
 
   test("clearEvent and afterClearEvent", () => {
     let event = createClearEvent(
@@ -89,30 +89,30 @@ describe("Clear", () => {
         BigInt.fromI32(1),
         BigInt.fromI32(1)
       )
-    )
+    );
 
-    let input = event.params.alice.validInputs[0]
+    let input = event.params.alice.validInputs[0];
     assert.addressEquals(
       input.token,
       Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB")
-    )
+    );
 
-    let id = clearTemporaryDataEntityId(event)
-    handleClear(event)
+    let id = clearTemporaryDataEntityId(event);
+    handleClear(event);
 
-    assert.entityCount("ClearTemporaryData", 1)
+    assert.entityCount("ClearTemporaryData", 1);
     assert.fieldEquals(
       "ClearTemporaryData",
       id.toHexString(),
       "aliceAddress",
       "0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce"
-    )
+    );
     assert.fieldEquals(
       "ClearTemporaryData",
       id.toHexString(),
       "bobAddress",
       "0x813aef302Ebad333EDdef619C6f8eD7FeF51BA7c"
-    )
+    );
 
     let afterClearEvent = createAfterClearEvent(
       Address.fromString("0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce"),
@@ -122,12 +122,12 @@ describe("Clear", () => {
         BigInt.fromString("11308584431993808000"),
         BigInt.fromString("10000000000000000000")
       )
-    )
+    );
 
-    id = clearTemporaryDataEntityId(afterClearEvent)
-    handleAfterClear(afterClearEvent)
+    id = clearTemporaryDataEntityId(afterClearEvent);
+    handleAfterClear(afterClearEvent);
 
-    assert.entityCount("ClearTemporaryData", 0)
-    assert.entityCount("Trade", 2)
-  })
-})
+    assert.entityCount("ClearTemporaryData", 0);
+    assert.entityCount("Trade", 2);
+  });
+});
