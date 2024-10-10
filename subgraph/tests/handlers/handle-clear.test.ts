@@ -21,6 +21,7 @@ import {
   Evaluable,
   IO,
 } from "../event-mocks.test";
+import { createMockERC20Functions } from "../erc20.test";
 
 describe("Clear", () => {
   afterEach(() => {
@@ -47,7 +48,7 @@ describe("Clear", () => {
         ],
         [
           new IO(
-            Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB"),
+            Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc"),
             BigInt.fromI32(18),
             BigInt.fromI32(1)
           ),
@@ -65,12 +66,17 @@ describe("Clear", () => {
         ),
         [
           new IO(
-            Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB"),
+            Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc"),
             BigInt.fromI32(18),
             BigInt.fromI32(2)
           ),
         ],
         [
+          new IO(
+            Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Ba"),
+            BigInt.fromI32(18),
+            BigInt.fromI32(2)
+          ),
           new IO(
             Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB"),
             BigInt.fromI32(18),
@@ -82,7 +88,7 @@ describe("Clear", () => {
         )
       ),
       new ClearV2ClearConfigStruct(
-        BigInt.fromI32(1),
+        BigInt.fromI32(0),
         BigInt.fromI32(0),
         BigInt.fromI32(0),
         BigInt.fromI32(1),
@@ -91,9 +97,25 @@ describe("Clear", () => {
       )
     );
 
-    let input = event.params.alice.validInputs[0];
+    let aliceInput = event.params.alice.validInputs[0];
     assert.addressEquals(
-      input.token,
+      aliceInput.token,
+      Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB")
+    );
+    let aliceOutput = event.params.alice.validOutputs[0];
+    assert.addressEquals(
+      aliceOutput.token,
+      Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc")
+    );
+
+    let bobInput = event.params.bob.validInputs[0];
+    assert.addressEquals(
+      bobInput.token,
+      Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc")
+    );
+    let bobOutput = event.params.bob.validOutputs[1];
+    assert.addressEquals(
+      bobOutput.token,
       Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB")
     );
 
@@ -105,13 +127,23 @@ describe("Clear", () => {
       "ClearTemporaryData",
       id.toHexString(),
       "aliceAddress",
-      "0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce"
+      "0x850c40abf6e325231ba2ded1356d1f2c267e63ce"
     );
     assert.fieldEquals(
       "ClearTemporaryData",
       id.toHexString(),
       "bobAddress",
-      "0x813aef302Ebad333EDdef619C6f8eD7FeF51BA7c"
+      "0x813aef302ebad333eddef619c6f8ed7fef51ba7c"
+    );
+
+    createMockERC20Functions(
+      Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Bc")
+    );
+    createMockERC20Functions(
+      Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2Ba")
     );
 
     let afterClearEvent = createAfterClearEvent(

@@ -1,10 +1,16 @@
-import { Bytes, crypto, ethereum, store } from "@graphprotocol/graph-ts";
 import { AfterClear, ClearV2 } from "../generated/OrderBook/OrderBook";
 import { ClearTemporaryData } from "../generated/schema";
 import { createTradeEntity } from "./trade";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { log } from "@graphprotocol/graph-ts";
+import {
+  BigInt,
+  Bytes,
+  crypto,
+  ethereum,
+  store,
+} from "@graphprotocol/graph-ts";
 
 export function orderHashFromClearEvent(
   event: ClearV2,
@@ -62,6 +68,9 @@ export function handleClear(event: ClearV2): void {
   clearTemporaryData.aliceOutputToken = aliceOutput.token;
   clearTemporaryData.bobInputToken = bobInput.token;
   clearTemporaryData.bobOutputToken = bobOutput.token;
+
+  clearTemporaryData.aliceBounty = event.params.clearConfig.aliceBountyVaultId;
+  clearTemporaryData.bobBounty = event.params.clearConfig.bobBountyVaultId;
 
   clearTemporaryData.save();
 }
@@ -141,7 +150,33 @@ export function handleAfterClear(event: AfterClear): void {
   if (clearTemporaryData) {
     createTrade(event, clearTemporaryData, true);
     createTrade(event, clearTemporaryData, false);
-    store.remove("ClearTemporaryData", clearTemporaryData.id.toString());
+
+    // handle bounty vault changes
+    const aliceBountyAmount = event.params.clearStateChange.aliceOutput.minus(
+      event.params.clearStateChange.bobInput
+    );
+    const bobBountyAmount = event.params.clearStateChange.bobOutput.minus(
+      event.params.clearStateChange.aliceInput
+    );
+    if (aliceBountyAmount.gt(BigInt.fromU32(0))) {
+      handleVaultBalanceChange(
+        event.address,
+        clearTemporaryData.aliceBounty,
+        clearTemporaryData.aliceOutputToken,
+        aliceBountyAmount,
+        event.params.sender
+      );
+    }
+    if (bobBountyAmount.gt(BigInt.fromU32(0))) {
+      handleVaultBalanceChange(
+        event.address,
+        clearTemporaryData.bobBounty,
+        clearTemporaryData.bobOutputToken,
+        bobBountyAmount,
+        event.params.sender
+      );
+    }
+    store.remove("ClearTemporaryData", clearTemporaryData.id.toHexString());
   } else {
     log.error("ClearTemporaryData not found for event {}", [
       event.transaction.hash.toHexString(),

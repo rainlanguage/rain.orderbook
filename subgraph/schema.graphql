@@ -263,10 +263,12 @@ type ClearTemporaryData @entity(immutable: true) {
   aliceInputToken: Bytes!
   aliceOutputVaultId: BigInt!
   aliceOutputToken: Bytes!
+  aliceBounty: BigInt!
   bobOrderHash: Bytes!
   bobAddress: Bytes!
   bobInputVaultId: BigInt!
   bobInputToken: Bytes!
   bobOutputVaultId: BigInt!
   bobOutputToken: Bytes!
+  bobBounty: BigInt!
 }
