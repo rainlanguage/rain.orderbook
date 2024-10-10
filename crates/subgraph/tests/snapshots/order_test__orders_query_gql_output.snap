@@ -23,12 +23,12 @@ query OrderDetailQuery($id: ID!) {
       orderbook {
         id
       }
-      ordersAsOutput {
+      ordersAsOutput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
       }
-      ordersAsInput {
+      ordersAsInput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
@@ -136,12 +136,12 @@ query OrderDetailQuery($id: ID!) {
       orderbook {
         id
       }
-      ordersAsOutput {
+      ordersAsOutput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
       }
-      ordersAsInput {
+      ordersAsInput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
