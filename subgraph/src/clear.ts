@@ -4,6 +4,7 @@ import { ClearTemporaryData } from "../generated/schema"
 import { createTradeEntity } from "./trade"
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange"
 import { handleVaultBalanceChange, vaultEntityId } from "./vault"
+import { log } from "@graphprotocol/graph-ts"
 
 export function orderHashFromClearEvent(
   event: ClearV2,
@@ -135,7 +136,13 @@ export function handleAfterClear(event: AfterClear): void {
   let clearTemporaryData = ClearTemporaryData.load(
     clearTemporaryDataEntityId(event)
   )
-  createTrade(event, clearTemporaryData, true)
-  createTrade(event, clearTemporaryData, false)
-  store.remove("ClearTemporaryData", clearTemporaryData.id.toString())
+  if (clearTemporaryData) {
+    createTrade(event, clearTemporaryData, true)
+    createTrade(event, clearTemporaryData, false)
+    store.remove("ClearTemporaryData", clearTemporaryData.id.toString())
+  } else {
+    log.error("ClearTemporaryData not found for event {}", [
+      event.transaction.hash.toHexString(),
+    ])
+  }
 }
