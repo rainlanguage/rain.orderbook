@@ -254,3 +254,21 @@ type ERC20 @entity(immutable: true) {
   "The number of decimals of the ERC20 token"
   decimals: BigInt
 }
+
+type ClearTemporaryData @entity(immutable: true) {
+  id: Bytes!
+  aliceOrderHash: Bytes!
+  aliceAddress: Bytes!
+  aliceInputVaultId: BigInt!
+  aliceInputToken: Bytes!
+  aliceOutputVaultId: BigInt!
+  aliceOutputToken: Bytes!
+  aliceBounty: BigInt!
+  bobOrderHash: Bytes!
+  bobAddress: Bytes!
+  bobInputVaultId: BigInt!
+  bobInputToken: Bytes!
+  bobOutputVaultId: BigInt!
+  bobOutputToken: Bytes!
+  bobBounty: BigInt!
+}

@@ -1,5 +1,7 @@
 import {
   AddOrderV2,
+  AfterClear,
+  ClearV2,
   Deposit,
   MetaV1_2,
   RemoveOrderV2,
@@ -14,6 +16,10 @@ import {
 } from "./order";
 import { handleMeta as _handleMeta } from "./meta";
 import { handleTakeOrder as _handleTakeOrder } from "./takeorder";
+import {
+  handleClear as _handleClear,
+  handleAfterClear as _handleAfterClear,
+} from "./clear";
 
 export function handleDeposit(event: Deposit): void {
   _handleDeposit(event);
@@ -37,4 +43,12 @@ export function handleTakeOrder(event: TakeOrderV2): void {
 
 export function handleMeta(event: MetaV1_2): void {
   _handleMeta(event);
+}
+
+export function handleClear(event: ClearV2): void {
+  _handleClear(event);
+}
+
+export function handleAfterClear(event: AfterClear): void {
+  _handleAfterClear(event);
 }
