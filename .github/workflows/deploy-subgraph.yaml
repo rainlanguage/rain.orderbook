@@ -6,6 +6,24 @@ on:
         description: 'Subgraph to deploy (e.g. ob4-mainnet/0.1)'
         required: true
         type: string
+      network:
+        description: 'Network to deploy to'
+        required: true
+        type: choice
+        options:
+          - arbitrum
+          - arbitrum_sepolia
+          - avalanche
+          - base
+          - bsc
+          - ethereum
+          - flare
+          - mumbai
+          - oasis_sapphire
+          - polygon
+          - sepolia
+          - songbird
+          - linea
 
 jobs:
   deploy:
