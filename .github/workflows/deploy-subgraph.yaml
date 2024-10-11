@@ -15,5 +15,8 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
       - run: nix develop -c graph codegen
+        working-directory: subgraph
       - run: nix develop -c graph build
+        working-directory: subgraph
       - run: nix develop -c goldsky subgraph deploy
+        working-directory: subgraph
