@@ -1,0 +1,19 @@
+name: Deploy subgraph
+on:
+  [workflow_dispatch]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: nix develop -c graph codegen
+      - run: nix develop -c graph build
+      - run: nix develop -c goldsky subgraph deploy
