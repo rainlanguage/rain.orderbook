@@ -1,6 +1,6 @@
 {
     "flare": {
-        "source": {
+        "OrderBook": {
             "address": "0xb06202aA3Fe7d85171fB7aA5f17011d17E63f382",
             "startBlock": 22109423
         }
