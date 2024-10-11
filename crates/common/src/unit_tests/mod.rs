@@ -1,4 +1,4 @@
-use alloy::primitives::{private::rand, U256};
+use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
@@ -13,13 +13,12 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
     trace::{RainEvalResultError, RainEvalResults},
 };
-use rain_orderbook_app_settings::{blocks::BlockError, config::*, unit_test::TestConfig};
+use rain_orderbook_app_settings::{
+    blocks::BlockError, config::*, deployer::Deployer, network::Network, unit_test::TestConfig,
+};
 use std::sync::Arc;
 use thiserror::Error;
-
-use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-
-pub const UNIT_TEST_ENTRYPOINTS: &[&str] = &["pre", "post"];
+use url::Url;
 
 #[derive(Clone)]
 pub struct TestRunner {
@@ -27,6 +26,14 @@ pub struct TestRunner {
     pub dotrains: Dotrains,
     pub settings: Settings,
     pub rng: TestRng,
+    pub test_setup: TestSetup,
+}
+
+#[derive(Clone)]
+pub struct TestSetup {
+    pub block_number: u64,
+    pub deployer: Arc<Deployer>,
+    pub scenario_name: String,
 }
 
 #[derive(Clone)]
@@ -78,63 +85,71 @@ impl TestRunner {
                 test_config: test_settings,
             },
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
+            test_setup: TestSetup {
+                block_number: 0,
+                deployer: Arc::new(Deployer {
+                    address: Address::default(),
+                    network: Arc::new(Network {
+                        name: String::from("").clone(),
+                        rpc: Url::parse("http://rpc.com").unwrap(),
+                        chain_id: 1,
+                        label: None,
+                        network_id: None,
+                        currency: None,
+                    }),
+                    label: None,
+                }),
+                scenario_name: String::new(),
+            },
         }
     }
 
-    // pub async fn get_test_scenario(&self) -> Result<Arc<Scenario>, TestRunnerError> {
-    //     // self.
-    // }
+    fn get_elided_binding_keys(
+        &self,
+        is_test_dotrain: bool,
+        scenario_bindings: &Vec<Rebind>,
+    ) -> Arc<Vec<String>> {
+        let dotrain = if is_test_dotrain {
+            self.dotrains.test_dotrain.clone()
+        } else {
+            self.dotrains.main_dotrain.clone()
+        };
+        let rain_document =
+            RainDocument::create(dotrain, None, None, Some(scenario_bindings.clone()));
+        Arc::new(
+            rain_document
+                .namespace()
+                .iter()
+                .filter(|(_, v)| v.is_elided_binding())
+                .map(|(k, _)| k.clone())
+                .collect::<Vec<String>>(),
+        )
+    }
 
-    async fn get_pre_stack(&mut self) -> Result<Vec<U256>, TestRunnerError> {
-        let scenario_name: String = self.settings.test_config.scenario_name.clone();
+    fn get_final_bindings(&mut self, is_test_dotrain: bool, scenario_name: &str) -> Vec<Rebind> {
+        let dotrain: String;
+        let mut scenario_bindings: Vec<Rebind> = vec![];
+        let mut final_bindings: Vec<Rebind> = vec![];
 
-        let deployer = self
-            .settings
-            .main_config
-            .deployers
-            .get(&scenario_name)
-            .unwrap()
-            .clone();
+        if is_test_dotrain {
+            dotrain = self.dotrains.test_dotrain.clone();
+        } else {
+            dotrain = self.dotrains.main_dotrain.clone();
+            scenario_bindings = self
+                .settings
+                .main_config
+                .scenarios
+                .get(scenario_name)
+                .unwrap()
+                .bindings
+                .clone()
+                .into_iter()
+                .map(|(k, v)| Rebind(k, v))
+                .collect()
+        }
 
-        // Fetch the latest block number
-        let block_number = ReadableClientHttp::new_from_url(deployer.network.rpc.to_string())?
-            .get_block_number()
-            .await?;
-
-        let blocks = self
-            .settings
-            .test_config
-            .scenario
-            .blocks
-            .as_ref()
-            .map_or(Ok(vec![block_number]), |b| {
-                b.expand_to_block_numbers(block_number)
-            })?;
-
-        // Create a fork with the first block number
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(blocks[0]),
-                },
-                None,
-            )
-            .await?;
-
-        // Pull out the bindings from the scenario
-        let scenario_bindings: Vec<Rebind> = vec![];
-
-        // Create a new RainDocument with the dotrain and the bindings
-        // The bindings in the dotrain string are ignored by the RainDocument
-        let rain_document = RainDocument::create(
-            self.dotrains.test_dotrain.clone(),
-            None,
-            None,
-            Some(scenario_bindings.clone()),
-        );
-
-        // Search the namespace hash map for NamespaceItems that are elided and make a vec of the keys
+        let rain_document =
+            RainDocument::create(dotrain, None, None, Some(scenario_bindings.clone()));
         let elided_binding_keys = Arc::new(
             rain_document
                 .namespace()
@@ -144,16 +159,8 @@ impl TestRunner {
                 .collect::<Vec<String>>(),
         );
 
-        let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
-        self.forker.roll_fork(Some(block_number), None)?;
-        let fork = Arc::new(self.forker.clone());
-        let fork_clone = Arc::clone(&fork);
         let elided_binding_keys = Arc::clone(&elided_binding_keys);
-        let deployer = Arc::clone(&deployer);
         let scenario_bindings = scenario_bindings.clone();
-        let dotrain = Arc::clone(&dotrain);
-
-        let mut final_bindings: Vec<Rebind> = vec![];
 
         for elided_binding in elided_binding_keys.as_slice() {
             let mut val: [u8; 32] = [0; 32];
@@ -162,9 +169,25 @@ impl TestRunner {
             final_bindings.push(Rebind(elided_binding.to_string(), hex));
         }
 
-        let handle = tokio::spawn(async move {
-            final_bindings.extend(scenario_bindings.clone());
+        final_bindings.extend(scenario_bindings);
+        final_bindings
+    }
 
+    async fn run_pre_entrypoint(
+        &mut self,
+        scenario_name: &str,
+    ) -> Result<Vec<U256>, TestRunnerError> {
+        let final_bindings = self.get_final_bindings(true, scenario_name);
+
+        let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
+        self.forker
+            .roll_fork(Some(self.test_setup.block_number), None)?;
+        let fork = Arc::new(self.forker.clone());
+        let fork_clone = Arc::clone(&fork);
+        let deployer = Arc::clone(&self.test_setup.deployer);
+        let dotrain = Arc::clone(&dotrain);
+
+        let handle = tokio::spawn(async move {
             let rainlang_string =
                 RainDocument::compose_text(&dotrain, &["pre"], None, Some(final_bindings))?;
 
@@ -187,104 +210,73 @@ impl TestRunner {
         Ok(flattened.rows[0].clone())
     }
 
-    pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
-        let pre_stack: Vec<alloy::primitives::Uint<256, 4>> = self.get_pre_stack().await?;
+    async fn run_post_entrypoint(
+        &mut self,
+        scenario_name: &str,
+        calculate_stack: RainEvalResults,
+        handle_stack: RainEvalResults,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let final_bindings = self.get_final_bindings(true, scenario_name);
 
+        let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
+        self.forker
+            .roll_fork(Some(self.test_setup.block_number), None)?;
+        let fork = Arc::new(self.forker.clone());
+        let fork_clone = Arc::clone(&fork);
+        let deployer = Arc::clone(&self.test_setup.deployer);
+        let dotrain = Arc::clone(&dotrain);
+
+        let handle = tokio::spawn(async move {
+            let rainlang_string =
+                RainDocument::compose_text(&dotrain, &["post"], None, Some(final_bindings))?;
+
+            let context = vec![
+                calculate_stack.results[0].stack.clone(),
+                handle_stack.results[0].stack.clone(),
+            ];
+
+            let args = ForkEvalArgs {
+                rainlang_string,
+                source_index: 0,
+                deployer: deployer.address,
+                namespace: FullyQualifiedNamespace::default(),
+                context,
+                decode_errors: true,
+            };
+            fork_clone
+                .fork_eval(args)
+                .map_err(TestRunnerError::ForkCallError)
+                .await
+        });
+
+        let result: RainEvalResults = vec![handle.await??.into()].into();
+        Ok(result)
+    }
+
+    async fn run_calculate_entrypoint(
+        &mut self,
+        scenario_name: &str,
+        pre_stack: Vec<U256>,
+    ) -> Result<RainEvalResults, TestRunnerError> {
         let input_token = pre_stack[0];
         let output_token = pre_stack[1];
         let output_cap = pre_stack[2];
-        let block_number = pre_stack[3];
+        // let block_number = pre_stack[3];
 
-        let scenario_name: String = self.settings.test_config.scenario_name.clone();
-        let scenario = self
-            .settings
-            .main_config
-            .scenarios
-            .get(&scenario_name)
-            .ok_or(TestRunnerError::ScenarioNotFound(scenario_name))?;
-
-        let deployer = scenario.deployer.clone();
-
-        // Fetch the latest block number
-        let block_number = ReadableClientHttp::new_from_url(deployer.network.rpc.to_string())?
-            .get_block_number()
-            .await?;
-
-        let blocks = self
-            .settings
-            .test_config
-            .scenario
-            .blocks
-            .as_ref()
-            .map_or(Ok(vec![block_number]), |b| {
-                b.expand_to_block_numbers(block_number)
-            })?;
-
-        // Create a fork with the first block number
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(blocks[0]),
-                },
-                None,
-            )
-            .await?;
-
-        // Pull out the bindings from the scenario
-        let scenario_bindings: Vec<Rebind> = self
-            .settings
-            .test_config
-            .scenario
-            .bindings
-            .clone()
-            .into_iter()
-            .map(|(k, v)| Rebind(k, v))
-            .collect();
-
-        // Create a new RainDocument with the dotrain and the bindings
-        // The bindings in the dotrain string are ignored by the RainDocument
-        let rain_document: RainDocument = RainDocument::create(
-            self.dotrains.main_dotrain.clone(),
-            None,
-            None,
-            Some(scenario_bindings.clone()),
-        );
-
-        // Search the namespace hash map for NamespaceItems that are elided and make a vec of the keys
-        let elided_binding_keys = Arc::new(
-            rain_document
-                .namespace()
-                .iter()
-                .filter(|(_, v)| v.is_elided_binding())
-                .map(|(k, _)| k.clone())
-                .collect::<Vec<String>>(),
-        );
+        let final_bindings = self.get_final_bindings(false, scenario_name);
 
         let dotrain = Arc::new(self.dotrains.main_dotrain.clone());
-        self.forker.roll_fork(Some(block_number), None)?;
+        self.forker
+            .roll_fork(Some(self.test_setup.block_number), None)?;
         let fork = Arc::new(self.forker.clone());
         let fork_clone = Arc::clone(&fork);
-        let elided_binding_keys = Arc::clone(&elided_binding_keys);
-        let deployer = Arc::clone(&deployer);
-        let scenario_bindings = scenario_bindings.clone();
+        let deployer = Arc::clone(&self.test_setup.deployer);
         let dotrain = Arc::clone(&dotrain);
 
-        let mut final_bindings: Vec<Rebind> = vec![];
-
-        for elided_binding in elided_binding_keys.as_slice() {
-            let mut val: [u8; 32] = [0; 32];
-            self.rng.fill_bytes(&mut val);
-            let hex = alloy::primitives::hex::encode_prefixed(val);
-            final_bindings.push(Rebind(elided_binding.to_string(), hex));
-        }
-
         let handle = tokio::spawn(async move {
-            final_bindings.extend(scenario_bindings.clone());
-
             let rainlang_string = RainDocument::compose_text(
                 &dotrain,
-                &ORDERBOOK_ORDER_ENTRYPOINTS,
+                &["calculate-io"],
                 None,
                 Some(final_bindings),
             )?;
@@ -292,8 +284,6 @@ impl TestRunner {
             // Create a 5x5 grid of zero values for context - later we'll
             // replace these with sane values based on Orderbook context
             let mut context = vec![vec![U256::from(0); 5]; 5];
-            // set random hash for context order hash cell
-            context[1][0] = rand::random();
 
             // output cap
             context[2][0] = output_cap;
@@ -318,6 +308,104 @@ impl TestRunner {
 
         let result: RainEvalResults = vec![handle.await??.into()].into();
         Ok(result)
+    }
+
+    async fn run_handle_entrypoint(
+        &mut self,
+        scenario_name: &str,
+        calculate_stack: RainEvalResults,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let _io_ratio = calculate_stack.results[0].stack[0];
+        let max_output = calculate_stack.results[0].stack[1];
+
+        let final_bindings = self.get_final_bindings(false, scenario_name);
+
+        let dotrain = Arc::new(self.dotrains.main_dotrain.clone());
+        self.forker
+            .roll_fork(Some(self.test_setup.block_number), None)?;
+        let fork = Arc::new(self.forker.clone());
+        let fork_clone = Arc::clone(&fork);
+        let deployer = Arc::clone(&self.test_setup.deployer);
+        let dotrain = Arc::clone(&dotrain);
+
+        let handle = tokio::spawn(async move {
+            let rainlang_string =
+                RainDocument::compose_text(&dotrain, &["handle-io"], None, Some(final_bindings))?;
+
+            // Create a 5x5 grid of zero values for context - later we'll
+            // replace these with sane values based on Orderbook context
+            let mut context = vec![vec![U256::from(0); 5]; 5];
+
+            // output vault decrease
+            context[4][4] = max_output;
+
+            let args = ForkEvalArgs {
+                rainlang_string,
+                source_index: 0,
+                deployer: deployer.address,
+                namespace: FullyQualifiedNamespace::default(),
+                context,
+                decode_errors: true,
+            };
+            fork_clone
+                .fork_eval(args)
+                .map_err(TestRunnerError::ForkCallError)
+                .await
+        });
+
+        let result: RainEvalResults = vec![handle.await??.into()].into();
+        Ok(result)
+    }
+
+    pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
+        let scenario_name = self.settings.test_config.scenario_name.clone();
+
+        self.test_setup.deployer = self
+            .settings
+            .main_config
+            .deployers
+            .get(&scenario_name)
+            .unwrap()
+            .clone();
+
+        // Fetch the latest block number
+        let block_number =
+            ReadableClientHttp::new_from_url(self.test_setup.deployer.network.rpc.to_string())?
+                .get_block_number()
+                .await?;
+        let blocks = self
+            .settings
+            .test_config
+            .scenario
+            .blocks
+            .as_ref()
+            .map_or(Ok(vec![block_number]), |b| {
+                b.expand_to_block_numbers(block_number)
+            })?;
+        self.test_setup.block_number = blocks[0];
+
+        // Create a fork with the first block number
+        self.forker
+            .add_or_select(
+                NewForkedEvm {
+                    fork_url: self.test_setup.deployer.network.rpc.clone().into(),
+                    fork_block_number: Some(block_number),
+                },
+                None,
+            )
+            .await?;
+
+        let pre_stack: Vec<U256> = self.run_pre_entrypoint(&scenario_name).await?;
+        let calculate_stack = self
+            .run_calculate_entrypoint(&scenario_name, pre_stack)
+            .await?;
+        let handle_stack = self
+            .run_handle_entrypoint(&scenario_name, calculate_stack.clone())
+            .await?;
+        let results = self
+            .run_post_entrypoint(&scenario_name, calculate_stack, handle_stack)
+            .await?;
+        Ok(results)
     }
 }
 
@@ -360,7 +448,7 @@ test:
     scenario:
         bindings:
             orderbook-subparser: {orderbook_subparser}
-            second-binding: 10
+            second-binding: 999
 ---
 #pre
 input-token: 0x0165878a594ca255338adfa4d48449f69242eb8f,
@@ -368,8 +456,8 @@ output-token: 0xa513e6e4b8f2a923d98304ec87f64353c4d5c853,
 output-cap: 10,
 block-number: 100;
 #post
-_: 20,
-_: 30;
+:ensure(equal-to(context<0 0>() 999) "io ratio should be 999"),
+:ensure(equal-to(context<1 0>() 10) "output cap should be 10");
     "#,
             orderbook_subparser = local_evm.orderbook_subparser.address()
         );
@@ -394,15 +482,14 @@ scenarios:
 #calculate-io
 using-words-from orderbook-subparser
 
-/*input-token: input-token(),
-output-token: output-token(),
+_: input-token(),
+_: output-token(),
 a: 10,
-b: second-binding;*/
-
-_: 99,
-_: 999;
+b: second-binding;
 #handle-io
-:;
+using-words-from orderbook-subparser
+
+_: output-vault-decrease();
     "#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
@@ -415,14 +502,10 @@ _: 999;
         let mut runner =
             TestRunner::new(&dotrain, &test_dotrain, main_config, test_config, None).await;
 
-        let result = runner
+        runner
             .run_unit_test()
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
-
-        println!("result: {:?}", result.into_flattened_table().unwrap());
-
-        panic!("test");
     }
 }
