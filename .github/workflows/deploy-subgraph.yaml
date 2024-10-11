@@ -25,6 +25,6 @@ jobs:
         working-directory: subgraph
       - run: nix develop -c graph build
         working-directory: subgraph
-      - run: nix develop -c goldsky login
+      - run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
       - run: nix develop -c goldsky subgraph deploy ${{ inputs.subgraph-name }}
         working-directory: subgraph
