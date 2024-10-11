@@ -4,7 +4,7 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: OrderBook
-    network: sepolia
+    network: sepolia,flare
     source:
       address: "0x0000000000000000000000000000000000000000"
       abi: OrderBook
