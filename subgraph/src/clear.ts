@@ -1,6 +1,5 @@
 import { AfterClear, ClearV2 } from "../generated/OrderBook/OrderBook";
-import { ClearBounty, ClearTemporaryData } from "../generated/schema";
-import { eventId } from "./interfaces/event";
+import { ClearTemporaryData } from "../generated/schema";
 import { createTradeEntity } from "./trade";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
@@ -144,82 +143,6 @@ function createTrade(
   );
 }
 
-export function clearBountyId(event: AfterClear, vaultEntityId: Bytes): Bytes {
-  let bytes = eventId(event).concat(vaultEntityId);
-  return Bytes.fromByteArray(crypto.keccak256(bytes));
-}
-
-export function createClearBountyEntity(
-  event: AfterClear,
-  vaultEntityId: Bytes,
-  oldVaultBalance: BigInt,
-  amount: BigInt
-): ClearBounty {
-  let clearBounty = new ClearBounty(clearBountyId(event, vaultEntityId));
-  clearBounty.orderbook = event.address;
-  clearBounty.amount = amount;
-  clearBounty.oldVaultBalance = oldVaultBalance;
-  clearBounty.newVaultBalance = oldVaultBalance.plus(amount);
-  clearBounty.vault = vaultEntityId;
-  clearBounty.timestamp = event.block.timestamp;
-  clearBounty.transaction = event.transaction.hash;
-  clearBounty.sender = event.params.sender;
-  clearBounty.save();
-  return clearBounty;
-}
-
-export function handleClearBounty(
-  event: AfterClear,
-  clearTemporaryData: ClearTemporaryData
-): void {
-  const aliceBountyAmount = event.params.clearStateChange.aliceOutput.minus(
-    event.params.clearStateChange.bobInput
-  );
-  const bobBountyAmount = event.params.clearStateChange.bobOutput.minus(
-    event.params.clearStateChange.aliceInput
-  );
-  if (aliceBountyAmount.gt(BigInt.fromU32(0))) {
-    const oldBalance = handleVaultBalanceChange(
-      event.address,
-      clearTemporaryData.aliceBounty,
-      clearTemporaryData.aliceOutputToken,
-      aliceBountyAmount,
-      event.params.sender
-    );
-    createClearBountyEntity(
-      event,
-      vaultEntityId(
-        event.address,
-        event.params.sender,
-        clearTemporaryData.aliceBounty,
-        clearTemporaryData.aliceOutputToken
-      ),
-      oldBalance,
-      aliceBountyAmount
-    );
-  }
-  if (bobBountyAmount.gt(BigInt.fromU32(0))) {
-    const oldBalance = handleVaultBalanceChange(
-      event.address,
-      clearTemporaryData.bobBounty,
-      clearTemporaryData.bobOutputToken,
-      bobBountyAmount,
-      event.params.sender
-    );
-    createClearBountyEntity(
-      event,
-      vaultEntityId(
-        event.address,
-        event.params.sender,
-        clearTemporaryData.bobBounty,
-        clearTemporaryData.bobOutputToken
-      ),
-      oldBalance,
-      bobBountyAmount
-    );
-  }
-}
-
 export function handleAfterClear(event: AfterClear): void {
   let clearTemporaryData = ClearTemporaryData.load(
     clearTemporaryDataEntityId(event)
@@ -227,7 +150,32 @@ export function handleAfterClear(event: AfterClear): void {
   if (clearTemporaryData) {
     createTrade(event, clearTemporaryData, true);
     createTrade(event, clearTemporaryData, false);
-    handleClearBounty(event, clearTemporaryData);
+
+    // handle bounty vault changes
+    const aliceBountyAmount = event.params.clearStateChange.aliceOutput.minus(
+      event.params.clearStateChange.bobInput
+    );
+    const bobBountyAmount = event.params.clearStateChange.bobOutput.minus(
+      event.params.clearStateChange.aliceInput
+    );
+    if (aliceBountyAmount.gt(BigInt.fromU32(0))) {
+      handleVaultBalanceChange(
+        event.address,
+        clearTemporaryData.aliceBounty,
+        clearTemporaryData.aliceOutputToken,
+        aliceBountyAmount,
+        event.params.sender
+      );
+    }
+    if (bobBountyAmount.gt(BigInt.fromU32(0))) {
+      handleVaultBalanceChange(
+        event.address,
+        clearTemporaryData.bobBounty,
+        clearTemporaryData.bobOutputToken,
+        bobBountyAmount,
+        event.params.sender
+      );
+    }
     store.remove("ClearTemporaryData", clearTemporaryData.id.toHexString());
   } else {
     log.error("ClearTemporaryData not found for event {}", [
