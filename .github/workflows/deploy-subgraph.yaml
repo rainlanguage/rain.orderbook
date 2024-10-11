@@ -1,6 +1,11 @@
 name: Deploy subgraph
 on:
-  [workflow_dispatch]
+  workflow_dispatch:
+    inputs:
+      subgraph-name:
+        description: 'Subgraph to deploy (e.g. ob4-mainnet/0.1)'
+        required: true
+        type: string
 
 jobs:
   deploy:
@@ -20,5 +25,5 @@ jobs:
         working-directory: subgraph
       - run: nix develop -c graph build
         working-directory: subgraph
-      - run: nix develop -c goldsky subgraph deploy
+      - run: nix develop -c goldsky subgraph deploy ${{ inputs.subgraph-name }}
         working-directory: subgraph
