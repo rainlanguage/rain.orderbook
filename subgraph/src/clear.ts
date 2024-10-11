@@ -109,14 +109,14 @@ function createTrade(
     event.address,
     inputVaultId,
     inputToken,
-    input.neg(),
+    input,
     owner
   );
   let oldOutputVaultBalance = handleVaultBalanceChange(
     event.address,
     outputVaultId,
     outputToken,
-    output,
+    output.neg(),
     owner
   );
 
@@ -125,14 +125,14 @@ function createTrade(
     orderHash,
     vaultEntityId(event.address, owner, inputVaultId, inputToken),
     oldInputVaultBalance,
-    input.neg()
+    input
   );
   let outputVaultBalanceChange = createTradeVaultBalanceChangeEntity(
     event,
     orderHash,
     vaultEntityId(event.address, owner, outputVaultId, outputToken),
     oldOutputVaultBalance,
-    output
+    output.neg()
   );
 
   createTradeEntity(
