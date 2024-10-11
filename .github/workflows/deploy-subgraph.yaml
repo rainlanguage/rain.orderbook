@@ -41,8 +41,8 @@ jobs:
 
       - run: nix develop -c graph codegen
         working-directory: subgraph
-      - run: nix develop -c graph build
+      - run: nix develop -c graph build --network ${{ inputs.network }}
         working-directory: subgraph
       - run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
-      - run: nix develop -c goldsky subgraph deploy --network ${{ inputs.network }} ${{ inputs.subgraph-name }}
+      - run: nix develop -c goldsky subgraph deploy ${{ inputs.subgraph-name }}
         working-directory: subgraph
