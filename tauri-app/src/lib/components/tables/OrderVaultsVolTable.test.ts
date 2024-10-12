@@ -106,10 +106,10 @@ test('renders table with correct data', async () => {
   });
 
   await waitFor(async () => {
-    // get total vols
+    // get net vols
     const rows = screen.getAllByTestId('net-vol');
 
-    // checking the total vols
+    // checking the net vols
     for (let i = 0; i < mockVaultsVol.length; i++) {
       const display = formatUnits(
         BigInt(mockVaultsVol[i].netVol),
