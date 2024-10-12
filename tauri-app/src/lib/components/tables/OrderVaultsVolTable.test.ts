@@ -118,4 +118,18 @@ test('renders table with correct data', async () => {
       expect(rows[i]).toHaveTextContent(display.toString());
     }
   });
+
+  await waitFor(async () => {
+    // get total vols
+    const rows = screen.getAllByTestId('total-vol');
+
+    // checking the total vols
+    for (let i = 0; i < mockVaultsVol.length; i++) {
+      const display = formatUnits(
+        BigInt(mockVaultsVol[i].totalVol),
+        Number(mockVaultsVol[i].token.decimals),
+      );
+      expect(rows[i]).toHaveTextContent(display.toString());
+    }
+  });
 });
