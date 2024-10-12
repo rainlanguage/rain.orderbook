@@ -29,15 +29,21 @@ export const ordersList = async (
   if (!url) {
     return [];
   }
-  return await invoke<Order[]>('orders_list', {
-    subgraphArgs: { url },
-    filterArgs: {
-      owners,
-      active,
-      orderHash: orderHash || undefined,
-    },
-    paginationArgs: { page: pageParam + 1, page_size: pageSize },
-  } as OrdersListArgs);
+  try {
+    const x = await invoke<Order[]>('orders_list', {
+      subgraphArgs: { url },
+      filterArgs: {
+        owners,
+        active,
+        orderHash: orderHash || undefined,
+      },
+      paginationArgs: { page: pageParam + 1, page_size: pageSize },
+    } as OrdersListArgs);
+    console.log(x);
+    return x;
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 if (import.meta.vitest) {
