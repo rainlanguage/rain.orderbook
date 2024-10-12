@@ -3,6 +3,7 @@ import { ClearBounty, ClearTemporaryData } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTradeEntity } from "./trade";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
+import { createTransactionEntity } from "./transaction";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { log } from "@graphprotocol/graph-ts";
 import {
@@ -30,6 +31,7 @@ export function clearTemporaryDataEntityId(event: ethereum.Event): Bytes {
 }
 
 export function handleClear(event: ClearV2): void {
+  createTransactionEntity(event);
   let clearTemporaryData = new ClearTemporaryData(
     clearTemporaryDataEntityId(event)
   );
