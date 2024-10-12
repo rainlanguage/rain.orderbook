@@ -1,8 +1,8 @@
 {
-    "matic": {
-        "metaboard0": {
-            "address": "0x23F77e7Bc935503e437166498D7D72f2Ea290E1f",
-            "startBlock": 55856789
+    "flare": {
+        "OrderBook": {
+            "address": "0xb06202aA3Fe7d85171fB7aA5f17011d17E63f382",
+            "startBlock": 22109423
         }
     }
 }
