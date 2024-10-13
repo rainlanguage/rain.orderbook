@@ -7,11 +7,7 @@ import {
   clearInBlockStore,
 } from "matchstick-as";
 import { Bytes, BigInt, Address, log } from "@graphprotocol/graph-ts";
-import {
-  clearTemporaryDataEntityId,
-  handleAfterClear,
-  handleClear,
-} from "../../src/clear";
+import { makeClearV2Id, handleAfterClear, handleClear } from "../../src/clear";
 import {
   AfterClearClearStateChangeStruct,
   ClearV2ClearConfigStruct,
@@ -119,7 +115,7 @@ describe("Clear", () => {
       Address.fromString("0x12e605bc104e93B45e1aD99F9e555f659051c2BB")
     );
 
-    let id = clearTemporaryDataEntityId(event);
+    let id = makeClearV2Id(event);
     handleClear(event);
 
     assert.entityCount("ClearTemporaryData", 1);
@@ -156,7 +152,7 @@ describe("Clear", () => {
       )
     );
 
-    id = clearTemporaryDataEntityId(afterClearEvent);
+    id = makeClearV2Id(afterClearEvent);
     handleAfterClear(afterClearEvent);
 
     assert.entityCount("ClearTemporaryData", 0);
