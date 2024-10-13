@@ -10,5 +10,11 @@
             "address": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
             "startBlock": 19033330
         }
+    },
+    "arbitrum": {
+        "OrderBook": {
+            "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
+            "startBlock": 256576979
+        }
     }
 }
