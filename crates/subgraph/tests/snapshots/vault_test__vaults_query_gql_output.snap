@@ -114,6 +114,35 @@ query VaultDetailQuery($id: ID!) {
           id
         }
       }
+      ... on ClearBounty {
+        id
+        __typename
+        amount
+        newVaultBalance
+        oldVaultBalance
+        vault {
+          id
+          vaultId
+          token {
+            id
+            address
+            name
+            symbol
+            decimals
+          }
+        }
+        timestamp
+        transaction {
+          id
+          from
+          blockNumber
+          timestamp
+        }
+        orderbook {
+          id
+        }
+        sender
+      }
     }
   }
 }

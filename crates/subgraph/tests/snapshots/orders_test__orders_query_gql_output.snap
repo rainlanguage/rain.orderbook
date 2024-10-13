@@ -119,6 +119,35 @@ query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
             id
           }
         }
+        ... on ClearBounty {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            vaultId
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+          sender
+        }
       }
     }
     inputs {
@@ -231,6 +260,35 @@ query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
           orderbook {
             id
           }
+        }
+        ... on ClearBounty {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            vaultId
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+          sender
         }
       }
     }
