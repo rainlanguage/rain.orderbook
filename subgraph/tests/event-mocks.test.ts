@@ -16,6 +16,7 @@ import {
   TakeOrderV2,
 } from "../generated/OrderBook/OrderBook";
 import { Withdraw } from "../generated/OrderBook/OrderBook";
+import { createTransactionEntity } from "../src/transaction";
 
 // event Deposit(address sender, address token, uint256 vaultId, uint256 amount);
 export function createDepositEvent(
@@ -51,6 +52,8 @@ export function createDepositEvent(
   depositEvent.parameters.push(
     new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
   );
+
+  createTransactionEntity(depositEvent);
   return depositEvent;
 }
 
@@ -95,6 +98,8 @@ export function createWithdrawEvent(
   withdrawalEvent.parameters.push(
     new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
   );
+
+  createTransactionEntity(withdrawalEvent);
   return withdrawalEvent;
 }
 
