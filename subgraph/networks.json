@@ -16,5 +16,11 @@
             "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
             "startBlock": 256576979
         }
+    },
+    "polygon": {
+        "OrderBook": {
+            "address": "0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6",
+            "startBlock": 54697866
+        }
     }
 }
