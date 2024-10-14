@@ -20,7 +20,7 @@ export function createERC20Entity(address: Bytes): void {
 
 export function getERC20Entity(address: Bytes): Bytes {
   let id = makeERC20EntityId(address);
-  let entity = ERC20Entity.load(makeERC20EntityId(address));
+  let entity = ERC20Entity.load(id);
   if (entity == null) {
     createERC20Entity(address);
     return id;
