@@ -44,5 +44,8 @@ jobs:
       - run: nix develop -c graph build --network ${{ inputs.network }}
         working-directory: subgraph
       - run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
+
+      # Check if the repo is clean before deploying.
+      - run: git diff --exit-code
       - run: nix develop -c goldsky subgraph deploy ${{ inputs.subgraph-name }}
         working-directory: subgraph
