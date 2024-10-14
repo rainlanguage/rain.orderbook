@@ -34,36 +34,33 @@ describe("Handle Clear", () => {
   });
 
   test("handleClear()", () => {
+    let evaluable = new Evaluable(
+      Address.fromString("0x5fB33D710F8B58DE4c9fDEC703B5c2487a5219d6"),
+      Address.fromString("0x84c6e7F5A1e5dD89594Cc25BEf4722A1b8871aE6"),
+      Bytes.fromHexString("0x1234567890123456789012345678901234567890")
+    );
+    let nonce = Bytes.fromHexString(
+      "0xbce73059f54ada335f7283df99f81d42a3f2d09527eade865627e26cd756b748"
+    );
+
     let event = createClearEvent(
       alice,
       createOrder(
         alice,
-        new Evaluable(
-          Address.fromString("0x5fB33D710F8B58DE4c9fDEC703B5c2487a5219d6"),
-          Address.fromString("0x84c6e7F5A1e5dD89594Cc25BEf4722A1b8871aE6"),
-          Bytes.fromHexString("0x1234567890123456789012345678901234567890")
-        ),
+        evaluable,
         [new IO(token1, BigInt.fromI32(18), aliceVaultId)],
         [new IO(token2, BigInt.fromI32(18), aliceVaultId)],
-        Bytes.fromHexString(
-          "0xbce73059f54ada335f7283df99f81d42a3f2d09527eade865627e26cd756b748"
-        )
+        nonce
       ),
       createOrder(
         bob,
-        new Evaluable(
-          Address.fromString("0x5fB33D710F8B58DE4c9fDEC703B5c2487a5219d6"),
-          Address.fromString("0x84c6e7F5A1e5dD89594Cc25BEf4722A1b8871aE6"),
-          Bytes.fromHexString("0x1234567890123456789012345678901234567890")
-        ),
+        evaluable,
         [new IO(token2, BigInt.fromI32(18), bobVaultId)],
         [
           new IO(token3, BigInt.fromI32(18), bobVaultId),
           new IO(token1, BigInt.fromI32(18), bobVaultId),
         ],
-        Bytes.fromHexString(
-          "0x9c8176f8e6e02b5f02eee226ff7066d2474bdc50f89bd15dca539240e0cb1788"
-        )
+        nonce
       ),
       BigInt.fromI32(0),
       BigInt.fromI32(0),
