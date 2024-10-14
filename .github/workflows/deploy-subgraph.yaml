@@ -11,7 +11,7 @@ on:
         required: true
         type: choice
         options:
-          - arbitrum
+          - arbitrum-one
           - arbitrum_sepolia
           - avalanche
           - base
