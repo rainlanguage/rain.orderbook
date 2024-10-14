@@ -24,7 +24,6 @@ pub(crate) use orderbook::*;
 pub(crate) use plot_source::*;
 pub(crate) use scenario::*;
 pub(crate) use token::*;
-pub(crate) use unit_test::*;
 #[cfg(test)]
 pub mod test;
 
