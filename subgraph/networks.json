@@ -11,6 +11,12 @@
             "startBlock": 19033330
         }
     },
+    "bsc": {
+        "OrderBook": {
+            "address": "0xd2938E7c9fe3597F78832CE780Feb61945c377d7",
+            "startBlock": 42510318
+        }
+    },
     "arbitrum-one": {
         "OrderBook": {
             "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
