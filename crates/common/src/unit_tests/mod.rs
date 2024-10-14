@@ -104,29 +104,7 @@ impl TestRunner {
         }
     }
 
-    fn get_elided_binding_keys(
-        &self,
-        is_test_dotrain: bool,
-        scenario_bindings: &Vec<Rebind>,
-    ) -> Arc<Vec<String>> {
-        let dotrain = if is_test_dotrain {
-            self.dotrains.test_dotrain.clone()
-        } else {
-            self.dotrains.main_dotrain.clone()
-        };
-        let rain_document =
-            RainDocument::create(dotrain, None, None, Some(scenario_bindings.clone()));
-        Arc::new(
-            rain_document
-                .namespace()
-                .iter()
-                .filter(|(_, v)| v.is_elided_binding())
-                .map(|(k, _)| k.clone())
-                .collect::<Vec<String>>(),
-        )
-    }
-
-    fn get_final_bindings(&mut self, is_test_dotrain: bool, scenario_name: &str) -> Vec<Rebind> {
+    fn get_final_bindings(&mut self, is_test_dotrain: bool) -> Vec<Rebind> {
         let dotrain: String;
         let mut scenario_bindings: Vec<Rebind> = vec![];
         let mut final_bindings: Vec<Rebind> = vec![];
@@ -137,10 +115,8 @@ impl TestRunner {
             dotrain = self.dotrains.main_dotrain.clone();
             scenario_bindings = self
                 .settings
-                .main_config
-                .scenarios
-                .get(scenario_name)
-                .unwrap()
+                .test_config
+                .scenario
                 .bindings
                 .clone()
                 .into_iter()
@@ -173,11 +149,8 @@ impl TestRunner {
         final_bindings
     }
 
-    async fn run_pre_entrypoint(
-        &mut self,
-        scenario_name: &str,
-    ) -> Result<Vec<U256>, TestRunnerError> {
-        let final_bindings = self.get_final_bindings(true, scenario_name);
+    async fn run_pre_entrypoint(&mut self) -> Result<Vec<U256>, TestRunnerError> {
+        let final_bindings = self.get_final_bindings(true);
 
         let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
         self.forker
@@ -210,13 +183,109 @@ impl TestRunner {
         Ok(flattened.rows[0].clone())
     }
 
+    async fn run_calculate_entrypoint(
+        &mut self,
+        pre_stack: Vec<U256>,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let input_token = pre_stack[0];
+        let output_token = pre_stack[1];
+        let output_cap = pre_stack[2];
+        // let block_number = pre_stack[3];
+
+        let final_bindings = self.get_final_bindings(false);
+
+        let dotrain = Arc::new(self.dotrains.main_dotrain.clone());
+        self.forker
+            .roll_fork(Some(self.test_setup.block_number), None)?;
+        let fork = Arc::new(self.forker.clone());
+        let fork_clone = Arc::clone(&fork);
+        let deployer = Arc::clone(&self.test_setup.deployer);
+        let dotrain = Arc::clone(&dotrain);
+
+        let handle = tokio::spawn(async move {
+            let rainlang_string = RainDocument::compose_text(
+                &dotrain,
+                &["calculate-io"],
+                None,
+                Some(final_bindings),
+            )?;
+
+            let mut context = vec![vec![U256::from(0); 5]; 5];
+            // output cap
+            context[2][0] = output_cap;
+            // input token
+            context[3][0] = input_token;
+            // output token
+            context[4][0] = output_token;
+
+            let args = ForkEvalArgs {
+                rainlang_string,
+                source_index: 0,
+                deployer: deployer.address,
+                namespace: FullyQualifiedNamespace::default(),
+                context,
+                decode_errors: true,
+            };
+            fork_clone
+                .fork_eval(args)
+                .map_err(TestRunnerError::ForkCallError)
+                .await
+        });
+
+        let result: RainEvalResults = vec![handle.await??.into()].into();
+        Ok(result)
+    }
+
+    async fn run_handle_entrypoint(
+        &mut self,
+        calculate_stack: RainEvalResults,
+    ) -> Result<RainEvalResults, TestRunnerError> {
+        let _io_ratio = calculate_stack.results[0].stack[0];
+        let max_output = calculate_stack.results[0].stack[1];
+
+        let final_bindings = self.get_final_bindings(false);
+
+        let dotrain = Arc::new(self.dotrains.main_dotrain.clone());
+        self.forker
+            .roll_fork(Some(self.test_setup.block_number), None)?;
+        let fork = Arc::new(self.forker.clone());
+        let fork_clone = Arc::clone(&fork);
+        let deployer = Arc::clone(&self.test_setup.deployer);
+        let dotrain = Arc::clone(&dotrain);
+
+        let handle = tokio::spawn(async move {
+            let rainlang_string =
+                RainDocument::compose_text(&dotrain, &["handle-io"], None, Some(final_bindings))?;
+
+            let mut context = vec![vec![U256::from(0); 5]; 5];
+
+            // output vault decrease
+            context[4][4] = max_output;
+
+            let args = ForkEvalArgs {
+                rainlang_string,
+                source_index: 0,
+                deployer: deployer.address,
+                namespace: FullyQualifiedNamespace::default(),
+                context,
+                decode_errors: true,
+            };
+            fork_clone
+                .fork_eval(args)
+                .map_err(TestRunnerError::ForkCallError)
+                .await
+        });
+
+        let result: RainEvalResults = vec![handle.await??.into()].into();
+        Ok(result)
+    }
+
     async fn run_post_entrypoint(
         &mut self,
-        scenario_name: &str,
         calculate_stack: RainEvalResults,
         handle_stack: RainEvalResults,
     ) -> Result<RainEvalResults, TestRunnerError> {
-        let final_bindings = self.get_final_bindings(true, scenario_name);
+        let final_bindings = self.get_final_bindings(true);
 
         let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
         self.forker
@@ -253,118 +322,12 @@ impl TestRunner {
         Ok(result)
     }
 
-    async fn run_calculate_entrypoint(
-        &mut self,
-        scenario_name: &str,
-        pre_stack: Vec<U256>,
-    ) -> Result<RainEvalResults, TestRunnerError> {
-        let input_token = pre_stack[0];
-        let output_token = pre_stack[1];
-        let output_cap = pre_stack[2];
-        // let block_number = pre_stack[3];
-
-        let final_bindings = self.get_final_bindings(false, scenario_name);
-
-        let dotrain = Arc::new(self.dotrains.main_dotrain.clone());
-        self.forker
-            .roll_fork(Some(self.test_setup.block_number), None)?;
-        let fork = Arc::new(self.forker.clone());
-        let fork_clone = Arc::clone(&fork);
-        let deployer = Arc::clone(&self.test_setup.deployer);
-        let dotrain = Arc::clone(&dotrain);
-
-        let handle = tokio::spawn(async move {
-            let rainlang_string = RainDocument::compose_text(
-                &dotrain,
-                &["calculate-io"],
-                None,
-                Some(final_bindings),
-            )?;
-
-            // Create a 5x5 grid of zero values for context - later we'll
-            // replace these with sane values based on Orderbook context
-            let mut context = vec![vec![U256::from(0); 5]; 5];
-
-            // output cap
-            context[2][0] = output_cap;
-            // input token
-            context[3][0] = input_token;
-            // output token
-            context[4][0] = output_token;
-
-            let args = ForkEvalArgs {
-                rainlang_string,
-                source_index: 0,
-                deployer: deployer.address,
-                namespace: FullyQualifiedNamespace::default(),
-                context,
-                decode_errors: true,
-            };
-            fork_clone
-                .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
-                .await
-        });
-
-        let result: RainEvalResults = vec![handle.await??.into()].into();
-        Ok(result)
-    }
-
-    async fn run_handle_entrypoint(
-        &mut self,
-        scenario_name: &str,
-        calculate_stack: RainEvalResults,
-    ) -> Result<RainEvalResults, TestRunnerError> {
-        let _io_ratio = calculate_stack.results[0].stack[0];
-        let max_output = calculate_stack.results[0].stack[1];
-
-        let final_bindings = self.get_final_bindings(false, scenario_name);
-
-        let dotrain = Arc::new(self.dotrains.main_dotrain.clone());
-        self.forker
-            .roll_fork(Some(self.test_setup.block_number), None)?;
-        let fork = Arc::new(self.forker.clone());
-        let fork_clone = Arc::clone(&fork);
-        let deployer = Arc::clone(&self.test_setup.deployer);
-        let dotrain = Arc::clone(&dotrain);
-
-        let handle = tokio::spawn(async move {
-            let rainlang_string =
-                RainDocument::compose_text(&dotrain, &["handle-io"], None, Some(final_bindings))?;
-
-            // Create a 5x5 grid of zero values for context - later we'll
-            // replace these with sane values based on Orderbook context
-            let mut context = vec![vec![U256::from(0); 5]; 5];
-
-            // output vault decrease
-            context[4][4] = max_output;
-
-            let args = ForkEvalArgs {
-                rainlang_string,
-                source_index: 0,
-                deployer: deployer.address,
-                namespace: FullyQualifiedNamespace::default(),
-                context,
-                decode_errors: true,
-            };
-            fork_clone
-                .fork_eval(args)
-                .map_err(TestRunnerError::ForkCallError)
-                .await
-        });
-
-        let result: RainEvalResults = vec![handle.await??.into()].into();
-        Ok(result)
-    }
-
     pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
-        let scenario_name = self.settings.test_config.scenario_name.clone();
-
         self.test_setup.deployer = self
             .settings
             .main_config
             .deployers
-            .get(&scenario_name)
+            .get(&self.settings.test_config.scenario_name)
             .unwrap()
             .clone();
 
@@ -395,15 +358,11 @@ impl TestRunner {
             )
             .await?;
 
-        let pre_stack: Vec<U256> = self.run_pre_entrypoint(&scenario_name).await?;
-        let calculate_stack = self
-            .run_calculate_entrypoint(&scenario_name, pre_stack)
-            .await?;
-        let handle_stack = self
-            .run_handle_entrypoint(&scenario_name, calculate_stack.clone())
-            .await?;
+        let pre_stack: Vec<U256> = self.run_pre_entrypoint().await?;
+        let calculate_stack = self.run_calculate_entrypoint(pre_stack).await?;
+        let handle_stack = self.run_handle_entrypoint(calculate_stack.clone()).await?;
         let results = self
-            .run_post_entrypoint(&scenario_name, calculate_stack, handle_stack)
+            .run_post_entrypoint(calculate_stack, handle_stack)
             .await?;
         Ok(results)
     }
