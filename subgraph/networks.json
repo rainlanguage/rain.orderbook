@@ -11,7 +11,7 @@
             "startBlock": 19033330
         }
     },
-    "arbitrum": {
+    "arbitrum-one": {
         "OrderBook": {
             "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
             "startBlock": 256576979
