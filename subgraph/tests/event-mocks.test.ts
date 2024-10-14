@@ -127,7 +127,7 @@ export class Evaluable {
   }
 }
 
-function createOrder(
+export function createOrder(
   owner: Address,
   evaluable: Evaluable,
   validInputs: Array<IO>,
@@ -328,58 +328,17 @@ export function createMetaEvent(
   return metaEvent;
 }
 
-export class ClearV2Struct {
-  owner: Address;
-  evaluable: Evaluable;
-  validInputs: Array<IO>;
-  validOutputs: Array<IO>;
-  nonce: Bytes;
-
-  constructor(
-    owner: Address,
-    evaluable: Evaluable,
-    validInputs: Array<IO>,
-    validOutputs: Array<IO>,
-    nonce: Bytes
-  ) {
-    this.owner = owner;
-    this.evaluable = evaluable;
-    this.validInputs = validInputs;
-    this.validOutputs = validOutputs;
-    this.nonce = nonce;
-  }
-}
-
-export class ClearV2ClearConfigStruct {
-  aliceInputIOIndex: BigInt;
-  aliceOutputIOIndex: BigInt;
-  bobInputIOIndex: BigInt;
-  bobOutputIOIndex: BigInt;
-  aliceBountyVaultId: BigInt;
-  bobBountyVaultId: BigInt;
-
-  constructor(
-    aliceInputIOIndex: BigInt,
-    aliceOutputIOIndex: BigInt,
-    bobInputIOIndex: BigInt,
-    bobOutputIOIndex: BigInt,
-    aliceBountyVaultId: BigInt,
-    bobBountyVaultId: BigInt
-  ) {
-    this.aliceInputIOIndex = aliceInputIOIndex;
-    this.aliceOutputIOIndex = aliceOutputIOIndex;
-    this.bobInputIOIndex = bobInputIOIndex;
-    this.bobOutputIOIndex = bobOutputIOIndex;
-    this.aliceBountyVaultId = aliceBountyVaultId;
-    this.bobBountyVaultId = bobBountyVaultId;
-  }
-}
-
+// event ClearV2(address,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(uint256,uint256,uint256,uint256,uint256,uint256))
 export function createClearEvent(
   sender: Address,
-  alice: ClearV2Struct,
-  bob: ClearV2Struct,
-  clearConfig: ClearV2ClearConfigStruct
+  aliceOrder: ethereum.Tuple,
+  bobOrder: ethereum.Tuple,
+  aliceInputIOIndex: BigInt,
+  aliceOutputIOIndex: BigInt,
+  bobInputIOIndex: BigInt,
+  bobOutputIOIndex: BigInt,
+  aliceBountyVaultId: BigInt,
+  bobBountyVaultId: BigInt
 ): ClearV2 {
   let mockEvent = newMockEvent();
   let clearEvent = new ClearV2(
@@ -397,48 +356,20 @@ export function createClearEvent(
   clearEvent.parameters.push(
     new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
   );
-
-  let _alice = createOrder(
-    alice.owner,
-    alice.evaluable,
-    alice.validInputs,
-    alice.validOutputs,
-    alice.nonce
+  clearEvent.parameters.push(
+    new ethereum.EventParam("alice", ethereum.Value.fromTuple(aliceOrder))
   );
   clearEvent.parameters.push(
-    new ethereum.EventParam("alice", ethereum.Value.fromTuple(_alice))
-  );
-
-  let _bob = createOrder(
-    bob.owner,
-    bob.evaluable,
-    bob.validInputs,
-    bob.validOutputs,
-    bob.nonce
-  );
-  clearEvent.parameters.push(
-    new ethereum.EventParam("bob", ethereum.Value.fromTuple(_bob))
+    new ethereum.EventParam("bob", ethereum.Value.fromTuple(bobOrder))
   );
 
   let _clearConfig = new ethereum.Tuple();
-  _clearConfig.push(
-    ethereum.Value.fromUnsignedBigInt(clearConfig.aliceInputIOIndex)
-  );
-  _clearConfig.push(
-    ethereum.Value.fromUnsignedBigInt(clearConfig.aliceOutputIOIndex)
-  );
-  _clearConfig.push(
-    ethereum.Value.fromUnsignedBigInt(clearConfig.bobInputIOIndex)
-  );
-  _clearConfig.push(
-    ethereum.Value.fromI32(clearConfig.bobOutputIOIndex.toI32())
-  );
-  _clearConfig.push(
-    ethereum.Value.fromUnsignedBigInt(clearConfig.aliceBountyVaultId)
-  );
-  _clearConfig.push(
-    ethereum.Value.fromUnsignedBigInt(clearConfig.bobBountyVaultId)
-  );
+  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(aliceInputIOIndex));
+  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(aliceOutputIOIndex));
+  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(bobInputIOIndex));
+  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(bobOutputIOIndex));
+  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(aliceBountyVaultId));
+  _clearConfig.push(ethereum.Value.fromUnsignedBigInt(bobBountyVaultId));
   clearEvent.parameters.push(
     new ethereum.EventParam(
       "clearConfig",
@@ -449,28 +380,13 @@ export function createClearEvent(
   return clearEvent;
 }
 
-export class AfterClearClearStateChangeStruct {
-  aliceOutput: BigInt;
-  bobOutput: BigInt;
-  aliceInput: BigInt;
-  bobInput: BigInt;
-
-  constructor(
-    aliceOutput: BigInt,
-    bobOutput: BigInt,
-    aliceInput: BigInt,
-    bobInput: BigInt
-  ) {
-    this.aliceOutput = aliceOutput;
-    this.bobOutput = bobOutput;
-    this.aliceInput = aliceInput;
-    this.bobInput = bobInput;
-  }
-}
-
+// event AfterClear(address,(uint256,uint256,uint256,uint256))
 export function createAfterClearEvent(
   sender: Address,
-  clearStateChange: AfterClearClearStateChangeStruct
+  aliceOutput: BigInt,
+  bobOutput: BigInt,
+  aliceInput: BigInt,
+  bobInput: BigInt
 ): AfterClear {
   let mockEvent = newMockEvent();
   let afterClearEvent = new AfterClear(
@@ -488,18 +404,10 @@ export function createAfterClearEvent(
     new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
   );
   let _clearStateChange = new ethereum.Tuple();
-  _clearStateChange.push(
-    ethereum.Value.fromUnsignedBigInt(clearStateChange.aliceOutput)
-  );
-  _clearStateChange.push(
-    ethereum.Value.fromUnsignedBigInt(clearStateChange.bobOutput)
-  );
-  _clearStateChange.push(
-    ethereum.Value.fromUnsignedBigInt(clearStateChange.aliceInput)
-  );
-  _clearStateChange.push(
-    ethereum.Value.fromUnsignedBigInt(clearStateChange.bobInput)
-  );
+  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(aliceOutput));
+  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(bobOutput));
+  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(aliceInput));
+  _clearStateChange.push(ethereum.Value.fromUnsignedBigInt(bobInput));
   afterClearEvent.parameters.push(
     new ethereum.EventParam(
       "clearStateChange",
