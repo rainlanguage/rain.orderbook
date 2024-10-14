@@ -1,8 +1,26 @@
 {
+    "flare": {
+        "OrderBook": {
+            "address": "0xcee8cd002f151a536394e564b84076c41bbbcd4d",
+            "startBlock": 29307299
+        }
+    },
+    "base": {
+        "OrderBook": {
+            "address": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+            "startBlock": 19033330
+        }
+    },
+    "arbitrum-one": {
+        "OrderBook": {
+            "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
+            "startBlock": 256576979
+        }
+    },
     "matic": {
-        "metaboard0": {
-            "address": "0x23F77e7Bc935503e437166498D7D72f2Ea290E1f",
-            "startBlock": 55856789
+        "OrderBook": {
+            "address": "0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6",
+            "startBlock": 54697866
         }
     }
 }
