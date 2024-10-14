@@ -17,7 +17,7 @@
             "startBlock": 256576979
         }
     },
-    "polygon": {
+    "matic": {
         "OrderBook": {
             "address": "0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6",
             "startBlock": 54697866

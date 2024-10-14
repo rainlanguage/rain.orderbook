@@ -20,7 +20,7 @@ on:
           - flare
           - mumbai
           - oasis_sapphire
-          - polygon
+          - matic
           - sepolia
           - songbird
           - linea
