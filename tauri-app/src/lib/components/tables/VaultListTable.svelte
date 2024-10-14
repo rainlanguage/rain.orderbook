@@ -102,7 +102,7 @@
             {#each item.ordersAsInput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
-                color="alternative"
+                color={order.active ? 'green' : 'yellow'}
                 data-testid="vault-order-input"
                 data-order-id={order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
@@ -123,7 +123,7 @@
             {#each item.ordersAsOutput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
-                color="alternative"
+                color={order.active ? 'green' : 'yellow'}
                 data-order-id={order.id}
                 data-testid="vault-order-output"
                 on:click={() => goto(`/orders/${order.id}`)}
