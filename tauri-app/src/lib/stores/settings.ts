@@ -157,7 +157,12 @@ settings.subscribe(async () => {
   } else {
     const currentActiveAccounts = get(activeAccountsItems);
     const updatedActiveAccounts = Object.fromEntries(
-      Object.entries(currentActiveAccounts).filter(([key]) => key in ($settings.accounts ?? {})),
+      Object.entries($settings.accounts ?? {}).filter(([key, value]) => {
+        if (key in currentActiveAccounts) {
+          return currentActiveAccounts[key] === value;
+        }
+        return false;
+      }),
     );
     activeAccountsItems.set(updatedActiveAccounts);
   }
