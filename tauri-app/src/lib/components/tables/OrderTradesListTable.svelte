@@ -26,15 +26,10 @@
     queryFn: async ({ pageParam }: { pageParam: number }) => {
       tradesCount = undefined;
 
-      const count = await orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp);
-      const trades = await orderTradesList(
-        id,
-        $subgraphUrl || '',
-        pageParam,
-        undefined,
-        startTimestamp,
-        endTimestamp,
-      );
+      const [count, trades] = await Promise.all([
+        orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp),
+        orderTradesList(id, $subgraphUrl || '', pageParam, undefined, startTimestamp, endTimestamp),
+      ]);
 
       if (typeof count === 'number') {
         tradesCount = count;
