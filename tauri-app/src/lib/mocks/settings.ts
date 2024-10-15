@@ -1,7 +1,7 @@
 import type { ConfigSource } from '$lib/typeshare/config';
 import { writable } from 'svelte/store';
 
-const mockConfigSource: ConfigSource = {
+export const mockConfigSource: ConfigSource = {
   networks: {
     mainnet: {
       rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
