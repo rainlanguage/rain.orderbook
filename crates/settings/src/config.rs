@@ -199,7 +199,7 @@ impl TryFrom<ConfigSource> for Config {
 
 impl Config {
     pub async fn try_from_string(val: String) -> Result<Config, ParseConfigSourceError> {
-        let config_source = ConfigSource::try_from_string(val).await?;
+        let config_source = ConfigSource::try_from_string(val, None).await?.0;
         std::convert::TryInto::<Config>::try_into(config_source)
     }
 }

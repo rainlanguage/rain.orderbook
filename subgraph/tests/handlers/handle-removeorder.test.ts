@@ -13,12 +13,9 @@ import {
   createAddOrderEvent,
   createRemoveOrderEvent,
 } from "../event-mocks.test";
-import {
-  handleAddOrder,
-  handleRemoveOrder,
-  makeOrderId,
-} from "../../src/order";
+import { makeOrderId } from "../../src/order";
 import { createMockERC20Functions } from "../erc20.test";
+import { handleAddOrder, handleRemoveOrder } from "../../src/handlers";
 
 describe("Add and remove orders", () => {
   afterEach(() => {

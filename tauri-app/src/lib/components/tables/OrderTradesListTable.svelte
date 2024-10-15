@@ -2,7 +2,7 @@
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import TanstackAppTable from './TanstackAppTable.svelte';
   import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
-  import { orderTradesList } from '$lib/queries/orderTradesList';
+  import { orderTradesCount, orderTradesList } from '$lib/queries/orderTradesList';
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -13,13 +13,25 @@
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
   import type { Trade } from '$lib/typeshare/subgraphTypes';
+  import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
   export let id: string;
+
+  let startTimestamp: number | undefined;
+  let endTimestamp: number | undefined;
+  let tradesCount: number | undefined;
 
   $: orderTradesQuery = createInfiniteQuery({
     queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
     queryFn: ({ pageParam }: { pageParam: number }) => {
-      return orderTradesList(id, $subgraphUrl || '', pageParam);
+      return orderTradesList(
+        id,
+        $subgraphUrl || '',
+        pageParam,
+        undefined,
+        startTimestamp,
+        endTimestamp,
+      );
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
@@ -27,9 +39,22 @@
     },
     enabled: !!$subgraphUrl,
   });
+
+  $: $orderTradesQuery.isFetching || $orderTradesQuery.isLoading,
+    orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp)
+      .then((v) => (typeof v === 'number' ? (tradesCount = v) : (tradesCount = undefined)))
+      .catch(() => (tradesCount = undefined));
 </script>
 
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
+  <svelte:fragment slot="info">
+    {#if tradesCount !== undefined}
+      <div class="px-2">{tradesCount} Trades</div>
+    {/if}
+  </svelte:fragment>
+  <svelte:fragment slot="timeFilter">
+    <TableTimeFilters bind:startTimestamp bind:endTimestamp />
+  </svelte:fragment>
   <svelte:fragment slot="head">
     <TableHeadCell padding="p-4">Date</TableHeadCell>
     <TableHeadCell padding="p-0">Sender</TableHeadCell>

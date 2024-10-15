@@ -123,6 +123,26 @@ type TradeVaultBalanceChange implements VaultBalanceChange @entity(immutable: tr
   transaction: Transaction!
 }
 
+type ClearBounty implements VaultBalanceChange @entity(immutable: true) {
+  id: Bytes!
+  "The orderbook this balance change is for"
+  orderbook: Orderbook!
+  "The msg.sender of this clear call and owner of the vault"
+  sender: Bytes!
+  "The vault that was affected"
+  vault: Vault!
+  "The amount that was changed - this is signed"
+  amount: BigInt!
+  "The balance of the vault before the change"
+  oldVaultBalance: BigInt!
+  "The balance of the vault after the change"
+  newVaultBalance: BigInt!
+  "The timestamp this balance change was executed"
+  timestamp: BigInt!
+  "The transaction in which this balance change was executed"
+  transaction: Transaction!
+ }
+
 type Order @entity {
   id: Bytes!
   "The orderbook this order is in"
@@ -215,6 +235,35 @@ type TakeOrder implements TradeEvent @entity(immutable: true) {
   sender: Bytes!
 }
 
+type Clear implements TradeEvent @entity(immutable: true) {
+  id: Bytes!
+
+  "Alice input amount"
+  aliceInputAmount: BigInt!
+  "Alice output amount"
+  aliceOutputAmount: BigInt!
+  "Bob input amount"
+  bobInputAmount: BigInt!
+  "Bob output amount"
+  bobOutputAmount: BigInt!
+  "Alice bounty amount"
+  aliceBountyAmount: BigInt!
+  "Bob bounty amount"
+  bobBountyAmount: BigInt!
+
+  aliceBountyVaultBalanceChange: ClearBounty
+  bobBountyVaultBalanceChange: ClearBounty
+
+  # For TradeEvent
+  "The orderbook this trade event is for"
+  orderbook: Orderbook!
+  "The trades that occured in this event"
+  trades: [Trade!]! @derivedFrom(field: "tradeEvent")
+  transaction: Transaction!
+  "The msg.sender of this trade"
+  sender: Bytes!
+}
+
 interface TradeEvent implements Event {
   id: Bytes!
   "The orderbook this trade event is for"
@@ -253,4 +302,22 @@ type ERC20 @entity(immutable: true) {
   symbol: String
   "The number of decimals of the ERC20 token"
   decimals: BigInt
+}
+
+type ClearTemporaryData @entity(immutable: true) {
+  id: Bytes!
+  aliceOrderHash: Bytes!
+  aliceAddress: Bytes!
+  aliceInputVaultId: BigInt!
+  aliceInputToken: Bytes!
+  aliceOutputVaultId: BigInt!
+  aliceOutputToken: Bytes!
+  aliceBounty: BigInt!
+  bobOrderHash: Bytes!
+  bobAddress: Bytes!
+  bobInputVaultId: BigInt!
+  bobInputToken: Bytes!
+  bobOutputVaultId: BigInt!
+  bobOutputToken: Bytes!
+  bobBounty: BigInt!
 }

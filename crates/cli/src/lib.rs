@@ -1,4 +1,4 @@
-use crate::commands::{Chart, Order, OrderTake, Subgraph, Vault, Words};
+use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
@@ -17,10 +17,10 @@ pub enum Orderbook {
     Order(Order),
 
     #[command(subcommand)]
-    Vault(Box<Vault>),
+    Vault(Vault),
 
     #[command(subcommand)]
-    OrderTake(OrderTake),
+    Trade(Trade),
 
     #[command(subcommand)]
     Subgraph(Subgraph),
@@ -36,8 +36,8 @@ impl Orderbook {
     pub async fn execute(self) -> Result<()> {
         match self {
             Orderbook::Order(order) => order.execute().await,
-            Orderbook::Vault(vault) => (*vault).execute().await,
-            Orderbook::OrderTake(order_take) => (order_take).execute().await,
+            Orderbook::Vault(vault) => vault.execute().await,
+            Orderbook::Trade(trade) => trade.execute().await,
             Orderbook::Chart(chart) => chart.execute().await,
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,

@@ -12,6 +12,11 @@ use alloy_ethers_typecast::transaction::{
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
 use rain_interpreter_dispair::{DISPair, DISPairError};
+#[cfg(not(target_family = "wasm"))]
+use rain_interpreter_eval::{
+    error::ForkCallError,
+    fork::{Forker, NewForkedEvm},
+};
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
@@ -52,6 +57,9 @@ pub enum AddOrderArgsError {
     ComposeError(#[from] ComposeError),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
+    #[cfg(not(target_family = "wasm"))]
+    #[error(transparent)]
+    ForkCallError(#[from] ForkCallError),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -265,10 +273,51 @@ impl AddOrderArgs {
             .await?
             .abi_encode())
     }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub async fn simulate_execute(
+        &self,
+        transaction_args: TransactionArgs,
+        from: Option<Address>,
+    ) -> Result<(), AddOrderArgsError> {
+        let from_address = if let Some(v) = from {
+            v.0 .0
+        } else {
+            transaction_args
+                .clone()
+                .try_into_ledger_client()
+                .await?
+                .client
+                .address()
+                .0
+        };
+        let mut forker = Forker::new_with_fork(
+            NewForkedEvm {
+                fork_url: transaction_args.rpc_url.clone(),
+                fork_block_number: None,
+            },
+            None,
+            None,
+        )
+        .await?;
+        let call = self.try_into_call(transaction_args.rpc_url.clone()).await?;
+        forker
+            .alloy_call_committing(
+                Address::from(from_address),
+                transaction_args.orderbook_address,
+                call,
+                U256::ZERO,
+                true,
+            )
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::dotrain_order::DotrainOrder;
+
     use super::*;
     use rain_orderbook_app_settings::{
         deployer::Deployer,
@@ -700,5 +749,168 @@ _ _: 0 0;
         let post_action = result.compose_addorder_post_task().unwrap();
 
         assert_eq!(post_action, "/* 0. handle-add-order */ \n_ _: 0 0;");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_simulate_execute_ok() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+
+        let orderbook = &local_evm.orderbook;
+        let token1_holder = local_evm.signer_wallets[0].default_signer().address();
+        let token1 = local_evm.tokens[0].clone();
+        let token2 = local_evm.tokens[1].clone();
+
+        let dotrain = format!(
+            r#"
+networks:
+    some-key:
+        rpc: {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    some-key:
+        address: {deployer}
+tokens:
+    t1:
+        network: some-key
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+    t2:
+        network: some-key
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: token1
+orderbook:
+    some-key:
+        address: {orderbook}
+orders:
+    some-key:
+        inputs:
+            - token: t1
+        outputs:
+            - token: t2
+              vault-id: 0x01
+scenarios:
+    some-key:
+deployments:
+    some-key:
+        scenario: some-key
+        order: some-key
+---
+#calculate-io
+_ _: 16 52;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = local_evm.url(),
+            orderbook = orderbook.address(),
+            deployer = local_evm.deployer.address(),
+            token1 = token1.address(),
+            token2 = token2.address(),
+        );
+
+        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        AddOrderArgs::new_from_deployment(dotrain, deployment)
+            .await
+            .unwrap()
+            .simulate_execute(
+                TransactionArgs {
+                    orderbook_address: *orderbook.address(),
+                    rpc_url: local_evm.url(),
+                    ..Default::default()
+                },
+                Some(token1_holder),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_simulate_execute_err() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+
+        let orderbook = &local_evm.orderbook;
+        let token1_holder = local_evm.signer_wallets[0].default_signer().address();
+        let token1 = local_evm.tokens[0].clone();
+        let token2 = local_evm.tokens[1].clone();
+
+        let dotrain = format!(
+            r#"
+networks:
+    some-key:
+        rpc: {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    some-key:
+        address: {deployer}
+tokens:
+    t1:
+        network: some-key
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+    t2:
+        network: some-key
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: token1
+orderbook:
+    some-key:
+        address: {orderbook}
+orders:
+    some-key:
+        inputs:
+            - token: t1
+        outputs:
+            - token: t2
+              vault-id: 0x01
+scenarios:
+    some-key:
+deployments:
+    some-key:
+        scenario: some-key
+        order: some-key
+---
+#calculate-io
+_ _: 16 52;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = local_evm.url(),
+            orderbook = orderbook.address(),
+            deployer = local_evm.deployer.address(),
+            token1 = token1.address(),
+            token2 = token2.address(),
+        );
+
+        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
+        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        AddOrderArgs::new_from_deployment(dotrain, deployment)
+            .await
+            .unwrap()
+            .simulate_execute(
+                TransactionArgs {
+                    // send the tx to random address
+                    orderbook_address: Address::random(),
+                    rpc_url: local_evm.url(),
+                    ..Default::default()
+                },
+                Some(token1_holder),
+            )
+            .await
+            .expect_err("expected to fail but resolved");
     }
 }
