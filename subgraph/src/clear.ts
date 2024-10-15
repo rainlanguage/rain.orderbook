@@ -13,14 +13,21 @@ import {
   store,
 } from "@graphprotocol/graph-ts";
 
-export function makeClearV2Id(event: ethereum.Event): Bytes {
+export function makeClearEventId(event: ethereum.Event): Bytes {
   return Bytes.fromByteArray(
     crypto.keccak256(event.address.concat(event.transaction.hash))
   );
 }
 
-export function getOrderHash(value: ethereum.Value): Bytes {
-  return Bytes.fromByteArray(crypto.keccak256(ethereum.encode(value)!));
+export function getOrdersHash(event: ClearV2): Bytes[] {
+  return [
+    Bytes.fromByteArray(
+      crypto.keccak256(ethereum.encode(event.parameters[1].value)!)
+    ),
+    Bytes.fromByteArray(
+      crypto.keccak256(ethereum.encode(event.parameters[2].value)!)
+    ),
+  ];
 }
 
 export function makeClearBountyId(
@@ -195,10 +202,11 @@ export function handleClearBounty(
 }
 
 export function handleClear(event: ClearV2): void {
-  let clearTemporaryData = new ClearTemporaryData(makeClearV2Id(event));
+  let clearTemporaryData = new ClearTemporaryData(makeClearEventId(event));
 
-  let aliceOrderHash = getOrderHash(event.parameters[1].value);
-  let bobOrderHash = getOrderHash(event.parameters[2].value);
+  let hashes = getOrdersHash(event);
+  let aliceOrderHash = hashes[0];
+  let bobOrderHash = hashes[1];
 
   let aliceInput =
     event.params.alice.validInputs[
@@ -240,7 +248,7 @@ export function handleClear(event: ClearV2): void {
 }
 
 export function handleAfterClear(event: AfterClear): void {
-  let clearTemporaryData = ClearTemporaryData.load(makeClearV2Id(event));
+  let clearTemporaryData = ClearTemporaryData.load(makeClearEventId(event));
   if (clearTemporaryData) {
     // alice
     createTrade(
