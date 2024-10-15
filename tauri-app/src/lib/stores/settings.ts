@@ -150,6 +150,22 @@ settings.subscribe(async () => {
   ) {
     resetActiveOrderbookRef();
   }
+
+  // Reset active account items if accounts have changed
+  if ($settings?.accounts === undefined) {
+    activeAccountsItems.set({});
+  } else {
+    const currentActiveAccounts = get(activeAccountsItems);
+    const updatedActiveAccounts = Object.fromEntries(
+      Object.entries($settings.accounts ?? {}).filter(([key, value]) => {
+        if (key in currentActiveAccounts) {
+          return currentActiveAccounts[key] === value;
+        }
+        return false;
+      }),
+    );
+    activeAccountsItems.set(updatedActiveAccounts);
+  }
 });
 
 // When active network is updated to undefined, reset active orderbook
