@@ -17,9 +17,8 @@
 
   export let id: string;
 
-  const now = Math.floor(new Date().getTime() / 1000);
-  let startTimestamp: number | undefined = now - 60 * 60 * 24;
-  let endTimestamp: number | undefined = now;
+  let startTimestamp: number | undefined;
+  let endTimestamp: number | undefined;
   let tradesCount: number | undefined;
 
   $: orderTradesQuery = createInfiniteQuery({

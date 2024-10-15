@@ -1,6 +1,6 @@
 specVersion: "0.0.4"
 schema:
-  file: "./schema.graphql"
+  file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: OrderBook
@@ -11,7 +11,7 @@ dataSources:
       startBlock: 0
     mapping:
       kind: ethereum/events
-      apiVersion: "0.0.7"
+      apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
         - Deposit
@@ -19,10 +19,9 @@ dataSources:
         - Transaction
       abis:
         - name: OrderBook
-          file: "../out/OrderBook.sol/OrderBook.json"
+          file: ../out/OrderBook.sol/OrderBook.json
         - name: ERC20
-          file: "../out/ERC20.sol/ERC20.json"
-
+          file: ../out/ERC20.sol/ERC20.json
       eventHandlers:
         - event: Deposit(address,address,uint256,uint256)
           handler: handleDeposit
@@ -36,4 +35,8 @@ dataSources:
           handler: handleTakeOrder
         - event: MetaV1_2(address,bytes32,bytes)
           handler: handleMeta
-      file: "./src/handlers.ts"
+        - event: ClearV2(address,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32),(uint256,uint256,uint256,uint256,uint256,uint256))
+          handler: handleClear
+        - event: AfterClear(address,(uint256,uint256,uint256,uint256))
+          handler: handleAfterClear
+      file: ./src/handlers.ts

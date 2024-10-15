@@ -144,7 +144,11 @@ pub struct Vault {
     pub balance: BigInt,
     pub token: Erc20,
     pub orderbook: Orderbook,
+    // latest orders
+    #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_output: Vec<OrderAsIO>,
+    // latest orders
+    #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_input: Vec<OrderAsIO>,
     pub balance_changes: Vec<VaultBalanceChange>,
 }
@@ -181,6 +185,7 @@ pub enum VaultBalanceChange {
     Withdrawal(Withdrawal),
     TradeVaultBalanceChange(TradeVaultBalanceChange),
     Deposit(Deposit),
+    ClearBounty(ClearBounty),
     #[cynic(fallback)]
     Unknown,
 }
@@ -228,6 +233,22 @@ pub struct TradeVaultBalanceChange {
     pub timestamp: BigInt,
     pub transaction: Transaction,
     pub orderbook: Orderbook,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
+#[serde(rename_all = "camelCase")]
+pub struct ClearBounty {
+    pub id: Bytes,
+    pub __typename: String,
+    pub amount: BigInt,
+    pub new_vault_balance: BigInt,
+    pub old_vault_balance: BigInt,
+    pub vault: VaultBalanceChangeVault,
+    pub timestamp: BigInt,
+    pub transaction: Transaction,
+    pub orderbook: Orderbook,
+    pub sender: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]

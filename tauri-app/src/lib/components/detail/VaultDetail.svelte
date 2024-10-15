@@ -112,7 +112,7 @@
             {#each data.ordersAsInput as order}
               <Button
                 class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-                color="light"
+                color={order.active ? 'green' : 'yellow'}
                 data-order={order.id}
                 data-testid={'vaultDetailOrderAsInputOrder' + order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
@@ -135,7 +135,7 @@
             {#each data.ordersAsOutput as order}
               <Button
                 class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-                color="alternative"
+                color={order.active ? 'green' : 'yellow'}
                 data-order={order.id}
                 data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
                 on:click={() => goto(`/orders/${order.id}`)}

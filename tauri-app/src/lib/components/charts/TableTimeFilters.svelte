@@ -6,14 +6,14 @@
   const TIME_DELTA_48_HOURS = TIME_DELTA_24_HOURS * 2;
 
   let now = Math.floor(new Date().getTime() / 1000);
-  let timeDelta: number | undefined = TIME_DELTA_24_HOURS;
+  let timeDelta: number | undefined;
 
   function setNow() {
     now = Math.floor(new Date().getTime() / 1000);
   }
 
-  export let startTimestamp: number | undefined = now - TIME_DELTA_24_HOURS;
-  export let endTimestamp: number | undefined = now;
+  export let startTimestamp: number | undefined;
+  export let endTimestamp: number | undefined;
 </script>
 
 <ButtonGroup class="bg-gray-800" data-testid="lightweightChartYearButtons">

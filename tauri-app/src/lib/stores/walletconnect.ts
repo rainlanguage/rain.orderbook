@@ -63,7 +63,7 @@ Provider.init({
     reportErrorToSentry(e);
   });
 
-export async function walletconnectConnect() {
+export async function walletconnectConnect(priorityChainIds: number[]) {
   if (!walletconnectProvider?.accounts?.length) {
     walletconnectIsConnecting.set(true);
     const rpcMap: Record<string, string> = {};
@@ -78,7 +78,7 @@ export async function walletconnectConnect() {
       }
       try {
         await walletconnectProvider?.connect({
-          optionalChains: chains,
+          optionalChains: [...new Set([...priorityChainIds, ...chains])],
           rpcMap,
         });
       } catch (e) {

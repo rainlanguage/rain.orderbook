@@ -80,7 +80,7 @@
       </ButtonLoading>
     </div>
   {:else if selectedWalletconnect || $walletconnectAccount}
-    <InputWalletConnect />
+    <InputWalletConnect priorityChainIds={chainId ? [chainId] : []} />
     <div
       class={!$walletconnectAccount
         ? 'flex items-center justify-between space-x-4'

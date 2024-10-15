@@ -3,17 +3,13 @@ import { AddOrderV2, RemoveOrderV2 } from "../generated/OrderBook/OrderBook";
 import { AddOrder, Order, RemoveOrder } from "../generated/schema";
 import { getVault } from "./vault";
 import { eventId } from "./interfaces/event";
-import { createTransactionEntity } from "./transaction";
-import { createOrderbookEntity } from "./orderbook";
 
 export function handleAddOrder(event: AddOrderV2): void {
-  createOrderbookEntity(event);
   createOrderEntity(event);
   createAddOrderEntity(event);
 }
 
 export function handleRemoveOrder(event: RemoveOrderV2): void {
-  createOrderbookEntity(event);
   let order = Order.load(makeOrderId(event.address, event.params.orderHash));
   if (order != null) {
     order.active = false;
@@ -65,21 +61,19 @@ export function createOrderEntity(event: AddOrderV2): void {
 }
 
 export function createAddOrderEntity(event: AddOrderV2): void {
-  let addOrder = new AddOrder(event.transaction.hash);
-  addOrder.id = eventId(event);
+  let addOrder = new AddOrder(eventId(event));
   addOrder.orderbook = event.address;
   addOrder.order = makeOrderId(event.address, event.params.orderHash);
   addOrder.sender = event.params.sender;
-  addOrder.transaction = createTransactionEntity(event);
+  addOrder.transaction = event.transaction.hash;
   addOrder.save();
 }
 
 export function createRemoveOrderEntity(event: RemoveOrderV2): void {
-  let removeOrder = new RemoveOrder(event.transaction.hash);
-  removeOrder.id = eventId(event);
+  let removeOrder = new RemoveOrder(eventId(event));
   removeOrder.orderbook = event.address;
   removeOrder.order = makeOrderId(event.address, event.params.orderHash);
   removeOrder.sender = event.params.sender;
-  removeOrder.transaction = createTransactionEntity(event);
+  removeOrder.transaction = event.transaction.hash;
   removeOrder.save();
 }
