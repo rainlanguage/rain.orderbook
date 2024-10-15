@@ -6,15 +6,16 @@ import TableTimeFiltersTest from './TableTimeFilters.test.svelte';
 const TIME_DELTA_24_HOURS = 60 * 60 * 24;
 const TIME_DELTA_48_HOURS = TIME_DELTA_24_HOURS * 2;
 
-test('initial start/end time difference is set to 1 day', async () => {
+test('initial start/end time difference is set to all time', async () => {
   const startTimeStore = writable<number | undefined>();
   const endTimeStore = writable<number | undefined>();
 
   render(TableTimeFiltersTest, { startTimeStore, endTimeStore });
 
   const twentyFourHoursButton = screen.getByText('24 Hours');
-  expect(twentyFourHoursButton).toBeDisabled();
-  expect(get(endTimeStore)! - get(startTimeStore)!).toBe(TIME_DELTA_24_HOURS);
+  expect(twentyFourHoursButton).toBeEnabled();
+  expect(get(endTimeStore)).toBe(undefined);
+  expect(get(startTimeStore)).toBe(undefined);
 });
 
 test('clicking All Time button updates timeDelta', async () => {
