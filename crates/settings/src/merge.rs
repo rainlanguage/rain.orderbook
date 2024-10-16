@@ -39,6 +39,12 @@ pub enum MergeError {
 
     #[error("There is already a accounts called {0}")]
     AccountsCollision(String),
+
+    #[error("'gui' field must be an object")]
+    NonObjectGui,
+
+    #[error("There is already a field in gui called {0}")]
+    GuiCollision(String),
 }
 
 impl ConfigSource {
@@ -166,6 +172,29 @@ impl ConfigSource {
             _ => {}
         }
 
+        // gui
+        if let Some(other_gui) = other.gui {
+            if let Some(gui) = &mut self.gui {
+                if let Some(inner_gui) = gui.as_object_mut() {
+                    if let Some(other_inner_gui) = other_gui.as_object() {
+                        for (key, val) in other_inner_gui {
+                            if inner_gui.contains_key(key) {
+                                return Err(MergeError::GuiCollision(key.clone()));
+                            } else {
+                                inner_gui.insert(key.clone(), val.clone());
+                            }
+                        }
+                    } else {
+                        return Err(MergeError::NonObjectGui);
+                    }
+                } else {
+                    return Err(MergeError::NonObjectGui);
+                }
+            } else {
+                self.gui = Some(other_gui)
+            }
+        }
+
         Ok(())
     }
 }
@@ -286,12 +315,36 @@ impl Config {
             _ => {}
         }
 
+        // gui
+        if let Some(other_gui) = other.gui {
+            if let Some(gui) = &mut self.gui {
+                if let Some(inner_gui) = gui.as_object_mut() {
+                    if let Some(other_inner_gui) = other_gui.as_object() {
+                        for (key, val) in other_inner_gui {
+                            if inner_gui.contains_key(key) {
+                                return Err(MergeError::GuiCollision(key.clone()));
+                            } else {
+                                inner_gui.insert(key.clone(), val.clone());
+                            }
+                        }
+                    } else {
+                        return Err(MergeError::NonObjectGui);
+                    }
+                } else {
+                    return Err(MergeError::NonObjectGui);
+                }
+            } else {
+                self.gui = Some(other_gui)
+            }
+        }
+
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use url::Url;
 
     use super::*;
@@ -313,6 +366,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         let other = ConfigSource {
@@ -330,6 +384,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -352,6 +407,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         let mut other = ConfigSource {
@@ -369,6 +425,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         // Add a collision to cause an unsuccessful merge
@@ -405,6 +462,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         let mut other = ConfigSource {
@@ -422,6 +480,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         other.metaboards.insert(
@@ -437,5 +496,63 @@ mod tests {
             config.metaboards.get("metaboard1"),
             Some(&Url::parse("https://myurl").unwrap())
         );
+    }
+
+    #[test]
+    fn test_successful_merge_gui() {
+        let gui1 = json!({
+            "some-key": 1,
+        });
+        let gui2 = json!({
+            "some-other-key": {
+                "inner-key": "some-value",
+                "inner-other-key": true
+            },
+        });
+        let mut config = ConfigSource {
+            raindex_version: None,
+            using_networks_from: HashMap::new(),
+            subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
+            orderbooks: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
+            deployments: HashMap::new(),
+            sentry: None,
+            accounts: None,
+            gui: Some(gui1),
+        };
+
+        let other = ConfigSource {
+            raindex_version: None,
+            using_networks_from: HashMap::new(),
+            subgraphs: HashMap::new(),
+            metaboards: HashMap::new(),
+            orderbooks: HashMap::new(),
+            tokens: HashMap::new(),
+            deployers: HashMap::new(),
+            orders: HashMap::new(),
+            scenarios: HashMap::new(),
+            charts: HashMap::new(),
+            networks: HashMap::new(),
+            deployments: HashMap::new(),
+            sentry: None,
+            accounts: None,
+            gui: Some(gui2),
+        };
+
+        let expected = json!({
+            "some-key": 1,
+            "some-other-key": {
+                "inner-key": "some-value",
+                "inner-other-key": true
+            },
+        });
+        assert_eq!(config.merge(other), Ok(()));
+        assert_eq!(config.gui, Some(expected));
     }
 }

@@ -148,11 +148,11 @@
   async function executeLedger() {
     isSubmitting = true;
     try {
-      if (!deployment) throw Error('Select a deployment to add order');
+      if (!deployment || !deploymentRef) throw Error('Select a deployment to add order');
       if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
         throw Error('No orderbook associated with scenario');
 
-      await orderAdd($globalDotrainFile.text, deployment);
+      await orderAdd($globalDotrainFile.text, deployment, deploymentRef);
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -161,11 +161,15 @@
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
-      if (!deployment) throw Error('Select a deployment to add order');
+      if (!deployment || !deploymentRef) throw Error('Select a deployment to add order');
       if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
         throw Error('No orderbook associated with scenario');
 
-      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
+      const calldata = (await orderAddCalldata(
+        $globalDotrainFile.text,
+        deployment,
+        deploymentRef,
+      )) as Uint8Array;
       const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
