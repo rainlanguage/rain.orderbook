@@ -279,7 +279,9 @@
       </Tabs>
     {/if}
   </TabItem>
-  <TabItem title="Debug"><ScenarioDebugTable {chartData} /></TabItem>
+  <TabItem title="Debug">
+    <ScenarioDebugTable />
+  </TabItem>
   <TabItem title="Charts">
     <Charts {chartData} />
   </TabItem>
