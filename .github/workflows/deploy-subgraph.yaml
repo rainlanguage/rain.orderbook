@@ -2,10 +2,6 @@ name: Deploy subgraph
 on:
   workflow_dispatch:
     inputs:
-      subgraph-name:
-        description: 'Subgraph to deploy (e.g. ob4-mainnet/0.1)'
-        required: true
-        type: string
       network:
         description: 'Network to deploy to'
         required: true
@@ -47,5 +43,6 @@ jobs:
 
       # Check if the repo is clean before deploying.
       - run: git diff --exit-code -- . ':(exclude)subgraph/subgraph.yaml'
-      - run: nix develop -c goldsky subgraph deploy ${{ inputs.subgraph-name }}
+      - run: >
+          nix develop -c goldsky subgraph deploy "ob4-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
         working-directory: subgraph

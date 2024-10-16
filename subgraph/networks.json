@@ -11,6 +11,12 @@
             "startBlock": 19033330
         }
     },
+    "bsc": {
+        "OrderBook": {
+            "address": "0xd2938E7c9fe3597F78832CE780Feb61945c377d7",
+            "startBlock": 42510318
+        }
+    },
     "arbitrum-one": {
         "OrderBook": {
             "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
@@ -19,8 +25,14 @@
     },
     "matic": {
         "OrderBook": {
-            "address": "0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6",
-            "startBlock": 54697866
+            "address": "0x7D2f700b1f6FD75734824EA4578960747bdF269A",
+            "startBlock": 62036116
+        }
+    },
+    "linea": {
+        "OrderBook": {
+            "address": "0x22410e2a46261a1B1e3899a072f303022801C764",
+            "startBlock": 10147523
         }
     }
 }
