@@ -137,7 +137,7 @@ impl TestRunner {
         final_bindings
     }
 
-    async fn run_pre_entrypoint(&mut self) -> Result<Vec<U256>, TestRunnerError> {
+    async fn run_pre_entrypoint(&mut self) -> Result<RainEvalResults, TestRunnerError> {
         let final_bindings = self.get_final_bindings(true);
 
         let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
@@ -166,18 +166,16 @@ impl TestRunner {
                 .await
         });
 
-        let result: RainEvalResults = vec![handle.await??.into()].into();
-        let flattened = result.into_flattened_table()?;
-        Ok(flattened.rows[0].clone())
+        Ok(vec![handle.await??.into()].into())
     }
 
     async fn run_calculate_entrypoint(
         &mut self,
-        pre_stack: Vec<U256>,
+        pre_stack: RainEvalResults,
     ) -> Result<RainEvalResults, TestRunnerError> {
-        let input_token = pre_stack[0];
-        let output_token = pre_stack[1];
-        let output_cap = pre_stack[2];
+        let input_token = pre_stack.results[0].stack[2];
+        let output_token = pre_stack.results[0].stack[1];
+        let output_cap = pre_stack.results[0].stack[0];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -219,16 +217,17 @@ impl TestRunner {
                 .await
         });
 
-        let result: RainEvalResults = vec![handle.await??.into()].into();
-        Ok(result)
+        Ok(vec![handle.await??.into()].into())
     }
 
     async fn run_handle_entrypoint(
         &mut self,
+        pre_stack: RainEvalResults,
         calculate_stack: RainEvalResults,
     ) -> Result<RainEvalResults, TestRunnerError> {
-        let _io_ratio = calculate_stack.results[0].stack[0];
+        let output_cap = pre_stack.results[0].stack[0];
         let max_output = calculate_stack.results[0].stack[1];
+        let _io_ratio = calculate_stack.results[0].stack[0];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -247,7 +246,7 @@ impl TestRunner {
             let mut context = vec![vec![U256::from(0); 5]; 5];
 
             // output vault decrease
-            context[4][4] = max_output;
+            context[4][4] = U256::min(max_output, output_cap);
 
             let args = ForkEvalArgs {
                 rainlang_string,
@@ -263,8 +262,7 @@ impl TestRunner {
                 .await
         });
 
-        let result: RainEvalResults = vec![handle.await??.into()].into();
-        Ok(result)
+        Ok(vec![handle.await??.into()].into())
     }
 
     async fn run_post_entrypoint(
@@ -305,8 +303,7 @@ impl TestRunner {
                 .await
         });
 
-        let result: RainEvalResults = vec![handle.await??.into()].into();
-        Ok(result)
+        Ok(vec![handle.await??.into()].into())
     }
 
     pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
@@ -347,9 +344,11 @@ impl TestRunner {
             )
             .await?;
 
-        let pre_stack: Vec<U256> = self.run_pre_entrypoint().await?;
-        let calculate_stack = self.run_calculate_entrypoint(pre_stack).await?;
-        let handle_stack = self.run_handle_entrypoint(calculate_stack.clone()).await?;
+        let pre_stack = self.run_pre_entrypoint().await?;
+        let calculate_stack = self.run_calculate_entrypoint(pre_stack.clone()).await?;
+        let handle_stack = self
+            .run_handle_entrypoint(pre_stack, calculate_stack.clone())
+            .await?;
         let results = self
             .run_post_entrypoint(calculate_stack, handle_stack)
             .await?;
