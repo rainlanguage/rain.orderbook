@@ -43,7 +43,7 @@ describe('ModalExecute', () => {
 
       const errorElement = screen.getByTestId('network-connection-error');
       expect(errorElement).toHaveTextContent(
-        'You are connected to unknown network. Please connect your wallet to test network.',
+        'You are connected to an unknown network. Please connect your wallet to test network.',
       );
     });
 

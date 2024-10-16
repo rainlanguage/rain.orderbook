@@ -42,7 +42,7 @@
       return existingNetwork[0];
     }
 
-    return 'unknown';
+    return 'an unknown';
   };
 </script>
 
