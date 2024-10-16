@@ -70,6 +70,7 @@ mod tests {
             deployer: mock_deployer(),
             runs: None,
             blocks: None,
+            entrypoint: None,
         };
         let order = Order {
             inputs: vec![],
@@ -99,6 +100,7 @@ mod tests {
             deployer: mock_deployer(),
             runs: None,
             blocks: None,
+            entrypoint: None,
         };
         let order = Order {
             inputs: vec![],
