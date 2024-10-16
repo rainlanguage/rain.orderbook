@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, U256};
+use alloy::primitives::U256;
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
@@ -14,11 +14,10 @@ use rain_interpreter_eval::{
     trace::{RainEvalResultError, RainEvalResults},
 };
 use rain_orderbook_app_settings::{
-    blocks::BlockError, config::*, deployer::Deployer, network::Network, unit_test::TestConfig,
+    blocks::BlockError, config::*, deployer::Deployer, unit_test::TestConfig,
 };
 use std::sync::Arc;
 use thiserror::Error;
-use url::Url;
 
 #[derive(Clone)]
 pub struct TestRunner {
@@ -87,18 +86,7 @@ impl TestRunner {
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
             test_setup: TestSetup {
                 block_number: 0,
-                deployer: Arc::new(Deployer {
-                    address: Address::default(),
-                    network: Arc::new(Network {
-                        name: String::from("").clone(),
-                        rpc: Url::parse("http://rpc.com").unwrap(),
-                        chain_id: 1,
-                        label: None,
-                        network_id: None,
-                        currency: None,
-                    }),
-                    label: None,
-                }),
+                deployer: Arc::new(Deployer::dummy()),
                 scenario_name: String::new(),
             },
         }
@@ -179,7 +167,7 @@ impl TestRunner {
         });
 
         let result: RainEvalResults = vec![handle.await??.into()].into();
-        let flattened = result.into_flattened_table().unwrap();
+        let flattened = result.into_flattened_table()?;
         Ok(flattened.rows[0].clone())
     }
 
@@ -190,7 +178,6 @@ impl TestRunner {
         let input_token = pre_stack[0];
         let output_token = pre_stack[1];
         let output_cap = pre_stack[2];
-        // let block_number = pre_stack[3];
 
         let final_bindings = self.get_final_bindings(false);
 
@@ -328,7 +315,9 @@ impl TestRunner {
             .main_config
             .deployers
             .get(&self.settings.test_config.scenario_name)
-            .unwrap()
+            .ok_or(TestRunnerError::ScenarioNotFound(
+                self.settings.test_config.scenario_name.clone(),
+            ))?
             .clone();
 
         // Fetch the latest block number
@@ -410,12 +399,16 @@ test:
             second-binding: 999
 ---
 #pre
-input-token: 0x0165878a594ca255338adfa4d48449f69242eb8f,
-output-token: 0xa513e6e4b8f2a923d98304ec87f64353c4d5c853,
-output-cap: 10,
-block-number: 100;
+input-token: 0x01,
+output-token: 0x02,
+output-cap: 10;
 #post
+/* calculate io stack */
 :ensure(equal-to(context<0 0>() 999) "io ratio should be 999"),
+:ensure(equal-to(context<0 1>() 10) "max output should be 10"),
+:ensure(equal-to(context<0 2>() 0x02) "output token should be 0x02"),
+:ensure(equal-to(context<0 3>() 0x01) "input token should be 0x01"),
+/* handle io stack */
 :ensure(equal-to(context<1 0>() 10) "output cap should be 10");
     "#,
             orderbook_subparser = local_evm.orderbook_subparser.address()
