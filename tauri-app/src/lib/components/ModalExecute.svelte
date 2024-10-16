@@ -32,6 +32,18 @@
       selectedWalletconnect = false;
     }
   }
+
+  const getNetworkName = (chainId: number) => {
+    const existingNetwork = Object.entries($settings?.networks || {}).find(
+      (entry) => entry[1]['chain-id'] === chainId,
+    );
+
+    if (existingNetwork) {
+      return existingNetwork[0];
+    }
+
+    return 'unknown';
+  };
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
@@ -99,10 +111,8 @@
       </ButtonLoading>
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500">
-          You are connected to {Object.entries($settings?.networks || {}).find(
-            (entry) => entry[1]['chain-id'] === $walletConnectNetwork,
-          )?.[0] || 'unknown'} network. Please connect your wallet to {overrideNetwork?.name ||
-            $activeNetworkRef} network.
+          You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
+          to {overrideNetwork?.name || $activeNetworkRef} network.
         </div>
       {/if}
     </div>
