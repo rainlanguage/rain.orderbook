@@ -26,6 +26,8 @@ export function createEmptyVault(
   vault.token = getERC20Entity(token);
   vault.owner = owner;
   vault.balance = BigInt.fromI32(0);
+  vault.totalVolumeIn = BigInt.fromI32(0);
+  vault.totalVolumeOut = BigInt.fromI32(0);
   vault.save();
   return vault;
 }
@@ -53,6 +55,30 @@ export function handleVaultBalanceChange(
   let vault = getVault(orderbook, owner, vaultId, token);
   let oldVaultBalance = vault.balance;
   vault.balance = vault.balance.plus(amount);
+  vault.save();
+  return oldVaultBalance;
+}
+
+export function handleTradeVaultBalanceChange(
+  orderbook: Bytes,
+  vaultId: BigInt,
+  token: Bytes,
+  amount: BigInt,
+  owner: Bytes
+): BigInt {
+  let oldVaultBalance = handleVaultBalanceChange(
+    orderbook,
+    vaultId,
+    token,
+    amount,
+    owner
+  );
+  let vault = getVault(orderbook, owner, vaultId, token);
+  if (amount.lt(BigInt.fromI32(0))) {
+    vault.totalVolumeOut = vault.totalVolumeOut.plus(amount.neg());
+  } else {
+    vault.totalVolumeIn = vault.totalVolumeIn.plus(amount);
+  }
   vault.save();
   return oldVaultBalance;
 }

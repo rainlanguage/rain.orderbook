@@ -46,6 +46,9 @@ query VaultDetailQuery($id: ID!) {
             symbol
             decimals
           }
+          balance
+          totalVolumeIn
+          totalVolumeOut
         }
         timestamp
         transaction {
@@ -74,6 +77,9 @@ query VaultDetailQuery($id: ID!) {
             symbol
             decimals
           }
+          balance
+          totalVolumeIn
+          totalVolumeOut
         }
         timestamp
         transaction {
@@ -102,6 +108,9 @@ query VaultDetailQuery($id: ID!) {
             symbol
             decimals
           }
+          balance
+          totalVolumeIn
+          totalVolumeOut
         }
         timestamp
         transaction {
@@ -130,6 +139,9 @@ query VaultDetailQuery($id: ID!) {
             symbol
             decimals
           }
+          balance
+          totalVolumeIn
+          totalVolumeOut
         }
         timestamp
         transaction {
@@ -144,5 +156,7 @@ query VaultDetailQuery($id: ID!) {
         sender
       }
     }
+    totalVolumeIn
+    totalVolumeOut
   }
 }

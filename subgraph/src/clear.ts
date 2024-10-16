@@ -3,7 +3,11 @@ import { Clear, ClearBounty, ClearTemporaryData } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { createTradeEntity } from "./trade";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
-import { handleVaultBalanceChange, vaultEntityId } from "./vault";
+import {
+  vaultEntityId,
+  handleVaultBalanceChange,
+  handleTradeVaultBalanceChange,
+} from "./vault";
 import { log } from "@graphprotocol/graph-ts";
 import {
   BigInt,
@@ -50,7 +54,7 @@ export function createTrade(
   outputVaultId: BigInt,
   outputAmount: BigInt
 ): void {
-  let oldInputVaultBalance = handleVaultBalanceChange(
+  let oldInputVaultBalance = handleTradeVaultBalanceChange(
     event.address,
     inputVaultId,
     inputToken,
@@ -65,7 +69,7 @@ export function createTrade(
     inputAmount
   );
 
-  let oldOutputVaultBalance = handleVaultBalanceChange(
+  let oldOutputVaultBalance = handleTradeVaultBalanceChange(
     event.address,
     outputVaultId,
     outputToken,

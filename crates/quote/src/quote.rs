@@ -321,6 +321,8 @@ mod tests {
                     "orderHash": encode_prefixed(B256::random()),
                     "active": true
                 }],
+                "totalVolumeIn": "1",
+                "totalVolumeOut": "1",
                 "balanceChanges": [{
                     "__typename": "Withdrawal",
                     "id": encode_prefixed(B256::random()),
@@ -330,6 +332,9 @@ mod tests {
                     "vault": {
                         "id": encode_prefixed(B256::random()),
                         "vaultId": encode_prefixed(B256::random()),
+                        "totalVolumeIn": "1",
+                        "totalVolumeOut": "1",
+                        "balance": "1",
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
@@ -371,6 +376,8 @@ mod tests {
                     "orderHash": encode_prefixed(B256::random()),
                     "active": true
                 }],
+                "totalVolumeIn": "1",
+                "totalVolumeOut": "1",
                 "balanceChanges": [{
                     "__typename": "Withdrawal",
                     "id": encode_prefixed(B256::random()),
@@ -380,6 +387,9 @@ mod tests {
                     "vault": {
                         "id": encode_prefixed(B256::random()),
                         "vaultId": encode_prefixed(B256::random()),
+                        "totalVolumeIn": "1",
+                        "totalVolumeOut": "1",
+                        "balance": "1",
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),

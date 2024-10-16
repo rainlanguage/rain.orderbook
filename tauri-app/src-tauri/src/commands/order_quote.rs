@@ -434,6 +434,8 @@ amount price: context<3 0>() context<4 0>();
             orders_as_input: vec![],
             orders_as_output: vec![],
             balance_changes: vec![],
+            total_volume_in: BigInt("123".to_string()),
+            total_volume_out: BigInt("123".to_string()),
         };
         let vault2 = Vault {
             id: Bytes(B256::random().to_string()),
@@ -453,6 +455,8 @@ amount price: context<3 0>() context<4 0>();
             orders_as_input: vec![],
             orders_as_output: vec![],
             balance_changes: vec![],
+            total_volume_in: BigInt("123".to_string()),
+            total_volume_out: BigInt("123".to_string()),
         };
 
         // does not follow the actual original order's io order

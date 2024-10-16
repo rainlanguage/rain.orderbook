@@ -30,6 +30,9 @@ query OrderTradeDetailQuery($id: ID!) {
           symbol
           decimals
         }
+        balance
+        totalVolumeIn
+        totalVolumeOut
       }
       timestamp
       transaction {
@@ -62,6 +65,9 @@ query OrderTradeDetailQuery($id: ID!) {
           symbol
           decimals
         }
+        balance
+        totalVolumeIn
+        totalVolumeOut
       }
       timestamp
       transaction {

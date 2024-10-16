@@ -51,6 +51,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -79,6 +82,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -107,6 +113,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -135,6 +144,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -149,6 +161,8 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           sender
         }
       }
+      totalVolumeIn
+      totalVolumeOut
     }
     inputs {
       id
@@ -193,6 +207,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -221,6 +238,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -249,6 +269,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -277,6 +300,9 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
               symbol
               decimals
             }
+            balance
+            totalVolumeIn
+            totalVolumeOut
           }
           timestamp
           transaction {
@@ -291,6 +317,8 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           sender
         }
       }
+      totalVolumeIn
+      totalVolumeOut
     }
     orderbook {
       id

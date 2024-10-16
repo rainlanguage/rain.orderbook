@@ -368,6 +368,8 @@ enum ClearBounty_orderBy {
   vault__owner
   vault__vaultId
   vault__balance
+  vault__totalVolumeIn
+  vault__totalVolumeOut
   amount
   oldVaultBalance
   newVaultBalance
@@ -917,6 +919,8 @@ enum Deposit_orderBy {
   vault__owner
   vault__vaultId
   vault__balance
+  vault__totalVolumeIn
+  vault__totalVolumeOut
   amount
   oldVaultBalance
   newVaultBalance
@@ -3032,6 +3036,8 @@ enum TradeVaultBalanceChange_orderBy {
   vault__owner
   vault__vaultId
   vault__balance
+  vault__totalVolumeIn
+  vault__totalVolumeOut
   amount
   oldVaultBalance
   newVaultBalance
@@ -3326,6 +3332,14 @@ type Vault {
     orderDirection: OrderDirection
     where: VaultBalanceChange_filter
   ): [VaultBalanceChange!]!
+  """
+  All time vault total volume in, includes only trades volumes
+  """
+  totalVolumeIn: BigInt!
+  """
+  All time vault total volume out, includes only trades volumes
+  """
+  totalVolumeOut: BigInt!
 }
 
 interface VaultBalanceChange {
@@ -3471,6 +3485,8 @@ enum VaultBalanceChange_orderBy {
   vault__owner
   vault__vaultId
   vault__balance
+  vault__totalVolumeIn
+  vault__totalVolumeOut
   amount
   oldVaultBalance
   newVaultBalance
@@ -3564,6 +3580,22 @@ input Vault_filter {
   balance_in: [BigInt!]
   balance_not_in: [BigInt!]
   balanceChanges_: VaultBalanceChange_filter
+  totalVolumeIn: BigInt
+  totalVolumeIn_not: BigInt
+  totalVolumeIn_gt: BigInt
+  totalVolumeIn_lt: BigInt
+  totalVolumeIn_gte: BigInt
+  totalVolumeIn_lte: BigInt
+  totalVolumeIn_in: [BigInt!]
+  totalVolumeIn_not_in: [BigInt!]
+  totalVolumeOut: BigInt
+  totalVolumeOut_not: BigInt
+  totalVolumeOut_gt: BigInt
+  totalVolumeOut_lt: BigInt
+  totalVolumeOut_gte: BigInt
+  totalVolumeOut_lte: BigInt
+  totalVolumeOut_in: [BigInt!]
+  totalVolumeOut_not_in: [BigInt!]
   """
   Filter for the block changed event.
   """
@@ -3588,6 +3620,8 @@ enum Vault_orderBy {
   ordersAsOutput
   balance
   balanceChanges
+  totalVolumeIn
+  totalVolumeOut
 }
 
 type Withdrawal implements Event & VaultBalanceChange {
@@ -3763,6 +3797,8 @@ enum Withdrawal_orderBy {
   vault__owner
   vault__vaultId
   vault__balance
+  vault__totalVolumeIn
+  vault__totalVolumeOut
   amount
   oldVaultBalance
   newVaultBalance

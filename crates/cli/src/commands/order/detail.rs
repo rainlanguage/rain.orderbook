@@ -103,7 +103,9 @@ mod tests {
                         "owner": encode_prefixed(order.owner),
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
-                        "balanceChanges": []
+                        "balanceChanges": [],
+                        "totalVolumeIn": "1",
+                        "totalVolumeOut": "1",
                     }],
                     "inputs": [{
                         "id": encode_prefixed(B256::random()),
@@ -120,7 +122,9 @@ mod tests {
                         "owner": encode_prefixed(order.owner),
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
-                        "balanceChanges": []
+                        "balanceChanges": [],
+                        "totalVolumeIn": "1",
+                        "totalVolumeOut": "1",
                     }],
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
