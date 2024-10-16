@@ -45,6 +45,7 @@ const mockVaultsVol: VaultVolume[] = [
     totalIn: '1',
     totalOut: '2',
     totalVol: '3',
+    netVol: '-1',
   },
   {
     id: '2',
@@ -58,6 +59,7 @@ const mockVaultsVol: VaultVolume[] = [
     totalIn: '2',
     totalOut: '5',
     totalVol: '7',
+    netVol: '-3',
   },
 ];
 
@@ -97,6 +99,20 @@ test('renders table with correct data', async () => {
     for (let i = 0; i < mockVaultsVol.length; i++) {
       const display = formatUnits(
         BigInt(mockVaultsVol[i].totalOut),
+        Number(mockVaultsVol[i].token.decimals),
+      );
+      expect(rows[i]).toHaveTextContent(display.toString());
+    }
+  });
+
+  await waitFor(async () => {
+    // get net vols
+    const rows = screen.getAllByTestId('net-vol');
+
+    // checking the net vols
+    for (let i = 0; i < mockVaultsVol.length; i++) {
+      const display = formatUnits(
+        BigInt(mockVaultsVol[i].netVol),
         Number(mockVaultsVol[i].token.decimals),
       );
       expect(rows[i]).toHaveTextContent(display.toString());
