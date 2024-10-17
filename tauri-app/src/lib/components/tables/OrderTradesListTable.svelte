@@ -23,15 +23,19 @@
 
   $: orderTradesQuery = createInfiniteQuery({
     queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
-    queryFn: ({ pageParam }: { pageParam: number }) => {
-      return orderTradesList(
-        id,
-        $subgraphUrl || '',
-        pageParam,
-        undefined,
-        startTimestamp,
-        endTimestamp,
-      );
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
+      tradesCount = undefined;
+
+      const [count, trades] = await Promise.all([
+        orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp),
+        orderTradesList(id, $subgraphUrl || '', pageParam, undefined, startTimestamp, endTimestamp),
+      ]);
+
+      if (typeof count === 'number') {
+        tradesCount = count;
+      }
+
+      return trades;
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
@@ -39,11 +43,6 @@
     },
     enabled: !!$subgraphUrl,
   });
-
-  $: $orderTradesQuery.isFetching || $orderTradesQuery.isLoading,
-    orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp)
-      .then((v) => (typeof v === 'number' ? (tradesCount = v) : (tradesCount = undefined)))
-      .catch(() => (tradesCount = undefined));
 </script>
 
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
