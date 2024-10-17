@@ -151,8 +151,6 @@ pub struct Vault {
     #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_input: Vec<OrderAsIO>,
     pub balance_changes: Vec<VaultBalanceChange>,
-    pub total_volume_in: BigInt,
-    pub total_volume_out: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -162,9 +160,6 @@ pub struct VaultBalanceChangeVault {
     pub id: Bytes,
     pub vault_id: BigInt,
     pub token: Erc20,
-    pub balance: BigInt,
-    pub total_volume_in: BigInt,
-    pub total_volume_out: BigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -501,8 +496,4 @@ pub enum VaultOrderBy {
     Balance,
     #[cynic(rename = "balanceChanges")]
     BalanceChanges,
-    #[cynic(rename = "totalVolumeIn")]
-    TotalVolumeIn,
-    #[cynic(rename = "totalVolumeOut")]
-    TotalVolumeOut,
 }

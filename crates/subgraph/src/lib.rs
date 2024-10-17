@@ -1,4 +1,3 @@
-pub mod apy;
 mod cynic_client;
 mod orderbook_client;
 mod pagination;

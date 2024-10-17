@@ -178,9 +178,6 @@ mod tests {
                     "vault": {
                         "id": encode_prefixed(B256::random()),
                         "vaultId": encode_prefixed(B256::random()),
-                        "totalVolumeIn": "1",
-                        "totalVolumeOut": "1",
-                        "balance": "1",
                         "token": {
                             "name": "T1",
                             "symbol": "T1",

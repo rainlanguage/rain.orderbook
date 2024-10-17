@@ -6,7 +6,7 @@ use crate::types::order::{
     OrdersListQuery,
 };
 use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
-use crate::types::vault::{VaultBalanceChangesByTimeListQuery, VaultDetailQuery, VaultsListQuery};
+use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use crate::vol::{get_vaults_vol, VaultVolume};
 use cynic::Id;
@@ -25,10 +25,6 @@ pub enum OrderbookSubgraphClientError {
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]
     ParseError(#[from] alloy::primitives::ruint::ParseError),
-    #[error(transparent)]
-    ParseNumError(#[from] std::num::ParseIntError),
-    #[error(transparent)]
-    BigintConversionError(#[from] alloy::primitives::BigIntConversionError),
 }
 
 pub struct OrderbookSubgraphClient {
@@ -341,48 +337,5 @@ impl OrderbookSubgraphClient {
             }
         }
         Ok(all_pages_merged)
-    }
-
-    /// Fetch end of first day vault balance change from a given string timestamp
-    pub async fn first_day_vault_balance_change(
-        &self,
-        id: cynic::Id,
-        start_timestamp: Option<u64>,
-    ) -> Result<Option<VaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
-        let day = 60 * 60 * 24;
-        let first_vault_change_data = self
-            .query::<VaultBalanceChangesByTimeListQuery, PaginationWithTimestampQueryVariables>(
-                PaginationWithTimestampQueryVariables {
-                    id: Bytes(id.inner().to_string()),
-                    first: Some(1),
-                    skip: None,
-                    timestamp_lte: None,
-                    timestamp_gte: Some(
-                        start_timestamp.map_or(BigInt("0".to_string()), |v| BigInt(v.to_string())),
-                    ),
-                },
-            )
-            .await?;
-
-        let first_vault_change_timestamp = first_vault_change_data
-            .vault_balance_changes
-            .first()
-            .ok_or(OrderbookSubgraphClientError::Empty)?
-            .timestamp
-            .0
-            .parse::<u64>()?;
-        let data = self
-            .query::<VaultBalanceChangesByTimeListQuery, PaginationWithTimestampQueryVariables>(
-                PaginationWithTimestampQueryVariables {
-                    id: Bytes(id.inner().to_string()),
-                    first: Some(1),
-                    skip: None,
-                    timestamp_lte: None,
-                    timestamp_gte: Some(BigInt((first_vault_change_timestamp + day).to_string())),
-                },
-            )
-            .await?;
-
-        Ok(data.vault_balance_changes.first().cloned())
     }
 }

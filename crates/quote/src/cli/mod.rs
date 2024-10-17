@@ -341,9 +341,7 @@ mod tests {
                         "orderbook": { "id": encode_prefixed(B256::random()) },
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
-                        "balanceChanges": [],
-                        "totalVolumeIn": "1",
-                        "totalVolumeOut": "1",
+                        "balanceChanges": []
                     }],
                     "inputs": [{
                         "id": encode_prefixed(Address::random().0.0),
@@ -360,9 +358,7 @@ mod tests {
                         "orderbook": { "id": encode_prefixed(B256::random()) },
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
-                        "balanceChanges": [],
-                        "totalVolumeIn": "1",
-                        "totalVolumeOut": "1",
+                        "balanceChanges": []
                     }],
                     "orderbook": { "id": encode_prefixed(B256::random()) },
                     "active": true,

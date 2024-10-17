@@ -2,7 +2,7 @@ import { Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { TakeOrderV2 } from "../generated/OrderBook/OrderBook";
 import { TakeOrder } from "../generated/schema";
 import { eventId } from "./interfaces/event";
-import { handleTradeVaultBalanceChange, vaultEntityId } from "./vault";
+import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { createTradeVaultBalanceChangeEntity } from "./tradevaultbalancechange";
 import { createTradeEntity } from "./trade";
 import { crypto } from "@graphprotocol/graph-ts";
@@ -22,7 +22,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   let orderOutput =
     order.validOutputs[event.params.config.outputIOIndex.toU32()];
 
-  let oldOutputVaultBalance = handleTradeVaultBalanceChange(
+  let oldOutputVaultBalance = handleVaultBalanceChange(
     event.address,
     orderOutput.vaultId,
     orderOutput.token,
@@ -47,7 +47,7 @@ export function handleTakeOrder(event: TakeOrderV2): void {
   // Credit the input vault
   let orderInput = order.validInputs[event.params.config.inputIOIndex.toU32()];
 
-  let oldInputVaultBalance = handleTradeVaultBalanceChange(
+  let oldInputVaultBalance = handleVaultBalanceChange(
     event.address,
     orderInput.vaultId,
     orderInput.token,

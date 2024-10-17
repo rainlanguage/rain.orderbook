@@ -6,11 +6,7 @@ import {
   afterEach,
   clearInBlockStore,
 } from "matchstick-as";
-import {
-  vaultEntityId,
-  handleVaultBalanceChange,
-  handleTradeVaultBalanceChange,
-} from "../src/vault";
+import { handleVaultBalanceChange, vaultEntityId } from "../src/vault";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import { createDepositEvent, createWithdrawEvent } from "./event-mocks.test";
 import { createMockERC20Functions } from "./erc20.test";
@@ -285,116 +281,5 @@ describe("Vault balance changes", () => {
     );
 
     assert.bigIntEquals(oldBalance, BigInt.fromI32(100));
-  });
-
-  test("handleTradeVaultBalanceChange()", () => {
-    createMockERC20Functions(
-      Address.fromString("0x1234567890123456789012345678901234567890")
-    );
-
-    let vaultId = vaultEntityId(
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321"),
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
-      Address.fromString("0x1234567890123456789012345678901234567890")
-    );
-
-    handleTradeVaultBalanceChange(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
-      Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(100),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
-    );
-
-    assert.entityCount("Vault", 1);
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "balance",
-      BigInt.fromI32(100).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "token",
-      "0x1234567890123456789012345678901234567890"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "owner",
-      "0x0987654321098765432109876543210987654321"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "balance",
-      BigInt.fromI32(100).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "totalVolumeIn",
-      BigInt.fromI32(100).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "totalVolumeOut",
-      BigInt.fromI32(0).toString()
-    );
-
-    handleTradeVaultBalanceChange(
-      Address.fromString("0x0987654321098765432109876543210987654321"),
-      BigInt.fromI32(1),
-      Bytes.fromHexString("0x1234567890123456789012345678901234567890"),
-      BigInt.fromI32(-50),
-      Bytes.fromHexString("0x0987654321098765432109876543210987654321")
-    );
-
-    assert.entityCount("Vault", 1);
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "balance",
-      BigInt.fromI32(50).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "token",
-      "0x1234567890123456789012345678901234567890"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "vaultId",
-      BigInt.fromI32(1).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "owner",
-      "0x0987654321098765432109876543210987654321"
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "totalVolumeIn",
-      BigInt.fromI32(100).toString()
-    );
-    assert.fieldEquals(
-      "Vault",
-      vaultId.toHexString(),
-      "totalVolumeOut",
-      BigInt.fromI32(50).toString()
-    );
   });
 });

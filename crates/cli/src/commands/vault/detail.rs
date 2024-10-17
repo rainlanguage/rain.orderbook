@@ -104,9 +104,7 @@ mod tests {
                     "orderbook": {
                         "id": encode_prefixed(B256::random()),
                     },
-                    "balanceChanges": [],
-                    "totalVolumeIn": "1",
-                    "totalVolumeOut": "1",
+                    "balanceChanges": []
                 }
             }
         })

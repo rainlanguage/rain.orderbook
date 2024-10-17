@@ -30,9 +30,6 @@ query OrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte: 
           symbol
           decimals
         }
-        balance
-        totalVolumeIn
-        totalVolumeOut
       }
       timestamp
       transaction {
@@ -65,9 +62,6 @@ query OrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte: 
           symbol
           decimals
         }
-        balance
-        totalVolumeIn
-        totalVolumeOut
       }
       timestamp
       transaction {

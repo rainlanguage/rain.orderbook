@@ -18,9 +18,6 @@ query VaultBalanceChangesListQuery($first: Int, $id: Bytes!, $skip: Int) {
         symbol
         decimals
       }
-      balance
-      totalVolumeIn
-      totalVolumeOut
     }
     timestamp
     transaction {

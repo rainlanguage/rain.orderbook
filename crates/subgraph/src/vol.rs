@@ -8,20 +8,16 @@ use typeshare::typeshare;
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct VaultVolume {
-    pub id: String,
-    pub token: Erc20,
+    id: String,
+    token: Erc20,
     #[typeshare(typescript(type = "string"))]
-    pub total_in: U256,
+    total_in: U256,
     #[typeshare(typescript(type = "string"))]
-    pub total_out: U256,
+    total_out: U256,
     #[typeshare(typescript(type = "string"))]
-    pub total_vol: U256,
+    total_vol: U256,
     #[typeshare(typescript(type = "string"))]
-    pub net_vol: I256,
-    #[typeshare(typescript(type = "string"))]
-    pub all_time_vol_in: U256,
-    #[typeshare(typescript(type = "string"))]
-    pub all_time_vol_out: U256,
+    net_vol: I256,
 }
 
 /// Get the vaults volume from array of trades
@@ -66,12 +62,6 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
                 total_out,
                 total_vol,
                 net_vol,
-                all_time_vol_in: U256::from_str(
-                    &trade.input_vault_balance_change.vault.total_volume_in.0,
-                )?,
-                all_time_vol_out: U256::from_str(
-                    &trade.input_vault_balance_change.vault.total_volume_out.0,
-                )?,
             })
         }
         if let Some(vault_vol) = vaults_vol.iter_mut().find(|v| {
@@ -112,12 +102,6 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
                 total_out,
                 total_vol,
                 net_vol,
-                all_time_vol_in: U256::from_str(
-                    &trade.output_vault_balance_change.vault.total_volume_in.0,
-                )?,
-                all_time_vol_out: U256::from_str(
-                    &trade.output_vault_balance_change.vault.total_volume_out.0,
-                )?,
             })
         }
     }
@@ -182,9 +166,6 @@ mod test {
                     id: bytes.clone(),
                     token: token1.clone(),
                     vault_id: BigInt(vault_id1.to_string()),
-                    balance: BigInt("0".to_string()),
-                    total_volume_in: BigInt("0".to_string()),
-                    total_volume_out: BigInt("0".to_string()),
                 },
                 timestamp: bigint.clone(),
                 transaction: Transaction {
@@ -205,9 +186,6 @@ mod test {
                     id: bytes.clone(),
                     token: token2.clone(),
                     vault_id: BigInt(vault_id2.to_string()),
-                    balance: BigInt("0".to_string()),
-                    total_volume_in: BigInt("0".to_string()),
-                    total_volume_out: BigInt("0".to_string()),
                 },
                 timestamp: bigint.clone(),
                 transaction: Transaction {
@@ -246,9 +224,6 @@ mod test {
                     id: bytes.clone(),
                     token: token2.clone(),
                     vault_id: BigInt(vault_id2.to_string()),
-                    balance: BigInt("0".to_string()),
-                    total_volume_in: BigInt("0".to_string()),
-                    total_volume_out: BigInt("0".to_string()),
                 },
                 timestamp: bigint.clone(),
                 transaction: Transaction {
@@ -269,9 +244,6 @@ mod test {
                     id: bytes.clone(),
                     token: token1.clone(),
                     vault_id: BigInt(vault_id1.to_string()),
-                    balance: BigInt("0".to_string()),
-                    total_volume_in: BigInt("0".to_string()),
-                    total_volume_out: BigInt("0".to_string()),
                 },
                 timestamp: bigint.clone(),
                 transaction: Transaction {
@@ -293,8 +265,6 @@ mod test {
                 total_out: U256::from(7),
                 total_vol: U256::from(12),
                 net_vol: I256::from_str("-2").unwrap(),
-                all_time_vol_in: U256::from(0),
-                all_time_vol_out: U256::from(0),
             },
             VaultVolume {
                 id: vault_id1.to_string(),
@@ -303,8 +273,6 @@ mod test {
                 total_out: U256::from(2),
                 total_vol: U256::from(5),
                 net_vol: I256::from_str("1").unwrap(),
-                all_time_vol_in: U256::from(0),
-                all_time_vol_out: U256::from(0),
             },
         ];
 

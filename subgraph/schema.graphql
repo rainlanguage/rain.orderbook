@@ -40,10 +40,6 @@ type Vault @entity {
   balance: BigInt!
   "All balance changes for this vault"
   balanceChanges: [VaultBalanceChange!]! @derivedFrom(field: "vault")
-  "All time vault total volume in, includes only trades volumes"
-  totalVolumeIn: BigInt!
-  "All time vault total volume out, includes only trades volumes"
-  totalVolumeOut: BigInt!
 }
 
 interface VaultBalanceChange {
