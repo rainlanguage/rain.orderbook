@@ -94,23 +94,22 @@ impl TestRunner {
 
     fn get_final_bindings(&mut self, is_test_dotrain: bool) -> Vec<Rebind> {
         let dotrain: String;
-        let mut scenario_bindings: Vec<Rebind> = vec![];
+        let scenario_bindings: Vec<Rebind> = self
+            .settings
+            .test_config
+            .scenario
+            .bindings
+            .clone()
+            .into_iter()
+            .map(|(k, v)| Rebind(k, v))
+            .collect();
         let mut final_bindings: Vec<Rebind> = vec![];
 
         if is_test_dotrain {
             dotrain = self.dotrains.test_dotrain.clone();
         } else {
             dotrain = self.dotrains.main_dotrain.clone();
-            scenario_bindings = self
-                .settings
-                .test_config
-                .scenario
-                .bindings
-                .clone()
-                .into_iter()
-                .map(|(k, v)| Rebind(k, v))
-                .collect()
-        }
+        };
 
         let rain_document =
             RainDocument::create(dotrain, None, None, Some(scenario_bindings.clone()));
@@ -267,9 +266,15 @@ impl TestRunner {
 
     async fn run_post_entrypoint(
         &mut self,
+        pre_stack: RainEvalResults,
         calculate_stack: RainEvalResults,
-        handle_stack: RainEvalResults,
     ) -> Result<RainEvalResults, TestRunnerError> {
+        let input_token = pre_stack.results[0].stack[2];
+        let output_token = pre_stack.results[0].stack[1];
+        let output_cap = pre_stack.results[0].stack[0];
+        let max_output = calculate_stack.results[0].stack[1];
+        let io_ratio = calculate_stack.results[0].stack[0];
+
         let final_bindings = self.get_final_bindings(true);
 
         let dotrain = Arc::new(self.dotrains.test_dotrain.clone());
@@ -284,10 +289,18 @@ impl TestRunner {
             let rainlang_string =
                 RainDocument::compose_text(&dotrain, &["post"], None, Some(final_bindings))?;
 
-            let context = vec![
-                calculate_stack.results[0].stack.clone(),
-                handle_stack.results[0].stack.clone(),
-            ];
+            let mut context = vec![vec![U256::from(0); 20]; 20];
+
+            // input token
+            context[3][0] = input_token;
+            // output token
+            context[4][0] = output_token;
+            // max output
+            context[2][0] = max_output;
+            // io ratio
+            context[2][1] = io_ratio;
+            // output vault decrease
+            context[4][4] = U256::min(max_output, output_cap);
 
             let args = ForkEvalArgs {
                 rainlang_string,
@@ -346,12 +359,10 @@ impl TestRunner {
 
         let pre_stack = self.run_pre_entrypoint().await?;
         let calculate_stack = self.run_calculate_entrypoint(pre_stack.clone()).await?;
-        let handle_stack = self
-            .run_handle_entrypoint(pre_stack, calculate_stack.clone())
+        let _handle_stack = self
+            .run_handle_entrypoint(pre_stack.clone(), calculate_stack.clone())
             .await?;
-        let results = self
-            .run_post_entrypoint(calculate_stack, handle_stack)
-            .await?;
+        let results = self.run_post_entrypoint(pre_stack, calculate_stack).await?;
         Ok(results)
     }
 }
@@ -397,18 +408,25 @@ test:
             orderbook-subparser: {orderbook_subparser}
             second-binding: 999
 ---
+#orderbook-subparser !
+#second-binding !
+
 #pre
 input-token: 0x01,
 output-token: 0x02,
 output-cap: 10;
+
 #post
+using-words-from orderbook-subparser
+
 /* calculate io stack */
-:ensure(equal-to(context<0 0>() 999) "io ratio should be 999"),
-:ensure(equal-to(context<0 1>() 10) "max output should be 10"),
-:ensure(equal-to(context<0 2>() 0x02) "output token should be 0x02"),
-:ensure(equal-to(context<0 3>() 0x01) "input token should be 0x01"),
+:ensure(equal-to(calculated-io-ratio() 999) "io ratio should be 999"),
+:ensure(equal-to(calculated-max-output() 10) "max output should be 10"),
+:ensure(equal-to(output-token() 0x02) "output token should be 0x02"),
+:ensure(equal-to(input-token() 0x01) "input token should be 0x01"),
+
 /* handle io stack */
-:ensure(equal-to(context<1 0>() 10) "output cap should be 10");
+:ensure(equal-to(output-vault-decrease() 10) "output cap should be 10");
     "#,
             orderbook_subparser = local_evm.orderbook_subparser.address()
         );
