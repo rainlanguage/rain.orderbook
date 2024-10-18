@@ -2,6 +2,7 @@ use crate::error::CommandResult;
 use rain_orderbook_common::{
     csv::TryIntoCsv, subgraph::SubgraphArgs, types::FlattenError, types::OrderTakeFlattened,
 };
+use rain_orderbook_subgraph_client::apy::{get_order_apy, OrderAPY};
 use rain_orderbook_subgraph_client::vol::VaultVolume;
 use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
@@ -78,4 +79,26 @@ pub async fn order_trades_count(
         .order_trades_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?
         .len())
+}
+
+#[tauri::command]
+pub async fn order_apy(
+    order_id: String,
+    subgraph_args: SubgraphArgs,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> CommandResult<OrderAPY> {
+    let client = subgraph_args.to_subgraph_client().await?;
+    let order = client.order_detail(order_id.clone().into()).await?;
+    let trades = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .order_trades_list_all(order_id.into(), start_timestamp, end_timestamp)
+        .await?;
+    Ok(get_order_apy(
+        order,
+        &trades,
+        start_timestamp,
+        end_timestamp,
+    )?)
 }

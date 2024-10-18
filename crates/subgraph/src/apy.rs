@@ -25,12 +25,15 @@ pub const PREFERED_DENOMINATIONS: [&str; 11] = [
 pub struct TokenVaultAPY {
     pub id: String,
     pub token: Erc20,
+    #[typeshare(typescript(type = "number"))]
     pub start_time: u64,
+    #[typeshare(typescript(type = "number"))]
     pub end_time: u64,
     #[typeshare(typescript(type = "string"))]
     pub net_vol: I256,
     #[typeshare(typescript(type = "string"))]
     pub capital: U256,
+    #[typeshare(typescript(type = "number"))]
     pub apy: f64,
 }
 
@@ -38,6 +41,7 @@ pub struct TokenVaultAPY {
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct DenominatedAPY {
+    #[typeshare(typescript(type = "number"))]
     pub apy: f64,
     pub token: Erc20,
 }
@@ -49,7 +53,9 @@ pub struct OrderAPY {
     pub order_id: String,
     pub order_hash: String,
     pub apy: Option<DenominatedAPY>,
+    #[typeshare(typescript(type = "number"))]
     pub start_time: u64,
+    #[typeshare(typescript(type = "number"))]
     pub end_time: u64,
     pub inputs_token_vault_apy: Vec<TokenVaultAPY>,
     pub outputs_token_vault_apy: Vec<TokenVaultAPY>,
