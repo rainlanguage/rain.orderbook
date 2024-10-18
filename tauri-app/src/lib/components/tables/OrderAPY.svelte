@@ -31,7 +31,7 @@
 
   <svelte:fragment slot="bodyRow" let:item>
     <TableBodyCell tdClass="break-all px-4 py-2" data-testid="apy">
-      {item.apy ? item.apy.apy : 0} %
+      {item.apy?.apy ?? 0} % {item.apy?.token?.symbol ? 'in ' + item.apy.token.symbol : ''}
     </TableBodyCell>
   </svelte:fragment>
 </TanstackAppTable>

@@ -198,7 +198,8 @@ pub fn get_order_apy(
             let int_apy = i64::try_from(
                 combined_annual_rate_vol
                     .saturating_mul(I256::from_raw(U256::from(10_000)))
-                    .saturating_div(combined_capital),
+                    .checked_div(combined_capital)
+                    .unwrap_or(I256::ZERO),
             )?;
             // div by 10_000 to convert to actual float and again by 10_000 to
             // factor in the anuual rate and then mul by 100 to convert to
@@ -306,7 +307,8 @@ pub fn get_token_vaults_apy(
             let change_ratio = i64::try_from(
                 vol.net_vol
                     .saturating_mul(I256::from_raw(U256::from(10_000)))
-                    .saturating_div(I256::from_raw(starting_capital)),
+                    .checked_div(I256::from_raw(starting_capital))
+                    .unwrap_or(I256::ZERO),
             )? as f64;
             let time_to_year_ratio = ((end - start) as f64) / YEAR as f64;
             (change_ratio * time_to_year_ratio) / 100f64
