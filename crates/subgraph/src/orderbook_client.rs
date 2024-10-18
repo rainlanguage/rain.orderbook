@@ -25,6 +25,12 @@ pub enum OrderbookSubgraphClientError {
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]
     ParseError(#[from] alloy::primitives::ruint::ParseError),
+    #[error(transparent)]
+    ParseBigIntConversionError(#[from] alloy::primitives::BigIntConversionError),
+    #[error(transparent)]
+    ParseFloatError(#[from] std::num::ParseFloatError),
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
 }
 
 pub struct OrderbookSubgraphClient {
