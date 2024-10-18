@@ -4,20 +4,20 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct VaultVolume {
-    id: String,
-    token: Erc20,
+    pub id: String,
+    pub token: Erc20,
     #[typeshare(typescript(type = "string"))]
-    total_in: U256,
+    pub total_in: U256,
     #[typeshare(typescript(type = "string"))]
-    total_out: U256,
+    pub total_out: U256,
     #[typeshare(typescript(type = "string"))]
-    total_vol: U256,
+    pub total_vol: U256,
     #[typeshare(typescript(type = "string"))]
-    net_vol: I256,
+    pub net_vol: I256,
 }
 
 /// Get the vaults volume from array of trades

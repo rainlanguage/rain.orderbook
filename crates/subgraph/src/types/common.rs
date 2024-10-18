@@ -278,7 +278,7 @@ pub struct OrderStructPartialTrade {
     pub id: Bytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq)]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash)]
 #[cynic(graphql_type = "ERC20")]
 #[typeshare]
 pub struct Erc20 {
@@ -305,11 +305,11 @@ pub struct AddOrder {
     pub transaction: Transaction,
 }
 
-#[derive(cynic::Scalar, Debug, Clone, PartialEq)]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
 #[typeshare]
 pub struct BigInt(pub String);
 
-#[derive(cynic::Scalar, Debug, Clone, PartialEq)]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
 #[typeshare]
 pub struct Bytes(pub String);
 
