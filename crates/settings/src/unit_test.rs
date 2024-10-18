@@ -1,10 +1,8 @@
 use crate::*;
-use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use typeshare::typeshare;
-use url::Url;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -48,18 +46,7 @@ impl TestConfigSource {
             bindings: bindings.clone(),
             runs: self.scenario.runs,
             blocks: self.scenario.blocks.clone(),
-            deployer: Arc::new(Deployer {
-                address: Address::default(),
-                network: Arc::new(Network {
-                    name: String::from("").clone(),
-                    rpc: Url::parse("http://rpc.com").unwrap(),
-                    chain_id: 1,
-                    label: None,
-                    network_id: None,
-                    currency: None,
-                }),
-                label: None,
-            }),
+            deployer: Arc::new(Deployer::dummy()),
         });
 
         let config = TestConfig {
