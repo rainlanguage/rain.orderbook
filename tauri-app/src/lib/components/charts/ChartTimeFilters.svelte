@@ -1,11 +1,12 @@
 <script lang="ts">
-  import ButtonTab from '$lib/components/ButtonTab.svelte';
   import { ButtonGroup } from 'flowbite-svelte';
-
-  const TIME_DELTA_24_HOURS = 60 * 60 * 24;
-  const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
-  const TIME_DELTA_30_DAYS = TIME_DELTA_24_HOURS * 30;
-  const TIME_DELTA_1_YEAR = TIME_DELTA_24_HOURS * 365;
+  import ButtonTab from '$lib/components/ButtonTab.svelte';
+  import {
+    TIME_DELTA_1_YEAR,
+    TIME_DELTA_24_HOURS,
+    TIME_DELTA_30_DAYS,
+    TIME_DELTA_7_DAYS,
+  } from '$lib/services/time';
 
   export let timeDelta = TIME_DELTA_1_YEAR;
 </script>

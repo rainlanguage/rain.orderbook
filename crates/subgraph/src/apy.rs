@@ -7,7 +7,6 @@ use alloy::primitives::{
     utils::{format_units, parse_units, ParseUnits, Unit, UnitsError},
     I256, U256,
 };
-use core::f64;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 use typeshare::typeshare;
@@ -33,16 +32,16 @@ pub struct TokenVaultAPY {
     pub net_vol: I256,
     #[typeshare(typescript(type = "string"))]
     pub capital: U256,
-    #[typeshare(typescript(type = "number"))]
-    pub apy: f64,
+    #[typeshare(typescript(type = "string"))]
+    pub apy: Option<I256>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct DenominatedAPY {
-    #[typeshare(typescript(type = "number"))]
-    pub apy: f64,
+    #[typeshare(typescript(type = "string"))]
+    pub apy: I256,
     pub token: Erc20,
 }
 
@@ -52,7 +51,7 @@ pub struct DenominatedAPY {
 pub struct OrderAPY {
     pub order_id: String,
     pub order_hash: String,
-    pub apy: Option<DenominatedAPY>,
+    pub denominated_apy: Option<DenominatedAPY>,
     #[typeshare(typescript(type = "number"))]
     pub start_time: u64,
     #[typeshare(typescript(type = "number"))]
@@ -70,7 +69,7 @@ struct TokenPair {
 /// Given an order and its trades and optionally a timeframe, will calculates
 /// the APY for each of the entire order and for each of its vaults
 pub fn get_order_apy(
-    order: Order,
+    order: &Order,
     trades: &[Trade],
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
@@ -84,7 +83,7 @@ pub fn get_order_apy(
             end_time: end_timestamp.unwrap_or(chrono::Utc::now().timestamp() as u64),
             inputs_token_vault_apy: vec![],
             outputs_token_vault_apy: vec![],
-            apy: None,
+            denominated_apy: None,
         });
     }
     let vols = get_vaults_vol(trades)?;
@@ -124,31 +123,40 @@ pub fn get_order_apy(
         end_time,
         inputs_token_vault_apy: inputs,
         outputs_token_vault_apy: outputs,
-        apy: None,
+        denominated_apy: None,
     };
 
     // get pairs ratios
     let pair_ratio_map = get_pairs_ratio(&order_apy, trades);
 
-    // try to calculate all vaults capital and volume denominated into any of
+    // try to calculate all vaults capital and volume denominated into each of
     // the order's tokens by checking if there is direct ratio between the tokens,
     // multi path ratios are ignored currently and results in None for the APY.
     // if there is a success for any of the denomination tokens, checks if it is
-    // among the prefered ones, if not continues the process with remaining tokens.
+    // among the prefered denominations, if not continues the same process with
+    // remaining order's io tokens.
     // if none of the successfull calcs fulfills any of the prefered denominations
     // will end up picking the first one.
     // if there was no success with any of the order's tokens, simply return None
     // for the APY.
-    let mut apy_denominations = vec![];
+    let mut full_apy_in_distinct_token_denominations = vec![];
     for token in &token_vaults_apy {
         let mut noway = false;
         let mut combined_capital = I256::ZERO;
         let mut combined_annual_rate_vol = I256::ZERO;
         for token_vault in &token_vaults_apy {
-            // time to year ratio with 4 point decimals
-            let annual_rate = I256::from_raw(U256::from(
-                ((token_vault.end_time - token_vault.start_time) * 10_000) / YEAR,
-            ));
+            // time to year ratio
+            let timeframe = parse_units(
+                &(token_vault.end_time - token_vault.start_time).to_string(),
+                18,
+            )
+            .unwrap()
+            .get_signed();
+            let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
+            let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
+            // let annual_rate = I256::from_raw(U256::from(
+            //     ((token_vault.end_time - token_vault.start_time) * 10_000) / YEAR,
+            // ));
             let token_decimals = token_vault
                 .token
                 .decimals
@@ -171,7 +179,9 @@ pub fn get_order_apy(
             // sum up all capitals and vols in one denomination
             if token_vault.token == token.token {
                 combined_capital += vault_capital;
-                combined_annual_rate_vol += vault_net_vol.saturating_mul(annual_rate);
+                combined_annual_rate_vol += vault_net_vol
+                    .saturating_mul(one)
+                    .saturating_div(annual_rate);
             } else {
                 let pair = TokenPair {
                     input: token.token.clone(),
@@ -184,7 +194,8 @@ pub fn get_order_apy(
                         .net_vol
                         .saturating_mul(*ratio)
                         .saturating_div(one)
-                        .saturating_mul(annual_rate);
+                        .saturating_mul(one)
+                        .saturating_div(annual_rate);
                 } else {
                     noway = true;
                     break;
@@ -192,44 +203,45 @@ pub fn get_order_apy(
             }
         }
 
-        // success
+        // for every success denomination, gather them in an array
         if !noway {
-            // by 4 point decimals
-            let int_apy = i64::try_from(
-                combined_annual_rate_vol
-                    .saturating_mul(I256::from_raw(U256::from(10_000)))
-                    .checked_div(combined_capital)
-                    .unwrap_or(I256::ZERO),
-            )?;
-            // div by 10_000 to convert to actual float and again by 10_000 to
-            // factor in the anuual rate and then mul by 100 to convert to
-            // percentage, so equals to div by 1_000_000,
-            let apy = int_apy as f64 / 1_000_000f64;
-            let denominated_apy = DenominatedAPY {
-                apy,
-                token: token.token.clone(),
-            };
-            // chcek if this token is one of prefered ones and if so return early
-            // if not continue to next token denomination
-            for denomination in PREFERED_DENOMINATIONS {
-                if token
-                    .token
-                    .symbol
-                    .as_ref()
-                    .is_some_and(|sym| sym.to_ascii_lowercase().contains(denomination))
-                {
-                    order_apy.apy = Some(denominated_apy.clone());
-                    return Ok(order_apy);
-                }
+            if let Some(apy) = combined_annual_rate_vol
+                .saturating_mul(one)
+                .checked_div(combined_capital)
+            {
+                full_apy_in_distinct_token_denominations.push(Some(DenominatedAPY {
+                    apy,
+                    token: token.token.clone(),
+                }));
             }
-            apy_denominations.push(denominated_apy);
         }
     }
 
-    // none of the order's tokens fulfilled any of the prefered denominations
-    // so just pick the first one if there was any success at all
-    if !apy_denominations.is_empty() {
-        order_apy.apy = Some(apy_denominations[0].clone());
+    // check if this token is one of prefered ones and if so return early
+    // if not continue to next distinct token denomination and check if that
+    // satisfies any prefered token
+    for prefered_token in PREFERED_DENOMINATIONS {
+        for denominated_apy in full_apy_in_distinct_token_denominations.iter().flatten() {
+            if denominated_apy
+                .token
+                .symbol
+                .as_ref()
+                .is_some_and(|sym| sym.to_ascii_lowercase().contains(prefered_token))
+                || denominated_apy
+                    .token
+                    .name
+                    .as_ref()
+                    .is_some_and(|name| name.to_ascii_lowercase().contains(prefered_token))
+            {
+                order_apy.denominated_apy = Some(denominated_apy.clone());
+                return Ok(order_apy);
+            }
+        }
+    }
+    // none of the order's distinct tokens denominations matched with any of the
+    // prefered denominations so just pick the first one if there was any success at all
+    if !full_apy_in_distinct_token_denominations.is_empty() {
+        order_apy.denominated_apy = full_apy_in_distinct_token_denominations[0].clone();
     }
 
     Ok(order_apy)
@@ -242,6 +254,7 @@ pub fn get_token_vaults_apy(
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<Vec<TokenVaultAPY>, OrderbookSubgraphClientError> {
+    let one = I256::from_str(ONE).unwrap();
     let mut token_vaults_apy: Vec<TokenVaultAPY> = vec![];
     for vol in vols {
         // this token vault trades in desc order by timestamp
@@ -301,17 +314,18 @@ pub fn get_token_vaults_apy(
 
         // this token vault apy
         let apy = if starting_capital.is_zero() {
-            0_f64
+            None
         } else {
-            // by 4 point decimals
-            let change_ratio = i64::try_from(
-                vol.net_vol
-                    .saturating_mul(I256::from_raw(U256::from(10_000)))
-                    .checked_div(I256::from_raw(starting_capital))
-                    .unwrap_or(I256::ZERO),
-            )? as f64;
-            let time_to_year_ratio = ((end - start) as f64) / YEAR as f64;
-            (change_ratio * time_to_year_ratio) / 100f64
+            let change_ratio = vol
+                .net_vol
+                .saturating_mul(one)
+                .saturating_div(I256::from_raw(starting_capital));
+            let timeframe = parse_units(&(end - start).to_string(), 18)
+                .unwrap()
+                .get_signed();
+            let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
+            let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
+            change_ratio.saturating_mul(one).checked_div(annual_rate)
         };
         token_vaults_apy.push(TokenVaultAPY {
             id: vol.id.clone(),
@@ -333,7 +347,19 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
     let mut pair_ratio_map: HashMap<TokenPair, Option<I256>> = HashMap::new();
     for input in &order_apy.inputs_token_vault_apy {
         for output in &order_apy.outputs_token_vault_apy {
-            if input.token != output.token {
+            let pair_as_key = TokenPair {
+                input: input.token.clone(),
+                output: output.token.clone(),
+            };
+            let reverse_pair_as_key = TokenPair {
+                input: output.token.clone(),
+                output: input.token.clone(),
+            };
+            // if not same io token and ratio map doesnt already include them
+            if input.token != output.token
+                && !(pair_ratio_map.contains_key(&pair_as_key)
+                    || pair_ratio_map.contains_key(&reverse_pair_as_key))
+            {
                 // find this pairs trades from list of order's trades
                 let pair_trades = trades
                     .iter()
@@ -344,19 +370,46 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                             && v.output_vault_balance_change.vault.vault_id.0 == output.id
                     })
                     .collect::<Vec<&Trade>>();
+                let reverse_pair_trades = trades
+                    .iter()
+                    .filter(|v| {
+                        v.output_vault_balance_change.vault.token == input.token
+                            && v.input_vault_balance_change.vault.token == output.token
+                            && v.output_vault_balance_change.vault.vault_id.0 == input.id
+                            && v.input_vault_balance_change.vault.vault_id.0 == output.id
+                    })
+                    .collect::<Vec<&Trade>>();
 
                 // calculate the pair ratio (in amount/out amount)
-                let ratio = if pair_trades.is_empty() {
+                let ratio = if pair_trades.is_empty() && reverse_pair_trades.is_empty() {
                     None
                 } else {
+                    // pick the latest one between trade and reverese trade
+                    let latest_pair_trade = if let Some(trade) = pair_trades.first() {
+                        let trade_timestamp = u64::from_str(&trade.timestamp.0).unwrap();
+                        if let Some(reverse_trade) = reverse_pair_trades.first() {
+                            let reverse_trade_timestamp =
+                                u64::from_str(&reverse_trade.timestamp.0).unwrap();
+                            if trade_timestamp >= reverse_trade_timestamp {
+                                trade
+                            } else {
+                                reverse_trade
+                            }
+                        } else {
+                            trade
+                        }
+                    } else {
+                        reverse_pair_trades.first().unwrap()
+                    };
+
                     // convert input and output amounts to 18 decimals point
                     // and then calculate the pair ratio
                     let input_amount = to_18_decimals(
                         ParseUnits::U256(
-                            U256::from_str(&pair_trades[0].input_vault_balance_change.amount.0)
+                            U256::from_str(&latest_pair_trade.input_vault_balance_change.amount.0)
                                 .unwrap(),
                         ),
-                        pair_trades[0]
+                        latest_pair_trade
                             .input_vault_balance_change
                             .vault
                             .token
@@ -364,15 +417,16 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                             .as_ref()
                             .map(|v| v.0.as_str())
                             .unwrap_or("18"),
-                    );
+                    )
+                    .ok();
                     let output_amount = to_18_decimals(
                         ParseUnits::U256(
                             U256::from_str(
-                                &pair_trades[0].output_vault_balance_change.amount.0[1..],
+                                &latest_pair_trade.output_vault_balance_change.amount.0[1..],
                             )
                             .unwrap(),
                         ),
-                        pair_trades[0]
+                        latest_pair_trade
                             .output_vault_balance_change
                             .vault
                             .token
@@ -380,31 +434,47 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                             .as_ref()
                             .map(|v| v.0.as_str())
                             .unwrap_or("18"),
-                    );
-                    #[allow(clippy::unnecessary_unwrap)]
-                    if input_amount.is_err() || output_amount.is_err() {
-                        None
-                    } else {
-                        Some(
+                    )
+                    .ok();
+                    if let Some((input_amount, output_amount)) = input_amount.zip(output_amount) {
+                        Some([
+                            // io ratio
                             input_amount
-                                .unwrap()
                                 .get_signed()
                                 .saturating_mul(one)
-                                .checked_div(output_amount.unwrap().get_signed())
+                                .checked_div(output_amount.get_signed())
                                 .unwrap_or(I256::MAX),
-                        )
+                            // oi ratio
+                            output_amount
+                                .get_signed()
+                                .saturating_mul(one)
+                                .checked_div(input_amount.get_signed())
+                                .unwrap_or(I256::MAX),
+                        ])
+                    } else {
+                        None
                     }
                 };
+                // io
                 pair_ratio_map.insert(
                     TokenPair {
                         input: input.token.clone(),
                         output: output.token.clone(),
                     },
-                    ratio,
+                    ratio.map(|v| v[0]),
+                );
+                // oi
+                pair_ratio_map.insert(
+                    TokenPair {
+                        input: output.token.clone(),
+                        output: input.token.clone(),
+                    },
+                    ratio.map(|v| v[1]),
                 );
             }
         }
     }
+
     pair_ratio_map
 }
 
@@ -450,7 +520,7 @@ mod test {
             end_time: 0,
             net_vol: I256::ZERO,
             capital: U256::ZERO,
-            apy: 0f64,
+            apy: Some(I256::ZERO),
         };
         let token_vault2 = TokenVaultAPY {
             id: vault2.to_string(),
@@ -459,12 +529,12 @@ mod test {
             end_time: 0,
             net_vol: I256::ZERO,
             capital: U256::ZERO,
-            apy: 0f64,
+            apy: Some(I256::ZERO),
         };
         let order_apy = OrderAPY {
             order_id: "".to_string(),
             order_hash: "".to_string(),
-            apy: None,
+            denominated_apy: None,
             start_time: 0,
             end_time: 0,
             inputs_token_vault_apy: vec![token_vault1.clone(), token_vault2.clone()],
@@ -477,7 +547,7 @@ mod test {
                 input: token2.clone(),
                 output: token1.clone(),
             },
-            Some(I256::from_str("2500000000000000000").unwrap()),
+            Some(I256::from_str("285714285714285714").unwrap()),
         );
         expected.insert(
             TokenPair {
@@ -522,7 +592,8 @@ mod test {
                 end_time: 10000001,
                 net_vol: I256::from_str("1000000000000000000").unwrap(),
                 capital: U256::from_str("2000000000000000000").unwrap(),
-                apy: 15.854895991882293,
+                // (1/2) / (10000001_end - 1_start / 31_536_00_year)
+                apy: Some(I256::from_str("1576800000000000000").unwrap()),
             },
             TokenVaultAPY {
                 id: vault2.to_string(),
@@ -531,7 +602,8 @@ mod test {
                 end_time: 10000001,
                 net_vol: I256::from_str("2000000000000000000").unwrap(),
                 capital: U256::from_str("2000000000000000000").unwrap(),
-                apy: 31.709791983764585,
+                // (2/2) / ((10000001_end - 1_start) / 31_536_00_year)
+                apy: Some(I256::from_str("3153600000000000000").unwrap()),
             },
         ];
 
@@ -551,7 +623,7 @@ mod test {
             end_time: 10000001,
             net_vol: I256::from_str("5000000000000000000").unwrap(),
             capital: U256::from_str("2000000000000000000").unwrap(),
-            apy: 79.27447995941147,
+            apy: Some(I256::from_str("7884000000000000001").unwrap()),
         };
         let token2_apy = TokenVaultAPY {
             id: vault2.to_string(),
@@ -560,9 +632,9 @@ mod test {
             end_time: 10000001,
             net_vol: I256::from_str("3000000000000000000").unwrap(),
             capital: U256::from_str("2000000000000000000").unwrap(),
-            apy: 47.564687975646876,
+            apy: Some(I256::from_str("4730400000000000000").unwrap()),
         };
-        let result = get_order_apy(order, &trades, Some(1), Some(10000001)).unwrap();
+        let result = get_order_apy(&order, &trades, Some(1), Some(10000001)).unwrap();
         let expected = OrderAPY {
             order_id: "order-id".to_string(),
             order_hash: "".to_string(),
@@ -570,8 +642,8 @@ mod test {
             end_time: 10000001,
             inputs_token_vault_apy: vec![token2_apy.clone(), token1_apy.clone()],
             outputs_token_vault_apy: vec![token2_apy.clone(), token1_apy.clone()],
-            apy: Some(DenominatedAPY {
-                apy: 70.192857,
+            denominated_apy: Some(DenominatedAPY {
+                apy: I256::from_str("7183200000000000000").unwrap(),
                 token: token2,
             }),
         };
@@ -729,7 +801,7 @@ mod test {
                     timestamp: bigint.clone(),
                 },
             },
-            timestamp: BigInt("1".to_string()),
+            timestamp: BigInt("2".to_string()),
             orderbook: Orderbook { id: bytes.clone() },
             output_vault_balance_change: TradeVaultBalanceChange {
                 id: bytes.clone(),
@@ -742,7 +814,7 @@ mod test {
                     token: token2.clone(),
                     vault_id: BigInt(vault_id2.to_string()),
                 },
-                timestamp: BigInt("1".to_string()),
+                timestamp: BigInt("2".to_string()),
                 transaction: Transaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
@@ -762,7 +834,7 @@ mod test {
                     token: token1.clone(),
                     vault_id: BigInt(vault_id1.to_string()),
                 },
-                timestamp: BigInt("1".to_string()),
+                timestamp: BigInt("2".to_string()),
                 transaction: Transaction {
                     id: bytes.clone(),
                     from: bytes.clone(),

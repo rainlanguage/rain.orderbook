@@ -3,8 +3,19 @@ import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { OrderAPY } from '$lib/typeshare/subgraphTypes';
-import OrderApy from './OrderVaultsVolTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
+import { formatUnits } from 'viem';
+import OrderApy from './OrderAPY.svelte';
+
+function formatApyToPercentage(value: string): string {
+  let valueString = formatUnits(BigInt(value) * 100n, 18);
+  const index = valueString.indexOf('.');
+  if (index > -1) {
+    // 5 point decimals to show on UI
+    valueString = valueString.substring(0, index + 6);
+  }
+  return valueString;
+}
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
@@ -35,8 +46,8 @@ const mockOrderApy: OrderAPY[] = [
   {
     orderId: '1',
     orderHash: '1',
-    apy: {
-      apy: 1.2,
+    denominatedApy: {
+      apy: '1200000000000000000',
       token: {
         id: 'output_token',
         address: 'output_token',
@@ -57,7 +68,7 @@ test('renders table with correct data', async () => {
 
   mockIPC((cmd) => {
     if (cmd === 'order_apy') {
-      return mockOrderApy;
+      return mockOrderApy[0];
     }
   });
 
@@ -68,12 +79,12 @@ test('renders table with correct data', async () => {
 
   await waitFor(async () => {
     // get apy row
-    const rows = screen.getAllByTestId('apy');
+    const rows = screen.getAllByTestId('apy-field');
 
     // checking
     for (let i = 0; i < mockOrderApy.length; i++) {
-      const display = mockOrderApy[i].apy!.apy;
-      expect(rows[i]).toHaveTextContent(display.toString());
+      const display = formatApyToPercentage(mockOrderApy[i].denominatedApy!.apy);
+      expect(rows[i]).toHaveTextContent(display);
     }
   });
 });

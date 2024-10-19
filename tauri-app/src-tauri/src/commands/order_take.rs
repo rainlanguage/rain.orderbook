@@ -90,13 +90,11 @@ pub async fn order_apy(
 ) -> CommandResult<OrderAPY> {
     let client = subgraph_args.to_subgraph_client().await?;
     let order = client.order_detail(order_id.clone().into()).await?;
-    let trades = subgraph_args
-        .to_subgraph_client()
-        .await?
+    let trades = client
         .order_trades_list_all(order_id.into(), start_timestamp, end_timestamp)
         .await?;
     Ok(get_order_apy(
-        order,
+        &order,
         &trades,
         start_timestamp,
         end_timestamp,

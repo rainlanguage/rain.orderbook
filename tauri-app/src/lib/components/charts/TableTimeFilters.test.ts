@@ -2,9 +2,7 @@ import { render, fireEvent, screen } from '@testing-library/svelte';
 import { get, writable } from 'svelte/store';
 import { test, expect } from 'vitest';
 import TableTimeFiltersTest from './TableTimeFilters.test.svelte';
-
-const TIME_DELTA_24_HOURS = 60 * 60 * 24;
-const TIME_DELTA_48_HOURS = TIME_DELTA_24_HOURS * 2;
+import { TIME_DELTA_24_HOURS, TIME_DELTA_48_HOURS } from '$lib/services/time';
 
 test('initial start/end time difference is set to all time', async () => {
   const startTimeStore = writable<number | undefined>();

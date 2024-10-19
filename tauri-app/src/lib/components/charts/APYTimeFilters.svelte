@@ -1,15 +1,13 @@
 <script lang="ts">
   import ButtonTab from '$lib/components/ButtonTab.svelte';
+  import { nowTimestamp, TIME_DELTA_1_YEAR, TIME_DELTA_30_DAYS } from '$lib/services/time';
   import { ButtonGroup } from 'flowbite-svelte';
 
-  const TIME_DELTA_1_MONTH = 60 * 60 * 24 * 30;
-  const TIME_DELTA_1_YEAR = TIME_DELTA_1_MONTH * 12;
-
-  let now = Math.floor(new Date().getTime() / 1000);
+  let now = nowTimestamp();
   let timeDelta: number | undefined;
 
   function setNow() {
-    now = Math.floor(new Date().getTime() / 1000);
+    now = nowTimestamp();
   }
 
   export let startTimestamp: number | undefined;
@@ -37,17 +35,17 @@
     }}
     active={timeDelta === TIME_DELTA_1_YEAR}
     size="xs"
-    class="px-2 py-1">1 Year</ButtonTab
+    class="px-2 py-1">Last Year</ButtonTab
   >
   <ButtonTab
     on:click={() => {
       setNow();
-      timeDelta = TIME_DELTA_1_MONTH;
-      startTimestamp = now - TIME_DELTA_1_MONTH;
+      timeDelta = TIME_DELTA_30_DAYS;
+      startTimestamp = now - TIME_DELTA_30_DAYS;
       endTimestamp = now;
     }}
-    active={timeDelta === TIME_DELTA_1_MONTH}
+    active={timeDelta === TIME_DELTA_30_DAYS}
     size="xs"
-    class="px-2 py-1">1 Month</ButtonTab
+    class="px-2 py-1">Last Month</ButtonTab
   >
 </ButtonGroup>

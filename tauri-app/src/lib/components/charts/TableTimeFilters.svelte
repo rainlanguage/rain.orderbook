@@ -1,15 +1,13 @@
 <script lang="ts">
   import ButtonTab from '$lib/components/ButtonTab.svelte';
+  import { nowTimestamp, TIME_DELTA_24_HOURS, TIME_DELTA_48_HOURS } from '$lib/services/time';
   import { ButtonGroup } from 'flowbite-svelte';
 
-  const TIME_DELTA_24_HOURS = 60 * 60 * 24;
-  const TIME_DELTA_48_HOURS = TIME_DELTA_24_HOURS * 2;
-
-  let now = Math.floor(new Date().getTime() / 1000);
+  let now = nowTimestamp();
   let timeDelta: number | undefined;
 
   function setNow() {
-    now = Math.floor(new Date().getTime() / 1000);
+    now = nowTimestamp();
   }
 
   export let startTimestamp: number | undefined;
