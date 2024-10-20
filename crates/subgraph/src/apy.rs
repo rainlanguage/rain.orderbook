@@ -76,7 +76,6 @@ pub fn get_order_apy(
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<OrderAPY, OrderbookSubgraphClientError> {
-    let one = I256::from_str(ONE).unwrap();
     if trades.is_empty() {
         return Ok(OrderAPY {
             order_id: order.id.0.clone(),
@@ -155,7 +154,7 @@ pub fn get_order_apy(
             .unwrap()
             .get_signed();
             let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
-            let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
+            let annual_rate = timeframe.saturating_mul(one()).saturating_div(year);
 
             // sum up all token vaults' capitals and vols in the current's iteration
             // token denomination by using the direct ratio between the tokens
@@ -163,7 +162,7 @@ pub fn get_order_apy(
                 combined_capital += token_vault.capital;
                 combined_annual_rate_vol += token_vault
                     .net_vol
-                    .saturating_mul(one)
+                    .saturating_mul(one())
                     .saturating_div(annual_rate);
             } else {
                 let pair = TokenPair {
@@ -175,12 +174,12 @@ pub fn get_order_apy(
                     combined_capital += token_vault
                         .capital
                         .saturating_mul(*ratio)
-                        .saturating_div(one);
+                        .saturating_div(one());
                     combined_annual_rate_vol += token_vault
                         .net_vol
                         .saturating_mul(*ratio)
-                        .saturating_div(one)
-                        .saturating_mul(one)
+                        .saturating_div(one())
+                        .saturating_mul(one())
                         .saturating_div(annual_rate);
                 } else {
                     noway = true;
@@ -194,7 +193,7 @@ pub fn get_order_apy(
         // the order's io tokens in an array.
         if !noway {
             if let Some(apy) = combined_annual_rate_vol
-                .saturating_mul(one)
+                .saturating_mul(one())
                 .checked_div(combined_capital)
             {
                 full_apy_in_distinct_token_denominations.push(Some(DenominatedAPY {
@@ -244,7 +243,6 @@ pub fn get_token_vaults_apy(
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<Vec<TokenVaultAPY>, OrderbookSubgraphClientError> {
-    let one = I256::from_str(ONE).unwrap();
     let mut token_vaults_apy: Vec<TokenVaultAPY> = vec![];
     for vol in vols {
         // this token vault trades in desc order by timestamp
@@ -326,14 +324,14 @@ pub fn get_token_vaults_apy(
             } else {
                 let change_ratio = net_vol
                     .get_signed()
-                    .saturating_mul(one)
+                    .saturating_mul(one())
                     .saturating_div(starting_capital.get_signed());
                 let timeframe = parse_units(&(end - start).to_string(), 18)
                     .unwrap()
                     .get_signed();
                 let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
-                let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
-                change_ratio.saturating_mul(one).checked_div(annual_rate)
+                let annual_rate = timeframe.saturating_mul(one()).saturating_div(year);
+                change_ratio.saturating_mul(one()).checked_div(annual_rate)
             }
         } else {
             None
@@ -360,7 +358,6 @@ pub fn get_token_vaults_apy(
 /// Trades must be sorted indesc order by timestamp, this is the case if queried from subgraph
 /// using this lib functionalities
 fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair, Option<I256>> {
-    let one = I256::from_str(ONE).unwrap();
     let mut pair_ratio_map: HashMap<TokenPair, Option<I256>> = HashMap::new();
     for input in &order_apy.inputs_token_vault_apy {
         for output in &order_apy.outputs_token_vault_apy {
@@ -432,13 +429,13 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                                     // io ratio
                                     input_amount
                                         .get_signed()
-                                        .saturating_mul(one)
+                                        .saturating_mul(one())
                                         .checked_div(output_amount.get_signed())
                                         .unwrap_or(I256::MAX),
                                     // oi ratio
                                     output_amount
                                         .get_signed()
-                                        .saturating_mul(one)
+                                        .saturating_mul(one())
                                         .checked_div(input_amount.get_signed())
                                         .unwrap_or(I256::MAX),
                                 ]
@@ -474,6 +471,11 @@ pub fn to_18_decimals<T: TryInto<Unit, Error = UnitsError>>(
     decimals: T,
 ) -> Result<ParseUnits, UnitsError> {
     parse_units(&format_units(amount, decimals)?, 18)
+}
+
+/// Returns 18 point decimals 1 as I256
+fn one() -> I256 {
+    I256::from_str(ONE).unwrap()
 }
 
 #[cfg(test)]
