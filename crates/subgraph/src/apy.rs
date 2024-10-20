@@ -147,13 +147,7 @@ pub fn get_order_apy(
         let mut combined_annual_rate_vol = I256::ZERO;
         for token_vault in &token_vaults_apy {
             // time to year ratio
-            let timeframe = parse_units(
-                &(token_vault.end_time - token_vault.start_time).to_string(),
-                18,
-            )
-            .unwrap()
-            .get_signed();
-            let annual_rate = timeframe.saturating_mul(one()).saturating_div(year());
+            let annual_rate = annual_rate(token_vault.start_time, token_vault.end_time);
 
             // sum up all token vaults' capitals and vols in the current's iteration
             // token denomination by using the direct ratio between the tokens
@@ -325,11 +319,9 @@ pub fn get_token_vaults_apy(
                     .get_signed()
                     .saturating_mul(one())
                     .saturating_div(starting_capital.get_signed());
-                let timeframe = parse_units(&(end - start).to_string(), 18)
-                    .unwrap()
-                    .get_signed();
-                let annual_rate = timeframe.saturating_mul(one()).saturating_div(year());
-                change_ratio.saturating_mul(one()).checked_div(annual_rate)
+                change_ratio
+                    .saturating_mul(one())
+                    .checked_div(annual_rate(start, end))
             }
         } else {
             None
@@ -479,6 +471,14 @@ fn one() -> I256 {
 /// Returns YEAR as 18 point decimals as I256
 fn year() -> I256 {
     parse_units(&YEAR.to_string(), 18).unwrap().get_signed()
+}
+
+/// Returns annual rate as 18 point decimals as I256
+fn annual_rate(start: u64, end: u64) -> I256 {
+    let timeframe = parse_units(&(end - start).to_string(), 18)
+        .unwrap()
+        .get_signed();
+    timeframe.saturating_mul(one()).saturating_div(year())
 }
 
 #[cfg(test)]
