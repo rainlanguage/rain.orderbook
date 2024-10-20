@@ -311,21 +311,20 @@ pub fn get_token_vaults_apy(
         let end = end_timestamp.unwrap_or(chrono::Utc::now().timestamp() as u64);
 
         // this token vault apy in 18 decimals point
-        let apy = if let Some((starting_capital, net_vol)) = starting_capital.zip(net_vol) {
-            if starting_capital.is_zero() {
-                None
-            } else {
-                let change_ratio = net_vol
-                    .get_signed()
-                    .saturating_mul(one())
-                    .saturating_div(starting_capital.get_signed());
-                change_ratio
-                    .saturating_mul(one())
-                    .checked_div(annual_rate(start, end))
-            }
-        } else {
-            None
-        };
+        let apy = starting_capital
+            .zip(net_vol)
+            .and_then(|(starting_capital, net_vol)| {
+                (!starting_capital.is_zero())
+                    .then_some(
+                        net_vol
+                            .get_signed()
+                            .saturating_mul(one())
+                            .saturating_div(starting_capital.get_signed())
+                            .saturating_mul(one())
+                            .checked_div(annual_rate(start, end)),
+                    )
+                    .flatten()
+            });
 
         // this token vault apy
         token_vaults_apy.push(TokenVaultAPY {
