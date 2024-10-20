@@ -474,10 +474,11 @@ fn year() -> I256 {
 
 /// Returns annual rate as 18 point decimals as I256
 fn annual_rate(start: u64, end: u64) -> I256 {
-    let timeframe = parse_units(&(end - start).to_string(), 18)
+    parse_units(&(end - start).to_string(), 18)
         .unwrap()
-        .get_signed();
-    timeframe.saturating_mul(one()).saturating_div(year())
+        .get_signed()
+        .saturating_mul(one())
+        .saturating_div(year())
 }
 
 #[cfg(test)]
