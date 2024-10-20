@@ -377,8 +377,6 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                     .filter(|v| {
                         v.input_vault_balance_change.vault.token == input.token
                             && v.output_vault_balance_change.vault.token == output.token
-                            && v.input_vault_balance_change.vault.vault_id.0 == input.id
-                            && v.output_vault_balance_change.vault.vault_id.0 == output.id
                     })
                     .collect::<Vec<&Trade>>();
                 let reverse_pair_trades = trades
@@ -386,8 +384,6 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                     .filter(|v| {
                         v.output_vault_balance_change.vault.token == input.token
                             && v.input_vault_balance_change.vault.token == output.token
-                            && v.output_vault_balance_change.vault.vault_id.0 == input.id
-                            && v.input_vault_balance_change.vault.vault_id.0 == output.id
                     })
                     .collect::<Vec<&Trade>>();
 
