@@ -432,21 +432,9 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                     });
 
                 // io
-                pair_ratio_map.insert(
-                    TokenPair {
-                        input: input.token.clone(),
-                        output: output.token.clone(),
-                    },
-                    ratio.map(|v| v[0]),
-                );
+                pair_ratio_map.insert(pair_as_key, ratio.map(|v| v[0]));
                 // oi
-                pair_ratio_map.insert(
-                    TokenPair {
-                        input: output.token.clone(),
-                        output: input.token.clone(),
-                    },
-                    ratio.map(|v| v[1]),
-                );
+                pair_ratio_map.insert(reverse_pair_as_key, ratio.map(|v| v[1]));
             }
         }
     }
