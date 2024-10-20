@@ -379,7 +379,7 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                     .and_then(|latest_trade| {
                         // convert input and output amounts to 18 decimals point
                         // and then calculate the pair ratio
-                        let input_amount = to_18_decimals(
+                        to_18_decimals(
                             ParseUnits::U256(
                                 U256::from_str(&latest_trade.input_vault_balance_change.amount.0)
                                     .unwrap(),
@@ -393,42 +393,42 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                                 .map(|v| v.0.as_str())
                                 .unwrap_or("18"),
                         )
-                        .ok();
-                        let output_amount = to_18_decimals(
-                            ParseUnits::U256(
-                                U256::from_str(
-                                    &latest_trade.output_vault_balance_change.amount.0[1..],
-                                )
-                                .unwrap(),
-                            ),
-                            latest_trade
-                                .output_vault_balance_change
-                                .vault
-                                .token
-                                .decimals
-                                .as_ref()
-                                .map(|v| v.0.as_str())
-                                .unwrap_or("18"),
+                        .ok()
+                        .zip(
+                            to_18_decimals(
+                                ParseUnits::U256(
+                                    U256::from_str(
+                                        &latest_trade.output_vault_balance_change.amount.0[1..],
+                                    )
+                                    .unwrap(),
+                                ),
+                                latest_trade
+                                    .output_vault_balance_change
+                                    .vault
+                                    .token
+                                    .decimals
+                                    .as_ref()
+                                    .map(|v| v.0.as_str())
+                                    .unwrap_or("18"),
+                            )
+                            .ok(),
                         )
-                        .ok();
-                        input_amount
-                            .zip(output_amount)
-                            .map(|(input_amount, output_amount)| {
-                                [
-                                    // io ratio
-                                    input_amount
-                                        .get_signed()
-                                        .saturating_mul(one())
-                                        .checked_div(output_amount.get_signed())
-                                        .unwrap_or(I256::MAX),
-                                    // oi ratio
-                                    output_amount
-                                        .get_signed()
-                                        .saturating_mul(one())
-                                        .checked_div(input_amount.get_signed())
-                                        .unwrap_or(I256::MAX),
-                                ]
-                            })
+                        .map(|(input_amount, output_amount)| {
+                            [
+                                // io ratio
+                                input_amount
+                                    .get_signed()
+                                    .saturating_mul(one())
+                                    .checked_div(output_amount.get_signed())
+                                    .unwrap_or(I256::MAX),
+                                // oi ratio
+                                output_amount
+                                    .get_signed()
+                                    .saturating_mul(one())
+                                    .checked_div(input_amount.get_signed())
+                                    .unwrap_or(I256::MAX),
+                            ]
+                        })
                     });
 
                 // io
