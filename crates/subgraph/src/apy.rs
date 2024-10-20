@@ -371,97 +371,74 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                 && !(pair_ratio_map.contains_key(&pair_as_key)
                     || pair_ratio_map.contains_key(&reverse_pair_as_key))
             {
-                // find this pairs trades from list of order's trades
-                let pair_trades = trades
+                // find this pairs(io or oi) latest tradetrades from list of order's
+                // trades, the calculate the pair ratio (in amount/out amount) and
+                // its reverse from the latest trade that involes these 2 tokens.
+                // this assumes the trades are already in desc order by timestamp which
+                // is the case when used this lib query to get them
+                let ratio = trades
                     .iter()
-                    .filter(|v| {
-                        v.input_vault_balance_change.vault.token == input.token
-                            && v.output_vault_balance_change.vault.token == output.token
+                    .find(|v| {
+                        (v.input_vault_balance_change.vault.token == input.token
+                            && v.output_vault_balance_change.vault.token == output.token)
+                            || (v.output_vault_balance_change.vault.token == input.token
+                                && v.input_vault_balance_change.vault.token == output.token)
                     })
-                    .collect::<Vec<&Trade>>();
-                let reverse_pair_trades = trades
-                    .iter()
-                    .filter(|v| {
-                        v.output_vault_balance_change.vault.token == input.token
-                            && v.input_vault_balance_change.vault.token == output.token
-                    })
-                    .collect::<Vec<&Trade>>();
-
-                // calculate the pair ratio (in amount/out amount)
-                let ratio = if pair_trades.is_empty() && reverse_pair_trades.is_empty() {
-                    None
-                } else {
-                    // pick the latest one between trade and reverese trade
-                    let latest_pair_trade = if let Some(trade) = pair_trades.first() {
-                        let trade_timestamp = u64::from_str(&trade.timestamp.0).unwrap();
-                        if let Some(reverse_trade) = reverse_pair_trades.first() {
-                            let reverse_trade_timestamp =
-                                u64::from_str(&reverse_trade.timestamp.0).unwrap();
-                            if trade_timestamp >= reverse_trade_timestamp {
-                                trade
-                            } else {
-                                reverse_trade
-                            }
-                        } else {
-                            trade
-                        }
-                    } else {
-                        reverse_pair_trades.first().unwrap()
-                    };
-
-                    // convert input and output amounts to 18 decimals point
-                    // and then calculate the pair ratio
-                    let input_amount = to_18_decimals(
-                        ParseUnits::U256(
-                            U256::from_str(&latest_pair_trade.input_vault_balance_change.amount.0)
+                    .and_then(|latest_trade| {
+                        // convert input and output amounts to 18 decimals point
+                        // and then calculate the pair ratio
+                        let input_amount = to_18_decimals(
+                            ParseUnits::U256(
+                                U256::from_str(&latest_trade.input_vault_balance_change.amount.0)
+                                    .unwrap(),
+                            ),
+                            latest_trade
+                                .input_vault_balance_change
+                                .vault
+                                .token
+                                .decimals
+                                .as_ref()
+                                .map(|v| v.0.as_str())
+                                .unwrap_or("18"),
+                        )
+                        .ok();
+                        let output_amount = to_18_decimals(
+                            ParseUnits::U256(
+                                U256::from_str(
+                                    &latest_trade.output_vault_balance_change.amount.0[1..],
+                                )
                                 .unwrap(),
-                        ),
-                        latest_pair_trade
-                            .input_vault_balance_change
-                            .vault
-                            .token
-                            .decimals
-                            .as_ref()
-                            .map(|v| v.0.as_str())
-                            .unwrap_or("18"),
-                    )
-                    .ok();
-                    let output_amount = to_18_decimals(
-                        ParseUnits::U256(
-                            U256::from_str(
-                                &latest_pair_trade.output_vault_balance_change.amount.0[1..],
-                            )
-                            .unwrap(),
-                        ),
-                        latest_pair_trade
-                            .output_vault_balance_change
-                            .vault
-                            .token
-                            .decimals
-                            .as_ref()
-                            .map(|v| v.0.as_str())
-                            .unwrap_or("18"),
-                    )
-                    .ok();
-                    if let Some((input_amount, output_amount)) = input_amount.zip(output_amount) {
-                        Some([
-                            // io ratio
-                            input_amount
-                                .get_signed()
-                                .saturating_mul(one)
-                                .checked_div(output_amount.get_signed())
-                                .unwrap_or(I256::MAX),
-                            // oi ratio
-                            output_amount
-                                .get_signed()
-                                .saturating_mul(one)
-                                .checked_div(input_amount.get_signed())
-                                .unwrap_or(I256::MAX),
-                        ])
-                    } else {
-                        None
-                    }
-                };
+                            ),
+                            latest_trade
+                                .output_vault_balance_change
+                                .vault
+                                .token
+                                .decimals
+                                .as_ref()
+                                .map(|v| v.0.as_str())
+                                .unwrap_or("18"),
+                        )
+                        .ok();
+                        input_amount
+                            .zip(output_amount)
+                            .map(|(input_amount, output_amount)| {
+                                [
+                                    // io ratio
+                                    input_amount
+                                        .get_signed()
+                                        .saturating_mul(one)
+                                        .checked_div(output_amount.get_signed())
+                                        .unwrap_or(I256::MAX),
+                                    // oi ratio
+                                    output_amount
+                                        .get_signed()
+                                        .saturating_mul(one)
+                                        .checked_div(input_amount.get_signed())
+                                        .unwrap_or(I256::MAX),
+                                ]
+                            })
+                    });
+
                 // io
                 pair_ratio_map.insert(
                     TokenPair {
