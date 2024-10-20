@@ -468,7 +468,7 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
     pair_ratio_map
 }
 
-/// Converts a U256 or I256 to a fixed point U256 or I256 given the decimals point
+/// Converts a U256 or I256 to a 18 fixed point U256 or I256 given the decimals point
 pub fn to_18_decimals<T: TryInto<Unit, Error = UnitsError>>(
     amount: ParseUnits,
     decimals: T,
