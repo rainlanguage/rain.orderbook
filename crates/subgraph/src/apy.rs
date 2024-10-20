@@ -68,6 +68,8 @@ struct TokenPair {
 
 /// Given an order and its trades and optionally a timeframe, will calculates
 /// the APY for each of the entire order and for each of its vaults
+/// Trades must be sorted indesc order by timestamp, this is the case if
+/// queried from subgraph using this lib functionalities
 pub fn get_order_apy(
     order: &Order,
     trades: &[Trade],
@@ -234,6 +236,8 @@ pub fn get_order_apy(
 }
 
 /// Calculates each token vault apy at the given timeframe
+/// Trades must be sorted indesc order by timestamp, this is
+/// the case if queried from subgraph using this lib functionalities
 pub fn get_token_vaults_apy(
     trades: &[Trade],
     vols: &[VaultVolume],
@@ -353,6 +357,8 @@ pub fn get_token_vaults_apy(
 }
 
 /// Calculates an order's pairs' ratios from their last trades in a given list of trades
+/// Trades must be sorted indesc order by timestamp, this is the case if queried from subgraph
+/// using this lib functionalities
 fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair, Option<I256>> {
     let one = I256::from_str(ONE).unwrap();
     let mut pair_ratio_map: HashMap<TokenPair, Option<I256>> = HashMap::new();
@@ -575,9 +581,9 @@ mod test {
                 start_time: 1,
                 end_time: 10000001,
                 net_vol: I256::from_str("1000000000000000000").unwrap(),
-                capital: I256::from_str("2000000000000000000").unwrap(),
-                // (1/2) / (10000001_end - 1_start / 31_536_00_year)
-                apy: Some(I256::from_str("1576800000000000000").unwrap()),
+                capital: I256::from_str("5000000000000000000").unwrap(),
+                // (1/5) / (10000001_end - 1_start / 31_536_00_year)
+                apy: Some(I256::from_str("630720000000000000").unwrap()),
             },
             TokenVaultAPY {
                 id: vault2.to_string(),
@@ -585,9 +591,9 @@ mod test {
                 start_time: 1,
                 end_time: 10000001,
                 net_vol: I256::from_str("2000000000000000000").unwrap(),
-                capital: I256::from_str("2000000000000000000").unwrap(),
-                // (2/2) / ((10000001_end - 1_start) / 31_536_00_year)
-                apy: Some(I256::from_str("3153600000000000000").unwrap()),
+                capital: I256::from_str("5000000000000000000").unwrap(),
+                // (2/5) / ((10000001_end - 1_start) / 31_536_00_year)
+                apy: Some(I256::from_str("1261440000000000000").unwrap()),
             },
         ];
 
@@ -606,8 +612,8 @@ mod test {
             start_time: 1,
             end_time: 10000001,
             net_vol: I256::from_str("5000000000000000000").unwrap(),
-            capital: I256::from_str("2000000000000000000").unwrap(),
-            apy: Some(I256::from_str("7884000000000000001").unwrap()),
+            capital: I256::from_str("5000000000000000000").unwrap(),
+            apy: Some(I256::from_str("3153600000000000000").unwrap()),
         };
         let token2_apy = TokenVaultAPY {
             id: vault2.to_string(),
@@ -615,8 +621,8 @@ mod test {
             start_time: 1,
             end_time: 10000001,
             net_vol: I256::from_str("3000000000000000000").unwrap(),
-            capital: I256::from_str("2000000000000000000").unwrap(),
-            apy: Some(I256::from_str("4730400000000000000").unwrap()),
+            capital: I256::from_str("5000000000000000000").unwrap(),
+            apy: Some(I256::from_str("1892160000000000000").unwrap()),
         };
         let result = get_order_apy(&order, &trades, Some(1), Some(10000001)).unwrap();
         let expected = OrderAPY {
@@ -624,11 +630,11 @@ mod test {
             order_hash: "".to_string(),
             start_time: 1,
             end_time: 10000001,
-            inputs_token_vault_apy: vec![token2_apy.clone(), token1_apy.clone()],
-            outputs_token_vault_apy: vec![token2_apy.clone(), token1_apy.clone()],
+            inputs_token_vault_apy: vec![token1_apy.clone(), token2_apy.clone()],
+            outputs_token_vault_apy: vec![token1_apy.clone(), token2_apy.clone()],
             denominated_apy: Some(DenominatedAPY {
-                apy: I256::from_str("7183200000000000000").unwrap(),
-                token: token2,
+                apy: I256::from_str("2172480000000000000").unwrap(),
+                token: token1,
             }),
         };
 
@@ -828,6 +834,6 @@ mod test {
                 orderbook: Orderbook { id: bytes.clone() },
             },
         };
-        vec![trade1, trade2]
+        vec![trade2, trade1]
     }
 }
