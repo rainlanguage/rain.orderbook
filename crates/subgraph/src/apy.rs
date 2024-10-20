@@ -31,7 +31,7 @@ pub struct TokenVaultAPY {
     #[typeshare(typescript(type = "string"))]
     pub net_vol: I256,
     #[typeshare(typescript(type = "string"))]
-    pub capital: U256,
+    pub capital: I256,
     #[typeshare(typescript(type = "string"))]
     pub apy: Option<I256>,
 }
@@ -154,32 +154,13 @@ pub fn get_order_apy(
             .get_signed();
             let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
             let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
-            // let annual_rate = I256::from_raw(U256::from(
-            //     ((token_vault.end_time - token_vault.start_time) * 10_000) / YEAR,
-            // ));
-            let token_decimals = token_vault
-                .token
-                .decimals
-                .as_ref()
-                .map(|v| v.0.as_str())
-                .unwrap_or("18");
 
-            // convert to 18 point decimals
-            let vault_capital =
-                to_18_decimals(ParseUnits::U256(token_vault.capital), token_decimals);
-            let vault_net_vol =
-                to_18_decimals(ParseUnits::I256(token_vault.net_vol), token_decimals);
-            if vault_capital.is_err() || vault_net_vol.is_err() {
-                noway = true;
-                break;
-            }
-            let vault_capital = vault_capital.unwrap().get_signed();
-            let vault_net_vol = vault_net_vol.unwrap().get_signed();
-
-            // sum up all capitals and vols in one denomination
+            // sum up all token vaults' capitals and vols in the current's iteration
+            // token denomination by using the direct ratio between the tokens
             if token_vault.token == token.token {
-                combined_capital += vault_capital;
-                combined_annual_rate_vol += vault_net_vol
+                combined_capital += token_vault.capital;
+                combined_annual_rate_vol += token_vault
+                    .net_vol
                     .saturating_mul(one)
                     .saturating_div(annual_rate);
             } else {
@@ -189,7 +170,10 @@ pub fn get_order_apy(
                 };
                 // convert to current denomination by the direct pair ratio if exists
                 if let Some(Some(ratio)) = pair_ratio_map.get(&pair) {
-                    combined_capital += vault_capital.saturating_mul(*ratio).saturating_div(one);
+                    combined_capital += token_vault
+                        .capital
+                        .saturating_mul(*ratio)
+                        .saturating_div(one);
                     combined_annual_rate_vol += token_vault
                         .net_vol
                         .saturating_mul(*ratio)
@@ -203,7 +187,9 @@ pub fn get_order_apy(
             }
         }
 
-        // for every success denomination, gather them in an array
+        // for every success apy calc in a token denomination, gather them in an array
+        // this means at the end we have all the successful apy calculated in each of
+        // the order's io tokens in an array.
         if !noway {
             if let Some(apy) = combined_annual_rate_vol
                 .saturating_mul(one)
@@ -280,7 +266,8 @@ pub fn get_token_vaults_apy(
             .collect::<Vec<&&Trade>>()[0];
 
         // vaults starting capital at end of first day of its first ever trade
-        let starting_capital = if first_day_last_trade
+        // as 18 point decimals
+        let vault_balance_change = if first_day_last_trade
             .input_vault_balance_change
             .vault
             .vault_id
@@ -288,20 +275,36 @@ pub fn get_token_vaults_apy(
             == vol.id
             && first_day_last_trade.input_vault_balance_change.vault.token == vol.token
         {
-            U256::from_str(
-                &first_day_last_trade
-                    .input_vault_balance_change
-                    .new_vault_balance
-                    .0,
-            )?
+            &first_day_last_trade.input_vault_balance_change
         } else {
-            U256::from_str(
-                &first_day_last_trade
-                    .output_vault_balance_change
-                    .new_vault_balance
-                    .0,
-            )?
+            &first_day_last_trade.output_vault_balance_change
         };
+        let starting_capital = U256::from_str(&vault_balance_change.new_vault_balance.0)
+            .ok()
+            .and_then(|amount| {
+                to_18_decimals(
+                    ParseUnits::U256(amount),
+                    vault_balance_change
+                        .vault
+                        .token
+                        .decimals
+                        .as_ref()
+                        .map(|v| v.0.as_str())
+                        .unwrap_or("18"),
+                )
+                .ok()
+            });
+
+        // convert net vol to 18 decimals point
+        let net_vol = to_18_decimals(
+            ParseUnits::I256(vol.net_vol),
+            vol.token
+                .decimals
+                .as_ref()
+                .map(|v| v.0.as_str())
+                .unwrap_or("18"),
+        )
+        .ok();
 
         // the time range for this token vault
         let mut start = u64::from_str(&first_trade.timestamp.0)?;
@@ -312,29 +315,37 @@ pub fn get_token_vaults_apy(
         });
         let end = end_timestamp.unwrap_or(chrono::Utc::now().timestamp() as u64);
 
-        // this token vault apy
-        let apy = if starting_capital.is_zero() {
-            None
+        // this token vault apy in 18 decimals point
+        let apy = if let Some((starting_capital, net_vol)) = starting_capital.zip(net_vol) {
+            if starting_capital.is_zero() {
+                None
+            } else {
+                let change_ratio = net_vol
+                    .get_signed()
+                    .saturating_mul(one)
+                    .saturating_div(starting_capital.get_signed());
+                let timeframe = parse_units(&(end - start).to_string(), 18)
+                    .unwrap()
+                    .get_signed();
+                let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
+                let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
+                change_ratio.saturating_mul(one).checked_div(annual_rate)
+            }
         } else {
-            let change_ratio = vol
-                .net_vol
-                .saturating_mul(one)
-                .saturating_div(I256::from_raw(starting_capital));
-            let timeframe = parse_units(&(end - start).to_string(), 18)
-                .unwrap()
-                .get_signed();
-            let year = parse_units(&YEAR.to_string(), 18).unwrap().get_signed();
-            let annual_rate = timeframe.saturating_mul(one).saturating_div(year);
-            change_ratio.saturating_mul(one).checked_div(annual_rate)
+            None
         };
+
+        // this token vault apy
         token_vaults_apy.push(TokenVaultAPY {
             id: vol.id.clone(),
             token: vol.token.clone(),
             start_time: start,
             end_time: end,
-            net_vol: vol.net_vol,
             apy,
-            capital: starting_capital,
+            net_vol: net_vol.unwrap_or(ParseUnits::I256(I256::ZERO)).get_signed(),
+            capital: starting_capital
+                .unwrap_or(ParseUnits::I256(I256::ZERO))
+                .get_signed(),
         });
     }
 
@@ -519,7 +530,7 @@ mod test {
             start_time: 0,
             end_time: 0,
             net_vol: I256::ZERO,
-            capital: U256::ZERO,
+            capital: I256::ZERO,
             apy: Some(I256::ZERO),
         };
         let token_vault2 = TokenVaultAPY {
@@ -528,7 +539,7 @@ mod test {
             start_time: 0,
             end_time: 0,
             net_vol: I256::ZERO,
-            capital: U256::ZERO,
+            capital: I256::ZERO,
             apy: Some(I256::ZERO),
         };
         let order_apy = OrderAPY {
@@ -591,7 +602,7 @@ mod test {
                 start_time: 1,
                 end_time: 10000001,
                 net_vol: I256::from_str("1000000000000000000").unwrap(),
-                capital: U256::from_str("2000000000000000000").unwrap(),
+                capital: I256::from_str("2000000000000000000").unwrap(),
                 // (1/2) / (10000001_end - 1_start / 31_536_00_year)
                 apy: Some(I256::from_str("1576800000000000000").unwrap()),
             },
@@ -601,7 +612,7 @@ mod test {
                 start_time: 1,
                 end_time: 10000001,
                 net_vol: I256::from_str("2000000000000000000").unwrap(),
-                capital: U256::from_str("2000000000000000000").unwrap(),
+                capital: I256::from_str("2000000000000000000").unwrap(),
                 // (2/2) / ((10000001_end - 1_start) / 31_536_00_year)
                 apy: Some(I256::from_str("3153600000000000000").unwrap()),
             },
@@ -622,7 +633,7 @@ mod test {
             start_time: 1,
             end_time: 10000001,
             net_vol: I256::from_str("5000000000000000000").unwrap(),
-            capital: U256::from_str("2000000000000000000").unwrap(),
+            capital: I256::from_str("2000000000000000000").unwrap(),
             apy: Some(I256::from_str("7884000000000000001").unwrap()),
         };
         let token2_apy = TokenVaultAPY {
@@ -631,7 +642,7 @@ mod test {
             start_time: 1,
             end_time: 10000001,
             net_vol: I256::from_str("3000000000000000000").unwrap(),
-            capital: U256::from_str("2000000000000000000").unwrap(),
+            capital: I256::from_str("2000000000000000000").unwrap(),
             apy: Some(I256::from_str("4730400000000000000").unwrap()),
         };
         let result = get_order_apy(&order, &trades, Some(1), Some(10000001)).unwrap();
