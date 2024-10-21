@@ -137,7 +137,7 @@ pub fn get_order_apy(
     // of its net vol and pick the one with highest net vol.
     // if there was no success with any of the order's tokens, simply return None
     // for the APY.
-    let mut token_net_vol_map = BTreeMap::new();
+    let mut tokens_net_vol_map = BTreeMap::new();
     let mut full_apy_in_distinct_token_denominations = vec![];
     for token in &token_vaults_apy {
         let mut noway = false;
@@ -204,13 +204,14 @@ pub fn get_order_apy(
         } else {
             current_token_net_vol_map.clear();
         }
-        if token_net_vol_map.is_empty() {
-            token_net_vol_map.extend(current_token_net_vol_map);
+
+        if tokens_net_vol_map.is_empty() {
+            tokens_net_vol_map.extend(current_token_net_vol_map);
         }
     }
 
     // pick the denomination with highest net vol
-    for (_, token) in token_net_vol_map.iter().rev() {
+    for (_, token) in tokens_net_vol_map.iter().rev() {
         if let Some(denominated_apy) = full_apy_in_distinct_token_denominations
             .iter()
             .find(|v| &&v.token == token)
