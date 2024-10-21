@@ -8,15 +8,15 @@ use alloy::primitives::{
     I256, U256,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::FromStr,
+};
 use typeshare::typeshare;
 
 pub const ONE: &str = "1000000000000000000";
 pub const DAY: u64 = 60 * 60 * 24;
 pub const YEAR: u64 = DAY * 365;
-pub const PREFERED_DENOMINATIONS: [&str; 11] = [
-    "usdt", "usdc", "dai", "frax", "mim", "usdp", "weth", "wbtc", "wpol", "wmatic", "wbnb",
-];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -133,17 +133,15 @@ pub fn get_order_apy(
     // try to calculate all vaults capital and volume denominated into each of
     // the order's tokens by checking if there is direct ratio between the tokens,
     // multi path ratios are ignored currently and results in None for the APY.
-    // if there is a success for any of the denomination tokens, checks if it is
-    // among the prefered denominations, if not continues the same process with
-    // remaining order's io tokens.
-    // if none of the successfull calcs fulfills any of the prefered denominations
-    // will end up picking the first one.
+    // if there is a success for any of the denomination tokens, gather it in order
+    // of its net vol in a BTreeMap and lastly pick the one with highest net vol.
     // if there was no success with any of the order's tokens, simply return None
     // for the APY.
-    let mut full_apy_in_distinct_token_denominations = vec![];
+    let mut full_apy_in_distinct_token_denominations = BTreeMap::new();
     for token in &token_vaults_apy {
         let mut noway = false;
         let mut combined_capital = I256::ZERO;
+        let mut combined_net_vol = I256::ZERO;
         let mut combined_annual_rate_vol = I256::ZERO;
         for token_vault in &token_vaults_apy {
             // time to year ratio
@@ -153,6 +151,7 @@ pub fn get_order_apy(
             // token denomination by using the direct ratio between the tokens
             if token_vault.token == token.token {
                 combined_capital += token_vault.capital;
+                combined_net_vol += token_vault.net_vol;
                 combined_annual_rate_vol += token_vault
                     .net_vol
                     .saturating_mul(one())
@@ -168,6 +167,10 @@ pub fn get_order_apy(
                         .capital
                         .saturating_mul(*ratio)
                         .saturating_div(one());
+                    combined_net_vol += token_vault
+                        .net_vol
+                        .saturating_mul(*ratio)
+                        .saturating_div(one());
                     combined_annual_rate_vol += token_vault
                         .net_vol
                         .saturating_mul(*ratio)
@@ -181,48 +184,30 @@ pub fn get_order_apy(
             }
         }
 
-        // for every success apy calc in a token denomination, gather them in an array
+        // for every success apy calc in a token denomination, gather them in BTreeMap
         // this means at the end we have all the successful apy calculated in each of
-        // the order's io tokens in an array.
+        // the order's io tokens in order from highest to lowest.
         if !noway {
             if let Some(apy) = combined_annual_rate_vol
                 .saturating_mul(one())
                 .checked_div(combined_capital)
             {
-                full_apy_in_distinct_token_denominations.push(Some(DenominatedAPY {
-                    apy,
-                    token: token.token.clone(),
-                }));
+                full_apy_in_distinct_token_denominations.insert(
+                    combined_net_vol,
+                    DenominatedAPY {
+                        apy,
+                        token: token.token.clone(),
+                    },
+                );
             }
         }
     }
 
-    // check if this token is one of prefered ones and if so return early
-    // if not continue to next distinct token denomination and check if that
-    // satisfies any prefered token
-    for prefered_token in PREFERED_DENOMINATIONS {
-        for denominated_apy in full_apy_in_distinct_token_denominations.iter().flatten() {
-            if denominated_apy
-                .token
-                .symbol
-                .as_ref()
-                .is_some_and(|sym| sym.to_ascii_lowercase().contains(prefered_token))
-                || denominated_apy
-                    .token
-                    .name
-                    .as_ref()
-                    .is_some_and(|name| name.to_ascii_lowercase().contains(prefered_token))
-            {
-                order_apy.denominated_apy = Some(denominated_apy.clone());
-                return Ok(order_apy);
-            }
-        }
-    }
-    // none of the order's distinct tokens denominations matched with any of the
-    // prefered denominations so just pick the first one if there was any success at all
-    if !full_apy_in_distinct_token_denominations.is_empty() {
-        order_apy.denominated_apy = full_apy_in_distinct_token_denominations[0].clone();
-    }
+    // pick the denomination with highest net vol
+    order_apy.denominated_apy = full_apy_in_distinct_token_denominations
+        .last_key_value()
+        .map(|(_k, v)| v)
+        .cloned();
 
     Ok(order_apy)
 }
