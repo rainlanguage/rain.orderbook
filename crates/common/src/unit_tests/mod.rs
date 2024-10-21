@@ -93,7 +93,6 @@ impl TestRunner {
     }
 
     fn get_final_bindings(&mut self, is_test_dotrain: bool) -> Vec<Rebind> {
-        let dotrain: String;
         let scenario_bindings: Vec<Rebind> = self
             .settings
             .test_config
@@ -105,10 +104,10 @@ impl TestRunner {
             .collect();
         let mut final_bindings: Vec<Rebind> = vec![];
 
-        if is_test_dotrain {
-            dotrain = self.dotrains.test_dotrain.clone();
+        let dotrain = if is_test_dotrain {
+            self.dotrains.test_dotrain.clone()
         } else {
-            dotrain = self.dotrains.main_dotrain.clone();
+            self.dotrains.main_dotrain.clone()
         };
 
         let rain_document =
