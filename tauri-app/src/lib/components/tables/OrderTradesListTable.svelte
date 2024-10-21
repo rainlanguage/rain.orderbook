@@ -83,41 +83,31 @@
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2">
       {formatUnits(
-        BigInt(item.outputVaultBalanceChange.amount),
+        BigInt(item.outputVaultBalanceChange.amount) * BigInt(-1),
         Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
       )}
       {item.outputVaultBalanceChange.vault.token.symbol}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2" data-testid="io-ratio">
-      {Math.abs(
-        Number(
-          formatUnits(
-            BigInt(item.inputVaultBalanceChange.amount),
-            Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
-          ),
-        ) /
-          Number(
-            formatUnits(
-              BigInt(item.outputVaultBalanceChange.amount),
-              Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
-            ),
-          ),
+      {formatUnits(
+        (BigInt(10 ** 18) *
+          BigInt(item.inputVaultBalanceChange.amount) *
+          BigInt(10 ** Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0))) /
+          (BigInt(-1) *
+            BigInt(item.outputVaultBalanceChange.amount) *
+            BigInt(10 ** Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0))),
+        18,
       )}
       <span class="text-gray-400">
-        ({Math.abs(
-          Number(
-            formatUnits(
-              BigInt(item.outputVaultBalanceChange.amount),
-              Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
-            ),
-          ) /
-            Number(
-              formatUnits(
-                BigInt(item.inputVaultBalanceChange.amount),
-                Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
-              ),
-            ),
-        )})
+        {formatUnits(
+          (BigInt(10 ** 18) *
+            BigInt(-1) *
+            BigInt(item.outputVaultBalanceChange.amount) *
+            BigInt(10 ** Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0))) /
+            (BigInt(item.inputVaultBalanceChange.amount) *
+              BigInt(10 ** Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0))),
+          18,
+        )}
       </span>
     </TableBodyCell>
     <TableBodyCell tdClass="py-2">
