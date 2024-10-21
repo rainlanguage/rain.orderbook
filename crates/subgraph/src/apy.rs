@@ -134,15 +134,16 @@ pub fn get_order_apy(
     // the order's tokens by checking if there is direct ratio between the tokens,
     // multi path ratios are ignored currently and results in None for the APY.
     // if there is a success for any of the denomination tokens, gather it in order
-    // of its net vol in a BTreeMap and lastly pick the one with highest net vol.
+    // of its net vol and pick the one with highest net vol.
     // if there was no success with any of the order's tokens, simply return None
     // for the APY.
-    let mut full_apy_in_distinct_token_denominations = BTreeMap::new();
+    let mut token_net_vol_map = BTreeMap::new();
+    let mut full_apy_in_distinct_token_denominations = vec![];
     for token in &token_vaults_apy {
         let mut noway = false;
         let mut combined_capital = I256::ZERO;
-        let mut combined_net_vol = I256::ZERO;
         let mut combined_annual_rate_vol = I256::ZERO;
+        let mut current_token_net_vol_map = BTreeMap::new();
         for token_vault in &token_vaults_apy {
             // time to year ratio
             let annual_rate = annual_rate(token_vault.start_time, token_vault.end_time);
@@ -151,11 +152,11 @@ pub fn get_order_apy(
             // token denomination by using the direct ratio between the tokens
             if token_vault.token == token.token {
                 combined_capital += token_vault.capital;
-                combined_net_vol += token_vault.net_vol;
                 combined_annual_rate_vol += token_vault
                     .net_vol
                     .saturating_mul(one())
                     .saturating_div(annual_rate);
+                current_token_net_vol_map.insert(token_vault.net_vol, &token.token);
             } else {
                 let pair = TokenPair {
                     input: token.token.clone(),
@@ -167,16 +168,19 @@ pub fn get_order_apy(
                         .capital
                         .saturating_mul(*ratio)
                         .saturating_div(one());
-                    combined_net_vol += token_vault
-                        .net_vol
-                        .saturating_mul(*ratio)
-                        .saturating_div(one());
                     combined_annual_rate_vol += token_vault
                         .net_vol
                         .saturating_mul(*ratio)
                         .saturating_div(one())
                         .saturating_mul(one())
                         .saturating_div(annual_rate);
+                    current_token_net_vol_map.insert(
+                        token_vault
+                            .net_vol
+                            .saturating_mul(*ratio)
+                            .saturating_div(one()),
+                        &token_vault.token,
+                    );
                 } else {
                     noway = true;
                     break;
@@ -192,22 +196,29 @@ pub fn get_order_apy(
                 .saturating_mul(one())
                 .checked_div(combined_capital)
             {
-                full_apy_in_distinct_token_denominations.insert(
-                    combined_net_vol,
-                    DenominatedAPY {
-                        apy,
-                        token: token.token.clone(),
-                    },
-                );
+                full_apy_in_distinct_token_denominations.push(DenominatedAPY {
+                    apy,
+                    token: token.token.clone(),
+                });
             }
+        } else {
+            current_token_net_vol_map.clear();
+        }
+        if token_net_vol_map.is_empty() {
+            token_net_vol_map.extend(current_token_net_vol_map);
         }
     }
 
     // pick the denomination with highest net vol
-    order_apy.denominated_apy = full_apy_in_distinct_token_denominations
-        .last_key_value()
-        .map(|(_k, v)| v)
-        .cloned();
+    for (_, token) in token_net_vol_map.iter().rev() {
+        if let Some(denominated_apy) = full_apy_in_distinct_token_denominations
+            .iter()
+            .find(|v| &&v.token == token)
+        {
+            order_apy.denominated_apy = Some(denominated_apy.clone());
+            break;
+        }
+    }
 
     Ok(order_apy)
 }
@@ -611,8 +622,8 @@ mod test {
             inputs_token_vault_apy: vec![token1_apy.clone(), token2_apy.clone()],
             outputs_token_vault_apy: vec![token1_apy.clone(), token2_apy.clone()],
             denominated_apy: Some(DenominatedAPY {
-                apy: I256::from_str("2172480000000000000").unwrap(),
-                token: token1,
+                apy: I256::from_str("2172479999999999999").unwrap(),
+                token: token2,
             }),
         };
 
