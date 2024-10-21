@@ -9,6 +9,7 @@
   import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
+  import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
@@ -96,6 +97,16 @@
         <svelte:fragment slot="icon">
           <IconTelegram />
           <span data-testid="sidebar-telegram"></span>
+        </svelte:fragment>
+      </SidebarItem>
+      <SidebarItem
+        label="License"
+        target="_blank"
+        href="https://github.com/rainlanguage/decentralicense"
+      >
+        <svelte:fragment slot="icon">
+          <FileLinesSolid />
+          <span data-testid="sidebar-license"></span>
         </svelte:fragment>
       </SidebarItem>
     </SidebarGroup>
