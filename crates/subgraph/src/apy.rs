@@ -1,10 +1,11 @@
 use crate::{
     types::common::{Erc20, Order, Trade},
+    utils::{one_18, to_18_decimals, year_18, DAY},
     vol::{get_vaults_vol, VaultVolume},
     OrderbookSubgraphClientError,
 };
 use alloy::primitives::{
-    utils::{format_units, parse_units, ParseUnits, Unit, UnitsError},
+    utils::{parse_units, ParseUnits},
     I256, U256,
 };
 use serde::{Deserialize, Serialize};
@@ -13,10 +14,6 @@ use std::{
     str::FromStr,
 };
 use typeshare::typeshare;
-
-pub const ONE: &str = "1000000000000000000";
-pub const DAY: u64 = 60 * 60 * 24;
-pub const YEAR: u64 = DAY * 365;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -137,13 +134,13 @@ pub fn get_order_apy(
     // of its net vol and pick the one with highest net vol.
     // if there was no success with any of the order's tokens, simply return None
     // for the APY.
-    let mut tokens_net_vol_map = BTreeMap::new();
+    let mut ordered_token_net_vol_map = BTreeMap::new();
     let mut full_apy_in_distinct_token_denominations = vec![];
     for token in &token_vaults_apy {
         let mut noway = false;
         let mut combined_capital = I256::ZERO;
         let mut combined_annual_rate_vol = I256::ZERO;
-        let mut current_token_net_vol_map = BTreeMap::new();
+        let mut token_net_vol_map_converted_in_current_denomination = BTreeMap::new();
         for token_vault in &token_vaults_apy {
             // time to year ratio
             let annual_rate = annual_rate(token_vault.start_time, token_vault.end_time);
@@ -154,9 +151,10 @@ pub fn get_order_apy(
                 combined_capital += token_vault.capital;
                 combined_annual_rate_vol += token_vault
                     .net_vol
-                    .saturating_mul(one())
+                    .saturating_mul(one_18().get_signed())
                     .saturating_div(annual_rate);
-                current_token_net_vol_map.insert(token_vault.net_vol, &token.token);
+                token_net_vol_map_converted_in_current_denomination
+                    .insert(token_vault.net_vol, &token.token);
             } else {
                 let pair = TokenPair {
                     input: token.token.clone(),
@@ -167,18 +165,18 @@ pub fn get_order_apy(
                     combined_capital += token_vault
                         .capital
                         .saturating_mul(*ratio)
-                        .saturating_div(one());
+                        .saturating_div(one_18().get_signed());
                     combined_annual_rate_vol += token_vault
                         .net_vol
                         .saturating_mul(*ratio)
-                        .saturating_div(one())
-                        .saturating_mul(one())
+                        .saturating_div(one_18().get_signed())
+                        .saturating_mul(one_18().get_signed())
                         .saturating_div(annual_rate);
-                    current_token_net_vol_map.insert(
+                    token_net_vol_map_converted_in_current_denomination.insert(
                         token_vault
                             .net_vol
                             .saturating_mul(*ratio)
-                            .saturating_div(one()),
+                            .saturating_div(one_18().get_signed()),
                         &token_vault.token,
                     );
                 } else {
@@ -193,7 +191,7 @@ pub fn get_order_apy(
         // the order's io tokens in order from highest to lowest.
         if !noway {
             if let Some(apy) = combined_annual_rate_vol
-                .saturating_mul(one())
+                .saturating_mul(one_18().get_signed())
                 .checked_div(combined_capital)
             {
                 full_apy_in_distinct_token_denominations.push(DenominatedAPY {
@@ -202,22 +200,27 @@ pub fn get_order_apy(
                 });
             }
         } else {
-            current_token_net_vol_map.clear();
+            token_net_vol_map_converted_in_current_denomination.clear();
         }
 
-        if tokens_net_vol_map.is_empty() {
-            tokens_net_vol_map.extend(current_token_net_vol_map);
+        // if we already have ordered token net vol in a denomination
+        // we dont need them in other denominations in order to pick
+        // the highest vol token as settelement denomination
+        if ordered_token_net_vol_map.is_empty() {
+            ordered_token_net_vol_map.extend(token_net_vol_map_converted_in_current_denomination);
         }
     }
 
-    // pick the denomination with highest net vol
-    for (_, token) in tokens_net_vol_map.iter().rev() {
+    // pick the denomination with highest net vol by iterating over tokens with
+    // highest vol to lowest and pick the first matching matching one
+    for (_, &token) in ordered_token_net_vol_map.iter().rev() {
         if let Some(denominated_apy) = full_apy_in_distinct_token_denominations
             .iter()
-            .find(|v| &&v.token == token)
+            .find(|&v| &v.token == token)
         {
             order_apy.denominated_apy = Some(denominated_apy.clone());
-            break;
+            // return early as soon as a match is found
+            return Ok(order_apy);
         }
     }
 
@@ -315,9 +318,9 @@ pub fn get_token_vaults_apy(
                     .then_some(
                         net_vol
                             .get_signed()
-                            .saturating_mul(one())
+                            .saturating_mul(one_18().get_signed())
                             .saturating_div(starting_capital.get_signed())
-                            .saturating_mul(one())
+                            .saturating_mul(one_18().get_signed())
                             .checked_div(annual_rate(start, end)),
                     )
                     .flatten()
@@ -415,13 +418,13 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                                 // io ratio
                                 input_amount
                                     .get_signed()
-                                    .saturating_mul(one())
+                                    .saturating_mul(one_18().get_signed())
                                     .checked_div(output_amount.get_signed())
                                     .unwrap_or(I256::MAX),
                                 // oi ratio
                                 output_amount
                                     .get_signed()
-                                    .saturating_mul(one())
+                                    .saturating_mul(one_18().get_signed())
                                     .checked_div(input_amount.get_signed())
                                     .unwrap_or(I256::MAX),
                             ]
@@ -439,31 +442,13 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
     pair_ratio_map
 }
 
-/// Converts a U256 or I256 to a 18 fixed point U256 or I256 given the decimals point
-pub fn to_18_decimals<T: TryInto<Unit, Error = UnitsError>>(
-    amount: ParseUnits,
-    decimals: T,
-) -> Result<ParseUnits, UnitsError> {
-    parse_units(&format_units(amount, decimals)?, 18)
-}
-
-/// Returns 18 point decimals 1 as I256
-fn one() -> I256 {
-    I256::from_str(ONE).unwrap()
-}
-
-/// Returns YEAR as 18 point decimals as I256
-fn year() -> I256 {
-    parse_units(&YEAR.to_string(), 18).unwrap().get_signed()
-}
-
 /// Returns annual rate as 18 point decimals as I256
 fn annual_rate(start: u64, end: u64) -> I256 {
     parse_units(&(end - start).to_string(), 18)
         .unwrap()
         .get_signed()
-        .saturating_mul(one())
-        .saturating_div(year())
+        .saturating_mul(one_18().get_signed())
+        .saturating_div(year_18().get_signed())
 }
 
 #[cfg(test)]
@@ -474,19 +459,6 @@ mod test {
         Transaction, Vault, VaultBalanceChangeVault,
     };
     use alloy::primitives::{Address, B256};
-
-    #[test]
-    fn test_to_18_decimals() {
-        let value = ParseUnits::I256(I256::from_str("-123456789").unwrap());
-        let result = to_18_decimals(value, 5).unwrap();
-        let expected = ParseUnits::I256(I256::from_str("-1234567890000000000000").unwrap());
-        assert_eq!(result, expected);
-
-        let value = ParseUnits::U256(U256::from_str("123456789").unwrap());
-        let result = to_18_decimals(value, 12).unwrap();
-        let expected = ParseUnits::U256(U256::from_str("123456789000000").unwrap());
-        assert_eq!(result, expected);
-    }
 
     #[test]
     fn test_get_pairs_ratio() {
