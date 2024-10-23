@@ -8,13 +8,19 @@ export function bigintToFloat(value: bigint, decimals: number) {
  * Converts a bigint string 18point decimals value to a float string, optionally
  * keeping the given number of decimals digits after "."
  * @param value - The bigint string value
- * @param decimalPoint - (optional) the number of digits to keep after "."
+ * @param valueDecimals - The bigint string value decimals point
+ * @param decimalPoint - (optional) The number of digits to keep after "." in final result, defaults to valueDecimals
  */
-export function bigintString18ToPercentage(value: string, decimalPoint?: number): string {
-  let valueString = formatUnits(BigInt(value) * 100n, 18);
+export function bigintStringToPercentage(
+  value: string,
+  valueDecimals: number,
+  finalDecimalsDigits?: number,
+): string {
+  const finalDecimals = finalDecimalsDigits !== undefined ? finalDecimalsDigits : valueDecimals;
+  let valueString = formatUnits(BigInt(value) * 100n, valueDecimals);
   const index = valueString.indexOf('.');
-  if (decimalPoint !== undefined && index > -1) {
-    valueString = valueString.substring(0, decimalPoint === 0 ? index : index + decimalPoint);
+  if (index > -1) {
+    valueString = valueString.substring(0, finalDecimals === 0 ? index : index + finalDecimals + 1);
   }
   return valueString;
 }

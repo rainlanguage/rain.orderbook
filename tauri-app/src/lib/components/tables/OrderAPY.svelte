@@ -6,7 +6,7 @@
   import { subgraphUrl } from '$lib/stores/settings';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import ApyTimeFilters from '../charts/APYTimeFilters.svelte';
-  import { bigintString18ToPercentage } from '$lib/utils/number';
+  import { bigintStringToPercentage } from '$lib/utils/number';
 
   export let id: string;
 
@@ -33,7 +33,7 @@
   <svelte:fragment slot="bodyRow" let:item>
     <TableBodyCell tdClass="break-all px-4 py-2" data-testid="apy-field">
       {item.denominatedApy
-        ? bigintString18ToPercentage(item.denominatedApy.apy, 5) +
+        ? bigintStringToPercentage(item.denominatedApy.apy, 18, 5) +
           '% in ' +
           (item.denominatedApy.token.symbol ??
             item.denominatedApy.token.name ??

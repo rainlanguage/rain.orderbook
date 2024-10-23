@@ -5,7 +5,7 @@ import { mockIPC } from '@tauri-apps/api/mocks';
 import type { OrderAPY } from '$lib/typeshare/subgraphTypes';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderApy from './OrderAPY.svelte';
-import { bigintString18ToPercentage } from '$lib/utils/number';
+import { bigintStringToPercentage } from '$lib/utils/number';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
@@ -73,7 +73,7 @@ test('renders table with correct data', async () => {
 
     // checking
     for (let i = 0; i < mockOrderApy.length; i++) {
-      const display = bigintString18ToPercentage(mockOrderApy[i].denominatedApy!.apy, 5);
+      const display = bigintStringToPercentage(mockOrderApy[i].denominatedApy!.apy, 18, 5);
       expect(rows[i]).toHaveTextContent(display);
     }
   });
