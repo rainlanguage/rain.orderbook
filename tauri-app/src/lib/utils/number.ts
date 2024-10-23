@@ -16,7 +16,8 @@ export function bigintStringToPercentage(
   valueDecimals: number,
   finalDecimalsDigits?: number,
 ): string {
-  const finalDecimals = finalDecimalsDigits !== undefined ? finalDecimalsDigits : valueDecimals;
+  const finalDecimals =
+    typeof finalDecimalsDigits !== 'undefined' ? finalDecimalsDigits : valueDecimals;
   let valueString = formatUnits(BigInt(value) * 100n, valueDecimals);
   const index = valueString.indexOf('.');
   if (index > -1) {
