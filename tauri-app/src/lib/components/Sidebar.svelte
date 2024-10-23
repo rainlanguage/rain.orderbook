@@ -99,11 +99,7 @@
           <span data-testid="sidebar-telegram"></span>
         </svelte:fragment>
       </SidebarItem>
-      <SidebarItem
-        label="License"
-        target="_blank"
-        href="https://github.com/rainlanguage/decentralicense"
-      >
+      <SidebarItem label="License" href="/license">
         <svelte:fragment slot="icon">
           <FileLinesSolid />
           <span data-testid="sidebar-license"></span>
