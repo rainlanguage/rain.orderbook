@@ -19,6 +19,18 @@ pub struct Network {
     pub network_id: Option<u64>,
     pub currency: Option<String>,
 }
+impl Network {
+    pub fn dummy() -> Self {
+        Network {
+            name: "".to_string(),
+            rpc: Url::parse("http://rpc.com").unwrap(),
+            chain_id: 1,
+            label: None,
+            network_id: None,
+            currency: None,
+        }
+    }
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseNetworkConfigSourceError {
