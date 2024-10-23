@@ -5,8 +5,7 @@ export function bigintToFloat(value: bigint, decimals: number) {
 }
 
 /**
- * Converts a bigint string 18point decimals value to a float string, optionally
- * keeping the given number of decimals digits after "."
+ * Converts a bigint string value to a percentage with optionally given number of decimal points
  * @param value - The bigint string value
  * @param valueDecimals - The bigint string value decimals point
  * @param decimalPoint - (optional) The number of digits to keep after "." in final result, defaults to valueDecimals
