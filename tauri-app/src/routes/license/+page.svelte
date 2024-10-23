@@ -15,11 +15,9 @@
       );
       if (response.ok) {
         source = await response.text();
-      } else {
-        console.error('Failed to fetch license content');
       }
-    } catch (error) {
-      console.error('Error fetching license content:', error);
+    } catch {
+      source = '';
     }
   });
 </script>
