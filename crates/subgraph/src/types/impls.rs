@@ -5,12 +5,25 @@ use alloy::primitives::{
     I256, U256,
 };
 use std::str::FromStr;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ParseUnitsError {
+    #[error(transparent)]
+    UnitsError(#[from] UnitsError),
+    #[error(transparent)]
+    ParseUnsignedError(#[from] alloy::primitives::ruint::ParseError),
+    #[error(transparent)]
+    ParseSignedError(#[from] alloy::primitives::ParseSignedError),
+    #[error(transparent)]
+    BigIntConversionError(#[from] alloy::primitives::BigIntConversionError),
+}
 
 impl Trade {
     /// Converts this trade's input to 18 point decimals in U256/I256
-    pub fn input_to_18_decimals(&self) -> Result<ParseUnits, UnitsError> {
-        to_18_decimals(
-            ParseUnits::I256(I256::from_str(&self.input_vault_balance_change.amount.0).unwrap()),
+    pub fn input_to_18_decimals(&self) -> Result<ParseUnits, ParseUnitsError> {
+        Ok(to_18_decimals(
+            ParseUnits::U256(U256::from_str(&self.input_vault_balance_change.amount.0)?),
             self.input_vault_balance_change
                 .vault
                 .token
@@ -18,13 +31,13 @@ impl Trade {
                 .as_ref()
                 .map(|v| v.0.as_str())
                 .unwrap_or("18"),
-        )
+        )?)
     }
 
     /// Converts this trade's output to 18 point decimals in U256/I256
-    pub fn output_to_18_decimals(&self) -> Result<ParseUnits, UnitsError> {
-        to_18_decimals(
-            ParseUnits::I256(I256::from_str(&self.output_vault_balance_change.amount.0).unwrap()),
+    pub fn output_to_18_decimals(&self) -> Result<ParseUnits, ParseUnitsError> {
+        Ok(to_18_decimals(
+            ParseUnits::I256(I256::from_str(&self.output_vault_balance_change.amount.0)?),
             self.output_vault_balance_change
                 .vault
                 .token
@@ -32,41 +45,31 @@ impl Trade {
                 .as_ref()
                 .map(|v| v.0.as_str())
                 .unwrap_or("18"),
-        )
+        )?)
     }
 
-    /// Calculates the trade I/O ratio
-    pub fn ratio(&self) -> Option<U256> {
-        Some(
-            self.input_to_18_decimals()
-                .ok()?
-                .get_absolute()
-                .saturating_mul(one_18().get_absolute())
-                .checked_div(
-                    self.output_to_18_decimals()
-                        .ok()?
-                        .get_signed()
-                        .saturating_neg()
-                        .try_into()
-                        .ok()?,
-                )
-                .unwrap_or(U256::MAX),
-        )
-    }
-
-    /// Calculates the trade O/I ratio (inverse)
-    pub fn inverse_ratio(&self) -> Option<U256> {
-        Some(
-            TryInto::<U256>::try_into(
-                self.output_to_18_decimals()
-                    .ok()?
-                    .get_signed()
-                    .saturating_neg(),
-            )
-            .ok()?
+    /// Calculates the trade's I/O ratio
+    pub fn ratio(&self) -> Result<U256, ParseUnitsError> {
+        Ok(self
+            .input_to_18_decimals()?
+            .get_absolute()
             .saturating_mul(one_18().get_absolute())
-            .checked_div(self.input_to_18_decimals().ok()?.get_absolute())
-            .unwrap_or(U256::MAX),
+            .checked_div(
+                self.output_to_18_decimals()?
+                    .get_signed()
+                    .saturating_neg()
+                    .try_into()?,
+            )
+            .unwrap_or(U256::MAX))
+    }
+
+    /// Calculates the trade's O/I ratio (inverse)
+    pub fn inverse_ratio(&self) -> Result<U256, ParseUnitsError> {
+        Ok(
+            TryInto::<U256>::try_into(self.output_to_18_decimals()?.get_signed().saturating_neg())?
+                .saturating_mul(one_18().get_absolute())
+                .checked_div(self.input_to_18_decimals()?.get_absolute())
+                .unwrap_or(U256::MAX),
         )
     }
 }

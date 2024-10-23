@@ -381,11 +381,13 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                     .and_then(|latest_trade| {
                         // convert input and output amounts to 18 decimals point
                         // and then calculate the pair ratio
-                        latest_trade.ratio().zip(latest_trade.inverse_ratio()).map(
-                            |(ratio, inverse_ratio)| {
+                        latest_trade
+                            .ratio()
+                            .ok()
+                            .zip(latest_trade.inverse_ratio().ok())
+                            .map(|(ratio, inverse_ratio)| {
                                 [I256::from_raw(ratio), I256::from_raw(inverse_ratio)]
-                            },
-                        )
+                            })
                     });
 
                 // io
