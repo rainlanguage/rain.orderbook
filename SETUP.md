@@ -1,56 +1,64 @@
-# Setup Raindex on a new chain
+# Setup Raindex on a New Chain
 
-### Deploying metaboard and metaboard subgraph
-If the desired chain already has metaboard contract and subgraph deployed you can skip this stage.
-Head to [Rain Metadata Repo](https://github.com/rainlanguage/rain.metadata) and by through running the `manual-sol-artifacts` github workflow deploy the metaboard contract on the desired network, next add the deployed contract address to `subgraph/subgraph.yml` and deploy the subgraph using goldsky cli and any other graph cli app, you need to run 2 commands before deploying to build the subgraph:
-```sh
-npx graph codegen
-npx graph build
+## Step 1: Deploy Metaboard and Metaboard Subgraph
+
+**Note: If the desired chain already has the Metaboard contract and subgraph deployed, skip this step.**
+
+- Navigate to the [Rain Metadata Repo](https://github.com/rainlanguage/rain.metadata).
+- Run the `manual-sol-artifacts` GitHub workflow to deploy the Metaboard contract on the desired network.
+- Add the deployed contract address to `subgraph/subgraph.yml`.
+- Deploy the subgraph by triggering the manual deployment action on CI.
+- Add the new Metaboard contract address to the rainlanguage org Github variables.
+
+## Step 2: Deploy Contracts (Orderbook, Arbs, Dispair, Subparsers) and Orderbook Subgraph
+
+- Navigate to the [Rain Interpreter Repo](https://github.com/rainlanguage/rain.interpreter).
+
+  - Run the `manual-sol-artifacts` manual action to deploy the Interpreter contracts.
+
+- Navigate to the [Rain Orderbook Repo](https://github.com/rainlanguage/rain.orderbook).
+
+  - Run the `manual-sol-artifacts` manual action to deploy the Orderbook-related contracts.
+
+- Add the deployed Orderbook contract to the `networks.json` file in the [Rain Orderbook Repo](https://github.com/rainlanguage/rain.orderbook/blob/main/subgraph/networks.json).
+- Deploy the Orderbook subgraph by running the "Deploy subgraph" manual CI action for the desired network.
+
+## Step 3: Set Up Arb Bot
+
+- Clone the [Rain Arb Bot Repo](https://github.com/rainlanguage/arb-bot) and run it using Node.js (`node arb-bot.js`), or pull the latest Docker image available on Docker Hub under `rainprotocol/arb-bot` with the `master` tag.
+- Configure the bot using CLI arguments or environment variables. Essential parameters include:
+
 ```
-and run the following command if you are using goldsky as your subgraph infra:
-```sh
-cd subgraph && goldsky subgraph deploy 'subgraph-name/subgraph-version'
+  MAX_RATIO=  
+  SLEEP=  
+  HYPERDX_API_KEY=  
+  TRACER_SERVICE_NAME=  
+  SUBGRAPH=  
+  ARB_ADDRESS=  
+  RPC_URL=  
+  BOT_MIN_BALANCE=  
+  BOT_WALLET_PRIVATEKEY=  \
 ```
 
-### Deploying all contracts including ob, arbs, dispair and subparsers and orderbook subgraph
-Head to [Rain Interpreter Repo](https://github.com/rainlanguage/rain.interpreter) and by through running the `manual-sol-artifacts` github workflow deploy the rain interpreter contract, note that you would need to add the metaboard subgraph endpoint as an env.
+  - Alternatively, instead of `BOT_WALLET_PRIVATEKEY`, set up multiple wallets:
 
-Next head to [Rain Orderbook Repo](https://github.com/rainlanguage/rain.orderbook) and repeat the same process there, to deploy the orderbook related contracts (note that you would need to add the metaboard subgraph endpoint as an env.). Now that orderbook contract is deployed add its address to `subgraph/subgraph.yml` and deploy the orderbook subgraph using goldsky cli or any other graph cli app, you need to run 2 commands before deploying to build the subgraph:
-```sh
-npx graph codegen
-npx graph build
 ```
-and run the following command if you are using goldsky as your subgraph infra:
-```sh
-cd subgraph && goldsky subgraph deploy 'subgraph-name/subgraph-version'
+    MNEMONIC=  
+    WALLET_COUNT=  
+    TOPUP_AMOUNT=
 ```
 
-### Setup bot
-You can run the bot either by cloning the [Rain Arb Bot Repo](https://github.com/rainlanguage/arb-bot) and running it using nodejs (ie `node arb-bot.js`) or you can pull the latest docker image available on dockerhub under `rainprotocol/arb-bot` with `master` tag.
-You need to setup the configuration for the bot either through cli args or through env variables, the main args that are essential for bot operation are:
-```sh
-MAX_RATIO=
-SLEEP=
-HYPERDX_API_KEY=
-TRACER_SERVICE_NAME=
-SUBGRAPH=
-ARB_ADDRESS=
-RPC_URL=
-BOT_MIN_BALANCE=
-BOT_WALLET_PRIVATEKEY=
-```
-alternatively instead of `BOT_WALLET_PRIVATEKEY` you can set the following to have the bot run multiple wallets in rotation instead of using only 1:
-```sh
-MNEMONIC=
-WALLET_COUNT=
-TOPUP_AMOUNT=
-```
-When using this setup, you only need to fund the main wallet (0 derivation index) of the specified mnemonic phrase with gas token and it will fund the other wallets with the amount specified at `TOPUP_AMOUNT` and sweep the bounties back to the main wallet periodically
+  - Fund the main wallet (index 0) with gas tokens. The main wallet will fund other wallets with `TOPUP_AMOUNT` and periodically sweep bounties back to itself.
 
-These args are set through env vars, their cli arg alternative are documentated on the `README.md` in the repo if you are directly running the bot through cli.
-Other bot options are also documented on `README.md`, which for most usecases should not be necessary.
+- Refer to `README.md` in the repository for additional options and CLI arguments.
+- Real-time bot OTEL logs/spans are forwarded to `HYPERDX_API_KEY` under `TRACER_SERVICE_NAME`.
 
-The realtime bot otel logs/spans will be forwarded to the specified `HYPERDX_API_KEY` under the specified `TRACER_SERVICE_NAME`.
+## Step 4: Add Setup to Pubstrats
 
-### Add the new setup to Pubstrats
-Lastly, add Metaboard subgraph, ExpressionDeployer contract and Orderbook contract and subgraph with the chain's details (rpc url, chaid id, etc) to [H20 Pubstrats Repo](https://github.com/rainlanguage/rain.dex.pubstrats) to `src/settings.yml` file, each item should go under its respective field which is self explanatory.
+- Add the following information to the [H20 Pubstrats Repo](https://github.com/rainlanguage/rain.dex.pubstrats) in the `src/settings.yml` file:
+  - Metaboard subgraph
+  - ExpressionDeployer contract
+  - Orderbook contract
+  - Orderbook subgraph
+  - Chain details (RPC URL, chain ID, etc.)
+- Ensure each item is placed under its respective field in `settings.yml`.
