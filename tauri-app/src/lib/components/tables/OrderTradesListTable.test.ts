@@ -3,7 +3,6 @@ import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { Trade } from '$lib/typeshare/subgraphTypes';
-import { formatUnits } from 'viem';
 import OrderTradesListTable from './OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 
@@ -46,7 +45,7 @@ const mockTradeOrdersList: Trade[] = [
       },
     },
     outputVaultBalanceChange: {
-      amount: '-100',
+      amount: '-66463609853759340683',
       vault: {
         id: 'id',
         vault_id: 'vault-id',
@@ -55,7 +54,7 @@ const mockTradeOrdersList: Trade[] = [
           address: 'output_token',
           name: 'output_token',
           symbol: 'output_token',
-          decimals: '1',
+          decimals: '18',
         },
       },
       id: '1',
@@ -84,10 +83,10 @@ const mockTradeOrdersList: Trade[] = [
           address: 'output_token',
           name: 'output_token',
           symbol: 'output_token',
-          decimals: '1',
+          decimals: '18',
         },
       },
-      amount: '50',
+      amount: '61112459033728404490',
       id: '1',
       typename: 'Withdraw',
       newVaultBalance: '0',
@@ -197,21 +196,13 @@ test('renders table with correct data', async () => {
     // get all the io ratios
     const rows = screen.getAllByTestId('io-ratio');
 
-    // checking the io ratios
-    for (let i = 0; i < mockTradeOrdersList.length; i++) {
-      const inputDisplay = formatUnits(
-        BigInt(mockTradeOrdersList[i].inputVaultBalanceChange.amount),
-        Number(mockTradeOrdersList[i].inputVaultBalanceChange.vault.token.decimals),
-      );
-      const outputDisplay = formatUnits(
-        BigInt(mockTradeOrdersList[i].outputVaultBalanceChange.amount),
-        Number(mockTradeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
-      );
-      const ioRatio = Number(inputDisplay) / (Number(outputDisplay) * -1);
-      const oiRatio = (Number(outputDisplay) * -1) / Number(inputDisplay);
-      expect(rows[i]).toHaveTextContent(ioRatio.toString());
-      expect(rows[i]).toHaveTextContent(oiRatio.toString());
-    }
+    // expect the first row to have the correct io ratio
+    expect(rows[0]).toHaveTextContent('1.087562354790495301');
+    expect(rows[0]).toHaveTextContent('0.919487508550842543');
+
+    // expect the second row to have the correct io ratio
+    expect(rows[1]).toHaveTextContent('2');
+    expect(rows[1]).toHaveTextContent('0.5');
   });
 });
 
