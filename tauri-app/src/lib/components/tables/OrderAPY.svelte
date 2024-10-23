@@ -6,7 +6,7 @@
   import { subgraphUrl } from '$lib/stores/settings';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import ApyTimeFilters from '../charts/APYTimeFilters.svelte';
-  import { formatUnits } from 'viem';
+  import { bigintString18ToPercentage } from '$lib/utils/number';
 
   export let id: string;
 
@@ -20,16 +20,6 @@
     getNextPageParam: () => undefined,
     enabled: !!$subgraphUrl,
   });
-
-  function formatApyToPercentage(value: string): string {
-    let valueString = formatUnits(BigInt(value) * 100n, 18);
-    const index = valueString.indexOf('.');
-    if (index > -1) {
-      // 5 point decimals to show on UI
-      valueString = valueString.substring(0, index + 6);
-    }
-    return valueString;
-  }
 </script>
 
 <TanstackAppTable query={orderApy} emptyMessage="APY Unavailable" rowHoverable={false}>
@@ -43,7 +33,7 @@
   <svelte:fragment slot="bodyRow" let:item>
     <TableBodyCell tdClass="break-all px-4 py-2" data-testid="apy-field">
       {item.denominatedApy
-        ? formatApyToPercentage(item.denominatedApy.apy) +
+        ? bigintString18ToPercentage(item.denominatedApy.apy, 5) +
           '% in ' +
           (item.denominatedApy.token.symbol ??
             item.denominatedApy.token.name ??

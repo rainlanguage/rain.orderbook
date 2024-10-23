@@ -1,13 +1,11 @@
 use alloy::primitives::utils::{format_units, parse_units, ParseUnits, Unit, UnitsError};
+use chrono::TimeDelta;
 
 mod order_id;
 mod slice_list;
 
 pub use order_id::*;
 pub use slice_list::*;
-
-pub const DAY: u64 = 60 * 60 * 24;
-pub const YEAR: u64 = DAY * 365;
 
 /// Returns 18 point decimals 1 as I256/U256
 pub fn one_18() -> ParseUnits {
@@ -16,7 +14,7 @@ pub fn one_18() -> ParseUnits {
 
 /// Returns YEAR as 18 point decimals as I256/U256
 pub fn year_18() -> ParseUnits {
-    parse_units(&YEAR.to_string(), 18).unwrap()
+    parse_units(&TimeDelta::days(365).num_seconds().to_string(), 18).unwrap()
 }
 
 /// Converts a U256/I256 value to a 18 fixed point U256/I256 given the decimals point
@@ -44,6 +42,7 @@ mod test {
 
     #[test]
     fn test_year_18_decimals() {
+        const YEAR: u64 = 60 * 60 * 24 * 365;
         let result = year_18();
         let expected_signed = I256::try_from(YEAR)
             .unwrap()

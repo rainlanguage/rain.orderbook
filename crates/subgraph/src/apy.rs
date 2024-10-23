@@ -1,6 +1,6 @@
 use crate::{
     types::common::{Erc20, Order, Trade},
-    utils::{one_18, to_18_decimals, year_18, DAY},
+    utils::{one_18, to_18_decimals, year_18},
     vol::{get_vaults_vol, VaultVolume},
     OrderbookSubgraphClientError,
 };
@@ -8,6 +8,7 @@ use alloy::primitives::{
     utils::{parse_units, ParseUnits},
     I256, U256,
 };
+use chrono::TimeDelta;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -256,7 +257,8 @@ pub fn get_token_vaults_apy(
             .iter()
             .filter(|v| {
                 u64::from_str(&v.timestamp.0).unwrap()
-                    <= u64::from_str(&first_trade.timestamp.0).unwrap() + DAY
+                    <= u64::from_str(&first_trade.timestamp.0).unwrap()
+                        + TimeDelta::days(1).num_seconds() as u64
             })
             .collect::<Vec<&&Trade>>()[0];
 
@@ -354,18 +356,18 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                 input: input.token.clone(),
                 output: output.token.clone(),
             };
-            let reverse_pair_as_key = TokenPair {
+            let inverse_pair_as_key = TokenPair {
                 input: output.token.clone(),
                 output: input.token.clone(),
             };
             // if not same io token and ratio map doesnt already include them
             if input.token != output.token
                 && !(pair_ratio_map.contains_key(&pair_as_key)
-                    || pair_ratio_map.contains_key(&reverse_pair_as_key))
+                    || pair_ratio_map.contains_key(&inverse_pair_as_key))
             {
                 // find this pairs(io or oi) latest tradetrades from list of order's
                 // trades, the calculate the pair ratio (in amount/out amount) and
-                // its reverse from the latest trade that involes these 2 tokens.
+                // its inverse from the latest trade that involes these 2 tokens.
                 // this assumes the trades are already in desc order by timestamp which
                 // is the case when used this lib query to get them
                 let ratio = trades
@@ -379,62 +381,17 @@ fn get_pairs_ratio(order_apy: &OrderAPY, trades: &[Trade]) -> HashMap<TokenPair,
                     .and_then(|latest_trade| {
                         // convert input and output amounts to 18 decimals point
                         // and then calculate the pair ratio
-                        to_18_decimals(
-                            ParseUnits::U256(
-                                U256::from_str(&latest_trade.input_vault_balance_change.amount.0)
-                                    .unwrap(),
-                            ),
-                            latest_trade
-                                .input_vault_balance_change
-                                .vault
-                                .token
-                                .decimals
-                                .as_ref()
-                                .map(|v| v.0.as_str())
-                                .unwrap_or("18"),
+                        latest_trade.ratio().zip(latest_trade.inverse_ratio()).map(
+                            |(ratio, inverse_ratio)| {
+                                [I256::from_raw(ratio), I256::from_raw(inverse_ratio)]
+                            },
                         )
-                        .ok()
-                        .zip(
-                            to_18_decimals(
-                                ParseUnits::U256(
-                                    U256::from_str(
-                                        &latest_trade.output_vault_balance_change.amount.0[1..],
-                                    )
-                                    .unwrap(),
-                                ),
-                                latest_trade
-                                    .output_vault_balance_change
-                                    .vault
-                                    .token
-                                    .decimals
-                                    .as_ref()
-                                    .map(|v| v.0.as_str())
-                                    .unwrap_or("18"),
-                            )
-                            .ok(),
-                        )
-                        .map(|(input_amount, output_amount)| {
-                            [
-                                // io ratio
-                                input_amount
-                                    .get_signed()
-                                    .saturating_mul(one_18().get_signed())
-                                    .checked_div(output_amount.get_signed())
-                                    .unwrap_or(I256::MAX),
-                                // oi ratio
-                                output_amount
-                                    .get_signed()
-                                    .saturating_mul(one_18().get_signed())
-                                    .checked_div(input_amount.get_signed())
-                                    .unwrap_or(I256::MAX),
-                            ]
-                        })
                     });
 
                 // io
                 pair_ratio_map.insert(pair_as_key, ratio.map(|v| v[0]));
                 // oi
-                pair_ratio_map.insert(reverse_pair_as_key, ratio.map(|v| v[1]));
+                pair_ratio_map.insert(inverse_pair_as_key, ratio.map(|v| v[1]));
             }
         }
     }

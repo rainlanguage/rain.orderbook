@@ -4,18 +4,8 @@ import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { OrderAPY } from '$lib/typeshare/subgraphTypes';
 import { QueryClient } from '@tanstack/svelte-query';
-import { formatUnits } from 'viem';
 import OrderApy from './OrderAPY.svelte';
-
-function formatApyToPercentage(value: string): string {
-  let valueString = formatUnits(BigInt(value) * 100n, 18);
-  const index = valueString.indexOf('.');
-  if (index > -1) {
-    // 5 point decimals to show on UI
-    valueString = valueString.substring(0, index + 6);
-  }
-  return valueString;
-}
+import { bigintString18ToPercentage } from '$lib/utils/number';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
@@ -83,7 +73,7 @@ test('renders table with correct data', async () => {
 
     // checking
     for (let i = 0; i < mockOrderApy.length; i++) {
-      const display = formatApyToPercentage(mockOrderApy[i].denominatedApy!.apy);
+      const display = bigintString18ToPercentage(mockOrderApy[i].denominatedApy!.apy, 5);
       expect(rows[i]).toHaveTextContent(display);
     }
   });
