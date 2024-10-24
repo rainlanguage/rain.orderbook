@@ -171,6 +171,8 @@ pub struct ScenarioConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blocks: Option<Blocks>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub entrypoint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deployer: Option<DeployerRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
