@@ -83,7 +83,7 @@
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2">
       {formatUnits(
-        BigInt(item.outputVaultBalanceChange.amount),
+        BigInt(item.outputVaultBalanceChange.amount) * BigInt(-1),
         Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
       )}
       {item.outputVaultBalanceChange.vault.token.symbol}
