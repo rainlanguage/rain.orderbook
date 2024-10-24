@@ -214,6 +214,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None, // Assuming no accounts for simplification
+            gui: None,
         };
 
         // Perform the conversion
