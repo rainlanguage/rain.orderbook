@@ -1,0 +1,33 @@
+version = 1
+
+[[annotations]]
+path = [
+    ".gas-snapshot",
+    ".github/workflows/**/",
+    ".gitignore",
+    ".gitmodules",
+    "README.md",
+    "flake.lock",
+    "flake.nix",
+    "foundry.toml",
+    "slither.config.json",
+    "REUSE.toml",
+    "typeshare.toml",
+    "tsconfig.json",
+    "test-js/**/",
+    "tauri-app/**/",
+    "subgraph/**/",
+    "scripts/**/",
+    "crates/**/",
+    ".eslintignore",
+    ".eslintrc.js",
+    ".vscode/**/",
+    "Cargo.lock",
+    "Cargo.toml",
+    "package-lock.json",
+    "package.json",
+    "pointers.sh",
+    "prep-tauri.sh",
+]
+SPDX-FileCopyrightText = "Copyright (c) 2020 thedavidmeister"
+SPDX-License-Identifier = "LicenseRef-DCL-1.0"
