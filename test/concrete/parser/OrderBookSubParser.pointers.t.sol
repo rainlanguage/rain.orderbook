@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: CAL
+// SPDX-License-Identifier: LicenseRef-DCL-1.0
+// SPDX-FileCopyrightText: Copyright (c) 2020 thedavidmeister
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std/Test.sol";
@@ -9,7 +10,7 @@ import {
     SUB_PARSER_OPERAND_HANDLERS,
     OrderBookSubParser
 } from "src/concrete/parser/OrderBookSubParser.sol";
-import {LibGenParseMeta} from "rain.sol.codegen/lib/LibGenParseMeta.sol";
+import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
 
 contract OrderBookSubParserPointersTest is Test {
     function testSubParserParseMeta() external pure {

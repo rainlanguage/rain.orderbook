@@ -7,3 +7,4 @@
 [submodule "lib/rain.interpreter"]
 	path = lib/rain.interpreter
 	url = https://github.com/rainlanguage/rain.interpreter
+	branch = 3.x
