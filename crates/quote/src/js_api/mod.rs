@@ -178,12 +178,38 @@ pub async fn get_batch_quote_target_from_subgraph(
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct Pair {
+    pub pair_name: String,
+    pub input_index: u32,
+    pub output_index: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct BatchOrderQuotesResponse {
+    pub pair: Pair,
+    pub block_number: String,
+    pub data: Option<OrderQuoteValue>,
+    pub success: bool,
+    pub error: Option<String>,
+}
+
 #[wasm_bindgen(js_name = "getOrderQuote")]
 pub async fn get_order_quote(
     order: Order,
     rpc_url: &str,
     block_number: Option<u64>,
 ) -> Result<JsValue, Error> {
-    let result = get_order_quotes(vec![order], block_number, rpc_url.to_string()).await?;
-    Ok(to_value(&result)?)
+    match get_order_quotes(vec![order], block_number, rpc_url.to_string()).await {
+        Err(e) => Err(e),
+        Ok(v) => Ok(to_value(
+            &v.into_iter()
+                .map(|e| BatchOrderQuotesResponse::from(e))
+                .collect::<Vec<_>>(),
+        )?),
+    }
 }
