@@ -1,5 +1,6 @@
 use crate::schema;
 use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 use typeshare::typeshare;
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -71,9 +72,10 @@ pub struct Orderbook {
 #[typeshare]
 pub type RainMetaV1 = Bytes;
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Order {
     pub id: Bytes,
     pub order_bytes: Bytes,

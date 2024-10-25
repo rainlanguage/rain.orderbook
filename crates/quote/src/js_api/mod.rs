@@ -178,17 +178,12 @@ pub async fn get_batch_quote_target_from_subgraph(
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[serde(transparent)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct WasmOrder(pub Order);
-
 #[wasm_bindgen(js_name = "getOrderQuote")]
 pub async fn get_order_quote(
-    order: WasmOrder,
-    rpc_url: String,
+    order: Order,
+    rpc_url: &str,
     block_number: Option<u64>,
 ) -> Result<JsValue, Error> {
-    let result = get_order_quotes(vec![order.0], block_number, rpc_url).await?;
+    let result = get_order_quotes(vec![order], block_number, rpc_url.to_string()).await?;
     Ok(to_value(&result)?)
 }
