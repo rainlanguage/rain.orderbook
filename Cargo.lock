@@ -6465,7 +6465,9 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tsify",
  "typeshare",
+ "wasm-bindgen",
 ]
 
 [[package]]

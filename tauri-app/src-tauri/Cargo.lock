@@ -8376,7 +8376,9 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "tsify",
  "typeshare 1.0.1",
+ "wasm-bindgen",
 ]
 
 [[package]]
