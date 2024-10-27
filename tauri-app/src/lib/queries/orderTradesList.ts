@@ -1,4 +1,4 @@
-import type { OrderAPY, Trade, VaultVolume } from '$lib/typeshare/subgraphTypes';
+import type { OrderPerformance, Trade, VaultVolume } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from './constants';
 import { prepareHistoricalOrderChartData } from '$lib/services/historicalOrderCharts';
@@ -103,7 +103,7 @@ export const getOrderApy = async (
     return [];
   }
   return [
-    await invoke<OrderAPY>('order_apy', {
+    await invoke<OrderPerformance>('order_apy', {
       orderId: id,
       subgraphArgs: { url },
       startTimestamp,

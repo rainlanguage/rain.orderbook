@@ -32,12 +32,12 @@
 
   <svelte:fragment slot="bodyRow" let:item>
     <TableBodyCell tdClass="break-all px-4 py-2" data-testid="apy-field">
-      {item.denominatedApy
-        ? bigintStringToPercentage(item.denominatedApy.apy, 18, 5) +
+      {item.denominatedPerformance
+        ? bigintStringToPercentage(item.denominatedPerformance.apy, 18, 5) +
           '% in ' +
-          (item.denominatedApy.token.symbol ??
-            item.denominatedApy.token.name ??
-            item.denominatedApy.token.address)
+          (item.denominatedPerformance.token.symbol ??
+            item.denominatedPerformance.token.name ??
+            item.denominatedPerformance.token.address)
         : 'Unavailable APY'}
     </TableBodyCell>
   </svelte:fragment>

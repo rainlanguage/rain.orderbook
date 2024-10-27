@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { OrderAPY } from '$lib/typeshare/subgraphTypes';
+import type { OrderPerformance } from '$lib/typeshare/subgraphTypes';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderApy from './OrderAPY.svelte';
 import { bigintStringToPercentage } from '$lib/utils/number';
@@ -32,11 +32,12 @@ vi.mock('$lib/services/modal', async () => {
   };
 });
 
-const mockOrderApy: OrderAPY[] = [
+const mockOrderApy: OrderPerformance[] = [
   {
     orderId: '1',
     orderHash: '1',
-    denominatedApy: {
+    orderbook: '1',
+    denominatedPerformance: {
       apy: '1200000000000000000',
       token: {
         id: 'output_token',
@@ -45,11 +46,13 @@ const mockOrderApy: OrderAPY[] = [
         symbol: 'output_token',
         decimals: '0',
       },
+      netVol: '0',
+      startingCapital: '0',
     },
     startTime: 1,
     endTime: 2,
-    inputsTokenVaultApy: [],
-    outputsTokenVaultApy: [],
+    inputsVaults: [],
+    outputsVaults: [],
   },
 ];
 
@@ -73,7 +76,7 @@ test('renders table with correct data', async () => {
 
     // checking
     for (let i = 0; i < mockOrderApy.length; i++) {
-      const display = bigintStringToPercentage(mockOrderApy[i].denominatedApy!.apy, 18, 5);
+      const display = bigintStringToPercentage(mockOrderApy[i].denominatedPerformance!.apy, 18, 5);
       expect(rows[i]).toHaveTextContent(display);
     }
   });

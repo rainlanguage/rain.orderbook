@@ -1,27 +1,14 @@
 use super::common::*;
-use crate::utils::{one_18, to_18_decimals};
-use alloy::primitives::{
-    utils::{ParseUnits, UnitsError},
-    I256, U256,
+use crate::{
+    error::ParseNumberError,
+    utils::{one_18, to_18_decimals},
 };
+use alloy::primitives::{utils::ParseUnits, I256, U256};
 use std::str::FromStr;
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum ParseUnitsError {
-    #[error(transparent)]
-    UnitsError(#[from] UnitsError),
-    #[error(transparent)]
-    ParseUnsignedError(#[from] alloy::primitives::ruint::ParseError),
-    #[error(transparent)]
-    ParseSignedError(#[from] alloy::primitives::ParseSignedError),
-    #[error(transparent)]
-    BigIntConversionError(#[from] alloy::primitives::BigIntConversionError),
-}
 
 impl Trade {
     /// Converts this trade's input to 18 point decimals in U256/I256
-    pub fn input_to_18_decimals(&self) -> Result<ParseUnits, ParseUnitsError> {
+    pub fn input_as_18_decimals(&self) -> Result<ParseUnits, ParseNumberError> {
         Ok(to_18_decimals(
             ParseUnits::U256(U256::from_str(&self.input_vault_balance_change.amount.0)?),
             self.input_vault_balance_change
@@ -35,7 +22,7 @@ impl Trade {
     }
 
     /// Converts this trade's output to 18 point decimals in U256/I256
-    pub fn output_to_18_decimals(&self) -> Result<ParseUnits, ParseUnitsError> {
+    pub fn output_as_18_decimals(&self) -> Result<ParseUnits, ParseNumberError> {
         Ok(to_18_decimals(
             ParseUnits::I256(I256::from_str(&self.output_vault_balance_change.amount.0)?),
             self.output_vault_balance_change
@@ -49,13 +36,13 @@ impl Trade {
     }
 
     /// Calculates the trade's I/O ratio
-    pub fn ratio(&self) -> Result<U256, ParseUnitsError> {
+    pub fn ratio(&self) -> Result<U256, ParseNumberError> {
         Ok(self
-            .input_to_18_decimals()?
+            .input_as_18_decimals()?
             .get_absolute()
             .saturating_mul(one_18().get_absolute())
             .checked_div(
-                self.output_to_18_decimals()?
+                self.output_as_18_decimals()?
                     .get_signed()
                     .saturating_neg()
                     .try_into()?,
@@ -64,11 +51,11 @@ impl Trade {
     }
 
     /// Calculates the trade's O/I ratio (inverse)
-    pub fn inverse_ratio(&self) -> Result<U256, ParseUnitsError> {
+    pub fn inverse_ratio(&self) -> Result<U256, ParseNumberError> {
         Ok(
-            TryInto::<U256>::try_into(self.output_to_18_decimals()?.get_signed().saturating_neg())?
+            TryInto::<U256>::try_into(self.output_as_18_decimals()?.get_signed().saturating_neg())?
                 .saturating_mul(one_18().get_absolute())
-                .checked_div(self.input_to_18_decimals()?.get_absolute())
+                .checked_div(self.input_as_18_decimals()?.get_absolute())
                 .unwrap_or(U256::MAX),
         )
     }
@@ -85,14 +72,14 @@ mod test {
 
     #[test]
     fn test_input_to_18_decimals() {
-        let result = get_trade().input_to_18_decimals().unwrap();
+        let result = get_trade().input_as_18_decimals().unwrap();
         let expected = U256::from_str("3000000000000000000").unwrap();
         assert_eq!(result.get_absolute(), expected);
     }
 
     #[test]
     fn test_output_to_18_decimals() {
-        let result = get_trade().output_to_18_decimals().unwrap();
+        let result = get_trade().output_as_18_decimals().unwrap();
         let expected = I256::from_str("-6000000000000000000").unwrap();
         assert_eq!(result.get_signed(), expected);
     }

@@ -1,5 +1,9 @@
-use crate::types::common::{Erc20, Trade};
-use alloy::primitives::{ruint::ParseError, I256, U256};
+use crate::{
+    error::ParseNumberError,
+    types::common::{Erc20, Trade},
+    utils::to_18_decimals,
+};
+use alloy::primitives::{ruint::ParseError, utils::ParseUnits, I256, U256};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
@@ -20,7 +24,7 @@ pub struct VaultVolume {
     pub net_vol: I256,
 }
 
-/// Get the vaults volume from array of trades
+/// Get the vaults volume from array of trades of an owner
 pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> {
     let mut vaults_vol: Vec<VaultVolume> = vec![];
     for trade in trades {
@@ -108,6 +112,29 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
     Ok(vaults_vol)
 }
 
+impl VaultVolume {
+    /// Creates a new instance of self with all volume values as 18 decimals point
+    pub fn to_18_decimals(&self) -> Result<VaultVolume, ParseNumberError> {
+        let token_decimals = self
+            .token
+            .decimals
+            .as_ref()
+            .map(|v| v.0.as_str())
+            .unwrap_or("18");
+        Ok(VaultVolume {
+            id: self.id.clone(),
+            token: self.token.clone(),
+            total_in: to_18_decimals(ParseUnits::U256(self.total_in), token_decimals)?
+                .get_absolute(),
+            total_out: to_18_decimals(ParseUnits::U256(self.total_out), token_decimals)?
+                .get_absolute(),
+            total_vol: to_18_decimals(ParseUnits::U256(self.total_vol), token_decimals)?
+                .get_absolute(),
+            net_vol: to_18_decimals(ParseUnits::I256(self.net_vol), token_decimals)?.get_signed(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -118,7 +145,7 @@ mod test {
     use alloy::primitives::{Address, B256};
 
     #[test]
-    fn test_get_vaults_vol() {
+    fn test_vaults_vol() {
         let bytes = Bytes("".to_string());
         let bigint = BigInt("".to_string());
         let token1_address = Address::random();
@@ -275,6 +302,38 @@ mod test {
                 net_vol: I256::from_str("1").unwrap(),
             },
         ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_to_18_decimals() {
+        let token_address = Address::random();
+        let token = Erc20 {
+            id: Bytes(token_address.to_string()),
+            address: Bytes(token_address.to_string()),
+            name: Some("Token".to_string()),
+            symbol: Some("Token".to_string()),
+            decimals: Some(BigInt(6.to_string())),
+        };
+        let vault_vol = VaultVolume {
+            id: "vault-id".to_string(),
+            token: token.clone(),
+            total_in: U256::from(20_500_000),
+            total_out: U256::from(30_000_000),
+            total_vol: U256::from(50_500_000),
+            net_vol: I256::from_str("-9_500_000").unwrap(),
+        };
+
+        let result = vault_vol.to_18_decimals().unwrap();
+        let expected = VaultVolume {
+            id: "vault-id".to_string(),
+            token,
+            total_in: U256::from_str("20_500_000_000_000_000_000").unwrap(),
+            total_out: U256::from_str("30_000_000_000_000_000_000").unwrap(),
+            total_vol: U256::from_str("50_500_000_000_000_000_000").unwrap(),
+            net_vol: I256::from_str("-9_500_000_000_000_000_000").unwrap(),
+        };
 
         assert_eq!(result, expected);
     }

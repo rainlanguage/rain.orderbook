@@ -1,9 +1,10 @@
-use crate::cynic_client::{CynicClient, CynicClientError};
-use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
+use crate::cynic_client::CynicClient;
+use crate::error::OrderbookSubgraphClientError;
+use crate::pagination::{PaginationArgs, PaginationClient};
 use crate::types::common::*;
 use crate::types::order::{
     BatchOrderDetailQuery, BatchOrderDetailQueryVariables, OrderDetailQuery, OrderIdList,
-    OrdersListQuery,
+    OrderPerformance, OrdersListQuery,
 };
 use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
@@ -11,27 +12,8 @@ use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use crate::vol::{get_vaults_vol, VaultVolume};
 use cynic::Id;
 use reqwest::Url;
-use thiserror::Error;
 
 const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
-
-#[derive(Error, Debug)]
-pub enum OrderbookSubgraphClientError {
-    #[error(transparent)]
-    CynicClientError(#[from] CynicClientError),
-    #[error("Subgraph query returned no data")]
-    Empty,
-    #[error(transparent)]
-    PaginationClientError(#[from] PaginationClientError),
-    #[error(transparent)]
-    ParseError(#[from] alloy::primitives::ruint::ParseError),
-    #[error(transparent)]
-    ParseBigIntConversionError(#[from] alloy::primitives::BigIntConversionError),
-    #[error(transparent)]
-    ParseFloatError(#[from] std::num::ParseFloatError),
-    #[error(transparent)]
-    ParseIntError(#[from] std::num::ParseIntError),
-}
 
 pub struct OrderbookSubgraphClient {
     url: Url,
@@ -220,6 +202,20 @@ impl OrderbookSubgraphClient {
             .order_trades_list_all(order_id, start_timestamp, end_timestamp)
             .await?;
         Ok(get_vaults_vol(&trades)?)
+    }
+
+    /// Fetches order data and measures an order's detailed performance (apy and vol)
+    pub async fn order_performance(
+        &self,
+        order_id: cynic::Id,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<OrderPerformance, OrderbookSubgraphClientError> {
+        let order = self.order_detail(order_id.clone()).await?;
+        let trades = self
+            .order_trades_list_all(order_id, start_timestamp, end_timestamp)
+            .await?;
+        OrderPerformance::measure(&order, &trades, start_timestamp, end_timestamp)
     }
 
     /// Fetch single vault
