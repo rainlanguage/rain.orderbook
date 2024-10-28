@@ -198,6 +198,8 @@ pub struct BatchOrderQuotesResponse {
     pub error: Option<String>,
 }
 
+/// Get the quote for an order
+/// Resolves with a BatchOrderQuotesResponse object
 #[wasm_bindgen(js_name = "getOrderQuote")]
 pub async fn get_order_quote(
     order: Order,
@@ -206,10 +208,6 @@ pub async fn get_order_quote(
 ) -> Result<JsValue, Error> {
     match get_order_quotes(vec![order], block_number, rpc_url.to_string()).await {
         Err(e) => Err(e),
-        Ok(v) => Ok(to_value(
-            &v.into_iter()
-                .map(|e| BatchOrderQuotesResponse::from(e))
-                .collect::<Vec<_>>(),
-        )?),
+        Ok(v) => Ok(to_value(&BatchOrderQuotesResponse::from(v[0].clone()))?),
     }
 }
