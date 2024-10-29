@@ -14,6 +14,15 @@ pub struct Deployer {
     pub network: Arc<Network>,
     pub label: Option<String>,
 }
+impl Deployer {
+    pub fn dummy() -> Self {
+        Deployer {
+            address: Address::default(),
+            network: Arc::new(Network::dummy()),
+            label: None,
+        }
+    }
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseDeployerConfigSourceError {
