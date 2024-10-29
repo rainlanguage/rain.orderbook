@@ -1,6 +1,7 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::Bytes;
+use futures::future::join_all;
 use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
@@ -14,16 +15,36 @@ use tauri::AppHandle;
 
 #[tauri::command]
 pub async fn orders_list(
-    subgraph_args: SubgraphArgs,
+    subgraph_args_list: Vec<SubgraphArgs>,
     filter_args: OrdersListFilterArgs,
     pagination_args: PaginationArgs,
 ) -> CommandResult<Vec<Order>> {
-    let orders = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .orders_list(filter_args, pagination_args)
-        .await?;
-    Ok(orders)
+    let clients_futures = subgraph_args_list
+        .into_iter()
+        .map(|args| async move { args.to_subgraph_client().await });
+    let clients = join_all(clients_futures).await;
+    let valid_clients: Vec<_> = clients.into_iter().filter_map(Result::ok).collect();
+
+    let futures = valid_clients.into_iter().map(|client| {
+        let filter_args = filter_args.clone();
+        let pagination_args = pagination_args.clone();
+        async move { client.orders_list(filter_args, pagination_args).await }
+    });
+    let results = join_all(futures).await;
+
+    let mut all_orders: Vec<Order> = results
+        .into_iter()
+        .filter_map(Result::ok)
+        .flatten()
+        .collect();
+
+    all_orders.sort_by(|a, b| {
+        let a_timestamp = a.timestamp_added.0.parse::<i64>().unwrap_or(0);
+        let b_timestamp = b.timestamp_added.0.parse::<i64>().unwrap_or(0);
+        b_timestamp.cmp(&a_timestamp)
+    });
+
+    Ok(all_orders)
 }
 
 #[tauri::command]
