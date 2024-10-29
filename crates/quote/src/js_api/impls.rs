@@ -128,9 +128,12 @@ impl From<Pair> for MainPair {
 
 impl From<MainBatchOrderQuotesResponse> for BatchOrderQuotesResponse {
     fn from(value: MainBatchOrderQuotesResponse) -> Self {
+        let mut block_number_error = "block number, ".to_string();
         BatchOrderQuotesResponse {
             pair: value.pair.into(),
-            block_number: encode_prefixed(value.block_number.to_be_bytes_vec()),
+            block_number: u64::try_from(value.block_number)
+                .inspect_err(|e| block_number_error.push_str(&e.to_string()))
+                .expect_throw(&block_number_error),
             data: value.data.map(OrderQuoteValue::from),
             success: value.success,
             error: value.error,
@@ -139,14 +142,11 @@ impl From<MainBatchOrderQuotesResponse> for BatchOrderQuotesResponse {
 }
 impl From<BatchOrderQuotesResponse> for MainBatchOrderQuotesResponse {
     fn from(value: BatchOrderQuotesResponse) -> Self {
-        let mut block_number_error = "block number, ".to_string();
         let mut max_output_error = "max output, ".to_string();
         let mut ratio_error = "ratio, ".to_string();
         MainBatchOrderQuotesResponse {
             pair: value.pair.into(),
-            block_number: U256::from_str(&value.block_number)
-                .inspect_err(|e| block_number_error.push_str(&e.to_string()))
-                .expect_throw(&block_number_error),
+            block_number: U256::from(value.block_number),
             data: value.data.map(|e| MainOrderQuoteValue {
                 max_output: U256::from_str(&e.max_output)
                     .inspect_err(|e| max_output_error.push_str(&e.to_string()))
@@ -250,16 +250,6 @@ mod tests {
             MainBatchOrderQuotesResponse::from(batch_order_quotes_response.clone());
         let expected = BatchOrderQuotesResponse::from(main_batch_order_quotes_response.clone());
         assert_eq!(batch_order_quotes_response, expected);
-    }
-
-    #[wasm_bindgen_test]
-    #[should_panic]
-    fn test_batch_order_quotes_response_unhappy() {
-        let main_batch_order_quotes_response = MainBatchOrderQuotesResponse::default();
-        let mut batch_order_quotes_response =
-            BatchOrderQuotesResponse::from(main_batch_order_quotes_response);
-        batch_order_quotes_response.block_number = "abcd".to_string();
-        let _ = MainBatchOrderQuotesResponse::from(batch_order_quotes_response);
     }
 
     #[wasm_bindgen_test]

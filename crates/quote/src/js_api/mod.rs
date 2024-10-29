@@ -192,7 +192,7 @@ pub struct Pair {
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct BatchOrderQuotesResponse {
     pub pair: Pair,
-    pub block_number: String,
+    pub block_number: u64,
     pub data: Option<OrderQuoteValue>,
     pub success: bool,
     pub error: Option<String>,
@@ -202,12 +202,16 @@ pub struct BatchOrderQuotesResponse {
 /// Resolves with a BatchOrderQuotesResponse object
 #[wasm_bindgen(js_name = "getOrderQuote")]
 pub async fn get_order_quote(
-    order: Order,
+    order: Vec<Order>,
     rpc_url: &str,
     block_number: Option<u64>,
 ) -> Result<JsValue, Error> {
-    match get_order_quotes(vec![order], block_number, rpc_url.to_string()).await {
+    match get_order_quotes(order, block_number, rpc_url.to_string()).await {
         Err(e) => Err(e),
-        Ok(v) => Ok(to_value(&BatchOrderQuotesResponse::from(v[0].clone()))?),
+        Ok(v) => Ok(to_value(
+            &v.into_iter()
+                .map(|v| BatchOrderQuotesResponse::from(v))
+                .collect::<Vec<_>>(),
+        )?),
     }
 }
