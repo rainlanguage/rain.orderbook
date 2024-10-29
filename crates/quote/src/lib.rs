@@ -9,6 +9,9 @@ pub mod rpc;
 #[cfg(target_family = "wasm")]
 pub mod js_api;
 
+mod order_quotes;
+pub use order_quotes::*;
+
 pub use quote::*;
 
 #[cfg(not(target_family = "wasm"))]
