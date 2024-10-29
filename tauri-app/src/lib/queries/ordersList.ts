@@ -4,9 +4,9 @@ import { mockIPC } from '@tauri-apps/api/mocks';
 import type { Order } from '$lib/typeshare/subgraphTypes';
 
 export type OrdersListArgs = {
-  subgraphArgs: {
+  subgraphArgsList: {
     url: string;
-  };
+  }[];
   filterArgs: {
     owners: string[];
     active: boolean | undefined;
@@ -30,7 +30,7 @@ export const ordersList = async (
     return [];
   }
   return await invoke<Order[]>('orders_list', {
-    subgraphArgs: { url },
+    subgraphArgsList: [{ url }],
     filterArgs: {
       owners,
       active,
