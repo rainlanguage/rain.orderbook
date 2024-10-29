@@ -201,18 +201,103 @@ pub enum ConfigSourceError {
 }
 
 impl ConfigSource {
-    pub async fn try_from_string(val: String) -> Result<ConfigSource, ConfigSourceError> {
-        let mut conf: ConfigSource = serde_yaml::from_str(&val)?;
-        if !conf.using_networks_from.is_empty() {
-            for (_key, item) in conf.using_networks_from.iter() {
+    pub async fn try_from_string(
+        val: String,
+        top_config: Option<String>,
+    ) -> Result<(ConfigSource, ConfigSource), ConfigSourceError> {
+        if let Some(top_config) = top_config {
+            let merged = MergedConfigSource::new(val, top_config).await?;
+            Ok((merged.main, merged.top_config))
+        } else {
+            let mut conf: ConfigSource = serde_yaml::from_str(&val)?;
+            if !conf.using_networks_from.is_empty() {
+                for (_key, item) in conf.using_networks_from.iter() {
+                    let remote_networks =
+                        RemoteNetworks::try_from_remote_network_config_source(item.clone()).await?;
+                    match remote_networks {
+                        RemoteNetworks::ChainId(chains) => {
+                            for chain in &chains {
+                                if conf.networks.iter().all(|(k, _v)| *k != chain.short_name) {
+                                    if let Ok(v) = chain.clone().try_into() {
+                                        conf.networks.insert(chain.short_name.clone(), v);
+                                    }
+                                } else {
+                                    return Err(ConfigSourceError::ConflictingNetworks(
+                                        chain.name.clone(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Ok((conf, ConfigSource::default()))
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+struct MergedConfigSource {
+    main: ConfigSource,
+    top_config: ConfigSource,
+}
+
+impl MergedConfigSource {
+    async fn new(
+        main_config: String,
+        top_config: String,
+    ) -> Result<MergedConfigSource, ConfigSourceError> {
+        let mut main_indented = String::new();
+        let mut top_config_indented = String::new();
+
+        // indent each line of the given ymls 1 level
+        // so they can go under a sep top key on a merged yml
+        // this ensures that keys dont collide and also is the
+        // safest since the original chars of each yml stay intact
+        main_config.lines().for_each(|line| {
+            main_indented.push_str("  ");
+            main_indented.push_str(line);
+            main_indented.push('\n');
+        });
+        top_config.lines().for_each(|line| {
+            top_config_indented.push_str("  ");
+            top_config_indented.push_str(line);
+            top_config_indented.push('\n');
+        });
+
+        // top config can have anchors and main config that sits lower can
+        // ref them ie cant use a ref that its anchor comes after the fact
+        let merged = format!(
+            "top-config:
+{}
+
+main:
+{}
+",
+            top_config_indented, main_indented
+        );
+        let mut merged_conf: MergedConfigSource = serde_yaml::from_str(&merged)?;
+
+        // handle remote networks for both ymls
+        if !merged_conf.main.using_networks_from.is_empty() {
+            for (_key, item) in merged_conf.main.using_networks_from.iter() {
                 let remote_networks =
                     RemoteNetworks::try_from_remote_network_config_source(item.clone()).await?;
                 match remote_networks {
                     RemoteNetworks::ChainId(chains) => {
                         for chain in &chains {
-                            if conf.networks.iter().all(|(k, _v)| *k != chain.short_name) {
+                            if merged_conf
+                                .main
+                                .networks
+                                .iter()
+                                .all(|(k, _v)| *k != chain.short_name)
+                            {
                                 if let Ok(v) = chain.clone().try_into() {
-                                    conf.networks.insert(chain.short_name.clone(), v);
+                                    merged_conf
+                                        .main
+                                        .networks
+                                        .insert(chain.short_name.clone(), v);
                                 }
                             } else {
                                 return Err(ConfigSourceError::ConflictingNetworks(
@@ -224,7 +309,36 @@ impl ConfigSource {
                 }
             }
         }
-        Ok(conf)
+        if !merged_conf.top_config.using_networks_from.is_empty() {
+            for (_key, item) in merged_conf.top_config.using_networks_from.iter() {
+                let remote_networks =
+                    RemoteNetworks::try_from_remote_network_config_source(item.clone()).await?;
+                match remote_networks {
+                    RemoteNetworks::ChainId(chains) => {
+                        for chain in &chains {
+                            if merged_conf
+                                .top_config
+                                .networks
+                                .iter()
+                                .all(|(k, _v)| *k != chain.short_name)
+                            {
+                                if let Ok(v) = chain.clone().try_into() {
+                                    merged_conf
+                                        .top_config
+                                        .networks
+                                        .insert(chain.short_name.clone(), v);
+                                }
+                            } else {
+                                return Err(ConfigSourceError::ConflictingNetworks(
+                                    chain.name.clone(),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(merged_conf)
     }
 }
 
@@ -350,7 +464,7 @@ charts:
                     options:
                         x: "0.1"
                         y: "0.2"
-                        stroke: "black"            
+                        stroke: "black"
             plot2:
                 title: "Hexbin"
                 marks:
@@ -372,7 +486,7 @@ deployments:
     second-deployment:
         scenario: mainScenario
         order: buyETH
-        
+
 sentry: true
 
 accounts:
@@ -408,7 +522,10 @@ accounts:
             then.json_body_obj(&mocked_chain_id_response);
         });
 
-        let config = ConfigSource::try_from_string(yaml_data).await.unwrap();
+        let config = ConfigSource::try_from_string(yaml_data, None)
+            .await
+            .unwrap()
+            .0;
 
         // Asserting a few values to verify successful parsing
         assert_eq!(
@@ -517,9 +634,104 @@ using-networks-from:
             then.json_body_obj(&mocked_chain_id_response);
         });
 
-        let config = ConfigSource::try_from_string(yaml_data)
+        let config = ConfigSource::try_from_string(yaml_data, None)
             .await
             .expect_err("expected to fail");
         matches!(config, ConfigSourceError::ChainIdError(_));
+    }
+
+    #[tokio::test]
+    async fn parse_yaml_into_configstrings_with_anchors() {
+        let top_yml_data = r#"
+raindex-version: &raindex 123
+networks:
+    mainnet: &mainnet
+        rpc: https://mainnet.node
+        chain-id: 1
+        label: Mainnet
+        network-id: 1
+        currency: ETH
+    testnet: &testnet
+        rpc: https://testnet.node
+        chain-id: 2
+        label: Testnet
+        network-id: 2
+        currency: ETH
+subgraphs: &subgraphs
+    mainnet: https://mainnet.subgraph
+    testnet: https://testnet.subgraph
+orderbooks: &orderbooks
+    mainnetOrderbook:
+        address: 0xabc0000000000000000000000000000000000001
+        network: mainnet
+        subgraph: mainnet
+        label: Mainnet Orderbook
+"#;
+
+        let yaml_data = r#"
+raindex-version: *raindex
+networks:
+    mainnet: *mainnet
+    testnet: *testnet
+subgraphs: *subgraphs
+orderbooks: *orderbooks
+"#;
+
+        let (config, top_config) =
+            ConfigSource::try_from_string(yaml_data.to_string(), Some(top_yml_data.to_string()))
+                .await
+                .unwrap();
+
+        // Asserting a few values to verify successful parsing for config
+        assert_eq!(config.clone().raindex_version.unwrap(), "123".to_string());
+        assert_eq!(
+            config.clone().networks.get("mainnet").unwrap().rpc,
+            Url::parse("https://mainnet.node").unwrap()
+        );
+        assert_eq!(
+            config.networks.get("mainnet").unwrap().label,
+            Some("Mainnet".into())
+        );
+        assert_eq!(
+            config.subgraphs.get("mainnet"),
+            Some(&Url::parse("https://mainnet.subgraph").unwrap())
+        );
+        assert_eq!(
+            config.orderbooks.get("mainnetOrderbook").unwrap().address,
+            "0xabc0000000000000000000000000000000000001"
+                .parse::<Address>()
+                .unwrap()
+        );
+
+        // Asserting a few values to verify successful parsing for other config
+        assert_eq!(
+            top_config.clone().raindex_version.unwrap(),
+            "123".to_string()
+        );
+        assert_eq!(
+            top_config.clone().networks.get("mainnet").unwrap().rpc,
+            Url::parse("https://mainnet.node").unwrap()
+        );
+        assert_eq!(
+            top_config.networks.get("mainnet").unwrap().label,
+            Some("Mainnet".into())
+        );
+        assert_eq!(
+            top_config.subgraphs.get("mainnet"),
+            Some(&Url::parse("https://mainnet.subgraph").unwrap())
+        );
+        assert_eq!(
+            top_config
+                .orderbooks
+                .get("mainnetOrderbook")
+                .unwrap()
+                .address,
+            "0xabc0000000000000000000000000000000000001"
+                .parse::<Address>()
+                .unwrap()
+        );
+
+        // in this case both configs should be equal
+        assert_eq!(config, top_config);
     }
 }

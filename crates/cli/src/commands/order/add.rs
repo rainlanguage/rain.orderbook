@@ -2,11 +2,12 @@ use crate::{
     execute::Execute, status::display_write_transaction_status, transaction::CliTransactionArgs,
 };
 use anyhow::{anyhow, Result};
-use clap::Args;
+use clap::{ArgAction, Args};
 use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::frontmatter::parse_frontmatter;
 use rain_orderbook_common::transaction::TransactionArgs;
+use rain_orderbook_common::GH_COMMIT_SHA;
 use std::fs::read_to_string;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -26,12 +27,36 @@ pub struct CliOrderAddArgs {
 
     #[clap(flatten)]
     pub transaction_args: CliTransactionArgs,
+
+    /// Do NOT broadcast the transaction to the network, only simulate the transaction
+    #[arg(long, action = ArgAction::SetTrue)]
+    pub no_broadcast: bool,
+
+    /// Skips checking the `raindex-version` against this cli app current version
+    #[arg(long, action = ArgAction::SetTrue)]
+    pub skip_version_check: bool,
 }
 
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
         let config: Config = parse_frontmatter(text.clone()).await?.try_into()?;
+
+        if !self.skip_version_check {
+            if let Some(ver) = config.raindex_version {
+                if ver.to_ascii_lowercase() != GH_COMMIT_SHA.to_ascii_lowercase() {
+                    return Err(anyhow!(format!(
+                        "mismatch raindex version: expected: {}, got: {}",
+                        GH_COMMIT_SHA, ver
+                    )));
+                }
+            } else {
+                return Err(anyhow!(
+                    "missing 'raindex-version' field in .rain file frontmatter"
+                ));
+            }
+        }
+
         let config_deployment = config
             .deployments
             .get(&self.deployment)
@@ -50,12 +75,20 @@ impl Execute for CliOrderAddArgs {
         let mut tx_args: TransactionArgs = self.transaction_args.clone().into();
         tx_args.try_fill_chain_id().await?;
 
-        info!("----- Add Order -----");
+        info!("----- Simulating Transaction -----");
         add_order_args
-            .execute(tx_args, |status| {
-                display_write_transaction_status(status);
-            })
+            .simulate_execute(tx_args.clone(), None)
             .await?;
+        info!("----- Finished Simulation Successfully -----");
+
+        if !self.no_broadcast {
+            info!("----- Add Order -----");
+            add_order_args
+                .execute(tx_args, |status| {
+                    display_write_transaction_status(status);
+                })
+                .await?;
+        }
 
         Ok(())
     }
@@ -70,14 +103,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_to_add_order_args() {
-        let dotrain = get_dotrain();
+        let dotrain = get_dotrain(GH_COMMIT_SHA);
 
         let dotrain_path = "./test_dotrain_add_order.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let cli_order_add_args = CliOrderAddArgs {
+            no_broadcast: false,
             dotrain_file: dotrain_path.into(),
             deployment: "some-deployment".to_string(),
+            skip_version_check: false,
             transaction_args: CliTransactionArgs {
                 orderbook_address: Address::random(),
                 derivation_index: None,
@@ -91,7 +126,7 @@ mod tests {
 
         let result = cli_order_add_args.to_add_order_args().await.unwrap();
         let expected = AddOrderArgs {
-            dotrain: get_dotrain(),
+            dotrain: get_dotrain(GH_COMMIT_SHA),
             inputs: vec![IO {
                 token: Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap(),
                 decimals: 6,
@@ -111,7 +146,40 @@ mod tests {
         std::fs::remove_file(dotrain_path).unwrap();
     }
 
-    fn get_dotrain() -> String {
+    #[tokio::test]
+    async fn test_to_add_order_args_version_check_unhappy() {
+        let dotrain = get_dotrain("1234");
+
+        let dotrain_path = "./test_dotrain_add_order2.rain";
+        std::fs::write(dotrain_path, dotrain).unwrap();
+
+        let cli_order_add_args = CliOrderAddArgs {
+            no_broadcast: false,
+            dotrain_file: dotrain_path.into(),
+            deployment: "some-deployment".to_string(),
+            skip_version_check: false,
+            transaction_args: CliTransactionArgs {
+                orderbook_address: Address::random(),
+                derivation_index: None,
+                chain_id: Some(123),
+                rpc_url: "https://some-rpc.com".to_string(),
+                max_fee_per_gas: None,
+                max_priority_fee_per_gas: None,
+                gas_fee_speed: None,
+            },
+        };
+        let result = cli_order_add_args.to_add_order_args().await;
+
+        // rm test file
+        std::fs::remove_file(dotrain_path).unwrap();
+
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("mismatch raindex version"));
+    }
+
+    fn get_dotrain(raindex_version: &str) -> String {
         format!(
             r#"
 raindex-version: {raindex_version}
@@ -177,7 +245,7 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;"#,
-            raindex_version = "1234"
+            raindex_version = raindex_version
         )
         .to_string()
     }

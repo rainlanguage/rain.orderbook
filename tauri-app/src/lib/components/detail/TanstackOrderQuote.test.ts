@@ -177,3 +177,38 @@ test('displays error message when query fails', async () => {
     expect(errorCell).toBeInTheDocument();
   });
 });
+
+test('displays zero for price when io ratio is zero', async () => {
+  mockIPC((cmd) => {
+    if (cmd === 'batch_order_quotes') {
+      return [
+        {
+          success: true,
+          block_number: '0x123',
+          pair: { pair_name: 'ETH/USDT', input_index: 0, output_index: 1 },
+          data: { maxOutput: '0x158323e942e36d8c', ratio: '0x0' },
+          error: undefined,
+        } satisfies BatchOrderQuotesResponse,
+      ];
+    }
+  });
+
+  const queryClient = new QueryClient();
+
+  render(TanstackOrderQuote, {
+    props: {
+      id: '0x123',
+      order: mockOrderDetailsExtended.order,
+    },
+    context: new Map([['$$_queryClient', queryClient]]),
+  });
+
+  await waitFor(() => {
+    const orderQuoteComponent = screen.getByTestId('bodyRow');
+
+    expect(orderQuoteComponent).toHaveTextContent('ETH/USDT');
+    expect(orderQuoteComponent).toHaveTextContent('1.550122181502135692'); // maxOutput
+    expect(orderQuoteComponent).toHaveTextContent('0'); // ratio
+    expect(orderQuoteComponent).toHaveTextContent('(0)'); // inverse price
+  });
+});

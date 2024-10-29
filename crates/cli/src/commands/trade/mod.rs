@@ -4,23 +4,23 @@ mod list;
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Parser;
-use detail::CliOrderTakeDetailArgs;
-use list::CliOrderTakesListArgs;
+use detail::CliOrderTradeDetailArgs;
+use list::CliOrderTradesListArgs;
 
 #[derive(Parser)]
-pub enum OrderTake {
+pub enum Trade {
     #[command(about = "View an Order Take", alias = "view")]
-    Detail(CliOrderTakeDetailArgs),
+    Detail(CliOrderTradeDetailArgs),
 
     #[command(about = "List takes for an Order", alias = "ls")]
-    List(CliOrderTakesListArgs),
+    List(CliOrderTradesListArgs),
 }
 
-impl Execute for OrderTake {
+impl Execute for Trade {
     async fn execute(&self) -> Result<()> {
         match self {
-            OrderTake::Detail(detail) => detail.execute().await,
-            OrderTake::List(list) => list.execute().await,
+            Trade::Detail(detail) => detail.execute().await,
+            Trade::List(list) => list.execute().await,
         }
     }
 }
@@ -32,6 +32,6 @@ mod tests {
 
     #[test]
     fn verify_command() {
-        OrderTake::command().debug_assert();
+        Trade::command().debug_assert();
     }
 }

@@ -14,6 +14,8 @@ pub mod replays;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
+#[cfg(not(target_family = "wasm"))]
+pub mod unit_tests;
 pub mod utils;
 pub mod withdraw;
 

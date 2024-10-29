@@ -13,16 +13,19 @@ export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
 };
 
-export const handleDepositModal = (vault: Vault) => {
-  new ModalVaultDeposit({ target: document.body, props: { open: true, vault } });
+export const handleDepositModal = (vault: Vault, onDeposit: () => void) => {
+  new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit } });
 };
 
-export const handleWithdrawModal = (vault: Vault) => {
-  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault } });
+export const handleWithdrawModal = (vault: Vault, onWithdraw: () => void) => {
+  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw } });
 };
 
-export const handleOrderRemoveModal = (order: OrderDetailOrder | OrderListOrder) => {
-  new ModalOrderRemove({ target: document.body, props: { order } });
+export const handleOrderRemoveModal = (
+  order: OrderDetailOrder | OrderListOrder,
+  onOrderRemoved: () => void,
+) => {
+  new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };
 
 export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
@@ -36,6 +39,7 @@ export const handleQuoteDebugModal = (
   inputIOIndex: number,
   outputIOIndex: number,
   pair: string,
+  blockNumber?: number,
 ) => {
   new ModalQuoteDebug({
     target: document.body,
@@ -47,6 +51,7 @@ export const handleQuoteDebugModal = (
       inputIOIndex,
       outputIOIndex,
       pair,
+      blockNumber,
     },
   });
 };

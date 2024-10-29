@@ -23,14 +23,16 @@
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
   import { get } from 'svelte/store';
+  import { orderHash } from '$lib/stores/settings';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus],
+    queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash],
     queryFn: ({ pageParam }) => {
       return ordersList(
         $subgraphUrl,
         Object.values(get(activeAccounts)),
         $activeOrderStatus,
+        $orderHash,
         pageParam,
       );
     },
@@ -125,7 +127,7 @@
           <DropdownItem
             on:click={(e) => {
               e.stopPropagation();
-              handleOrderRemoveModal(item);
+              handleOrderRemoveModal(item, $query.refetch);
             }}>Remove</DropdownItem
           >
         </Dropdown>

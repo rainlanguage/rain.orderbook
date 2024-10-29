@@ -12,14 +12,11 @@ import {
   type OrderbookConfigSource,
 } from '$lib/typeshare/config';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
-import { toasts } from './toasts';
 import { pickBy } from 'lodash';
-import { parseConfigSource } from '$lib/services/config';
-import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
 // general
 export const settingsText = cachedWritableStore<string>(
-  'settings',
+  'settingsText',
   '',
   (s) => s,
   (s) => s,
@@ -29,15 +26,15 @@ export const settingsFile = textFileStore(
   ['yml', 'yaml'],
   get(settingsText),
 );
-export const settings = asyncDerived(
-  settingsText,
-  async ($settingsText): Promise<ConfigSource | undefined> => {
+export const settings = cachedWritableStore<ConfigSource | undefined>(
+  'settings',
+  undefined,
+  (value) => JSON.stringify(value),
+  (str) => {
     try {
-      const config: ConfigSource = await parseConfigSource($settingsText);
-      return config;
-    } catch (e) {
-      reportErrorToSentry(e, SentrySeverityLevel.Info);
-      toasts.error(e as string);
+      return JSON.parse(str) as ConfigSource;
+    } catch {
+      return undefined;
     }
   },
 );
@@ -50,7 +47,6 @@ export const activeNetworkRef = cachedWritableStringOptional('settings.activeNet
 export const activeNetwork = asyncDerived(
   [settings, activeNetworkRef],
   async ([$settings, $activeNetworkRef]) => {
-    await settings.load();
     return $activeNetworkRef !== undefined && $settings?.networks !== undefined
       ? $settings.networks[$activeNetworkRef]
       : undefined;
@@ -131,7 +127,7 @@ export const activeAccounts = derived(
 
 // When networks / orderbooks settings updated, reset active network / orderbook
 settings.subscribe(async () => {
-  const $settings = await settings.load();
+  const $settings = get(settings);
   const $activeNetworkRef = get(activeNetworkRef);
   const $activeOrderbookRef = get(activeOrderbookRef);
 
@@ -153,6 +149,22 @@ settings.subscribe(async () => {
       !Object.keys($settings.orderbooks).includes($activeOrderbookRef))
   ) {
     resetActiveOrderbookRef();
+  }
+
+  // Reset active account items if accounts have changed
+  if ($settings?.accounts === undefined) {
+    activeAccountsItems.set({});
+  } else {
+    const currentActiveAccounts = get(activeAccountsItems);
+    const updatedActiveAccounts = Object.fromEntries(
+      Object.entries($settings.accounts ?? {}).filter(([key, value]) => {
+        if (key in currentActiveAccounts) {
+          return currentActiveAccounts[key] === value;
+        }
+        return false;
+      }),
+    );
+    activeAccountsItems.set(updatedActiveAccounts);
   }
 });
 
@@ -189,7 +201,6 @@ export function resetActiveOrderbookRef() {
 
 // reset active orderbook to first available, otherwise undefined
 export async function resetActiveNetworkRef() {
-  await settings.load();
   const $networks = get(settings)?.networks;
 
   if ($networks !== undefined && Object.keys($networks).length > 0) {
@@ -211,4 +222,24 @@ export const activeOrderStatus = cachedWritableStore<boolean | undefined>(
       return undefined;
     }
   },
+);
+
+export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
+  'settings.hideZeroBalanceVaults',
+  true, // default value is true
+  (value) => JSON.stringify(value),
+  (str) => {
+    try {
+      return JSON.parse(str) as boolean;
+    } catch {
+      return true;
+    }
+  },
+);
+
+export const orderHash = cachedWritableStore<string>(
+  'settings.orderHash',
+  '',
+  (value) => value,
+  (str) => str || '',
 );

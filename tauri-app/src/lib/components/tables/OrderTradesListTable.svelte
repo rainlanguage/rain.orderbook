@@ -2,7 +2,7 @@
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import TanstackAppTable from './TanstackAppTable.svelte';
   import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
-  import { orderTradesList } from '$lib/queries/orderTradesList';
+  import { orderTradesCount, orderTradesList } from '$lib/queries/orderTradesList';
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -12,24 +12,48 @@
   import { formatUnits } from 'viem';
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
+  import type { Trade } from '$lib/typeshare/subgraphTypes';
+  import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
   export let id: string;
 
+  let startTimestamp: number | undefined;
+  let endTimestamp: number | undefined;
+  let tradesCount: number | undefined;
+
   $: orderTradesQuery = createInfiniteQuery({
-    queryKey: [QKEY_ORDER_TRADES_LIST + id],
-    queryFn: ({ pageParam }) => {
-      return orderTradesList(id, $subgraphUrl || '', pageParam);
+    queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
+      tradesCount = undefined;
+
+      const [count, trades] = await Promise.all([
+        orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp),
+        orderTradesList(id, $subgraphUrl || '', pageParam, undefined, startTimestamp, endTimestamp),
+      ]);
+
+      if (typeof count === 'number') {
+        tradesCount = count;
+      }
+
+      return trades;
     },
     initialPageParam: 0,
-    getNextPageParam(lastPage, _allPages, lastPageParam) {
+    getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
-    refetchInterval: 10000,
     enabled: !!$subgraphUrl,
   });
 </script>
 
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
+  <svelte:fragment slot="info">
+    {#if tradesCount !== undefined}
+      <div class="px-2">{tradesCount} Trades</div>
+    {/if}
+  </svelte:fragment>
+  <svelte:fragment slot="timeFilter">
+    <TableTimeFilters bind:startTimestamp bind:endTimestamp />
+  </svelte:fragment>
   <svelte:fragment slot="head">
     <TableHeadCell padding="p-4">Date</TableHeadCell>
     <TableHeadCell padding="p-0">Sender</TableHeadCell>
@@ -79,8 +103,22 @@
             ),
           ),
       )}
-      {item.inputVaultBalanceChange.vault.token.symbol}/{item.outputVaultBalanceChange.vault.token
-        .symbol}
+      <span class="text-gray-400">
+        ({Math.abs(
+          Number(
+            formatUnits(
+              BigInt(item.outputVaultBalanceChange.amount),
+              Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
+            ),
+          ) /
+            Number(
+              formatUnits(
+                BigInt(item.inputVaultBalanceChange.amount),
+                Number(item.inputVaultBalanceChange.vault.token.decimals ?? 0),
+              ),
+            ),
+        )})
+      </span>
     </TableBodyCell>
     <TableBodyCell tdClass="py-2">
       <button

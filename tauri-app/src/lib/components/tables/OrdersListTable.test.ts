@@ -45,6 +45,13 @@ vi.mock('$app/navigation', () => ({
   goto: vi.fn(),
 }));
 
+vi.mock('$app/stores', async () => {
+  const { writable } = await import('svelte/store');
+  return {
+    page: writable({ url: { pathname: '/orders' } }),
+  };
+});
+
 const mockOrders: Order[] = [
   {
     id: 'order1',
@@ -265,6 +272,6 @@ test('clicking the remove option in the dropdown menu opens the remove modal', a
   });
 
   await waitFor(() => {
-    expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrders[0]);
+    expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrders[0], expect.any(Function));
   });
 });

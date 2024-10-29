@@ -120,6 +120,8 @@ mod tests {
             filter_args: CliFilterArgs {
                 owners: vec!["addr1".to_string()],
                 active: Some(true),
+                hide_zero_balance: Some(true),
+                order_hash: None,
             },
         };
 
@@ -147,6 +149,8 @@ mod tests {
             filter_args: CliFilterArgs {
                 owners: vec!["addr1".to_string()],
                 active: Some(true),
+                hide_zero_balance: Some(true),
+                order_hash: None,
             },
         };
 
@@ -168,6 +172,8 @@ mod tests {
             filter_args: CliFilterArgs {
                 owners: vec!["addr1".to_string()],
                 active: Some(true),
+                hide_zero_balance: Some(true),
+                order_hash: None,
             },
         };
 

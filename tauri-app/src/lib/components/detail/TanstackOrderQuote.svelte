@@ -103,7 +103,9 @@
               <TableBodyCell
                 >{formatUnits(BigInt(item.data.ratio), 18)}
                 <span class="text-gray-400"
-                  >({formatUnits(10n ** 36n / BigInt(item.data.ratio), 18)})</span
+                  >({BigInt(item.data.ratio) > 0n
+                    ? formatUnits(10n ** 36n / BigInt(item.data.ratio), 18)
+                    : '0'})</span
                 ></TableBodyCell
               >
               <TableBodyCell
@@ -122,6 +124,7 @@
                       item.pair.input_index,
                       item.pair.output_index,
                       item.pair.pair_name,
+                      parseInt($orderQuoteQuery.data[0].block_number),
                     )}
                 >
                   <BugOutline size="sm" color="grey" />
@@ -144,7 +147,22 @@
               </TableBodyCell>
               <TableBodyCell />
               <TableBodyCell />
-              <TableBodyCell />
+              <TableBodyCell>
+                <button
+                  on:click={() =>
+                    handleQuoteDebugModal(
+                      order,
+                      $rpcUrl || '',
+                      $orderbookAddress || '',
+                      item.pair.input_index,
+                      item.pair.output_index,
+                      item.pair.pair_name,
+                      parseInt($orderQuoteQuery.data[0].block_number),
+                    )}
+                >
+                  <BugOutline size="sm" color="grey" />
+                </button>
+              </TableBodyCell>
             </TableBodyRow>
           {/if}
         {/each}

@@ -17,15 +17,32 @@
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
+  import { onDestroy } from 'svelte';
+  import { queryClient } from '$lib/queries/queryClient';
+  import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 
   export let id: string;
 
   $: orderDetailQuery = createQuery({
-    queryKey: [QKEY_ORDER + id],
+    queryKey: [id, QKEY_ORDER + id],
     queryFn: () => {
       return orderDetail(id, $subgraphUrl || '');
     },
     enabled: !!$subgraphUrl,
+  });
+
+  const interval = setInterval(async () => {
+    // This invalidate function invalidates
+    // both order detail and order trades list queries
+    await queryClient.invalidateQueries({
+      queryKey: [id],
+      refetchType: 'active',
+      exact: false,
+    });
+  }, 10000);
+
+  onDestroy(() => {
+    clearInterval(interval);
   });
 </script>
 
@@ -39,7 +56,12 @@
       <BadgeActive active={data.order.active} large />
     </div>
     {#if data.order && $walletAddressMatchesOrBlank(data.order.owner) && data.order.active}
-      <Button color="dark" on:click={() => handleOrderRemoveModal(data.order)}>Remove</Button>
+      <Button
+        color="dark"
+        on:click={() => handleOrderRemoveModal(data.order, $orderDetailQuery.refetch)}
+      >
+        Remove
+      </Button>
     {/if}
   </svelte:fragment>
   <svelte:fragment slot="card" let:data>
@@ -68,7 +90,10 @@
       <CardProperty>
         <svelte:fragment slot="key">Input vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          <div class="space-y-4">
+          <div class="mb-2 flex justify-end">
+            <span>Balance</span>
+          </div>
+          <div class="space-y-2">
             {#each data.order.inputs || [] as t}
               <ButtonVaultLink tokenVault={t} />
             {/each}
@@ -79,7 +104,10 @@
       <CardProperty>
         <svelte:fragment slot="key">Output vaults</svelte:fragment>
         <svelte:fragment slot="value">
-          <div class="space-y-4">
+          <div class="mb-2 flex justify-end">
+            <span>Balance</span>
+          </div>
+          <div class="space-y-2">
             {#each data.order.outputs || [] as t}
               <ButtonVaultLink tokenVault={t} />
             {/each}
@@ -111,6 +139,9 @@
       </TabItem>
       <TabItem title="Trades">
         <OrderTradesListTable {id} />
+      </TabItem>
+      <TabItem title="Volume">
+        <OrderVaultsVolTable {id} />
       </TabItem>
     </Tabs>
   </svelte:fragment>

@@ -19,13 +19,18 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
-  import { activeAccounts } from '$lib/stores/settings';
+  import { activeAccounts, hideZeroBalanceVaults } from '$lib/stores/settings';
   import { get } from 'svelte/store';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS, $activeAccounts],
+    queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults],
     queryFn: ({ pageParam }) => {
-      return vaultList($subgraphUrl, Object.values(get(activeAccounts)), pageParam);
+      return vaultList(
+        $subgraphUrl,
+        Object.values(get(activeAccounts)),
+        $hideZeroBalanceVaults,
+        pageParam,
+      );
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
@@ -97,7 +102,7 @@
             {#each item.ordersAsInput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
-                color="alternative"
+                color={order.active ? 'green' : 'yellow'}
                 data-testid="vault-order-input"
                 data-order-id={order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
@@ -118,7 +123,7 @@
             {#each item.ordersAsOutput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
-                color="alternative"
+                color={order.active ? 'green' : 'yellow'}
                 data-order-id={order.id}
                 data-testid="vault-order-output"
                 on:click={() => goto(`/orders/${order.id}`)}
@@ -159,14 +164,14 @@
             data-testid="deposit-button"
             on:click={(e) => {
               e.stopPropagation();
-              handleDepositModal(item);
+              handleDepositModal(item, $query.refetch);
             }}>Deposit</DropdownItem
           >
           <DropdownItem
             data-testid="withdraw-button"
             on:click={(e) => {
               e.stopPropagation();
-              handleWithdrawModal(item);
+              handleWithdrawModal(item, $query.refetch);
             }}>Withdraw</DropdownItem
           >
         </Dropdown>

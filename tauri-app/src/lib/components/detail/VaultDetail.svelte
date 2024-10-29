@@ -16,15 +16,31 @@
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import TanstackContentDetail from '$lib/components/detail/TanstackPageContentDetail.svelte';
   import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
+  import { onDestroy } from 'svelte';
+  import { queryClient } from '$lib/queries/queryClient';
 
   export let id: string;
 
   $: vaultDetailQuery = createQuery({
-    queryKey: [QKEY_VAULT + id],
+    queryKey: [id, QKEY_VAULT + id],
     queryFn: () => {
       return vaultDetail(id, $subgraphUrl || '');
     },
     enabled: !!$subgraphUrl,
+  });
+
+  const interval = setInterval(async () => {
+    // This invalidate function invalidates
+    // both vault detail and vault balance changes queries
+    await queryClient.invalidateQueries({
+      queryKey: [id],
+      refetchType: 'active',
+      exact: false,
+    });
+  }, 10000);
+
+  onDestroy(() => {
+    clearInterval(interval);
   });
 </script>
 
@@ -41,13 +57,13 @@
         <Button
           data-testid="vaultDetailDepositButton"
           color="dark"
-          on:click={() => handleDepositModal(data)}
+          on:click={() => handleDepositModal(data, $vaultDetailQuery.refetch)}
           ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
         >
         <Button
           data-testid="vaultDetailWithdrawButton"
           color="dark"
-          on:click={() => handleWithdrawModal(data)}
+          on:click={() => handleWithdrawModal(data, $vaultDetailQuery.refetch)}
           ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
         >
       {/if}
@@ -96,7 +112,7 @@
             {#each data.ordersAsInput as order}
               <Button
                 class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-                color="light"
+                color={order.active ? 'green' : 'yellow'}
                 data-order={order.id}
                 data-testid={'vaultDetailOrderAsInputOrder' + order.id}
                 on:click={() => goto(`/orders/${order.id}`)}
@@ -119,7 +135,7 @@
             {#each data.ordersAsOutput as order}
               <Button
                 class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-                color="alternative"
+                color={order.active ? 'green' : 'yellow'}
                 data-order={order.id}
                 data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
                 on:click={() => goto(`/orders/${order.id}`)}

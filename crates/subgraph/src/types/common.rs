@@ -9,9 +9,11 @@ pub struct IdQueryVariables<'a> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrdersListFilterArgs {
     pub owners: Vec<Bytes>,
     pub active: Option<bool>,
+    pub order_hash: Option<Bytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -29,6 +31,8 @@ pub struct OrdersListQueryFilters {
     pub owner_in: Vec<Bytes>,
     #[cynic(rename = "active", skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
+    #[cynic(rename = "orderHash", skip_serializing_if = "Option::is_none")]
+    pub order_hash: Option<Bytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -46,6 +50,16 @@ pub struct PaginationWithIdQueryVariables {
     pub first: Option<i32>,
     pub id: Bytes,
     pub skip: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug, Clone)]
+#[typeshare]
+pub struct PaginationWithTimestampQueryVariables {
+    pub first: Option<i32>,
+    pub id: Bytes,
+    pub skip: Option<i32>,
+    pub timestamp_gte: Option<BigInt>,
+    pub timestamp_lte: Option<BigInt>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
@@ -95,16 +109,20 @@ pub struct OrderAsIO {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VaultsListFilterArgs {
     pub owners: Vec<Bytes>,
+    pub hide_zero_balance: bool,
 }
 
 #[derive(cynic::InputObject, Debug, Clone)]
 #[cynic(graphql_type = "Vault_filter")]
 #[typeshare]
 pub struct VaultsListQueryFilters {
-    #[cynic(rename = "owner_in")]
+    #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
     pub owner_in: Vec<Bytes>,
+    #[cynic(rename = "balance_gt", skip_serializing_if = "Option::is_none")]
+    pub balance_gt: Option<BigInt>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -126,7 +144,11 @@ pub struct Vault {
     pub balance: BigInt,
     pub token: Erc20,
     pub orderbook: Orderbook,
+    // latest orders
+    #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_output: Vec<OrderAsIO>,
+    // latest orders
+    #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_input: Vec<OrderAsIO>,
     pub balance_changes: Vec<VaultBalanceChange>,
 }
@@ -136,6 +158,7 @@ pub struct Vault {
 #[typeshare]
 pub struct VaultBalanceChangeVault {
     pub id: Bytes,
+    pub vault_id: BigInt,
     pub token: Erc20,
 }
 
@@ -162,6 +185,7 @@ pub enum VaultBalanceChange {
     Withdrawal(Withdrawal),
     TradeVaultBalanceChange(TradeVaultBalanceChange),
     Deposit(Deposit),
+    ClearBounty(ClearBounty),
     #[cynic(fallback)]
     Unknown,
 }
@@ -213,6 +237,22 @@ pub struct TradeVaultBalanceChange {
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[typeshare]
+#[serde(rename_all = "camelCase")]
+pub struct ClearBounty {
+    pub id: Bytes,
+    pub __typename: String,
+    pub amount: BigInt,
+    pub new_vault_balance: BigInt,
+    pub old_vault_balance: BigInt,
+    pub vault: VaultBalanceChangeVault,
+    pub timestamp: BigInt,
+    pub transaction: Transaction,
+    pub orderbook: Orderbook,
+    pub sender: Bytes,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[typeshare]
 pub struct TradeEvent {
     pub transaction: Transaction,
     pub sender: Bytes,
@@ -238,7 +278,7 @@ pub struct OrderStructPartialTrade {
     pub id: Bytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq)]
 #[cynic(graphql_type = "ERC20")]
 #[typeshare]
 pub struct Erc20 {
@@ -265,11 +305,11 @@ pub struct AddOrder {
     pub transaction: Transaction,
 }
 
-#[derive(cynic::Scalar, Debug, Clone)]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq)]
 #[typeshare]
 pub struct BigInt(pub String);
 
-#[derive(cynic::Scalar, Debug, Clone)]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq)]
 #[typeshare]
 pub struct Bytes(pub String);
 

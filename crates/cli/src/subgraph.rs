@@ -72,6 +72,16 @@ pub struct CliFilterArgs {
 
     #[arg(long, help = "Filter orders by active status", default_value = "true")]
     pub active: Option<bool>,
+
+    #[arg(
+        long,
+        help = "Hide vaults with zero balance (default true)",
+        default_value = "true"
+    )]
+    pub hide_zero_balance: Option<bool>,
+
+    #[arg(long, help = "Filter orders by order hash")]
+    pub order_hash: Option<String>,
 }
 
 impl From<CliFilterArgs> for OrdersListFilterArgs {
@@ -79,6 +89,7 @@ impl From<CliFilterArgs> for OrdersListFilterArgs {
         Self {
             owners: val.owners.into_iter().map(Bytes).collect(),
             active: val.active,
+            order_hash: val.order_hash.map(Bytes),
         }
     }
 }
@@ -86,6 +97,7 @@ impl From<CliFilterArgs> for VaultsListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
         Self {
             owners: val.owners.into_iter().map(Bytes).collect(),
+            hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
         }
     }
 }
