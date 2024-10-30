@@ -18,7 +18,7 @@
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
-  import { subgraphUrl, activeSubgraphs } from '$lib/stores/settings';
+  import { activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
@@ -50,7 +50,7 @@
     {query}
     emptyMessage="No Orders Found"
     on:clickRow={(e) => {
-      goto(`/orders/${e.detail.item.id}`);
+      goto(`/orders/${e.detail.item.order.id}`);
     }}
   >
     <svelte:fragment slot="title">
