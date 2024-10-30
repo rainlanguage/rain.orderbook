@@ -181,6 +181,22 @@ settings.subscribe(async () => {
     );
     activeAccountsItems.set(updatedActiveAccounts);
   }
+
+  // Reset active subgraphs if subgraphs have changed
+  if ($settings?.subgraphs === undefined) {
+    activeSubgraphs.set({});
+  } else {
+    const currentActiveSubgraphs = get(activeSubgraphs);
+    const updatedActiveSubgraphs = Object.fromEntries(
+      Object.entries($settings.subgraphs).filter(([key, value]) => {
+        if (key in currentActiveSubgraphs) {
+          return currentActiveSubgraphs[key] === value;
+        }
+        return false;
+      }),
+    );
+    activeSubgraphs.set(updatedActiveSubgraphs);
+  }
 });
 
 // When active network is updated to undefined, reset active orderbook
