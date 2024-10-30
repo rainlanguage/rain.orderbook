@@ -41,7 +41,7 @@
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
     refetchInterval: DEFAULT_REFRESH_INTERVAL,
-    enabled: !!$subgraphUrl,
+    enabled: Object.keys($activeSubgraphs).length > 0,
   });
 </script>
 
