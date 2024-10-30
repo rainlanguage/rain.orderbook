@@ -9,41 +9,19 @@ use rain_orderbook_common::{
     types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
 };
 use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
+use rain_orderbook_subgraph_client::{MultiOrderbookSubgraphClient, MultiSubgraphArgs};
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
 
 #[tauri::command]
 pub async fn orders_list(
-    subgraph_args_list: Vec<SubgraphArgs>,
+    multi_subgraph_args: Vec<MultiSubgraphArgs>,
     filter_args: OrdersListFilterArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<Order>> {
-    let clients_futures = subgraph_args_list
-        .into_iter()
-        .map(|args| async move { args.to_subgraph_client().await });
-    let clients = join_all(clients_futures).await;
-    let valid_clients: Vec<_> = clients.into_iter().filter_map(Result::ok).collect();
-
-    let futures = valid_clients.into_iter().map(|client| {
-        let filter_args = filter_args.clone();
-        let pagination_args = pagination_args.clone();
-        async move { client.orders_list(filter_args, pagination_args).await }
-    });
-    let results = join_all(futures).await;
-
-    let mut all_orders: Vec<Order> = results
-        .into_iter()
-        .filter_map(Result::ok)
-        .flatten()
-        .collect();
-
-    all_orders.sort_by(|a, b| {
-        let a_timestamp = a.timestamp_added.0.parse::<i64>().unwrap_or(0);
-        let b_timestamp = b.timestamp_added.0.parse::<i64>().unwrap_or(0);
-        b_timestamp.cmp(&a_timestamp)
-    });
-
+) -> CommandResult<Vec<OrderWithSubgraphName>> {
+    let client = MultiOrderbookSubgraphClient::new(multi_subgraph_args);
+    let all_orders = client.orders_list(filter_args, pagination_args).await?;
     Ok(all_orders)
 }
 
