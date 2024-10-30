@@ -6457,6 +6457,7 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "futures",
  "httpmock",
  "insta",
  "rain_orderbook_bindings",
