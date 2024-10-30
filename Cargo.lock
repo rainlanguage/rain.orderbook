@@ -6416,6 +6416,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_math"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "typeshare",
+]
+
+[[package]]
 name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
