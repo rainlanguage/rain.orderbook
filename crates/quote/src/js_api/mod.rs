@@ -206,12 +206,13 @@ pub async fn get_order_quote(
     rpc_url: &str,
     block_number: Option<u64>,
 ) -> Result<JsValue, Error> {
-    match get_order_quotes(order, block_number, rpc_url.to_string()).await {
-        Err(e) => Err(e),
-        Ok(v) => Ok(to_value(
-            &v.into_iter()
-                .map(|v| BatchOrderQuotesResponse::from(v))
-                .collect::<Vec<_>>(),
-        )?),
-    }
+    Ok(to_value(
+        &get_order_quotes(order, block_number, rpc_url.to_string())
+            .await
+            .map(|v| {
+                v.into_iter()
+                    .map(BatchOrderQuotesResponse::from)
+                    .collect::<Vec<_>>()
+            })?,
+    )?)
 }
