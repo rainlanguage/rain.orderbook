@@ -53,7 +53,7 @@ impl MultiOrderbookSubgraphClient {
         let mut all_orders: Vec<OrderWithSubgraphName> = results
             .into_iter()
             .filter_map(Result::ok)
-            .flat_map(|result| result)
+            .flatten()
             .collect();
 
         all_orders.sort_by(|a, b| {
