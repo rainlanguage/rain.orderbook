@@ -45,6 +45,27 @@ pub struct BigUint {
 
 #[wasm_bindgen]
 impl BigUint {
+    /// 1e18 or one ether
+    #[wasm_bindgen(getter, js_name = "ONE18")]
+    pub fn one18() -> BigUint {
+        BigUint::new(&one_18().to_be_bytes_trimmed_vec())
+    }
+
+    /// Uint256 MIN
+    #[wasm_bindgen(getter, js_name = "MIN")]
+    pub fn min() -> BigUint {
+        BigUint::new(&U256::MIN.to_be_bytes_trimmed_vec())
+    }
+
+    /// Uint256 MAX
+    #[wasm_bindgen(getter, js_name = "MAX")]
+    pub fn max() -> BigUint {
+        BigUint::new(&U256::MAX.to_be_bytes_trimmed_vec())
+    }
+}
+
+#[wasm_bindgen]
+impl BigUint {
     /// Create a new instance of BigUint, saturates at `Uint256.MAX`
     /// if the given value is greater than Uint256 range
     #[wasm_bindgen(constructor)]
@@ -119,7 +140,22 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
-    fn test_new() {
+    fn test_biguint_statics() {
+        let result = BigUint::one18();
+        let expected = BigUint { value: one_18() };
+        assert_eq!(result, expected);
+
+        let result = BigUint::min();
+        let expected = BigUint { value: U256::MIN };
+        assert_eq!(result, expected);
+
+        let result = BigUint::max();
+        let expected = BigUint { value: U256::MAX };
+        assert_eq!(result, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_biguint_new() {
         let result = BigUint::new(&[1u8, 0u8]);
         let expected = BigUint {
             value: U256::from(256),
@@ -128,14 +164,14 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_new_saturated() {
+    fn test_biguint_new_saturated() {
         let result = BigUint::new(&[1u8; 60]);
         let expected = BigUint { value: U256::MAX };
         assert_eq!(result, expected);
     }
 
     #[wasm_bindgen_test]
-    fn test_scale_18_happy() {
+    fn test_biguint_scale_18_happy() {
         let result = BigUint::new(&[255]).scale_18(2).unwrap();
         let expected = BigUint::new(
             U256::from_str("2_550_000_000_000_000_000")
@@ -147,13 +183,13 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_scale_18_unhappy() {
+    fn test_biguint_scale_18_unhappy() {
         let result = BigUint::new(&[255]).scale_18(99);
         assert!(result.is_err());
     }
 
     #[wasm_bindgen_test]
-    fn test_mul_div() {
+    fn test_biguint_mul_div() {
         let result = BigUint::new(&[255]).scale_18(2).unwrap();
         let expected = BigUint::new(
             U256::from_str("2_550_000_000_000_000_000")
@@ -165,7 +201,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_mul_18() {
+    fn test_biguint_mul_18() {
         let result = BigUint::new(&[255]).scale_18(2).unwrap().mul_18(
             10u8.scale_18(0)
                 .unwrap()
@@ -182,7 +218,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_div_18() {
+    fn test_biguint_div_18() {
         let result = BigUint::new(&[255]).scale_18(2).unwrap().div_18(
             10u8.scale_18(0)
                 .unwrap()
