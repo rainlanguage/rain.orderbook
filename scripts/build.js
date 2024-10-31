@@ -21,7 +21,7 @@ execSync("npm run build-wasm");
 // build specified packages and include them in final index file
 // list of packages to build can be extended by adding new package
 // names to the list below
-const packages = ["common", "quote", "math"];
+const packages = ["common", "quote"];
 for (const package of packages) {
   execSync(`node scripts/buildPackage ${package}`);
 }

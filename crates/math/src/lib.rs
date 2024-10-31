@@ -3,14 +3,10 @@ use alloy::primitives::{
     utils::{parse_units, ParseUnits, Unit, UnitsError},
     U256,
 };
+use once_cell::sync::Lazy;
 
-#[cfg(target_family = "wasm")]
-pub mod js_api;
-
-/// Returns 18 point decimals 1 as U256
-pub fn one_18() -> U256 {
-    U256::from(1_000_000_000_000_000_000_u64)
-}
+/// 1e18 oe one ether in U256
+pub static ONE18: Lazy<U256> = Lazy::new(|| U256::from(1_000_000_000_000_000_000_u64));
 
 /// Converts a value to a 18 fixed point U256 given the decimals point,
 /// A valid ethereum decimals point range is always less than 77
@@ -60,7 +56,7 @@ pub trait BigUintMath<T> {
         K: Sized,
         U256: UintTryFrom<Self> + UintTryFrom<K>,
     {
-        U256::from(self).mul_div(other, one_18())
+        U256::from(self).mul_div(other, *ONE18)
     }
 
     /// Performs 18 fixed point div operation
@@ -70,11 +66,12 @@ pub trait BigUintMath<T> {
         K: Sized,
         U256: UintTryFrom<Self> + UintTryFrom<K>,
     {
-        U256::from(self).mul_div(one_18(), other)
+        U256::from(self).mul_div(*ONE18, other)
     }
 }
 
-// impls for all rust native usigned integer types as well as all alloy usigned units
+// implement this trait for all rust native usigned integer types
+// as well as all alloy usigned units such as U8, U16, ... U128, U256
 impl<T> BigUintMath<T> for T where U256: UintTryFrom<T> {}
 
 #[cfg(test)]
@@ -82,13 +79,6 @@ mod test {
     use super::*;
     use alloy::primitives::U256;
     use std::str::FromStr;
-
-    #[test]
-    fn test_one() {
-        let result = one_18();
-        let expected = U256::from_str("1_000_000_000_000_000_000").unwrap();
-        assert_eq!(result, expected);
-    }
 
     #[test]
     fn test_to_18_decimals_happy() {
