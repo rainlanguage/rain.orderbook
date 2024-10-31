@@ -12,9 +12,9 @@ pub fn one_18() -> U256 {
     U256::from(1_000_000_000_000_000_000_u64)
 }
 
-/// Converts a value to a 18 fixed point U256 given the decimals point
+/// Converts a value to a 18 fixed point U256 given the decimals point,
 /// A valid ethereum decimals point range is always less than 77
-pub fn scale_18_decimals<T, D: TryInto<Unit, Error = UnitsError>>(
+pub fn to_18_decimals<T, D: TryInto<Unit, Error = UnitsError>>(
     amount: T,
     decimals: D,
 ) -> Result<U256, UnitsError>
@@ -28,7 +28,7 @@ where
     .get_absolute())
 }
 
-/// A trait that provide math operations for big integers
+/// A trait that provide math operations as Uint256
 pub trait BigUintMath<T> {
     /// Scales the value to 18 point decimals U256
     fn scale_18<D: TryInto<Unit, Error = UnitsError>>(self, decimals: D) -> Result<U256, UnitsError>
@@ -36,10 +36,10 @@ pub trait BigUintMath<T> {
         Self: Sized,
         U256: UintTryFrom<Self>,
     {
-        scale_18_decimals(self, decimals)
+        to_18_decimals(self, decimals)
     }
 
-    /// mulDiv operation
+    /// Performs mulDiv operation
     fn mul_div<K, U>(self, mul: K, div: U) -> U256
     where
         Self: Sized,
@@ -53,7 +53,7 @@ pub trait BigUintMath<T> {
             .unwrap_or(U256::MAX)
     }
 
-    /// 18 fixed point mul operation
+    /// Performs 18 fixed point mul operation
     fn mul_18<K>(self, other: K) -> U256
     where
         Self: Sized,
@@ -63,7 +63,7 @@ pub trait BigUintMath<T> {
         U256::from(self).mul_div(other, one_18())
     }
 
-    /// 18 fixed point div operation
+    /// Performs 18 fixed point div operation
     fn div_18<K>(self, other: K) -> U256
     where
         Self: Sized,
@@ -73,6 +73,8 @@ pub trait BigUintMath<T> {
         U256::from(self).mul_div(one_18(), other)
     }
 }
+
+// impls for all rust native usigned integer types as well as all alloy usigned units
 impl<T> BigUintMath<T> for T where U256: UintTryFrom<T> {}
 
 #[cfg(test)]
@@ -92,26 +94,26 @@ mod test {
     fn test_to_18_decimals_happy() {
         // u8
         let value = 45_u8;
-        let result = scale_18_decimals(value, 1).unwrap();
+        let result = to_18_decimals(value, 1).unwrap();
         let expected = U256::from_str("4_500_000_000_000_000_000").unwrap();
         assert_eq!(result, expected);
 
         // u32
         let value = 123456789_u32;
-        let result = scale_18_decimals(value, 12).unwrap();
+        let result = to_18_decimals(value, 12).unwrap();
         let expected = U256::from_str("123_456_789_000_000").unwrap();
         assert_eq!(result, expected);
 
         // U256
         let value = U256::from(123456789u32);
-        let result = scale_18_decimals(value, 12).unwrap();
+        let result = to_18_decimals(value, 12).unwrap();
         let expected = U256::from_str("123_456_789_000_000").unwrap();
         assert_eq!(result, expected);
     }
 
     #[test]
     fn test_to_18_decimals_unhappy() {
-        let result = scale_18_decimals(
+        let result = to_18_decimals(
             U256::from_str("4_500_000_000_000_000_000").unwrap(),
             99, // invalid ethereum decimals unit
         );

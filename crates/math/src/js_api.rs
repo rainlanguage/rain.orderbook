@@ -6,18 +6,19 @@ use serde_bytes::ByteBuf;
 use thiserror::Error;
 use wasm_bindgen::{prelude::*, JsValue};
 
-// a serializer fn for serializing U256 as Uint8Array for js
+// a serializer fn for serializing U256 to bytes
 fn u256_to_bytes_serilializer<S: Serializer>(val: &U256, serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_bytes(&val.to_be_bytes_trimmed_vec())
 }
 
-// a deserializer fn for deserializing Uint8Array as U256 for rust
-fn u256_from_bytes_deserializer<'de, D>(deserializer: D) -> Result<U256, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let bytes = ByteBuf::deserialize(deserializer)?;
-    Ok(U256::try_from_be_slice(bytes.as_slice()).unwrap_or(U256::MAX))
+// a deserializer fn for deserializing bytes to U256, saturates at U256::MAX
+fn u256_from_bytes_deserializer<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<U256, D::Error> {
+    Ok(
+        U256::try_from_be_slice(ByteBuf::deserialize(deserializer)?.as_slice())
+            .unwrap_or(U256::MAX),
+    )
 }
 
 #[derive(Debug, Error)]
@@ -31,8 +32,9 @@ impl From<Error> for JsValue {
     }
 }
 
-/// BigUint is class object that provides math operations functionalities for ethereum Uint256.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default)]
+/// BigUint is class object that provides math operations functionalities for
+/// Uint256 as Uint8Array in big endian format
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct BigUint {
@@ -43,7 +45,8 @@ pub struct BigUint {
 
 #[wasm_bindgen]
 impl BigUint {
-    /// Create a new instance of BigUint
+    /// Create a new instance of BigUint, saturates at `Uint256.MAX`
+    /// if the given value is greater than Uint256 range
     #[wasm_bindgen(constructor)]
     pub fn new(value: &[u8]) -> BigUint {
         BigUint {
@@ -57,6 +60,7 @@ impl BigUint {
         self.value.to_be_bytes_trimmed_vec().as_slice().into()
     }
 
+    // setter for this struct instance's value field
     #[wasm_bindgen(setter)]
     pub fn set_value(&mut self, value: &[u8]) {
         self.value = U256::try_from_be_slice(value).unwrap_or(U256::MAX);
@@ -68,7 +72,7 @@ impl BigUint {
         Ok(self
             .value
             .scale_18(decimals)
-            .map(|v| BigUint::new(v.to_be_bytes_trimmed_vec().as_slice()))?)
+            .map(|v| BigUint::new(&v.to_be_bytes_trimmed_vec()))?)
     }
 
     /// Performs mulDiv operation
@@ -85,7 +89,7 @@ impl BigUint {
         )
     }
 
-    /// 18 fixed point mul operation
+    /// Performs 18 fixed point mul operation
     #[wasm_bindgen(js_name = mul18)]
     pub fn mul_18(&self, other: &[u8]) -> BigUint {
         BigUint::new(
@@ -96,7 +100,7 @@ impl BigUint {
         )
     }
 
-    /// 18 fixed point div operation
+    /// Performs 18 fixed point div operation
     #[wasm_bindgen(js_name = div18)]
     pub fn div_18(&self, other: &[u8]) -> BigUint {
         BigUint::new(
@@ -124,7 +128,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_new_overflow_max() {
+    fn test_new_saturated() {
         let result = BigUint::new(&[1u8; 60]);
         let expected = BigUint { value: U256::MAX };
         assert_eq!(result, expected);
@@ -132,8 +136,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_scale_18_happy() {
-        let instance = BigUint::new(&[0xff]);
-        let result = instance.scale_18(2).unwrap();
+        let result = BigUint::new(&[255]).scale_18(2).unwrap();
         let expected = BigUint::new(
             U256::from_str("2_550_000_000_000_000_000")
                 .unwrap()
@@ -145,15 +148,13 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_scale_18_unhappy() {
-        let instance = BigUint::new(&[0xff]);
-        let result = instance.scale_18(99);
+        let result = BigUint::new(&[255]).scale_18(99);
         assert!(result.is_err());
     }
 
     #[wasm_bindgen_test]
     fn test_mul_div() {
-        let instance = BigUint::new(&[0xff]);
-        let result = instance.scale_18(2).unwrap();
+        let result = BigUint::new(&[255]).scale_18(2).unwrap();
         let expected = BigUint::new(
             U256::from_str("2_550_000_000_000_000_000")
                 .unwrap()
@@ -165,8 +166,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_mul_18() {
-        let instance = BigUint::new(&[0xff]);
-        let result = instance.scale_18(2).unwrap().mul_18(
+        let result = BigUint::new(&[255]).scale_18(2).unwrap().mul_18(
             10u8.scale_18(0)
                 .unwrap()
                 .to_be_bytes_trimmed_vec()
@@ -183,8 +183,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_div_18() {
-        let instance = BigUint::new(&[0xff]);
-        let result = instance.scale_18(2).unwrap().div_18(
+        let result = BigUint::new(&[255]).scale_18(2).unwrap().div_18(
             10u8.scale_18(0)
                 .unwrap()
                 .to_be_bytes_trimmed_vec()
