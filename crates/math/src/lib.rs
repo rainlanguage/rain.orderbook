@@ -5,7 +5,7 @@ use alloy::primitives::{
 };
 use once_cell::sync::Lazy;
 
-/// 1e18 oe one ether in U256
+/// 1e18 or one ether in U256
 pub static ONE18: Lazy<U256> = Lazy::new(|| U256::from(1_000_000_000_000_000_000_u64));
 
 /// Converts a value to a 18 fixed point U256 given the decimals point,
