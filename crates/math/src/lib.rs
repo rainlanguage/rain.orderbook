@@ -1,154 +1,172 @@
 use alloy::primitives::{
-    utils::{format_units, parse_units, ParseUnits, Unit, UnitsError},
-    I256, U256,
+    ruint::UintTryFrom,
+    utils::{parse_units, ParseUnits, Unit, UnitsError},
+    U256,
 };
-use chrono::TimeDelta;
 
-/// Returns 18 point decimals 1 as I256/U256
-pub fn one_18() -> ParseUnits {
-    ParseUnits::U256(U256::from(1_000_000_000_000_000_000_u64))
+#[cfg(target_family = "wasm")]
+pub mod js_api;
+
+/// Returns 18 point decimals 1 as U256
+pub fn one_18() -> U256 {
+    U256::from(1_000_000_000_000_000_000_u64)
 }
 
-/// Returns YEAR as 18 point decimals as I256/U256
-pub fn year_18() -> ParseUnits {
-    ParseUnits::U256(
-        U256::from(TimeDelta::days(365).num_seconds()).saturating_mul(one_18().get_absolute()),
-    )
-}
-
-/// Converts a value to a 18 fixed point U256/I256 given the decimals point
-pub fn scale_18_decimals<T: Into<ParseUnits>, D: TryInto<Unit, Error = UnitsError>>(
+/// Converts a value to a 18 fixed point U256 given the decimals point
+/// A valid ethereum decimals point range is always less than 77
+pub fn scale_18_decimals<T, D: TryInto<Unit, Error = UnitsError>>(
     amount: T,
     decimals: D,
-) -> Result<ParseUnits, UnitsError> {
-    parse_units(&format_units(amount, decimals)?, 18)
+) -> Result<U256, UnitsError>
+where
+    U256: UintTryFrom<T>,
+{
+    Ok(parse_units(
+        &ParseUnits::U256(U256::from(amount)).format_units(decimals.try_into()?),
+        18,
+    )?
+    .get_absolute())
 }
 
-/// Returns annual rate as 18 point decimals as I256
-pub fn annual_rate(start: u64, end: u64) -> I256 {
-    I256::from_raw(U256::from(end - start).saturating_mul(one_18().get_absolute()))
-        .saturating_mul(one_18().get_signed())
-        .saturating_div(year_18().get_signed())
-}
-
-pub trait BigIntMath18<T: Into<ParseUnits>> {
-    fn scale_18(self, decimals: u8) -> ParseUnits
+/// A trait that provide math operations for big integers
+pub trait BigUintMath<T> {
+    /// Scales the value to 18 point decimals U256
+    fn scale_18<D: TryInto<Unit, Error = UnitsError>>(self, decimals: D) -> Result<U256, UnitsError>
     where
         Self: Sized,
-        ParseUnits: From<Self>,
+        U256: UintTryFrom<Self>,
     {
-        scale_18_decimals(self, decimals).unwrap()
+        scale_18_decimals(self, decimals)
     }
 
-    fn mul_18(self, other: impl Into<ParseUnits>) -> ParseUnits
+    /// mulDiv operation
+    fn mul_div<K, U>(self, mul: K, div: U) -> U256
     where
         Self: Sized,
-        ParseUnits: From<Self>,
+        K: Sized,
+        U: Sized,
+        U256: UintTryFrom<Self> + UintTryFrom<K> + UintTryFrom<U>,
     {
-        let a: ParseUnits = self.into();
-        let b: ParseUnits = other.into();
-        if a.is_signed() || b.is_signed() {
-            a.get_signed()
-                .saturating_mul(b.get_signed())
-                .saturating_div(one_18().get_signed())
-                .into()
-        } else {
-            a.get_absolute()
-                .saturating_mul(b.get_absolute())
-                .checked_div(one_18().get_absolute())
-                .unwrap_or(U256::MAX)
-                .into()
-        }
+        U256::from(self)
+            .saturating_mul(U256::from(mul))
+            .checked_div(U256::from(div))
+            .unwrap_or(U256::MAX)
     }
 
-    fn div_18(self, other: impl Into<ParseUnits>) -> ParseUnits
+    /// 18 fixed point mul operation
+    fn mul_18<K>(self, other: K) -> U256
     where
         Self: Sized,
-        ParseUnits: From<Self>,
+        K: Sized,
+        U256: UintTryFrom<Self> + UintTryFrom<K>,
     {
-        let a: ParseUnits = self.into();
-        let b: ParseUnits = other.into();
-        if a.is_signed() || b.is_signed() {
-            a.get_signed()
-                .saturating_mul(one_18().get_signed())
-                .saturating_div(b.get_signed())
-                .into()
-        } else {
-            a.get_absolute()
-                .saturating_mul(one_18().get_absolute())
-                .checked_div(b.get_absolute())
-                .unwrap_or(U256::MAX)
-                .into()
-        }
+        U256::from(self).mul_div(other, one_18())
     }
 
-    fn add_units(self, other: impl Into<ParseUnits>) -> ParseUnits
+    /// 18 fixed point div operation
+    fn div_18<K>(self, other: K) -> U256
     where
         Self: Sized,
-        ParseUnits: From<Self>,
+        K: Sized,
+        U256: UintTryFrom<Self> + UintTryFrom<K>,
     {
-        let a: ParseUnits = self.into();
-        let b: ParseUnits = other.into();
-        if a.is_signed() || b.is_signed() {
-            a.get_signed().saturating_add(b.get_signed()).into()
-        } else {
-            a.get_absolute().saturating_add(b.get_absolute()).into()
-        }
-    }
-
-    fn sub_units(self, other: impl Into<ParseUnits>) -> ParseUnits
-    where
-        Self: Sized,
-        ParseUnits: From<Self>,
-    {
-        let a: ParseUnits = self.into();
-        let b: ParseUnits = other.into();
-        if a.is_signed() || b.is_signed() {
-            a.get_signed().saturating_sub(b.get_signed()).into()
-        } else {
-            a.get_absolute().saturating_sub(b.get_absolute()).into()
-        }
+        U256::from(self).mul_div(one_18(), other)
     }
 }
-impl<T: Into<ParseUnits>> BigIntMath18<T> for T {}
+impl<T> BigUintMath<T> for T where U256: UintTryFrom<T> {}
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use alloy::primitives::{I256, U256};
+    use alloy::primitives::U256;
     use std::str::FromStr;
 
     #[test]
     fn test_one() {
         let result = one_18();
-        let expected_signed = I256::from_str("1_000_000_000_000_000_000").unwrap();
-        let expected_absolute = U256::from_str("1_000_000_000_000_000_000").unwrap();
-        assert_eq!(result.get_signed(), expected_signed);
-        assert_eq!(result.get_absolute(), expected_absolute);
+        let expected = U256::from_str("1_000_000_000_000_000_000").unwrap();
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_year_18_decimals() {
-        const YEAR: u64 = 60 * 60 * 24 * 365;
-        let result = year_18();
-        let expected_signed = I256::try_from(YEAR)
-            .unwrap()
-            .saturating_mul(one_18().get_signed());
-        let expected_absolute = U256::from(YEAR).saturating_mul(one_18().get_absolute());
-        assert_eq!(result.get_signed(), expected_signed);
-        assert_eq!(result.get_absolute(), expected_absolute);
-    }
-
-    #[test]
-    fn test_to_18_decimals() {
-        let value = ParseUnits::I256(I256::from_str("-123456789").unwrap());
-        let result = scale_18_decimals(value, 5).unwrap();
-        let expected = ParseUnits::I256(I256::from_str("-1234567890000000000000").unwrap());
+    fn test_to_18_decimals_happy() {
+        // u8
+        let value = 45_u8;
+        let result = scale_18_decimals(value, 1).unwrap();
+        let expected = U256::from_str("4_500_000_000_000_000_000").unwrap();
         assert_eq!(result, expected);
 
-        let value = ParseUnits::U256(U256::from_str("123456789").unwrap());
+        // u32
+        let value = 123456789_u32;
         let result = scale_18_decimals(value, 12).unwrap();
-        let expected = ParseUnits::U256(U256::from_str("123456789000000").unwrap());
+        let expected = U256::from_str("123_456_789_000_000").unwrap();
+        assert_eq!(result, expected);
+
+        // U256
+        let value = U256::from(123456789u32);
+        let result = scale_18_decimals(value, 12).unwrap();
+        let expected = U256::from_str("123_456_789_000_000").unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_to_18_decimals_unhappy() {
+        let result = scale_18_decimals(
+            U256::from_str("4_500_000_000_000_000_000").unwrap(),
+            99, // invalid ethereum decimals unit
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_big_uint_math_scale_18() {
+        // u8
+        let value = 121_u8;
+        let result = value.scale_18(4).unwrap();
+        let expected = U256::from_str("12_100_000_000_000_000").unwrap();
+        assert_eq!(result, expected);
+
+        // u32
+        let value = 123456789_u32;
+        let result = value.scale_18(12).unwrap();
+        let expected = U256::from_str("123_456_789_000_000").unwrap();
+        assert_eq!(result, expected);
+
+        // U256
+        let value = U256::from(123456789u32);
+        let result = value.scale_18(12).unwrap();
+        let expected = U256::from_str("123_456_789_000_000").unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_big_uint_math_mul_div() {
+        // (10_000 * 8) / 2 = 40_000
+        let value = 10_000_u16;
+        let mul_value = U256::from(8);
+        let div_value = 2_u8;
+        let result = value.mul_div(mul_value, div_value);
+        let expected = U256::from(40_000_u32);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_big_uint_math_mul_18() {
+        // 10_000 * 3 = 30_000
+        let value = 10_000_u32.scale_18(0).unwrap();
+        let mul_value = 3_u16.scale_18(0).unwrap();
+        let result = value.mul_18(mul_value);
+        let expected = U256::from_str("30_000_000_000_000_000_000_000").unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_big_uint_math_div_18() {
+        // 10_000 / 3 = 3_333.3333...
+        let value = 10_000_u64.scale_18(0).unwrap();
+        let mul_value = 3_u8.scale_18(0).unwrap();
+        let result = value.div_18(mul_value);
+        let expected = U256::from_str("3_333_333_333_333_333_333_333").unwrap();
         assert_eq!(result, expected);
     }
 }
