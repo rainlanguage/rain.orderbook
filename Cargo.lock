@@ -6421,9 +6421,6 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "once_cell",
- "serde",
- "serde_bytes",
- "serde_json",
  "thiserror",
 ]
 
