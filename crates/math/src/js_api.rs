@@ -4,7 +4,6 @@ use js_sys::Uint8Array;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
-use tsify::Tsify;
 use wasm_bindgen::{prelude::*, JsValue};
 
 // a serializer fn for serializing U256 as Uint8Array for js
@@ -33,7 +32,7 @@ impl From<Error> for JsValue {
 }
 
 /// BigUint is class object that provides math operations functionalities for ethereum Uint256.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct BigUint {
