@@ -14,7 +14,7 @@ describe("Rain Orderbook Math Package Bindgen Tests", async function () {
 
   it("should perform mul18 operation properly", async () => {
     const result = new BigUint(_255_).scale18(0).mul18(_10e18_).value;
-    const expected = Uint8Array.from([138, 60, 91, 225, 133, 94, 24, 0, 0]); // 25.5e18;
+    const expected = Uint8Array.from([138, 60, 91, 225, 133, 94, 24, 0, 0]); // 2550e18;
     assert.deepEqual(result, expected);
   });
 
