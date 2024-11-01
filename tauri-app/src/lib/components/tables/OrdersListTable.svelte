@@ -18,7 +18,7 @@
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
-  import { activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
+  import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeAccounts, activeOrderStatus, activeOrderbook } from '$lib/stores/settings';
@@ -50,6 +50,7 @@
     {query}
     emptyMessage="No Orders Found"
     on:clickRow={(e) => {
+      activeNetworkRef.set(e.detail.item.subgraphName);
       activeOrderbookRef.set(e.detail.item.subgraphName);
       goto(`/orders/${e.detail.item.order.id}`);
     }}
