@@ -18,10 +18,10 @@
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
-  import { activeSubgraphs } from '$lib/stores/settings';
+  import { activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
-  import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
+  import { activeAccounts, activeOrderStatus, activeOrderbook } from '$lib/stores/settings';
   import { get } from 'svelte/store';
   import { orderHash } from '$lib/stores/settings';
 
@@ -50,6 +50,7 @@
     {query}
     emptyMessage="No Orders Found"
     on:clickRow={(e) => {
+      activeOrderbookRef.set(e.detail.item.subgraphName);
       goto(`/orders/${e.detail.item.order.id}`);
     }}
   >
