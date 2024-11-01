@@ -21,7 +21,7 @@
   import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
-  import { activeAccounts, activeOrderStatus, activeOrderbook } from '$lib/stores/settings';
+  import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
   import { get } from 'svelte/store';
   import { orderHash } from '$lib/stores/settings';
 
