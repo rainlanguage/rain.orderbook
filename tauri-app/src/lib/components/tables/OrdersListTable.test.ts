@@ -11,6 +11,12 @@ import type { OrderWithSubgraphName } from '$lib/typeshare/subgraphTypes';
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
   () => import('$lib/mocks/wallets'),
 );
+const { activeNetworkRefSetMock, activeOrderbookRefSetMock } = vi.hoisted(() => {
+  return {
+    activeNetworkRefSetMock: vi.fn(),
+    activeOrderbookRefSetMock: vi.fn(),
+  };
+});
 
 vi.mock('$lib/stores/wallets', async () => {
   return {
@@ -23,6 +29,8 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { mockSettingsStore } = await import('$lib/mocks/settings');
 
   const _activeOrderbook = writable();
+  const _activeOrderbookRef = writable();
+  const _activeNetworkRef = writable();
 
   return {
     ...((await importOriginal()) as object),
@@ -31,6 +39,14 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
     activeOrderbook: {
       ..._activeOrderbook,
       load: vi.fn(() => _activeOrderbook.set(true)),
+    },
+    activeOrderbookRef: {
+      ..._activeOrderbookRef,
+      set: activeOrderbookRefSetMock,
+    },
+    activeNetworkRef: {
+      ..._activeNetworkRef,
+      set: activeNetworkRefSetMock,
     },
     activeSubgraphs: writable({
       'network-one': 'https://network-one.com',
@@ -237,6 +253,27 @@ test('clicking a row links to the order detail page', async () => {
   await fireEvent.click(await screen.findByTestId('bodyRow'));
 
   expect(goto).toHaveBeenCalledWith('/orders/order1');
+});
+
+test('clicking a row updates the active network and orderbook', async () => {
+  const queryClient = new QueryClient();
+
+  mockIPC((cmd) => {
+    if (cmd === 'orders_list') {
+      return [mockOrders[0]];
+    }
+  });
+
+  render(OrdersListTable, { context: new Map([['$$_queryClient', queryClient]]) });
+
+  await waitFor(async () => {
+    expect(screen.getByTestId('bodyRow')).toBeInTheDocument();
+  });
+
+  await fireEvent.click(await screen.findByTestId('bodyRow'));
+
+  expect(activeNetworkRefSetMock).toHaveBeenCalledWith('network-one');
+  expect(activeOrderbookRefSetMock).toHaveBeenCalledWith('network-one');
 });
 
 test('does not show the dropdown menu if the wallet address does not match', async () => {
