@@ -1,5 +1,5 @@
 {
-	"name": "ui-components",
+	"name": "@rainlanguage/ui-components",
 	"version": "0.0.1",
 	"description": "A component library for building Svelte applications to be used with Rainlang.",
 
