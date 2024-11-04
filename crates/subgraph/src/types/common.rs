@@ -178,7 +178,7 @@ pub struct VaultWithSubgraphName {
     pub subgraph_name: String,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[cynic(graphql_type = "Vault")]
 #[typeshare]
 #[tsify(into_wasm_abi, from_wasm_abi)]
