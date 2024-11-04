@@ -6460,13 +6460,17 @@ dependencies = [
  "futures",
  "httpmock",
  "insta",
+ "js-sys",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
  "tokio",
+ "tsify",
  "typeshare",
+ "wasm-bindgen",
 ]
 
 [[package]]
