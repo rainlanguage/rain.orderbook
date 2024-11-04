@@ -161,6 +161,14 @@ pub struct Vault {
     pub balance_changes: Vec<VaultBalanceChange>,
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[typeshare]
+#[serde(rename_all = "camelCase")]
+pub struct VaultWithSubgraphName {
+    pub vault: Vault,
+    pub subgraph_name: String,
+}
+
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Vault")]
 #[typeshare]
