@@ -6,7 +6,13 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import { activeOrderbook, activeSubgraphs, subgraphUrl } from '$lib/stores/settings';
+  import {
+    activeNetworkRef,
+    activeOrderbook,
+    activeOrderbookRef,
+    activeSubgraphs,
+    subgraphUrl,
+  } from '$lib/stores/settings';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
@@ -39,6 +45,11 @@
     refetchInterval: DEFAULT_REFRESH_INTERVAL,
     enabled: !!$subgraphUrl,
   });
+
+  const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
+    activeNetworkRef.set(subgraphName);
+    activeOrderbookRef.set(subgraphName);
+  };
 </script>
 
 {#if $query}
@@ -46,7 +57,8 @@
     {query}
     emptyMessage="No Vaults Found"
     on:clickRow={(e) => {
-      goto(`/vaults/${e.detail.item.id}`);
+      updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
+      goto(`/vaults/${e.detail.item.vault.id}`);
     }}
   >
     <svelte:fragment slot="title">
@@ -81,7 +93,7 @@
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
-      <TableBodyCell tdClass="px-4 py-2">
+      <TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
         {item.subgraphName}
       </TableBodyCell>
 
@@ -110,7 +122,10 @@
                 color={order.active ? 'green' : 'yellow'}
                 data-testid="vault-order-input"
                 data-order-id={order.id}
-                on:click={() => goto(`/orders/${order.id}`)}
+                on:click={() => {
+                  updateActiveNetworkAndOrderbook(item.subgraphName);
+                  goto(`/orders/${order.id}`);
+                }}
                 ><Hash
                   type={HashType.Identifier}
                   value={order.orderHash}
@@ -131,7 +146,10 @@
                 color={order.active ? 'green' : 'yellow'}
                 data-order-id={order.id}
                 data-testid="vault-order-output"
-                on:click={() => goto(`/orders/${order.id}`)}
+                on:click={() => {
+                  updateActiveNetworkAndOrderbook(item.subgraphName);
+                  goto(`/orders/${order.id}`);
+                }}
                 ><Hash
                   type={HashType.Identifier}
                   value={order.orderHash}
