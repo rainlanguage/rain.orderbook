@@ -1,1 +1,1 @@
-export { default as Button } from './components/Button.svelte';
+export { default as CardProperty } from './components/CardProperty.svelte';
