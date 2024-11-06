@@ -12,6 +12,7 @@ use crate::vol::{get_vaults_vol, VaultVolume};
 use cynic::Id;
 use reqwest::Url;
 use thiserror::Error;
+use wasm_bindgen::{JsError, JsValue};
 
 const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
 
@@ -25,6 +26,18 @@ pub enum OrderbookSubgraphClientError {
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]
     ParseError(#[from] alloy::primitives::ruint::ParseError),
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
+    #[cfg(target_family = "wasm")]
+    #[error(transparent)]
+    SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+}
+
+#[cfg(target_family = "wasm")]
+impl From<OrderbookSubgraphClientError> for JsValue {
+    fn from(value: OrderbookSubgraphClientError) -> Self {
+        JsError::new(&value.to_string()).into()
+    }
 }
 
 pub struct OrderbookSubgraphClient {

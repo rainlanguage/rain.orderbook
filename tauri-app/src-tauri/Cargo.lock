@@ -8381,6 +8381,7 @@ dependencies = [
  "thiserror",
  "tsify",
  "typeshare 1.0.1",
+ "url",
  "wasm-bindgen",
 ]
 

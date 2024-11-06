@@ -1,6 +1,15 @@
 use futures::future::join_all;
+use rain_orderbook_bindings::impl_wasm_traits;
 use reqwest::Url;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_wasm_bindgen::{from_value, to_value};
+use tsify::Tsify;
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
 use crate::{
     types::common::{
@@ -9,11 +18,14 @@ use crate::{
     OrderbookSubgraphClient, OrderbookSubgraphClientError, PaginationArgs,
 };
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct MultiSubgraphArgs {
+    #[tsify(type = "string")]
     url: Url,
     name: String,
 }
+impl_wasm_traits!(MultiSubgraphArgs);
 
 pub struct MultiOrderbookSubgraphClient {
     subgraphs: Vec<MultiSubgraphArgs>,
