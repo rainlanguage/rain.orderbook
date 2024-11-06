@@ -93,7 +93,6 @@
         "buffer": "^6.0.3"
     },
     "workspaces": [
-        "packages/*",
-        "tauri-app"
+        "packages/*"
     ]
 }
