@@ -126,8 +126,10 @@ pub struct OrderAsIO {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[typeshare]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct VaultsListFilterArgs {
     pub owners: Vec<Bytes>,
     pub hide_zero_balance: bool,
@@ -174,9 +176,10 @@ pub struct Vault {
     pub balance_changes: Vec<VaultBalanceChange>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct VaultWithSubgraphName {
     pub vault: Vault,
     pub subgraph_name: String,
