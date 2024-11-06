@@ -12,6 +12,8 @@ use crate::vol::{get_vaults_vol, VaultVolume};
 use cynic::Id;
 use reqwest::Url;
 use thiserror::Error;
+
+#[cfg(target_family = "wasm")]
 use wasm_bindgen::{JsError, JsValue};
 
 const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
