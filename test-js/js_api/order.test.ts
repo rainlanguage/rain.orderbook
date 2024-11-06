@@ -137,7 +137,7 @@ const order2 = {
   trades: [],
 };
 
-describe("Rain Orderbook JS API Package Bindgen Tests", async function () {
+describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function () {
   const mockServer = getLocal();
   beforeEach(() => mockServer.start(8082));
   afterEach(() => mockServer.stop());
