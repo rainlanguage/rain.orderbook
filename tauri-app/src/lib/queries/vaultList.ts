@@ -1,16 +1,11 @@
+import type { Vault } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from './constants';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { VaultWithSubgraphName } from '$lib/typeshare/subgraphTypes';
 
 export type VaultsListArgs = {
-  multiSubgraphArgs: {
+  subgraphArgs: {
     url: string;
-    name: string;
-  }[];
-  filterArgs: {
-    owners: string[];
-    hideZeroBalance: boolean;
   };
   paginationArgs: {
     page: number;
@@ -19,20 +14,17 @@ export type VaultsListArgs = {
 };
 
 export const vaultList = async (
-  activeSubgraphs: Record<string, string>,
+  url: string | undefined,
   owners: string[] = [],
   hideZeroBalance: boolean = true,
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
 ) => {
-  if (!Object.keys(activeSubgraphs).length) {
+  if (!url) {
     return [];
   }
-  return await invoke<VaultWithSubgraphName[]>('vaults_list', {
-    multiSubgraphArgs: Object.entries(activeSubgraphs).map(([name, url]) => ({
-      name,
-      url,
-    })),
+  return await invoke<Vault[]>('vaults_list', {
+    subgraphArgs: { url },
     filterArgs: {
       owners,
       hideZeroBalance,
@@ -68,10 +60,10 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await vaultList({}, [], true, 0)).toEqual([]);
+    expect(await vaultList(undefined, [], true, 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await vaultList({ default: 'http://localhost:8000' }, [], true, 0)).toEqual([
+    expect(await vaultList('http://localhost:8000', [], true, 0)).toEqual([
       {
         id: '1',
         vault_id: '1',
@@ -90,7 +82,7 @@ if (import.meta.vitest) {
     ]);
 
     // check with hideZeroBalance set to false
-    expect(await vaultList({ default: 'http://localhost:8000' }, [], false, 0)).toEqual([
+    expect(await vaultList('http://localhost:8000', [], false, 0)).toEqual([
       {
         id: '1',
         vault_id: '1',

@@ -8,6 +8,8 @@
   import { page } from '$app/stores';
   import InputOrderHash from './input/InputOrderHash.svelte';
   import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
+  import DropdownActiveNetwork from './DropdownActiveNetwork.svelte';
+  import DropdownActiveOrderbook from './DropdownActiveOrderbook.svelte';
 
   $: currentRoute = $page.url.pathname;
   $: isVaultsPage = currentRoute.startsWith('/vaults');
@@ -30,6 +32,14 @@
     {/if}
 
     <DropdownOrderListAccounts />
-    <DropdownActiveSubgraphs />
+
+    {#if isOrdersPage}
+      <DropdownActiveSubgraphs />
+    {/if}
+
+    {#if isVaultsPage}
+      <DropdownActiveNetwork />
+      <DropdownActiveOrderbook />
+    {/if}
   {/if}
 </div>

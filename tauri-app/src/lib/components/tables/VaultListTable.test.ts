@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
@@ -15,12 +15,6 @@ import type { Vault } from '$lib/typeshare/subgraphTypes';
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
   () => import('$lib/mocks/wallets'),
 );
-const { activeNetworkRefSetMock, activeOrderbookRefSetMock } = vi.hoisted(() => {
-  return {
-    activeNetworkRefSetMock: vi.fn(),
-    activeOrderbookRefSetMock: vi.fn(),
-  };
-});
 
 vi.mock('$lib/stores/wallets', async () => {
   return {
@@ -34,8 +28,6 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
 
   const _activeOrderbook = writable();
   const _hideZeroBalanceVaults = writable(true);
-  const _activeNetworkRef = writable();
-  const _activeOrderbookRef = writable();
 
   return {
     ...((await importOriginal()) as object),
@@ -46,18 +38,6 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
       load: vi.fn(() => _activeOrderbook.set(true)),
     },
     hideZeroBalanceVaults: _hideZeroBalanceVaults,
-    activeNetworkRef: {
-      ..._activeNetworkRef,
-      set: activeNetworkRefSetMock,
-    },
-    activeOrderbookRef: {
-      ..._activeOrderbookRef,
-      set: activeOrderbookRefSetMock,
-    },
-    activeSubgraphs: writable({
-      'network-one': 'https://network-one.com',
-      'network-two': 'https://network-two.com',
-    }),
   };
 });
 
@@ -87,23 +67,20 @@ test('renders the vault list table with correct data', async () => {
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
             id: '1',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -112,7 +89,6 @@ test('renders the vault list table with correct data', async () => {
   render(VaultListTable, { context: new Map([['$$_queryClient', queryClient]]) });
 
   await waitFor(() => {
-    expect(screen.getByText('Network')).toBeInTheDocument();
     expect(screen.getByText('Vault ID')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('Token')).toBeInTheDocument();
@@ -120,7 +96,6 @@ test('renders the vault list table with correct data', async () => {
     expect(screen.getByText('Input For')).toBeInTheDocument();
     expect(screen.getByText('Output For')).toBeInTheDocument();
 
-    expect(screen.getByTestId('vault-network')).toHaveTextContent('network-one');
     expect(screen.getByTestId('vault-id')).toHaveTextContent('0xabc');
     expect(screen.getByTestId('vault-orderbook')).toHaveTextContent('0x00');
     expect(screen.getByTestId('vault-owner')).toHaveTextContent('0x123');
@@ -154,26 +129,23 @@ test('clicking a row links to the vault detail page', async () => {
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
-            id: '0xabc',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
-            balanceChanges: [],
+          id: '0xabc',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+          balanceChanges: [],
         },
-      ];
+      ] as Vault[];
     }
   });
 
@@ -224,33 +196,30 @@ test('shows an ellipsis if there is more than three orders as input or output', 
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
-            id: '0xabc',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [
-              { id: '1', order_id: '0x123', amount: '100000000000' },
-              { id: '2', order_id: '0x456', amount: '100000000000' },
-              { id: '3', order_id: '0x789', amount: '100000000000' },
-              { id: '4', order_id: '0xabc', amount: '100000000000' },
-            ],
-            ordersAsOutput: [
-              { id: '1', order_id: '0x123', amount: '100000000000' },
-              { id: '2', order_id: '0x456', amount: '100000000000' },
-              { id: '3', order_id: '0x789', amount: '100000000000' },
-              { id: '4', order_id: '0xabc', amount: '100000000000' },
-            ],
-            orderbook: { id: '0x00' },
+          id: '0xabc',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [
+            { id: '1', order_id: '0x123', amount: '100000000000' },
+            { id: '2', order_id: '0x456', amount: '100000000000' },
+            { id: '3', order_id: '0x789', amount: '100000000000' },
+            { id: '4', order_id: '0xabc', amount: '100000000000' },
+          ],
+          ordersAsOutput: [
+            { id: '1', order_id: '0x123', amount: '100000000000' },
+            { id: '2', order_id: '0x456', amount: '100000000000' },
+            { id: '3', order_id: '0x789', amount: '100000000000' },
+            { id: '4', order_id: '0xabc', amount: '100000000000' },
+          ],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -273,23 +242,20 @@ test('clicking on an order links to the order detail page', async () => {
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
-            id: '0xabc',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [{ id: '0x123', order_id: '0x123', amount: '100000000000' }],
-            ordersAsOutput: [{ id: '0x456', order_id: '0x456', amount: '100000000000' }],
-            orderbook: { id: '0x00' },
+          id: '0xabc',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [{ id: '0x123', order_id: '0x123', amount: '100000000000' }],
+          ordersAsOutput: [{ id: '0x456', order_id: '0x456', amount: '100000000000' }],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -310,113 +276,6 @@ test('clicking on an order links to the order detail page', async () => {
   expect(goto).toHaveBeenCalledWith('/orders/0x456');
 });
 
-test('clicking on an order link updates the active network and orderbook', async () => {
-  const queryClient = new QueryClient();
-
-  mockIPC((cmd) => {
-    if (cmd === 'vaults_list') {
-      return [
-        {
-          vault: {
-            id: '1',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [{ id: '0x123', order_id: '0x123', amount: '100000000000' }],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
-          },
-          subgraphName: 'network-one',
-        },
-        {
-          vault: {
-            id: '2',
-            vaultId: '0xdef',
-            owner: '0x456',
-            token: {
-              id: '2',
-              address: '0x789',
-              name: 'ETH coin',
-              symbol: 'ETH',
-              decimals: '18',
-            },
-            balance: '0',
-            ordersAsInput: [],
-            ordersAsOutput: [{ id: '0x456', order_id: '0x456', amount: '100000000000' }],
-            orderbook: { id: '0x00' },
-          },
-          subgraphName: 'network-two',
-        },
-      ];
-    }
-  });
-
-  render(VaultListTable, { context: new Map([['$$_queryClient', queryClient]]) });
-
-  await waitFor(() => {
-    screen.getByTestId('vault-order-input').click();
-  });
-
-  expect(activeNetworkRefSetMock).toHaveBeenCalledWith('network-one');
-  expect(activeOrderbookRefSetMock).toHaveBeenCalledWith('network-one');
-
-  await waitFor(() => {
-    screen.getByTestId('vault-order-output').click();
-  });
-
-  expect(activeNetworkRefSetMock).toHaveBeenCalledWith('network-two');
-  expect(activeOrderbookRefSetMock).toHaveBeenCalledWith('network-two');
-});
-
-test('clicking a row updates the active network and orderbook', async () => {
-  const queryClient = new QueryClient();
-
-  mockIPC((cmd) => {
-    if (cmd === 'vaults_list') {
-      return [
-        {
-          vault: {
-            id: '0xabc',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
-            balanceChanges: [],
-          },
-          subgraphName: 'network-one',
-        },
-      ];
-    }
-  });
-
-  render(VaultListTable, { context: new Map([['$$_queryClient', queryClient]]) });
-
-  await waitFor(async () => {
-    expect(screen.getByTestId('bodyRow')).toBeInTheDocument();
-  });
-
-  await fireEvent.click(await screen.findByTestId('bodyRow'));
-
-  expect(activeNetworkRefSetMock).toHaveBeenCalledWith('network-one');
-  expect(activeOrderbookRefSetMock).toHaveBeenCalledWith('network-one');
-});
-
 test('doesnt show the row dropdown menu if the wallet address does not match', async () => {
   const queryClient = new QueryClient();
 
@@ -424,26 +283,23 @@ test('doesnt show the row dropdown menu if the wallet address does not match', a
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
-            id: '0xabc',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
-            balanceChanges: [],
+          id: '0xabc',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
+            id: '1',
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
+          balanceChanges: [],
         },
-      ];
+      ] as Vault[];
     }
   });
 
@@ -483,7 +339,7 @@ test('clicking the deposit option in the row dropdown menu opens the deposit mod
 
   mockIPC((cmd) => {
     if (cmd === 'vaults_list') {
-      return [{ vault, subgraphName: 'network-one' }];
+      return [vault];
     }
   });
 
@@ -518,23 +374,20 @@ test('hides zero balance vaults when hideZeroBalanceVaults is true', async () =>
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
             id: '1',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -557,42 +410,36 @@ test('shows all vaults when hideZeroBalanceVaults is false', async () => {
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
             id: '1',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
         {
-          vault: {
+          id: '2',
+          vaultId: '0xdef',
+          owner: '0x456',
+          token: {
             id: '2',
-            vaultId: '0xdef',
-            owner: '0x456',
-            token: {
-              id: '2',
-              address: '0x789',
-              name: 'ETH coin',
-              symbol: 'ETH',
-              decimals: '18',
-            },
-            balance: '0',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x789',
+            name: 'ETH coin',
+            symbol: 'ETH',
+            decimals: '18',
           },
-          subgraphName: 'network-two',
+          balance: '0',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -616,23 +463,20 @@ test('updates the vault list when hideZeroBalanceVaults changes', async () => {
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
             id: '1',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }
@@ -655,42 +499,36 @@ test('updates the vault list when hideZeroBalanceVaults changes', async () => {
     if (cmd === 'vaults_list') {
       return [
         {
-          vault: {
+          id: '1',
+          vaultId: '0xabc',
+          owner: '0x123',
+          token: {
             id: '1',
-            vaultId: '0xabc',
-            owner: '0x123',
-            token: {
-              id: '1',
-              address: '0x456',
-              name: 'USDC coin',
-              symbol: 'USDC',
-              decimals: '6',
-            },
-            balance: '100000000000',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x456',
+            name: 'USDC coin',
+            symbol: 'USDC',
+            decimals: '6',
           },
-          subgraphName: 'network-one',
+          balance: '100000000000',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
         {
-          vault: {
+          id: '2',
+          vaultId: '0xdef',
+          owner: '0x456',
+          token: {
             id: '2',
-            vaultId: '0xdef',
-            owner: '0x456',
-            token: {
-              id: '2',
-              address: '0x789',
-              name: 'ETH coin',
-              symbol: 'ETH',
-              decimals: '18',
-            },
-            balance: '0',
-            ordersAsInput: [],
-            ordersAsOutput: [],
-            orderbook: { id: '0x00' },
+            address: '0x789',
+            name: 'ETH coin',
+            symbol: 'ETH',
+            decimals: '18',
           },
-          subgraphName: 'network-two',
+          balance: '0',
+          ordersAsInput: [],
+          ordersAsOutput: [],
+          orderbook: { id: '0x00' },
         },
       ];
     }

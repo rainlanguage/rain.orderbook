@@ -3,9 +3,7 @@ use reqwest::Url;
 use serde::Deserialize;
 
 use crate::{
-    types::common::{
-        OrderWithSubgraphName, OrdersListFilterArgs, VaultWithSubgraphName, VaultsListFilterArgs,
-    },
+    types::common::{OrderWithSubgraphName, OrdersListFilterArgs},
     OrderbookSubgraphClient, OrderbookSubgraphClientError, PaginationArgs,
 };
 
@@ -65,39 +63,5 @@ impl MultiOrderbookSubgraphClient {
         });
 
         Ok(all_orders)
-    }
-
-    pub async fn vaults_list(
-        &self,
-        filter_args: VaultsListFilterArgs,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<VaultWithSubgraphName>, OrderbookSubgraphClientError> {
-        let futures = self.subgraphs.iter().map(|subgraph| {
-            let url = subgraph.url.clone();
-            let filter_args = filter_args.clone();
-            let pagination_args = pagination_args.clone();
-            async move {
-                let client = self.get_orderbook_subgraph_client(url);
-                let vaults = client.vaults_list(filter_args, pagination_args).await?;
-                let wrapped_vaults: Vec<VaultWithSubgraphName> = vaults
-                    .into_iter()
-                    .map(|vault| VaultWithSubgraphName {
-                        vault,
-                        subgraph_name: subgraph.name.clone(),
-                    })
-                    .collect();
-                Ok::<_, OrderbookSubgraphClientError>(wrapped_vaults)
-            }
-        });
-
-        let results = join_all(futures).await;
-
-        let all_vaults: Vec<VaultWithSubgraphName> = results
-            .into_iter()
-            .filter_map(Result::ok)
-            .flatten()
-            .collect();
-
-        Ok(all_vaults)
     }
 }

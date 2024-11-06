@@ -10,22 +10,23 @@ use rain_orderbook_common::{
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
     withdraw::WithdrawArgs,
 };
+use rain_orderbook_subgraph_client::types::common::*;
 use rain_orderbook_subgraph_client::PaginationArgs;
-use rain_orderbook_subgraph_client::{
-    types::common::*, MultiOrderbookSubgraphClient, MultiSubgraphArgs,
-};
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
 
 #[tauri::command]
 pub async fn vaults_list(
-    multi_subgraph_args: Vec<MultiSubgraphArgs>,
+    subgraph_args: SubgraphArgs,
     filter_args: VaultsListFilterArgs,
     pagination_args: PaginationArgs,
-) -> CommandResult<Vec<VaultWithSubgraphName>> {
-    let client = MultiOrderbookSubgraphClient::new(multi_subgraph_args);
-    let vaults = client.vaults_list(filter_args, pagination_args).await?;
+) -> CommandResult<Vec<Vault>> {
+    let vaults = subgraph_args
+        .to_subgraph_client()
+        .await?
+        .vaults_list(filter_args, pagination_args)
+        .await?;
     Ok(vaults)
 }
 
