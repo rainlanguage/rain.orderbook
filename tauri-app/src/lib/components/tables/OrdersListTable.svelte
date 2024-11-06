@@ -18,7 +18,7 @@
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
-  import { subgraphUrl } from '$lib/stores/settings';
+  import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
@@ -26,10 +26,10 @@
   import { orderHash } from '$lib/stores/settings';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash],
+    queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
     queryFn: ({ pageParam }) => {
       return ordersList(
-        $subgraphUrl,
+        $activeSubgraphs,
         Object.values(get(activeAccounts)),
         $activeOrderStatus,
         $orderHash,
@@ -41,7 +41,7 @@
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
     refetchInterval: DEFAULT_REFRESH_INTERVAL,
-    enabled: !!$subgraphUrl,
+    enabled: Object.keys($activeSubgraphs).length > 0,
   });
 </script>
 
@@ -50,7 +50,9 @@
     {query}
     emptyMessage="No Orders Found"
     on:clickRow={(e) => {
-      goto(`/orders/${e.detail.item.id}`);
+      activeNetworkRef.set(e.detail.item.subgraphName);
+      activeOrderbookRef.set(e.detail.item.subgraphName);
+      goto(`/orders/${e.detail.item.order.id}`);
     }}
   >
     <svelte:fragment slot="title">
@@ -61,6 +63,7 @@
     </svelte:fragment>
 
     <svelte:fragment slot="head">
+      <TableHeadCell data-testid="orderListHeadingNetwork" padding="p-4">Network</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
       <TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
@@ -78,41 +81,44 @@
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
+      <TableBodyCell data-testid="orderListRowNetwork" tdClass="px-4 py-2">
+        {item.subgraphName}
+      </TableBodyCell>
       <TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
-        {#if item.active}
+        {#if item.order.active}
           <Badge color="green">Active</Badge>
         {:else}
           <Badge color="yellow">Inactive</Badge>
         {/if}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
-        <Hash type={HashType.Identifier} value={item.orderHash} />
+        <Hash type={HashType.Identifier} value={item.order.orderHash} />
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
-        <Hash type={HashType.Wallet} value={item.owner} />
+        <Hash type={HashType.Wallet} value={item.order.owner} />
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
-        <Hash type={HashType.Identifier} value={item.orderbook.id} />
+        <Hash type={HashType.Identifier} value={item.order.orderbook.id} />
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
-        {formatTimestampSecondsAsLocal(BigInt(item.timestampAdded))}
+        {formatTimestampSecondsAsLocal(BigInt(item.order.timestampAdded))}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowInputs" tdClass="break-word p-2">
-        {item.inputs?.map((t) => t.token.symbol)}
+        {item.order.inputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
-        {item.outputs?.map((t) => t.token.symbol)}
+        {item.order.outputs?.map((t) => t.token.symbol)}
       </TableBodyCell>
       <TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
-        >{item.trades.length > 99 ? '>99' : item.trades.length}</TableBodyCell
+        >{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
       >
       <TableBodyCell tdClass="px-0 text-right">
-        {#if $walletAddressMatchesOrBlank(item.owner) && item.active}
+        {#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
           <Button
             color="alternative"
             outline={false}
-            data-testid={`order-menu-${item.id}`}
-            id={`order-menu-${item.id}`}
+            data-testid={`order-menu-${item.order.id}`}
+            id={`order-menu-${item.order.id}`}
             class="mr-2 border-none px-2"
             on:click={(e) => {
               e.stopPropagation();
@@ -122,12 +128,12 @@
           </Button>
         {/if}
       </TableBodyCell>
-      {#if $walletAddressMatchesOrBlank(item.owner) && item.active}
-        <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
+      {#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
+        <Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
           <DropdownItem
             on:click={(e) => {
               e.stopPropagation();
-              handleOrderRemoveModal(item, $query.refetch);
+              handleOrderRemoveModal(item.order, $query.refetch);
             }}>Remove</DropdownItem
           >
         </Dropdown>
