@@ -94,6 +94,14 @@ pub struct Order {
     pub trades: Vec<OrderStructPartialTrade>,
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[typeshare]
+#[serde(rename_all = "camelCase")]
+pub struct OrderWithSubgraphName {
+    pub order: Order,
+    pub subgraph_name: String,
+}
+
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
