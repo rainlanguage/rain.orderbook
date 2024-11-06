@@ -1,2 +1,2 @@
 #[cfg(target_family = "wasm")]
-pub mod order;
+pub mod subgraph;

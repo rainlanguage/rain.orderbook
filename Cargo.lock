@@ -6421,10 +6421,8 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "cynic",
  "js-sys",
- "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
- "serde",
  "serde-wasm-bindgen 0.6.5",
  "tokio",
  "tsify",

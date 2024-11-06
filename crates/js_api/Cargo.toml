@@ -7,16 +7,12 @@ license.workspace = true
 homepage.workspace = true
 
 [lib]
-crate-type = ["rlib", "cdylib"]
-
-[dependencies]
-cynic = { workspace = true }
-reqwest = { workspace = true }
-rain_orderbook_bindings = { workspace = true }
-rain_orderbook_subgraph_client = { workspace = true }
-serde = { workspace = true }
+crate-type = ["cdylib"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
+cynic = { workspace = true }
+reqwest = { workspace = true }
+rain_orderbook_subgraph_client = { workspace = true }
 js-sys = { version = "0.3.69" }
 wasm-bindgen = { version = "0.2.92" }
 serde-wasm-bindgen = { version = "0.6.5" }
