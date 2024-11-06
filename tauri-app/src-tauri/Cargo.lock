@@ -8371,6 +8371,7 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "futures",
  "js-sys",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
