@@ -56,9 +56,9 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
-
-      - run: ./prep-tauri.sh
       - run: nix develop npm run build-ui
+      - run: ./prep-tauri.sh
+       
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app
         env:
