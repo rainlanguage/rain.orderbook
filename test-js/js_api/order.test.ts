@@ -173,11 +173,11 @@ describe("Rain Orderbook JS API Package Bindgen Tests", async function () {
         {
           owners: [],
           active: undefined,
-          order_hash: undefined,
+          orderHash: undefined,
         },
         {
           page: 1,
-          page_size: 10,
+          pageSize: 10,
         }
       );
       assert.equal(result.length, 2);
