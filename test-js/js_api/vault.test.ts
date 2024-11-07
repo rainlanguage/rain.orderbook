@@ -82,7 +82,7 @@ describe("Rain Orderbook JS API Package Bindgen Vault Tests", async function () 
         },
         {
           page: 1,
-          page_size: 10,
+          pageSize: 10,
         }
       );
       assert.equal(result.length, 2);
