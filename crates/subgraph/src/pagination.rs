@@ -8,6 +8,7 @@ use typeshare::typeshare;
 #[derive(Clone, Serialize, Deserialize, Debug, Tsify)]
 #[typeshare]
 #[tsify(into_wasm_abi, from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
 pub struct PaginationArgs {
     pub page: u16,
     pub page_size: u16,
