@@ -5,6 +5,6 @@ import CardProperty from './CardProperty.svelte';
 describe('Page Component', () => {
 	it('should render the card component', async () => {
 		render(CardProperty);
-		expect(screen.getByTestId("card-property-key")).toBeInTheDocument();
+		expect(screen.getByTestId('card-property-key')).toBeInTheDocument();
 	});
 });
