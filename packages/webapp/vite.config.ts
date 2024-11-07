@@ -1,10 +1,14 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
+import path from 'path';
 
 export default defineConfig(({ mode }) => ({
 	plugins: [sveltekit()],
 	resolve: {
+		alias: {
+			'@rainlanguage/ui-components': path.resolve(__dirname, '../ui-components/dist')
+		},
 		conditions: mode === 'test' ? ['browser'] : []
 	},
 	define: {

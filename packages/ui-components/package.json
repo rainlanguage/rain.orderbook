@@ -4,6 +4,14 @@
 	"description": "A component library for building Svelte applications to be used with Rainlang.",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.js",
+			"svelte": "./dist/index.js"
+		}
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run package",
@@ -12,8 +20,8 @@
 		"prepublishOnly": "npm run package",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write .",
-		"lint": "prettier --list-different . && eslint .",
+		"format": "prettier --write src",
+		"lint": "prettier --list-different src && eslint src",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
 		"format-check": "prettier --list-different src",
@@ -30,12 +38,6 @@
 	"svelte": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"svelte": "./dist/index.js"
-		}
-	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
 	},
