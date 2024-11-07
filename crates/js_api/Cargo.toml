@@ -5,11 +5,12 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
 
-[target.'cfg(target_family = "wasm")'.dependencies]
+[dependencies]
 cynic = { workspace = true }
 reqwest = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
