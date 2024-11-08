@@ -15,7 +15,6 @@
         "node": ">=18"
     },
     "scripts": {
-        "prepublish": "npm run build",
         "build": "npm run build --workspaces",
         "build:orderbook": "npm run build -w @rainlanguage/orderbook",
         "build:ui": "npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp",

@@ -18,7 +18,8 @@ keep=(
 nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
-nix develop -i ${keep[@]} -c npm run build
+(cd packages/orderbook && nix develop -i ${keep[@]} -c npm run build && cd ../..)
+nix develop -i ${keep[@]} -c npm run build:ui
 
 
 # Run commands in lib/rain.interpreter
