@@ -36,6 +36,11 @@
             "require": "./dist/cjs/quote.js",
             "import": "./dist/esm/quote.js",
             "types": "./dist/types/quote.d.ts"
+        },
+        "./js_api": {
+            "require": "./dist/cjs/js_api.js",
+            "import": "./dist/esm/js_api.js",
+            "types": "./dist/types/js_api.d.ts"
         }
     },
     "typesVersions": {
@@ -45,6 +50,9 @@
             ],
             "quote": [
                 "./dist/types/quote.d.ts"
+            ],
+            "js_api": [
+                "./dist/types/js_api.d.ts"
             ]
         }
     },
