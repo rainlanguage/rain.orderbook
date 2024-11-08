@@ -66,12 +66,9 @@
         "test": "vitest run --dir test"
     },
     "devDependencies": {
-        "@sveltejs/package": "^2.3.7",
         "@types/mocha": "^10.0.0",
-        "@vitest/expect": "^2.0.5",
-        "copyfiles": "^2.4.1",
         "mocha": "^10.1.0",
-        "mockttp": "^3.15.1"
+        "rimraf": "^6.0.1"
     },
     "dependencies": {
         "buffer": "^6.0.3"
