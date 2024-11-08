@@ -1,6 +1,7 @@
 use futures::future::join_all;
 use reqwest::Url;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
 use crate::{
     types::common::{
@@ -9,11 +10,29 @@ use crate::{
     OrderbookSubgraphClient, OrderbookSubgraphClientError, PaginationArgs,
 };
 
-#[derive(Debug, Clone, Deserialize)]
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::impl_wasm_traits;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen::{from_value, to_value};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct MultiSubgraphArgs {
+    #[tsify(type = "string")]
     url: Url,
     name: String,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(MultiSubgraphArgs);
 
 pub struct MultiOrderbookSubgraphClient {
     subgraphs: Vec<MultiSubgraphArgs>,

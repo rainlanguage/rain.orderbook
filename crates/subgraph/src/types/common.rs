@@ -9,8 +9,10 @@ pub struct IdQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[typeshare]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct OrdersListFilterArgs {
     pub owners: Vec<Bytes>,
     pub active: Option<bool>,
@@ -89,14 +91,16 @@ pub struct Order {
     pub active: bool,
     #[tsify(type = "SgBigInt")]
     pub timestamp_added: BigInt,
+    #[tsify(type = "string | undefined")]
     pub meta: Option<RainMetaV1>,
     pub add_events: Vec<AddOrder>,
     pub trades: Vec<OrderStructPartialTrade>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct OrderWithSubgraphName {
     pub order: Order,
     pub subgraph_name: String,
