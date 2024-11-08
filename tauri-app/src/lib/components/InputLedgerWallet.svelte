@@ -20,6 +20,7 @@
     radix: '.',
   };
 
+  export let onConnect: () => void = () => {};
   let derivationIndex: number = 0;
   let isConnecting: boolean;
   let isDisconnecting = false;
@@ -35,6 +36,7 @@
       try {
         const res: string = await getAddressFromLedger(derivationIndex);
         ledgerWalletAddress.set(res);
+        onConnect();
       } catch (e) {
         reportErrorToSentry(e);
         toasts.error(`Ledger error: ${e as string}`);
