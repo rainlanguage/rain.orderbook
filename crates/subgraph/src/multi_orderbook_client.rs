@@ -1,17 +1,38 @@
 use futures::future::join_all;
 use reqwest::Url;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
 use crate::{
-    types::common::{OrderWithSubgraphName, OrdersListFilterArgs},
+    types::common::{
+        OrderWithSubgraphName, OrdersListFilterArgs, VaultWithSubgraphName, VaultsListFilterArgs,
+    },
     OrderbookSubgraphClient, OrderbookSubgraphClientError, PaginationArgs,
 };
 
-#[derive(Debug, Clone, Deserialize)]
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::impl_wasm_traits;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen::{from_value, to_value};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct MultiSubgraphArgs {
+    #[tsify(type = "string")]
     url: Url,
     name: String,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(MultiSubgraphArgs);
 
 pub struct MultiOrderbookSubgraphClient {
     subgraphs: Vec<MultiSubgraphArgs>,
@@ -63,5 +84,39 @@ impl MultiOrderbookSubgraphClient {
         });
 
         Ok(all_orders)
+    }
+
+    pub async fn vaults_list(
+        &self,
+        filter_args: VaultsListFilterArgs,
+        pagination_args: PaginationArgs,
+    ) -> Result<Vec<VaultWithSubgraphName>, OrderbookSubgraphClientError> {
+        let futures = self.subgraphs.iter().map(|subgraph| {
+            let url = subgraph.url.clone();
+            let filter_args = filter_args.clone();
+            let pagination_args = pagination_args.clone();
+            async move {
+                let client = self.get_orderbook_subgraph_client(url);
+                let vaults = client.vaults_list(filter_args, pagination_args).await?;
+                let wrapped_vaults: Vec<VaultWithSubgraphName> = vaults
+                    .into_iter()
+                    .map(|vault| VaultWithSubgraphName {
+                        vault,
+                        subgraph_name: subgraph.name.clone(),
+                    })
+                    .collect();
+                Ok::<_, OrderbookSubgraphClientError>(wrapped_vaults)
+            }
+        });
+
+        let results = join_all(futures).await;
+
+        let all_vaults: Vec<VaultWithSubgraphName> = results
+            .into_iter()
+            .filter_map(Result::ok)
+            .flatten()
+            .collect();
+
+        Ok(all_vaults)
     }
 }
