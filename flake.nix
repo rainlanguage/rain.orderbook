@@ -229,6 +229,7 @@
             name = "js-install";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
             '';
           };
@@ -237,6 +238,7 @@
             name = "build-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm run build
             '';
           };
@@ -245,6 +247,7 @@
             name = "test-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
               npm run build
               npm test
