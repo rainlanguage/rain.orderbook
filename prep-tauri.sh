@@ -18,7 +18,6 @@ keep=(
 nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
-nix develop -i ${keep[@]} -c rainix-wasm-artifacts
 nix develop -i ${keep[@]} -c npm run build
 
 
