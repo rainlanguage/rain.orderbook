@@ -1,6 +1,6 @@
 use crate::blocks::Blocks;
 use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
-use crate::{Metric, Plot};
+use crate::{GuiConfigSource, Metric, Plot};
 use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -40,6 +40,8 @@ pub struct ConfigSource {
     pub raindex_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accounts: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gui: Option<GuiConfigSource>,
 }
 
 #[typeshare]
@@ -65,6 +67,9 @@ pub type TokenRef = String;
 
 #[typeshare]
 pub type MetaboardRef = String;
+
+#[typeshare]
+pub type DeploymentRef = String;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
