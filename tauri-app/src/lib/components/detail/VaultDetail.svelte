@@ -7,7 +7,7 @@
   import { HashType } from '$lib/types/hash';
   import { goto } from '$app/navigation';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-  import CardProperty from '$lib/components/CardProperty.svelte';
+  import { CardProperty } from '@rainlanguage/ui-components';
   import { formatUnits } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultDetail } from '$lib/queries/vaultDetail';
