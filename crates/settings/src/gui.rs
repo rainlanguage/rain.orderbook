@@ -10,6 +10,8 @@ use typeshare::typeshare;
 
 use crate::{Deployment, DeploymentRef, Token, TokenRef};
 
+pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
+
 // Config source for Gui
 
 #[typeshare]
@@ -26,7 +28,7 @@ impl GuiFieldValueSource {
         match self {
             GuiFieldValueSource::Text(text) => Ok(GuiFieldValue::Text(text)),
             GuiFieldValueSource::Number(number) => Ok(GuiFieldValue::Number(
-                parse_units(&number.to_string(), 18)?.into(),
+                parse_units(&number.to_string(), GUI_PRESET_VALUE_DECIMALS)?.into(),
             )),
             GuiFieldValueSource::Address(address) => Ok(GuiFieldValue::Address(address)),
             GuiFieldValueSource::Boolean(boolean) => Ok(GuiFieldValue::Boolean(boolean)),
@@ -116,8 +118,10 @@ impl GuiConfigSource {
                             .presets
                             .iter()
                             .map(|preset| {
-                                let amount =
-                                    parse_units(&preset.to_string(), token.decimals.unwrap_or(18))?;
+                                let amount = parse_units(
+                                    &preset.to_string(),
+                                    token.decimals.unwrap_or(GUI_PRESET_VALUE_DECIMALS),
+                                )?;
                                 Ok(amount.into())
                             })
                             .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -127,7 +131,10 @@ impl GuiConfigSource {
                             min: deposit_source
                                 .min
                                 .map(|min| {
-                                    parse_units(&min.to_string(), token.decimals.unwrap_or(18))
+                                    parse_units(
+                                        &min.to_string(),
+                                        token.decimals.unwrap_or(GUI_PRESET_VALUE_DECIMALS),
+                                    )
                                 })
                                 .transpose()?
                                 .map(Into::into),
@@ -147,7 +154,7 @@ impl GuiConfigSource {
                             min: field_source
                                 .min
                                 .map(|min| {
-                                    parse_units(&min.to_string(), 18)
+                                    parse_units(&min.to_string(), GUI_PRESET_VALUE_DECIMALS)
                                         .map(Into::into)
                                         .map_err(ParseGuiConfigSourceError::from)
                                 })
