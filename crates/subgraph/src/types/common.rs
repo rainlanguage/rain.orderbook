@@ -71,6 +71,7 @@ pub struct Orderbook {
 }
 
 #[typeshare]
+#[tsify::declare]
 pub type RainMetaV1 = Bytes;
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
