@@ -57,6 +57,19 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
+      - run: nix develop -c npm run build
+
       - run: ./prep-tauri.sh
        
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
