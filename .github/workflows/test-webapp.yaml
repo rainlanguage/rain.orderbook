@@ -33,6 +33,8 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v2
         with:
