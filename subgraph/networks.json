@@ -38,7 +38,7 @@
     "mainnet": {
         "OrderBook": {
             "address": "0x0eA6d458488d1cf51695e1D6e4744e6FB715d37C",
-            "startBlock": 1041924
+            "startBlock": 21041924
         }
     }
 }
