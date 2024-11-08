@@ -2,8 +2,13 @@ use crate::{cynic_client::CynicClientError, utils::slice_list};
 use serde::{Deserialize, Serialize};
 use std::num::TryFromIntError;
 use thiserror::Error;
+use tsify::Tsify;
+use typeshare::typeshare;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Tsify)]
+#[typeshare]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
 pub struct PaginationArgs {
     pub page: u16,
     pub page_size: u16,

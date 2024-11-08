@@ -6416,6 +6416,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_js_api"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "cynic",
+ "js-sys",
+ "rain_orderbook_subgraph_client",
+ "reqwest 0.12.5",
+ "serde-wasm-bindgen 0.6.5",
+ "tokio",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
@@ -6457,15 +6472,21 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "futures",
  "httpmock",
  "insta",
+ "js-sys",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
  "tokio",
+ "tsify",
  "typeshare",
+ "url",
+ "wasm-bindgen",
 ]
 
 [[package]]

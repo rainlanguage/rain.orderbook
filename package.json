@@ -1,7 +1,7 @@
 {
     "name": "@rainlanguage/orderbook",
     "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
-    "version": "0.0.1-alpha.4",
+    "version": "0.0.1-alpha.5",
     "author": "Rain Language",
     "license": "CAL-1.0",
     "repository": {
@@ -62,14 +62,17 @@
         "prepublish": "node scripts/setup",
         "build": "npm run rm-dist && npm run rm-temp && node scripts/build",
         "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests",
+        "build-ui": "npm run build --workspaces",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",
         "lint-bindings": "eslint \"dist/**\" --fix",
         "lint": "eslint \"dist/**\" \"test-js/**\"",
         "lint-fix": "eslint \"dist/**\" \"test-js/**\" --fix",
-        "test": "vitest run --dir test-js"
+        "test": "vitest run --dir test-js",
+        "dev": "npm run dev --workspaces"
     },
     "devDependencies": {
+        "@sveltejs/package": "^2.3.7",
         "@types/mocha": "^10.0.0",
         "@types/node": "^18.13.0",
         "@typescript-eslint/eslint-plugin": "^5.42.0",
@@ -88,5 +91,8 @@
     },
     "dependencies": {
         "buffer": "^6.0.3"
-    }
+    },
+    "workspaces": [
+        "packages/*"
+    ]
 }

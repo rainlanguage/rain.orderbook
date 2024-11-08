@@ -8371,12 +8371,18 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "futures",
+ "js-sys",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
+ "tsify",
  "typeshare 1.0.1",
+ "url",
+ "wasm-bindgen",
 ]
 
 [[package]]
