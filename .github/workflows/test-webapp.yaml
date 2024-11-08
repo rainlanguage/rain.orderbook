@@ -13,7 +13,7 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - run: nix develop -c bash -c "npm run build-ui && cd packages/webapp && npm run test"
+      - run: nix develop -c bash -c "npm run build:ui && cd packages/webapp && npm run test"
 
 
 
@@ -27,4 +27,4 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - run: nix develop -c bash -c "npm run build-ui && cd packages/webapp && npm run svelte-lint-format-check"
+      - run: nix develop -c bash -c "npm run build:ui && cd packages/webapp && npm run svelte-lint-format-check"
