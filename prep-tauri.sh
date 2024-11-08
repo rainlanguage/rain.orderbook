@@ -18,7 +18,7 @@ keep=(
 nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
-nix develop -i ${keep[@]} -c bash -c 'cd packages/orderbook && npm run build'
+nix develop -i ${keep[@]} -c bash -c '(cd packages/orderbook && npm run build)'
 nix develop -i ${keep[@]} -c npm run build:ui
 
 
