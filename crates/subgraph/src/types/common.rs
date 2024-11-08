@@ -9,8 +9,10 @@ pub struct IdQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[typeshare]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct OrdersListFilterArgs {
     pub owners: Vec<Bytes>,
     pub active: Option<bool>,
@@ -89,9 +91,19 @@ pub struct Order {
     pub active: bool,
     #[tsify(type = "SgBigInt")]
     pub timestamp_added: BigInt,
+    #[tsify(type = "string | undefined")]
     pub meta: Option<RainMetaV1>,
     pub add_events: Vec<AddOrder>,
     pub trades: Vec<OrderStructPartialTrade>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
+#[typeshare]
+#[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct OrderWithSubgraphName {
+    pub order: Order,
+    pub subgraph_name: String,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
@@ -114,8 +126,10 @@ pub struct OrderAsIO {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[typeshare]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct VaultsListFilterArgs {
     pub owners: Vec<Bytes>,
     pub hide_zero_balance: bool,
@@ -160,6 +174,15 @@ pub struct Vault {
     #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_input: Vec<OrderAsIO>,
     pub balance_changes: Vec<VaultBalanceChange>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
+#[typeshare]
+#[serde(rename_all = "camelCase")]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct VaultWithSubgraphName {
+    pub vault: Vault,
+    pub subgraph_name: String,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]

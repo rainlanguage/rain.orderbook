@@ -8371,6 +8371,7 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "futures",
  "js-sys",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
@@ -8380,6 +8381,7 @@ dependencies = [
  "thiserror",
  "tsify",
  "typeshare 1.0.1",
+ "url",
  "wasm-bindgen",
 ]
 

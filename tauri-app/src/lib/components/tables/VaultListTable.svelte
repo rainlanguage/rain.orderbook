@@ -6,7 +6,13 @@
   import Hash from '$lib/components/Hash.svelte';
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import { activeOrderbook, subgraphUrl } from '$lib/stores/settings';
+  import {
+    activeNetworkRef,
+    activeOrderbook,
+    activeOrderbookRef,
+    activeSubgraphs,
+    subgraphUrl,
+  } from '$lib/stores/settings';
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
@@ -23,10 +29,10 @@
   import { get } from 'svelte/store';
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults],
+    queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults, $activeSubgraphs],
     queryFn: ({ pageParam }) => {
       return vaultList(
-        $subgraphUrl,
+        $activeSubgraphs,
         Object.values(get(activeAccounts)),
         $hideZeroBalanceVaults,
         pageParam,
@@ -39,6 +45,11 @@
     refetchInterval: DEFAULT_REFRESH_INTERVAL,
     enabled: !!$subgraphUrl,
   });
+
+  const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
+    activeNetworkRef.set(subgraphName);
+    activeOrderbookRef.set(subgraphName);
+  };
 </script>
 
 {#if $query}
@@ -46,7 +57,8 @@
     {query}
     emptyMessage="No Vaults Found"
     on:clickRow={(e) => {
-      goto(`/vaults/${e.detail.item.id}`);
+      updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
+      goto(`/vaults/${e.detail.item.vault.id}`);
     }}
   >
     <svelte:fragment slot="title">
@@ -69,6 +81,7 @@
       </div>
     </svelte:fragment>
     <svelte:fragment slot="head">
+      <TableHeadCell padding="p-4">Network</TableHeadCell>
       <TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
       <TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
       <TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
@@ -80,32 +93,39 @@
     </svelte:fragment>
 
     <svelte:fragment slot="bodyRow" let:item>
+      <TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
+        {item.subgraphName}
+      </TableBodyCell>
+
       <TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
-        >{bigintStringToHex(item.vaultId)}</TableBodyCell
+        >{bigintStringToHex(item.vault.vaultId)}</TableBodyCell
       >
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook"
-        ><Hash type={HashType.Identifier} value={item.orderbook.id} /></TableBodyCell
+        ><Hash type={HashType.Identifier} value={item.vault.orderbook.id} /></TableBodyCell
       >
       <TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner"
-        ><Hash type={HashType.Wallet} value={item.owner} /></TableBodyCell
+        ><Hash type={HashType.Wallet} value={item.vault.owner} /></TableBodyCell
       >
       <TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
-        >{item.token.name}</TableBodyCell
+        >{item.vault.token.name}</TableBodyCell
       >
       <TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
-        {vaultBalanceDisplay(item)}
-        {item.token.symbol}
+        {vaultBalanceDisplay(item.vault)}
+        {item.vault.token.symbol}
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {#if item.ordersAsInput.length > 0}
+        {#if item.vault.ordersAsInput.length > 0}
           <div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
-            {#each item.ordersAsInput.slice(0, 3) as order}
+            {#each item.vault.ordersAsInput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color={order.active ? 'green' : 'yellow'}
                 data-testid="vault-order-input"
                 data-order-id={order.id}
-                on:click={() => goto(`/orders/${order.id}`)}
+                on:click={() => {
+                  updateActiveNetworkAndOrderbook(item.subgraphName);
+                  goto(`/orders/${order.id}`);
+                }}
                 ><Hash
                   type={HashType.Identifier}
                   value={order.orderHash}
@@ -113,20 +133,23 @@
                 /></Button
               >
             {/each}
-            {#if item.ordersAsInput.length > 3}...{/if}
+            {#if item.vault.ordersAsInput.length > 3}...{/if}
           </div>
         {/if}
       </TableBodyCell>
       <TableBodyCell tdClass="break-all p-2 min-w-48">
-        {#if item.ordersAsOutput.length > 0}
+        {#if item.vault.ordersAsOutput.length > 0}
           <div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
-            {#each item.ordersAsOutput.slice(0, 3) as order}
+            {#each item.vault.ordersAsOutput.slice(0, 3) as order}
               <Button
                 class="mr-1 mt-1 px-1 py-0"
                 color={order.active ? 'green' : 'yellow'}
                 data-order-id={order.id}
                 data-testid="vault-order-output"
-                on:click={() => goto(`/orders/${order.id}`)}
+                on:click={() => {
+                  updateActiveNetworkAndOrderbook(item.subgraphName);
+                  goto(`/orders/${order.id}`);
+                }}
                 ><Hash
                   type={HashType.Identifier}
                   value={order.orderHash}
@@ -134,17 +157,17 @@
                 /></Button
               >
             {/each}
-            {#if item.ordersAsOutput.length > 3}...{/if}
+            {#if item.vault.ordersAsOutput.length > 3}...{/if}
           </div>
         {/if}
       </TableBodyCell>
       <TableBodyCell tdClass="px-0 text-right">
-        {#if $walletAddressMatchesOrBlank(item.owner)}
+        {#if $walletAddressMatchesOrBlank(item.vault.owner)}
           <Button
             color="alternative"
             outline={false}
             data-testid="vault-menu"
-            id={`vault-menu-${item.id}`}
+            id={`vault-menu-${item.vault.id}`}
             class="mr-2 border-none px-2"
             on:click={(e) => {
               e.stopPropagation();
@@ -154,24 +177,24 @@
           </Button>
         {/if}
       </TableBodyCell>
-      {#if $walletAddressMatchesOrBlank(item.owner)}
+      {#if $walletAddressMatchesOrBlank(item.vault.owner)}
         <Dropdown
           data-testid="dropdown"
           placement="bottom-end"
-          triggeredBy={`#vault-menu-${item.id}`}
+          triggeredBy={`#vault-menu-${item.vault.id}`}
         >
           <DropdownItem
             data-testid="deposit-button"
             on:click={(e) => {
               e.stopPropagation();
-              handleDepositModal(item, $query.refetch);
+              handleDepositModal(item.vault, $query.refetch);
             }}>Deposit</DropdownItem
           >
           <DropdownItem
             data-testid="withdraw-button"
             on:click={(e) => {
               e.stopPropagation();
-              handleWithdrawModal(item, $query.refetch);
+              handleWithdrawModal(item.vault, $query.refetch);
             }}>Withdraw</DropdownItem
           >
         </Dropdown>
