@@ -17,6 +17,7 @@ pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
+#[serde(tag = "type", content = "value")]
 pub enum GuiFieldValueSource {
     Text(String),
     Number(f64),
@@ -50,8 +51,6 @@ pub struct GuiPresetSource {
 #[serde(rename_all = "kebab-case")]
 pub struct GuiDepositSource {
     pub token: TokenRef,
-    #[typeshare(typescript(type = "number"))]
-    pub min: Option<f64>,
     pub presets: Vec<f64>,
 }
 
@@ -62,8 +61,6 @@ pub struct GuiFieldDefinitionSource {
     pub binding: String,
     pub name: String,
     pub description: String,
-    #[typeshare(typescript(type = "number"))]
-    pub min: Option<f64>,
     pub presets: Vec<GuiPresetSource>,
 }
 
@@ -128,16 +125,6 @@ impl GuiConfigSource {
 
                         Ok(GuiDeposit {
                             token: token.clone(),
-                            min: deposit_source
-                                .min
-                                .map(|min| {
-                                    parse_units(
-                                        &min.to_string(),
-                                        token.decimals.unwrap_or(GUI_PRESET_VALUE_DECIMALS),
-                                    )
-                                })
-                                .transpose()?
-                                .map(Into::into),
                             presets,
                         })
                     })
@@ -151,14 +138,6 @@ impl GuiConfigSource {
                             binding: field_source.binding.clone(),
                             name: field_source.name.clone(),
                             description: field_source.description.clone(),
-                            min: field_source
-                                .min
-                                .map(|min| {
-                                    parse_units(&min.to_string(), GUI_PRESET_VALUE_DECIMALS)
-                                        .map(Into::into)
-                                        .map_err(ParseGuiConfigSourceError::from)
-                                })
-                                .transpose()?,
                             presets: field_source
                                 .presets
                                 .iter()
@@ -207,6 +186,8 @@ pub enum ParseGuiConfigSourceError {
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", content = "value")]
+#[serde(rename_all = "lowercase")]
 pub enum GuiFieldValue {
     Text(String),
     Number(U256),
@@ -226,7 +207,6 @@ pub struct GuiPreset {
 pub struct GuiDeposit {
     #[typeshare(typescript(type = "Token"))]
     token: Arc<Token>,
-    min: Option<U256>,
     presets: Vec<U256>,
 }
 
@@ -247,8 +227,6 @@ pub struct GuiFieldDefinition {
     binding: String,
     name: String,
     description: String,
-    #[typeshare(typescript(type = "string"))]
-    min: Option<U256>,
     presets: Vec<GuiPreset>,
 }
 
@@ -279,7 +257,6 @@ mod tests {
                 description: "test-deployment-description".to_string(),
                 deposits: vec![GuiDepositSource {
                     token: "test-token".to_string(),
-                    min: Some(1.0),
                     presets: vec![1.3, 2.7],
                 }],
                 fields: vec![
@@ -287,7 +264,6 @@ mod tests {
                         binding: "test-binding".to_string(),
                         name: "test-name".to_string(),
                         description: "test-description".to_string(),
-                        min: None,
                         presets: vec![
                             GuiPresetSource {
                                 name: Some("test-preset".to_string()),
@@ -303,7 +279,6 @@ mod tests {
                         binding: "test-binding-2".to_string(),
                         name: "test-name-2".to_string(),
                         description: "test-description-2".to_string(),
-                        min: Some(2.0),
                         presets: vec![
                             GuiPresetSource {
                                 name: None,
@@ -319,7 +294,6 @@ mod tests {
                         binding: "test-binding-3".to_string(),
                         name: "test-name-3".to_string(),
                         description: "test-description-3".to_string(),
-                        min: None,
                         presets: vec![
                             GuiPresetSource {
                                 name: None,
@@ -372,7 +346,6 @@ mod tests {
         assert_eq!(deployment.deposits.len(), 1);
         let deposit = &deployment.deposits[0];
         assert_eq!(deposit.token.label, Some("test-token".to_string()));
-        assert_eq!(deposit.min, Some(U256::from(1000000000000000000_u64)));
         assert_eq!(deposit.presets.len(), 2);
         assert_eq!(deposit.presets[0], U256::from(1300000000000000000_u64));
         assert_eq!(deposit.presets[1], U256::from(2700000000000000000_u64));
@@ -381,7 +354,6 @@ mod tests {
         assert_eq!(field1.binding, "test-binding");
         assert_eq!(field1.name, "test-name");
         assert_eq!(field1.description, "test-description");
-        assert_eq!(field1.min, None);
         assert_eq!(field1.presets.len(), 2);
         assert_eq!(field1.presets[0].name, Some("test-preset".to_string()));
         assert_eq!(
@@ -397,7 +369,6 @@ mod tests {
         assert_eq!(field2.binding, "test-binding-2");
         assert_eq!(field2.name, "test-name-2");
         assert_eq!(field2.description, "test-description-2");
-        assert_eq!(field2.min, Some(U256::from(2000000000000000000_u64)));
         assert_eq!(field2.presets.len(), 2);
         assert_eq!(field2.presets[0].name, None);
         assert_eq!(
@@ -413,7 +384,6 @@ mod tests {
         assert_eq!(field3.binding, "test-binding-3");
         assert_eq!(field3.name, "test-name-3");
         assert_eq!(field3.description, "test-description-3");
-        assert_eq!(field3.min, None);
         assert_eq!(field3.presets.len(), 3);
         assert_eq!(
             field3.presets[0].value,
