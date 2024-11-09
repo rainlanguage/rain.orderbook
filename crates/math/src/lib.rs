@@ -119,12 +119,6 @@ mod test {
         let expected = U256::from_str("12_100_000_000_000_000").unwrap();
         assert_eq!(result, expected);
 
-        // u32
-        let value = U256::from(123456789_u32);
-        let result = value.scale_18(12).unwrap();
-        let expected = U256::from_str("123_456_789_000_000").unwrap();
-        assert_eq!(result, expected);
-
         // U256
         let value = U256::from(123456789u32);
         let result = value.scale_18(12).unwrap();
