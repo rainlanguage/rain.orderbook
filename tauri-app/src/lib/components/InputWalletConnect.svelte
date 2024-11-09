@@ -13,6 +13,7 @@
   } from '$lib/stores/walletconnect';
 
   export let priorityChainIds: number[] | undefined = undefined;
+  export let onConnect: () => void = () => {};
 </script>
 
 <div>
@@ -28,7 +29,9 @@
       size="lg"
       pill
       loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
-      on:click={() => walletconnectConnect(priorityChainIds ?? [])}
+      on:click={() => {
+        walletconnectConnect(priorityChainIds ?? []).then(onConnect);
+      }}
     >
       {#if $walletconnectAccount}
         <Hash type={HashType.Wallet} value={$walletconnectAccount} />
