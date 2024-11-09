@@ -36,7 +36,7 @@ pub struct Config {
     pub raindex_version: Option<String>,
     #[typeshare(typescript(type = "Record<string, string>"))]
     pub accounts: Option<HashMap<String, Arc<String>>>,
-    pub gui: Option<Arc<Gui>>,
+    pub gui: Option<Gui>,
 }
 
 pub type Subgraph = Url;
@@ -181,7 +181,7 @@ impl TryFrom<ConfigSource> for Config {
         });
 
         let gui = match item.gui {
-            Some(g) => Some(Arc::new(g.try_into_gui(&deployments, &tokens)?)),
+            Some(g) => Some(g.try_into_gui(&deployments, &tokens)?),
             None => None,
         };
 
