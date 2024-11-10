@@ -79,7 +79,7 @@ jobs:
       - run: nix develop -c raindex-prelude
       - run: nix develop -c npm run build
 
-      - run: ./prep-tauri.sh
+      - run: nix develop .#tauri-shell -c ob-tauri-prelude
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app
