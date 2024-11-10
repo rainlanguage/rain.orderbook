@@ -73,13 +73,13 @@ pub struct Orderbook {
 }
 
 #[typeshare]
+#[tsify::declare]
 pub type RainMetaV1 = Bytes;
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 #[tsify(into_wasm_abi, from_wasm_abi)]
-// #[cfg_attr(target_family = "wasm", serde(rename(serialize = "SgOrder")))]
 pub struct Order {
     pub id: Bytes,
     pub order_bytes: Bytes,
