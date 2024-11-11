@@ -1,7 +1,6 @@
 use alloy::primitives::Address;
 use rain_orderbook_app_settings::gui::{
-    Gui, GuiDeployment, GuiFieldDefinition, GuiFieldValue, GuiFieldValueSource,
-    ParseGuiConfigSourceError,
+    Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
 };
 use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_common::dotrain_order::{DotrainOrder, DotrainOrderError};
@@ -23,7 +22,7 @@ use wasm_bindgen::{
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TokenDeposit {
     token: String,
-    amount: f64,
+    amount: String,
     #[tsify(type = "string")]
     address: Address,
 }
@@ -33,24 +32,16 @@ impl_wasm_traits!(TokenDeposit);
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct FieldValuePair {
     binding: String,
-    value: GuiFieldValue,
+    value: String,
 }
 impl_wasm_traits!(FieldValuePair);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct FieldValuePairInput {
-    binding: String,
-    value: GuiFieldValueSource,
-}
-impl_wasm_traits!(FieldValuePairInput);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
-    field_values: HashMap<String, GuiFieldValue>,
+    field_values: HashMap<String, String>,
     deposits: Vec<TokenDeposit>,
 }
 #[wasm_bindgen]
@@ -107,26 +98,18 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "saveFieldValue")]
-    pub fn save_field_value(
-        &mut self,
-        binding: String,
-        value: GuiFieldValueSource,
-    ) -> Result<(), GuiError> {
+    pub fn save_field_value(&mut self, binding: String, value: String) -> Result<(), GuiError> {
         self.deployment
             .fields
             .iter()
             .find(|field| field.binding == binding)
             .ok_or(GuiError::FieldNotFound(binding.clone()))?;
-        let field_value = value.try_into_gui_field_value()?;
-        self.field_values.insert(binding, field_value);
+        self.field_values.insert(binding, value);
         Ok(())
     }
 
     #[wasm_bindgen(js_name = "saveFieldValues")]
-    pub fn save_field_values(
-        &mut self,
-        field_values: Vec<FieldValuePairInput>,
-    ) -> Result<(), GuiError> {
+    pub fn save_field_values(&mut self, field_values: Vec<FieldValuePair>) -> Result<(), GuiError> {
         for field_value in field_values {
             self.save_field_value(field_value.binding, field_value.value)?;
         }
@@ -134,7 +117,7 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getFieldValue")]
-    pub fn get_field_value(&self, binding: String) -> Result<GuiFieldValue, GuiError> {
+    pub fn get_field_value(&self, binding: String) -> Result<String, GuiError> {
         let field_value = self
             .field_values
             .get(&binding)
