@@ -212,7 +212,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests
+              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
             '';
           };
 
@@ -229,6 +229,7 @@
             name = "js-install";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
             '';
           };
@@ -237,6 +238,7 @@
             name = "build-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm run build
             '';
           };
@@ -245,6 +247,7 @@
             name = "test-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
               npm run build
               npm test

@@ -6,12 +6,12 @@ const [package] = process.argv.slice(2);
 
 // generate node/web bindgens
 execSync(
-  `wasm-bindgen --target nodejs ./target/wasm32-unknown-unknown/release/${
+  `wasm-bindgen --target nodejs ../../target/wasm32-unknown-unknown/release/${
     packagePrefix + package
   }.wasm --out-dir ./temp/node/${package} --out-name ${package}`
 );
 execSync(
-  `wasm-bindgen --target web ./target/wasm32-unknown-unknown/release/${
+  `wasm-bindgen --target web ../../target/wasm32-unknown-unknown/release/${
     packagePrefix + package
   }.wasm --out-dir ./temp/web/${package} --out-name ${package}`
 );
