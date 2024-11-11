@@ -277,7 +277,7 @@ mod tests {
                 description: "test-deployment-description".to_string(),
                 deposits: vec![GuiDepositSource {
                     token: "test-token".to_string(),
-                    presets: vec![1.3, 2.7],
+                    presets: vec!["1.3".to_string(), "2.7".to_string()],
                 }],
                 fields: vec![
                     GuiFieldDefinitionSource {
