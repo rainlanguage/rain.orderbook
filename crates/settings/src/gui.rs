@@ -1,3 +1,4 @@
+use crate::{Deployment, DeploymentRef, Token, TokenRef};
 use alloy::primitives::{
     ruint::ParseError,
     utils::{parse_units, UnitsError},
@@ -8,7 +9,21 @@ use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
-use crate::{Deployment, DeploymentRef, Token, TokenRef};
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::impl_wasm_traits;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen::{from_value, to_value};
+#[cfg(target_family = "wasm")]
+use tsify::Tsify;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
 pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
 
@@ -16,6 +31,11 @@ pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 #[serde(rename_all = "kebab-case")]
 #[serde(tag = "type", content = "value")]
 pub enum GuiFieldValueSource {
@@ -25,7 +45,7 @@ pub enum GuiFieldValueSource {
     Boolean(bool),
 }
 impl GuiFieldValueSource {
-    fn try_into_gui_field_value(self) -> Result<GuiFieldValue, ParseGuiConfigSourceError> {
+    pub fn try_into_gui_field_value(self) -> Result<GuiFieldValue, ParseGuiConfigSourceError> {
         match self {
             GuiFieldValueSource::Text(text) => Ok(GuiFieldValue::Text(text)),
             GuiFieldValueSource::Number(number) => Ok(GuiFieldValue::Number(
@@ -36,6 +56,8 @@ impl GuiFieldValueSource {
         }
     }
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(GuiFieldValueSource);
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -125,6 +147,7 @@ impl GuiConfigSource {
 
                         Ok(GuiDeposit {
                             token: token.clone(),
+                            token_name: deposit_source.token.clone(),
                             presets,
                         })
                     })
@@ -154,6 +177,7 @@ impl GuiConfigSource {
 
                 Ok(GuiDeployment {
                     deployment,
+                    deployment_name: deployment_source.deployment.clone(),
                     name: deployment_source.name.clone(),
                     description: deployment_source.description.clone(),
                     deposits,
@@ -186,52 +210,96 @@ pub enum ParseGuiConfigSourceError {
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 #[serde(tag = "type", content = "value")]
 #[serde(rename_all = "lowercase")]
 pub enum GuiFieldValue {
     Text(String),
+    #[cfg_attr(
+        target_family = "wasm",
+        tsify(type = "{type: 'number', value: string}")
+    )]
     Number(U256),
+    #[cfg_attr(
+        target_family = "wasm",
+        tsify(type = "{type: 'address', value: string}")
+    )]
     Address(Address),
     Boolean(bool),
 }
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct GuiPreset {
-    name: Option<String>,
-    value: GuiFieldValue,
+    pub name: Option<String>,
+    pub value: GuiFieldValue,
 }
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct GuiDeposit {
     #[typeshare(typescript(type = "Token"))]
-    token: Arc<Token>,
-    presets: Vec<U256>,
+    #[cfg_attr(target_family = "wasm", tsify(type = "Erc20"))]
+    pub token: Arc<Token>,
+    pub token_name: String,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
+    pub presets: Vec<U256>,
 }
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct GuiDeployment {
     #[typeshare(typescript(type = "Deployment"))]
-    deployment: Arc<Deployment>,
-    name: String,
-    description: String,
-    deposits: Vec<GuiDeposit>,
-    fields: Vec<GuiFieldDefinition>,
+    pub deployment: Arc<Deployment>,
+    pub deployment_name: String,
+    pub name: String,
+    pub description: String,
+    pub deposits: Vec<GuiDeposit>,
+    pub fields: Vec<GuiFieldDefinition>,
 }
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct GuiFieldDefinition {
-    binding: String,
-    name: String,
-    description: String,
-    presets: Vec<GuiPreset>,
+    pub binding: String,
+    pub name: String,
+    pub description: String,
+    pub presets: Vec<GuiPreset>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(GuiFieldDefinition);
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct Gui {
     pub name: String,
     pub description: String,
