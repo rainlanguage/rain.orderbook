@@ -2,7 +2,7 @@ use crate::{Deployment, DeploymentRef, Token, TokenRef};
 use alloy::primitives::{
     ruint::ParseError,
     utils::{parse_units, UnitsError},
-    Address, U256,
+    U256,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -37,35 +37,10 @@ pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
     tsify(into_wasm_abi, from_wasm_abi)
 )]
 #[serde(rename_all = "kebab-case")]
-#[serde(tag = "type", content = "value")]
-pub enum GuiFieldValueSource {
-    Text(String),
-    Number(f64),
-    Address(Address),
-    Boolean(bool),
-}
-impl GuiFieldValueSource {
-    pub fn try_into_gui_field_value(self) -> Result<GuiFieldValue, ParseGuiConfigSourceError> {
-        match self {
-            GuiFieldValueSource::Text(text) => Ok(GuiFieldValue::Text(text)),
-            GuiFieldValueSource::Number(number) => Ok(GuiFieldValue::Number(
-                parse_units(&number.to_string(), GUI_PRESET_VALUE_DECIMALS)?.into(),
-            )),
-            GuiFieldValueSource::Address(address) => Ok(GuiFieldValue::Address(address)),
-            GuiFieldValueSource::Boolean(boolean) => Ok(GuiFieldValue::Boolean(boolean)),
-        }
-    }
-}
-#[cfg(target_family = "wasm")]
-impl_wasm_traits!(GuiFieldValueSource);
-
-#[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiPresetSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    pub value: GuiFieldValueSource,
+    pub value: String,
 }
 
 #[typeshare]
@@ -167,7 +142,7 @@ impl GuiConfigSource {
                                 .map(|preset| {
                                     Ok(GuiPreset {
                                         name: preset.name.clone(),
-                                        value: preset.value.clone().try_into_gui_field_value()?,
+                                        value: preset.value.clone(),
                                     })
                                 })
                                 .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?,
@@ -215,33 +190,9 @@ pub enum ParseGuiConfigSourceError {
     derive(Tsify),
     tsify(into_wasm_abi, from_wasm_abi)
 )]
-#[serde(tag = "type", content = "value")]
-#[serde(rename_all = "lowercase")]
-pub enum GuiFieldValue {
-    Text(String),
-    #[cfg_attr(
-        target_family = "wasm",
-        tsify(type = "{type: 'number', value: string}")
-    )]
-    Number(U256),
-    #[cfg_attr(
-        target_family = "wasm",
-        tsify(type = "{type: 'address', value: string}")
-    )]
-    Address(Address),
-    Boolean(bool),
-}
-
-#[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(
-    target_family = "wasm",
-    derive(Tsify),
-    tsify(into_wasm_abi, from_wasm_abi)
-)]
 pub struct GuiPreset {
-    pub name: Option<String>,
-    pub value: GuiFieldValue,
+    name: Option<String>,
+    value: String,
 }
 
 #[typeshare]
@@ -313,6 +264,7 @@ mod tests {
         test::{mock_deployer, mock_network, mock_token},
         Order, Scenario,
     };
+    use alloy::primitives::Address;
 
     #[test]
     fn test_gui_creation_success() {
@@ -325,7 +277,7 @@ mod tests {
                 description: "test-deployment-description".to_string(),
                 deposits: vec![GuiDepositSource {
                     token: "test-token".to_string(),
-                    presets: vec!["1.3".to_string(), "2.7".to_string()],
+                    presets: vec![1.3, 2.7],
                 }],
                 fields: vec![
                     GuiFieldDefinitionSource {
@@ -335,11 +287,11 @@ mod tests {
                         presets: vec![
                             GuiPresetSource {
                                 name: Some("test-preset".to_string()),
-                                value: GuiFieldValueSource::Number(0.015),
+                                value: "0.015".to_string(),
                             },
                             GuiPresetSource {
                                 name: Some("test-preset-2".to_string()),
-                                value: GuiFieldValueSource::Number(0.3),
+                                value: "0.3".to_string(),
                             },
                         ],
                     },
@@ -350,11 +302,11 @@ mod tests {
                         presets: vec![
                             GuiPresetSource {
                                 name: None,
-                                value: GuiFieldValueSource::Number(3.2),
+                                value: "3.2".to_string(),
                             },
                             GuiPresetSource {
                                 name: None,
-                                value: GuiFieldValueSource::Number(4.8),
+                                value: "4.8".to_string(),
                             },
                         ],
                     },
@@ -365,15 +317,15 @@ mod tests {
                         presets: vec![
                             GuiPresetSource {
                                 name: None,
-                                value: GuiFieldValueSource::Address(Address::default()),
+                                value: Address::default().to_string(),
                             },
                             GuiPresetSource {
                                 name: None,
-                                value: GuiFieldValueSource::Text("some-value".to_string()),
+                                value: "some-value".to_string(),
                             },
                             GuiPresetSource {
                                 name: None,
-                                value: GuiFieldValueSource::Boolean(true),
+                                value: "true".to_string(),
                             },
                         ],
                     },
@@ -424,43 +376,24 @@ mod tests {
         assert_eq!(field1.description, "test-description");
         assert_eq!(field1.presets.len(), 2);
         assert_eq!(field1.presets[0].name, Some("test-preset".to_string()));
-        assert_eq!(
-            field1.presets[0].value,
-            GuiFieldValue::Number(U256::from(15000000000000000_u64))
-        );
+        assert_eq!(field1.presets[0].value, "0.015".to_string());
         assert_eq!(field1.presets[1].name, Some("test-preset-2".to_string()));
-        assert_eq!(
-            field1.presets[1].value,
-            GuiFieldValue::Number(U256::from(300000000000000000_u64))
-        );
+        assert_eq!(field1.presets[1].value, "0.3".to_string());
         let field2 = &deployment.fields[1];
         assert_eq!(field2.binding, "test-binding-2");
         assert_eq!(field2.name, "test-name-2");
         assert_eq!(field2.description, "test-description-2");
         assert_eq!(field2.presets.len(), 2);
         assert_eq!(field2.presets[0].name, None);
-        assert_eq!(
-            field2.presets[0].value,
-            GuiFieldValue::Number(U256::from(3200000000000000000_u64))
-        );
         assert_eq!(field2.presets[1].name, None);
-        assert_eq!(
-            field2.presets[1].value,
-            GuiFieldValue::Number(U256::from(4800000000000000000_u64))
-        );
+        assert_eq!(field2.presets[1].value, "4.8".to_string());
         let field3 = &deployment.fields[2];
         assert_eq!(field3.binding, "test-binding-3");
         assert_eq!(field3.name, "test-name-3");
         assert_eq!(field3.description, "test-description-3");
         assert_eq!(field3.presets.len(), 3);
-        assert_eq!(
-            field3.presets[0].value,
-            GuiFieldValue::Address(Address::default())
-        );
-        assert_eq!(
-            field3.presets[1].value,
-            GuiFieldValue::Text("some-value".to_string())
-        );
-        assert_eq!(field3.presets[2].value, GuiFieldValue::Boolean(true));
+        assert_eq!(field3.presets[0].value, Address::default().to_string());
+        assert_eq!(field3.presets[1].value, "some-value".to_string());
+        assert_eq!(field3.presets[2].value, "true".to_string());
     }
 }
