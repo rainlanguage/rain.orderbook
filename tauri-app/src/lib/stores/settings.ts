@@ -101,7 +101,6 @@ export const hasRequiredSettings = derived(
 
 // accounts
 export const accounts = derived(settings, ($settings) => $settings?.accounts ?? {});
-
 export const activeAccountsItems = cachedWritableStore<Record<string, string>>(
   'settings.activeAccountsItems',
   {},
@@ -114,7 +113,6 @@ export const activeAccountsItems = cachedWritableStore<Record<string, string>>(
     }
   },
 );
-
 export const activeAccounts = derived(
   [accounts, activeAccountsItems],
   ([$accounts, $activeAccountsItems]) =>
@@ -123,6 +121,23 @@ export const activeAccounts = derived(
       : Object.fromEntries(
           Object.entries($accounts).filter(([key]) => key in $activeAccountsItems),
         ),
+);
+
+// subgraphs
+export const subgraph = derived(settings, ($settings) =>
+  $settings?.subgraphs !== undefined ? Object.entries($settings.subgraphs) : [],
+);
+export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
+  'settings.activeSubgraphs',
+  {},
+  JSON.stringify,
+  (s) => {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return {};
+    }
+  },
 );
 
 // When networks / orderbooks settings updated, reset active network / orderbook
@@ -165,6 +180,22 @@ settings.subscribe(async () => {
       }),
     );
     activeAccountsItems.set(updatedActiveAccounts);
+  }
+
+  // Reset active subgraphs if subgraphs have changed
+  if ($settings?.subgraphs === undefined) {
+    activeSubgraphs.set({});
+  } else {
+    const currentActiveSubgraphs = get(activeSubgraphs);
+    const updatedActiveSubgraphs = Object.fromEntries(
+      Object.entries($settings.subgraphs).filter(([key, value]) => {
+        if (key in currentActiveSubgraphs) {
+          return currentActiveSubgraphs[key] === value;
+        }
+        return false;
+      }),
+    );
+    activeSubgraphs.set(updatedActiveSubgraphs);
   }
 });
 

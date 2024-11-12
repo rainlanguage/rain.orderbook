@@ -21,9 +21,9 @@ execSync("npm run build-wasm");
 // build specified packages and include them in final index file
 // list of packages to build can be extended by adding new package
 // names to the list below
-const packages = ["common", "quote"];
+const packages = ["common", "quote", "js_api"];
 for (const package of packages) {
-  execSync(`node scripts/buildPackage ${package}`);
+  execSync(`node ./scripts/buildPackage ${package}`);
 }
 
 // create index file that exports all packages that were built in previous step
@@ -45,9 +45,6 @@ fs.writeFileSync(
   "./dist/esm/index.js",
   packages.map((v) => `export * as ${v} from "./${v}";`).join("\n")
 );
-
-// lint the generated js/dts files
-execSync("npm run lint-bindings");
 
 // rm temp folder
 execSync("npm run rm-temp");

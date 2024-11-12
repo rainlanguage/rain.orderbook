@@ -112,7 +112,9 @@
     <SidebarGroup border class="flex justify-start self-end">
       <div class="flex flex-col text-xs text-gray-500 dark:text-gray-400">
         <p>Raindex version commit:</p>
-        <p>{app_sha}</p>
+        <p class="break-all">
+          {app_sha}
+        </p>
       </div>
     </SidebarGroup>
   </SidebarWrapper>

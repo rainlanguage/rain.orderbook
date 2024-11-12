@@ -11,7 +11,7 @@
   }
 </script>
 
-<div class="flex">
+<div class="flex items-center gap-x-2">
   <Label>Order Hash</Label>
   <div class="w-32">
     <input
