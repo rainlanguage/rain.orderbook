@@ -1,4 +1,6 @@
 use alloy::primitives::Address;
+use base64::{engine::general_purpose::URL_SAFE, Engine};
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::gui::{
     Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
 };
@@ -6,7 +8,8 @@ use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_common::dotrain_order::{DotrainOrder, DotrainOrderError};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+use std::io::prelude::*;
 use thiserror::Error;
 use tsify::Tsify;
 use wasm_bindgen::{
@@ -37,11 +40,17 @@ pub struct FieldValuePair {
 impl_wasm_traits!(FieldValuePair);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+struct SerializedGuiState {
+    field_values: BTreeMap<String, String>,
+    deposits: Vec<TokenDeposit>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
-    field_values: HashMap<String, String>,
+    field_values: BTreeMap<String, String>,
     deposits: Vec<TokenDeposit>,
 }
 #[wasm_bindgen]
@@ -65,7 +74,7 @@ impl DotrainOrderGui {
         Ok(Self {
             dotrain_order,
             deployment: gui_deployment.clone(),
-            field_values: HashMap::new(),
+            field_values: BTreeMap::new(),
             deposits: vec![],
         })
     }
@@ -160,6 +169,42 @@ impl DotrainOrderGui {
     pub fn get_all_field_definitions(&self) -> Vec<GuiFieldDefinition> {
         self.deployment.fields.clone()
     }
+
+    #[wasm_bindgen(js_name = "serializeState")]
+    pub fn serialize(&self) -> Result<String, GuiError> {
+        let state = SerializedGuiState {
+            field_values: self.field_values.clone(),
+            deposits: self.deposits.clone(),
+        };
+        let json = serde_json::to_string(&state)?;
+
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(json.as_bytes())?;
+        let compressed = encoder.finish()?;
+
+        Ok(URL_SAFE.encode(compressed))
+    }
+
+    #[wasm_bindgen(js_name = "deserializeState")]
+    pub fn deserialize_state(&mut self, serialized: String) -> Result<(), GuiError> {
+        let compressed = URL_SAFE.decode(serialized)?;
+
+        let mut decoder = GzDecoder::new(&compressed[..]);
+        let mut json = String::new();
+        decoder.read_to_string(&mut json)?;
+
+        let state: SerializedGuiState = serde_json::from_str(&json)?;
+        self.field_values = state.field_values;
+        self.deposits = state.deposits;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "clearState")]
+    pub fn clear_state(&mut self) {
+        self.field_values.clear();
+        self.deposits.clear();
+    }
 }
 
 #[derive(Error, Debug)]
@@ -176,6 +221,12 @@ pub enum GuiError {
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
     ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    Base64Error(#[from] base64::DecodeError),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }
