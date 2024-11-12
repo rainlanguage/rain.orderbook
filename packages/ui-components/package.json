@@ -43,7 +43,11 @@
 		"svelte": "^5.0.0"
 	},
 	"dependencies": {
+		"@tanstack/svelte-query": "^5.59.20",
 		"@testing-library/jest-dom": "^6.6.3",
-		"@testing-library/svelte": "^5.2.4"
+		"@testing-library/svelte": "^5.2.4",
+		"@rainlanguage/orderbook": "*",
+		"flowbite-svelte": "^0.47.3",
+		"tailwind-merge": "^2.5.4"
 	}
 }

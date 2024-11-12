@@ -1,5 +1,6 @@
 <script>
 	import CardProperty from '$lib/components/CardProperty.svelte';
+	import OrdersListTable from '$lib/components/OrdersListTable.svelte';
 </script>
 
 <h1>Welcome to your library project</h1>
@@ -9,3 +10,5 @@
 	<svelte:fragment slot="key">Vault ID</svelte:fragment>
 	<svelte:fragment slot="value">{100000}</svelte:fragment>
 </CardProperty>
+
+<OrdersListTable />
