@@ -278,6 +278,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
     });
 
     it("should deserialize gui state", async () => {
+      gui.clearState();
       gui.deserializeState(serializedString);
       const fieldValues = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
