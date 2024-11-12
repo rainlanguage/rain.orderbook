@@ -21,6 +21,9 @@ use wasm_bindgen::{
     prelude::*,
 };
 
+mod state_management;
+use state_management::{clear_state, deserialize_state, serialize};
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TokenDeposit {
@@ -38,12 +41,6 @@ pub struct FieldValuePair {
     value: String,
 }
 impl_wasm_traits!(FieldValuePair);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct SerializedGuiState {
-    field_values: BTreeMap<String, String>,
-    deposits: Vec<TokenDeposit>,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -172,38 +169,17 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "serializeState")]
     pub fn serialize(&self) -> Result<String, GuiError> {
-        let state = SerializedGuiState {
-            field_values: self.field_values.clone(),
-            deposits: self.deposits.clone(),
-        };
-        let json = serde_json::to_string(&state)?;
-
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(json.as_bytes())?;
-        let compressed = encoder.finish()?;
-
-        Ok(URL_SAFE.encode(compressed))
+        serialize(self)
     }
 
     #[wasm_bindgen(js_name = "deserializeState")]
     pub fn deserialize_state(&mut self, serialized: String) -> Result<(), GuiError> {
-        let compressed = URL_SAFE.decode(serialized)?;
-
-        let mut decoder = GzDecoder::new(&compressed[..]);
-        let mut json = String::new();
-        decoder.read_to_string(&mut json)?;
-
-        let state: SerializedGuiState = serde_json::from_str(&json)?;
-        self.field_values = state.field_values;
-        self.deposits = state.deposits;
-
-        Ok(())
+        deserialize_state(self, serialized)
     }
 
     #[wasm_bindgen(js_name = "clearState")]
     pub fn clear_state(&mut self) {
-        self.field_values.clear();
-        self.deposits.clear();
+        clear_state(self)
     }
 }
 
@@ -217,6 +193,8 @@ pub enum GuiError {
     FieldBindingNotFound(String),
     #[error("Deposit token not found in gui config: {0}")]
     DepositTokenNotFound(String),
+    #[error("Deserialized config mismatch")]
+    DeserializedConfigMismatch,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -224,7 +202,7 @@ pub enum GuiError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
-    SerdeJsonError(#[from] serde_json::Error),
+    BincodeError(#[from] bincode::Error),
     #[error(transparent)]
     Base64Error(#[from] base64::DecodeError),
     #[error(transparent)]
