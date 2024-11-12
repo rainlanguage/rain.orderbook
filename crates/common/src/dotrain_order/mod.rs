@@ -14,7 +14,7 @@ use rain_orderbook_app_settings::{
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use typeshare::typeshare;
 #[cfg(target_family = "wasm")]
@@ -22,7 +22,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod filter;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct DotrainOrder {
     config: Config,

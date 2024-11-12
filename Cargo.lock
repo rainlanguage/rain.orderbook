@@ -6308,15 +6308,19 @@ dependencies = [
  "alloy",
  "derive_builder 0.20.0",
  "httpmock",
+ "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
  "tokio",
+ "tsify",
  "typeshare",
  "url",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -6419,11 +6423,17 @@ dependencies = [
 name = "rain_orderbook_js_api"
 version = "0.0.0-alpha.0"
 dependencies = [
+ "alloy",
  "cynic",
  "js-sys",
+ "rain_orderbook_app_settings",
+ "rain_orderbook_bindings",
+ "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
+ "serde",
  "serde-wasm-bindgen 0.6.5",
+ "thiserror",
  "tokio",
  "tsify",
  "wasm-bindgen",
