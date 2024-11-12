@@ -256,4 +256,54 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       );
     });
   });
+
+  describe("state management tests", async () => {
+    let serializedString =
+      "H4sIAAAAAAAA_3WNwQ6CMBBE_2XPaHahLYVfMca03cU0YjEWjAnh360cvHmazEzezApDlJEvLzcukqFfwcfEMV0PBD3gm-pGadPaDp0PLMM_D9UPrAtIiLBVwPKYcpzL7mmFebpJKt2uVAB3n5Y0l0Tj0Xw981Ny3n9DTU3NqLmh0JFytg3GEAXCVlknHpXXVuwA23n7AOb4sTzEAAAA";
+    let gui: DotrainOrderGui;
+    beforeAll(async () => {
+      gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+
+      gui.saveFieldValue(
+        "binding-1",
+        "0x1234567890abcdef1234567890abcdef12345678"
+      );
+      gui.saveFieldValue("binding-2", "100");
+      gui.saveDeposit("token1", "50.6");
+    });
+
+    it("should serialize gui state", async () => {
+      const serialized = gui.serializeState();
+      assert.equal(serialized, serializedString);
+    });
+
+    it("should deserialize gui state", async () => {
+      gui.deserializeState(serializedString);
+      const fieldValues = gui.getAllFieldValues();
+      assert.equal(fieldValues.length, 2);
+      assert.equal(fieldValues[0].binding, "binding-1");
+      assert.equal(
+        fieldValues[0].value,
+        "0x1234567890abcdef1234567890abcdef12345678"
+      );
+      assert.equal(fieldValues[1].binding, "binding-2");
+      assert.equal(fieldValues[1].value, "100");
+      const deposits = gui.getDeposits();
+      assert.equal(deposits.length, 1);
+      assert.equal(deposits[0].token, "token1");
+      assert.equal(deposits[0].amount, "50.6");
+      assert.equal(
+        deposits[0].address,
+        "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+      );
+    });
+
+    it("should clear state", async () => {
+      gui.clearState();
+      const fieldValues = gui.getAllFieldValues();
+      assert.equal(fieldValues.length, 0);
+      const deposits = gui.getDeposits();
+      assert.equal(deposits.length, 0);
+    });
+  });
 });
