@@ -54,11 +54,7 @@ impl DotrainOrderGui {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
         let config = dotrain_order.config();
-        if config.gui.is_none() {
-            return Err(GuiError::GuiConfigNotFound);
-        }
-
-        let gui_config = config.gui.clone().unwrap();
+        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
 
         let gui_deployment = gui_config
             .deployments
@@ -85,9 +81,22 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "saveDeposit")]
-    pub fn save_deposit(&mut self, deposit: TokenDeposit) -> Result<(), GuiError> {
-        if !self.deposits.iter().any(|d| d.token == deposit.token) {
-            self.deposits.push(deposit);
+    pub fn save_deposit(&mut self, token: String, amount: String) -> Result<(), GuiError> {
+        let gui_deposit = self
+            .deployment
+            .deposits
+            .iter()
+            .find(|dg| dg.token_name == token)
+            .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
+
+        let deposit_token = TokenDeposit {
+            token: gui_deposit.token_name.clone(),
+            amount,
+            address: gui_deposit.token.address,
+        };
+
+        if !self.deposits.iter().any(|d| d.token == token) {
+            self.deposits.push(deposit_token);
         }
         Ok(())
     }
@@ -103,7 +112,7 @@ impl DotrainOrderGui {
             .fields
             .iter()
             .find(|field| field.binding == binding)
-            .ok_or(GuiError::FieldNotFound(binding.clone()))?;
+            .ok_or(GuiError::FieldBindingNotFound(binding.clone()))?;
         self.field_values.insert(binding, value);
         Ok(())
     }
@@ -121,7 +130,7 @@ impl DotrainOrderGui {
         let field_value = self
             .field_values
             .get(&binding)
-            .ok_or(GuiError::FieldNotFound(binding))?;
+            .ok_or(GuiError::FieldBindingNotFound(binding))?;
         Ok(field_value.clone())
     }
 
@@ -143,7 +152,7 @@ impl DotrainOrderGui {
             .fields
             .iter()
             .find(|field| field.binding == binding)
-            .ok_or(GuiError::FieldNotFound(binding))?;
+            .ok_or(GuiError::FieldBindingNotFound(binding))?;
         Ok(field_definition.clone())
     }
 
@@ -159,8 +168,10 @@ pub enum GuiError {
     GuiConfigNotFound,
     #[error("Deployment not found: {0}")]
     DeploymentNotFound(String),
-    #[error("Field not found: {0}")]
-    FieldNotFound(String),
+    #[error("Field binding not found: {0}")]
+    FieldBindingNotFound(String),
+    #[error("Deposit token not found in gui config: {0}")]
+    DepositTokenNotFound(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
