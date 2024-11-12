@@ -1,4 +1,5 @@
 use alloy::primitives::Address;
+use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::gui::{
@@ -20,6 +21,9 @@ use wasm_bindgen::{
     describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR},
     prelude::*,
 };
+
+mod order_operations;
+use order_operations::check_allowances;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
@@ -205,6 +209,15 @@ impl DotrainOrderGui {
         self.field_values.clear();
         self.deposits.clear();
     }
+
+    #[wasm_bindgen(js_name = "checkAllowances")]
+    pub async fn check_allowances(
+        &self,
+        rpc_url: String,
+        owner: String,
+    ) -> Result<JsValue, GuiError> {
+        check_allowances(self, rpc_url, owner).await
+    }
 }
 
 #[derive(Error, Debug)]
@@ -217,6 +230,8 @@ pub enum GuiError {
     FieldBindingNotFound(String),
     #[error("Deposit token not found in gui config: {0}")]
     DepositTokenNotFound(String),
+    #[error("Orderbook not found")]
+    OrderbookNotFound,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -227,6 +242,14 @@ pub enum GuiError {
     SerdeJsonError(#[from] serde_json::Error),
     #[error(transparent)]
     Base64Error(#[from] base64::DecodeError),
+    #[error(transparent)]
+    FromHexError(#[from] alloy::hex::FromHexError),
+    #[error(transparent)]
+    ReadableClientError(#[from] ReadableClientError),
+    #[error(transparent)]
+    ReadContractParametersBuilderError(
+        #[from] alloy_ethers_typecast::transaction::ReadContractParametersBuilderError,
+    ),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }
