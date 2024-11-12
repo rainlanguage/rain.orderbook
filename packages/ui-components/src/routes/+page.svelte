@@ -1,6 +1,12 @@
-<script>
+<script lang="ts">
 	import CardProperty from '$lib/components/CardProperty.svelte';
 	import OrdersListTable from '$lib/components/OrdersListTable.svelte';
+	import networkSubgraphJson from '$lib/network-subgraph-config.json';
+	import { settings } from '$lib/stores/settings.js';
+
+	$: settings.set(networkSubgraphJson);
+
+	$: console.log('Settings: ', $settings);
 </script>
 
 <h1>Welcome to your library project</h1>
@@ -11,4 +17,6 @@
 	<svelte:fragment slot="value">{100000}</svelte:fragment>
 </CardProperty>
 
-<OrdersListTable />
+{#if $settings}
+	<OrdersListTable />
+{/if}

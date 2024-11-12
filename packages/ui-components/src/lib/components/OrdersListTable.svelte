@@ -1,10 +1,14 @@
 <script lang="ts">
-	// import { QKEY_ORDERS } from '$lib/queries/keys';
+	import { QKEY_ORDERS } from '$lib/queries/keys';
 	// import { ordersList } from '$lib/queries/ordersList';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getOrders } from '@rainlanguage/orderbook';
-	// import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
-	// import TanstackAppTable from './TanstackAppTable.svelte';
+	import {
+		getOrders,
+		type MultiSubgraphArgs,
+		type OrdersListFilterArgs
+	} from '@rainlanguage/orderbook/js_api';
+	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
+	import TanstackAppTable from './TanstackAppTable.svelte';
 	// import { goto } from '$app/navigation';
 	// import ListViewOrderbookSelector from '../ListViewOrderbookSelector.svelte';
 	// import {
@@ -19,24 +23,71 @@
 	// import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 	// import Hash from '$lib/components/Hash.svelte';
 	// import { HashType } from '$lib/types/hash';
-	// import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
+	import { activeSubgraphs, activeAccounts, activeOrderStatus } from '$lib/stores/settings';
 	// import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	// import { handleOrderRemoveModal } from '$lib/services/modal';
-	// import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
 	// import { get } from 'svelte/store';
-	// import { orderHash } from '$lib/stores/settings';
+	import { orderHash, settings } from '$lib/stores/settings';
+	import { goto } from '$app/navigation';
+	import {
+		Badge,
+		Button,
+		Dropdown,
+		DropdownItem,
+		TableBodyCell,
+		TableHeadCell
+	} from 'flowbite-svelte';
 
 	// export let queryProp
+	activeSubgraphs.set($settings.subgraphs);
+
+	const multiSubgraphArgs: MultiSubgraphArgs[] = Object.entries($activeSubgraphs).map(
+		([name, url]) => ({
+			url,
+			name
+		})
+	) as MultiSubgraphArgs[];
+	$: console.log('mult args', multiSubgraphArgs);
+
+	// export const ordersList = async (
+	// 	activeSubgraphs: Record<string, string>,
+	// 	owners: string[] = [],
+	// 	active: boolean | undefined = undefined,
+	// 	orderHash: string = '',
+	// 	pageParam: number,
+	// 	pageSize: number = DEFAULT_PAGE_SIZE
+	// ) => {
+	// 	if (!Object.keys(activeSubgraphs).length) {
+	// 		return [];
+	// 	}
+	// 	return await invoke<OrderWithSubgraphName[]>('orders_list', {
+	// 		multiSubgraphArgs: Object.entries(activeSubgraphs).map(([name, url]) => ({
+	// 			name,
+	// 			url
+	// 		})),
+	// 		filterArgs: {
+	// 			owners,
+	// 			active,
+	// 			orderHash: orderHash || undefined
+	// 		},
+	// 		paginationArgs: { page: pageParam + 1, page_size: pageSize }
+	// 	} as OrdersListArgs);
+	// };
 
 	$: query = createInfiniteQuery({
 		queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
 		queryFn: ({ pageParam }) => {
-			return ordersList(
-				$activeSubgraphs,
-				Object.values(get(activeAccounts)),
-				$activeOrderStatus,
-				$orderHash,
-				pageParam
+			return getOrders(
+				multiSubgraphArgs,
+				{
+					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
+					active: true,
+					orderHash: undefined
+				},
+
+				// Object.values(get(activeAccounts)),
+				// $activeOrderStatus,
+				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
 		},
 		initialPageParam: 0,
@@ -46,24 +97,25 @@
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: Object.keys($activeSubgraphs).length > 0
 	});
+
+	$: console.log('QEURY DATA/ERR:', $query.data, $query.error);
+	$: console.log('Active SGs: ', $activeSubgraphs);
 </script>
 
-<!-- {#if $query}
+{#if $query.data}
 	<TanstackAppTable
 		{query}
 		emptyMessage="No Orders Found"
 		on:clickRow={(e) => {
-			activeNetworkRef.set(e.detail.item.subgraphName);
-			activeOrderbookRef.set(e.detail.item.subgraphName);
 			goto(`/orders/${e.detail.item.order.id}`);
 		}}
 	>
-		<svelte:fragment slot="title">
+		<!-- <svelte:fragment slot="title">
 			<div class="flex w-full justify-between py-4">
 				<div class="text-3xl font-medium dark:text-white">Orders</div>
 				<ListViewOrderbookSelector />
 			</div>
-		</svelte:fragment>
+		</svelte:fragment> -->
 
 		<svelte:fragment slot="head">
 			<TableHeadCell data-testid="orderListHeadingNetwork" padding="p-4">Network</TableHeadCell>
@@ -143,4 +195,4 @@
 			{/if}
 		</svelte:fragment>
 	</TanstackAppTable>
-{/if} -->
+{/if}

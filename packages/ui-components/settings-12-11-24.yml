@@ -1,0 +1,133 @@
+networks:
+  flare:
+    rpc: https://rpc.ankr.com/flare
+    chain-id: 14
+    currency: FLR
+  base:
+    rpc: https://mainnet.base.org
+    chain-id: 8453
+    network-id: 8453
+    currency: ETH
+  sepolia:
+    rpc: https://1rpc.io/sepolia
+    chain-id: 11155111
+    network-id: 11155111
+    currency: ETH
+  polygon:
+    rpc: https://rpc.ankr.com/polygon
+    chain-id: 137
+    network-id: 137
+    currency: POL
+  arbitrum:
+    rpc: https://rpc.ankr.com/arbitrum
+    chain-id: 42161
+    network-id: 42161
+    currency: ETH
+  matchain:
+    rpc: https://rpc.matchain.io
+    chain-id: 698
+    network-id: 698
+    currency: BNB
+  bsc:
+    rpc: https://rpc.ankr.com/bsc
+    chain-id: 56
+    network-id: 56
+    currency: BNB
+  linea:
+    rpc: https://rpc.linea.build
+    chain-id: 59144
+    network-id: 59144
+    currency: ETH
+  ethereum:
+    rpc: https://rpc.ankr.com/eth
+    chain-id: 1
+    network-id: 1
+    currency: ETH
+
+subgraphs:
+  flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn
+  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.9/gn
+  sepolia: http://replaceme.com
+  polygon: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-polygon/0.6/gn
+  arbitrum: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-arbitrum/0.2/gn
+  matchain: http://subgraph.mobula.io:8000/subgraphs/name/matchain-ob
+  bsc: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-bsc/2024-10-14-63f4/gn
+  linea: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-linea/2024-10-14-12fc/gn
+  ethereum: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn
+
+metaboards:
+  flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn
+  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn
+  sepolia: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-sepolia-0x77991674/0.1/gn
+  polygon: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-polygon/0.1/gn
+  arbitrum: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-arbitrum/0.1/gn
+  bsc: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-bsc/0.1/gn
+  linea: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-linea-0xed7d6156/1.0.0/gn
+  ethereum: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-mainnet/2024-10-25-2857/gn
+
+orderbooks:
+  flare:
+    address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
+    network: flare
+    subgraph: flare
+  base:
+    address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7
+    network: base
+    subgraph: base
+  sepolia:
+    address: 0x0bB72B4C7c0d47b2CaED07c804D9243C1B8a0728
+    network: sepolia
+    subgraph: sepolia
+  polygon:
+    address: 0x7D2f700b1f6FD75734824EA4578960747bdF269A
+    network: polygon
+    subgraph: polygon
+  arbitrum:
+    address: 0x550878091b2B1506069F61ae59e3A5484Bca9166
+    network: arbitrum
+    subgraph: arbitrum
+  matchain:
+    address: 0x40312edab8fe65091354172ad79e9459f21094e2
+    network: matchain
+    subgraph: matchain
+  bsc:
+    address: 0xd2938E7c9fe3597F78832CE780Feb61945c377d7
+    network: bsc
+    subgraph: bsc
+  linea:
+    address: 0x22410e2a46261a1B1e3899a072f303022801C764
+    network: linea
+    subgraph: linea
+  ethereum:
+    address: 0x0eA6d458488d1cf51695e1D6e4744e6FB715d37C
+    network: ethereum
+    subgraph: ethereum
+
+deployers:
+  flare:
+    address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
+    network: flare
+  base:
+    address: 0xC1A14cE2fd58A3A2f99deCb8eDd866204eE07f8D
+    network: base
+  sepolia:
+    address: 0x7692BA8446Bb8B3140A2c02df073080BeD0a7F8E
+    network: sepolia
+  polygon:
+    address: 0xE7116BC05C8afe25e5B54b813A74F916B5D42aB1
+    network: polygon
+  arbitrum:
+    address: 0x9B0D254bd858208074De3d2DaF5af11b3D2F377F
+    network: arbitrum
+  matchain:
+    address: 0x582d9e838FE6cD9F8147C66A8f56A3FBE513a6A2
+    network: polygon
+  bsc:
+    address: 0xA2f56F8F74B7d04d61f281BE6576b6155581dcBA
+    network: bsc
+  linea:
+    address: 0xA2f56F8F74B7d04d61f281BE6576b6155581dcBA
+    network: linea
+  ethereum:
+    address: 0xd19581a021f4704ad4eBfF68258e7A0a9DB1CD77
+    network: ethereum
