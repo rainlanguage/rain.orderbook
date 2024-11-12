@@ -1,9 +1,5 @@
 use crate::{Deployment, DeploymentRef, Token, TokenRef};
-use alloy::primitives::{
-    ruint::ParseError,
-    utils::{parse_units, UnitsError},
-    U256,
-};
+use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -24,8 +20,6 @@ use wasm_bindgen::convert::{
 use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::{JsValue, UnwrapThrowExt};
-
-pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
 
 // Config source for Gui
 
@@ -108,22 +102,10 @@ impl GuiConfigSource {
                             ))
                             .map(Arc::clone)?;
 
-                        let presets = deposit_source
-                            .presets
-                            .iter()
-                            .map(|preset| {
-                                let amount = parse_units(
-                                    &preset.to_string(),
-                                    token.decimals.unwrap_or(GUI_PRESET_VALUE_DECIMALS),
-                                )?;
-                                Ok(amount.into())
-                            })
-                            .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
-
                         Ok(GuiDeposit {
                             token: token.clone(),
                             token_name: deposit_source.token.clone(),
-                            presets,
+                            presets: deposit_source.presets.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -208,7 +190,7 @@ pub struct GuiDeposit {
     pub token: Arc<Token>,
     pub token_name: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
-    pub presets: Vec<U256>,
+    pub presets: Vec<String>,
 }
 
 #[typeshare]
@@ -367,8 +349,8 @@ mod tests {
         let deposit = &deployment.deposits[0];
         assert_eq!(deposit.token.label, Some("test-token".to_string()));
         assert_eq!(deposit.presets.len(), 2);
-        assert_eq!(deposit.presets[0], U256::from(1300000000000000000_u64));
-        assert_eq!(deposit.presets[1], U256::from(2700000000000000000_u64));
+        assert_eq!(deposit.presets[0], "1.3".to_string());
+        assert_eq!(deposit.presets[1], "2.7".to_string());
         assert_eq!(deployment.fields.len(), 3);
         let field1 = &deployment.fields[0];
         assert_eq!(field1.binding, "test-binding");
