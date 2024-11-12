@@ -132,21 +132,19 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
     });
 
     it("should add deposit", async () => {
-      gui.saveDeposit({
-        token: "token1",
-        amount: "50.6",
-        address: "0x1234567890abcdef1234567890abcdef12345678",
-      });
+      gui.saveDeposit("token1", "50.6");
       const deposits = gui.getDeposits();
       assert.equal(deposits.length, 1);
     });
 
+    it("should throw error if deposit token is not found in gui config", () => {
+      expect(() => gui.saveDeposit("token3", "1")).toThrow(
+        "Deposit token not found in gui config: token3"
+      );
+    });
+
     it("should remove deposit", async () => {
-      gui.saveDeposit({
-        token: "token1",
-        amount: "50.6",
-        address: "0x1234567890abcdef1234567890abcdef12345678",
-      });
+      gui.saveDeposit("token1", "50.6");
       const deposits = gui.getDeposits();
       assert.equal(deposits.length, 1);
 
@@ -187,6 +185,12 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       assert.equal(fieldValues.length, 2);
     });
 
+    it("should throw error during save if field binding is not found in field definitions", () => {
+      expect(() => gui.saveFieldValue("binding-3", "1")).toThrow(
+        "Field binding not found: binding-3"
+      );
+    });
+
     it("should get field value", async () => {
       gui.saveFieldValue(
         "binding-1",
@@ -206,6 +210,12 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       gui.saveFieldValue("binding-2", "100.5");
       fieldValue = gui.getFieldValue("binding-2");
       assert.equal(fieldValue, "100.5");
+    });
+
+    it("should throw error during get if field binding is not found", () => {
+      expect(() => gui.getFieldValue("binding-3")).toThrow(
+        "Field binding not found: binding-3"
+      );
     });
   });
 
@@ -238,6 +248,12 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       assert.equal(fieldDefinition2.presets[0].value, "99.2");
       assert.equal(fieldDefinition2.presets[1].value, "582.1");
       assert.equal(fieldDefinition2.presets[2].value, "648.239");
+    });
+
+    it("should throw error during get if field binding is not found", () => {
+      expect(() => gui.getFieldDefinition("binding-3")).toThrow(
+        "Field binding not found: binding-3"
+      );
     });
   });
 });
