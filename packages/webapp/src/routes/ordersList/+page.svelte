@@ -4,4 +4,4 @@
 </script>
 
 <Refresh />
-<OrdersListTable />
+<OrdersListTable connectedWalletAddress="0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11" />
