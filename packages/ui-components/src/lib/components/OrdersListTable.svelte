@@ -1,48 +1,35 @@
 <script lang="ts" generics="T">
+	import type { log } from 'console';
+
 	import { QKEY_ORDERS } from '$lib/queries/keys';
 	// import { ordersList } from '$lib/queries/ordersList';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import {
-		getOrders,
-		type MultiSubgraphArgs,
-		type OrdersListFilterArgs
-	} from '@rainlanguage/orderbook/js_api';
+	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
 	import TanstackAppTable from './TanstackAppTable.svelte';
 	// import { goto } from '$app/navigation';
-	// import ListViewOrderbookSelector from '../ListViewOrderbookSelector.svelte';
-	// import {
-	// 	Badge,
-	// 	Button,
-	// 	Dropdown,
-	// 	DropdownItem,
-	// 	TableBodyCell,
-	// 	TableHeadCell
-	// } from 'flowbite-svelte';
-	// import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	// import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-	// import Hash from '$lib/components/Hash.svelte';
 	// import { HashType } from '$lib/types/hash';
 	import { activeSubgraphs, activeAccounts, activeOrderStatus } from '$lib/stores/settings';
 	// import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	// import { handleOrderRemoveModal } from '$lib/services/modal';
 	// import { get } from 'svelte/store';
-	import { orderHash, settings } from '$lib/stores/settings';
+	import { orderHash } from '$lib/stores/settings';
 	import { goto } from '$app/navigation';
 	import {
 		Badge,
+		TableBodyCell,
+		TableHeadCell,
 		Button,
 		Dropdown,
-		DropdownItem,
-		TableBodyCell,
-		TableHeadCell
+		DropdownItem
 	} from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '$lib/utils/time.js';
-	import Hash from './Hash.svelte';
+	import Hash from '$lib/components/Hash.svelte';
 	import { HashType } from '$lib/types/hash';
 
-	// export let queryProp
-	activeSubgraphs.set($settings.subgraphs);
+	export let connectedWalletAddress: string = '';
+
+	$: console.log('connectedWalletAddress', connectedWalletAddress);
 
 	const multiSubgraphArgs: MultiSubgraphArgs[] = Object.entries($activeSubgraphs).map(
 		([name, url]) => ({
@@ -57,13 +44,10 @@
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
+					owners: [connectedWalletAddress],
 					active: true,
 					orderHash: undefined
 				},
-
-				// Object.values(get(activeAccounts)),
-				// $activeOrderStatus,
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
 		},
@@ -74,9 +58,6 @@
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: Object.keys($activeSubgraphs).length > 0
 	});
-
-	$: console.log('QEURY DATA/ERR:', $query.data, $query.error);
-	$: console.log('Active SGs: ', $activeSubgraphs);
 </script>
 
 {#if $query.data}
@@ -87,12 +68,9 @@
 			goto(`/orders/${e.detail.item.order.id}`);
 		}}
 	>
-		<!-- <svelte:fragment slot="title">
-			<div class="flex w-full justify-between py-4">
-				<div class="text-3xl font-medium dark:text-white">Orders</div>
-				<ListViewOrderbookSelector />
-			</div>
-		</svelte:fragment> -->
+		<svelte:fragment slot="title">
+			<slot name="filters" />
+		</svelte:fragment>
 
 		<svelte:fragment slot="head">
 			<TableHeadCell data-testid="orderListHeadingNetwork" padding="p-4">Network</TableHeadCell>

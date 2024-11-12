@@ -1,22 +1,19 @@
 <script lang="ts">
-	import CardProperty from '$lib/components/CardProperty.svelte';
 	import OrdersListTable from '$lib/components/OrdersListTable.svelte';
 	import networkSubgraphJson from '$lib/network-subgraph-config.json';
-	import { settings } from '$lib/stores/settings.js';
+	import { activeSubgraphs, settings } from '$lib/stores/settings';
 
 	$: settings.set(networkSubgraphJson);
-
-	$: console.log('Settings: ', $settings);
+	$: activeSubgraphs.set(networkSubgraphJson.subgraphs);
+	let connectedWalletAddress: string = '0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11';
 </script>
 
 <h1>Welcome to your library project</h1>
 <p>Create your package using @sveltejs/package and preview/showcase your work with SvelteKit</p>
 <p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
-<CardProperty data-testid="vaultDetailVaultId">
-	<svelte:fragment slot="key">Vault ID</svelte:fragment>
-	<svelte:fragment slot="value">{100000}</svelte:fragment>
-</CardProperty>
 
-{#if $settings}
-	<OrdersListTable />
-{/if}
+<OrdersListTable {connectedWalletAddress}>
+	<svelte:fragment slot="filters"
+		><div class="border-4 border-red-500 p-2 text-xl">Place for filters</div></svelte:fragment
+	>
+</OrdersListTable>
