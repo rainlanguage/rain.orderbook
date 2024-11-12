@@ -1,16 +1,10 @@
-use alloy::primitives::{
-    ruint::ParseError,
-    utils::{parse_units, UnitsError},
-    U256,
-};
+use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
 use crate::{Deployment, DeploymentRef, Token, TokenRef};
-
-pub const GUI_PRESET_VALUE_DECIMALS: u8 = 18;
 
 // Config source for Gui
 
@@ -88,21 +82,9 @@ impl GuiConfigSource {
                             ))
                             .map(Arc::clone)?;
 
-                        let presets = deposit_source
-                            .presets
-                            .iter()
-                            .map(|preset| {
-                                let amount = parse_units(
-                                    &preset.to_string(),
-                                    token.decimals.unwrap_or(GUI_PRESET_VALUE_DECIMALS),
-                                )?;
-                                Ok(amount.into())
-                            })
-                            .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
-
                         Ok(GuiDeposit {
                             token: token.clone(),
-                            presets,
+                            presets: deposit_source.presets.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -173,7 +155,7 @@ pub struct GuiPreset {
 pub struct GuiDeposit {
     #[typeshare(typescript(type = "Token"))]
     token: Arc<Token>,
-    presets: Vec<U256>,
+    presets: Vec<String>,
 }
 
 #[typeshare]
@@ -314,8 +296,8 @@ mod tests {
         let deposit = &deployment.deposits[0];
         assert_eq!(deposit.token.label, Some("test-token".to_string()));
         assert_eq!(deposit.presets.len(), 2);
-        assert_eq!(deposit.presets[0], U256::from(1300000000000000000_u64));
-        assert_eq!(deposit.presets[1], U256::from(2700000000000000000_u64));
+        assert_eq!(deposit.presets[0], "1.3".to_string());
+        assert_eq!(deposit.presets[1], "2.7".to_string());
         assert_eq!(deployment.fields.len(), 3);
         let field1 = &deployment.fields[0];
         assert_eq!(field1.binding, "test-binding");
