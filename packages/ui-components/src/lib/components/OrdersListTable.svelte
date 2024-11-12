@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="T">
 	import { QKEY_ORDERS } from '$lib/queries/keys';
 	// import { ordersList } from '$lib/queries/ordersList';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
@@ -37,6 +37,9 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
+	import { formatTimestampSecondsAsLocal } from '$lib/utils/time.js';
+	import Hash from './Hash.svelte';
+	import { HashType } from '$lib/types/hash';
 
 	// export let queryProp
 	activeSubgraphs.set($settings.subgraphs);
@@ -47,32 +50,6 @@
 			name
 		})
 	) as MultiSubgraphArgs[];
-	$: console.log('mult args', multiSubgraphArgs);
-
-	// export const ordersList = async (
-	// 	activeSubgraphs: Record<string, string>,
-	// 	owners: string[] = [],
-	// 	active: boolean | undefined = undefined,
-	// 	orderHash: string = '',
-	// 	pageParam: number,
-	// 	pageSize: number = DEFAULT_PAGE_SIZE
-	// ) => {
-	// 	if (!Object.keys(activeSubgraphs).length) {
-	// 		return [];
-	// 	}
-	// 	return await invoke<OrderWithSubgraphName[]>('orders_list', {
-	// 		multiSubgraphArgs: Object.entries(activeSubgraphs).map(([name, url]) => ({
-	// 			name,
-	// 			url
-	// 		})),
-	// 		filterArgs: {
-	// 			owners,
-	// 			active,
-	// 			orderHash: orderHash || undefined
-	// 		},
-	// 		paginationArgs: { page: pageParam + 1, page_size: pageSize }
-	// 	} as OrdersListArgs);
-	// };
 
 	$: query = createInfiniteQuery({
 		queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
@@ -167,32 +144,6 @@
 			<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 				>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
 			>
-			<TableBodyCell tdClass="px-0 text-right">
-				{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
-					<Button
-						color="alternative"
-						outline={false}
-						data-testid={`order-menu-${item.order.id}`}
-						id={`order-menu-${item.order.id}`}
-						class="mr-2 border-none px-2"
-						on:click={(e) => {
-							e.stopPropagation();
-						}}
-					>
-						<DotsVerticalOutline class="dark:text-white" />
-					</Button>
-				{/if}
-			</TableBodyCell>
-			{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
-				<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
-					<DropdownItem
-						on:click={(e) => {
-							e.stopPropagation();
-							handleOrderRemoveModal(item.order, $query.refetch);
-						}}>Remove</DropdownItem
-					>
-				</Dropdown>
-			{/if}
 		</svelte:fragment>
 	</TanstackAppTable>
 {/if}
