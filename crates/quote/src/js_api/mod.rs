@@ -20,7 +20,6 @@ mod impls;
 /// Holds quoted order max output and ratio
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct OrderQuoteValue {
     pub max_output: String,
     pub ratio: String,
@@ -29,7 +28,6 @@ pub struct OrderQuoteValue {
 /// A quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct QuoteTarget {
     pub quote_config: Quote,
     pub orderbook: String,
@@ -38,13 +36,11 @@ pub struct QuoteTarget {
 /// Batch quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(transparent)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
 
 /// A quote target specifier, where the order details need to be fetched from a
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct QuoteSpec {
     pub order_hash: String,
@@ -59,11 +55,9 @@ pub struct QuoteSpec {
 /// Batch quote spec
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(transparent)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(untagged)]
 pub enum QuoteResult {
     Ok(OrderQuoteValue),
@@ -180,7 +174,6 @@ pub async fn get_batch_quote_target_from_subgraph(
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Pair {
     pub pair_name: String,
     pub input_index: u32,
@@ -189,7 +182,6 @@ pub struct Pair {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct BatchOrderQuotesResponse {
     pub pair: Pair,
     pub block_number: u64,

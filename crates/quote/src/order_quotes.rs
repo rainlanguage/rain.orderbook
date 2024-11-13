@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{
     error::Error,
     quote::{BatchQuoteTarget, QuoteTarget},
@@ -10,6 +8,7 @@ use alloy_ethers_typecast::transaction::ReadableClient;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
 use rain_orderbook_subgraph_client::types::common::Order;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use typeshare::typeshare;
 
 #[typeshare]
