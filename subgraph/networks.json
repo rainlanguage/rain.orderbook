@@ -34,5 +34,11 @@
             "address": "0x22410e2a46261a1B1e3899a072f303022801C764",
             "startBlock": 10147523
         }
+    },
+    "mainnet": {
+        "OrderBook": {
+            "address": "0x0eA6d458488d1cf51695e1D6e4744e6FB715d37C",
+            "startBlock": 21041924
+        }
     }
 }
