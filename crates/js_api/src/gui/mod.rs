@@ -185,6 +185,8 @@ pub enum GuiError {
     DeserializedConfigMismatch,
     #[error("Vault id not found")]
     VaultIdNotFound,
+    #[error("Deployer not found")]
+    DeployerNotFound,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -213,6 +215,8 @@ pub enum GuiError {
     WritableTransactionExecuteError(
         #[from] rain_orderbook_common::transaction::WritableTransactionExecuteError,
     ),
+    #[error(transparent)]
+    AddOrderArgsError(#[from] rain_orderbook_common::add_order::AddOrderArgsError),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }

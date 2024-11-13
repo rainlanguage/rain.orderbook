@@ -1,7 +1,13 @@
 use super::*;
-use alloy::primitives::{utils::parse_units, Bytes, U256};
+use alloy::{
+    primitives::{utils::parse_units, Bytes, U256},
+    sol_types::SolCall,
+};
+use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
-use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
+use rain_orderbook_common::{
+    add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
+};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -23,11 +29,6 @@ pub struct ApprovalCalldata {
     calldata: Bytes,
 }
 impl_wasm_traits!(ApprovalCalldata);
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(transparent)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct DepositCalldatas(pub Vec<Bytes>);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -75,6 +76,7 @@ impl DotrainOrderGui {
             vault_id: order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?,
             amount: parse_units(
                 &deposits_map[&order_io.token.address],
+                // TODO: if decimals are not provided, we should get them from the token contract
                 order_io.token.decimals.unwrap_or(18),
             )?
             .into(),
@@ -161,6 +163,20 @@ impl DotrainOrderGui {
         Ok(serde_wasm_bindgen::to_value(&results)?)
     }
 
+    async fn get_deposit_calldatas(
+        &self,
+        all_vaults: &Vec<OrderIO>,
+        deposits_map: &HashMap<Address, String>,
+    ) -> Result<Vec<Vec<u8>>, GuiError> {
+        let mut results = Vec::new();
+        for order_io in all_vaults.iter() {
+            let deposit_args = self.get_deposit_args(&deposits_map, order_io)?;
+            let calldata = deposit_args.get_deposit_calldata().await?;
+            results.push(calldata);
+        }
+        Ok(results)
+    }
+
     /// Generate deposit calldatas for all inputs and outputs of the order
     ///
     /// Returns a [`DepositCalldatas`] object
@@ -169,23 +185,73 @@ impl DotrainOrderGui {
         let all_vaults = self.get_all_vaults();
         let deposits_map = self.get_deposits_as_map();
 
-        let mut results = Vec::new();
-        for order_io in all_vaults.iter() {
-            let deposit_args = self.get_deposit_args(&deposits_map, order_io)?;
-            let calldata = deposit_args.get_deposit_calldata().await?;
-            results.push(Bytes::copy_from_slice(&calldata));
-        }
+        let calldatas = self
+            .get_deposit_calldatas(&all_vaults, &deposits_map)
+            .await?
+            .iter()
+            .map(|c| Bytes::copy_from_slice(c))
+            .collect::<Vec<_>>();
 
-        Ok(serde_wasm_bindgen::to_value(&DepositCalldatas(results))?)
+        Ok(serde_wasm_bindgen::to_value(&calldatas)?)
     }
 
-    #[wasm_bindgen(js_name = "generateAddOrderCalldatas")]
-    pub async fn generate_add_order_calldatas(&self) -> Result<JsValue, GuiError> {
-        todo!()
+    async fn get_add_order_calldata(
+        &self,
+        orderbook: &Arc<Orderbook>,
+    ) -> Result<Vec<u8>, GuiError> {
+        let add_order_args = AddOrderArgs::new_from_deployment(
+            self.dotrain_order.dotrain(),
+            self.deployment.deployment.as_ref().clone(),
+        )
+        .await?;
+        let calldata = add_order_args
+            .get_add_order_calldata(TransactionArgs {
+                orderbook_address: orderbook.address,
+                rpc_url: orderbook.network.rpc.to_string(),
+                ..Default::default()
+            })
+            .await?;
+        Ok(calldata.into())
+    }
+
+    /// Generate add order calldata
+    #[wasm_bindgen(js_name = "generateAddOrderCalldata")]
+    pub async fn generate_add_order_calldata(&self) -> Result<JsValue, GuiError> {
+        let orderbook = self.get_orderbook()?;
+        let calldata = self.get_add_order_calldata(&orderbook).await?;
+        Ok(serde_wasm_bindgen::to_value(&Bytes::copy_from_slice(
+            &calldata,
+        ))?)
     }
 
     #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
     pub async fn generate_deposit_and_add_order_calldatas(&self) -> Result<JsValue, GuiError> {
-        todo!()
+        let orderbook = self.get_orderbook()?;
+        let all_vaults = self.get_all_vaults();
+        let deposits_map = self.get_deposits_as_map();
+        let mut calls = Vec::new();
+
+        let deposit_calldatas = self
+            .get_deposit_calldatas(&all_vaults, &deposits_map)
+            .await?;
+        for calldata in deposit_calldatas.iter() {
+            calls.push(Call3 {
+                target: orderbook.address,
+                allowFailure: false,
+                callData: Bytes::copy_from_slice(calldata),
+            });
+        }
+
+        let add_order_calldata = self.get_add_order_calldata(&orderbook).await?;
+        calls.push(Call3 {
+            target: orderbook.address,
+            allowFailure: false,
+            callData: Bytes::copy_from_slice(&add_order_calldata),
+        });
+
+        let aggregate_call = aggregate3Call { calls };
+        let calldata = aggregate_call.abi_encode();
+
+        Ok(serde_wasm_bindgen::to_value(&calldata)?)
     }
 }
