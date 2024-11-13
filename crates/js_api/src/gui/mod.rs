@@ -22,7 +22,6 @@ use wasm_bindgen::{
 };
 
 mod state_management;
-use state_management::{clear_state, deserialize_state, serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
@@ -165,21 +164,6 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getAllFieldDefinitions")]
     pub fn get_all_field_definitions(&self) -> Vec<GuiFieldDefinition> {
         self.deployment.fields.clone()
-    }
-
-    #[wasm_bindgen(js_name = "serializeState")]
-    pub fn serialize(&self) -> Result<String, GuiError> {
-        serialize(self)
-    }
-
-    #[wasm_bindgen(js_name = "deserializeState")]
-    pub fn deserialize_state(&mut self, serialized: String) -> Result<(), GuiError> {
-        deserialize_state(self, serialized)
-    }
-
-    #[wasm_bindgen(js_name = "clearState")]
-    pub fn clear_state(&mut self) {
-        clear_state(self)
     }
 }
 
