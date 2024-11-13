@@ -27,13 +27,13 @@
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
-    queryFn: () => {
+    queryFn: ({ pageParam }) => {
       return ordersList(
         $activeSubgraphs,
         Object.values(get(activeAccounts)),
         $activeOrderStatus,
         $orderHash,
-        1,
+        pageParam,
       );
     },
     initialPageParam: 0,
