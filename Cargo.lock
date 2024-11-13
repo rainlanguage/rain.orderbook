@@ -6483,7 +6483,6 @@ dependencies = [
  "cynic-codegen",
  "cynic-introspection",
  "futures",
- "getrandom",
  "httpmock",
  "insta",
  "js-sys",
@@ -6498,7 +6497,6 @@ dependencies = [
  "typeshare",
  "url",
  "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]
