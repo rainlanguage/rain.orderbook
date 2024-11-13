@@ -93,25 +93,6 @@ mod test {
     use std::str::FromStr;
 
     #[test]
-    fn test_to_18_decimals_happy() {
-        // U256
-        let value = U256::from(123456789u32);
-        let result = value.scale_18(12).unwrap();
-        let expected = U256::from_str("123_456_789_000_000").unwrap();
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_to_18_decimals_unhappy() {
-        let result = U256::from_str("4_500_000_000_000_000_000")
-            .unwrap()
-            .scale_18(99)
-            .unwrap();
-        let expected = U256::from(0);
-        assert_eq!(result, expected);
-    }
-
-    #[test]
     fn test_big_uint_math_scale_18() {
         for (value, scale, expected) in &[
             // Smaller decimals, scale up
@@ -141,6 +122,12 @@ mod test {
                 U256::from_str("1000000000000000_0000").unwrap(),
                 22,
                 U256::from_str("1000000000000000").unwrap(),
+            ),
+            // Scaling down truncates
+            (
+                U256::from_str("12345678_9000000000").unwrap(),
+                28,
+                U256::from_str("12345678").unwrap(),
             ),
         ] {
             let result = value.scale_18(*scale).unwrap();
