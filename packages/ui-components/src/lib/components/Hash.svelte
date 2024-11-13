@@ -1,3 +1,12 @@
+<script lang="ts" context="module">
+	export enum HashType {
+		Identifier,
+		Wallet,
+		Transaction,
+		Address
+	}
+</script>
+
 <script lang="ts">
 	import { Tooltip } from 'flowbite-svelte';
 	import {
@@ -14,13 +23,6 @@
 	export let sliceLen = 5;
 	export let copyOnClick = true;
 	let showCopiedMessage = false;
-
-	enum HashType {
-		Identifier,
-		Wallet,
-		Transaction,
-		Address
-	}
 
 	let cursorX = 0;
 	let cursorY = 0;
