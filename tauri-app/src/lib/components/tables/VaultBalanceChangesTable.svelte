@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import Hash from '$lib/components/Hash.svelte';
+  import { Hash } from '@rainlanguage/ui-components';
   import { HashType } from '$lib/types/hash';
   import { formatUnits } from 'viem';
   import { createInfiniteQuery } from '@tanstack/svelte-query';

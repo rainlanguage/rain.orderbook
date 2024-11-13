@@ -5,7 +5,7 @@
   import BadgeActive from '$lib/components/BadgeActive.svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import Hash from '$lib/components/Hash.svelte';
+  import { Hash } from '@rainlanguage/ui-components';
   import { HashType } from '$lib/types/hash';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { subgraphUrl } from '$lib/stores/settings';

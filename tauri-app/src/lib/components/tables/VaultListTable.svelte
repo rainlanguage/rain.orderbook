@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import Hash from '$lib/components/Hash.svelte';
+  import { Hash } from '@rainlanguage/ui-components';
   import { HashType } from '$lib/types/hash';
   import { bigintStringToHex } from '$lib/utils/hex';
   import {
