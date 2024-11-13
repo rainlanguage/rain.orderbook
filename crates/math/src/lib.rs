@@ -1,6 +1,6 @@
 use alloy::primitives::{
-    ruint::{FromUintError, UintTryFrom, UintTryTo},
-    utils::{parse_units, ParseUnits, Unit, UnitsError},
+    ruint::{FromUintError, UintTryTo},
+    utils::UnitsError,
     U256, U512,
 };
 use once_cell::sync::Lazy;
@@ -12,7 +12,7 @@ pub static ONE18: Lazy<U256> = Lazy::new(|| U256::from(1_000_000_000_000_000_000
 pub const FIXED_POINT_DECIMALS: u8 = 18;
 
 #[derive(Error, Debug)]
-enum MathError {
+pub enum MathError {
     #[error("Overflow")]
     Overflow,
     #[error(transparent)]
@@ -128,13 +128,36 @@ mod test {
 
     #[test]
     fn test_big_uint_math_mul_div() {
-        // (10_000 * 8) / 2 = 40_000
-        let value = U256::from(10_000_u16);
-        let mul_value = 8.try_into().unwrap();
-        let div_value = 2_u8.try_into().unwrap();
-        let result = value.mul_div(mul_value, div_value).unwrap();
-        let expected = U256::from(40_000_u32);
-        assert_eq!(result, expected);
+        for (value, mul_value, div_value, expected) in &[
+            (
+                U256::from(10_000_u16),
+                8.try_into().unwrap(),
+                2_u8.try_into().unwrap(),
+                U256::from(40_000_u32),
+            ),
+            (
+                U256::from_str("10_000_000_000_000_000_000").unwrap(),
+                U256::from_str("8_000_000_000_000_000_000").unwrap(),
+                U256::from_str("2_000_000_000_000_000_000").unwrap(),
+                U256::from_str("40_000_000_000_000_000_000").unwrap(),
+            ),
+            // Overflows during mul
+            (
+                U256::from_str(
+                    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                )
+                .unwrap(),
+                U256::from(2),
+                U256::from(3),
+                U256::from_str(
+                    "77194726158210796949047323339125271902179989777093709359638389338608753093290",
+                )
+                .unwrap(),
+            ),
+        ] {
+            let result = value.mul_div(*mul_value, *div_value).unwrap();
+            assert_eq!(&result, expected);
+        }
     }
 
     #[test]
