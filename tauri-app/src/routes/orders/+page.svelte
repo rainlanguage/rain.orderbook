@@ -6,7 +6,6 @@
     activeOrderbook,
   } from '$lib/stores/settings';
   import { onMount } from 'svelte';
-  import OrdersListTable from '$lib/components/tables/OrdersListTable.svelte';
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -17,6 +16,3 @@
 </script>
 
 <PageHeader title="Orders" />
-<h1>HEllo!</h1>
-
-<OrdersListTable />

@@ -13,21 +13,18 @@
 	// import { get } from 'svelte/store';
 	import { orderHash } from '../stores/settings.ts';
 	import { goto } from '$app/navigation';
-	import {
-		Badge,
-		TableBodyCell,
-		TableHeadCell,
-		Button,
-		Dropdown,
-		DropdownItem
-	} from 'flowbite-svelte';
+	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '../utils/time.ts';
 	import Hash from './Hash.svelte';
-	import { HashType } from '../types/hashType.ts';
 
 	export let connectedWalletAddress: string = '';
 
-	$: console.log('connectedWalletAddress', connectedWalletAddress);
+	enum HashType {
+		Identifier,
+		Wallet,
+		Transaction,
+		Address
+	}
 
 	const multiSubgraphArgs: MultiSubgraphArgs[] = Object.entries($activeSubgraphs).map(
 		([name, url]) => ({
