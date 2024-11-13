@@ -369,9 +369,8 @@ pub struct AddOrder {
 }
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[cfg_attr(target_family = "wasm", derive(Tsify), serde(rename = "SgBigInt"))]
 #[typeshare]
-#[serde(rename = "SgBigInt")]
 pub struct BigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq)]

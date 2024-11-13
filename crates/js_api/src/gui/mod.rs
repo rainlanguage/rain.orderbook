@@ -2,39 +2,28 @@ use alloy::primitives::Address;
 use rain_orderbook_app_settings::gui::{
     Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
 };
-use rain_orderbook_bindings::impl_wasm_traits;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::dotrain_order::{DotrainOrder, DotrainOrderError};
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::{from_value, to_value};
 use std::collections::HashMap;
 use thiserror::Error;
 use tsify::Tsify;
-use wasm_bindgen::{
-    convert::{
-        js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
-        LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
-    },
-    describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR},
-    prelude::*,
-};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TokenDeposit {
     token: String,
     amount: String,
     #[tsify(type = "string")]
     address: Address,
 }
-impl_wasm_traits!(TokenDeposit);
+impl_all_wasm_traits!(TokenDeposit);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct FieldValuePair {
     binding: String,
     value: String,
 }
-impl_wasm_traits!(FieldValuePair);
+impl_all_wasm_traits!(FieldValuePair);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
