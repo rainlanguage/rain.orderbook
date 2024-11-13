@@ -40,6 +40,30 @@ gui:
             - value: "582.1"
             - value: "648.239"
 `;
+const guiConfig2 = `
+gui:
+  name: Test test
+  description: Test test test
+  deployments:
+    - deployment: other-deployment
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "test-value"
+`;
 
 const dotrain = `
 networks:
@@ -95,6 +119,9 @@ orders:
 
 deployments:
     some-deployment:
+        scenario: some-scenario
+        order: some-order
+    other-deployment:
         scenario: some-scenario
         order: some-order
 ---
@@ -259,7 +286,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedString =
-      "H4sIAAAAAAAA_3WNwQ6CMBBE_2XPaHahLYVfMca03cU0YjEWjAnh360cvHmazEzezApDlJEvLzcukqFfwcfEMV0PBD3gm-pGadPaDp0PLMM_D9UPrAtIiLBVwPKYcpzL7mmFebpJKt2uVAB3n5Y0l0Tj0Xw981Ny3n9DTU3NqLmh0JFytg3GEAXCVlknHpXXVuwA23n7AOb4sTzEAAAA";
+      "H4sIAAAAAAAA_3WMuw3CQBBE-RgkMiQIXQGS0e79fM6I6eLu9hZZSCZxQAdIBCCKoQECGqAMmiBgIyQmmZkXvM3gG3IeCUxWDROSy16TjTpapSKj14lTysaAR4bIpG1tgvG1TxY4MDY0Es9MOrYdtd2uwpUAOKLSxrraNxBiosz__q9CjQUgwFDmVLo_7HOHhTwLa7eU_VhUk1d5256eoZz353dxv1w_3kRs8-0AAAA=";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
@@ -296,6 +323,19 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       assert.equal(
         deposits[0].address,
         "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+      );
+    });
+
+    it("should throw error during deserialize if config is different", async () => {
+      let dotrain2 = `
+${guiConfig2}
+
+${dotrain}
+`;
+      let gui2 = await DotrainOrderGui.init(dotrain2, "other-deployment");
+      let serialized = gui2.serializeState();
+      expect(() => gui.deserializeState(serialized)).toThrow(
+        "Deserialized config mismatch"
       );
     });
 

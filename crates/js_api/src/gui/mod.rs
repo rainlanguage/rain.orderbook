@@ -23,7 +23,7 @@ use wasm_bindgen::{
 };
 
 mod order_operations;
-use order_operations::check_allowances;
+mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
@@ -42,12 +42,6 @@ pub struct FieldValuePair {
     value: String,
 }
 impl_wasm_traits!(FieldValuePair);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct SerializedGuiState {
-    field_values: BTreeMap<String, String>,
-    deposits: Vec<TokenDeposit>,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -173,51 +167,6 @@ impl DotrainOrderGui {
     pub fn get_all_field_definitions(&self) -> Vec<GuiFieldDefinition> {
         self.deployment.fields.clone()
     }
-
-    #[wasm_bindgen(js_name = "serializeState")]
-    pub fn serialize(&self) -> Result<String, GuiError> {
-        let state = SerializedGuiState {
-            field_values: self.field_values.clone(),
-            deposits: self.deposits.clone(),
-        };
-        let json = serde_json::to_string(&state)?;
-
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(json.as_bytes())?;
-        let compressed = encoder.finish()?;
-
-        Ok(URL_SAFE.encode(compressed))
-    }
-
-    #[wasm_bindgen(js_name = "deserializeState")]
-    pub fn deserialize_state(&mut self, serialized: String) -> Result<(), GuiError> {
-        let compressed = URL_SAFE.decode(serialized)?;
-
-        let mut decoder = GzDecoder::new(&compressed[..]);
-        let mut json = String::new();
-        decoder.read_to_string(&mut json)?;
-
-        let state: SerializedGuiState = serde_json::from_str(&json)?;
-        self.field_values = state.field_values;
-        self.deposits = state.deposits;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = "clearState")]
-    pub fn clear_state(&mut self) {
-        self.field_values.clear();
-        self.deposits.clear();
-    }
-
-    #[wasm_bindgen(js_name = "checkAllowances")]
-    pub async fn check_allowances(
-        &self,
-        rpc_url: String,
-        owner: String,
-    ) -> Result<JsValue, GuiError> {
-        check_allowances(self, rpc_url, owner).await
-    }
 }
 
 #[derive(Error, Debug)]
@@ -232,6 +181,8 @@ pub enum GuiError {
     DepositTokenNotFound(String),
     #[error("Orderbook not found")]
     OrderbookNotFound,
+    #[error("Deserialized config mismatch")]
+    DeserializedConfigMismatch,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -239,7 +190,7 @@ pub enum GuiError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
-    SerdeJsonError(#[from] serde_json::Error),
+    BincodeError(#[from] bincode::Error),
     #[error(transparent)]
     Base64Error(#[from] base64::DecodeError),
     #[error(transparent)]
