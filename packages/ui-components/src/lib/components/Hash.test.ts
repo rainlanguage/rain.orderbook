@@ -1,6 +1,6 @@
 import { render } from '@testing-library/svelte';
 import Hash from './Hash.svelte';
-import { describe, it, expect} from 'vitest';
+import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
 describe('Hash Component', () => {
@@ -29,7 +29,7 @@ describe('Hash Component', () => {
 	});
 
 	it('copies hash to clipboard and shows copied message', async () => {
-		const user = userEvent.setup()
+		const user = userEvent.setup();
 
 		const { getByRole, findByText } = render(Hash, {
 			props: {
@@ -44,11 +44,10 @@ describe('Hash Component', () => {
 		expect(await findByText('Copied to clipboard')).toBeInTheDocument();
 		const clipboardText = await navigator.clipboard.readText();
 		expect(clipboardText).toBe('abcdef1234567890');
-
 	});
 
 	it('does not copy to clipboard if copyOnClick is false', async () => {
-		const user = userEvent.setup()
+		const user = userEvent.setup();
 
 		const { getByRole } = render(Hash, {
 			props: {
@@ -62,6 +61,5 @@ describe('Hash Component', () => {
 		await user.click(button);
 		const clipboardText = await navigator.clipboard.readText();
 		expect(clipboardText).toBe('');
-
 	});
 });
