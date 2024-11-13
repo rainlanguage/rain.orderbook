@@ -183,6 +183,8 @@ pub enum GuiError {
     OrderbookNotFound,
     #[error("Deserialized config mismatch")]
     DeserializedConfigMismatch,
+    #[error("Vault id not found")]
+    VaultIdNotFound,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -198,9 +200,15 @@ pub enum GuiError {
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
     #[error(transparent)]
+    DepositError(#[from] rain_orderbook_common::deposit::DepositError),
+    #[error(transparent)]
+    ParseError(#[from] alloy::primitives::ruint::ParseError),
+    #[error(transparent)]
     ReadContractParametersBuilderError(
         #[from] alloy_ethers_typecast::transaction::ReadContractParametersBuilderError,
     ),
+    #[error(transparent)]
+    UnitsError(#[from] alloy::primitives::utils::UnitsError),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }
