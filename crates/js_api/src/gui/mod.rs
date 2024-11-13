@@ -210,6 +210,10 @@ pub enum GuiError {
     #[error(transparent)]
     UnitsError(#[from] alloy::primitives::utils::UnitsError),
     #[error(transparent)]
+    WritableTransactionExecuteError(
+        #[from] rain_orderbook_common::transaction::WritableTransactionExecuteError,
+    ),
+    #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }
 impl From<GuiError> for JsValue {
