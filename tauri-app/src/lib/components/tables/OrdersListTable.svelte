@@ -24,28 +24,39 @@
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
   import { get } from 'svelte/store';
   import { orderHash } from '$lib/stores/settings';
+  import { onMount } from 'svelte';
+
+  onMount(async () => {
+    console.log('Hello!');
+  });
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
-    queryFn: ({ pageParam }) => {
+    queryFn: () => {
       return ordersList(
         $activeSubgraphs,
         Object.values(get(activeAccounts)),
         $activeOrderStatus,
         $orderHash,
-        pageParam,
+        1,
       );
     },
     initialPageParam: 0,
     getNextPageParam(lastPage, _allPages, lastPageParam) {
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
-    refetchInterval: DEFAULT_REFRESH_INTERVAL,
+    // refetchInterval: DEFAULT_REFRESH_INTERVAL,
     enabled: Object.keys($activeSubgraphs).length > 0,
   });
+
+  $: console.log($query);
 </script>
 
 {#if $query}
+  {Object.keys($activeSubgraphs).length}
+  {$query.isFetching}
+  {$query.isError}
+  {$query.error}
   <TanstackAppTable
     {query}
     emptyMessage="No Orders Found"

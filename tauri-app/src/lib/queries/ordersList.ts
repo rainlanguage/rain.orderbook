@@ -27,6 +27,7 @@ export const ordersList = async (
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
 ) => {
+  console.log('ordersList')
   if (!Object.keys(activeSubgraphs).length) {
     return [];
   }
