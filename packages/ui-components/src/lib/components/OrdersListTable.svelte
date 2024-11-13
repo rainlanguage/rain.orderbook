@@ -1,19 +1,17 @@
 <script lang="ts" generics="T">
-	import type { log } from 'console';
-
-	import { QKEY_ORDERS } from '$lib/queries/keys';
-	// import { ordersList } from '$lib/queries/ordersList';
+	import { QKEY_ORDERS } from '../queries/keys.ts';
+	// import { ordersList } from '../queries/ordersList';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
+	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../queries/constants.ts';
 	import TanstackAppTable from './TanstackAppTable.svelte';
 	// import { goto } from '$app/navigation';
-	// import { HashType } from '$lib/types/hash';
-	import { activeSubgraphs, activeAccounts, activeOrderStatus } from '$lib/stores/settings';
-	// import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-	// import { handleOrderRemoveModal } from '$lib/services/modal';
+	// import { HashType } from '../types/hash';
+	import { activeSubgraphs, activeAccounts, activeOrderStatus } from '../stores/settings.ts';
+	// import { formatTimestampSecondsAsLocal } from '../utils/time';
+	// import { handleOrderRemoveModal } from '../services/modal';
 	// import { get } from 'svelte/store';
-	import { orderHash } from '$lib/stores/settings';
+	import { orderHash } from '../stores/settings.ts';
 	import { goto } from '$app/navigation';
 	import {
 		Badge,
@@ -23,9 +21,9 @@
 		Dropdown,
 		DropdownItem
 	} from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '$lib/utils/time.js';
-	import Hash from '$lib/components/Hash.svelte';
-	import { HashType } from '$lib/types/hash';
+	import { formatTimestampSecondsAsLocal } from '../utils/time.ts';
+	import Hash from './Hash.svelte';
+	import { HashType } from '../types/hashType.ts';
 
 	export let connectedWalletAddress: string = '';
 

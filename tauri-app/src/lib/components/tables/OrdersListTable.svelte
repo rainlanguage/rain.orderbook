@@ -16,7 +16,7 @@
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import Hash from '$lib/components/Hash.svelte';
+  import Hash from '@rainlanguage/ui-components';
   import { HashType } from '$lib/types/hash';
   import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
@@ -24,11 +24,6 @@
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
   import { get } from 'svelte/store';
   import { orderHash } from '$lib/stores/settings';
-  import { onMount } from 'svelte';
-
-  onMount(async () => {
-    console.log('Hello!');
-  });
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
@@ -45,18 +40,12 @@
     getNextPageParam(lastPage, _allPages, lastPageParam) {
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
-    // refetchInterval: DEFAULT_REFRESH_INTERVAL,
+    refetchInterval: DEFAULT_REFRESH_INTERVAL,
     enabled: Object.keys($activeSubgraphs).length > 0,
   });
-
-  $: console.log($query);
 </script>
 
 {#if $query}
-  {Object.keys($activeSubgraphs).length}
-  {$query.isFetching}
-  {$query.isError}
-  {$query.error}
   <TanstackAppTable
     {query}
     emptyMessage="No Orders Found"

@@ -39,7 +39,10 @@
 	"svelte": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"type": "module",
+
 	"dependencies": {
+		"svelte": "^4.2.7",
+  		"@sveltejs/kit": "^2.0.0",
 		"@rainlanguage/orderbook": "*",
 		"@square/svelte-store": "^1.0.18",
 		"@tanstack/svelte-query": "^5.59.20",

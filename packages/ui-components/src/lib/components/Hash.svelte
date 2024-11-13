@@ -6,7 +6,13 @@
 		ClipboardListOutline,
 		ClipboardOutline
 	} from 'flowbite-svelte-icons';
-	import { HashType } from '$lib/types/hash';
+
+	enum HashType {
+		Identifier,
+		Wallet,
+		Transaction,
+		Address
+	}
 
 	export let value: string;
 	export let type: HashType | undefined = undefined;

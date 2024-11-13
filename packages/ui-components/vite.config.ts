@@ -1,12 +1,17 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
+import { resolve } from 'path';
+
 
 export default defineConfig(({ mode }) => ({
 	plugins: [sveltekit()],
 	resolve: {
 		conditions: mode === 'test' ? ['browser'] : []
 	},
+	alias: {
+      $lib: resolve('./src/lib')
+    },
 	define: {
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
