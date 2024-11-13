@@ -15,7 +15,7 @@ export type OrdersListArgs = {
   };
   paginationArgs: {
     page: number;
-    page_size: number;
+    pageSize: number;
   };
 };
 
@@ -40,7 +40,7 @@ export const ordersList = async (
       active,
       orderHash: orderHash || undefined,
     },
-    paginationArgs: { page: pageParam + 1, page_size: pageSize },
+    paginationArgs: { page: pageParam + 1, pageSize },
   } as OrdersListArgs);
 };
 
