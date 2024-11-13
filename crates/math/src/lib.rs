@@ -113,17 +113,39 @@ mod test {
 
     #[test]
     fn test_big_uint_math_scale_18() {
-        // u8
-        let value = U256::from(121_u8);
-        let result = value.scale_18(4).unwrap();
-        let expected = U256::from_str("12_100_000_000_000_000").unwrap();
-        assert_eq!(result, expected);
-
-        // U256
-        let value = U256::from(123456789u32);
-        let result = value.scale_18(12).unwrap();
-        let expected = U256::from_str("123_456_789_000_000").unwrap();
-        assert_eq!(result, expected);
+        for (value, scale, expected) in &[
+            // Smaller decimals, scale up
+            (
+                U256::from_str("123_456_789_000_000").unwrap(),
+                8,
+                U256::from_str("123_456_789_000_000_0000000000").unwrap(),
+            ),
+            (
+                U256::from_str("10_000_000_000_000_000_000").unwrap(),
+                8,
+                U256::from_str("10_000_000_000_000_000_000_0000000000").unwrap(),
+            ),
+            // 18 decimals already, do nothing
+            (
+                U256::from_str("123_456_789_000_000_000").unwrap(),
+                18,
+                U256::from_str("123_456_789_000_000_000").unwrap(),
+            ),
+            // Larger decimals, scale down
+            (
+                U256::from_str("12345678900000_0000").unwrap(),
+                22,
+                U256::from_str("12345678900000").unwrap(),
+            ),
+            (
+                U256::from_str("1000000000000000_0000").unwrap(),
+                22,
+                U256::from_str("1000000000000000").unwrap(),
+            ),
+        ] {
+            let result = value.scale_18(*scale).unwrap();
+            assert_eq!(&result, expected);
+        }
     }
 
     #[test]
@@ -162,21 +184,41 @@ mod test {
 
     #[test]
     fn test_big_uint_math_mul_18() {
-        // 10_000 * 3 = 30_000
-        let value = U256::from(10_000_u32).scale_18(0).unwrap();
-        let mul_value = U256::from(3_u16).scale_18(0).unwrap();
-        let result = value.mul_18(mul_value).unwrap();
-        let expected = U256::from_str("30_000_000_000_000_000_000_000").unwrap();
-        assert_eq!(result, expected);
+        for (value, mul_value, expected) in &[
+            (
+                U256::from(10_000_u16).scale_18(0).unwrap(),
+                U256::from(3).scale_18(0).unwrap(),
+                U256::from(30_000_u32).scale_18(0).unwrap(),
+            ),
+            // Overflows during mul
+            (
+                U256::from_str("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap(),
+                U256::from(3).scale_18(0).unwrap(),
+                U256::from_str("21711016731996786641919559689128982722488122124807605757398297001483711807485").unwrap(),
+            ),
+        ] {
+            let result = value.mul_18(*mul_value).unwrap();
+            assert_eq!(&result, expected);
+        }
     }
 
     #[test]
     fn test_big_uint_math_div_18() {
-        // 10_000 / 3 = 3_333.3333...
-        let value = U256::from(10_000_u64).scale_18(0).unwrap();
-        let mul_value = U256::from(3_u8).scale_18(0).unwrap();
-        let result = value.div_18(mul_value).unwrap();
-        let expected = U256::from_str("3_333_333_333_333_333_333_333").unwrap();
-        assert_eq!(result, expected);
+        for (value, mul_value, expected) in &[
+            (
+                U256::from(10_000_u16).scale_18(0).unwrap(),
+                U256::from(3).scale_18(0).unwrap(),
+                U256::from_str("3333333333333333333333").unwrap(),
+            ),
+            // Overflows during div
+            (
+                U256::from_str("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap(),
+                U256::from(3).scale_18(0).unwrap(),
+                U256::from_str("38597363079105398474523661669562635951089994888546854679819194669304376546645").unwrap(),
+            ),
+        ] {
+            let result = value.div_18(*mul_value).unwrap();
+            assert_eq!(&result, expected);
+        }
     }
 }
