@@ -17,7 +17,7 @@
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { Hash } from '@rainlanguage/ui-components';
-  import { HashType } from '$lib/types/hash';
+
   import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
   import { handleOrderRemoveModal } from '$lib/services/modal';

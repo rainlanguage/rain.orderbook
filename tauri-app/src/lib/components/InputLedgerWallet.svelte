@@ -8,8 +8,7 @@
   import IconWarning from '$lib/components/IconWarning.svelte';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import ButtonLoading from './ButtonLoading.svelte';
-  import { Hash } from '@rainlanguage/ui-components';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
 
   const maskOptions = {
     mask: Number,

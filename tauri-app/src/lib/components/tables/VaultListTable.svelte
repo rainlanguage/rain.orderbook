@@ -3,8 +3,8 @@
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { Hash } from '@rainlanguage/ui-components';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import { bigintStringToHex } from '$lib/utils/hex';
   import {
     activeNetworkRef,

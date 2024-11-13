@@ -5,8 +5,8 @@
   import { orderVaultsVolume } from '$lib/queries/orderTradesList';
   import { subgraphUrl } from '$lib/stores/settings';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-  import { Hash } from '@rainlanguage/ui-components';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import { formatUnits } from 'viem';
   import TableTimeFilters from '../charts/TableTimeFilters.svelte';
   import { bigintStringToHex } from '$lib/utils/hex';
