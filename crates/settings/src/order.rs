@@ -5,23 +5,54 @@ use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::impl_wasm_traits;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen::{from_value, to_value};
+#[cfg(target_family = "wasm")]
+use tsify::Tsify;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIO {
     #[typeshare(typescript(type = "Token"))]
     pub token: Arc<Token>,
     #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub vault_id: Option<U256>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderIO);
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 #[serde(rename_all = "kebab-case")]
 pub struct Order {
     #[typeshare(typescript(type = "OrderIO[]"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
     pub inputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "OrderIO[]"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
     pub outputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
@@ -30,6 +61,8 @@ pub struct Order {
     #[typeshare(typescript(type = "Orderbook"))]
     pub orderbook: Option<Arc<Orderbook>>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(Order);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseOrderConfigSourceError {

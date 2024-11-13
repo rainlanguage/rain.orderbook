@@ -14,7 +14,7 @@ export type VaultsListArgs = {
   };
   paginationArgs: {
     page: number;
-    page_size: number;
+    pageSize: number;
   };
 };
 
@@ -37,7 +37,7 @@ export const vaultList = async (
       owners,
       hideZeroBalance,
     },
-    paginationArgs: { page: pageParam + 1, page_size: pageSize },
+    paginationArgs: { page: pageParam + 1, pageSize },
   } as VaultsListArgs);
 };
 
