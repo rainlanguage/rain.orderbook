@@ -21,9 +21,9 @@ pub struct MultiSubgraphArgs {
 #[cfg(target_family = "wasm")]
 mod wasm_impls {
     use super::*;
-    use rain_orderbook_bindings::d;
+    use rain_orderbook_bindings::impl_all_wasm_traits;
 
-    d!(MultiSubgraphArgs);
+    impl_all_wasm_traits!(MultiSubgraphArgs);
 }
 
 pub struct MultiOrderbookSubgraphClient {
