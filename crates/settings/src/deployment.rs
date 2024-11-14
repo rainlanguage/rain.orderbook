@@ -5,7 +5,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use rain_orderbook_bindings::impl_all_wasm_traits;
 #[cfg(target_family = "wasm")]
 use tsify::Tsify;
 

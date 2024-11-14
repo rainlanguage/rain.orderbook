@@ -566,7 +566,7 @@ pub enum VaultOrderBy {
 #[cfg(target_family = "wasm")]
 mod impls {
     use super::*;
-    use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+    use rain_orderbook_bindings::impl_all_wasm_traits;
 
     impl_all_wasm_traits!(Order);
     impl_all_wasm_traits!(Vault);

@@ -2,7 +2,7 @@ use alloy::primitives::Address;
 use rain_orderbook_app_settings::gui::{
     Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
 };
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use rain_orderbook_bindings::impl_all_wasm_traits;
 use rain_orderbook_common::dotrain_order::{DotrainOrder, DotrainOrderError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

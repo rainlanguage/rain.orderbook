@@ -373,7 +373,7 @@ impl From<MainTakeOrdersConfigV3> for TakeOrdersConfigV3 {
 }
 
 mod impls {
-    use super::super::{impl_all_wasm_traits, wasm_traits::prelude::*};
+    use crate::impl_all_wasm_traits;
 
     impl_all_wasm_traits!(super::IO);
     impl_all_wasm_traits!(super::Quote);
