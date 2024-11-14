@@ -4,7 +4,8 @@ import { neutral, indigo } from 'tailwindcss/colors';
 export default {
 	content: [
 		'./src/**/*.{html,js,svelte,ts}',
-		'./node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}'
+		'../../node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}',
+		'../../node_modules/@rainlanguage/ui-components/**/*.{html,js,svelte,ts}'
 	],
 
 	theme: {
