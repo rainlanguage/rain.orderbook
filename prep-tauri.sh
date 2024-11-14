@@ -24,10 +24,10 @@ nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata
 nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
-nix develop -i ${keep[@]} -c npm run build
-
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
+nix develop -i ${keep[@]} -c npm run build
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-unit-test
+
 
 # Run commands in tauri-app
 nix develop -i ${keep[@]} .#tauri-shell -c bash -c '(cd tauri-app && cargo build --verbose)'
