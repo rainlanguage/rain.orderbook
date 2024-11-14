@@ -29,7 +29,7 @@ describe('Hash Component', () => {
 	});
 
 	it('copies hash to clipboard and shows copied message', async () => {
-		const user = userEvent.setup();
+		const user = userEvent.default.setup();
 
 		const { getByRole, findByText } = render(Hash, {
 			props: {
@@ -47,7 +47,7 @@ describe('Hash Component', () => {
 	});
 
 	it('does not copy to clipboard if copyOnClick is false', async () => {
-		const user = userEvent.setup();
+		const user = userEvent.default.setup();
 
 		const { getByRole } = render(Hash, {
 			props: {

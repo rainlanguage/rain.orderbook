@@ -44,8 +44,6 @@
 		"@square/svelte-store": "^1.0.18",
 		"@sveltejs/kit": "^2.0.0",
 		"@tanstack/svelte-query": "^5.59.20",
-		"@testing-library/jest-dom": "^6.6.3",
-		"@testing-library/svelte": "^5.2.4",
 		"@testing-library/user-event": "^14.5.2",
 		"dayjs": "^1.11.13",
 		"flowbite-svelte": "^0.44.21",
