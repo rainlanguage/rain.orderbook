@@ -12,7 +12,7 @@ pub mod prelude {
 #[macro_export]
 macro_rules! impl_main_wasm_traits {
     ($struct_name:path) => {{
-        pub use $crate::wasm_traits::prelude::*;
+        use $crate::wasm_traits::prelude::*;
 
         impl WasmDescribe for $struct_name {
             #[inline]
@@ -61,7 +61,7 @@ macro_rules! impl_main_wasm_traits {
 #[macro_export]
 macro_rules! impl_complementary_wasm_traits {
     ($struct_name:path) => {{
-        pub use $crate::wasm_traits::prelude::*;
+        use $crate::wasm_traits::prelude::*;
 
         impl RefFromWasmAbi for $struct_name {
             type Abi = <JsValue as RefFromWasmAbi>::Abi;
