@@ -52,7 +52,8 @@
         "vitest": "^2.0.5"
 	},
     "workspaces": [
-        "packages/*"
+        "packages/*",
+        "tauri-app"
     ],
     "dependencies": {
         "flowbite": "^2.2.1",
