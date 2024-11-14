@@ -43,7 +43,8 @@
 		"jsdom": "^25.0.1"
 	},
 	"devDependencies": {
-		"flowbite": "^2.5.2",
-		"flowbite-svelte": "^0.47.3"
+	    "flowbite": "^2.2.1",
+    "flowbite-svelte": "^0.44.21",
+    "flowbite-svelte-icons": "^0.4.5"
 	}
 }
