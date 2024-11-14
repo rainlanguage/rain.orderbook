@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use alloy::primitives::{
     ruint::{FromUintError, UintTryTo},
     utils::UnitsError,
@@ -36,30 +38,26 @@ pub trait BigUintMath {
 impl BigUintMath for U256 {
     /// Scales the value up by the given number of decimals
     fn scale_up(self, scale_up_by: u8) -> Result<U256, MathError> {
-        Ok(self
-            .checked_mul(UintTryTo::<U256>::uint_try_to(
-                &U256::from(10_u8).pow(U256::from(scale_up_by)),
-            )?)
-            .ok_or(MathError::Overflow)?)
+        self.checked_mul(UintTryTo::<U256>::uint_try_to(
+            &U256::from(10_u8).pow(U256::from(scale_up_by)),
+        )?)
+        .ok_or(MathError::Overflow)
     }
 
     /// Scales the value down by the given number of decimals
     fn scale_down(self, scale_down_by: u8) -> Result<U256, MathError> {
-        Ok(self
-            .checked_div(UintTryTo::<U256>::uint_try_to(
-                &U256::from(10_u8).pow(U256::from(scale_down_by)),
-            )?)
-            .ok_or(MathError::Overflow)?)
+        self.checked_div(UintTryTo::<U256>::uint_try_to(
+            &U256::from(10_u8).pow(U256::from(scale_down_by)),
+        )?)
+        .ok_or(MathError::Overflow)
     }
 
     /// Scales the value to 18 point decimals U256
     fn scale_18(self, decimals: u8) -> Result<U256, MathError> {
-        if decimals > FIXED_POINT_DECIMALS {
-            self.scale_down(decimals - FIXED_POINT_DECIMALS)
-        } else if decimals < FIXED_POINT_DECIMALS {
-            self.scale_up(FIXED_POINT_DECIMALS - decimals)
-        } else {
-            Ok(self)
+        match decimals.cmp(&FIXED_POINT_DECIMALS) {
+            Ordering::Greater => self.scale_down(decimals - FIXED_POINT_DECIMALS),
+            Ordering::Less => self.scale_up(FIXED_POINT_DECIMALS - decimals),
+            Ordering::Equal => Ok(self),
         }
     }
 
@@ -179,9 +177,15 @@ mod test {
             ),
             // Overflows during mul
             (
-                U256::from_str("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap(),
+                U256::from_str(
+                    "0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                )
+                .unwrap(),
                 U256::from(3).scale_18(0).unwrap(),
-                U256::from_str("21711016731996786641919559689128982722488122124807605757398297001483711807485").unwrap(),
+                U256::from_str(
+                    "21711016731996786641919559689128982722488122124807605757398297001483711807485",
+                )
+                .unwrap(),
             ),
         ] {
             let result = value.mul_18(*mul_value).unwrap();
@@ -199,9 +203,15 @@ mod test {
             ),
             // Overflows during div
             (
-                U256::from_str("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap(),
+                U256::from_str(
+                    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                )
+                .unwrap(),
                 U256::from(3).scale_18(0).unwrap(),
-                U256::from_str("38597363079105398474523661669562635951089994888546854679819194669304376546645").unwrap(),
+                U256::from_str(
+                    "38597363079105398474523661669562635951089994888546854679819194669304376546645",
+                )
+                .unwrap(),
             ),
         ] {
             let result = value.div_18(*mul_value).unwrap();
