@@ -3,6 +3,7 @@ mod detail;
 mod list;
 mod list_balance_changes;
 mod withdraw;
+mod balance;
 
 use crate::execute::Execute;
 use anyhow::Result;
