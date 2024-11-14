@@ -1,32 +1,46 @@
-use crate::subgraph::{fetch_vault_balance}; // Import subgraph query logic
 use anyhow::Result;
-use clap::{Args, Subcommand};
-use crate::telegram::send_telegram_alert; // Telegram notification
 
-#[derive(Args)]
-pub struct VaultArgs {
-    pub order_id: String, // Order ID to check balance for
-    pub threshold: f64,   // The balance threshold for alert
+async fn fetch_vault_balance(url: &str, query: &str) -> Result<Value> {
+    let client = Client::new();
+
+    let req_body = serde_json::json!({
+        "query": query
+    });
+
+    let req = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(req_body.to_string())
+        .send()
+        .await?;
+    let text = req.text().await?;
+    Ok(serde_json::from_str(&text)?)
 }
 
-#[derive(Subcommand)]
-pub enum Vault {
-    CheckBalance(VaultArgs),
+async fn get_data(url: &str, query: &str) -> Result<Value> {
+    let data = fetch_vault_balance(url, query).await?;
+    if let Some(errors) = data.get("errors") {
+        return Err(anyhow::anyhow!("Error(s) occurred: {:?}", errors));
+    }
+    Ok(data)
 }
 
-impl Vault {
-    pub async fn execute(self) -> Result<()> {
-        match self {
-            Vault::CheckBalance(args) => {
-                let balance = fetch_vault_balance(&args.order_id).await?;
-                println!("Vault balance for order {}: {}", args.order_id, balance);
-
-                if balance < args.threshold {
-                    // Send a Telegram alert if the balance is below the threshold
-                    send_telegram_alert(&args.order_id, balance).await?;
-                }
-                Ok(())
+pub async fn get_balances() -> Result<Vec<String>> {
+    let query = r#"
+        query MyQuery() {
+            vaults {
+                balance
             }
         }
-    }
+    "#;
+
+    let subgraph_url = arg_matches
+        .get_one::<String>("subgraph-url")
+        .map(|s| s.to_string())
+        .or_else(|| env::var("ORDERBOOK_SUBGRAPH_URL").ok())
+        .expect("ORDERBOOK_SUBGRAPH_URL not set");
+
+    let res = get_data(&subgraph_url, query).await?;
+    dbg!(res);
+    Ok(res)
 }
