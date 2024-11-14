@@ -1,15 +1,13 @@
-use std::cmp::Ordering;
-
 use alloy::primitives::{
     ruint::{FromUintError, UintTryTo},
     utils::UnitsError,
     U256, U512,
 };
-use once_cell::sync::Lazy;
+use std::cmp::Ordering;
 use thiserror::Error;
 
 /// 1e18 or one ether in U256
-pub static ONE18: Lazy<U256> = Lazy::new(|| U256::from(1_000_000_000_000_000_000_u64));
+pub const ONE18: U256 = U256::from_limbs([1_000_000_000_000_000_000_u64, 0_u64, 0_u64, 0_u64]);
 
 pub const FIXED_POINT_DECIMALS: u8 = 18;
 
@@ -30,7 +28,7 @@ impl From<FromUintError<U512>> for MathError {
     }
 }
 
-/// A trait that provide math operations as Uint256
+/// A trait that provides math operations as Uint256
 pub trait BigUintMath {
     fn scale_up(self, scale_up_by: u8) -> Result<U256, MathError>;
     fn scale_down(self, scale_down_by: u8) -> Result<U256, MathError>;
@@ -80,12 +78,12 @@ impl BigUintMath for U256 {
 
     /// Performs 18 fixed point mul operation
     fn mul_18(self, other: U256) -> Result<U256, MathError> {
-        self.mul_div(other, *ONE18)
+        self.mul_div(other, ONE18)
     }
 
     /// Performs 18 fixed point div operation
     fn div_18(self, other: U256) -> Result<U256, MathError> {
-        self.mul_div(*ONE18, other)
+        self.mul_div(ONE18, other)
     }
 }
 
