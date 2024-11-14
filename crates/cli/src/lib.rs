@@ -10,7 +10,6 @@ mod output;
 mod status;
 mod subgraph;
 mod transaction;
-mod telegram;
 
 #[derive(Subcommand)]
 pub enum Orderbook {
@@ -20,8 +19,10 @@ pub enum Orderbook {
     #[command(subcommand)]
     Vault(vault::Vault),
 
-    #[command(subcommand)]
-    Balance(vault::Vault),
+    Balance {
+        #[arg(long, env = "ORDERBOOK_SUBGRAPH_URL")]
+        subgraph_url: String,
+    },
 
     #[command(subcommand)]
     Trade(Trade),
@@ -41,7 +42,11 @@ impl Orderbook {
         match self {
             Orderbook::Order(order) => order.execute().await,
             Orderbook::Vault(vault) => vault.execute().await,
-            Orderbook::Balance(balance) => balance.execute().await,
+            Orderbook::Balance { subgraph_url } => {
+                let balances = crate::commands::vault::balance::get_balances(&subgraph_url).await?;
+                dbg!(balances);
+                Ok(())
+            },
             Orderbook::Trade(trade) => trade.execute().await,
             Orderbook::Chart(chart) => chart.execute().await,
             Orderbook::Quote(quote) => quote.execute().await,
