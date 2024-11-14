@@ -2,8 +2,7 @@
   import IconWarning from '$lib/components/IconWarning.svelte';
   import { Alert } from 'flowbite-svelte';
   import ButtonLoading from './ButtonLoading.svelte';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
   import {
     walletconnectConnect,
     walletconnectAccount,
