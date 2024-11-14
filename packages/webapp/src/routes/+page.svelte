@@ -1,5 +1,5 @@
 <script>
-	import { Hash } from '@rainlanguage/ui-components';
+	import { Hash, HashType } from '@rainlanguage/ui-components';
 </script>
 
 <div data-testid="page-container">
