@@ -1,4 +1,4 @@
-use crate::commands::{Chart, Order, Subgraph, Trade, vault, Words};
+use crate::commands::{vault, Chart, Order, Subgraph, Trade, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
@@ -42,11 +42,7 @@ impl Orderbook {
         match self {
             Orderbook::Order(order) => order.execute().await,
             Orderbook::Vault(vault) => vault.execute().await,
-            Orderbook::Balance { subgraph_url } => {
-                let balances = crate::commands::vault::balance::get_balances(&subgraph_url).await?;
-                dbg!(balances);
-                Ok(())
-            },
+            Orderbook::Balance(balance) => balance.execute().await,
             Orderbook::Trade(trade) => trade.execute().await,
             Orderbook::Chart(chart) => chart.execute().await,
             Orderbook::Quote(quote) => quote.execute().await,

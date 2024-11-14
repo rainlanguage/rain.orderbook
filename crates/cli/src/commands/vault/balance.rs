@@ -1,8 +1,9 @@
 use anyhow::Result;
+use reqwest::Client;
+use serde_json::Value;
 
 async fn fetch_vault_balance(url: &str, query: &str) -> Result<Value> {
     let client = Client::new();
-
     let req_body = serde_json::json!({
         "query": query
     });
@@ -25,7 +26,7 @@ async fn get_data(url: &str, query: &str) -> Result<Value> {
     Ok(data)
 }
 
-pub async fn get_balances() -> Result<Vec<String>> {
+pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
     let query = r#"
         query MyQuery() {
             vaults {
@@ -34,13 +35,29 @@ pub async fn get_balances() -> Result<Vec<String>> {
         }
     "#;
 
-    let subgraph_url = arg_matches
-        .get_one::<String>("subgraph-url")
-        .map(|s| s.to_string())
-        .or_else(|| env::var("ORDERBOOK_SUBGRAPH_URL").ok())
-        .expect("ORDERBOOK_SUBGRAPH_URL not set");
-
-    let res = get_data(&subgraph_url, query).await?;
+    let res = get_data(subgraph_url, query).await?;
     dbg!(res);
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio;
+
+    #[tokio::test]
+    async fn test_get_balances() {
+        // Replace this with your actual subgraph URL.
+        let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn";
+
+        let result = get_balances(subgraph_url).await;
+
+        // Check that the result is not an error
+        assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
+
+        // Optionally inspect the result
+        if let Ok(data) = result {
+            println!("Fetched balance data: {:?}", data);
+        }
+    }
 }
