@@ -22,7 +22,7 @@ pub enum MathError {
     #[error(transparent)]
     FromUintErrorU256(#[from] FromUintError<U256>),
     #[error(transparent)]
-    FromUintErrorU512(#[from] FromUintError<U512>),
+    FromUintErrorU512(#[from] Box<FromUintError<U512>>),
 }
 
 /// A trait that provide math operations as Uint256
@@ -65,7 +65,7 @@ impl BigUintMath for U256 {
     fn mul_div(self, mul: U256, div: U256) -> Result<U256, MathError> {
         match self
             .widening_mul(mul)
-            .checked_div(UintTryTo::<U512>::uint_try_to(&div)?)
+            .checked_div(UintTryTo::<U512>::uint_try_to(&div).map_err(Box::new)?)
             .ok_or(MathError::Overflow)
         {
             Ok(result) => Ok(UintTryTo::<U256>::uint_try_to(&result)?),
