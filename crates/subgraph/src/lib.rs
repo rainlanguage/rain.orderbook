@@ -1,6 +1,6 @@
 pub mod apy;
 mod cynic_client;
-pub mod error;
+mod multi_orderbook_client;
 mod orderbook_client;
 mod pagination;
 pub mod types;
@@ -12,6 +12,6 @@ pub mod vol;
 #[cynic::schema("orderbook")]
 pub mod schema {}
 
-pub use error::*;
-pub use orderbook_client::OrderbookSubgraphClient;
+pub use multi_orderbook_client::{MultiOrderbookSubgraphClient, MultiSubgraphArgs};
+pub use orderbook_client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
 pub use pagination::{PageQueryClient, PaginationArgs};

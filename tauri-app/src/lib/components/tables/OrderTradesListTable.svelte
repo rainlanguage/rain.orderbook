@@ -7,8 +7,8 @@
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import { formatUnits } from 'viem';
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
@@ -83,7 +83,7 @@
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2">
       {formatUnits(
-        BigInt(item.outputVaultBalanceChange.amount),
+        BigInt(item.outputVaultBalanceChange.amount) * BigInt(-1),
         Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
       )}
       {item.outputVaultBalanceChange.vault.token.symbol}

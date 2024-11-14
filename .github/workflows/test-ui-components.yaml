@@ -1,0 +1,57 @@
+name: Test ui-components
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
+      - run: nix develop -c npm run build
+      - run: nix develop -c bash -c "cd packages/ui-components && npm run test"
+
+  lint:
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
+      - run: nix develop -c npm run build
+      - run: nix develop -c bash -c "cd packages/ui-components && npm run svelte-lint-format-check"

@@ -7,3 +7,4 @@
 "DateTime" = "string"
 "Address" = "string"
 "Url" = "string"
+"U256" = "string"
