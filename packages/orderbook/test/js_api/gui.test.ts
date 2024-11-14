@@ -1,7 +1,8 @@
 import assert from "assert";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DotrainOrderGui } from "../../dist/cjs/js_api.js";
-import { Gui } from "../../dist/types/js_api.js";
+import { Gui, TokenAllowance } from "../../dist/types/js_api.js";
+import { getLocal } from "mockttp";
 
 const guiConfig = `
 gui:
@@ -68,7 +69,7 @@ gui:
 const dotrain = `
 networks:
     some-network:
-        rpc: http://localhost:8080/rpc-url
+        rpc: http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -139,6 +140,10 @@ ${dotrain}
 `;
 
 describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () {
+  const mockServer = getLocal();
+  beforeEach(() => mockServer.start(8085));
+  afterEach(() => mockServer.stop());
+
   it("should return error if gui config is not found", async () => {
     await expect(
       DotrainOrderGui.init(dotrain, "some-deployment")
@@ -286,7 +291,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedString =
-      "H4sIAAAAAAAA_3WMuw3CQBBE-RgkMiQIXQGS0e79fM6I6eLu9hZZSCZxQAdIBCCKoQECGqAMmiBgIyQmmZkXvM3gG3IeCUxWDROSy16TjTpapSKj14lTysaAR4bIpG1tgvG1TxY4MDY0Es9MOrYdtd2uwpUAOKLSxrraNxBiosz__q9CjQUgwFDmVLo_7HOHhTwLa7eU_VhUk1d5256eoZz353dxv1w_3kRs8-0AAAA=";
+      "H4sIAAAAAAAA_3WMPQrCQBCF_YmCnaBlTiBEZjfZ2dnO2lvsZmclCLFJ4Q0EC8XDeAELL-AxvISCUwl5zfuB920GPzFQGYBrh8Aaoq8smWQw-aStJWUiBU-cnEYXuSQyUIEK-D0lE7CGkXBm4qFpY9PuCrWSAY5Kl5VBSw58qCOnvv6P0GMZFMBQ4lS8O-y5VZk0A2tcSn4siskrv21PT5_Pu_M7u1-uH-izWwjtAAAA";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
@@ -345,6 +350,43 @@ ${dotrain}
       assert.equal(fieldValues.length, 0);
       const deposits = gui.getDeposits();
       assert.equal(deposits.length, 0);
+    });
+  });
+
+  describe("order operations tests", async () => {
+    let gui: DotrainOrderGui;
+    beforeEach(async () => {
+      let dotrain2 = `
+${guiConfig2}
+
+${dotrain}
+`;
+      gui = await DotrainOrderGui.init(dotrain2, "other-deployment");
+    });
+
+    it("checks input and output allowances", async () => {
+      let callCount = 0;
+      await mockServer.forPost("/rpc-url").thenCallback(async (req) => {
+        const body = (await req.body.getJson()) as object;
+        console.log(`RPC request ${++callCount}:`, body);
+
+        return {
+          status: 200,
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: `0x${`0`.repeat(64)}`,
+          }),
+        };
+      });
+
+      gui.saveDeposit("token1", "100");
+      gui.saveDeposit("token1", "200");
+
+      const allowances: TokenAllowance[] = await gui.checkAllowances(
+        "0x1234567890abcdef1234567890abcdef12345678"
+      );
+      assert.equal(allowances.length, 2);
     });
   });
 });
