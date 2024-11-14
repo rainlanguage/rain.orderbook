@@ -67,7 +67,7 @@
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               
-              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs crates/settings/src/gui.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
               typeshare crates/common/src/dotrain_order/mod.rs lib/rain.interpreter/lib/rain.metadata/crates/cli/src/meta/types/authoring/v2.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
               typeshare crates/quote/src/order_quotes.rs crates/quote/src/quote.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderQuote.ts;
