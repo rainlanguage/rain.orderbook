@@ -13,5 +13,5 @@
 		"module": "es2015",
 		"moduleResolution": "bundler",
 		"types": ["vitest/globals", "@testing-library/jest-dom", "vitest/importMeta"]
-	}
+	},
 }
