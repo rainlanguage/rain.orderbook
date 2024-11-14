@@ -1,13 +1,19 @@
 use alloy::primitives::Address;
+use base64::{engine::general_purpose::URL_SAFE, Engine};
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::gui::{
     Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
 };
 use rain_orderbook_bindings::impl_all_wasm_traits;
 use rain_orderbook_common::dotrain_order::{DotrainOrder, DotrainOrderError};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde_wasm_bindgen::{from_value, to_value};
+use std::collections::BTreeMap;
+use std::io::prelude::*;
 use thiserror::Error;
 use tsify::Tsify;
+
+mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenDeposit {
@@ -30,7 +36,7 @@ impl_all_wasm_traits!(FieldValuePair);
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
-    field_values: HashMap<String, String>,
+    field_values: BTreeMap<String, String>,
     deposits: Vec<TokenDeposit>,
 }
 #[wasm_bindgen]
@@ -54,7 +60,7 @@ impl DotrainOrderGui {
         Ok(Self {
             dotrain_order,
             deployment: gui_deployment.clone(),
-            field_values: HashMap::new(),
+            field_values: BTreeMap::new(),
             deposits: vec![],
         })
     }
@@ -161,10 +167,18 @@ pub enum GuiError {
     FieldBindingNotFound(String),
     #[error("Deposit token not found in gui config: {0}")]
     DepositTokenNotFound(String),
+    #[error("Deserialized config mismatch")]
+    DeserializedConfigMismatch,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
     ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    BincodeError(#[from] bincode::Error),
+    #[error(transparent)]
+    Base64Error(#[from] base64::DecodeError),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }

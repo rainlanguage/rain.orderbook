@@ -40,6 +40,30 @@ gui:
             - value: "582.1"
             - value: "648.239"
 `;
+const guiConfig2 = `
+gui:
+  name: Test test
+  description: Test test test
+  deployments:
+    - deployment: other-deployment
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "test-value"
+`;
 
 const dotrain = `
 networks:
@@ -95,6 +119,9 @@ orders:
 
 deployments:
     some-deployment:
+        scenario: some-scenario
+        order: some-order
+    other-deployment:
         scenario: some-scenario
         order: some-order
 ---
@@ -254,6 +281,70 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       expect(() => gui.getFieldDefinition("binding-3")).toThrow(
         "Field binding not found: binding-3"
       );
+    });
+  });
+
+  describe("state management tests", async () => {
+    let serializedString =
+      "H4sIAAAAAAAA_3WMuw3CQBBE-RgkMiQIXQGS0e79fM6I6eLu9hZZSCZxQAdIBCCKoQECGqAMmiBgIyQmmZkXvM3gG3IeCUxWDROSy16TjTpapSKj14lTysaAR4bIpG1tgvG1TxY4MDY0Es9MOrYdtd2uwpUAOKLSxrraNxBiosz__q9CjQUgwFDmVLo_7HOHhTwLa7eU_VhUk1d5256eoZz353dxv1w_3kRs8-0AAAA=";
+    let gui: DotrainOrderGui;
+    beforeAll(async () => {
+      gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+
+      gui.saveFieldValue(
+        "binding-1",
+        "0x1234567890abcdef1234567890abcdef12345678"
+      );
+      gui.saveFieldValue("binding-2", "100");
+      gui.saveDeposit("token1", "50.6");
+    });
+
+    it("should serialize gui state", async () => {
+      const serialized = gui.serializeState();
+      assert.equal(serialized, serializedString);
+    });
+
+    it("should deserialize gui state", async () => {
+      gui.clearState();
+      gui.deserializeState(serializedString);
+      const fieldValues = gui.getAllFieldValues();
+      assert.equal(fieldValues.length, 2);
+      assert.equal(fieldValues[0].binding, "binding-1");
+      assert.equal(
+        fieldValues[0].value,
+        "0x1234567890abcdef1234567890abcdef12345678"
+      );
+      assert.equal(fieldValues[1].binding, "binding-2");
+      assert.equal(fieldValues[1].value, "100");
+      const deposits = gui.getDeposits();
+      assert.equal(deposits.length, 1);
+      assert.equal(deposits[0].token, "token1");
+      assert.equal(deposits[0].amount, "50.6");
+      assert.equal(
+        deposits[0].address,
+        "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+      );
+    });
+
+    it("should throw error during deserialize if config is different", async () => {
+      let dotrain2 = `
+${guiConfig2}
+
+${dotrain}
+`;
+      let gui2 = await DotrainOrderGui.init(dotrain2, "other-deployment");
+      let serialized = gui2.serializeState();
+      expect(() => gui.deserializeState(serialized)).toThrow(
+        "Deserialized config mismatch"
+      );
+    });
+
+    it("should clear state", async () => {
+      gui.clearState();
+      const fieldValues = gui.getAllFieldValues();
+      assert.equal(fieldValues.length, 0);
+      const deposits = gui.getDeposits();
+      assert.equal(deposits.length, 0);
     });
   });
 });
