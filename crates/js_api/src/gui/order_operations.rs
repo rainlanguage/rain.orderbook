@@ -75,11 +75,13 @@ impl DotrainOrderGui {
             token: order_io.token.address,
             vault_id: order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?,
             amount: parse_units(
-                &deposits_map[&order_io.token.address],
+                &deposits_map
+                    .get(&order_io.token.address)
+                    .ok_or(GuiError::TokenNotFound)?,
                 // TODO: if decimals are not provided, we should get them from the token contract
                 order_io.token.decimals.unwrap_or(18),
             )?
-            .into(),
+            .get_absolute(),
         })
     }
 
@@ -120,7 +122,10 @@ impl DotrainOrderGui {
             let allowance = self
                 .check_allowance(&orderbook, &deposit_args, &owner)
                 .await?;
-            results.push(allowance);
+            results.push(TokenAllowance {
+                token: allowance.token,
+                allowance: allowance.allowance,
+            });
         }
 
         Ok(serde_wasm_bindgen::to_value(&results)?)

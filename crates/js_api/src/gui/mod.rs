@@ -187,6 +187,8 @@ pub enum GuiError {
     VaultIdNotFound,
     #[error("Deployer not found")]
     DeployerNotFound,
+    #[error("Token not found")]
+    TokenNotFound,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
