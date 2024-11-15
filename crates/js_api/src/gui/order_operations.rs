@@ -81,7 +81,7 @@ impl DotrainOrderGui {
                 // TODO: if decimals are not provided, we should get them from the token contract
                 order_io.token.decimals.unwrap_or(18),
             )?
-            .get_absolute(),
+            .into(),
         })
     }
 
@@ -122,10 +122,7 @@ impl DotrainOrderGui {
             let allowance = self
                 .check_allowance(&orderbook, &deposit_args, &owner)
                 .await?;
-            results.push(TokenAllowance {
-                token: allowance.token,
-                allowance: allowance.allowance,
-            });
+            results.push(allowance);
         }
 
         Ok(serde_wasm_bindgen::to_value(&results)?)
@@ -257,6 +254,8 @@ impl DotrainOrderGui {
         let aggregate_call = aggregate3Call { calls };
         let calldata = aggregate_call.abi_encode();
 
-        Ok(serde_wasm_bindgen::to_value(&calldata)?)
+        Ok(serde_wasm_bindgen::to_value(&Bytes::copy_from_slice(
+            &calldata,
+        ))?)
     }
 }
