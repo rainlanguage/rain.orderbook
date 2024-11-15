@@ -36,7 +36,7 @@ pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
     "#;
 
     let res = get_data(subgraph_url, query).await?;
-    dbg!(res);
+    dbg!(&res);
     Ok(res)
 }
 
@@ -47,15 +47,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_balances() {
-        // Replace this with your actual subgraph URL.
         let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn";
 
         let result = get_balances(subgraph_url).await;
 
-        // Check that the result is not an error
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
 
-        // Optionally inspect the result
         if let Ok(data) = result {
             println!("Fetched balance data: {:?}", data);
         }

@@ -1,4 +1,3 @@
-mod balance;
 mod deposit;
 mod detail;
 mod list;
