@@ -3,8 +3,12 @@ use alloy::{
     primitives::{utils::parse_units, Bytes, U256},
     sol_types::SolCall,
 };
-use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
+use alloy_ethers_typecast::{
+    multicall::IMulticall3::{aggregate3Call, Call3},
+    transaction::{ReadContractParameters, ReadableClientHttp},
+};
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
+use rain_orderbook_bindings::IERC20::decimalsCall;
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
 };
@@ -66,11 +70,32 @@ impl DotrainOrderGui {
             .collect()
     }
 
-    fn get_deposit_args(
+    async fn get_token_decimals(&self, rpc_url: &str, token: Address) -> Result<u8, GuiError> {
+        let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
+        let decimals = client
+            .read(ReadContractParameters {
+                address: token,
+                call: decimalsCall {},
+                block_number: None,
+            })
+            .await?
+            ._0;
+        Ok(decimals)
+    }
+
+    async fn get_deposit_args(
         &self,
+        rpc_url: &str,
         deposits_map: &HashMap<Address, String>,
         order_io: &OrderIO,
     ) -> Result<DepositArgs, GuiError> {
+        let decimals = if let Some(decimals) = order_io.token.decimals {
+            decimals
+        } else {
+            self.get_token_decimals(rpc_url, order_io.token.address)
+                .await?
+        };
+
         Ok(DepositArgs {
             token: order_io.token.address,
             vault_id: order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?,
@@ -78,8 +103,7 @@ impl DotrainOrderGui {
                 &deposits_map
                     .get(&order_io.token.address)
                     .ok_or(GuiError::TokenNotFound)?,
-                // TODO: if decimals are not provided, we should get them from the token contract
-                order_io.token.decimals.unwrap_or(18),
+                decimals,
             )?
             .into(),
         })
@@ -118,7 +142,9 @@ impl DotrainOrderGui {
 
         let mut results = Vec::new();
         for order_io in all_vaults.iter() {
-            let deposit_args = self.get_deposit_args(&deposits_map, order_io)?;
+            let deposit_args = self
+                .get_deposit_args(orderbook.network.rpc.as_str(), &deposits_map, order_io)
+                .await?;
             let allowance = self
                 .check_allowance(&orderbook, &deposit_args, &owner)
                 .await?;
@@ -139,7 +165,9 @@ impl DotrainOrderGui {
 
         let mut results = Vec::new();
         for order_io in all_vaults.iter() {
-            let deposit_args = self.get_deposit_args(&deposits_map, order_io)?;
+            let deposit_args = self
+                .get_deposit_args(orderbook.network.rpc.as_str(), &deposits_map, order_io)
+                .await?;
             let token_allowance = self
                 .check_allowance(&orderbook, &deposit_args, &owner)
                 .await?;
@@ -170,9 +198,13 @@ impl DotrainOrderGui {
         all_vaults: &Vec<OrderIO>,
         deposits_map: &HashMap<Address, String>,
     ) -> Result<Vec<Vec<u8>>, GuiError> {
+        let orderbook = self.get_orderbook()?;
+
         let mut results = Vec::new();
         for order_io in all_vaults.iter() {
-            let deposit_args = self.get_deposit_args(&deposits_map, order_io)?;
+            let deposit_args = self
+                .get_deposit_args(orderbook.network.rpc.as_str(), &deposits_map, order_io)
+                .await?;
             let calldata = deposit_args.get_deposit_calldata().await?;
             results.push(calldata);
         }
