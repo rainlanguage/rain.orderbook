@@ -6,6 +6,9 @@ use alloy::primitives::{
 use std::cmp::Ordering;
 use thiserror::Error;
 
+mod su256;
+pub use su256::*;
+
 /// 1e18 or one ether in U256
 pub const ONE18: U256 = U256::from_limbs([1_000_000_000_000_000_000_u64, 0_u64, 0_u64, 0_u64]);
 
