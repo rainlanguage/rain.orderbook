@@ -36,50 +36,44 @@ impl SU256 {
 
     /// Scales the value up by the given number of decimals
     pub fn scale_up(self, scale_up_by: u8) -> Result<SU256, MathError> {
-        Ok(SU256 {
-            value: self.value.scale_up(scale_up_by)?,
-            is_neg: self.is_neg,
-        })
+        Ok(SU256::new(self.value.scale_up(scale_up_by)?, self.is_neg))
     }
 
     /// Scales the value down by the given number of decimals
     pub fn scale_down(self, scale_down_by: u8) -> Result<SU256, MathError> {
-        Ok(SU256 {
-            value: self.value.scale_down(scale_down_by)?,
-            is_neg: self.is_neg,
-        })
+        Ok(SU256::new(
+            self.value.scale_down(scale_down_by)?,
+            self.is_neg,
+        ))
     }
 
     /// Scales to 18 point fixed decimals
     pub fn scale_18(self, decimals: u8) -> Result<SU256, MathError> {
-        Ok(SU256 {
-            value: self.value.scale_18(decimals)?,
-            is_neg: self.is_neg,
-        })
+        Ok(SU256::new(self.value.scale_18(decimals)?, self.is_neg))
     }
 
     /// Performs mulDiv operation
     pub fn mul_div(self, mul: SU256, div: SU256) -> Result<SU256, MathError> {
-        Ok(SU256 {
-            value: self.value.mul_div(mul.value, div.value)?,
-            is_neg: (self.is_neg != mul.is_neg) != div.is_neg,
-        })
+        Ok(SU256::new(
+            self.value.mul_div(mul.value, div.value)?,
+            (self.is_neg != mul.is_neg) != div.is_neg,
+        ))
     }
 
     /// Performs 18 fixed point mul operation
     pub fn mul_18(self, other: SU256) -> Result<SU256, MathError> {
-        Ok(SU256 {
-            value: self.value.mul_18(other.value)?,
-            is_neg: self.is_neg != other.is_neg,
-        })
+        Ok(SU256::new(
+            self.value.mul_18(other.value)?,
+            self.is_neg != other.is_neg,
+        ))
     }
 
     /// Performs 18 fixed point div operation
     pub fn div_18(self, other: SU256) -> Result<SU256, MathError> {
-        Ok(SU256 {
-            value: self.value.div_18(other.value)?,
-            is_neg: self.is_neg != other.is_neg,
-        })
+        Ok(SU256::new(
+            self.value.div_18(other.value)?,
+            self.is_neg != other.is_neg,
+        ))
     }
 }
 
@@ -103,11 +97,11 @@ impl FromStr for SU256 {
     type Err = alloy::primitives::ruint::ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let is_neg = s.starts_with('-');
-        Ok(SU256 {
+        Ok(SU256::new(
             #[allow(clippy::manual_strip)]
-            value: U256::from_str(if is_neg { &s[1..] } else { s })?,
+            U256::from_str(if is_neg { &s[1..] } else { s })?,
             is_neg,
-        })
+        ))
     }
 }
 
