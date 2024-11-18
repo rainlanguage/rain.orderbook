@@ -37,8 +37,6 @@
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
-
-	$: console.log($query.data);
 </script>
 
 <AppTable {query}>
