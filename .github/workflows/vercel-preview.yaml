@@ -1,11 +1,14 @@
-name: Deploy webapp to Vercel
-on: [push]
-
+name: GitHub Actions Vercel Preview Deployment
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+on:
+  push:
+    branches-ignore:
+      - main
 jobs:
-  deploy:
+  Deploy-Preview:
     runs-on: ubuntu-latest
-    env:
-      COMMIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -35,11 +38,9 @@ jobs:
       - run: nix develop -c npm run build
         working-directory: packages/webapp
 
-      - uses: amondnet/vercel-action@v25.1.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          vercel-token: ${{ secrets.VERCEL_TOKEN }} # Required
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }} # Required
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }} # Required
-          vercel-args: --prebuilt # We want to skip the build step on Vercel, since we've already built our app in the previous step
-          working-directory: ./packages/webapp # Optional, use for monorepo
+      - name: Install Vercel CLI
+        run: npm install --global vercel@canary
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} packages/webapp
