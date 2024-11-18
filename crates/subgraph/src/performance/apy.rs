@@ -1,12 +1,11 @@
-use super::PerformanceError;
+use super::{PerformanceError, YEAR18};
 use crate::{
     performance::vol::VaultVolume,
     types::common::{Erc20, Trade},
-    utils::annual_rate,
 };
 use alloy::primitives::U256;
 use chrono::TimeDelta;
-use rain_orderbook_math::BigUintMath;
+use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
@@ -127,7 +126,10 @@ pub fn get_vaults_apy(
 
         // this token vault apy in 18 decimals point
         let apy = if !starting_capital.is_zero() {
-            match annual_rate(start, end) {
+            match U256::from(end - start)
+                .saturating_mul(ONE18)
+                .div_18(*YEAR18)
+            {
                 Err(_) => None,
                 Ok(annual_rate_18) => vol
                     .vol_details

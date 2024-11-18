@@ -1,14 +1,13 @@
 use super::apy::APYDetails;
 use super::vol::VolumeDetails;
-use super::PerformanceError;
+use super::{PerformanceError, YEAR18};
 use crate::performance::apy::{get_vaults_apy, TokenPair};
-use crate::utils::annual_rate;
 use crate::{
     performance::vol::get_vaults_vol,
     types::common::{Erc20, Order, Trade},
 };
 use alloy::primitives::U256;
-use rain_orderbook_math::BigUintMath;
+use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -174,7 +173,9 @@ impl OrderPerformance {
             for token_vault in &vaults_apy {
                 if let Some(apy_details) = token_vault.apy_details {
                     // time to year ratio
-                    let annual_rate = annual_rate(apy_details.start_time, apy_details.end_time)
+                    let annual_rate = U256::from(apy_details.end_time - apy_details.start_time)
+                        .saturating_mul(ONE18)
+                        .div_18(*YEAR18)
                         .map_err(PerformanceError::from)?;
 
                     // sum up all token vaults' capitals and vols in the current's iteration

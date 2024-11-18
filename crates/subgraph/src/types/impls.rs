@@ -5,9 +5,14 @@ use rain_orderbook_math::BigUintMath;
 use std::str::FromStr;
 
 impl Trade {
-    /// Converts this trade's input to 18 point decimals in U256
-    pub fn scale_18_input(&self) -> Result<U256, PerformanceError> {
-        Ok(
+    /// Converts this trade's io to 18 point decimals in U256
+    pub fn scale_18_io(&self) -> Result<(U256, U256), PerformanceError> {
+        let amount = if self.output_vault_balance_change.amount.0.starts_with('-') {
+            &self.output_vault_balance_change.amount.0[1..]
+        } else {
+            &self.output_vault_balance_change.amount.0
+        };
+        Ok((
             U256::from_str(&self.input_vault_balance_change.amount.0)?.scale_18(
                 self.input_vault_balance_change
                     .vault
@@ -18,32 +23,22 @@ impl Trade {
                     .unwrap_or("18")
                     .parse()?,
             )?,
-        )
-    }
-
-    /// Converts this trade's output to 18 point decimals in U256
-    pub fn scale_18_output(&self) -> Result<U256, PerformanceError> {
-        let amount = if self.output_vault_balance_change.amount.0.starts_with('-') {
-            &self.output_vault_balance_change.amount.0[1..]
-        } else {
-            &self.output_vault_balance_change.amount.0
-        };
-        Ok(U256::from_str(amount)?.scale_18(
-            self.output_vault_balance_change
-                .vault
-                .token
-                .decimals
-                .as_ref()
-                .map(|v| v.0.as_str())
-                .unwrap_or("18")
-                .parse()?,
-        )?)
+            U256::from_str(amount)?.scale_18(
+                self.output_vault_balance_change
+                    .vault
+                    .token
+                    .decimals
+                    .as_ref()
+                    .map(|v| v.0.as_str())
+                    .unwrap_or("18")
+                    .parse()?,
+            )?,
+        ))
     }
 
     /// Calculates the trade's I/O ratio
     pub fn ratio(&self) -> Result<U256, PerformanceError> {
-        let output = self.scale_18_output()?;
-        let input = self.scale_18_input()?;
+        let (input, output) = self.scale_18_io()?;
         if output.is_zero() && input.is_zero() {
             Ok(U256::ZERO)
         } else if output.is_zero() {
@@ -55,8 +50,7 @@ impl Trade {
 
     /// Calculates the trade's O/I ratio (inverse)
     pub fn inverse_ratio(&self) -> Result<U256, PerformanceError> {
-        let output = self.scale_18_output()?;
-        let input = self.scale_18_input()?;
+        let (input, output) = self.scale_18_io()?;
         if output.is_zero() && input.is_zero() {
             Ok(U256::ZERO)
         } else if input.is_zero() {
@@ -109,17 +103,12 @@ mod test {
     use alloy::primitives::Address;
 
     #[test]
-    fn test_input_to_18_decimals() {
-        let result = get_trade().scale_18_input().unwrap();
-        let expected = U256::from_str("3000000000000000000").unwrap();
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_output_to_18_decimals() {
-        let result = get_trade().scale_18_output().unwrap();
-        let expected = U256::from_str("6000000000000000000").unwrap();
-        assert_eq!(result, expected);
+    fn test_scale_18_io() {
+        let (input, output) = get_trade().scale_18_io().unwrap();
+        let expected_input = U256::from_str("3000000000000000000").unwrap();
+        let expected_output = U256::from_str("6000000000000000000").unwrap();
+        assert_eq!(input, expected_input);
+        assert_eq!(output, expected_output);
     }
 
     #[test]
