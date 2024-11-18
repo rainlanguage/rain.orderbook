@@ -3,7 +3,7 @@ use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::gui::{
-    Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
+    Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError,
 };
 use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_common::{
@@ -35,7 +35,7 @@ mod state_management;
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
-    field_values: BTreeMap<String, String>,
+    field_values: BTreeMap<String, field_values::PairValue>,
     deposits: Vec<deposits::TokenDeposit>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
@@ -120,6 +120,8 @@ pub enum GuiError {
     DeployerNotFound,
     #[error("Token not found")]
     TokenNotFound,
+    #[error("Invalid preset")]
+    InvalidPreset,
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]

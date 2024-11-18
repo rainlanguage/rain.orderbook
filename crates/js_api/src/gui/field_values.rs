@@ -4,19 +4,37 @@ use super::*;
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct FieldValuePair {
     binding: String,
-    value: String,
+    value: PairValue,
 }
 impl_wasm_traits!(FieldValuePair);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+#[serde(tag = "type", content = "value", rename_all = "lowercase")]
+pub enum PairValue {
+    Preset(GuiPreset),
+    Custom(String),
+}
+impl_wasm_traits!(PairValue);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "saveFieldValue")]
-    pub fn save_field_value(&mut self, binding: String, value: String) -> Result<(), GuiError> {
-        self.deployment
+    pub fn save_field_value(&mut self, binding: String, value: PairValue) -> Result<(), GuiError> {
+        let field_definition = self
+            .deployment
             .fields
             .iter()
             .find(|field| field.binding == binding)
             .ok_or(GuiError::FieldBindingNotFound(binding.clone()))?;
+        match value {
+            PairValue::Preset(ref v) => {
+                if !field_definition.presets.contains(&v) {
+                    return Err(GuiError::InvalidPreset);
+                }
+            }
+            _ => {}
+        }
         self.field_values.insert(binding, value);
         Ok(())
     }
@@ -30,7 +48,7 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getFieldValue")]
-    pub fn get_field_value(&self, binding: String) -> Result<String, GuiError> {
+    pub fn get_field_value(&self, binding: String) -> Result<PairValue, GuiError> {
         let field_value = self
             .field_values
             .get(&binding)
