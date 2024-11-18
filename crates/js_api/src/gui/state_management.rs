@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
     config_hash: String,
-    field_values: BTreeMap<String, String>,
+    field_values: BTreeMap<String, GuiPreset>,
     deposits: Vec<TokenDeposit>,
 }
 
@@ -22,9 +22,24 @@ impl DotrainOrderGui {
     pub fn serialize(&self) -> Result<String, GuiError> {
         let config_hash = self.compute_config_hash();
 
+        let field_values = self
+            .field_values
+            .iter()
+            .map(|(k, v)| match v {
+                field_values::PairValue::Preset(p) => (k.clone(), p.clone()),
+                field_values::PairValue::Custom(s) => (
+                    k.clone(),
+                    GuiPreset {
+                        name: None,
+                        value: s.clone(),
+                    },
+                ),
+            })
+            .collect();
+
         let state = SerializedGuiState {
             config_hash,
-            field_values: self.field_values.clone(),
+            field_values,
             deposits: self.deposits.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -45,7 +60,20 @@ impl DotrainOrderGui {
         decoder.read_to_end(&mut bytes)?;
 
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
-        self.field_values = state.field_values;
+
+        let field_values = state
+            .field_values
+            .into_iter()
+            .map(|(k, v)| {
+                if let Some(_) = v.name {
+                    (k, field_values::PairValue::Preset(v))
+                } else {
+                    (k, field_values::PairValue::Custom(v.value))
+                }
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        self.field_values = field_values;
         self.deposits = state.deposits;
 
         if state.config_hash != self.compute_config_hash() {
