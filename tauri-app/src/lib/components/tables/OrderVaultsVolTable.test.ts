@@ -119,7 +119,7 @@ test('renders table with correct data', async () => {
         BigInt(mockVaultsVol[i].volDetails.netVol),
         Number(mockVaultsVol[i].token.decimals),
       );
-      expect(rows[i]).toHaveTextContent(display.toString());
+      expect(rows[i]).toHaveTextContent(display);
     }
   });
 
