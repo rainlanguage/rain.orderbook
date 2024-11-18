@@ -1,12 +1,10 @@
 <script lang="ts" generics="T">
 	import { QKEY_ORDERS } from '../queries/keys.ts';
-	// import { ordersList } from '../queries/ordersList';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../queries/constants.ts';
 	import TanstackAppTable from './TanstackAppTable.svelte';
 	// import { goto } from '$app/navigation';
-	// import { HashType } from '../types/hash';
 	import { activeSubgraphs, activeAccounts, activeOrderStatus } from '../stores/settings.ts';
 	// import { formatTimestampSecondsAsLocal } from '../utils/time';
 	// import { handleOrderRemoveModal } from '../services/modal';
