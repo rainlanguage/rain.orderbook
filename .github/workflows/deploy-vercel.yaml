@@ -1,26 +1,42 @@
-name: Deploy
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-  workflow_dispatch:
+name: Deploy webapp to Vercel
+on: [push]
 
-permissions:
-  contents: write # allow commenting on commits (when pushing to master)
-  pull-requests: write # allow commenting on PR's (when pushing to a PR)
-  deployments: write
+concurrency:
+  group: ${{ github.ref }}-webapp
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - run: |
-          nix develop --command pnpm install --frozen-lockfile
-          nix develop --command pnpm run build
+      
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
+      - run: nix develop -c npm run build
+        working-directory: packages/ui-components
+      - run: nix develop -c npm run build
+        working-directory: packages/orderbook
+      - run: nix develop -c npm run svelte-lint-format-check
+        working-directory: packages/webapp
+      - run: nix develop -c npm run test
+        working-directory: packages/webapp
+
       - uses: amondnet/vercel-action@v25.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
