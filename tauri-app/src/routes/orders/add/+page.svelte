@@ -61,7 +61,7 @@
   }
 
   $: bindings = deployment ? deployment.scenario.bindings : {};
-  $: $globalDotrainFile.text, updateMergedConfig();
+  $: if ($globalDotrainFile.text) updateMergedConfig();
 
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
