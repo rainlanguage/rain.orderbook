@@ -3,7 +3,7 @@
   import { ordersList } from '$lib/queries/ordersList';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
-  import TanstackAppTable from './TanstackAppTable.svelte';
+  import TanstackAppTable from '@rainlanguage/ui-components';
   import { goto } from '$app/navigation';
   import ListViewOrderbookSelector from '../ListViewOrderbookSelector.svelte';
   import {
