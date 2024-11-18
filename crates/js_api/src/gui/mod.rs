@@ -6,7 +6,10 @@ use rain_orderbook_app_settings::gui::{
     Gui, GuiDeployment, GuiFieldDefinition, ParseGuiConfigSourceError,
 };
 use rain_orderbook_bindings::impl_wasm_traits;
-use rain_orderbook_common::dotrain_order::{DotrainOrder, DotrainOrderError};
+use rain_orderbook_common::{
+    dotrain_order::{DotrainOrder, DotrainOrderError},
+    erc20::{TokenInfo, ERC20},
+};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use std::collections::BTreeMap;
@@ -50,6 +53,7 @@ pub struct DotrainOrderGui {
     deployment: GuiDeployment,
     field_values: BTreeMap<String, String>,
     deposits: Vec<TokenDeposit>,
+    onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -57,6 +61,7 @@ impl DotrainOrderGui {
     pub async fn init(
         dotrain: String,
         deployment_name: String,
+        multicall_address: Option<String>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
@@ -69,17 +74,45 @@ impl DotrainOrderGui {
             .find(|deployment| deployment.deployment_name == deployment_name)
             .ok_or(GuiError::DeploymentNotFound(deployment_name))?;
 
+        let rpc_url = gui_deployment
+            .deployment
+            .order
+            .orderbook
+            .clone()
+            .ok_or(GuiError::OrderbookNotFound)?
+            .network
+            .rpc
+            .clone();
+        let mut onchain_token_info = BTreeMap::new();
+        for token in gui_deployment.deposits.iter() {
+            if onchain_token_info.contains_key(&token.token.address) {
+                continue;
+            }
+            let erc20 = ERC20::new(rpc_url.clone(), token.token.address);
+            let token_info = erc20.token_info(multicall_address.clone()).await?;
+            onchain_token_info.insert(token.token.address, token_info);
+        }
+
         Ok(Self {
             dotrain_order,
             deployment: gui_deployment.clone(),
             field_values: BTreeMap::new(),
             deposits: vec![],
+            onchain_token_info,
         })
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]
     pub fn get_gui_config(&self) -> Gui {
         self.dotrain_order.config().gui.clone().unwrap()
+    }
+
+    /// Get all token infos in input and output vaults
+    ///
+    /// Returns a map of token address to [`TokenInfo`]
+    #[wasm_bindgen(js_name = "getTokenInfos")]
+    pub fn get_token_infos(&self) -> Result<JsValue, GuiError> {
+        Ok(serde_wasm_bindgen::to_value(&self.onchain_token_info)?)
     }
 
     #[wasm_bindgen(js_name = "getDeposits")]
@@ -219,6 +252,10 @@ pub enum GuiError {
     ),
     #[error(transparent)]
     AddOrderArgsError(#[from] rain_orderbook_common::add_order::AddOrderArgsError),
+    #[error(transparent)]
+    ERC20Error(#[from] rain_orderbook_common::erc20::Error),
+    #[error(transparent)]
+    SolTypesError(#[from] alloy::sol_types::Error),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }
