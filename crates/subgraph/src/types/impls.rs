@@ -5,15 +5,20 @@ use rain_orderbook_math::BigUintMath;
 use std::str::FromStr;
 
 impl Trade {
-    /// Converts this trade's io to 18 point decimals in U256
+    /// Scales this trade's io to 18 point decimals in U256
     pub fn scale_18_io(&self) -> Result<(U256, U256), PerformanceError> {
-        let amount = if self.output_vault_balance_change.amount.0.starts_with('-') {
+        let input_amount = if self.input_vault_balance_change.amount.0.starts_with('-') {
+            &self.input_vault_balance_change.amount.0[1..]
+        } else {
+            &self.input_vault_balance_change.amount.0
+        };
+        let output_amount = if self.output_vault_balance_change.amount.0.starts_with('-') {
             &self.output_vault_balance_change.amount.0[1..]
         } else {
             &self.output_vault_balance_change.amount.0
         };
         Ok((
-            U256::from_str(&self.input_vault_balance_change.amount.0)?.scale_18(
+            U256::from_str(input_amount)?.scale_18(
                 self.input_vault_balance_change
                     .vault
                     .token
@@ -23,7 +28,7 @@ impl Trade {
                     .unwrap_or("18")
                     .parse()?,
             )?,
-            U256::from_str(amount)?.scale_18(
+            U256::from_str(output_amount)?.scale_18(
                 self.output_vault_balance_change
                     .vault
                     .token
