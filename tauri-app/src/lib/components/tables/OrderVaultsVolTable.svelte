@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import TanstackAppTable from './TanstackAppTable.svelte';
+  import { TanstackAppTable } from '@rainlanguage/ui-components';
   import { QKEY_VAULTS_VOL_LIST } from '$lib/queries/keys';
   import { orderVaultsVolume } from '$lib/queries/orderTradesList';
   import { subgraphUrl } from '$lib/stores/settings';

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import TanstackAppTable from './TanstackAppTable.svelte';
-
 	export let query;
 	export let emptyMessage: string;
 	export let title: string;
