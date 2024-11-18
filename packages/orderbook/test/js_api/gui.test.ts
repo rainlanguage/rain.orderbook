@@ -257,56 +257,151 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
     });
 
-    it("should save field value", async () => {
+    it("should save the field value as presets", async () => {
+      gui.saveFieldValue("binding-1", {
+        type: "preset",
+        value: {
+          name: "Preset 1",
+          value: "0x1234567890abcdef1234567890abcdef12345678",
+        },
+      });
+      assert.deepEqual(gui.getFieldValue("binding-1"), {
+        type: "preset",
+        value: {
+          name: "Preset 1",
+          value: "0x1234567890abcdef1234567890abcdef12345678",
+        },
+      });
+      gui.saveFieldValue("binding-1", {
+        type: "preset",
+        value: {
+          name: "Preset 2",
+          value: "false",
+        },
+      });
+      assert.deepEqual(gui.getFieldValue("binding-1"), {
+        type: "preset",
+        value: {
+          name: "Preset 2",
+          value: "false",
+        },
+      });
+      gui.saveFieldValue("binding-1", {
+        type: "preset",
+        value: {
+          name: "Preset 3",
+          value: "some-string",
+        },
+      });
+      assert.deepEqual(gui.getFieldValue("binding-1"), {
+        type: "preset",
+        value: {
+          name: "Preset 3",
+          value: "some-string",
+        },
+      });
+    });
+
+    it("should save field value as custom values", async () => {
       gui.saveFieldValues([
         {
           binding: "binding-1",
-          value: "0x1234567890abcdef1234567890abcdef12345678",
+          value: {
+            type: "custom",
+            value: "0x1234567890abcdef1234567890abcdef12345678",
+          },
         },
         {
           binding: "binding-2",
-          value: "100",
+          value: {
+            type: "custom",
+            value: "100",
+          },
         },
       ]);
       gui.saveFieldValues([
         {
           binding: "binding-1",
-          value: "some-string",
+          value: {
+            type: "custom",
+            value: "some-string",
+          },
         },
         {
           binding: "binding-2",
-          value: "true",
+          value: {
+            type: "custom",
+            value: "true",
+          },
         },
       ]);
       const fieldValues = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
+      assert.deepEqual(fieldValues[0], {
+        binding: "binding-1",
+        value: {
+          type: "custom",
+          value: "some-string",
+        },
+      });
+      assert.deepEqual(fieldValues[1], {
+        binding: "binding-2",
+        value: {
+          type: "custom",
+          value: "true",
+        },
+      });
+    });
+
+    it("should throw error during save if preset is not found in field definition", () => {
+      expect(() =>
+        gui.saveFieldValue("binding-1", {
+          type: "preset",
+          value: {
+            name: "Preset 4",
+            value: "0x1234567890abcdef1234567890abcdef12345678",
+          },
+        })
+      ).toThrow("Invalid preset");
     });
 
     it("should throw error during save if field binding is not found in field definitions", () => {
-      expect(() => gui.saveFieldValue("binding-3", "1")).toThrow(
-        "Field binding not found: binding-3"
-      );
+      expect(() =>
+        gui.saveFieldValue("binding-3", { type: "custom", value: "1" })
+      ).toThrow("Field binding not found: binding-3");
     });
 
     it("should get field value", async () => {
-      gui.saveFieldValue(
-        "binding-1",
-        "0x1234567890abcdef1234567890abcdef12345678"
-      );
+      gui.saveFieldValue("binding-1", {
+        type: "custom",
+        value: "0x1234567890abcdef1234567890abcdef12345678",
+      });
       let fieldValue = gui.getFieldValue("binding-1");
-      assert.equal(fieldValue, "0x1234567890abcdef1234567890abcdef12345678");
+      assert.deepEqual(fieldValue, {
+        type: "custom",
+        value: "0x1234567890abcdef1234567890abcdef12345678",
+      });
 
-      gui.saveFieldValue("binding-2", "true");
+      gui.saveFieldValue("binding-2", { type: "custom", value: "true" });
       fieldValue = gui.getFieldValue("binding-2");
-      assert.equal(fieldValue, "true");
+      assert.deepEqual(fieldValue, {
+        type: "custom",
+        value: "true",
+      });
 
-      gui.saveFieldValue("binding-1", "some-string");
+      gui.saveFieldValue("binding-1", { type: "custom", value: "some-string" });
       fieldValue = gui.getFieldValue("binding-1");
-      assert.equal(fieldValue, "some-string");
+      assert.deepEqual(fieldValue, {
+        type: "custom",
+        value: "some-string",
+      });
 
-      gui.saveFieldValue("binding-2", "100.5");
+      gui.saveFieldValue("binding-2", { type: "custom", value: "100.5" });
       fieldValue = gui.getFieldValue("binding-2");
-      assert.equal(fieldValue, "100.5");
+      assert.deepEqual(fieldValue, {
+        type: "custom",
+        value: "100.5",
+      });
     });
 
     it("should throw error during get if field binding is not found", () => {
@@ -362,7 +457,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedString =
-      "H4sIAAAAAAAA_3WMPQrCQBCF_YmCnaBlTiBEZv9mdzprb5HNTiQIsUnhDQQLxcN4AQsv4DG8hIJTCXnN994rvs3gF8MYKHhHFTGAt4SeY6gJDLI1zFaDjezAl2T0F8kQkOcQDUab0I3EMxPGpk1NuyvUSg44Km2sQx8Iylglrvv2v0KP5VAAQ6lTYXfYc6syWQ7WuJT-WBSTV37bnp5lPu_O7-x-uX4Aw_ZpSe0AAAA=";
+      "H4sIAAAAAAAA_3WMPQrCQBCFo0bBTtAyJxAis3-zO521t8hmJxKE2KTwBoKF4mG8gIUX8BheQsGpBF_zvfeKb519YxgDBe-oJgbwltBzDA2BQbaG2WqwkR34ioz-IBkC8hyiwWgTuqF4psLYdqnttqXKlvLAQWljHfpAUMU6cfNv_zp0NpJHAQykToT9fsedymU5WOFC-n1ejp_FdXN8VMWsP73y2_nyBuxOft_vAAAA";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
@@ -373,11 +468,11 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
         );
       gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
 
-      gui.saveFieldValue(
-        "binding-1",
-        "0x1234567890abcdef1234567890abcdef12345678"
-      );
-      gui.saveFieldValue("binding-2", "100");
+      gui.saveFieldValue("binding-1", {
+        type: "custom",
+        value: "0x1234567890abcdef1234567890abcdef12345678",
+      });
+      gui.saveFieldValue("binding-2", { type: "custom", value: "100" });
       gui.saveDeposit("token1", "50.6");
     });
 
@@ -392,12 +487,15 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       const fieldValues = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
       assert.equal(fieldValues[0].binding, "binding-1");
-      assert.equal(
-        fieldValues[0].value,
-        "0x1234567890abcdef1234567890abcdef12345678"
-      );
+      assert.deepEqual(fieldValues[0].value, {
+        type: "custom",
+        value: "0x1234567890abcdef1234567890abcdef12345678",
+      });
       assert.equal(fieldValues[1].binding, "binding-2");
-      assert.equal(fieldValues[1].value, "100");
+      assert.deepEqual(fieldValues[1].value, {
+        type: "custom",
+        value: "100",
+      });
       const deposits = gui.getDeposits();
       assert.equal(deposits.length, 1);
       assert.equal(deposits[0].token, "token1");
