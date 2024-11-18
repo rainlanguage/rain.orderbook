@@ -1,6 +1,9 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde_json::Value;
+use rain_orderbook_subgraph_client::{
+    types::vault::{VaultsListQuery}
+};
 
 async fn fetch_vault_balance(url: &str, query: &str) -> Result<Value> {
     let client = Client::new();
