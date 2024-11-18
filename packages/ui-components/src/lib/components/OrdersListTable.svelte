@@ -15,16 +15,9 @@
 	import { goto } from '$app/navigation';
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '../utils/time.ts';
-	import Hash from './Hash.svelte';
+	import Hash, { HashType } from './Hash.svelte';
 
 	export let connectedWalletAddress: string = '';
-
-	enum HashType {
-		Identifier,
-		Wallet,
-		Transaction,
-		Address
-	}
 
 	const multiSubgraphArgs: MultiSubgraphArgs[] = Object.entries($activeSubgraphs).map(
 		([name, url]) => ({
@@ -53,6 +46,8 @@
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: Object.keys($activeSubgraphs).length > 0
 	});
+
+	$: console.log($query.data);
 </script>
 
 {#if $query.data}
