@@ -55,12 +55,8 @@
       {formatUnits(BigInt(item.volDetails.totalOut), Number(item.token.decimals ?? 0))}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2" data-testid="net-vol">
-      {formatUnits(
-        BigInt(item.volDetails.totalIn) >= BigInt(item.volDetails.totalOut)
-          ? BigInt(item.volDetails.netVol)
-          : -BigInt(item.volDetails.netVol),
-        Number(item.token.decimals ?? 0),
-      )}
+      {(BigInt(item.volDetails.totalIn) >= BigInt(item.volDetails.totalOut) ? '' : '-') +
+        formatUnits(BigInt(item.volDetails.netVol), Number(item.token.decimals ?? 0))}
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2" data-testid="total-vol">
       {formatUnits(BigInt(item.volDetails.totalVol), Number(item.token.decimals ?? 0))}
