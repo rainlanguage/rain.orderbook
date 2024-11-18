@@ -16,9 +16,5 @@
 		"test": "npm run test:unit -- --run",
 		"format-check": "prettier --list-different src",
 		"svelte-lint-format-check": "npm run lint && npm run check"
-	},
-	"dependencies": {
-		"@rainlanguage/orderbook": "*",
-		"@rainlanguage/ui-components": "*"
 	}
 }

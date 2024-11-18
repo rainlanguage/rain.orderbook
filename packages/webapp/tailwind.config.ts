@@ -2,6 +2,7 @@ import type { Config } from 'tailwindcss';
 import { neutral, indigo } from 'tailwindcss/colors';
 
 export default {
+	darkMode: 'class',
 	content: [
 		'./src/**/*.{html,js,svelte,ts}',
 		'../../node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}',
