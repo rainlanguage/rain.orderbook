@@ -1,14 +1,12 @@
 use super::*;
 use alloy::{
+    primitives::private::rand,
     primitives::{utils::parse_units, Bytes, U256},
     sol_types::SolCall,
 };
-use alloy_ethers_typecast::{
-    multicall::IMulticall3::{aggregate3Call, Call3},
-    transaction::{ReadContractParameters, ReadableClientHttp},
-};
+use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
-use rain_orderbook_bindings::IERC20::decimalsCall;
+use rain_orderbook_bindings::IOrderBookV4::addOrder2Call;
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
 };
@@ -48,65 +46,38 @@ impl DotrainOrderGui {
             .cloned()
     }
 
-    fn get_all_vaults(&self) -> Vec<OrderIO> {
-        let mut all_vaults: Vec<_> = self.deployment.deployment.order.inputs.clone();
-        let filtered_outputs: Vec<OrderIO> = self
+    fn get_deposits_as_map(&self) -> Result<HashMap<Address, U256>, GuiError> {
+        let mut map: HashMap<Address, U256> = HashMap::new();
+        for d in self.get_deposits() {
+            let token_decimals = self
+                .onchain_token_info
+                .get(&d.address)
+                .ok_or(GuiError::TokenNotFound)?
+                .decimals;
+            let amount = parse_units(&d.amount, token_decimals)?.into();
+            map.insert(d.address, amount);
+        }
+        Ok(map)
+    }
+
+    fn get_vaults_and_deposits(&self) -> Result<Vec<(OrderIO, U256)>, GuiError> {
+        let deposits_map = self.get_deposits_as_map()?;
+        let results = self
             .deployment
             .deployment
             .order
             .outputs
-            .iter()
-            .filter(|output| !all_vaults.contains(*output))
-            .cloned()
-            .collect();
-        all_vaults.extend(filtered_outputs);
-        all_vaults
-    }
-
-    fn get_deposits_as_map(&self) -> HashMap<Address, String> {
-        self.get_deposits()
+            .clone()
             .into_iter()
-            .map(|d| (d.address, d.amount))
-            .collect()
-    }
-
-    async fn get_token_decimals(&self, rpc_url: &str, token: Address) -> Result<u8, GuiError> {
-        let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
-        let decimals = client
-            .read(ReadContractParameters {
-                address: token,
-                call: decimalsCall {},
-                block_number: None,
+            .filter(|output| deposits_map.contains_key(&output.token.address))
+            .map(|output| {
+                (
+                    output.clone(),
+                    *deposits_map.get(&output.token.address).unwrap(),
+                )
             })
-            .await?
-            ._0;
-        Ok(decimals)
-    }
-
-    async fn get_deposit_args(
-        &self,
-        rpc_url: &str,
-        deposits_map: &HashMap<Address, String>,
-        order_io: &OrderIO,
-    ) -> Result<DepositArgs, GuiError> {
-        let decimals = if let Some(decimals) = order_io.token.decimals {
-            decimals
-        } else {
-            self.get_token_decimals(rpc_url, order_io.token.address)
-                .await?
-        };
-
-        Ok(DepositArgs {
-            token: order_io.token.address,
-            vault_id: order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?,
-            amount: parse_units(
-                &deposits_map
-                    .get(&order_io.token.address)
-                    .ok_or(GuiError::TokenNotFound)?,
-                decimals,
-            )?
-            .into(),
-        })
+            .collect();
+        Ok(results)
     }
 
     async fn check_allowance(
@@ -136,15 +107,16 @@ impl DotrainOrderGui {
     /// Returns a vector of [`TokenAllowance`] objects
     #[wasm_bindgen(js_name = "checkAllowances")]
     pub async fn check_allowances(&self, owner: String) -> Result<JsValue, GuiError> {
-        let all_vaults = self.get_all_vaults();
         let orderbook = self.get_orderbook()?;
-        let deposits_map = self.get_deposits_as_map();
+        let vaults_and_deposits = self.get_vaults_and_deposits()?;
 
         let mut results = Vec::new();
-        for order_io in all_vaults.iter() {
-            let deposit_args = self
-                .get_deposit_args(orderbook.network.rpc.as_str(), &deposits_map, order_io)
-                .await?;
+        for (order_io, amount) in vaults_and_deposits.iter() {
+            let deposit_args = DepositArgs {
+                token: order_io.token.address,
+                vault_id: rand::random(),
+                amount: *amount,
+            };
             let allowance = self
                 .check_allowance(&orderbook, &deposit_args, &owner)
                 .await?;
@@ -159,19 +131,19 @@ impl DotrainOrderGui {
     /// Returns a vector of [`ApprovalCalldata`] objects
     #[wasm_bindgen(js_name = "generateApprovalCalldatas")]
     pub async fn generate_approval_calldatas(&self, owner: String) -> Result<JsValue, GuiError> {
-        let all_vaults = self.get_all_vaults();
         let orderbook = self.get_orderbook()?;
-        let deposits_map = self.get_deposits_as_map();
+        let vaults_and_deposits = self.get_vaults_and_deposits()?;
 
         let mut results = Vec::new();
-        for order_io in all_vaults.iter() {
-            let deposit_args = self
-                .get_deposit_args(orderbook.network.rpc.as_str(), &deposits_map, order_io)
-                .await?;
+        for (order_io, amount) in vaults_and_deposits.iter() {
+            let deposit_args = DepositArgs {
+                token: order_io.token.address,
+                vault_id: rand::random(),
+                amount: *amount,
+            };
             let token_allowance = self
                 .check_allowance(&orderbook, &deposit_args, &owner)
                 .await?;
-
             if token_allowance.allowance < deposit_args.amount {
                 let calldata = deposit_args
                     .get_approve_calldata(
@@ -195,16 +167,15 @@ impl DotrainOrderGui {
 
     async fn get_deposit_calldatas(
         &self,
-        all_vaults: &Vec<OrderIO>,
-        deposits_map: &HashMap<Address, String>,
+        vaults_and_deposits: &Vec<(OrderIO, U256)>,
     ) -> Result<Vec<Vec<u8>>, GuiError> {
-        let orderbook = self.get_orderbook()?;
-
         let mut results = Vec::new();
-        for order_io in all_vaults.iter() {
-            let deposit_args = self
-                .get_deposit_args(orderbook.network.rpc.as_str(), &deposits_map, order_io)
-                .await?;
+        for (order_io, amount) in vaults_and_deposits.iter() {
+            let deposit_args = DepositArgs {
+                token: order_io.token.address,
+                vault_id: order_io.vault_id.unwrap_or(rand::random()),
+                amount: *amount,
+            };
             let calldata = deposit_args.get_deposit_calldata().await?;
             results.push(calldata);
         }
@@ -215,17 +186,20 @@ impl DotrainOrderGui {
     ///
     /// Returns a [`DepositCalldatas`] object
     #[wasm_bindgen(js_name = "generateDepositCalldatas")]
-    pub async fn generate_deposit_calldatas(&self) -> Result<JsValue, GuiError> {
-        let all_vaults = self.get_all_vaults();
-        let deposits_map = self.get_deposits_as_map();
+    pub async fn generate_deposit_calldatas(&mut self) -> Result<JsValue, GuiError> {
+        let orderbook = self.get_orderbook()?;
+        let vaults_and_deposits = self.get_vaults_and_deposits()?;
+
+        let add_order_calldata = self.get_add_order_calldata(&orderbook).await?;
+        let decoded_add_order_calldata = addOrder2Call::abi_decode(&add_order_calldata, true)?;
+        self.set_vault_ids(&decoded_add_order_calldata);
 
         let calldatas = self
-            .get_deposit_calldatas(&all_vaults, &deposits_map)
+            .get_deposit_calldatas(&vaults_and_deposits)
             .await?
             .iter()
             .map(|c| Bytes::copy_from_slice(c))
             .collect::<Vec<_>>();
-
         Ok(serde_wasm_bindgen::to_value(&calldatas)?)
     }
 
@@ -248,9 +222,24 @@ impl DotrainOrderGui {
         Ok(calldata.into())
     }
 
+    fn set_vault_ids(&mut self, decoded_add_order_calldata: &addOrder2Call) {
+        let mut order = self.deployment.deployment.order.as_ref().clone();
+
+        for (i, input) in order.inputs.iter_mut().enumerate() {
+            input.vault_id = Some(decoded_add_order_calldata.config.validInputs[i].vaultId);
+        }
+        for (i, output) in order.outputs.iter_mut().enumerate() {
+            output.vault_id = Some(decoded_add_order_calldata.config.validOutputs[i].vaultId);
+        }
+
+        let mut new_deployment = self.deployment.deployment.as_ref().clone();
+        new_deployment.order = Arc::new(order);
+        self.deployment.deployment = Arc::new(new_deployment);
+    }
+
     /// Generate add order calldata
     #[wasm_bindgen(js_name = "generateAddOrderCalldata")]
-    pub async fn generate_add_order_calldata(&self) -> Result<JsValue, GuiError> {
+    pub async fn generate_add_order_calldata(&mut self) -> Result<JsValue, GuiError> {
         let orderbook = self.get_orderbook()?;
         let calldata = self.get_add_order_calldata(&orderbook).await?;
         Ok(serde_wasm_bindgen::to_value(&Bytes::copy_from_slice(
@@ -259,15 +248,17 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
-    pub async fn generate_deposit_and_add_order_calldatas(&self) -> Result<JsValue, GuiError> {
+    pub async fn generate_deposit_and_add_order_calldatas(&mut self) -> Result<JsValue, GuiError> {
         let orderbook = self.get_orderbook()?;
-        let all_vaults = self.get_all_vaults();
-        let deposits_map = self.get_deposits_as_map();
+        let vaults_and_deposits = self.get_vaults_and_deposits()?;
         let mut calls = Vec::new();
 
-        let deposit_calldatas = self
-            .get_deposit_calldatas(&all_vaults, &deposits_map)
-            .await?;
+        let add_order_calldata = self.get_add_order_calldata(&orderbook).await?;
+        let decoded_add_order_calldata = addOrder2Call::abi_decode(&add_order_calldata, true)?;
+        self.set_vault_ids(&decoded_add_order_calldata);
+
+        let deposit_calldatas = self.get_deposit_calldatas(&vaults_and_deposits).await?;
+
         for calldata in deposit_calldatas.iter() {
             calls.push(Call3 {
                 target: orderbook.address,
@@ -275,19 +266,14 @@ impl DotrainOrderGui {
                 callData: Bytes::copy_from_slice(calldata),
             });
         }
-
-        let add_order_calldata = self.get_add_order_calldata(&orderbook).await?;
         calls.push(Call3 {
             target: orderbook.address,
             allowFailure: false,
             callData: Bytes::copy_from_slice(&add_order_calldata),
         });
 
-        let aggregate_call = aggregate3Call { calls };
-        let calldata = aggregate_call.abi_encode();
-
         Ok(serde_wasm_bindgen::to_value(&Bytes::copy_from_slice(
-            &calldata,
+            &aggregate3Call { calls }.abi_encode(),
         ))?)
     }
 }
