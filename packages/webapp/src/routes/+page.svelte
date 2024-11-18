@@ -1,19 +1,27 @@
 <script lang="ts" generics="T">
-	import { createInfiniteQuery, type InfiniteQueryObserverResult } from '@tanstack/svelte-query';
-
-	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-	import { Hash, HashType } from '@rainlanguage/ui-components';
-	import { TableHeadCell, TableBodyCell, Badge } from 'flowbite-svelte';
+	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+	import { createInfiniteQuery } from '@tanstack/svelte-query';
+	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import { TanstackAppTable } from '@rainlanguage/ui-components';
-	import { readable } from 'svelte/store';
+
+	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+	import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
+	import { Hash, HashType } from '@rainlanguage/ui-components';
+
+	const multiSubgraphArgs: MultiSubgraphArgs[] = [
+		{
+			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn',
+			name: 'flare'
+		}
+	] as MultiSubgraphArgs[];
 
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
+		queryKey: [],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: ['	'],
+					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
 					active: true,
 					orderHash: undefined
 				},
@@ -24,12 +32,16 @@
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
 			return lastPage.length === 1 ? lastPageParam + 1 : undefined;
 		},
-		refetchInterval: 10000,
+		refetchInterval: 100000,
 		enabled: true
 	});
+
+	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
+
+	$: console.log($query.data);
 </script>
 
-<TanstackAppTable query={mockQueryStore}>
+<AppTable {query}>
 	<svelte:fragment slot="title">
 		<slot name="filters" />
 	</svelte:fragment>
@@ -84,4 +96,4 @@
 			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
 		>
 	</svelte:fragment>
-</TanstackAppTable>
+</AppTable>
