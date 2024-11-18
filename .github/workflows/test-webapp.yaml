@@ -1,6 +1,10 @@
 name: Test webapp
 on: [push]
 
+concurrency:
+  group: ${{ github.ref }}-webapp
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -1,6 +1,10 @@
 name: Test ui-components
 on: [push]
 
+concurrency:
+  group: ${{ github.ref }}-ui-components
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
