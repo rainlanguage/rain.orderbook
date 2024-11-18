@@ -6470,6 +6470,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_math"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "once_cell",
+ "thiserror",
+]
+
+[[package]]
 name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
