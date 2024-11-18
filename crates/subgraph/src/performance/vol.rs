@@ -27,7 +27,7 @@ pub struct VaultVolume {
     pub vol_details: VolumeDetails,
 }
 
-/// Get the vaults volume from array of trades of an owner
+/// Get the vaults volume from array of trades of an order
 pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> {
     let mut vaults_vol: Vec<VaultVolume> = vec![];
     for trade in trades {
