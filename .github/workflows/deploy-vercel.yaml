@@ -4,6 +4,8 @@ on: [push]
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -12,7 +14,7 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      
+
       - run: nix develop -c rainix-sol-prelude
         working-directory: lib/rain.interpreter
       - run: nix develop -c rainix-rs-prelude

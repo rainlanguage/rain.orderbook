@@ -15,15 +15,26 @@
     TableHeadCell,
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
-  import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
   import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import { handleOrderRemoveModal } from '$lib/services/modal';
-  import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
-  import { get } from 'svelte/store';
-  import { orderHash } from '$lib/stores/settings';
+
+  import type { Order as OrderDetailOrder } from '$lib/typeshare/subgraphTypes';
+  import type { Order as OrderListOrder } from '$lib/typeshare/subgraphTypes';
+
+  import { get, type Readable, type Writable } from 'svelte/store';
+
+  export let handleOrderRemoveModal: (
+    order: OrderDetailOrder | OrderListOrder,
+    onOrderRemoved: () => void,
+  ) => void;
+  export let walletAddressMatchesOrBlank: Writable<(otherAddress: string) => boolean>;
+  export let activeAccounts: Readable<Record<string, string>>;
+  export let activeSubgraphs: Writable<Record<string, string>>;
+  export let activeNetworkRef: Writable<string>;
+  export let activeOrderbookRef: Writable<string>;
+  export let activeOrderStatus: Writable<boolean | undefined>;
+  export let orderHash: Writable<string>;
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
