@@ -1,0 +1,32 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # allow commenting on commits (when pushing to master)
+  pull-requests: write # allow commenting on PR's (when pushing to a PR)
+  deployments: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: |
+          nix develop --command pnpm install --frozen-lockfile
+          nix develop --command pnpm run build
+      - uses: amondnet/vercel-action@v25.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }} # Required
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }} # Required
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }} # Required
+          scope: ${{ secrets.VERCEL_SCOPE }} # Only required for teams (eg. my-team-slug)
+          vercel-args: --prebuilt # We want to skip the build step on Vercel, since we've already built our app in the previous step
+          # working-directory: ./packages/site # Optional, use for monorepo
