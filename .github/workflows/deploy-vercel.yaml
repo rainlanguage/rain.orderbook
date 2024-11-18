@@ -1,10 +1,6 @@
 name: Deploy webapp to Vercel
 on: [push]
 
-concurrency:
-  group: ${{ github.ref }}-webapp
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
