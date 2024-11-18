@@ -85,7 +85,7 @@ export async function walletconnectConnect(priorityChainIds: number[]) {
         if (e instanceof ErrorEvent) {
           toasts.error(e?.message);
         } else {
-          ('Could not connect to WalletConnect provider.');
+          return 'Could not connect to WalletConnect provider.';
         }
       }
     } else {

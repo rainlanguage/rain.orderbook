@@ -25,7 +25,7 @@ test('renders the loading state correctly', async () => {
 
   const { query, resolve } = createResolvableQuery(() => mockData);
 
-  const { component } = render(TanstackLightweightChartLine, {
+  const { component: _component } = render(TanstackLightweightChartLine, {
     props: {
       query,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,14 +36,14 @@ test('renders the loading state correctly', async () => {
   });
 
   await waitFor(() => {
-    const _props = get(props) as (typeof component)['$$props'];
+    const _props = get(props) as (typeof _component)['$$props'];
     expect(_props.loading).toBe(true);
   });
 
   await resolve();
 
   await waitFor(() => {
-    const _props = get(props) as (typeof component)['$$props'];
+    const _props = get(props) as (typeof _component)['$$props'];
     expect(_props.loading).toBe(false);
     expect(_props.data).toEqual(mockData);
   });
@@ -59,7 +59,7 @@ test('sorts the data correctly according to time', async () => {
 
   const { query, resolve } = createResolvableQuery(() => mockData);
 
-  const { component } = render(TanstackLightweightChartLine, {
+  const { component: _component } = render(TanstackLightweightChartLine, {
     props: {
       query,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +72,7 @@ test('sorts the data correctly according to time', async () => {
   await resolve();
 
   await waitFor(() => {
-    const _props = get(props) as (typeof component)['$$props'];
+    const _props = get(props) as (typeof _component)['$$props'];
     expect(_props.data).toEqual([
       { value: 10, time: 1629899200 },
       { value: 20, time: 1629899300 },
@@ -87,7 +87,7 @@ test('that a line series is added to the chart', async () => {
 
   const { query, resolve } = createResolvableQuery(() => mockData);
 
-  const { component } = render(TanstackLightweightChartLine, {
+  const { component: _component } = render(TanstackLightweightChartLine, {
     props: {
       query,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,7 +100,7 @@ test('that a line series is added to the chart', async () => {
   await resolve();
 
   await waitFor(() => {
-    const _props = get(props) as (typeof component)['$$props'];
+    const _props = get(props) as (typeof _component)['$$props'];
     // Assert that the createSeries function matches the expected implementation
     expect(_props.createSeries.toString()).toEqual(
       'chart => chart.addLineSeries({ lineWidth: 1 })',
