@@ -1,34 +1,40 @@
+use super::PerformanceError;
 use crate::{
+    performance::vol::VaultVolume,
     types::common::{Erc20, Trade},
-    utils::{annual_rate, one_18, to_18_decimals},
-    vol::VaultVolume,
-    OrderbookSubgraphClientError,
+    utils::annual_rate,
 };
-use alloy::primitives::{utils::ParseUnits, I256, U256};
+use alloy::primitives::U256;
 use chrono::TimeDelta;
+use rain_orderbook_math::BigUintMath;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[serde(rename_all = "camelCase")]
+#[typeshare]
+pub struct APYDetails {
+    #[typeshare(typescript(type = "number"))]
+    pub start_time: u64,
+    #[typeshare(typescript(type = "number"))]
+    pub end_time: u64,
+    pub net_vol: U256,
+    pub capital: U256,
+    pub apy: U256,
+    pub is_neg: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct VaultAPY {
     pub id: String,
     pub token: Erc20,
-    #[typeshare(typescript(type = "number"))]
-    pub start_time: u64,
-    #[typeshare(typescript(type = "number"))]
-    pub end_time: u64,
-    #[typeshare(typescript(type = "string"))]
-    pub net_vol: I256,
-    #[typeshare(typescript(type = "string"))]
-    pub capital: I256,
-    #[typeshare(typescript(type = "string"))]
-    pub apy: Option<I256>,
+    pub apy_details: Option<APYDetails>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct TokenPair {
@@ -44,10 +50,10 @@ pub fn get_vaults_apy(
     vols: &[VaultVolume],
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
-) -> Result<Vec<VaultAPY>, OrderbookSubgraphClientError> {
+) -> Result<Vec<VaultAPY>, PerformanceError> {
     let mut token_vaults_apy: Vec<VaultAPY> = vec![];
     for vol in vols {
-        let vol = vol.to_18_decimals()?;
+        let vol = vol.scale_18()?;
         // this token vault trades in desc order by timestamp
         let vault_trades = trades
             .iter()
@@ -58,6 +64,15 @@ pub fn get_vaults_apy(
                         && v.output_vault_balance_change.vault.token == vol.token)
             })
             .collect::<Vec<&Trade>>();
+
+        if vault_trades.is_empty() {
+            token_vaults_apy.push(VaultAPY {
+                id: vol.id.clone(),
+                token: vol.token.clone(),
+                apy_details: None,
+            });
+            continue;
+        }
 
         // this token vault first trade, indictaes the start time
         // to find the end of the first day to find the starting capital
@@ -88,21 +103,18 @@ pub fn get_vaults_apy(
         } else {
             &first_day_last_trade.output_vault_balance_change
         };
-        let starting_capital = U256::from_str(&vault_balance_change.new_vault_balance.0)
-            .ok()
-            .and_then(|amount| {
-                to_18_decimals(
-                    ParseUnits::U256(amount),
-                    vault_balance_change
-                        .vault
-                        .token
-                        .decimals
-                        .as_ref()
-                        .map(|v| v.0.as_str())
-                        .unwrap_or("18"),
-                )
-                .ok()
-            });
+        let starting_capital = U256::from_str(&vault_balance_change.new_vault_balance.0)?
+            .scale_18(
+                vault_balance_change
+                    .vault
+                    .token
+                    .decimals
+                    .as_ref()
+                    .map(|v| v.0.as_str())
+                    .unwrap_or("18")
+                    .parse()?,
+            )
+            .map_err(PerformanceError::from)?;
 
         // the time range for this token vault
         let mut start = u64::from_str(&first_trade.timestamp.0)?;
@@ -114,30 +126,41 @@ pub fn get_vaults_apy(
         let end = end_timestamp.unwrap_or(chrono::Utc::now().timestamp() as u64);
 
         // this token vault apy in 18 decimals point
-        let apy = starting_capital.and_then(|starting_capital| {
-            (!starting_capital.is_zero())
-                .then_some(
-                    vol.net_vol
-                        .saturating_mul(one_18().get_signed())
-                        .saturating_div(starting_capital.get_signed())
-                        .saturating_mul(one_18().get_signed())
-                        .checked_div(annual_rate(start, end)),
-                )
-                .flatten()
-        });
+        let apy = if !starting_capital.is_zero() {
+            match annual_rate(start, end) {
+                Err(_) => None,
+                Ok(annual_rate_18) => vol
+                    .vol_details
+                    .net_vol
+                    .div_18(starting_capital)
+                    .ok()
+                    .and_then(|v| v.div_18(annual_rate_18).ok()),
+            }
+        } else {
+            None
+        };
 
         // this token vault apy
-        token_vaults_apy.push(VaultAPY {
-            id: vol.id.clone(),
-            token: vol.token.clone(),
-            start_time: start,
-            end_time: end,
-            apy,
-            net_vol: vol.net_vol,
-            capital: starting_capital
-                .unwrap_or(ParseUnits::I256(I256::ZERO))
-                .get_signed(),
-        });
+        if let Some(apy) = apy {
+            token_vaults_apy.push(VaultAPY {
+                id: vol.id.clone(),
+                token: vol.token.clone(),
+                apy_details: Some(APYDetails {
+                    start_time: start,
+                    end_time: end,
+                    apy,
+                    is_neg: vol.is_net_vol_negative(),
+                    net_vol: vol.vol_details.net_vol,
+                    capital: starting_capital,
+                }),
+            });
+        } else {
+            token_vaults_apy.push(VaultAPY {
+                id: vol.id.clone(),
+                token: vol.token.clone(),
+                apy_details: None,
+            });
+        }
     }
 
     Ok(token_vaults_apy)
@@ -146,9 +169,12 @@ pub fn get_vaults_apy(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::types::common::{
-        BigInt, Bytes, Orderbook, TradeEvent, TradeStructPartialOrder, TradeVaultBalanceChange,
-        Transaction, VaultBalanceChangeVault,
+    use crate::{
+        performance::vol::VolumeDetails,
+        types::common::{
+            BigInt, Bytes, Orderbook, TradeEvent, TradeStructPartialOrder, TradeVaultBalanceChange,
+            Transaction, VaultBalanceChangeVault,
+        },
     };
     use alloy::primitives::{Address, B256};
 
@@ -160,18 +186,22 @@ mod test {
         let vault_vol1 = VaultVolume {
             id: vault1.to_string(),
             token: token1.clone(),
-            total_in: U256::ZERO,
-            total_out: U256::ZERO,
-            total_vol: U256::ZERO,
-            net_vol: I256::from_str("1000000000000000000").unwrap(),
+            vol_details: VolumeDetails {
+                total_in: U256::ZERO,
+                total_out: U256::ZERO,
+                total_vol: U256::ZERO,
+                net_vol: U256::from_str("1000000000000000000").unwrap(),
+            },
         };
         let vault_vol2 = VaultVolume {
             id: vault2.to_string(),
             token: token2.clone(),
-            total_in: U256::ZERO,
-            total_out: U256::ZERO,
-            total_vol: U256::ZERO,
-            net_vol: I256::from_str("2000000000000000000").unwrap(),
+            vol_details: VolumeDetails {
+                total_in: U256::ZERO,
+                total_out: U256::ZERO,
+                total_vol: U256::ZERO,
+                net_vol: U256::from_str("2000000000000000000").unwrap(),
+            },
         };
         let result =
             get_vaults_apy(&trades, &[vault_vol1, vault_vol2], Some(1), Some(10000001)).unwrap();
@@ -179,22 +209,28 @@ mod test {
             VaultAPY {
                 id: vault1.to_string(),
                 token: token1.clone(),
-                start_time: 1,
-                end_time: 10000001,
-                net_vol: I256::from_str("1000000000000000000").unwrap(),
-                capital: I256::from_str("5000000000000000000").unwrap(),
-                // (1/5) / (10000001_end - 1_start / 31_536_00_year)
-                apy: Some(I256::from_str("630720000000000000").unwrap()),
+                apy_details: Some(APYDetails {
+                    start_time: 1,
+                    end_time: 10000001,
+                    net_vol: U256::from_str("1000000000000000000").unwrap(),
+                    capital: U256::from_str("5000000000000000000").unwrap(),
+                    // (1/5) / (10000001_end - 1_start / 31_536_00_year)
+                    apy: U256::from_str("630720000000000000").unwrap(),
+                    is_neg: false,
+                }),
             },
             VaultAPY {
                 id: vault2.to_string(),
                 token: token2.clone(),
-                start_time: 1,
-                end_time: 10000001,
-                net_vol: I256::from_str("2000000000000000000").unwrap(),
-                capital: I256::from_str("5000000000000000000").unwrap(),
-                // (2/5) / ((10000001_end - 1_start) / 31_536_00_year)
-                apy: Some(I256::from_str("1261440000000000000").unwrap()),
+                apy_details: Some(APYDetails {
+                    start_time: 1,
+                    end_time: 10000001,
+                    net_vol: U256::from_str("2000000000000000000").unwrap(),
+                    capital: U256::from_str("5000000000000000000").unwrap(),
+                    // (2/5) / ((10000001_end - 1_start) / 31_536_00_year)
+                    apy: U256::from_str("1261440000000000000").unwrap(),
+                    is_neg: false,
+                }),
             },
         ];
 

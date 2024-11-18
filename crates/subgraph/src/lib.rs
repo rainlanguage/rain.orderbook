@@ -1,13 +1,12 @@
-pub mod apy;
 mod cynic_client;
 mod multi_orderbook_client;
 mod orderbook_client;
 mod pagination;
+pub mod performance;
 pub mod types;
 pub mod utils;
 pub mod validate;
 mod vault_balance_changes_query;
-pub mod vol;
 
 #[cynic::schema("orderbook")]
 pub mod schema {}

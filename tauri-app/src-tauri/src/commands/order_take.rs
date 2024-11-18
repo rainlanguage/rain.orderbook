@@ -3,8 +3,8 @@ use rain_orderbook_common::{
     csv::TryIntoCsv, subgraph::SubgraphArgs, types::FlattenError, types::OrderTakeFlattened,
 };
 
-use rain_orderbook_subgraph_client::types::order::OrderPerformance;
-use rain_orderbook_subgraph_client::vol::VaultVolume;
+use rain_orderbook_subgraph_client::performance::vol::VaultVolume;
+use rain_orderbook_subgraph_client::performance::OrderPerformance;
 use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;

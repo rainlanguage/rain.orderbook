@@ -46,6 +46,7 @@ const mockOrderApy: OrderPerformance[] = [
         symbol: 'output_token',
         decimals: '0',
       },
+      isNeg: false,
       netVol: '0',
       startingCapital: '0',
     },

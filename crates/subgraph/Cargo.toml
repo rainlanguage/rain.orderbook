@@ -17,9 +17,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 alloy = { workspace = true, features = ["rand"] }
 rain_orderbook_bindings = { workspace = true }
+rain_orderbook_math = { workspace = true }
 chrono = { workspace = true }
-url = { workspace = true }
+url = { workspace = true, features = ["serde"] }
 cynic-introspection = "3.7.3"
+once_cell = { workspace = true }
 futures = "0.3.17"
 tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
 wasm-bindgen = { version = "0.2.92" }

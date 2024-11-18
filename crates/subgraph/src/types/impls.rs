@@ -1,66 +1,71 @@
 use super::common::*;
-use crate::{
-    error::ParseNumberError,
-    utils::{one_18, to_18_decimals},
-};
-use alloy::primitives::{utils::ParseUnits, I256, U256};
+use crate::performance::PerformanceError;
+use alloy::primitives::U256;
+use rain_orderbook_math::BigUintMath;
 use std::str::FromStr;
 
 impl Trade {
-    /// Converts this trade's input to 18 point decimals in U256/I256
-    pub fn input_as_18_decimals(&self) -> Result<ParseUnits, ParseNumberError> {
-        Ok(to_18_decimals(
-            ParseUnits::U256(U256::from_str(&self.input_vault_balance_change.amount.0)?),
-            self.input_vault_balance_change
-                .vault
-                .token
-                .decimals
-                .as_ref()
-                .map(|v| v.0.as_str())
-                .unwrap_or("18"),
-        )?)
+    /// Converts this trade's input to 18 point decimals in U256
+    pub fn scale_18_input(&self) -> Result<U256, PerformanceError> {
+        Ok(
+            U256::from_str(&self.input_vault_balance_change.amount.0)?.scale_18(
+                self.input_vault_balance_change
+                    .vault
+                    .token
+                    .decimals
+                    .as_ref()
+                    .map(|v| v.0.as_str())
+                    .unwrap_or("18")
+                    .parse()?,
+            )?,
+        )
     }
 
-    /// Converts this trade's output to 18 point decimals in U256/I256
-    pub fn output_as_18_decimals(&self) -> Result<ParseUnits, ParseNumberError> {
-        Ok(to_18_decimals(
-            ParseUnits::I256(I256::from_str(&self.output_vault_balance_change.amount.0)?),
+    /// Converts this trade's output to 18 point decimals in U256
+    pub fn scale_18_output(&self) -> Result<U256, PerformanceError> {
+        let amount = if self.output_vault_balance_change.amount.0.starts_with('-') {
+            &self.output_vault_balance_change.amount.0[1..]
+        } else {
+            &self.output_vault_balance_change.amount.0
+        };
+        Ok(U256::from_str(amount)?.scale_18(
             self.output_vault_balance_change
                 .vault
                 .token
                 .decimals
                 .as_ref()
                 .map(|v| v.0.as_str())
-                .unwrap_or("18"),
+                .unwrap_or("18")
+                .parse()?,
         )?)
     }
 
     /// Calculates the trade's I/O ratio
-    pub fn ratio(&self) -> Result<U256, ParseNumberError> {
-        Ok(self
-            .input_as_18_decimals()?
-            .get_absolute()
-            .saturating_mul(one_18().get_absolute())
-            .checked_div(
-                self.output_as_18_decimals()?
-                    .get_signed()
-                    .saturating_neg()
-                    .try_into()?,
-            )
-            .unwrap_or(U256::MAX))
+    pub fn ratio(&self) -> Result<U256, PerformanceError> {
+        let output = self.scale_18_output()?;
+        let input = self.scale_18_input()?;
+        if output.is_zero() && input.is_zero() {
+            Ok(U256::ZERO)
+        } else if output.is_zero() {
+            Ok(U256::MAX)
+        } else {
+            Ok(input.div_18(output)?)
+        }
     }
 
     /// Calculates the trade's O/I ratio (inverse)
-    pub fn inverse_ratio(&self) -> Result<U256, ParseNumberError> {
-        Ok(
-            TryInto::<U256>::try_into(self.output_as_18_decimals()?.get_signed().saturating_neg())?
-                .saturating_mul(one_18().get_absolute())
-                .checked_div(self.input_as_18_decimals()?.get_absolute())
-                .unwrap_or(U256::MAX),
-        )
+    pub fn inverse_ratio(&self) -> Result<U256, PerformanceError> {
+        let output = self.scale_18_output()?;
+        let input = self.scale_18_input()?;
+        if output.is_zero() && input.is_zero() {
+            Ok(U256::ZERO)
+        } else if input.is_zero() {
+            Ok(U256::MAX)
+        } else {
+            Ok(output.div_18(input)?)
+        }
     }
 }
-
 
 #[cfg(target_family = "wasm")]
 mod js_api {
@@ -94,7 +99,6 @@ mod js_api {
     impl_wasm_traits!(Bytes);
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -106,16 +110,16 @@ mod test {
 
     #[test]
     fn test_input_to_18_decimals() {
-        let result = get_trade().input_as_18_decimals().unwrap();
+        let result = get_trade().scale_18_input().unwrap();
         let expected = U256::from_str("3000000000000000000").unwrap();
-        assert_eq!(result.get_absolute(), expected);
+        assert_eq!(result, expected);
     }
 
     #[test]
     fn test_output_to_18_decimals() {
-        let result = get_trade().output_as_18_decimals().unwrap();
-        let expected = I256::from_str("-6000000000000000000").unwrap();
-        assert_eq!(result.get_signed(), expected);
+        let result = get_trade().scale_18_output().unwrap();
+        let expected = U256::from_str("6000000000000000000").unwrap();
+        assert_eq!(result, expected);
     }
 
     #[test]
