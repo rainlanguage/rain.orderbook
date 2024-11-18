@@ -13,16 +13,16 @@
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: [connectedWalletAddress],
+					owners: ['	'],
 					active: true,
 					orderHash: undefined
 				},
-				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
+				{ page: pageParam + 1, pageSize: 1 }
 			);
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+			return lastPage.length === 1 ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: 10000,
 		enabled: true
