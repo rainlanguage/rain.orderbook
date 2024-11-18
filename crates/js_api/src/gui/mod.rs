@@ -25,26 +25,10 @@ use wasm_bindgen::{
     prelude::*,
 };
 
+mod deposits;
+mod field_values;
 mod order_operations;
 mod state_management;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct TokenDeposit {
-    token: String,
-    amount: String,
-    #[tsify(type = "string")]
-    address: Address,
-}
-impl_wasm_traits!(TokenDeposit);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct FieldValuePair {
-    binding: String,
-    value: String,
-}
-impl_wasm_traits!(FieldValuePair);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -52,7 +36,7 @@ pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
     field_values: BTreeMap<String, String>,
-    deposits: Vec<TokenDeposit>,
+    deposits: Vec<deposits::TokenDeposit>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
 #[wasm_bindgen]
@@ -113,92 +97,6 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getTokenInfos")]
     pub fn get_token_infos(&self) -> Result<JsValue, GuiError> {
         Ok(serde_wasm_bindgen::to_value(&self.onchain_token_info)?)
-    }
-
-    #[wasm_bindgen(js_name = "getDeposits")]
-    pub fn get_deposits(&self) -> Vec<TokenDeposit> {
-        self.deposits.clone()
-    }
-
-    #[wasm_bindgen(js_name = "saveDeposit")]
-    pub fn save_deposit(&mut self, token: String, amount: String) -> Result<(), GuiError> {
-        let gui_deposit = self
-            .deployment
-            .deposits
-            .iter()
-            .find(|dg| dg.token_name == token)
-            .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
-
-        let deposit_token = TokenDeposit {
-            token: gui_deposit.token_name.clone(),
-            amount,
-            address: gui_deposit.token.address,
-        };
-
-        if !self.deposits.iter().any(|d| d.token == token) {
-            self.deposits.push(deposit_token);
-        }
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = "removeDeposit")]
-    pub fn remove_deposit(&mut self, token: String) {
-        self.deposits.retain(|deposit| deposit.token != token);
-    }
-
-    #[wasm_bindgen(js_name = "saveFieldValue")]
-    pub fn save_field_value(&mut self, binding: String, value: String) -> Result<(), GuiError> {
-        self.deployment
-            .fields
-            .iter()
-            .find(|field| field.binding == binding)
-            .ok_or(GuiError::FieldBindingNotFound(binding.clone()))?;
-        self.field_values.insert(binding, value);
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = "saveFieldValues")]
-    pub fn save_field_values(&mut self, field_values: Vec<FieldValuePair>) -> Result<(), GuiError> {
-        for field_value in field_values {
-            self.save_field_value(field_value.binding, field_value.value)?;
-        }
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = "getFieldValue")]
-    pub fn get_field_value(&self, binding: String) -> Result<String, GuiError> {
-        let field_value = self
-            .field_values
-            .get(&binding)
-            .ok_or(GuiError::FieldBindingNotFound(binding))?;
-        Ok(field_value.clone())
-    }
-
-    #[wasm_bindgen(js_name = "getAllFieldValues")]
-    pub fn get_all_field_values(&self) -> Vec<FieldValuePair> {
-        self.field_values
-            .iter()
-            .map(|(k, v)| FieldValuePair {
-                binding: k.clone(),
-                value: v.clone(),
-            })
-            .collect()
-    }
-
-    #[wasm_bindgen(js_name = "getFieldDefinition")]
-    pub fn get_field_definition(&self, binding: String) -> Result<GuiFieldDefinition, GuiError> {
-        let field_definition = self
-            .deployment
-            .fields
-            .iter()
-            .find(|field| field.binding == binding)
-            .ok_or(GuiError::FieldBindingNotFound(binding))?;
-        Ok(field_definition.clone())
-    }
-
-    #[wasm_bindgen(js_name = "getAllFieldDefinitions")]
-    pub fn get_all_field_definitions(&self) -> Vec<GuiFieldDefinition> {
-        self.deployment.fields.clone()
     }
 }
 

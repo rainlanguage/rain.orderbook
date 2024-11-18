@@ -1,4 +1,5 @@
 use super::*;
+use deposits::TokenDeposit;
 use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
