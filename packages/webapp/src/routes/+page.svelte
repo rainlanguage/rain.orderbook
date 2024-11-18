@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-	import type { InfiniteQueryObserverResult } from '@tanstack/svelte-query';
+	import { createInfiniteQuery, type InfiniteQueryObserverResult } from '@tanstack/svelte-query';
 
 	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
@@ -7,31 +7,26 @@
 	import { TanstackAppTable } from '@rainlanguage/ui-components';
 	import { readable } from 'svelte/store';
 
-	const mockQueryStore = {
-		...readable({
-			data: {
-				pages: [
-					[
-						{
-							// Mocking minimal query structure
-							subgraphName: 'Ethereum',
-							order: {
-								active: true,
-								orderHash: '0x1234567890abcdef1234567890abcdef12345678',
-								owner: '0xabcdef1234567890abcdef1234567890abcdef12',
-								orderbook: { id: '0x9876543210fedcba9876543210fedcba98765432' },
-								timestampAdded: '1709251200', // Some timestamp
-								inputs: [{ token: { symbol: 'ETH' } }, { token: { symbol: 'USDC' } }],
-								outputs: [{ token: { symbol: 'DAI' } }],
-								trades: new Array(5)
-							}
-						}
-					]
-				]
-			}
-		}),
-		subscribe: () => () => {}
-	} as unknown as InfiniteQueryObserverResult;
+	$: query = createInfiniteQuery({
+		queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
+		queryFn: ({ pageParam }) => {
+			return getOrders(
+				multiSubgraphArgs,
+				{
+					owners: [connectedWalletAddress],
+					active: true,
+					orderHash: undefined
+				},
+				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
+			);
+		},
+		initialPageParam: 0,
+		getNextPageParam(lastPage, _allPages, lastPageParam) {
+			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+		},
+		refetchInterval: 10000,
+		enabled: true
+	});
 </script>
 
 <TanstackAppTable query={mockQueryStore}>
