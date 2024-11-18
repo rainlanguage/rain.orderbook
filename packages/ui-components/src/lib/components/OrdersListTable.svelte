@@ -1,4 +1,4 @@
-<!-- <script lang="ts">
+<script lang="ts">
 	import { QKEY_ORDERS } from '$lib/queries/keys';
 	import { ordersList } from '$lib/queries/ordersList';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
@@ -43,9 +43,11 @@
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: Object.keys($activeSubgraphs).length > 0
 	});
+
+	$: console.log('query', query);
 </script>
 
-{#if $query}
+<!-- {#if $query}
 	<TanstackAppTable
 		{query}
 		emptyMessage="No Orders Found"
