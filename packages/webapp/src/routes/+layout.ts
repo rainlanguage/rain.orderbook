@@ -1,4 +1,4 @@
-import type { AppStoresInterface } from '../types/stores';
+import type { AppStoresInterface } from '$lib/types/stores';
 import { writable } from 'svelte/store';
 import settings from '$lib/settings-12-11-24.json';
 
