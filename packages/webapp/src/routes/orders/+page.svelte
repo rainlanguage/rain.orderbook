@@ -45,7 +45,7 @@
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 </script>
 
-<DropdownActiveSubgraphs {settings} {activeSubgraphs} />
+<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 
 <AppTable {query}>
 	<svelte:fragment slot="title">
