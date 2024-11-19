@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	import type { ConfigSource } from '$lib/typeshare/config';
+	import type { ConfigSource } from '../../typeshare/config';
 
 	export let settings: ConfigSource;
 	export let activeSubgraphs: Writable<Record<string, string>>;
