@@ -49,7 +49,7 @@
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 </script>
 
-<DropdownActiveSubgraphs {settings} {activeSubgraphs} />
+<DropdownActiveSubgraphs settings={$settings} activeSubgraphs={$activeSubgraphs} />
 <DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 
 <AppTable {query}>
