@@ -1,11 +1,9 @@
 <script lang="ts">
+	import type { Writable } from 'svelte/store';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	import type { AppStoresInterface } from '@webapp/types';
-
-	export let stores: AppStoresInterface;
-
-	$: settings = $stores.settings;
-	$: activeSubgraphs = $stores.activeSubgraphs;
+	// import { settings, activeSubgraphs } from '$lib/stores/settings';
+	export let settings: Writable<Record<string, string>>;
+	export let activeSubgraphs: Writable<Record<string, string>>;
 
 	$: dropdownOptions = Object.keys($settings?.subgraphs ?? {}).reduce(
 		(acc, key) => ({

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import '../app.css';
 	import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
-	import { settings, activeSubgraphs } from '$lib/stores/settings';
-	import type { AppStoresInterface } from '../types';
+	import type { AppStoresInterface } from '../types/stores';
+	import { writable } from 'svelte/store';
 
 	const queryClient = new QueryClient({
 		defaultOptions: {
@@ -13,9 +13,11 @@
 	});
 
 	const stores: AppStoresInterface = {
-		settings,
-		activeSubgraphs
+		settings: writable<Record<string, string>>({}),
+		activeSubgraphs: writable<Record<string, string>>({})
 	};
+
+	$: console.log('stores in layout', stores);
 </script>
 
 <QueryClientProvider client={queryClient}>

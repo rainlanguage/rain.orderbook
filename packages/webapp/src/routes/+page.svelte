@@ -2,11 +2,14 @@
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import { TanstackAppTable } from '@rainlanguage/ui-components';
+	import { TanstackAppTable, DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
+	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
+
+	export let data;
+	const { stores } = data;
 
 	const multiSubgraphArgs: MultiSubgraphArgs[] = [
 		{
@@ -36,8 +39,13 @@
 		enabled: true
 	});
 
+	$: activeSubgraphs = stores.activeSubgraphs;
+	$: settings = stores.settings;
+
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 </script>
+
+<DropdownActiveSubgraphs {settings} {activeSubgraphs} />
 
 <AppTable {query}>
 	<svelte:fragment slot="title">
