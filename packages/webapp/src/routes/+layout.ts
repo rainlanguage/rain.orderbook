@@ -11,7 +11,9 @@ export const load = () => {
 		stores: {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			settings: writable<any>(settings),
-			activeSubgraphs: writable<Record<string, string>>({})
+			activeSubgraphs: writable<Record<string, string>>({}),
+			accounts: writable<Record<string, string>>({}),
+			activeAccountsItems: writable<Record<string, string>>({})
 		}
 	};
 };

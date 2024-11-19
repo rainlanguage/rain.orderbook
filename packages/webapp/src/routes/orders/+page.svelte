@@ -6,14 +6,18 @@
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import { TanstackAppTable, DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
+	import {
+		TanstackAppTable,
+		DropdownActiveSubgraphs,
+		DropdownOrderListAccounts
+	} from '@rainlanguage/ui-components';
 	import { QKEY_ORDERS } from '$lib/queries/keys';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
-	const { activeSubgraphs, settings } = $page.data.stores;
+	const { activeSubgraphs, settings, accounts, activeAccountsItems } = $page.data.stores;
 
 	$: multiSubgraphArgs = Object.entries($activeSubgraphs).map(([name, url]) => ({
 		name,
@@ -46,6 +50,7 @@
 </script>
 
 <DropdownActiveSubgraphs {settings} {activeSubgraphs} />
+<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 
 <AppTable {query}>
 	<svelte:fragment slot="title">
