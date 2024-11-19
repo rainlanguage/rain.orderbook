@@ -28,7 +28,6 @@
       <InputOrderHash />
       <DropdownOrderStatus />
     {/if}
-
     <DropdownOrderListAccounts />
     <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
   {/if}
