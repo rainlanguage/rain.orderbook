@@ -66,7 +66,8 @@
               typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              
+              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs crates/settings/src/gui.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
               typeshare crates/common/src/dotrain_order/mod.rs lib/rain.interpreter/lib/rain.metadata/crates/cli/src/meta/types/authoring/v2.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
               typeshare crates/quote/src/order_quotes.rs crates/quote/src/quote.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderQuote.ts;
@@ -212,7 +213,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests
+              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
             '';
           };
 
@@ -229,6 +230,7 @@
             name = "js-install";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
             '';
           };
@@ -237,6 +239,7 @@
             name = "build-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm run build
             '';
           };
@@ -245,6 +248,7 @@
             name = "test-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
               npm run build
               npm test
@@ -283,6 +287,11 @@
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
+        };
+        devShells.webapp-shell = pkgs.mkShell {
+          packages = with pkgs; [
+              nodejs_20
+          ];
         };
 
       }

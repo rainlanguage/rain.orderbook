@@ -5,11 +5,33 @@ use std::{collections::HashMap, num::ParseIntError, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::impl_wasm_traits;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen::{from_value, to_value};
+#[cfg(target_family = "wasm")]
+use tsify::Tsify;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 #[serde(rename_all = "kebab-case")]
 pub struct Scenario {
     pub name: String,
+    #[cfg_attr(target_family = "wasm", tsify(type = "Record<string, string>"))]
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
     pub runs: Option<u64>,
@@ -18,6 +40,8 @@ pub struct Scenario {
     #[typeshare(typescript(type = "Deployer"))]
     pub deployer: Arc<Deployer>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(Scenario);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseScenarioConfigSourceError {
@@ -214,6 +238,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None, // Assuming no accounts for simplification
+            gui: None,
         };
 
         // Perform the conversion

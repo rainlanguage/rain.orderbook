@@ -10,7 +10,7 @@ export type VaultBalanceChangesListArgs = {
   };
   paginationArgs: {
     page: number;
-    page_size: number;
+    pageSize: number;
   };
 };
 
@@ -26,7 +26,7 @@ export const vaultBalanceChangesList = async (
   return await invoke<VaultBalanceChangeUnwrapped[]>('vault_balance_changes_list', {
     id,
     subgraphArgs: { url },
-    paginationArgs: { page: pageParam + 1, page_size: pageSize },
+    paginationArgs: { page: pageParam + 1, pageSize },
   } as VaultBalanceChangesListArgs);
 };
 

@@ -3,11 +3,11 @@
   import { Button } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { bigintStringToHex } from '$lib/utils/hex';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import { goto } from '$app/navigation';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-  import CardProperty from '$lib/components/CardProperty.svelte';
+  import { CardProperty } from '@rainlanguage/ui-components';
   import { formatUnits } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultDetail } from '$lib/queries/vaultDetail';
