@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	// import { settings, activeSubgraphs } from '$lib/stores/settings';
-	export let settings: Writable<Record<string, string>>;
+	import type { ConfigSource } from '$lib/typeshare/config';
+
+	export let settings: ConfigSource;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 
-	$: dropdownOptions = Object.keys($settings?.subgraphs ?? {}).reduce(
+	$: dropdownOptions = Object.keys(settings?.subgraphs ?? {}).reduce(
 		(acc, key) => ({
 			...acc,
 			[key]: key
@@ -17,7 +18,7 @@
 		let items = Object.keys(event.detail);
 		activeSubgraphs.set(
 			Object.values(items).reduce(
-				(acc, key) => ({ ...acc, [key]: ($settings?.subgraphs ?? {})[key] }),
+				(acc, key) => ({ ...acc, [key]: (settings?.subgraphs ?? {})[key] }),
 				{} as Record<string, string>
 			)
 		);
