@@ -1,6 +1,6 @@
 <script lang="ts">
   import { accounts, activeAccountsItems } from '$lib/stores/settings';
-  import DropdownCheckbox from './DropdownCheckbox.svelte';
+  import { DropdownCheckbox } from '@rainlanguage/ui-components';
 
   $: options = $accounts;
 </script>
