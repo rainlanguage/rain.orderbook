@@ -37,14 +37,12 @@ pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
     };
 
     let res = get_data(subgraph_url, variables).await?;
-    dbg!(&res);
     Ok(res)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio;
 
     #[tokio::test]
     async fn test_get_balances() {
