@@ -300,6 +300,7 @@
             packages.build-js-bindings
             packages.test-js-bindings
             rain.defaultPackage.${system}
+            packages.ob-ui-components-prelude
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
