@@ -1,25 +1,27 @@
 <script lang="ts" generics="T">
+	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
+
+	import { page } from '$app/stores';
+
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import { TanstackAppTable, DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
+	import { QKEY_ORDERS } from '$lib/queries/keys';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
-	export let data;
-	const { stores } = data;
+	const { activeSubgraphs, settings } = $page.data.stores;
 
-	const multiSubgraphArgs: MultiSubgraphArgs[] = [
-		{
-			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn',
-			name: 'flare'
-		}
-	] as MultiSubgraphArgs[];
+	$: multiSubgraphArgs = Object.entries($activeSubgraphs).map(([name, url]) => ({
+		name,
+		url
+	})) as MultiSubgraphArgs[];
 
 	$: query = createInfiniteQuery({
-		queryKey: [],
+		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
@@ -28,19 +30,17 @@
 					active: true,
 					orderHash: undefined
 				},
-				{ page: pageParam + 1, pageSize: 1 }
+				{ page: pageParam + 1, pageSize: 20 }
 			);
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage.length === 1 ? lastPageParam + 1 : undefined;
+			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
-		refetchInterval: 100000,
-		enabled: true
-	});
+		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 
-	$: activeSubgraphs = stores.activeSubgraphs;
-	$: settings = stores.settings;
+		enabled: Object.keys($activeSubgraphs).length > 0
+	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 </script>

@@ -16,8 +16,6 @@
 		settings: writable<Record<string, string>>({}),
 		activeSubgraphs: writable<Record<string, string>>({})
 	};
-
-	$: console.log('stores in layout', stores);
 </script>
 
 <QueryClientProvider client={queryClient}>
