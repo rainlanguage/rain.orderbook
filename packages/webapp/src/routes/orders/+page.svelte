@@ -17,7 +17,10 @@
 	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
-	const { activeSubgraphs, settings, accounts, activeAccountsItems } = $page.data.stores;
+	import type { AppStoresInterface } from '$lib/types/stores';
+
+	const { activeSubgraphs, settings, accounts, activeAccountsItems }: AppStoresInterface =
+		$page.data.stores;
 
 	$: multiSubgraphArgs = Object.entries($activeSubgraphs).map(([name, url]) => ({
 		name,
@@ -33,7 +36,6 @@
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					// Either the activeAccountsItems or an empty
 					owners,
 					active: true,
 					orderHash: undefined
