@@ -5,9 +5,11 @@ use rain_orderbook_subgraph_client::types::order::OrdersListQuery;
 use reqwest::Client;
 use serde_json::Value;
 
-async fn fetch_vault_balance(url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
+/// Fetches data from subgraph
+async fn fetch_order_details(url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
     let client = Client::new();
 
+    // Build the GraphQL query with the provided variables.
     let query = OrdersListQuery::build(variables);
 
     let req = client
@@ -19,12 +21,14 @@ async fn fetch_vault_balance(url: &str, variables: OrdersListQueryVariables) -> 
 
     let text = req.text().await?;
 
+    // Parse the response JSON.
     let response: Value = serde_json::from_str(&text)?;
     Ok(serde_json::from_str(&text)?)
 }
 
+/// Retrieves data from subgraph and checks for errors in the response.
 async fn get_data(url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
-    let data = fetch_vault_balance(url, variables).await?;
+    let data = fetch_order_details(url, variables).await?;
     if let Some(errors) = data.get("errors") {
         return Err(anyhow::anyhow!("Error(s) occurred: {:?}", errors));
     }
