@@ -31,5 +31,17 @@ module.exports = {
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
     'no-trailing-spaces': 'error',
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_",
+        "caughtErrors": "all",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ]
   },
 };
