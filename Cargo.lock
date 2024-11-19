@@ -6371,6 +6371,7 @@ dependencies = [
  "clap",
  "comfy-table",
  "csv",
+ "cynic",
  "httpmock",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",

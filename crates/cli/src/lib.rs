@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::Subcommand;
 use rain_orderbook_quote::cli::Quoter;
 
+mod balance;
 mod commands;
 mod execute;
 mod output;

@@ -1,30 +1,28 @@
 use anyhow::Result;
+use cynic::QueryBuilder;
+use rain_orderbook_subgraph_client::types::common::OrdersListQueryVariables;
+use rain_orderbook_subgraph_client::types::order::OrdersListQuery;
 use reqwest::Client;
 use serde_json::Value;
-use rain_orderbook_subgraph_client::types::order::{
-    OrdersListQuery, OrdersListQueryVariables,
-};
-use cynic::{http::ReqwestExt, QueryBuilder};
 
-async fn fetch_vault_balance(
-    client: &Client,
-    url: &str,
-    variables: OrdersListQueryVariables,
-) -> Result<Value> {
+async fn fetch_vault_balance(url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
+    let client = Client::new();
+
     let query = OrdersListQuery::build(variables);
 
-    let response = client
+    let req = client
         .post(url)
-        .cynic_query(&query)
+        .header("Content-Type", "application/json")
+        .json(&query)
         .send()
         .await?;
 
-    let text = response.text().await?;
+    let text = req.text().await?;
     Ok(serde_json::from_str(&text)?)
 }
 
-async fn get_data(client: &Client, url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
-    let data = fetch_vault_balance(client, url, variables).await?;
+async fn get_data(url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
+    let data = fetch_vault_balance(url, variables).await?;
     if let Some(errors) = data.get("errors") {
         return Err(anyhow::anyhow!("Error(s) occurred: {:?}", errors));
     }
@@ -32,15 +30,13 @@ async fn get_data(client: &Client, url: &str, variables: OrdersListQueryVariable
 }
 
 pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
-    let client = Client::new();
-
-    // Define the variables for the OrdersListQuery.
     let variables = OrdersListQueryVariables {
         skip: Some(0),
         first: Some(25),
+        filters: None,
     };
 
-    let res = get_data(&client, subgraph_url, variables).await?;
+    let res = get_data(subgraph_url, variables).await?;
     dbg!(&res);
     Ok(res)
 }
