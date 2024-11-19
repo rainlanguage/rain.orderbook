@@ -1,45 +1,41 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
-import { get, writable } from 'svelte/store';
-import { activeSubgraphs, settings } from '$lib/stores/settings';
+import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, vi, describe } from 'vitest';
 import DropdownActiveSubgraphs from './DropdownActiveSubgraphs.svelte';
-
-vi.mock('$lib/stores/settings', async (importOriginal) => {
-  const { mockConfigSource } = await import('$lib/mocks/settings');
-  return {
-    ...((await importOriginal()) as object),
-    settings: writable({
-      ...mockConfigSource,
-      subgraphs: {
-        mainnet: 'mainnet',
-        testnet: 'testnet',
-        local: 'local',
-      },
-    }),
-    activeSubgraphs: writable({}),
-  };
-});
+import { mockConfigSource } from '../../mocks/settings';
 
 describe('DropdownActiveSubgraphs', () => {
+  const mockSettings = {
+    ...mockConfigSource,
+    subgraphs: {
+      mainnet: 'mainnet',
+      testnet: 'testnet',
+      local: 'local',
+    },
+  };
+  let activeSubgraphsStore: Writable<Record<string, string>>;
+
   beforeEach(() => {
-    settings.set({
-      ...get(settings),
-      subgraphs: {
-        mainnet: 'mainnet',
-        testnet: 'testnet',
-        local: 'local',
-      },
-    });
-    activeSubgraphs.set({});
+    activeSubgraphsStore = writable({});
   });
 
   test('renders correctly', () => {
-    render(DropdownActiveSubgraphs);
+    render(DropdownActiveSubgraphs, {
+      props: {
+        settings: mockSettings,
+        activeSubgraphs: activeSubgraphsStore,
+      },
+    });
     expect(screen.getByText('Networks')).toBeInTheDocument();
   });
 
   test('displays the correct number of options', async () => {
-    render(DropdownActiveSubgraphs);
+    render(DropdownActiveSubgraphs, {
+      props: {
+        settings: mockSettings,
+        activeSubgraphs: activeSubgraphsStore,
+      },
+    });
 
     await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
 
@@ -50,22 +46,27 @@ describe('DropdownActiveSubgraphs', () => {
   });
 
   test('updates active subgraphs when an option is selected', async () => {
-    render(DropdownActiveSubgraphs);
+    render(DropdownActiveSubgraphs, {
+      props: {
+        settings: mockSettings,
+        activeSubgraphs: activeSubgraphsStore,
+      },
+    });
 
     await fireEvent.click(screen.getByTestId('dropdown-checkbox-button'));
     await fireEvent.click(screen.getByText('mainnet'));
     await waitFor(() => {
-      expect(get(activeSubgraphs)).toEqual({ mainnet: 'mainnet' });
+      expect(get(activeSubgraphsStore)).toEqual({ mainnet: 'mainnet' });
     });
 
     await fireEvent.click(screen.getByText('testnet'));
     await waitFor(() => {
-      expect(get(activeSubgraphs)).toEqual({ mainnet: 'mainnet', testnet: 'testnet' });
+      expect(get(activeSubgraphsStore)).toEqual({ mainnet: 'mainnet', testnet: 'testnet' });
     });
 
     await fireEvent.click(screen.getByText('local'));
     await waitFor(() => {
-      expect(get(activeSubgraphs)).toEqual({
+      expect(get(activeSubgraphsStore)).toEqual({
         mainnet: 'mainnet',
         testnet: 'testnet',
         local: 'local',
