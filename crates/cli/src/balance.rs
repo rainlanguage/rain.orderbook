@@ -1,28 +1,30 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde_json::Value;
-use rain_orderbook_subgraph_client::{
-    types::vault::{VaultsListQuery}
+use rain_orderbook_subgraph_client::types::order::{
+    OrdersListQuery, OrdersListQueryVariables,
 };
+use cynic::{http::ReqwestExt, QueryBuilder};
 
-async fn fetch_vault_balance(url: &str, query: &str) -> Result<Value> {
-    let client = Client::new();
-    let req_body = serde_json::json!({
-        "query": query
-    });
+async fn fetch_vault_balance(
+    client: &Client,
+    url: &str,
+    variables: OrdersListQueryVariables,
+) -> Result<Value> {
+    let query = OrdersListQuery::build(variables);
 
-    let req = client
+    let response = client
         .post(url)
-        .header("Content-Type", "application/json")
-        .body(req_body.to_string())
+        .cynic_query(&query)
         .send()
         .await?;
-    let text = req.text().await?;
+
+    let text = response.text().await?;
     Ok(serde_json::from_str(&text)?)
 }
 
-async fn get_data(url: &str, query: &str) -> Result<Value> {
-    let data = fetch_vault_balance(url, query).await?;
+async fn get_data(client: &Client, url: &str, variables: OrdersListQueryVariables) -> Result<Value> {
+    let data = fetch_vault_balance(client, url, variables).await?;
     if let Some(errors) = data.get("errors") {
         return Err(anyhow::anyhow!("Error(s) occurred: {:?}", errors));
     }
@@ -30,15 +32,15 @@ async fn get_data(url: &str, query: &str) -> Result<Value> {
 }
 
 pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
-    let query = r#"
-        query MyQuery() {
-            vaults {
-                balance
-            }
-        }
-    "#;
+    let client = Client::new();
 
-    let res = get_data(subgraph_url, query).await?;
+    // Define the variables for the OrdersListQuery.
+    let variables = OrdersListQueryVariables {
+        skip: Some(0),
+        first: Some(25),
+    };
+
+    let res = get_data(&client, subgraph_url, variables).await?;
     dbg!(&res);
     Ok(res)
 }
