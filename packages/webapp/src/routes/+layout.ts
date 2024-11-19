@@ -12,7 +12,7 @@ export const load = () => {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			settings: writable<any>(settings),
 			activeSubgraphs: writable<Record<string, string>>({}),
-			accounts: writable<Record<string, string>>({}),
+			accounts: writable<Record<string, string>>(settings.accounts),
 			activeAccountsItems: writable<Record<string, string>>({})
 		}
 	};

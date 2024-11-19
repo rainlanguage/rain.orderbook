@@ -1,4 +1,7 @@
 {
+	"accounts": {
+		"0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11": "0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11"
+	},
 	"networks": {
 		"flare": {
 			"rpc": "https://rpc.ankr.com/flare",
