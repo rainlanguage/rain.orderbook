@@ -24,13 +24,17 @@
 		url
 	})) as MultiSubgraphArgs[];
 
+	$: owners =
+		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
+
 	$: query = createInfiniteQuery({
 		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
+					// Either the activeAccountsItems or an empty
+					owners,
 					active: true,
 					orderHash: undefined
 				},
@@ -47,9 +51,11 @@
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
+
+	$: console.log(Object.values($activeAccountsItems));
 </script>
 
-<DropdownActiveSubgraphs settings={$settings} activeSubgraphs={$activeSubgraphs} />
+<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 <DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 
 <AppTable {query}>
