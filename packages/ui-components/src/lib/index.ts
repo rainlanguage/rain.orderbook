@@ -16,3 +16,4 @@ export {
 	createResolvableInfiniteQuery,
 	createResolvableMockQuery
 } from './mocks/queries';
+export { mockConfigSource } from './mocks/settings';
