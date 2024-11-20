@@ -1,4 +1,6 @@
 import './app.css';
+
+// Components
 export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
 export { default as TanstackAppTable } from './components/TanstackAppTable.svelte';
@@ -6,7 +8,12 @@ export { default as DropdownActiveSubgraphs } from './components/dropdown/Dropdo
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
+export { default as DropdownOrderStatus } from './components/dropdown/DropdownOrderStatus.svelte';
+
+//Types 
 export type { AppStoresInterface } from './types/appStores';
+
+// Functions
 export {
 	formatTimestampSecondsAsLocal,
 	timestampSecondsToUTCTimestamp,
@@ -17,6 +24,8 @@ export {
 	createResolvableInfiniteQuery,
 	createResolvableMockQuery
 } from './mocks/queries';
+
+// Constants
 export { mockConfigSource, mockSettingsStore } from './mocks/settings';
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {

@@ -1,13 +1,21 @@
 <script lang="ts">
   import { isEmpty } from 'lodash';
-  import { DropdownOrderListAccounts } from '@rainlanguage/ui-components';
-  import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
   import CheckboxZeroBalanceVault from './checkbox/CheckboxZeroBalanceVault.svelte';
-  import { accounts, activeAccountsItems, activeSubgraphs, settings } from '$lib/stores/settings';
+  import {
+    accounts,
+    activeAccountsItems,
+    activeSubgraphs,
+    settings,
+    activeOrderStatus,
+  } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
   import { page } from '$app/stores';
   import InputOrderHash from './input/InputOrderHash.svelte';
-  import { DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
+  import {
+    DropdownActiveSubgraphs,
+    DropdownOrderStatus,
+    DropdownOrderListAccounts,
+  } from '@rainlanguage/ui-components';
 
   $: currentRoute = $page.url.pathname;
   $: isVaultsPage = currentRoute.startsWith('/vaults');
@@ -26,7 +34,7 @@
 
     {#if isOrdersPage}
       <InputOrderHash />
-      <DropdownOrderStatus />
+      <DropdownOrderStatus {activeOrderStatus} />
     {/if}
     <DropdownOrderListAccounts {accounts} {activeAccountsItems} />
     <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />

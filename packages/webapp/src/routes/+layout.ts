@@ -1,5 +1,5 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
-import { writable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import settings from '$lib/settings-12-11-24.json';
 
 export interface LayoutData {
@@ -7,13 +7,15 @@ export interface LayoutData {
 }
 
 export const load = () => {
+	const settingsStore = writable(settings);
+	
 	return {
 		stores: {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			settings: writable<any>(settings),
+			settings: settingsStore,
 			activeSubgraphs: writable<Record<string, string>>({}),
-			accounts: writable<Record<string, string>>(settings.accounts),
-			activeAccountsItems: writable<Record<string, string>>({})
+			accounts: derived(settingsStore, $settings => $settings.accounts),
+			activeAccountsItems: writable<Record<string, string>>({}),
+			activeOrderStatus: writable<boolean | undefined>(undefined)
 		}
 	};
 };

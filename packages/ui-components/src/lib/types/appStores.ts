@@ -5,4 +5,5 @@ export interface AppStoresInterface {
 	activeSubgraphs: Writable<Record<string, string>>;
 	accounts: Writable<Record<string, string>>;
 	activeAccountsItems: Writable<Record<string, string>>;
+  activeOrderStatus: Writable<boolean | undefined>;
 }
