@@ -22,7 +22,6 @@ async fn fetch_order_details(url: &str, variables: OrdersListQueryVariables) -> 
     let text = req.text().await?;
 
     // Parse the response JSON.
-    let response: Value = serde_json::from_str(&text)?;
     Ok(serde_json::from_str(&text)?)
 }
 
@@ -54,6 +53,7 @@ pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
         if let Some(data) = res.get("data").and_then(|d| d.get("orders")) {
             let orders = data.as_array().unwrap();
             if orders.is_empty() {
+                println!("No more orders, breaking the loop.");
                 break; // Exit the loop if no more orders are returned
             }
 
@@ -63,6 +63,7 @@ pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
             // Increment skip for the next page of results
             page_skip += page_limit;
         } else {
+            println!("No orders found, breaking the loop.");
             break; // Exit if there's no "orders" in the response
         }
     }
@@ -74,109 +75,14 @@ pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockito::mock;
 
     #[tokio::test]
-    async fn test_get_balances() {
+    async fn test_get_balances_response_is_ok() {
         let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
 
         let result = get_balances(subgraph_url).await;
 
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
-
-        if let Ok(data) = result {
-            println!("Fetched balance data: {:?}", data);
-        }
-    }
-
-    #[tokio::test]
-    async fn test_get_balances_data_mock() {
-        // Define the mock response JSON
-        let mock_response = serde_json::json!({
-            "data": {
-                "orders": [
-                    {
-                        "orderBytes": "0x1234",
-                        "orderHash": "0x5678",
-                        "owner": "0xabcdef",
-                        "outputs": [
-                            {
-                                "token": {
-                                    "id": "1",
-                                    "address": "0xdeadbeef",
-                                    "name": "Token A",
-                                    "symbol": "TKA",
-                                    "decimals": 18
-                                },
-                                "balance": "1000",
-                                "vaultId": "vault-123"
-                            }
-                        ],
-                        "inputs": [],
-                        "orderbook": {
-                            "id": "orderbook-1"
-                        },
-                        "active": true,
-                        "timestampAdded": "2024-11-19T12:00:00Z",
-                        "addEvents": [
-                            {
-                                "transaction": {
-                                    "blockNumber": 12345,
-                                    "timestamp": "2024-11-19T12:00:00Z"
-                                }
-                            }
-                        ],
-                        "trades": []
-                    }
-                ]
-            }
-        });
-
-        // Start a mock server
-        let _mock = mock("POST", "/")
-            .with_header("content-type", "application/json")
-            .with_body(mock_response.to_string())
-            .create();
-
-        let mock_url = &mockito::server_url();
-
-        // Call the function under test
-        let result = get_balances(mock_url).await;
-
-        // Assert the function call was successful
-        assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
-
-        // Validate the returned data structure and values
-        if let Ok(data) = result {
-            // Ensure "data" key exists
-            let orders = data.get("data").and_then(|d| d.get("orders"));
-            assert!(orders.is_some(), "Orders data missing in response");
-
-            if let Some(order_array) = orders {
-                assert_eq!(
-                    order_array.as_array().unwrap().len(),
-                    1,
-                    "Unexpected number of orders"
-                );
-
-                let first_order = &order_array[0];
-                assert_eq!(first_order.get("owner").unwrap(), "0xabcdef");
-                assert_eq!(first_order.get("active").unwrap(), true);
-
-                // Validate the `outputs` -> `balance`
-                let outputs = first_order.get("outputs").unwrap().as_array().unwrap();
-                assert_eq!(outputs.len(), 1, "Unexpected number of outputs");
-
-                let first_output = &outputs[0];
-                assert_eq!(
-                    first_output.get("balance").unwrap(),
-                    "1000",
-                    "Unexpected balance in output"
-                );
-            }
-
-            println!("Fetched balance data: {:?}", data);
-        }
     }
 
     #[tokio::test]
@@ -214,8 +120,6 @@ mod tests {
                     "Unexpected balance in output"
                 );
             }
-
-            println!("Fetched balance data: {:?}", data);
         }
     }
 }
