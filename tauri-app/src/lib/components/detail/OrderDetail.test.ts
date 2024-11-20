@@ -6,7 +6,7 @@ import OrderDetail from './OrderDetail.svelte';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import { mockOrderDetailsExtended } from '$lib/queries/orderDetail';
 import { handleOrderRemoveModal } from '$lib/services/modal';
-import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 import { formatUnits } from 'viem';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
