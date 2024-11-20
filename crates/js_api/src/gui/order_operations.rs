@@ -6,10 +6,7 @@ use alloy::{
 };
 use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
-use rain_orderbook_bindings::IOrderBookV4::addOrder2Call;
-use rain_orderbook_common::{
-    add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
-};
+use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -21,16 +18,6 @@ pub struct TokenAllowance {
     allowance: U256,
 }
 impl_wasm_traits!(TokenAllowance);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct ApprovalCalldata {
-    #[tsify(type = "string")]
-    token: Address,
-    #[tsify(type = "string")]
-    calldata: Bytes,
-}
-impl_wasm_traits!(ApprovalCalldata);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -126,138 +113,61 @@ impl DotrainOrderGui {
         Ok(serde_wasm_bindgen::to_value(&results)?)
     }
 
-    /// Generate approval calldatas for all inputs and outputs of the order
+    /// Generate approval calldatas for deposits
     ///
     /// Returns a vector of [`ApprovalCalldata`] objects
     #[wasm_bindgen(js_name = "generateApprovalCalldatas")]
     pub async fn generate_approval_calldatas(&self, owner: String) -> Result<JsValue, GuiError> {
-        let orderbook = self.get_orderbook()?;
-        let vaults_and_deposits = self.get_vaults_and_deposits()?;
-
-        let mut results = Vec::new();
-        for (order_io, amount) in vaults_and_deposits.iter() {
-            let deposit_args = DepositArgs {
-                token: order_io.token.address,
-                vault_id: rand::random(),
-                amount: *amount,
-            };
-            let token_allowance = self
-                .check_allowance(&orderbook, &deposit_args, &owner)
-                .await?;
-            if token_allowance.allowance < deposit_args.amount {
-                let calldata = deposit_args
-                    .get_approve_calldata(
-                        TransactionArgs {
-                            orderbook_address: orderbook.address,
-                            rpc_url: orderbook.network.rpc.to_string(),
-                            ..Default::default()
-                        },
-                        token_allowance.allowance,
-                    )
-                    .await?;
-                results.push(ApprovalCalldata {
-                    token: token_allowance.token,
-                    calldata: Bytes::copy_from_slice(&calldata),
-                });
-            }
-        }
-
-        Ok(serde_wasm_bindgen::to_value(&results)?)
-    }
-
-    async fn get_deposit_calldatas(
-        &self,
-        vaults_and_deposits: &Vec<(OrderIO, U256)>,
-    ) -> Result<Vec<Vec<u8>>, GuiError> {
-        let mut results = Vec::new();
-        for (order_io, amount) in vaults_and_deposits.iter() {
-            let deposit_args = DepositArgs {
-                token: order_io.token.address,
-                vault_id: order_io.vault_id.unwrap_or(rand::random()),
-                amount: *amount,
-            };
-            let calldata = deposit_args.get_deposit_calldata().await?;
-            results.push(calldata);
-        }
-        Ok(results)
-    }
-
-    /// Generate deposit calldatas for all inputs and outputs of the order
-    ///
-    /// Returns a [`DepositCalldatas`] object
-    #[wasm_bindgen(js_name = "generateDepositCalldatas")]
-    pub async fn generate_deposit_calldatas(&mut self) -> Result<JsValue, GuiError> {
-        let orderbook = self.get_orderbook()?;
-        let vaults_and_deposits = self.get_vaults_and_deposits()?;
-
-        let add_order_calldata = self.get_add_order_calldata(&orderbook).await?;
-        let decoded_add_order_calldata = addOrder2Call::abi_decode(&add_order_calldata, true)?;
-        self.set_vault_ids(&decoded_add_order_calldata);
-
         let calldatas = self
-            .get_deposit_calldatas(&vaults_and_deposits)
-            .await?
-            .iter()
-            .map(|c| Bytes::copy_from_slice(c))
-            .collect::<Vec<_>>();
+            .dotrain_order
+            .generate_approval_calldatas(
+                &self.deployment.deployment_name,
+                &owner,
+                &self.get_deposits_as_map()?,
+            )
+            .await?;
         Ok(serde_wasm_bindgen::to_value(&calldatas)?)
     }
 
-    async fn get_add_order_calldata(
-        &self,
-        orderbook: &Arc<Orderbook>,
-    ) -> Result<Vec<u8>, GuiError> {
-        let add_order_args = AddOrderArgs::new_from_deployment(
-            self.dotrain_order.dotrain(),
-            self.deployment.deployment.as_ref().clone(),
-        )
-        .await?;
-        let calldata = add_order_args
-            .get_add_order_calldata(TransactionArgs {
-                orderbook_address: orderbook.address,
-                rpc_url: orderbook.network.rpc.to_string(),
-                ..Default::default()
-            })
+    /// Generate deposit calldatas for all deposits
+    ///
+    /// Returns a vector of bytes
+    #[wasm_bindgen(js_name = "generateDepositCalldatas")]
+    pub async fn generate_deposit_calldatas(&mut self) -> Result<JsValue, GuiError> {
+        let calldatas = self
+            .dotrain_order
+            .generate_deposit_calldatas(
+                &self.deployment.deployment_name,
+                &self.get_deposits_as_map()?,
+            )
             .await?;
-        Ok(calldata.into())
-    }
-
-    fn set_vault_ids(&mut self, decoded_add_order_calldata: &addOrder2Call) {
-        let mut order = self.deployment.deployment.order.as_ref().clone();
-
-        for (i, input) in order.inputs.iter_mut().enumerate() {
-            input.vault_id = Some(decoded_add_order_calldata.config.validInputs[i].vaultId);
-        }
-        for (i, output) in order.outputs.iter_mut().enumerate() {
-            output.vault_id = Some(decoded_add_order_calldata.config.validOutputs[i].vaultId);
-        }
-
-        let mut new_deployment = self.deployment.deployment.as_ref().clone();
-        new_deployment.order = Arc::new(order);
-        self.deployment.deployment = Arc::new(new_deployment);
+        Ok(serde_wasm_bindgen::to_value(&calldatas)?)
     }
 
     /// Generate add order calldata
     #[wasm_bindgen(js_name = "generateAddOrderCalldata")]
     pub async fn generate_add_order_calldata(&mut self) -> Result<JsValue, GuiError> {
-        let orderbook = self.get_orderbook()?;
-        let calldata = self.get_add_order_calldata(&orderbook).await?;
-        Ok(serde_wasm_bindgen::to_value(&Bytes::copy_from_slice(
-            &calldata,
-        ))?)
+        let calldata = self
+            .dotrain_order
+            .generate_add_order_calldata(&self.deployment.deployment_name)
+            .await?;
+        Ok(serde_wasm_bindgen::to_value(&calldata)?)
     }
 
     #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
     pub async fn generate_deposit_and_add_order_calldatas(&mut self) -> Result<JsValue, GuiError> {
         let orderbook = self.get_orderbook()?;
-        let vaults_and_deposits = self.get_vaults_and_deposits()?;
+        let token_deposits = self.get_deposits_as_map()?;
+
         let mut calls = Vec::new();
-
-        let add_order_calldata = self.get_add_order_calldata(&orderbook).await?;
-        let decoded_add_order_calldata = addOrder2Call::abi_decode(&add_order_calldata, true)?;
-        self.set_vault_ids(&decoded_add_order_calldata);
-
-        let deposit_calldatas = self.get_deposit_calldatas(&vaults_and_deposits).await?;
+        let deposit_calldatas = self
+            .dotrain_order
+            .generate_deposit_calldatas(&self.deployment.deployment_name, &token_deposits)
+            .await?;
+        let add_order_calldata = self
+            .dotrain_order
+            .generate_add_order_calldata(&self.deployment.deployment_name)
+            .await?;
 
         for calldata in deposit_calldatas.iter() {
             calls.push(Call3 {
