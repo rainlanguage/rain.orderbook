@@ -33,7 +33,7 @@
 		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs],
+		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs, owners],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
