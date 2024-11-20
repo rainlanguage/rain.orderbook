@@ -1,13 +1,15 @@
 <script lang="ts" generics="T">
-	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
-
 	import { page } from '$app/stores';
 
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import { TanstackAppTable, DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
-	import { QKEY_ORDERS } from '$lib/queries/keys';
+	import {
+		QKEY_ORDERS,
+		DEFAULT_PAGE_SIZE,
+		DEFAULT_REFRESH_INTERVAL
+	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';

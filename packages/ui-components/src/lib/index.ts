@@ -17,3 +17,14 @@ export {
 	createResolvableMockQuery
 } from './mocks/queries';
 export { mockConfigSource } from './mocks/settings';
+export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
+export {
+	QKEY_VAULTS,
+	QKEY_VAULT,
+	QKEY_VAULT_CHANGES,
+	QKEY_ORDERS,
+	QKEY_ORDER,
+	QKEY_ORDER_TRADES_LIST,
+	QKEY_ORDER_QUOTE,
+	QKEY_VAULTS_VOL_LIST
+} from './queries/keys';
