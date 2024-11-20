@@ -54,8 +54,6 @@
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
-
-	$: console.log(Object.values($activeAccountsItems));
 </script>
 
 <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
