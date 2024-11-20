@@ -3,7 +3,7 @@
   import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import BadgeActive from '$lib/components/BadgeActive.svelte';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 

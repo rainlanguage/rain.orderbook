@@ -26,7 +26,7 @@
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import { promiseTimeout } from '$lib/utils/time';
+  import { promiseTimeout } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
   import {

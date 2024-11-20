@@ -6,7 +6,6 @@ use crate::{
 };
 use alloy::{
     hex::FromHexError,
-    primitives::private::rand,
     primitives::{Bytes, U256},
 };
 use rain_orderbook_app_settings::{deployment::Deployment, orderbook::Orderbook};
@@ -28,14 +27,19 @@ use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct ApprovalCalldata {
-    #[tsify(type = "string")]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     token: Address,
-    #[tsify(type = "string")]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     calldata: Bytes,
 }
+#[cfg(target_family = "wasm")]
 impl_wasm_traits!(ApprovalCalldata);
 
 impl DotrainOrder {
@@ -103,66 +107,32 @@ impl DotrainOrder {
         Ok(calldatas)
     }
 
-    fn check_and_save_vault_ids(
-        &mut self,
-        deployment_name: &str,
-    ) -> Result<(), DotrainOrderCalldataError> {
-        let mut deployment = self.get_deployment(deployment_name)?.as_ref().clone();
-        let mut order = deployment.order.as_ref().clone();
-        let vault_id = rand::random();
-
-        let new_inputs = deployment
-            .order
-            .inputs
-            .iter()
-            .map(|input| {
-                let mut input = input.clone();
-                input.vault_id = Some(input.vault_id.unwrap_or(vault_id));
-                input
-            })
-            .collect();
-        let new_outputs = deployment
-            .order
-            .outputs
-            .iter()
-            .map(|output| {
-                let mut output = output.clone();
-                output.vault_id = Some(output.vault_id.unwrap_or(vault_id));
-                output
-            })
-            .collect();
-
-        order.inputs = new_inputs;
-        order.outputs = new_outputs;
-        deployment.order = Arc::new(order);
-        self.config
-            .deployments
-            .insert(deployment_name.to_string(), Arc::new(deployment));
-
-        Ok(())
-    }
-
     pub async fn generate_deposit_calldatas(
         &mut self,
         deployment_name: &str,
-        token_deposits: &HashMap<Address, U256>,
+        token_deposits: &HashMap<(U256, Address), U256>,
     ) -> Result<Vec<Bytes>, DotrainOrderCalldataError> {
         let deployment = self.get_deployment(deployment_name)?;
         let mut calldatas = Vec::new();
 
-        self.check_and_save_vault_ids(deployment_name)?;
-
         for output in &deployment.order.outputs {
-            let token_deposit = token_deposits.get(&output.token.address).ok_or(
-                DotrainOrderCalldataError::TokenNotFound(output.token.address.to_string()),
-            )?;
+            let vault_id = output
+                .vault_id
+                .ok_or(DotrainOrderCalldataError::VaultIdNotFound)?;
+
+            let token_deposit = token_deposits
+                .get(&(vault_id, output.token.address))
+                .ok_or(DotrainOrderCalldataError::TokenNotFound(
+                    output.token.address.to_string(),
+                ))?;
             let calldata = DepositArgs {
                 token: output.token.address,
                 amount: token_deposit.to_owned(),
-                vault_id: output.vault_id.unwrap(),
+                vault_id,
             }
             .get_deposit_calldata()
             .await?;
+
             calldatas.push(Bytes::copy_from_slice(&calldata));
         }
 
@@ -176,17 +146,17 @@ impl DotrainOrder {
         let deployment = self.get_deployment(deployment_name)?;
         let orderbook = self.get_orderbook(deployment_name)?;
 
-        self.check_and_save_vault_ids(deployment_name)?;
-
-        let calldata =
-            AddOrderArgs::new_from_deployment(self.dotrain(), deployment.as_ref().to_owned())
-                .await?
-                .get_add_order_calldata(TransactionArgs {
-                    orderbook_address: orderbook.address,
-                    rpc_url: orderbook.network.rpc.to_string(),
-                    ..Default::default()
-                })
-                .await?;
+        let calldata = AddOrderArgs::new_from_deployment(
+            self.dotrain().to_string(),
+            deployment.as_ref().to_owned(),
+        )
+        .await?
+        .get_add_order_calldata(TransactionArgs {
+            orderbook_address: orderbook.address,
+            rpc_url: orderbook.network.rpc.to_string(),
+            ..Default::default()
+        })
+        .await?;
 
         Ok(Bytes::copy_from_slice(&calldata))
     }
@@ -202,6 +172,9 @@ pub enum DotrainOrderCalldataError {
 
     #[error("Token not found {0}")]
     TokenNotFound(String),
+
+    #[error("Vault id not found")]
+    VaultIdNotFound,
 
     #[error(transparent)]
     DepositError(#[from] DepositError),

@@ -5,7 +5,7 @@ use crate::{
     add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
     rainlang::compose_to_rainlang,
 };
-use alloy::primitives::Address;
+use alloy::primitives::{private::rand, Address};
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
@@ -17,6 +17,7 @@ use rain_orderbook_app_settings::{
     Config, ParseConfigSourceError,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
 #[cfg(target_family = "wasm")]
@@ -410,6 +411,51 @@ impl DotrainOrder {
         )?;
         scenario.bindings = bindings;
         self.update_config_source(self.config_source.clone())?;
+        Ok(())
+    }
+
+    pub fn populate_vault_ids(&mut self, deployment_name: &str) -> Result<(), DotrainOrderError> {
+        let mut deployment = self
+            .config
+            .deployments
+            .get(deployment_name)
+            .cloned()
+            .ok_or(DotrainOrderError::DeploymentNotFound(
+                deployment_name.to_string(),
+            ))?
+            .as_ref()
+            .clone();
+        let mut order = deployment.order.as_ref().clone();
+        let vault_id = rand::random();
+
+        let new_inputs = deployment
+            .order
+            .inputs
+            .iter()
+            .map(|input| {
+                let mut input = input.clone();
+                input.vault_id = Some(input.vault_id.unwrap_or(vault_id));
+                input
+            })
+            .collect();
+        let new_outputs = deployment
+            .order
+            .outputs
+            .iter()
+            .map(|output| {
+                let mut output = output.clone();
+                output.vault_id = Some(output.vault_id.unwrap_or(vault_id));
+                output
+            })
+            .collect();
+
+        order.inputs = new_inputs;
+        order.outputs = new_outputs;
+        deployment.order = Arc::new(order);
+        self.config
+            .deployments
+            .insert(deployment_name.to_string(), Arc::new(deployment));
+
         Ok(())
     }
 }

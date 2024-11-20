@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
+  import { timestampSecondsToUTCTimestamp } from '@rainlanguage/ui-components';
   import { bigintToFloat } from '$lib/utils/number';
   import type { Vault } from '$lib/typeshare/subgraphTypes';
   import { createQuery } from '@tanstack/svelte-query';
