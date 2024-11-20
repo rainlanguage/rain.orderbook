@@ -7,14 +7,15 @@
     activeSubgraphs,
     settings,
     activeOrderStatus,
+    orderHash,
   } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
   import { page } from '$app/stores';
-  import InputOrderHash from './input/InputOrderHash.svelte';
   import {
     DropdownActiveSubgraphs,
     DropdownOrderStatus,
     DropdownOrderListAccounts,
+    InputOrderHash,
   } from '@rainlanguage/ui-components';
 
   $: currentRoute = $page.url.pathname;
@@ -33,7 +34,7 @@
     {/if}
 
     {#if isOrdersPage}
-      <InputOrderHash />
+      <InputOrderHash {orderHash} />
       <DropdownOrderStatus {activeOrderStatus} />
     {/if}
     <DropdownOrderListAccounts {accounts} {activeAccountsItems} />

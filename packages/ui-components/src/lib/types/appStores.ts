@@ -6,4 +6,5 @@ export interface AppStoresInterface {
 	accounts: Writable<Record<string, string>>;
 	activeAccountsItems: Writable<Record<string, string>>;
 	activeOrderStatus: Writable<boolean | undefined>;
+	orderHash: Writable<string>;
 }
