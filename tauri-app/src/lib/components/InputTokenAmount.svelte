@@ -18,7 +18,7 @@
     } else {
       try {
         value = parseUnits(inputValue, decimals);
-      } catch (e) {
+      } catch (_e) {
         value = 0n;
       }
     }

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import TanstackPageContentDetailTest from './TanstackPageContentDetail.test.svelte';
-import { createResolvableQuery } from '$lib/mocks/queries';
+import { createResolvableQuery } from '@rainlanguage/ui-components';
 
 test('shows query data in correct places', async () => {
   const { query, resolve } = createResolvableQuery(() => {
