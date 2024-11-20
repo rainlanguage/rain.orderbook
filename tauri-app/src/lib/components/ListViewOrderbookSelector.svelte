@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isEmpty } from 'lodash';
-  import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
+  import { DropdownOrderListAccounts } from '@rainlanguage/ui-components';
   import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
   import CheckboxZeroBalanceVault from './checkbox/CheckboxZeroBalanceVault.svelte';
   import { activeSubgraphs, settings } from '$lib/stores/settings';
