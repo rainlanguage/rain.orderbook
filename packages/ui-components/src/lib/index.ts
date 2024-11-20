@@ -10,8 +10,12 @@ export { default as DropdownOrderListAccounts } from './components/dropdown/Drop
 export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as DropdownOrderStatus } from './components/dropdown/DropdownOrderStatus.svelte';
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
+export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
+export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores';
+export type { ConfigSource } from './typeshare/config';
 
 // Functions
 export {

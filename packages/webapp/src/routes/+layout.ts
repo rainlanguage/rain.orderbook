@@ -1,4 +1,4 @@
-import type { AppStoresInterface } from '@rainlanguage/ui-components';
+import type { AppStoresInterface, ConfigSource } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
 import settings from '$lib/settings-12-11-24.json';
 
@@ -7,16 +7,17 @@ export interface LayoutData {
 }
 
 export const load = () => {
-	const settingsStore = writable(settings);
+	const settingsStore = writable<ConfigSource | undefined>(settings);
 
 	return {
 		stores: {
 			settings: settingsStore,
 			activeSubgraphs: writable<Record<string, string>>({}),
-			accounts: derived(settingsStore, ($settings) => $settings.accounts),
+			accounts: derived(settingsStore, ($settings) => $settings?.accounts),
 			activeAccountsItems: writable<Record<string, string>>({}),
 			activeOrderStatus: writable<boolean | undefined>(undefined),
-			orderHash: writable<string>('')
+			orderHash: writable<string>(''),
+			hideZeroBalanceVaults: writable<boolean>(false)
 		}
 	};
 };

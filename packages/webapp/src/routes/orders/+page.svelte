@@ -6,16 +6,13 @@
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import {
 		TanstackAppTable,
-		DropdownActiveSubgraphs,
 		QKEY_ORDERS,
 		DEFAULT_PAGE_SIZE,
 		DEFAULT_REFRESH_INTERVAL,
 		Hash,
 		HashType,
 		formatTimestampSecondsAsLocal,
-		DropdownOrderListAccounts,
-		DropdownOrderStatus,
-		InputOrderHash
+		ListViewOrderbookFilters
 	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -28,11 +25,12 @@
 		accounts,
 		activeAccountsItems,
 		activeOrderStatus,
-		orderHash
+		orderHash,
+		hideZeroBalanceVaults
 	}: AppStoresInterface = $page.data.stores;
 
 	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs).length ? $activeSubgraphs : $settings.subgraphs
+		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
 	).map(([name, url]) => ({
 		name,
 		url
@@ -71,12 +69,23 @@
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
+
+	$: currentRoute = $page.url.pathname;
+	$: isVaultsPage = currentRoute.startsWith('/vaults');
+	$: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
-<InputOrderHash {orderHash} />
-<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
-<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
-<DropdownOrderStatus {activeOrderStatus} />
+<ListViewOrderbookFilters
+	{activeSubgraphs}
+	{settings}
+	{accounts}
+	{activeAccountsItems}
+	{activeOrderStatus}
+	{orderHash}
+	{hideZeroBalanceVaults}
+	{isVaultsPage}
+	{isOrdersPage}
+/>
 
 <AppTable {query}>
 	<svelte:fragment slot="title">
