@@ -10,7 +10,7 @@
 	import { QKEY_ORDERS } from '$lib/queries/keys';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
 	const { activeSubgraphs, settings } = $page.data.stores;
