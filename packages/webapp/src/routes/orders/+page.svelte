@@ -4,16 +4,18 @@
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import { TanstackAppTable, DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
 	import {
+		TanstackAppTable,
+		DropdownActiveSubgraphs,
 		QKEY_ORDERS,
 		DEFAULT_PAGE_SIZE,
-		DEFAULT_REFRESH_INTERVAL
+		DEFAULT_REFRESH_INTERVAL,
+		Hash,
+		HashType,
+		formatTimestampSecondsAsLocal
 	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-	import { Hash, HashType } from '@rainlanguage/ui-components';
 
 	const { activeSubgraphs, settings } = $page.data.stores;
 
