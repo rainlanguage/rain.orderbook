@@ -10,7 +10,7 @@ export { default as DropdownOrderListAccounts } from './components/dropdown/Drop
 export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as DropdownOrderStatus } from './components/dropdown/DropdownOrderStatus.svelte';
 
-//Types 
+//Types
 export type { AppStoresInterface } from './types/appStores';
 
 // Functions

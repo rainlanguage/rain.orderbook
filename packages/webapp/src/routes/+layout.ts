@@ -8,12 +8,12 @@ export interface LayoutData {
 
 export const load = () => {
 	const settingsStore = writable(settings);
-	
+
 	return {
 		stores: {
 			settings: settingsStore,
 			activeSubgraphs: writable<Record<string, string>>({}),
-			accounts: derived(settingsStore, $settings => $settings.accounts),
+			accounts: derived(settingsStore, ($settings) => $settings.accounts),
 			activeAccountsItems: writable<Record<string, string>>({}),
 			activeOrderStatus: writable<boolean | undefined>(undefined)
 		}
