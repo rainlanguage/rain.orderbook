@@ -14,7 +14,8 @@
 		HashType,
 		formatTimestampSecondsAsLocal,
 		DropdownOrderListAccounts,
-		DropdownOrderStatus
+		DropdownOrderStatus,
+		InputOrderHash
 	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -26,7 +27,8 @@
 		settings,
 		accounts,
 		activeAccountsItems,
-		activeOrderStatus
+		activeOrderStatus,
+		orderHash
 	}: AppStoresInterface = $page.data.stores;
 
 	$: multiSubgraphArgs = Object.entries(
@@ -46,7 +48,8 @@
 			$settings,
 			multiSubgraphArgs,
 			owners,
-			$activeOrderStatus
+			$activeOrderStatus,
+			$orderHash
 		],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
@@ -54,7 +57,7 @@
 				{
 					owners,
 					active: $activeOrderStatus,
-					orderHash: undefined
+					orderHash: $orderHash || undefined
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
@@ -70,6 +73,7 @@
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 </script>
 
+<InputOrderHash {orderHash} />
 <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 <DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 <DropdownOrderStatus {activeOrderStatus} />

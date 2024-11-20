@@ -15,7 +15,8 @@ export const load = () => {
 			activeSubgraphs: writable<Record<string, string>>({}),
 			accounts: derived(settingsStore, ($settings) => $settings.accounts),
 			activeAccountsItems: writable<Record<string, string>>({}),
-			activeOrderStatus: writable<boolean | undefined>(undefined)
+			activeOrderStatus: writable<boolean | undefined>(undefined),
+			orderHash: writable<string>('')
 		}
 	};
 };
