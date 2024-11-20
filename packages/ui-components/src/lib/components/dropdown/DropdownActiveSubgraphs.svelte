@@ -6,8 +6,6 @@
 	export let settings: ConfigSource;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 
-	console.log(settings);
-
 	$: dropdownOptions = Object.keys(settings?.subgraphs ?? {}).reduce(
 		(acc, key) => ({
 			...acc,
