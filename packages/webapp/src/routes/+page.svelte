@@ -5,7 +5,7 @@
 	import { TanstackAppTable } from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
+	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
 	const multiSubgraphArgs: MultiSubgraphArgs[] = [
