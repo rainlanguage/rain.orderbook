@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { QKEY_ORDERS } from '@rainlanguage/ui-components';
   import { ordersList } from '$lib/queries/ordersList';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '@rainlanguage/ui-components';
-  import { TanstackAppTable } from '@rainlanguage/ui-components';
+
   import { goto } from '$app/navigation';
-  import { ListViewOrderbookFilters } from '@rainlanguage/ui-components';
+
   import {
     Badge,
     Button,
@@ -16,7 +14,16 @@
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { Hash, HashType, formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
+  import {
+    Hash,
+    HashType,
+    formatTimestampSecondsAsLocal,
+    ListViewOrderbookFilters,
+    TanstackAppTable,
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_REFRESH_INTERVAL,
+    QKEY_ORDERS,
+  } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal } from '$lib/services/modal';
 
   import { get } from 'svelte/store';

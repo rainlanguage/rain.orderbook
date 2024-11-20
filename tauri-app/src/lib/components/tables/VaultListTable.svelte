@@ -3,9 +3,8 @@
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { Hash, HashType, ListViewOrderbookFilters } from '@rainlanguage/ui-components';
-
   import { bigintStringToHex } from '$lib/utils/hex';
+  import { vaultBalanceDisplay } from '$lib/utils/vault';
 
   import {
     activeOrderbook,
@@ -24,10 +23,16 @@
 
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
-  import { TanstackAppTable } from '@rainlanguage/ui-components';
-  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '@rainlanguage/ui-components';
-  import { QKEY_VAULTS } from '@rainlanguage/ui-components';
-  import { vaultBalanceDisplay } from '$lib/utils/vault';
+  import {
+    TanstackAppTable,
+    QKEY_VAULTS,
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_REFRESH_INTERVAL,
+    Hash,
+    HashType,
+    ListViewOrderbookFilters,
+  } from '@rainlanguage/ui-components';
+
   import {
     handleDepositGenericModal,
     handleDepositModal,
