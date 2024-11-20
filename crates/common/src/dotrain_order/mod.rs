@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::GH_COMMIT_SHA;
 use crate::{
     add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
@@ -386,6 +388,28 @@ impl DotrainOrder {
             return Err(DotrainOrderError::MissingRaindexVersion(app_sha));
         }
 
+        Ok(())
+    }
+
+    fn update_config_source(
+        &mut self,
+        config_source: ConfigSource,
+    ) -> Result<(), DotrainOrderError> {
+        self.config_source = config_source.clone();
+        self.config = config_source.try_into()?;
+        Ok(())
+    }
+
+    pub fn update_config_source_bindings(
+        &mut self,
+        scenario_name: &str,
+        bindings: HashMap<String, String>,
+    ) -> Result<(), DotrainOrderError> {
+        let scenario = self.config_source.scenarios.get_mut(scenario_name).ok_or(
+            DotrainOrderError::ScenarioNotFound(scenario_name.to_string()),
+        )?;
+        scenario.bindings = bindings;
+        self.update_config_source(self.config_source.clone())?;
         Ok(())
     }
 }

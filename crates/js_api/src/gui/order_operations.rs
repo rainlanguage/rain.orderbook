@@ -159,6 +159,17 @@ impl DotrainOrderGui {
         let orderbook = self.get_orderbook()?;
         let token_deposits = self.get_deposits_as_map()?;
 
+        self.dotrain_order.update_config_source_bindings(
+            &self.deployment.deployment.scenario.name,
+            self.field_values
+                .iter()
+                .map(|(k, _)| {
+                    let field_value = self.get_field_value(k.clone())?;
+                    Ok((k.clone(), field_value.value.clone()))
+                })
+                .collect::<Result<HashMap<String, String>, GuiError>>()?,
+        )?;
+
         let mut calls = Vec::new();
         let deposit_calldatas = self
             .dotrain_order
