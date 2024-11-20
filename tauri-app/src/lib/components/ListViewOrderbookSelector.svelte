@@ -28,7 +28,7 @@
       <InputOrderHash />
       <DropdownOrderStatus />
     {/if}
-    <DropdownOrderListAccounts accounts={$accounts} activeAccountsItems={$activeAccountsItems} />
+    <DropdownOrderListAccounts {accounts} {activeAccountsItems} />
     <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
   {/if}
 </div>
