@@ -14,19 +14,24 @@
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
 	const { activeSubgraphs, settings } = $page.data.stores;
-
-	$: multiSubgraphArgs = Object.entries($activeSubgraphs).map(([name, url]) => ({
+	console.log($settings);
+	console.log($activeSubgraphs);
+	$: multiSubgraphArgs = Object.entries(
+		Object.keys($activeSubgraphs).length ? $activeSubgraphs : $settings.subgraphs
+	).map(([name, url]) => ({
 		name,
 		url
 	})) as MultiSubgraphArgs[];
 
+	$: console.log(multiSubgraphArgs);
+
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings],
+		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
+					owners: [],
 					active: true,
 					orderHash: undefined
 				},
@@ -38,8 +43,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-
-		enabled: Object.keys($activeSubgraphs).length > 0
+		enabled: true
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
