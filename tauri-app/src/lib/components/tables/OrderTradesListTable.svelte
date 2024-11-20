@@ -6,7 +6,7 @@
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import { formatUnits } from 'viem';

@@ -19,7 +19,7 @@
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
   import { get } from 'svelte/store';
