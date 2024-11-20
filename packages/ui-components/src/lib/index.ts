@@ -16,7 +16,7 @@ export {
 	createResolvableInfiniteQuery,
 	createResolvableMockQuery
 } from './mocks/queries';
-export { mockConfigSource } from './mocks/settings';
+export { mockConfigSource, mockSettingsStore } from './mocks/settings';
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
 	QKEY_VAULTS,
