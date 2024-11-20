@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
-	import {
-		DropdownActiveSubgraphs,
-		DropdownOrderStatus,
-		DropdownOrderListAccounts,
-		InputOrderHash,
-		CheckboxZeroBalanceVault
-	} from '@rainlanguage/ui-components';
+	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
+	import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
+	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
+	import InputOrderHash from './input/InputOrderHash.svelte';
+	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '../typeshare/config';
 
