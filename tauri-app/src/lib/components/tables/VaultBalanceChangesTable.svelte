@@ -6,9 +6,9 @@
   import { formatUnits } from 'viem';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultBalanceChangesList } from '$lib/queries/vaultBalanceChangesList';
-  import { QKEY_VAULT_CHANGES } from '$lib/queries/keys';
+  import { QKEY_VAULT_CHANGES } from '@rainlanguage/ui-components';
   import { subgraphUrl } from '$lib/stores/settings';
-  import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
+  import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
   import { TanstackAppTable } from '@rainlanguage/ui-components';
 
   export let id: string;

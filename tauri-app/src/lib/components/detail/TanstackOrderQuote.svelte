@@ -3,7 +3,7 @@
   import { handleQuoteDebugModal } from '$lib/services/modal';
   import { Refresh } from '@rainlanguage/ui-components';
   import type { Order } from '$lib/typeshare/subgraphTypes';
-  import { QKEY_ORDER_QUOTE } from '$lib/queries/keys';
+  import { QKEY_ORDER_QUOTE } from '@rainlanguage/ui-components';
   import { batchOrderQuotes } from '$lib/queries/orderQuote';
   import { formatUnits, hexToNumber, isHex } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';

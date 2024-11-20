@@ -1,5 +1,5 @@
 <script lang="ts">
-  import DropdownCheckbox from './DropdownCheckbox.svelte';
+  import { DropdownCheckbox } from '@rainlanguage/ui-components';
   import { activeOrderStatus } from '$lib/stores/settings';
 
   const orderStatusOptions = {
