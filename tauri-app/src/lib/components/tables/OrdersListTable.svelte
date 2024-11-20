@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { QKEY_ORDERS } from '$lib/queries/keys';
+  import { QKEY_ORDERS } from '@rainlanguage/ui-components';
   import { ordersList } from '$lib/queries/ordersList';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
+  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '@rainlanguage/ui-components';
   import { TanstackAppTable } from '@rainlanguage/ui-components';
   import { goto } from '$app/navigation';
   import ListViewOrderbookSelector from '../ListViewOrderbookSelector.svelte';
@@ -19,7 +19,7 @@
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
   import { get } from 'svelte/store';

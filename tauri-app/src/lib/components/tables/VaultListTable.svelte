@@ -17,8 +17,8 @@
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
   import { TanstackAppTable } from '@rainlanguage/ui-components';
-  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
-  import { QKEY_VAULTS } from '$lib/queries/keys';
+  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '@rainlanguage/ui-components';
+  import { QKEY_VAULTS } from '@rainlanguage/ui-components';
   import { vaultBalanceDisplay } from '$lib/utils/vault';
   import {
     handleDepositGenericModal,
