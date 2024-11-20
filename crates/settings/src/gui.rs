@@ -121,8 +121,10 @@ impl GuiConfigSource {
                             presets: field_source
                                 .presets
                                 .iter()
-                                .map(|preset| {
+                                .enumerate()
+                                .map(|(i, preset)| {
                                     Ok(GuiPreset {
+                                        id: i.to_string(),
                                         name: preset.name.clone(),
                                         value: preset.value.clone(),
                                     })
@@ -173,9 +175,13 @@ pub enum ParseGuiConfigSourceError {
     tsify(into_wasm_abi, from_wasm_abi)
 )]
 pub struct GuiPreset {
+    pub id: String,
+    #[typeshare(typescript(type = "string"))]
     pub name: Option<String>,
     pub value: String,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(GuiPreset);
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
