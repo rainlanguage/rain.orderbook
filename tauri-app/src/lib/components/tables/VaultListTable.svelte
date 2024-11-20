@@ -3,17 +3,25 @@
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { Hash, HashType } from '@rainlanguage/ui-components';
+  import { Hash, HashType, ListViewOrderbookFilters } from '@rainlanguage/ui-components';
 
   import { bigintStringToHex } from '$lib/utils/hex';
+
   import {
-    activeNetworkRef,
     activeOrderbook,
-    activeOrderbookRef,
-    activeSubgraphs,
     subgraphUrl,
+    orderHash,
+    accounts,
+    activeAccountsItems,
+    activeSubgraphs,
+    settings,
+    activeOrderStatus,
+    hideZeroBalanceVaults,
+    activeNetworkRef,
+    activeOrderbookRef,
+    activeAccounts,
   } from '$lib/stores/settings';
-  import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
+
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
   import { TanstackAppTable } from '@rainlanguage/ui-components';
@@ -25,8 +33,9 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
-  import { activeAccounts, hideZeroBalanceVaults } from '$lib/stores/settings';
+
   import { get } from 'svelte/store';
+  import { page } from '$app/stores';
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults, $activeSubgraphs],
@@ -50,6 +59,10 @@
     activeNetworkRef.set(subgraphName);
     activeOrderbookRef.set(subgraphName);
   };
+
+  $: currentRoute = $page.url.pathname;
+  $: isVaultsPage = currentRoute.startsWith('/vaults');
+  $: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
 {#if $query}
@@ -76,7 +89,17 @@
           >
         </div>
         <div class="flex flex-col items-end gap-y-2">
-          <ListViewOrderbookSelector />
+          <ListViewOrderbookFilters
+            {activeSubgraphs}
+            {settings}
+            {accounts}
+            {activeAccountsItems}
+            {activeOrderStatus}
+            {orderHash}
+            {hideZeroBalanceVaults}
+            {isVaultsPage}
+            {isOrdersPage}
+          />
         </div>
       </div>
     </svelte:fragment>
