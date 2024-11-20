@@ -14,8 +14,7 @@
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
 	const { activeSubgraphs, settings } = $page.data.stores;
-	console.log($settings);
-	console.log($activeSubgraphs);
+
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs).length ? $activeSubgraphs : $settings.subgraphs
 	).map(([name, url]) => ({
