@@ -35,7 +35,7 @@ async fn get_data(url: &str, variables: OrdersListQueryVariables) -> Result<Valu
     Ok(data)
 }
 
-pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
+pub async fn get_balances_single_order(subgraph_url: &str) -> Result<Value> {
     let variables = OrdersListQueryVariables {
         skip: Some(0),
         first: Some(1),
@@ -53,9 +53,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_balances() {
-        let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
+        //let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
+        let subgraph_url = std::env::var("SUBGRAPH_URL")
+            .expect("Environment variable SUBGRAPH_URL must be set for tests.");
 
-        let result = get_balances(subgraph_url).await;
+        let result = get_balances_single_order(&subgraph_url).await;
 
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
 
@@ -116,7 +118,7 @@ mod tests {
         let mock_url = &mockito::server_url();
 
         // Call the function under test
-        let result = get_balances(mock_url).await;
+        let result = get_balances_single_order(mock_url).await;
 
         // Assert the function call was successful
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
@@ -155,11 +157,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn C() {
-        let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
+    async fn test_get_balances_data_mainnet() {
+        //let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
+        let subgraph_url = std::env::var("SUBGRAPH_URL")
+            .expect("Environment variable SUBGRAPH_URL must be set for tests.");
 
         // Call the function under test
-        let result = get_balances(subgraph_url).await;
+        let result = get_balances_single_order(&subgraph_url).await;
 
         // Assert the function call was successful
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
