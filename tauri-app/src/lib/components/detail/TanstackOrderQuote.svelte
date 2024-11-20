@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
   import { orderbookAddress, rpcUrl } from '$lib/stores/settings';
   import { handleQuoteDebugModal } from '$lib/services/modal';
-  import Refresh from '../icon/Refresh.svelte';
+  import { Refresh } from '@rainlanguage/ui-components';
   import type { Order } from '$lib/typeshare/subgraphTypes';
   import { QKEY_ORDER_QUOTE } from '$lib/queries/keys';
   import { batchOrderQuotes } from '$lib/queries/orderQuote';
