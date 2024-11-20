@@ -11,7 +11,7 @@ import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
 // Mock settings and subgraphUrl
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('$lib/mocks/settings');
+  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
 
   const _activeOrderbook = writable();
 

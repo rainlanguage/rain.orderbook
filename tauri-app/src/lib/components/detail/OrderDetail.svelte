@@ -12,7 +12,7 @@
   import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
-  import { QKEY_ORDER } from '$lib/queries/keys';
+  import { QKEY_ORDER } from '@rainlanguage/ui-components';
   import { orderDetail } from '$lib/queries/orderDetail';
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';

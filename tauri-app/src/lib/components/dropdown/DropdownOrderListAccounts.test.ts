@@ -5,7 +5,7 @@ import { activeAccountsItems } from '$lib/stores/settings';
 import { expect, test, vi } from 'vitest';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
-  const { mockSettingsStore } = await import('$lib/mocks/settings');
+  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
   return {
     ...((await importOriginal()) as object),
     settings: mockSettingsStore,
