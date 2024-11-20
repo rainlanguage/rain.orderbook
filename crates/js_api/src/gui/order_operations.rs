@@ -134,12 +134,19 @@ impl DotrainOrderGui {
     /// Returns a vector of bytes
     #[wasm_bindgen(js_name = "generateDepositCalldatas")]
     pub async fn generate_deposit_calldatas(&mut self) -> Result<JsValue, GuiError> {
+        let token_deposits = self
+            .get_vaults_and_deposits()?
+            .iter()
+            .map(|(order_io, amount)| {
+                (
+                    (order_io.vault_id.unwrap(), order_io.token.address),
+                    *amount,
+                )
+            })
+            .collect::<HashMap<_, _>>();
         let calldatas = self
             .dotrain_order
-            .generate_deposit_calldatas(
-                &self.deployment.deployment_name,
-                &self.get_deposits_as_map()?,
-            )
+            .generate_deposit_calldatas(&self.deployment.deployment_name, &token_deposits)
             .await?;
         Ok(serde_wasm_bindgen::to_value(&calldatas)?)
     }
@@ -157,7 +164,16 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
     pub async fn generate_deposit_and_add_order_calldatas(&mut self) -> Result<JsValue, GuiError> {
         let orderbook = self.get_orderbook()?;
-        let token_deposits = self.get_deposits_as_map()?;
+        let token_deposits = self
+            .get_vaults_and_deposits()?
+            .iter()
+            .map(|(order_io, amount)| {
+                (
+                    (order_io.vault_id.unwrap(), order_io.token.address),
+                    *amount,
+                )
+            })
+            .collect::<HashMap<_, _>>();
 
         let mut calls = Vec::new();
         let deposit_calldatas = self
@@ -185,5 +201,12 @@ impl DotrainOrderGui {
         Ok(serde_wasm_bindgen::to_value(&Bytes::copy_from_slice(
             &aggregate3Call { calls }.abi_encode(),
         ))?)
+    }
+
+    #[wasm_bindgen(js_name = "populateVaultIds")]
+    pub fn populate_vault_ids(&mut self) -> Result<(), GuiError> {
+        self.dotrain_order
+            .populate_vault_ids(&self.deployment.deployment_name)?;
+        Ok(())
     }
 }
