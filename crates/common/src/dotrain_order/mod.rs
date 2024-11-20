@@ -20,6 +20,7 @@ use typeshare::typeshare;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
 
+pub mod calldata;
 pub mod filter;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

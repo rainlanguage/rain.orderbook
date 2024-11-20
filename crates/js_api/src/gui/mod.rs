@@ -7,7 +7,7 @@ use rain_orderbook_app_settings::gui::{
 };
 use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_common::{
-    dotrain_order::{DotrainOrder, DotrainOrderError},
+    dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
     erc20::{TokenInfo, ERC20},
 };
 use serde::{Deserialize, Serialize};
@@ -158,6 +158,8 @@ pub enum GuiError {
     SolTypesError(#[from] alloy::sol_types::Error),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+    #[error(transparent)]
+    DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
 }
 impl From<GuiError> for JsValue {
     fn from(value: GuiError) -> Self {

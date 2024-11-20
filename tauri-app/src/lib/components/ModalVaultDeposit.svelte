@@ -82,7 +82,7 @@
   async function fetchUserBalance() {
     try {
       userBalance = (await checkERC20Balance(vault.token.id)).toBigInt();
-    } catch (e) {
+    } catch (_e) {
       userBalance = 0n;
     }
   }

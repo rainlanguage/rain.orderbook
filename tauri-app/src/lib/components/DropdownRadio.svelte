@@ -8,7 +8,7 @@
   export let value: string | undefined = undefined;
   let open = false;
 
-  $: value, (open = false);
+  $: if (value) open = false;
   $: optionsSorted = sortBy(Object.entries(options), (o) => o[0]);
 </script>
 

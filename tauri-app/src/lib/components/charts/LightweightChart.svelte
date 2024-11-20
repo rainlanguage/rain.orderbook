@@ -89,9 +89,9 @@
     setOptions();
   }
 
-  $: data, series, setData();
-  $: timeDelta, setTimeScale();
-  $: $lightweightChartsTheme, setOptions();
+  $: if (data || series) setData();
+  $: if (timeDelta) setTimeScale();
+  $: if ($lightweightChartsTheme) setOptions();
 
   onMount(() => {
     setupChart();
