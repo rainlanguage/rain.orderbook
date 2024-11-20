@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DropdownCheckbox } from '@rainlanguage/ui-components';
+	import DropdownCheckbox from './DropdownCheckbox.svelte';
 	import type { Writable } from 'svelte/store';
 	export let activeOrderStatus: Writable<boolean | undefined>;
 
