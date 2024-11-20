@@ -23,8 +23,6 @@
 		url
 	})) as MultiSubgraphArgs[];
 
-	$: console.log(multiSubgraphArgs);
-
 	$: query = createInfiniteQuery({
 		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs],
 		queryFn: ({ pageParam }) => {
