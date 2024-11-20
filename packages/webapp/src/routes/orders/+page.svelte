@@ -17,7 +17,7 @@
 	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
-	import type { AppStoresInterface } from '$lib/types/stores';
+	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 
 	const { activeSubgraphs, settings, accounts, activeAccountsItems }: AppStoresInterface =
 		$page.data.stores;

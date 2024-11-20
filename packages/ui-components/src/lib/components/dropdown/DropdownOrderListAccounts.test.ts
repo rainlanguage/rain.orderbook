@@ -80,7 +80,7 @@ describe('DropdownOrderListAccounts', () => {
 
 	test('displays "No accounts added" when accounts list is empty', async () => {
 		accounts.set({});
-		
+
 		render(DropdownOrderListAccounts, {
 			props: {
 				accounts,
