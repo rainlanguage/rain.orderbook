@@ -1,43 +1,56 @@
 <script lang="ts" generics="T">
+	import { page } from '$app/stores';
+
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import { TanstackAppTable } from '@rainlanguage/ui-components';
+	import {
+		TanstackAppTable,
+		DropdownActiveSubgraphs,
+		QKEY_ORDERS,
+		DEFAULT_PAGE_SIZE,
+		DEFAULT_REFRESH_INTERVAL,
+		Hash,
+		HashType,
+		formatTimestampSecondsAsLocal
+	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-	import { Hash, HashType } from '@rainlanguage/ui-components';
 
-	const multiSubgraphArgs: MultiSubgraphArgs[] = [
-		{
-			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn',
-			name: 'flare'
-		}
-	] as MultiSubgraphArgs[];
+	const { activeSubgraphs, settings } = $page.data.stores;
+
+	$: multiSubgraphArgs = Object.entries(
+		Object.keys($activeSubgraphs).length ? $activeSubgraphs : $settings.subgraphs
+	).map(([name, url]) => ({
+		name,
+		url
+	})) as MultiSubgraphArgs[];
 
 	$: query = createInfiniteQuery({
-		queryKey: [],
+		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
+					owners: [],
 					active: true,
 					orderHash: undefined
 				},
-				{ page: pageParam + 1, pageSize: 1 }
+				{ page: pageParam + 1, pageSize: 20 }
 			);
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage.length === 1 ? lastPageParam + 1 : undefined;
+			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
-		refetchInterval: 100000,
+		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: true
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 </script>
+
+<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 
 <AppTable {query}>
 	<svelte:fragment slot="title">

@@ -3,11 +3,11 @@
   import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
   import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
   import CheckboxZeroBalanceVault from './checkbox/CheckboxZeroBalanceVault.svelte';
-  import { settings } from '$lib/stores/settings';
+  import { activeSubgraphs, settings } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
   import { page } from '$app/stores';
   import InputOrderHash from './input/InputOrderHash.svelte';
-  import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
+  import { DropdownActiveSubgraphs } from '@rainlanguage/ui-components';
 
   $: currentRoute = $page.url.pathname;
   $: isVaultsPage = currentRoute.startsWith('/vaults');
@@ -28,8 +28,7 @@
       <InputOrderHash />
       <DropdownOrderStatus />
     {/if}
-
     <DropdownOrderListAccounts />
-    <DropdownActiveSubgraphs />
+    <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
   {/if}
 </div>

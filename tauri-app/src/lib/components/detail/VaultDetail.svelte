@@ -11,7 +11,7 @@
   import { formatUnits } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultDetail } from '$lib/queries/vaultDetail';
-  import { QKEY_VAULT } from '$lib/queries/keys';
+  import { QKEY_VAULT } from '@rainlanguage/ui-components';
   import { subgraphUrl } from '$lib/stores/settings';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import TanstackContentDetail from '$lib/components/detail/TanstackPageContentDetail.svelte';
