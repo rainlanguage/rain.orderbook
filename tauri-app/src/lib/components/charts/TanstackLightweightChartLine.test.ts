@@ -2,7 +2,7 @@ import { render, waitFor } from '@testing-library/svelte';
 import { test, expect, vi } from 'vitest';
 import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
 import { props } from '$lib/mocks/MockComponent';
-import { createResolvableQuery } from '$lib/mocks/queries';
+import { createResolvableQuery } from '@rainlanguage/ui-components';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { get } from 'svelte/store';
 
