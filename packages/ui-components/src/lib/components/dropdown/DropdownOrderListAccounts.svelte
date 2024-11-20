@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { DropdownCheckbox } from '@rainlanguage/ui-components';
-	export let accounts;
-	export let activeAccountsItems;
+	import type { Writable } from 'svelte/store';
+	export let accounts: Writable<Record<string, string>>;
+	export let activeAccountsItems: Writable<Record<string, string>>;
 	$: options = $accounts;
 </script>
 
