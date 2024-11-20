@@ -288,6 +288,11 @@
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
+        devShells.webapp-shell = pkgs.mkShell {
+          packages = with pkgs; [
+              nodejs_20
+          ];
+        };
 
       }
     );
