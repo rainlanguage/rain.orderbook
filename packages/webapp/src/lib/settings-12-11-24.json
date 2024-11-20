@@ -33,12 +33,6 @@
 			"network-id": 42161,
 			"currency": "ETH"
 		},
-		"matchain": {
-			"rpc": "https://rpc.matchain.io",
-			"chain-id": 698,
-			"network-id": 698,
-			"currency": "BNB"
-		},
 		"bsc": {
 			"rpc": "https://rpc.ankr.com/bsc",
 			"chain-id": 56,
@@ -64,7 +58,6 @@
 		"sepolia": "http://replaceme.com",
 		"polygon": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-polygon/0.6/gn",
 		"arbitrum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-arbitrum/0.2/gn",
-		"matchain": "http://subgraph.mobula.io:8000/subgraphs/name/matchain-ob",
 		"bsc": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-bsc/2024-10-14-63f4/gn",
 		"linea": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-linea/2024-10-14-12fc/gn",
 		"ethereum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn"

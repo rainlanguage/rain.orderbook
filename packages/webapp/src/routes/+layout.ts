@@ -1,4 +1,4 @@
-import type { AppStoresInterface } from '../types/stores';
+import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { writable } from 'svelte/store';
 import settings from '$lib/settings-12-11-24.json';
 

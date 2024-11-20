@@ -14,7 +14,7 @@
 	import { QKEY_ORDERS } from '$lib/queries/keys';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 	import { Hash, HashType } from '@rainlanguage/ui-components';
 
 	import type { AppStoresInterface } from '$lib/types/stores';
@@ -22,7 +22,9 @@
 	const { activeSubgraphs, settings, accounts, activeAccountsItems }: AppStoresInterface =
 		$page.data.stores;
 
-	$: multiSubgraphArgs = Object.entries($activeSubgraphs).map(([name, url]) => ({
+	$: multiSubgraphArgs = Object.entries(
+		Object.keys($activeSubgraphs).length ? $activeSubgraphs : $settings.subgraphs
+	).map(([name, url]) => ({
 		name,
 		url
 	})) as MultiSubgraphArgs[];
@@ -31,7 +33,7 @@
 		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings],
+		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
@@ -48,8 +50,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-
-		enabled: Object.keys($activeSubgraphs).length > 0
+		enabled: true
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;

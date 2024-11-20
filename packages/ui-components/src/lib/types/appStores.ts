@@ -1,10 +1,8 @@
+import type { Writable } from 'svelte/store';
+
 export interface AppStoresInterface {
-	settings: {
-		subscribe: (callback: (value: Record<string, string>) => void) => void;
-		set: (value: Record<string, string>) => void;
-	};
-	activeSubgraphs: {
-		subscribe: (callback: (value: Record<string, string>) => void) => void;
-		set: (value: Record<string, string>) => void;
-	};
+	settings: Writable<Record<string, string>>;
+	activeSubgraphs: Writable<Record<string, string>>;
+	accounts: Writable<Record<string, string>>;
+	activeAccountsItems: Writable<Record<string, string>>;
 }
