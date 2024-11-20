@@ -16,7 +16,7 @@
   import ListViewOrderbookSelector from '$lib/components/ListViewOrderbookSelector.svelte';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
-  import TanstackAppTable from '$lib/components/tables/TanstackAppTable.svelte';
+  import { TanstackAppTable } from '@rainlanguage/ui-components';
   import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
   import { QKEY_VAULTS } from '$lib/queries/keys';
   import { vaultBalanceDisplay } from '$lib/utils/vault';

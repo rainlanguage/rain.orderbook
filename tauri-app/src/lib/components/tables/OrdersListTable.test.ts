@@ -5,7 +5,7 @@ import OrdersListTable from './OrdersListTable.svelte';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import { goto } from '$app/navigation';
 import { handleOrderRemoveModal } from '$lib/services/modal';
-import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 import type { OrderWithSubgraphName } from '$lib/typeshare/subgraphTypes';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(

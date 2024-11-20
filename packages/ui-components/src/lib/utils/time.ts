@@ -6,11 +6,11 @@ dayjs.extend(bigIntSupport);
 dayjs.extend(localizedFormat);
 
 export function formatTimestampSecondsAsLocal(timestampSeconds: bigint) {
-  return dayjs(timestampSeconds * BigInt('1000')).format('L LT');
+	return dayjs(timestampSeconds * BigInt('1000')).format('L LT');
 }
 
 export function timestampSecondsToUTCTimestamp(timestampSeconds: bigint) {
-  return dayjs(timestampSeconds * BigInt('1000')).unix() as UTCTimestamp;
+	return dayjs(timestampSeconds * BigInt('1000')).unix() as UTCTimestamp;
 }
 
 /**
@@ -22,16 +22,14 @@ export function timestampSecondsToUTCTimestamp(timestampSeconds: bigint) {
  * if the time runs out before the main promise settlement
  */
 export async function promiseTimeout<T>(
-  promise: Promise<T>,
-  time: number,
-  exception: unknown,
+	promise: Promise<T>,
+	time: number,
+	exception: unknown
 ): Promise<T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let timeout: any;
-  return Promise.race([
-    promise,
-    new Promise(
-      (_resolve, reject) => (timeout = setTimeout(reject, time, exception)),
-    ) as Promise<T>,
-  ]).finally(() => clearTimeout(timeout));
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let timeout: any;
+	return Promise.race([
+		promise,
+		new Promise((_resolve, reject) => (timeout = setTimeout(reject, time, exception))) as Promise<T>
+	]).finally(() => clearTimeout(timeout));
 }
