@@ -36,14 +36,39 @@ async fn get_data(url: &str, variables: OrdersListQueryVariables) -> Result<Valu
 }
 
 pub async fn get_balances(subgraph_url: &str) -> Result<Value> {
-    let variables = OrdersListQueryVariables {
-        skip: Some(0),
-        first: Some(1),
-        filters: None,
-    };
+    let mut all_orders = Vec::new();
+    let mut page_skip = 0;
+    let page_limit = 100; // Set the number of orders to fetch per page
 
-    let res = get_data(subgraph_url, variables).await?;
-    Ok(res)
+    // Loop to fetch the orders in pages until all are fetched
+    loop {
+        let variables = OrdersListQueryVariables {
+            skip: Some(page_skip),
+            first: Some(page_limit),
+            filters: None,
+        };
+
+        let res = get_data(subgraph_url, variables).await?;
+
+        // Extract orders from the response
+        if let Some(data) = res.get("data").and_then(|d| d.get("orders")) {
+            let orders = data.as_array().unwrap();
+            if orders.is_empty() {
+                break; // Exit the loop if no more orders are returned
+            }
+
+            // Collect the orders in the all_orders vector
+            all_orders.extend(orders.clone());
+
+            // Increment skip for the next page of results
+            page_skip += page_limit;
+        } else {
+            break; // Exit if there's no "orders" in the response
+        }
+    }
+
+    // Return all collected orders
+    Ok(serde_json::json!({ "data": { "orders": all_orders }}))
 }
 
 #[cfg(test)]
@@ -155,7 +180,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn C() {
+    async fn test_get_balances_data_mainnet() {
         let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
 
         // Call the function under test
