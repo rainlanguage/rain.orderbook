@@ -3,7 +3,7 @@
   import { DropdownOrderListAccounts } from '@rainlanguage/ui-components';
   import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
   import CheckboxZeroBalanceVault from './checkbox/CheckboxZeroBalanceVault.svelte';
-  import { activeSubgraphs, settings } from '$lib/stores/settings';
+  import { accounts, activeAccountsItems, activeSubgraphs, settings } from '$lib/stores/settings';
   import { Alert } from 'flowbite-svelte';
   import { page } from '$app/stores';
   import InputOrderHash from './input/InputOrderHash.svelte';
@@ -28,7 +28,7 @@
       <InputOrderHash />
       <DropdownOrderStatus />
     {/if}
-    <DropdownOrderListAccounts />
+    <DropdownOrderListAccounts accounts={$accounts} activeAccountsItems={$activeAccountsItems} />
     <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
   {/if}
 </div>
