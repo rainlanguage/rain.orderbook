@@ -11,105 +11,99 @@ pub mod prelude {
 
 #[macro_export]
 macro_rules! impl_main_wasm_traits {
-    ($type_name:path) => {{
-        use $crate::wasm_traits::prelude::*;
-
-        impl WasmDescribe for $type_name {
+    ($type_name:path) => {
+        impl $crate::wasm_traits::prelude::WasmDescribe for $type_name {
             #[inline]
             fn describe() {
-                <Self as Tsify>::JsType::describe()
+                <Self as $crate::wasm_traits::prelude::Tsify>::JsType::describe()
             }
         }
-        impl IntoWasmAbi for $type_name {
-            type Abi = <<Self as Tsify>::JsType as IntoWasmAbi>::Abi;
+        impl $crate::wasm_traits::prelude::IntoWasmAbi for $type_name {
+            type Abi = <<Self as $crate::wasm_traits::prelude::Tsify>::JsType as $crate::wasm_traits::prelude::IntoWasmAbi>::Abi;
 
             #[inline]
             fn into_abi(self) -> Self::Abi {
                 let mut err = "".to_string();
-                self.into_js()
-                    .inspect_err(|e| err.push_str(&e.to_string()))
-                    .expect_throw(&err)
-                    .into_abi()
+                let result = $crate::wasm_traits::prelude::Tsify::into_js(&self);
+                $crate::wasm_traits::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err).into_abi()
             }
         }
-        impl OptionIntoWasmAbi for $type_name {
+        impl $crate::wasm_traits::prelude::OptionIntoWasmAbi for $type_name {
             #[inline]
             fn none() -> Self::Abi {
-                <<Self as Tsify>::JsType as OptionIntoWasmAbi>::none()
+                <<Self as $crate::wasm_traits::prelude::Tsify>::JsType as $crate::wasm_traits::prelude::OptionIntoWasmAbi>::none()
             }
         }
-        impl FromWasmAbi for $type_name {
-            type Abi = <<Self as Tsify>::JsType as FromWasmAbi>::Abi;
+        impl $crate::wasm_traits::prelude::FromWasmAbi for $type_name {
+            type Abi = <<Self as $crate::wasm_traits::prelude::Tsify>::JsType as $crate::wasm_traits::prelude::FromWasmAbi>::Abi;
 
             #[inline]
             unsafe fn from_abi(js: Self::Abi) -> Self {
                 let mut err = "".to_string();
-                Self::from_js(<Self as Tsify>::JsType::from_abi(js))
-                    .inspect_err(|e| err.push_str(&e.to_string()))
-                    .expect_throw(&err)
+                let result = <Self as $crate::wasm_traits::prelude::Tsify>::from_js(<Self as $crate::wasm_traits::prelude::Tsify>::JsType::from_abi(js));
+                $crate::wasm_traits::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err)
             }
         }
-        impl OptionFromWasmAbi for $type_name {
+        impl $crate::wasm_traits::prelude::OptionFromWasmAbi for $type_name {
             #[inline]
             fn is_none(js: &Self::Abi) -> bool {
-                <<Self as Tsify>::JsType as OptionFromWasmAbi>::is_none(js)
+                <<Self as $crate::wasm_traits::prelude::Tsify>::JsType as $crate::wasm_traits::prelude::OptionFromWasmAbi>::is_none(js)
             }
         }
-    }};
+    };
 }
 
 #[macro_export]
 macro_rules! impl_complementary_wasm_traits {
-    ($type_name:path) => {{
-        use $crate::wasm_traits::prelude::*;
-
-        impl RefFromWasmAbi for $type_name {
-            type Abi = <JsValue as RefFromWasmAbi>::Abi;
+    ($type_name:path) => {
+        impl $crate::wasm_traits::prelude::RefFromWasmAbi for $type_name {
+            type Abi = <$crate::wasm_traits::prelude::JsValue as $crate::wasm_traits::prelude::RefFromWasmAbi>::Abi;
             type Anchor = Box<$type_name>;
             unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new(<$type_name>::from_abi(js))
+                Box::new(<$type_name as $crate::wasm_traits::prelude::FromWasmAbi>::from_abi(js))
             }
         }
-        impl LongRefFromWasmAbi for $type_name {
-            type Abi = <JsValue as RefFromWasmAbi>::Abi;
+        impl $crate::wasm_traits::prelude::LongRefFromWasmAbi for $type_name {
+            type Abi = <$crate::wasm_traits::prelude::JsValue as $crate::wasm_traits::prelude::RefFromWasmAbi>::Abi;
             type Anchor = Box<$type_name>;
             unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new(<$type_name>::from_abi(js))
+                Box::new(<$type_name as $crate::wasm_traits::prelude::FromWasmAbi>::from_abi(js))
             }
         }
-        impl VectorIntoWasmAbi for $type_name {
-            type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
+        impl $crate::wasm_traits::prelude::VectorIntoWasmAbi for $type_name {
+            type Abi = <Box<[$crate::wasm_traits::prelude::JsValue]> as $crate::wasm_traits::prelude::IntoWasmAbi>::Abi;
             fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-                js_value_vector_into_abi(vector)
+                $crate::wasm_traits::prelude::js_value_vector_into_abi(vector)
             }
         }
-        impl VectorFromWasmAbi for $type_name {
-            type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
+        impl $crate::wasm_traits::prelude::VectorFromWasmAbi for $type_name {
+            type Abi = <Box<[$crate::wasm_traits::prelude::JsValue]> as $crate::wasm_traits::prelude::IntoWasmAbi>::Abi;
             unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-                js_value_vector_from_abi(js)
+                $crate::wasm_traits::prelude::js_value_vector_from_abi(js)
             }
         }
-        impl WasmDescribeVector for $type_name {
+        impl $crate::wasm_traits::prelude::WasmDescribeVector for $type_name {
             fn describe_vector() {
-                inform(VECTOR);
-                <$type_name>::describe();
+                $crate::wasm_traits::prelude::inform($crate::wasm_traits::prelude::VECTOR);
+                <$type_name as $crate::wasm_traits::prelude::WasmDescribe>::describe();
             }
         }
-        impl From<$type_name> for JsValue {
+        impl From<$type_name> for $crate::wasm_traits::prelude::JsValue {
             fn from(value: $type_name) -> Self {
                 let mut err = "".to_string();
-                to_value(&value)
-                    .inspect_err(|e| err.push_str(&e.to_string()))
-                    .expect_throw(&err)
+                let result = $crate::wasm_traits::prelude::to_value(&value);
+                $crate::wasm_traits::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err)
+                    // .inspect_err(|e| err.push_str(&e.to_string()))
+                    // .expect_throw(&err)
             }
         }
-        impl TryFromJsValue for $type_name {
+        impl $crate::wasm_traits::prelude::TryFromJsValue for $type_name {
             type Error = serde_wasm_bindgen::Error;
-            fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-                from_value(value)
+            fn try_from_js_value(value: $crate::wasm_traits::prelude::JsValue) -> Result<Self, Self::Error> {
+                $crate::wasm_traits::prelude::from_value(value)
             }
         }
-    }};
+    };
 }
 
 #[macro_export]

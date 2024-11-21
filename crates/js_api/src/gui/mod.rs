@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
 use tsify::Tsify;
+use rain_orderbook_bindings::wasm_traits::prelude::wasm_bindgen;
 
 mod state_management;
 
