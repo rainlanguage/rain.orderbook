@@ -20,15 +20,16 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
+	export let query: CreateInfiniteQueryResult<InfiniteData<unknown[], unknown>, Error>;
 </script>
 
-<div class="flex min-w-[600px] items-center justify-end gap-x-2">
+<div class="flex min-w-[600px] items-end justify-end gap-x-2">
 	<Refresh
-		data-testid="refreshButton"
+		data-testid="refresh-button"
 		class="mr-2 h-6 w-6 cursor-pointer text-gray-400 dark:text-gray-400"
 		spin={$query.isLoading || $query.isFetching}
 		on:click={() => {
+			console.log('REFETCHING!');
 			$query.refetch();
 		}}
 	/>

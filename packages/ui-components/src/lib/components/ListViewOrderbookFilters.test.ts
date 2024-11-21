@@ -3,6 +3,14 @@ import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import ListViewOrderbookFilters from './ListViewOrderbookFilters.svelte';
 import type { ConfigSource } from '../typeshare/config';
+import userEvent from '@testing-library/user-event';
+import { createResolvableInfiniteQuery } from '../mocks/queries';
+import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
+import type { ComponentProps } from 'svelte';
+
+// Get the props type from the component
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
 	const mockSettings = writable<ConfigSource>({
@@ -19,6 +27,10 @@ describe('ListViewOrderbookFilters', () => {
 		}
 	});
 
+    const { query } = createResolvableInfiniteQuery((pageParam) => {
+		return ['page' + pageParam];
+	});
+
 	const defaultProps = {
 		settings: mockSettings,
 		accounts: writable({}),
@@ -28,8 +40,9 @@ describe('ListViewOrderbookFilters', () => {
 		activeOrderStatus: writable(undefined),
 		orderHash: writable(''),
 		isVaultsPage: false,
-		isOrdersPage: false
-	};
+		isOrdersPage: false,
+		query
+	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
 		// Reset settings to default state before each test
@@ -57,10 +70,11 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows vault-specific components on vault page', () => {
+        
 		render(ListViewOrderbookFilters, {
 			...defaultProps,
 			isVaultsPage: true
-		});
+		} as ListViewOrderbookFiltersProps);
 
 		expect(screen.getByTestId('zero-balance-vault-checkbox')).toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
@@ -71,7 +85,7 @@ describe('ListViewOrderbookFilters', () => {
 		render(ListViewOrderbookFilters, {
 			...defaultProps,
 			isOrdersPage: true
-		});
+		} as ListViewOrderbookFiltersProps);
 
 		expect(screen.getByTestId('order-hash-input')).toBeInTheDocument();
 		expect(screen.getByTestId('order-status-dropdown')).toBeInTheDocument();
@@ -92,4 +106,25 @@ describe('ListViewOrderbookFilters', () => {
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-status-dropdown')).not.toBeInTheDocument();
 	});
+
+	test('refetches data when refresh button is clicked', async () => {
+		const mockRefetch = vi.fn();
+		const mockQuery = writable({
+			status: 'success',
+			fetchStatus: 'idle',
+			refetch: mockRefetch,
+			// ... other required properties
+		});
+
+		render(ListViewOrderbookFilters, {
+			...defaultProps,
+			query: mockQuery as unknown as CreateInfiniteQueryResult<InfiniteData<unknown[], unknown>, Error>
+		});
+
+		const refreshButton = screen.getByTestId('refresh-button');
+		await userEvent.click(refreshButton);
+
+		expect(mockRefetch).toHaveBeenCalled();
+	});
+
 });
