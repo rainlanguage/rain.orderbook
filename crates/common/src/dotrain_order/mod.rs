@@ -79,6 +79,9 @@ pub enum DotrainOrderError {
 
     #[error("Order {0} not found")]
     OrderNotFound(String),
+
+    #[error("Token {0} not found")]
+    TokenNotFound(String),
 }
 
 #[cfg(target_family = "wasm")]
@@ -461,6 +464,23 @@ impl DotrainOrder {
 
         self.update_config_source(self.config_source.clone())?;
 
+        Ok(())
+    }
+
+    pub fn update_token_address(
+        &mut self,
+        token_name: String,
+        address: Address,
+    ) -> Result<(), DotrainOrderError> {
+        let mut token = self
+            .config_source
+            .tokens
+            .get(&token_name)
+            .ok_or(DotrainOrderError::TokenNotFound(token_name.clone()))?
+            .clone();
+        token.address = address;
+        self.config_source.tokens.insert(token_name, token);
+        self.update_config_source(self.config_source.clone())?;
         Ok(())
     }
 }
