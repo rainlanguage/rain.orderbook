@@ -13,7 +13,7 @@ use rain_orderbook_common::{
 };
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
 use tsify::Tsify;
@@ -39,7 +39,7 @@ pub struct DotrainOrderGui {
     deployment: GuiDeployment,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: Vec<deposits::TokenDeposit>,
-    select_tokens: Option<HashMap<String, Address>>,
+    select_tokens: Option<BTreeMap<String, Address>>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
 #[wasm_bindgen]
@@ -64,8 +64,8 @@ impl DotrainOrderGui {
         let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
             tokens
                 .iter()
-                .map(|token| (token.clone(), Address::ZERO))
-                .collect::<HashMap<String, Address>>()
+                .map(|token: &String| (token.clone(), Address::ZERO))
+                .collect::<BTreeMap<String, Address>>()
         });
 
         let rpc_url = gui_deployment
@@ -99,12 +99,7 @@ impl DotrainOrderGui {
             deployment: gui_deployment.clone(),
             field_values: BTreeMap::new(),
             deposits: vec![],
-            select_tokens: gui_deployment.select_tokens.clone().map(|tokens| {
-                tokens
-                    .iter()
-                    .map(|token| (token.clone(), Address::ZERO))
-                    .collect::<HashMap<String, Address>>()
-            }),
+            select_tokens,
             onchain_token_info,
         })
     }

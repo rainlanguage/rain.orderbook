@@ -71,7 +71,7 @@ gui:
           name: Test binding
           description: Test binding description
           presets:
-            - value: "test-value"
+            - value: "0xbeef"
 `;
 const guiConfig3 = `
 gui:
@@ -141,6 +141,8 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            test-binding: "5"
 
 orders:
     some-order:
@@ -161,6 +163,7 @@ deployments:
         scenario: some-scenario
         order: some-order
 ---
+#test-binding !
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -541,7 +544,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedState =
-      "H4sIAAAAAAAA_3VPMQoCMRC801O0E7S8wlo4ySZ78dJZW_mFJJvIIZygV_gDwULxMX7Awg_4DD9hYdIITjMzuzDDLJMvQEuJwipCrQSJUjlS0irjkSt00jKPBnllNQChJWsQyHtOpefgnBGdkDMMbOqG6mZTQBoOLB0Etd67g2unMIufI3CBpVxUimljyfl__jecJxHdOIOxWNgP3O62roEsuJLN5STox7jovfLb6vTU-ag9v7P75foBMjqEXBABAAA=";
+      "H4sIAAAAAAAA_3WNPQrCQBCFjUbRTtAyhbUQ2c1k_zprK6-wO7srQYigKbyBYKF4GC9g4QU8hpewcNIIvuZ7bwbeW3a-sh5lsDYioGRgjEKvnYCogtalZFyh8kEEAFdiKQGscShAuugAtSlEl3pGRFfVvqo3OU_owJIhufU-HEIz4_P2c-QFlEIqbZh16EP8l3_Li06rHpEz1g4OiM1uG2qeUhJsIafkH5O8_8puq9PTZuPm_E7vl-sHEy8ctBABAAA=";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
@@ -770,8 +773,19 @@ ${dotrain}
           "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000"
         );
 
+      gui.saveFieldValue("test-binding", {
+        isPreset: false,
+        value: "10",
+      });
+
       const addOrderCalldata: string = await gui.generateAddOrderCalldata();
       assert.equal(addOrderCalldata.length, 2314);
+
+      const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.deepEqual(
+        currentDeployment.deployment.scenario.bindings,
+        new Map([["test-binding", "10"]])
+      );
     });
 
     it("should generate multicalldata for deposit and add order", async () => {
@@ -800,8 +814,19 @@ ${dotrain}
 
       gui.saveDeposit("token2", "5000");
 
+      gui.saveFieldValue("test-binding", {
+        isPreset: true,
+        value: "0",
+      });
+
       const calldata: string = await gui.generateDepositAndAddOrderCalldatas();
       assert.equal(calldata.length, 3530);
+
+      const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.deepEqual(
+        currentDeployment.deployment.scenario.bindings,
+        new Map([["test-binding", "0xbeef"]])
+      );
     });
 
     it("should throw error on order operations without selecting required tokens", async () => {
