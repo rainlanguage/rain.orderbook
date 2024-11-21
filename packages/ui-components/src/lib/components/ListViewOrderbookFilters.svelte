@@ -29,7 +29,6 @@
 		class="mr-2 mt-4 h-6 w-6 cursor-pointer text-gray-400 dark:text-gray-400"
 		spin={$query.isLoading || $query.isFetching}
 		on:click={() => {
-			console.log('REFETCHING!');
 			$query.refetch();
 		}}
 	/>
