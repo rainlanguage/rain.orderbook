@@ -86,6 +86,7 @@
 </script>
 
 <ListViewOrderbookFilters
+	{query}
 	{activeSubgraphs}
 	{settings}
 	{accounts}
