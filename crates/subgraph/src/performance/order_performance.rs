@@ -21,9 +21,9 @@ pub struct VaultPerformance {
     pub id: String,
     /// vault token
     pub token: Erc20,
-    /// vol segment
+    /// vault vol segment
     pub vol_details: VolumeDetails,
-    /// apy segment
+    /// vault apy segment
     pub apy_details: Option<APYDetails>,
 }
 
@@ -35,10 +35,12 @@ pub struct DenominatedPerformance {
     pub token: Erc20,
     /// Order's APY raw value
     pub apy: U256,
-    /// Order's net vol
+    /// Determines if apy is negative or not
+    pub apy_is_neg: bool,
+    /// Order's net vol raw value
     pub net_vol: U256,
-    /// Determines if apy and net_vol are negative or not
-    pub is_neg: bool,
+    /// Determines if net_vol is negative or not
+    pub net_vol_is_neg: bool,
     /// Order's starting capital
     pub starting_capital: U256,
 }
@@ -61,16 +63,16 @@ pub struct OrderPerformance {
     /// End timestamp of the performance measuring timeframe
     #[typeshare(typescript(type = "number"))]
     pub end_time: u64,
-    /// Ordder's input vaults isolated performance
+    /// Order's input vaults isolated performance
     pub inputs_vaults: Vec<VaultPerformance>,
-    /// Ordder's output vaults isolated performance
+    /// Order's output vaults isolated performance
     pub outputs_vaults: Vec<VaultPerformance>,
 }
 
 impl OrderPerformance {
     /// Given an order and its trades and optionally a timeframe, will calculates
     /// the order performance, (apy and volume)
-    /// Trades must be sorted indesc order by timestamp, this is the case if
+    /// Trades must be sorted in desc order by timestamp, this is the case if
     /// queried from subgraph using this lib functionalities
     pub fn measure(
         order: &Order,
@@ -78,6 +80,7 @@ impl OrderPerformance {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, PerformanceError> {
+        // return early if there are no trades
         if trades.is_empty() {
             return Ok(OrderPerformance {
                 order_id: order.id.0.clone(),
@@ -94,6 +97,8 @@ impl OrderPerformance {
         let vaults_apy = get_vaults_apy(trades, &vaults_vol, start_timestamp, end_timestamp)?;
 
         // build an OrderPerformance struct
+        // pick the order's whole performance timeframe from the vaults biggest timeframe
+        // and put the calculated vaults vol and apy into inputs and outputs vaults fields
         let mut start_time = u64::MAX;
         let mut end_time = 0_u64;
         let mut inputs: Vec<VaultPerformance> = vec![];
@@ -172,52 +177,63 @@ impl OrderPerformance {
             let mut current_token_vol_list: Vec<TokenDenominationVol> = vec![];
             for token_vault in &vaults_apy {
                 if let Some(apy_details) = token_vault.apy_details {
-                    // time to year ratio
+                    // a closure fn handles net vol combination
+                    let mut handle_combined_net_vol = |new_net_vol: U256| {
+                        if apy_details.is_neg == net_vol_is_neg {
+                            combined_net_vol += new_net_vol;
+                        } else if net_vol_is_neg {
+                            if new_net_vol >= combined_net_vol {
+                                net_vol_is_neg = false;
+                                combined_net_vol = new_net_vol - combined_net_vol;
+                            } else {
+                                combined_net_vol -= new_net_vol;
+                            }
+                        } else if combined_net_vol >= new_net_vol {
+                            combined_net_vol -= new_net_vol;
+                        } else {
+                            net_vol_is_neg = true;
+                            combined_net_vol = new_net_vol - combined_net_vol;
+                        }
+                    };
+
+                    // a closure fn handles annual rate vol combination
+                    let mut handle_combined_annual_rate_vol = |new_annual_rate_vol: U256| {
+                        if apy_details.is_neg == net_vol_rate_is_neg {
+                            combined_annual_rate_vol += new_annual_rate_vol;
+                        } else if net_vol_rate_is_neg {
+                            if new_annual_rate_vol >= combined_annual_rate_vol {
+                                net_vol_rate_is_neg = false;
+                                combined_annual_rate_vol =
+                                    new_annual_rate_vol - combined_annual_rate_vol;
+                            } else {
+                                combined_annual_rate_vol -= new_annual_rate_vol;
+                            }
+                        } else if combined_annual_rate_vol >= new_annual_rate_vol {
+                            combined_annual_rate_vol -= new_annual_rate_vol;
+                        } else {
+                            net_vol_rate_is_neg = true;
+                            combined_annual_rate_vol =
+                                new_annual_rate_vol - combined_annual_rate_vol;
+                        }
+                    };
+
+                    // this vault's timeframe to year ratio
                     let annual_rate = U256::from(apy_details.end_time - apy_details.start_time)
                         .saturating_mul(ONE18)
                         .div_18(*YEAR18)
                         .map_err(PerformanceError::from)?;
 
-                    // sum up all token vaults' capitals and vols in the current's iteration
+                    // sum up all token vaults' capitals and vols in the current's iteration's
                     // token denomination by using the direct ratio between the tokens
                     if token_vault.token == token.token {
                         combined_capital += apy_details.capital;
-                        if apy_details.is_neg == net_vol_is_neg {
-                            combined_net_vol += apy_details.net_vol;
-                        } else if net_vol_is_neg {
-                            if apy_details.net_vol >= combined_net_vol {
-                                net_vol_is_neg = false;
-                                combined_net_vol = apy_details.net_vol - combined_net_vol;
-                            } else {
-                                combined_net_vol -= apy_details.net_vol;
-                            }
-                        } else if combined_net_vol >= apy_details.net_vol {
-                            combined_net_vol -= apy_details.net_vol;
-                        } else {
-                            net_vol_is_neg = true;
-                            combined_net_vol = apy_details.net_vol - combined_net_vol;
-                        }
+                        handle_combined_net_vol(apy_details.net_vol);
 
                         let annual_rate_vol = apy_details
                             .net_vol
                             .div_18(annual_rate)
                             .map_err(PerformanceError::from)?;
-                        if apy_details.is_neg == net_vol_rate_is_neg {
-                            combined_annual_rate_vol += annual_rate_vol;
-                        } else if net_vol_rate_is_neg {
-                            if annual_rate_vol >= combined_annual_rate_vol {
-                                net_vol_rate_is_neg = false;
-                                combined_annual_rate_vol =
-                                    annual_rate_vol - combined_annual_rate_vol;
-                            } else {
-                                combined_annual_rate_vol -= annual_rate_vol;
-                            }
-                        } else if combined_annual_rate_vol >= annual_rate_vol {
-                            combined_annual_rate_vol -= annual_rate_vol;
-                        } else {
-                            net_vol_is_neg = true;
-                            combined_annual_rate_vol = annual_rate_vol - combined_annual_rate_vol;
-                        }
+                        handle_combined_annual_rate_vol(annual_rate_vol);
 
                         current_token_vol_list.push(TokenDenominationVol {
                             net_vol: apy_details.net_vol,
@@ -241,42 +257,12 @@ impl OrderPerformance {
                                 .net_vol
                                 .mul_18(*ratio)
                                 .map_err(PerformanceError::from)?;
-                            if apy_details.is_neg == net_vol_is_neg {
-                                combined_net_vol += net_vol_converted;
-                            } else if net_vol_is_neg {
-                                if net_vol_converted >= combined_net_vol {
-                                    net_vol_is_neg = false;
-                                    combined_net_vol = net_vol_converted - combined_net_vol;
-                                } else {
-                                    combined_net_vol -= net_vol_converted;
-                                }
-                            } else if combined_net_vol >= net_vol_converted {
-                                combined_net_vol -= net_vol_converted;
-                            } else {
-                                net_vol_is_neg = true;
-                                combined_net_vol = net_vol_converted - combined_net_vol;
-                            }
+                            handle_combined_net_vol(net_vol_converted);
 
                             let annual_rate_vol_converted = net_vol_converted
                                 .div_18(annual_rate)
                                 .map_err(PerformanceError::from)?;
-                            if apy_details.is_neg == net_vol_rate_is_neg {
-                                combined_annual_rate_vol += annual_rate_vol_converted;
-                            } else if net_vol_rate_is_neg {
-                                if annual_rate_vol_converted >= combined_annual_rate_vol {
-                                    net_vol_rate_is_neg = false;
-                                    combined_annual_rate_vol =
-                                        annual_rate_vol_converted - combined_annual_rate_vol;
-                                } else {
-                                    combined_annual_rate_vol -= annual_rate_vol_converted;
-                                }
-                            } else if combined_annual_rate_vol >= annual_rate_vol_converted {
-                                combined_annual_rate_vol -= annual_rate_vol_converted;
-                            } else {
-                                net_vol_is_neg = true;
-                                combined_annual_rate_vol =
-                                    annual_rate_vol_converted - combined_annual_rate_vol;
-                            }
+                            handle_combined_annual_rate_vol(annual_rate_vol_converted);
 
                             current_token_vol_list.push(TokenDenominationVol {
                                 net_vol: net_vol_converted,
@@ -291,17 +277,18 @@ impl OrderPerformance {
                 }
             }
 
-            // for every success apy calc in a token denomination, gather them in BTreeMap
+            // for every success apy calc in a token denomination, gather them in an array,
             // this means at the end we have all the successful apy calculated in each of
-            // the order's io tokens in order from highest to lowest.
+            // the order's io tokens in order from highest to lowest when sorted.
             if !noway {
                 if let Ok(apy) = combined_annual_rate_vol.div_18(combined_capital) {
                     full_apy_in_distinct_token_denominations.push(DenominatedPerformance {
                         apy,
+                        apy_is_neg: net_vol_rate_is_neg,
                         token: token.token.clone(),
                         starting_capital: combined_capital,
                         net_vol: combined_net_vol,
-                        is_neg: net_vol_rate_is_neg,
+                        net_vol_is_neg,
                     });
                 }
             } else {
@@ -310,14 +297,14 @@ impl OrderPerformance {
 
             // if we already have ordered token net vol in a denomination
             // we dont need them in other denominations in order to pick
-            // the highest vol token as settelement denomination
+            // the highest vol token as settlement denomination
             if all_tokens_vols_list.is_empty() {
                 all_tokens_vols_list.extend(current_token_vol_list);
             }
         }
 
-        // pick the denomination with highest net vol by iterating over tokens with
-        // highest vol to lowest and pick the first matching one
+        // after array is sorted, pick the denomination with highest net vol by
+        // iterating over tokens with highest vol to lowest and pick the first matching one
         all_tokens_vols_list.sort();
         for token in all_tokens_vols_list.iter().rev() {
             if let Some(denominated_apy) = full_apy_in_distinct_token_denominations
@@ -335,7 +322,7 @@ impl OrderPerformance {
 }
 
 /// Calculates an order's pairs' ratios from their last trades in a given list of trades
-/// Trades must be sorted indesc order by timestamp, this is the case if queried from subgraph
+/// Trades must be sorted in desc order by timestamp, this is the case if queried from subgraph
 /// using this lib functionalities
 pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPair, Option<U256>> {
     let mut pair_ratio_map: HashMap<TokenPair, Option<U256>> = HashMap::new();
@@ -552,10 +539,11 @@ mod test {
             outputs_vaults: vec![token1_perf.clone(), token2_perf.clone()],
             denominated_performance: Some(DenominatedPerformance {
                 apy: U256::from_str("2172479999999999999").unwrap(),
+                apy_is_neg: false,
                 token: token2,
                 net_vol: U256::from_str("4428571428571428570").unwrap(),
                 starting_capital: U256::from_str("6428571428571428570").unwrap(),
-                is_neg: false,
+                net_vol_is_neg: false,
             }),
         };
 

@@ -42,7 +42,7 @@ pub struct TokenPair {
 }
 
 /// Calculates each token vault apy at the given timeframe
-/// Trades must be sorted indesc order by timestamp, this is
+/// Trades must be sorted in desc order by timestamp, this is
 /// the case if queried from subgraph using this lib functionalities
 pub fn get_vaults_apy(
     trades: &[Trade],

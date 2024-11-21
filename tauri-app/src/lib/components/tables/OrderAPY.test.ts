@@ -39,6 +39,7 @@ const mockOrderApy: OrderPerformance[] = [
     orderbook: '1',
     denominatedPerformance: {
       apy: '1200000000000000000',
+      apyIsNeg: true,
       token: {
         id: 'output_token',
         address: 'output_token',
@@ -46,8 +47,8 @@ const mockOrderApy: OrderPerformance[] = [
         symbol: 'output_token',
         decimals: '0',
       },
-      isNeg: false,
       netVol: '0',
+      netVolIsNeg: false,
       startingCapital: '0',
     },
     startTime: 1,
@@ -77,7 +78,9 @@ test('renders table with correct data', async () => {
 
     // checking
     for (let i = 0; i < mockOrderApy.length; i++) {
-      const display = bigintStringToPercentage(mockOrderApy[i].denominatedPerformance!.apy, 18, 5);
+      const display =
+        (mockOrderApy[i].denominatedPerformance!.apyIsNeg ? '-' : '') +
+        bigintStringToPercentage(mockOrderApy[i].denominatedPerformance!.apy, 18, 5);
       expect(rows[i]).toHaveTextContent(display);
     }
   });
