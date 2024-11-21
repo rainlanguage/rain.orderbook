@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { writable, get } from 'svelte/store';
-import InputOrderHash from './InputOrderHash.svelte';
+import InputOrderHash from '../lib/components/input/InputOrderHash.svelte';
 
 describe('InputOrderHash', () => {
 	it('renders with initial value', () => {

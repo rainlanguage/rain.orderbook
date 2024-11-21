@@ -12,25 +12,22 @@ export { default as DropdownOrderStatus } from './components/dropdown/DropdownOr
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
+export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
 
 //Types
-export type { AppStoresInterface } from './types/appStores';
+export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource } from './typeshare/config';
 
 // Functions
+export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
 export {
 	formatTimestampSecondsAsLocal,
 	timestampSecondsToUTCTimestamp,
 	promiseTimeout
 } from './utils/time';
-export {
-	createResolvableQuery,
-	createResolvableInfiniteQuery,
-	createResolvableMockQuery
-} from './mocks/queries';
 
 // Constants
-export { mockConfigSource, mockSettingsStore } from './mocks/settings';
+
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
 	QKEY_VAULTS,
@@ -42,3 +39,7 @@ export {
 	QKEY_ORDER_QUOTE,
 	QKEY_VAULTS_VOL_LIST
 } from './queries/keys';
+
+// Stores
+export { mockConfigSource } from './__mocks__/settings';
+export { mockSettingsStore } from './__mocks__/settings';
