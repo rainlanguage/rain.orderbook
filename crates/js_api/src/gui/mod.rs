@@ -133,6 +133,11 @@ impl DotrainOrderGui {
         self.dotrain_order.config().gui.clone().unwrap()
     }
 
+    #[wasm_bindgen(js_name = "getCurrentDeployment")]
+    pub fn get_current_deployment(&self) -> GuiDeployment {
+        self.deployment.clone()
+    }
+
     /// Get all token infos in input and output vaults
     ///
     /// Returns a map of token address to [`TokenInfo`]

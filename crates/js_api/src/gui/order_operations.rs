@@ -144,12 +144,10 @@ impl DotrainOrderGui {
             .get_vaults_and_deposits()?
             .iter()
             .map(|(order_io, amount)| {
-                (
-                    (order_io.vault_id.unwrap(), order_io.token.address),
-                    *amount,
-                )
+                let vault_id = order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?;
+                Ok(((vault_id, order_io.token.address), *amount))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<Result<HashMap<_, _>, GuiError>>()?;
         let calldatas = self
             .dotrain_order
             .generate_deposit_calldatas(&self.deployment.deployment_name, &token_deposits)

@@ -64,6 +64,7 @@ pub struct GuiDeploymentSource {
     pub description: String,
     pub deposits: Vec<GuiDepositSource>,
     pub fields: Vec<GuiFieldDefinitionSource>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub select_tokens: Option<Vec<TokenRef>>,
 }
 
@@ -216,7 +217,7 @@ pub struct GuiDeployment {
     pub description: String,
     pub deposits: Vec<GuiDeposit>,
     pub fields: Vec<GuiFieldDefinition>,
-    pub select_tokens: Option<Vec<TokenRef>>,
+    pub select_tokens: Option<Vec<String>>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(GuiDeployment);
