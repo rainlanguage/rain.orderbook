@@ -23,14 +23,9 @@ export {
 	timestampSecondsToUTCTimestamp,
 	promiseTimeout
 } from './utils/time';
-export {
-	createResolvableQuery,
-	createResolvableInfiniteQuery,
-	createResolvableMockQuery
-} from './__mocks__/queries.ts';
 
 // Constants
-export { mockConfigSource, mockSettingsStore } from './__mocks__/settings.ts';
+
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
 	QKEY_VAULTS,

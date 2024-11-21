@@ -1,4 +1,5 @@
 <script lang="ts">
+	export let query: any;
 	export let walletAddressMatchesOrBlank = undefined;
 	export let handleOrderRemoveModal = undefined;
 	export let currentRoute = '';
@@ -8,6 +9,10 @@
 </script>
 
 <div data-testid="tanstack-table">
+	<slot name="title" />
+	<slot name="head" />
+	<slot name="bodyRow" />
+
 	{#if isVaultsPage}
 		<div data-testid="vaults-content">Vaults Table Content</div>
 	{/if}
