@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DotrainOrderGui } from "../../dist/cjs/js_api.js";
 import {
   ApprovalCalldata,
+  Config,
   Gui,
   TokenAllowance,
   TokenInfo,
@@ -69,6 +70,33 @@ gui:
           description: Test binding description
           presets:
             - value: "test-value"
+`;
+const guiConfig3 = `
+gui:
+  name: Test test
+  description: Test test test
+  deployments:
+    - deployment: other-deployment
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "test-value"
+      select-tokens:
+        - token1
+        - token2
 `;
 
 const dotrain = `
@@ -440,7 +468,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedState =
-      "H4sIAAAAAAAA_3WNPQrCQBSEE42inaBlCmshsv8_nbWVV9jNvpUgRNAU3kCwUDyMF7DwAh7DSyj40ghOMzPvwTeL5CsQXHpwmrJovJJKEW-F5Vox73W0xjhrrOTaQLAyeBAlo44RLmRkjFvSQc4Q3Vd1qOp1QVM8kHSAabWDPTRTOms_B8o-HKWNJc6XAeK__gtnSasuOiWkHeyjN9sN1DTDJslcTTDfx0XvmV-Xx4fLR83pld3Olzew3eUoEAEAAA==";
+      "H4sIAAAAAAAA_3VPMQoCMRC801O0E7S8wlo4ySZ78dJZW_mFJJvIIZygV_gDwULxMX7Awg_4DD9hYdIITjMzuzDDLJMvQEuJwipCrQSJUjlS0irjkSt00jKPBnllNQChJWsQyHtOpefgnBGdkDMMbOqG6mZTQBoOLB0Etd67g2unMIufI3CBpVxUimljyfl__jecJxHdOIOxWNgP3O62roEsuJLN5STox7jovfLb6vTU-ag9v7P75foBMjqEXBABAAA=";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
@@ -695,6 +723,145 @@ ${dotrain}
 
       const calldata: string = await gui.generateDepositAndAddOrderCalldatas();
       assert.equal(calldata.length, 3530);
+    });
+
+    it("should throw error on order operations without selecting required tokens", async () => {
+      let testDotrain = `
+      ${guiConfig3}
+
+      ${dotrain}
+      `;
+      let testGui = await DotrainOrderGui.init(testDotrain, "other-deployment");
+
+      expect(async () =>
+        testGui.checkAllowances("0x1234567890abcdef1234567890abcdef12345678")
+      ).rejects.toThrow("Token must be selected: token1");
+      expect(
+        async () =>
+          await testGui.generateApprovalCalldatas(
+            "0x1234567890abcdef1234567890abcdef12345678"
+          )
+      ).rejects.toThrow("Token must be selected: token1");
+      expect(
+        async () => await testGui.generateDepositCalldatas()
+      ).rejects.toThrow("Token must be selected: token1");
+      expect(
+        async () => await testGui.generateAddOrderCalldata()
+      ).rejects.toThrow("Token must be selected: token1");
+      expect(
+        async () => await testGui.generateDepositAndAddOrderCalldatas()
+      ).rejects.toThrow("Token must be selected: token1");
+    });
+  });
+
+  describe("select tokens tests", async () => {
+    let gui: DotrainOrderGui;
+    beforeAll(async () => {
+      let dotrain3 = `
+      ${guiConfig3}
+
+      ${dotrain}
+      `;
+      gui = await DotrainOrderGui.init(dotrain3, "other-deployment");
+    });
+
+    it("should get select tokens", async () => {
+      const selectTokens: Map<string, string> = gui.getSelectTokens();
+      assert.equal(selectTokens.size, 2);
+      assert.equal(
+        selectTokens.get("token1"),
+        "0x0000000000000000000000000000000000000000"
+      );
+      assert.equal(
+        selectTokens.get("token2"),
+        "0x0000000000000000000000000000000000000000"
+      );
+    });
+
+    it("should throw error if select tokens not set", async () => {
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
+        );
+      let testGui = await DotrainOrderGui.init(
+        dotrainWithGui,
+        "some-deployment"
+      );
+
+      expect(() => testGui.getSelectTokens()).toThrow("Select tokens not set");
+      expect(
+        async () => await testGui.saveSelectTokenAddress("token1", "0x1")
+      ).rejects.toThrow("Select tokens not set");
+    });
+
+    it("should throw error if token not found", async () => {
+      expect(
+        async () => await gui.saveSelectTokenAddress("token3", "0x1")
+      ).rejects.toThrow("Token not found");
+    });
+
+    it("should save select token address", async () => {
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
+        );
+      // token2 info
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000"
+        );
+
+      let initialTokenInfo: Map<string, TokenInfo> = await gui.getTokenInfos();
+      assert.equal(initialTokenInfo.size, 0);
+
+      let dotrainConfig: Config = gui.getDotrainConfig();
+      assert.equal(
+        dotrainConfig.tokens.get("token1")?.address,
+        "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+      );
+      assert.equal(
+        dotrainConfig.tokens.get("token2")?.address,
+        "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"
+      );
+
+      await gui.saveSelectTokenAddress(
+        "token1",
+        "0x6666666666666666666666666666666666666666"
+      );
+      await gui.saveSelectTokenAddress(
+        "token2",
+        "0x8888888888888888888888888888888888888888"
+      );
+      assert.equal(
+        gui.getSelectTokens().get("token1"),
+        "0x6666666666666666666666666666666666666666"
+      );
+      assert.equal(
+        gui.getSelectTokens().get("token2"),
+        "0x8888888888888888888888888888888888888888"
+      );
+
+      let tokenInfo: Map<string, TokenInfo> = await gui.getTokenInfos();
+      assert.equal(tokenInfo.size, 2);
+
+      dotrainConfig = gui.getDotrainConfig();
+      assert.equal(
+        dotrainConfig.tokens.get("token1")?.address,
+        "0x6666666666666666666666666666666666666666"
+      );
+      assert.equal(
+        dotrainConfig.tokens.get("token2")?.address,
+        "0x8888888888888888888888888888888888888888"
+      );
     });
   });
 });
