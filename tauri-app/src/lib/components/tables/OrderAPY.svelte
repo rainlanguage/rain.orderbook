@@ -1,7 +1,6 @@
 <script lang="ts">
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import TanstackAppTable from './TanstackAppTable.svelte';
-  import { QKEY_ORDER_APY } from '$lib/queries/keys';
+  import { TanstackAppTable, QKEY_ORDER_APY } from '@rainlanguage/ui-components';
   import { getOrderApy } from '$lib/queries/orderTradesList';
   import { subgraphUrl } from '$lib/stores/settings';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';

@@ -103,7 +103,7 @@ export const getOrderApy = async (
     return [];
   }
   return [
-    await invoke<OrderPerformance>('order_apy', {
+    await invoke<OrderPerformance>('order_performance', {
       orderId: id,
       subgraphArgs: { url },
       startTimestamp,

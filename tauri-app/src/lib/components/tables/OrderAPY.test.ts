@@ -69,7 +69,8 @@ test('renders table with correct data', async () => {
 
   render(OrderApy, {
     context: new Map([['$$_queryClient', queryClient]]),
-    props: { id: '1' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    props: { id: '1' } as any,
   });
 
   await waitFor(async () => {

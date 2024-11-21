@@ -341,8 +341,8 @@ pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPa
                 && !(pair_ratio_map.contains_key(&pair_as_key)
                     || pair_ratio_map.contains_key(&inverse_pair_as_key))
             {
-                // find this pairs(io or oi) latest tradetrades from list of order's
-                // trades, the calculate the pair ratio (in amount/out amount) and
+                // find this pairs(io or oi) latest trade from list of order's
+                // trades, to calculate the pair ratio (in amount/out amount) and
                 // its inverse from the latest trade that involes these 2 tokens.
                 let ratio = trades
                     .iter()
@@ -359,7 +359,15 @@ pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPa
                             .ratio()
                             .ok()
                             .zip(latest_trade.inverse_ratio().ok())
-                            .map(|(ratio, inverse_ratio)| [ratio, inverse_ratio])
+                            .map(|(ratio, inverse_ratio)| {
+                                if latest_trade.input_vault_balance_change.vault.token
+                                    == input.token
+                                {
+                                    [ratio, inverse_ratio]
+                                } else {
+                                    [inverse_ratio, ratio]
+                                }
+                            })
                     });
 
                 // io
