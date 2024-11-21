@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
+  import { timestampSecondsToUTCTimestamp } from '@rainlanguage/ui-components';
   import { bigintToFloat } from '$lib/utils/number';
   import type { Vault } from '$lib/typeshare/subgraphTypes';
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultBalanceChangesList } from '$lib/queries/vaultBalanceChangesList';
   import { subgraphUrl } from '$lib/stores/settings';
   import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
-  import { QKEY_VAULT_CHANGES } from '$lib/queries/keys';
+  import { QKEY_VAULT_CHANGES } from '@rainlanguage/ui-components';
 
   export let vault: Vault;
 
