@@ -12,12 +12,22 @@
 		DEFAULT_REFRESH_INTERVAL,
 		Hash,
 		HashType,
-		formatTimestampSecondsAsLocal
+		formatTimestampSecondsAsLocal,
+		DropdownOrderListAccounts,
+		DropdownOrderStatus
 	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 
-	const { activeSubgraphs, settings } = $page.data.stores;
+	import type { AppStoresInterface } from '@rainlanguage/ui-components';
+
+	const {
+		activeSubgraphs,
+		settings,
+		accounts,
+		activeAccountsItems,
+		activeOrderStatus
+	}: AppStoresInterface = $page.data.stores;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs).length ? $activeSubgraphs : $settings.subgraphs
@@ -26,17 +36,27 @@
 		url
 	})) as MultiSubgraphArgs[];
 
+	$: owners =
+		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
+
 	$: query = createInfiniteQuery({
-		queryKey: [QKEY_ORDERS, $activeSubgraphs, $settings, multiSubgraphArgs],
+		queryKey: [
+			QKEY_ORDERS,
+			$activeSubgraphs,
+			$settings,
+			multiSubgraphArgs,
+			owners,
+			$activeOrderStatus
+		],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: [],
-					active: true,
+					owners,
+					active: $activeOrderStatus,
 					orderHash: undefined
 				},
-				{ page: pageParam + 1, pageSize: 20 }
+				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
 		},
 		initialPageParam: 0,
@@ -51,6 +71,8 @@
 </script>
 
 <DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
+<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
+<DropdownOrderStatus {activeOrderStatus} />
 
 <AppTable {query}>
 	<svelte:fragment slot="title">
