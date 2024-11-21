@@ -162,6 +162,18 @@ impl DotrainOrderGui {
     pub async fn generate_add_order_calldata(&mut self) -> Result<JsValue, GuiError> {
         self.check_token_addresses()?;
 
+        self.dotrain_order.update_config_source_bindings(
+            &self.deployment.deployment.scenario.name,
+            self.field_values
+                .iter()
+                .map(|(k, _)| {
+                    let field_value = self.get_field_value(k.clone())?;
+                    Ok((k.clone(), field_value.value.clone()))
+                })
+                .collect::<Result<HashMap<String, String>, GuiError>>()?,
+        )?;
+        self.refresh_gui_deployment()?;
+
         let calldata = self
             .dotrain_order
             .generate_add_order_calldata(&self.deployment.deployment_name)

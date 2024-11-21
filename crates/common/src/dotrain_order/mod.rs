@@ -411,10 +411,18 @@ impl DotrainOrder {
         scenario_name: &str,
         bindings: HashMap<String, String>,
     ) -> Result<(), DotrainOrderError> {
-        let scenario = self.config_source.scenarios.get_mut(scenario_name).ok_or(
-            DotrainOrderError::ScenarioNotFound(scenario_name.to_string()),
-        )?;
+        let mut scenario = self
+            .config_source
+            .scenarios
+            .get(scenario_name)
+            .ok_or(DotrainOrderError::ScenarioNotFound(
+                scenario_name.to_string(),
+            ))?
+            .clone();
         scenario.bindings = bindings;
+        self.config_source
+            .scenarios
+            .insert(scenario_name.to_string(), scenario.clone());
         self.update_config_source(self.config_source.clone())?;
         Ok(())
     }
@@ -461,7 +469,6 @@ impl DotrainOrder {
         self.config_source
             .orders
             .insert(deployment.order.clone(), order.clone());
-
         self.update_config_source(self.config_source.clone())?;
 
         Ok(())
