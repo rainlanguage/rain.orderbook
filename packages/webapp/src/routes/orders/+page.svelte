@@ -12,6 +12,8 @@
 		orderHash,
 		hideZeroBalanceVaults
 	}: AppStoresInterface = $page.data.stores;
+
+	$: currentRoute = $page.url.pathname;
 </script>
 
 <OrdersListTable
@@ -22,4 +24,5 @@
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{currentRoute}
 />

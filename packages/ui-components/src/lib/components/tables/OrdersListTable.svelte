@@ -1,5 +1,4 @@
 <script lang="ts" generics="T">
-	import { page } from '$app/stores';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
@@ -39,6 +38,7 @@
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let currentRoute: string;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -81,7 +81,6 @@
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 
-	$: currentRoute = $page.url.pathname;
 	$: isVaultsPage = currentRoute.startsWith('/vaults');
 	$: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
