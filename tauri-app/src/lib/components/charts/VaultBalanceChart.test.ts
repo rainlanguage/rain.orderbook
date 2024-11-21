@@ -3,7 +3,7 @@ import { expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import VaultBalanceChart from './VaultBalanceChart.svelte';
-import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
+import { timestampSecondsToUTCTimestamp } from '@rainlanguage/ui-components';
 import { bigintToFloat } from '$lib/utils/number';
 import type { Vault } from '$lib/typeshare/subgraphTypes';
 import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
@@ -11,7 +11,7 @@ import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
 // Mock settings and subgraphUrl
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('$lib/mocks/settings');
+  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
 
   const _activeOrderbook = writable();
 

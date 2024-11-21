@@ -6448,6 +6448,7 @@ name = "rain_orderbook_js_api"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "alloy-ethers-typecast",
  "base64 0.22.1",
  "bincode",
  "cynic",
@@ -6466,6 +6467,15 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "rain_orderbook_math"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "once_cell",
+ "thiserror",
 ]
 
 [[package]]

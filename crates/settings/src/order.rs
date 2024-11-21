@@ -25,7 +25,7 @@ pub struct OrderIO {
 impl_all_wasm_traits!(OrderIO);
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct Order {

@@ -55,6 +55,11 @@ export default defineConfig(({ mode }) => {
       includeSource: ['src/**/*.{js,ts}'],
       environment: 'jsdom',
       setupFiles: ['./vitest-setup.ts'],
+      server: {
+        deps: {
+          inline: [/@sveltejs\/kit/, /@tanstack\/svelte-query/],
+        }
+      },
     },
 
     define: {
