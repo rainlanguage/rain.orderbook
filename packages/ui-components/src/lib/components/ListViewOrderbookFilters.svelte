@@ -23,7 +23,7 @@
 	export let query: CreateInfiniteQueryResult<InfiniteData<unknown[], unknown>, Error>;
 </script>
 
-<div class="flex min-w-[600px] items-end justify-end gap-x-2">
+<div class="flex min-w-[600px] items-center justify-end gap-x-2">
 	<Refresh
 		data-testid="refresh-button"
 		class="mr-2 h-6 w-6 cursor-pointer text-gray-400 dark:text-gray-400"

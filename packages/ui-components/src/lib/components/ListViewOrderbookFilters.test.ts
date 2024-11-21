@@ -27,7 +27,7 @@ describe('ListViewOrderbookFilters', () => {
 		}
 	});
 
-    const { query } = createResolvableInfiniteQuery((pageParam) => {
+	const { query } = createResolvableInfiniteQuery((pageParam) => {
 		return ['page' + pageParam];
 	});
 
@@ -70,7 +70,6 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows vault-specific components on vault page', () => {
-        
 		render(ListViewOrderbookFilters, {
 			...defaultProps,
 			isVaultsPage: true
@@ -112,13 +111,16 @@ describe('ListViewOrderbookFilters', () => {
 		const mockQuery = writable({
 			status: 'success',
 			fetchStatus: 'idle',
-			refetch: mockRefetch,
+			refetch: mockRefetch
 			// ... other required properties
 		});
 
 		render(ListViewOrderbookFilters, {
 			...defaultProps,
-			query: mockQuery as unknown as CreateInfiniteQueryResult<InfiniteData<unknown[], unknown>, Error>
+			query: mockQuery as unknown as CreateInfiniteQueryResult<
+				InfiniteData<unknown[], unknown>,
+				Error
+			>
 		});
 
 		const refreshButton = screen.getByTestId('refresh-button');
@@ -126,5 +128,4 @@ describe('ListViewOrderbookFilters', () => {
 
 		expect(mockRefetch).toHaveBeenCalled();
 	});
-
 });

@@ -132,4 +132,3 @@ test('load more button message changes when loading', async () => {
 		expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Load More');
 	});
 });
-
