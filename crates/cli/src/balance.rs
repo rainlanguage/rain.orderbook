@@ -39,17 +39,15 @@ async fn get_data(url: &str, variables: OrdersListQueryVariables) -> Result<Valu
 }
 
 pub async fn get_balances_single_order(subgraph_url: &str, order_hash: &str) -> Result<Value> {
-    // Decode the order hash from hex and convert it to a string representation
-    let decoded_bytes = hex::decode(&order_hash[2..]).unwrap();
-    let hex_string = hex::encode(decoded_bytes); // Convert the decoded bytes back to a hex string
+    let hex_order_hash = &order_hash[2..];
 
     let variables = OrdersListQueryVariables {
         skip: None,  // No need to skip when querying a specific order
         first: None, // No need to limit since we expect a single result
         filters: Some(OrdersListQueryFilters {
-            owner_in: Vec::new(),                // Not filtering by owner
-            active: None,                        // Not filtering by active
-            order_hash: Some(Bytes(hex_string)), // Pass the hex string to Bytes
+            owner_in: Vec::new(),                                // Not filtering by owner
+            active: None,                                        // Not filtering by active
+            order_hash: Some(Bytes(hex_order_hash.to_string())), // Pass the hex string to Bytes
         }),
     };
 
