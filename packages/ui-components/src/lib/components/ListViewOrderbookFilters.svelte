@@ -26,7 +26,7 @@
 <div class="flex min-w-[600px] items-center justify-end gap-x-2">
 	<Refresh
 		data-testid="refresh-button"
-		class="mr-2 h-6 w-6 cursor-pointer text-gray-400 dark:text-gray-400"
+		class="mr-2 mt-4 h-6 w-6 cursor-pointer text-gray-400 dark:text-gray-400"
 		spin={$query.isLoading || $query.isFetching}
 		on:click={() => {
 			console.log('REFETCHING!');
