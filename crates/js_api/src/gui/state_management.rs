@@ -1,10 +1,11 @@
 use super::*;
+use deposits::TokenDeposit;
 use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
     config_hash: String,
-    field_values: BTreeMap<String, String>,
+    field_values: BTreeMap<String, GuiPreset>,
     deposits: Vec<TokenDeposit>,
 }
 
@@ -21,9 +22,29 @@ impl DotrainOrderGui {
     pub fn serialize(&self) -> Result<String, GuiError> {
         let config_hash = self.compute_config_hash();
 
+        let mut field_values = BTreeMap::new();
+        for (k, v) in self.field_values.iter() {
+            let preset = if v.is_preset {
+                let field_definition = self.get_field_definition(k)?;
+                let preset = field_definition
+                    .presets
+                    .iter()
+                    .find(|preset| preset.id == v.value)
+                    .ok_or(GuiError::InvalidPreset)?;
+                preset.clone()
+            } else {
+                GuiPreset {
+                    id: "".to_string(),
+                    name: None,
+                    value: v.value.clone(),
+                }
+            };
+            field_values.insert(k.clone(), preset);
+        }
+
         let state = SerializedGuiState {
             config_hash,
-            field_values: self.field_values.clone(),
+            field_values: field_values.clone(),
             deposits: self.deposits.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -44,7 +65,27 @@ impl DotrainOrderGui {
         decoder.read_to_end(&mut bytes)?;
 
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
-        self.field_values = state.field_values;
+
+        let field_values = state
+            .field_values
+            .into_iter()
+            .map(|(k, v)| {
+                let pair_value = if v.id != "" {
+                    field_values::PairValue {
+                        is_preset: true,
+                        value: v.id,
+                    }
+                } else {
+                    field_values::PairValue {
+                        is_preset: false,
+                        value: v.value,
+                    }
+                };
+                (k, pair_value)
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        self.field_values = field_values;
         self.deposits = state.deposits;
 
         if state.config_hash != self.compute_config_hash() {
