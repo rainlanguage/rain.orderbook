@@ -1,9 +1,11 @@
 import type { Writable } from 'svelte/store';
-
+import type { ConfigSource } from '../typeshare/config';
 export interface AppStoresInterface {
-	settings: Writable<Record<string, string>>;
+	settings: Writable<ConfigSource | undefined>;
 	activeSubgraphs: Writable<Record<string, string>>;
 	accounts: Writable<Record<string, string>>;
 	activeAccountsItems: Writable<Record<string, string>>;
 	activeOrderStatus: Writable<boolean | undefined>;
+	orderHash: Writable<string>;
+	hideZeroBalanceVaults: Writable<boolean>;
 }
