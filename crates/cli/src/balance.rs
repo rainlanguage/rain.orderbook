@@ -52,11 +52,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_balances() {
-        //let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
-        let subgraph_url = std::env::var("SUBGRAPH_URL")
-            .expect("Environment variable SUBGRAPH_URL must be set for tests.");
+        //let orderbook_mainnet_subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
+        let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
+            .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
-        let result = get_balances_single_order(&subgraph_url).await;
+        let result = get_balances_single_order(&orderbook_mainnet_subgraph_url).await;
 
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
     }
@@ -64,11 +64,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_balances_data_mainnet() {
         //let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
-        let subgraph_url = std::env::var("SUBGRAPH_URL")
-            .expect("Environment variable SUBGRAPH_URL must be set for tests.");
+        let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
+            .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
         // Call the function under test
-        let result = get_balances_single_order(&subgraph_url).await;
+        let result = get_balances_single_order(&orderbook_mainnet_subgraph_url).await;
 
         // Assert the function call was successful
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
