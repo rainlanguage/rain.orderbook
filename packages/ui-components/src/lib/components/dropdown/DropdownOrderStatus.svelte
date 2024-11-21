@@ -32,11 +32,13 @@
 	) as Record<string, string>;
 </script>
 
-<DropdownCheckbox
-	options={orderStatusOptions}
-	on:change={handleStatusChange}
-	label="Status"
-	showAllLabel={false}
-	onlyTitle={true}
-	{value}
-/>
+<div data-testid="order-status-dropdown">
+	<DropdownCheckbox
+		options={orderStatusOptions}
+		on:change={handleStatusChange}
+		label="Status"
+		showAllLabel={false}
+		onlyTitle={true}
+		{value}
+	/>
+</div>
