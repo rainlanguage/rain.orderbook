@@ -1,6 +1,9 @@
+use alloy::hex;
 use anyhow::Result;
 use cynic::QueryBuilder;
-use rain_orderbook_subgraph_client::types::common::OrdersListQueryVariables;
+use rain_orderbook_subgraph_client::types::common::{
+    Bytes, OrdersListQueryFilters, OrdersListQueryVariables,
+};
 use rain_orderbook_subgraph_client::types::order::OrdersListQuery;
 use reqwest::Client;
 use serde_json::Value;
@@ -35,11 +38,19 @@ async fn get_data(url: &str, variables: OrdersListQueryVariables) -> Result<Valu
     Ok(data)
 }
 
-pub async fn get_balances_single_order(subgraph_url: &str) -> Result<Value> {
+pub async fn get_balances_single_order(subgraph_url: &str, order_hash: &str) -> Result<Value> {
+    // Decode the order hash from hex and convert it to a string representation
+    let decoded_bytes = hex::decode(&order_hash[2..]).unwrap();
+    let hex_string = hex::encode(decoded_bytes); // Convert the decoded bytes back to a hex string
+
     let variables = OrdersListQueryVariables {
-        skip: Some(0),
-        first: Some(1),
-        filters: None,
+        skip: None,  // No need to skip when querying a specific order
+        first: None, // No need to limit since we expect a single result
+        filters: Some(OrdersListQueryFilters {
+            owner_in: Vec::new(),                // Not filtering by owner
+            active: None,                        // Not filtering by active
+            order_hash: Some(Bytes(hex_string)), // Pass the hex string to Bytes
+        }),
     };
 
     let res = get_data(subgraph_url, variables).await?;
@@ -55,8 +66,9 @@ mod tests {
         let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
             .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
-        let result = get_balances_single_order(&orderbook_mainnet_subgraph_url).await;
+        let order_hash = "0x12863c37d7dd314984b237619f569f6f6f645383bb39aec4cb219abd52f8eff2";
 
+        let result = get_balances_single_order(&orderbook_mainnet_subgraph_url, order_hash).await;
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
     }
 
@@ -65,36 +77,58 @@ mod tests {
         let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
             .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
-        // Call the function under test
-        let result = get_balances_single_order(&orderbook_mainnet_subgraph_url).await;
+        let order_hash = "0x12863c37d7dd314984b237619f569f6f6f645383bb39aec4cb219abd52f8eff2";
+
+        let result = get_balances_single_order(&orderbook_mainnet_subgraph_url, order_hash).await;
 
         // Assert the function call was successful
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
 
-        // Validate the returned data structure and values
         if let Ok(data) = result {
             // Ensure "data" key exists
             let orders = data.get("data").and_then(|d| d.get("orders"));
             assert!(orders.is_some(), "Orders data missing in response");
 
-            if let Some(order_array) = orders {
-                let first_order = &order_array[0];
-                assert_eq!(
-                    first_order.get("owner").unwrap(),
-                    "0xcabcbea6e523274b269fb7b21665c0b4003bd456"
-                );
-                assert_eq!(first_order.get("active").unwrap(), false);
+            // Validate the returned data structure and values
+            if let Some(order_array) = orders.and_then(|o| o.as_array()) {
+                // Find the order with the matching `id`
+                let target_order_id =
+                    "0x389d61c749f571e2da90a56385600ec421b487f8679ec7a98e2dcbd888a3c1ed";
+                let target_order = order_array
+                    .iter()
+                    .find(|order| order.get("id").map_or(false, |id| id == target_order_id));
 
-                // Validate the `outputs` -> `balance`
-                let outputs = first_order.get("outputs").unwrap().as_array().unwrap();
-                assert_eq!(outputs.len(), 1, "Unexpected number of outputs");
-
-                let first_output = &outputs[0];
-                assert_eq!(
-                    first_output.get("balance").unwrap(),
-                    "0",
-                    "Unexpected balance in output"
+                // Ensure the target order was found
+                assert!(
+                    target_order.is_some(),
+                    "Order with ID {} not found",
+                    target_order_id
                 );
+
+                if let Some(order) = target_order {
+                    assert_eq!(
+                        order.get("owner").unwrap(),
+                        "0x5ef02599f44eed91ec7b3be4892b1a0665944a04"
+                    );
+                    assert_eq!(order.get("active").unwrap(), true);
+
+                    // Validate the `outputs` -> `balance`
+                    let outputs = order.get("outputs").unwrap().as_array().unwrap();
+
+                    let first_output = &outputs[0];
+                    assert_eq!(
+                        first_output.get("balance").unwrap(),
+                        "477586683524531569",
+                        "Unexpected balance in first output"
+                    );
+
+                    let second_output = &outputs[1];
+                    assert_eq!(
+                        second_output.get("balance").unwrap(),
+                        "441985284221547565414691",
+                        "Unexpected balance in second output"
+                    );
+                }
             }
         }
     }
