@@ -1,7 +1,8 @@
 import type { ConfigSource } from '$lib/typeshare/config';
 import { writable } from 'svelte/store';
+import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
-const mockSettingsWritable = writable<ConfigSource | undefined>(undefined);
+const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
