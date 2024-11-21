@@ -12,7 +12,7 @@ export { default as DropdownOrderStatus } from './components/dropdown/DropdownOr
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
-
+export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores';
 export type { ConfigSource } from './typeshare/config';
