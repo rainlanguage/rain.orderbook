@@ -12,7 +12,7 @@ use rain_orderbook_common::{
 };
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::prelude::*;
 use thiserror::Error;
 use tsify::Tsify;
@@ -28,6 +28,7 @@ use wasm_bindgen::{
 mod deposits;
 mod field_values;
 mod order_operations;
+mod select_tokens;
 mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -37,6 +38,7 @@ pub struct DotrainOrderGui {
     deployment: GuiDeployment,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: Vec<deposits::TokenDeposit>,
+    select_tokens: HashMap<String, Address>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
 #[wasm_bindgen]
@@ -82,6 +84,11 @@ impl DotrainOrderGui {
             deployment: gui_deployment.clone(),
             field_values: BTreeMap::new(),
             deposits: vec![],
+            select_tokens: gui_deployment
+                .select_tokens
+                .iter()
+                .map(|token| (token.clone(), Address::ZERO))
+                .collect(),
             onchain_token_info,
         })
     }
@@ -132,10 +139,12 @@ pub enum GuiError {
     VaultIdNotFound,
     #[error("Deployer not found")]
     DeployerNotFound,
-    #[error("Token not found")]
-    TokenNotFound,
+    #[error("Token not found {0}")]
+    TokenNotFound(String),
     #[error("Invalid preset")]
     InvalidPreset,
+    #[error("Token must be selected: {0}")]
+    TokenMustBeSelected(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]

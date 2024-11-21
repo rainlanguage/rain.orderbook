@@ -64,6 +64,7 @@ pub struct GuiDeploymentSource {
     pub description: String,
     pub deposits: Vec<GuiDepositSource>,
     pub fields: Vec<GuiFieldDefinitionSource>,
+    pub select_tokens: Vec<TokenRef>,
 }
 
 #[typeshare]
@@ -141,6 +142,7 @@ impl GuiConfigSource {
                     description: deployment_source.description.clone(),
                     deposits,
                     fields,
+                    select_tokens: deployment_source.select_tokens.clone(),
                 })
             })
             .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -214,6 +216,7 @@ pub struct GuiDeployment {
     pub description: String,
     pub deposits: Vec<GuiDeposit>,
     pub fields: Vec<GuiFieldDefinition>,
+    pub select_tokens: Vec<TokenRef>,
 }
 
 #[typeshare]
@@ -318,6 +321,7 @@ mod tests {
                         ],
                     },
                 ],
+                select_tokens: vec!["test-token".to_string()],
             }],
         };
         let scenario = Scenario {

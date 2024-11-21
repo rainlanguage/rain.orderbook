@@ -39,7 +39,7 @@ impl DotrainOrderGui {
             let token_decimals = self
                 .onchain_token_info
                 .get(&d.address)
-                .ok_or(GuiError::TokenNotFound)?
+                .ok_or(GuiError::TokenNotFound(d.address.to_string()))?
                 .decimals;
             let amount = parse_units(&d.amount, token_decimals)?.into();
             map.insert(d.address, amount);
@@ -94,6 +94,8 @@ impl DotrainOrderGui {
     /// Returns a vector of [`TokenAllowance`] objects
     #[wasm_bindgen(js_name = "checkAllowances")]
     pub async fn check_allowances(&self, owner: String) -> Result<JsValue, GuiError> {
+        self.check_token_addresses()?;
+
         let orderbook = self.get_orderbook()?;
         let vaults_and_deposits = self.get_vaults_and_deposits()?;
 
@@ -118,6 +120,8 @@ impl DotrainOrderGui {
     /// Returns a vector of [`ApprovalCalldata`] objects
     #[wasm_bindgen(js_name = "generateApprovalCalldatas")]
     pub async fn generate_approval_calldatas(&self, owner: String) -> Result<JsValue, GuiError> {
+        self.check_token_addresses()?;
+
         let calldatas = self
             .dotrain_order
             .generate_approval_calldatas(
@@ -134,6 +138,8 @@ impl DotrainOrderGui {
     /// Returns a vector of bytes
     #[wasm_bindgen(js_name = "generateDepositCalldatas")]
     pub async fn generate_deposit_calldatas(&mut self) -> Result<JsValue, GuiError> {
+        self.check_token_addresses()?;
+
         let token_deposits = self
             .get_vaults_and_deposits()?
             .iter()
@@ -154,6 +160,8 @@ impl DotrainOrderGui {
     /// Generate add order calldata
     #[wasm_bindgen(js_name = "generateAddOrderCalldata")]
     pub async fn generate_add_order_calldata(&mut self) -> Result<JsValue, GuiError> {
+        self.check_token_addresses()?;
+
         let calldata = self
             .dotrain_order
             .generate_add_order_calldata(&self.deployment.deployment_name)
@@ -163,6 +171,8 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
     pub async fn generate_deposit_and_add_order_calldatas(&mut self) -> Result<JsValue, GuiError> {
+        self.check_token_addresses()?;
+
         let orderbook = self.get_orderbook()?;
         let token_deposits = self
             .get_vaults_and_deposits()?
