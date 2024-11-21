@@ -51,8 +51,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_get_balances() {
-        //let orderbook_mainnet_subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
+    async fn test_get_balances_is_ok() {
         let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
             .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
@@ -63,7 +62,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_balances_data_mainnet() {
-        //let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
         let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
             .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
@@ -98,8 +96,6 @@ mod tests {
                     "Unexpected balance in output"
                 );
             }
-
-            println!("Fetched balance data: {:?}", data);
         }
     }
 }
