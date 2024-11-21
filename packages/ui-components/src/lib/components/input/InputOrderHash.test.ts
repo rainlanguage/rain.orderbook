@@ -3,30 +3,30 @@ import { writable, get } from 'svelte/store';
 import InputOrderHash from './InputOrderHash.svelte';
 
 describe('InputOrderHash', () => {
-    it('renders with initial value', () => {
-        const orderHash = writable('0x123');
-        const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
-        
-        const input = getByTestId('order-hash-input').querySelector('input');
-        expect(input?.value).toBe('0x123');
-    });
+	it('renders with initial value', () => {
+		const orderHash = writable('0x123');
+		const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
 
-    it('updates store value when input changes', async () => {
-        const orderHash = writable('');
-        const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
-        
-        const input = getByTestId('order-hash-input').querySelector('input') as HTMLInputElement;
-        await fireEvent.input(input, { target: { value: '0xabc' } });
-        
-        expect(input.value).toBe('0xabc');
-        expect(get(orderHash)).toBe('0xabc');
-    });
+		const input = getByTestId('order-hash-input').querySelector('input');
+		expect(input?.value).toBe('0x123');
+	});
 
-    it('renders with placeholder', () => {
-        const orderHash = writable('');
-        const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
-        
-        const input = getByTestId('order-hash-input').querySelector('input');
-        expect(input?.placeholder).toBe('0x...');
-    });
-}); 
+	it('updates store value when input changes', async () => {
+		const orderHash = writable('');
+		const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
+
+		const input = getByTestId('order-hash-input').querySelector('input') as HTMLInputElement;
+		await fireEvent.input(input, { target: { value: '0xabc' } });
+
+		expect(input.value).toBe('0xabc');
+		expect(get(orderHash)).toBe('0xabc');
+	});
+
+	it('renders with placeholder', () => {
+		const orderHash = writable('');
+		const { getByTestId } = render(InputOrderHash, { props: { orderHash } });
+
+		const input = getByTestId('order-hash-input').querySelector('input');
+		expect(input?.placeholder).toBe('0x...');
+	});
+});
