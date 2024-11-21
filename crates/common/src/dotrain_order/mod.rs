@@ -17,7 +17,6 @@ use rain_orderbook_app_settings::{
     Config, ParseConfigSourceError,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
 #[cfg(target_family = "wasm")]
@@ -77,6 +76,9 @@ pub enum DotrainOrderError {
 
     #[error("Deployment {0} not found")]
     DeploymentNotFound(String),
+
+    #[error("Order {0} not found")]
+    OrderNotFound(String),
 }
 
 #[cfg(target_family = "wasm")]
@@ -415,21 +417,24 @@ impl DotrainOrder {
     }
 
     pub fn populate_vault_ids(&mut self, deployment_name: &str) -> Result<(), DotrainOrderError> {
-        let mut deployment = self
-            .config
+        let deployment = self
+            .config_source
             .deployments
             .get(deployment_name)
-            .cloned()
             .ok_or(DotrainOrderError::DeploymentNotFound(
                 deployment_name.to_string(),
             ))?
-            .as_ref()
             .clone();
-        let mut order = deployment.order.as_ref().clone();
+        let mut order = self
+            .config_source
+            .orders
+            .get(&deployment.order)
+            .ok_or(DotrainOrderError::OrderNotFound(deployment.order.clone()))?
+            .clone();
+
         let vault_id = rand::random();
 
-        let new_inputs = deployment
-            .order
+        let new_inputs = order
             .inputs
             .iter()
             .map(|input| {
@@ -438,8 +443,7 @@ impl DotrainOrder {
                 input
             })
             .collect();
-        let new_outputs = deployment
-            .order
+        let new_outputs = order
             .outputs
             .iter()
             .map(|output| {
@@ -451,10 +455,11 @@ impl DotrainOrder {
 
         order.inputs = new_inputs;
         order.outputs = new_outputs;
-        deployment.order = Arc::new(order);
-        self.config
-            .deployments
-            .insert(deployment_name.to_string(), Arc::new(deployment));
+        self.config_source
+            .orders
+            .insert(deployment.order.clone(), order.clone());
+
+        self.update_config_source(self.config_source.clone())?;
 
         Ok(())
     }

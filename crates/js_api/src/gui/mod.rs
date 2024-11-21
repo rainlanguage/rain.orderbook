@@ -94,7 +94,7 @@ impl DotrainOrderGui {
             .iter()
             .find(|deployment| deployment.deployment_name == self.deployment.deployment_name)
             .ok_or(GuiError::DeploymentNotFound(
-                self.deployment.deployment_name,
+                self.deployment.deployment_name.clone(),
             ))?;
         self.deployment = gui_deployment.clone();
         Ok(())

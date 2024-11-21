@@ -219,6 +219,7 @@ impl DotrainOrderGui {
     pub fn populate_vault_ids(&mut self) -> Result<(), GuiError> {
         self.dotrain_order
             .populate_vault_ids(&self.deployment.deployment_name)?;
+        self.refresh_gui_deployment()?;
         Ok(())
     }
 }
