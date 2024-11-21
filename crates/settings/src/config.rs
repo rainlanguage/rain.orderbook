@@ -8,9 +8,30 @@ use thiserror::Error;
 use typeshare::typeshare;
 use url::Url;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::impl_wasm_traits;
+#[cfg(target_family = "wasm")]
+use serde_wasm_bindgen::{from_value, to_value};
+#[cfg(target_family = "wasm")]
+use tsify::Tsify;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::convert::{
+    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
+    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
+};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(
+    target_family = "wasm",
+    derive(Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
 pub struct Config {
     #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
@@ -38,6 +59,8 @@ pub struct Config {
     pub accounts: Option<HashMap<String, Arc<String>>>,
     pub gui: Option<Gui>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(Config);
 
 pub type Subgraph = Url;
 pub type Metaboard = Url;

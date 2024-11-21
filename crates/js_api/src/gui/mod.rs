@@ -2,8 +2,9 @@ use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-use rain_orderbook_app_settings::gui::{
-    Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError,
+use rain_orderbook_app_settings::{
+    gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
+    Config,
 };
 use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_common::{
@@ -38,7 +39,7 @@ pub struct DotrainOrderGui {
     deployment: GuiDeployment,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: Vec<deposits::TokenDeposit>,
-    select_tokens: HashMap<String, Address>,
+    select_tokens: Option<HashMap<String, Address>>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
 #[wasm_bindgen]
@@ -60,6 +61,13 @@ impl DotrainOrderGui {
             .find(|deployment| deployment.deployment_name == deployment_name)
             .ok_or(GuiError::DeploymentNotFound(deployment_name))?;
 
+        let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
+            tokens
+                .iter()
+                .map(|token| (token.clone(), Address::ZERO))
+                .collect::<HashMap<String, Address>>()
+        });
+
         let rpc_url = gui_deployment
             .deployment
             .order
@@ -69,11 +77,18 @@ impl DotrainOrderGui {
             .network
             .rpc
             .clone();
-        let mut onchain_token_info = BTreeMap::new();
+        let mut onchain_token_info: BTreeMap<Address, TokenInfo> = BTreeMap::new();
         for token in gui_deployment.deposits.iter() {
             if onchain_token_info.contains_key(&token.token.address) {
                 continue;
             }
+
+            if let Some(select_tokens) = &select_tokens {
+                if select_tokens.contains_key(&token.token_name) {
+                    continue;
+                }
+            }
+
             let erc20 = ERC20::new(rpc_url.clone(), token.token.address);
             let token_info = erc20.token_info(multicall_address.clone()).await?;
             onchain_token_info.insert(token.token.address, token_info);
@@ -84,11 +99,12 @@ impl DotrainOrderGui {
             deployment: gui_deployment.clone(),
             field_values: BTreeMap::new(),
             deposits: vec![],
-            select_tokens: gui_deployment
-                .select_tokens
-                .iter()
-                .map(|token| (token.clone(), Address::ZERO))
-                .collect(),
+            select_tokens: gui_deployment.select_tokens.clone().map(|tokens| {
+                tokens
+                    .iter()
+                    .map(|token| (token.clone(), Address::ZERO))
+                    .collect::<HashMap<String, Address>>()
+            }),
             onchain_token_info,
         })
     }
@@ -105,6 +121,11 @@ impl DotrainOrderGui {
             ))?;
         self.deployment = gui_deployment.clone();
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "getDotrainConfig")]
+    pub fn get_dotrain_config(&self) -> Config {
+        self.dotrain_order.config().clone()
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]
@@ -143,6 +164,8 @@ pub enum GuiError {
     TokenNotFound(String),
     #[error("Invalid preset")]
     InvalidPreset,
+    #[error("Select tokens not set")]
+    SelectTokensNotSet,
     #[error("Token must be selected: {0}")]
     TokenMustBeSelected(String),
     #[error(transparent)]

@@ -64,7 +64,7 @@ pub struct GuiDeploymentSource {
     pub description: String,
     pub deposits: Vec<GuiDepositSource>,
     pub fields: Vec<GuiFieldDefinitionSource>,
-    pub select_tokens: Vec<TokenRef>,
+    pub select_tokens: Option<Vec<TokenRef>>,
 }
 
 #[typeshare]
@@ -216,8 +216,10 @@ pub struct GuiDeployment {
     pub description: String,
     pub deposits: Vec<GuiDeposit>,
     pub fields: Vec<GuiFieldDefinition>,
-    pub select_tokens: Vec<TokenRef>,
+    pub select_tokens: Option<Vec<TokenRef>>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(GuiDeployment);
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -321,7 +323,7 @@ mod tests {
                         ],
                     },
                 ],
-                select_tokens: vec!["test-token".to_string()],
+                select_tokens: Some(vec!["test-token".to_string()]),
             }],
         };
         let scenario = Scenario {
@@ -387,5 +389,9 @@ mod tests {
         assert_eq!(field3.presets[0].value, Address::default().to_string());
         assert_eq!(field3.presets[1].value, "some-value".to_string());
         assert_eq!(field3.presets[2].value, "true".to_string());
+        assert_eq!(
+            deployment.select_tokens,
+            Some(vec!["test-token".to_string()])
+        );
     }
 }
