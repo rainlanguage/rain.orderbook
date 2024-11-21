@@ -185,6 +185,7 @@ impl DotrainOrderGui {
                 })
                 .collect::<Result<HashMap<String, String>, GuiError>>()?,
         )?;
+        self.refresh_gui_deployment()?;
 
         let mut calls = Vec::new();
         let deposit_calldatas = self

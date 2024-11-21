@@ -86,6 +86,20 @@ impl DotrainOrderGui {
         })
     }
 
+    fn refresh_gui_deployment(&mut self) -> Result<(), GuiError> {
+        let config = self.dotrain_order.config();
+        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
+        let gui_deployment = gui_config
+            .deployments
+            .iter()
+            .find(|deployment| deployment.deployment_name == self.deployment.deployment_name)
+            .ok_or(GuiError::DeploymentNotFound(
+                self.deployment.deployment_name,
+            ))?;
+        self.deployment = gui_deployment.clone();
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = "getGuiConfig")]
     pub fn get_gui_config(&self) -> Gui {
         self.dotrain_order.config().gui.clone().unwrap()
