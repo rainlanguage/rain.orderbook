@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { QKEY_ORDERS } from '$lib/queries/keys';
   import { ordersList } from '$lib/queries/ordersList';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '$lib/queries/constants';
-  import { TanstackAppTable } from '@rainlanguage/ui-components';
+
   import { goto } from '$app/navigation';
-  import ListViewOrderbookSelector from '../ListViewOrderbookSelector.svelte';
+
   import {
     Badge,
     Button,
@@ -16,14 +14,33 @@
   } from 'flowbite-svelte';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { Hash, HashType } from '@rainlanguage/ui-components';
-
-  import { activeNetworkRef, activeOrderbookRef, activeSubgraphs } from '$lib/stores/settings';
-  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
+  import {
+    Hash,
+    HashType,
+    formatTimestampSecondsAsLocal,
+    ListViewOrderbookFilters,
+    TanstackAppTable,
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_REFRESH_INTERVAL,
+    QKEY_ORDERS,
+  } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal } from '$lib/services/modal';
-  import { activeAccounts, activeOrderStatus } from '$lib/stores/settings';
+
   import { get } from 'svelte/store';
-  import { orderHash } from '$lib/stores/settings';
+
+  import {
+    orderHash,
+    accounts,
+    activeAccountsItems,
+    activeSubgraphs,
+    settings,
+    activeOrderStatus,
+    hideZeroBalanceVaults,
+    activeNetworkRef,
+    activeOrderbookRef,
+    activeAccounts,
+  } from '$lib/stores/settings';
+  import { page } from '$app/stores';
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_ORDERS, $activeAccounts, $activeOrderStatus, $orderHash, $activeSubgraphs],
@@ -43,6 +60,9 @@
     refetchInterval: DEFAULT_REFRESH_INTERVAL,
     enabled: Object.keys($activeSubgraphs).length > 0,
   });
+  $: currentRoute = $page.url.pathname;
+  $: isVaultsPage = currentRoute.startsWith('/vaults');
+  $: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
 {#if $query}
@@ -58,7 +78,17 @@
     <svelte:fragment slot="title">
       <div class="flex w-full justify-between py-4">
         <div class="text-3xl font-medium dark:text-white">Orders</div>
-        <ListViewOrderbookSelector />
+        <ListViewOrderbookFilters
+          {activeSubgraphs}
+          {settings}
+          {accounts}
+          {activeAccountsItems}
+          {activeOrderStatus}
+          {orderHash}
+          {hideZeroBalanceVaults}
+          {isVaultsPage}
+          {isOrdersPage}
+        />
       </div>
     </svelte:fragment>
 

@@ -1,43 +1,91 @@
 <script lang="ts" generics="T">
+	import { page } from '$app/stores';
+
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import { TanstackAppTable } from '@rainlanguage/ui-components';
+	import {
+		TanstackAppTable,
+		QKEY_ORDERS,
+		DEFAULT_PAGE_SIZE,
+		DEFAULT_REFRESH_INTERVAL,
+		Hash,
+		HashType,
+		formatTimestampSecondsAsLocal,
+		ListViewOrderbookFilters
+	} from '@rainlanguage/ui-components';
 
 	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-	import { Hash, HashType } from '@rainlanguage/ui-components';
 
-	const multiSubgraphArgs: MultiSubgraphArgs[] = [
-		{
-			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn',
-			name: 'flare'
-		}
-	] as MultiSubgraphArgs[];
+	import type { AppStoresInterface } from '@rainlanguage/ui-components';
+
+	const {
+		activeSubgraphs,
+		settings,
+		accounts,
+		activeAccountsItems,
+		activeOrderStatus,
+		orderHash,
+		hideZeroBalanceVaults
+	}: AppStoresInterface = $page.data.stores;
+
+	$: multiSubgraphArgs = Object.entries(
+		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
+	).map(([name, url]) => ({
+		name,
+		url
+	})) as MultiSubgraphArgs[];
+
+	$: owners =
+		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
 
 	$: query = createInfiniteQuery({
-		queryKey: [],
+		queryKey: [
+			QKEY_ORDERS,
+			$activeSubgraphs,
+			$settings,
+			multiSubgraphArgs,
+			owners,
+			$activeOrderStatus,
+			$orderHash
+		],
 		queryFn: ({ pageParam }) => {
 			return getOrders(
 				multiSubgraphArgs,
 				{
-					owners: ['0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11'],
-					active: true,
-					orderHash: undefined
+					owners,
+					active: $activeOrderStatus,
+					orderHash: $orderHash || undefined
 				},
-				{ page: pageParam + 1, pageSize: 1 }
+				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage.length === 1 ? lastPageParam + 1 : undefined;
+			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
-		refetchInterval: 100000,
+		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: true
 	});
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
+
+	$: currentRoute = $page.url.pathname;
+	$: isVaultsPage = currentRoute.startsWith('/vaults');
+	$: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
+
+<ListViewOrderbookFilters
+	{activeSubgraphs}
+	{settings}
+	{accounts}
+	{activeAccountsItems}
+	{activeOrderStatus}
+	{orderHash}
+	{hideZeroBalanceVaults}
+	{isVaultsPage}
+	{isOrdersPage}
+/>
 
 <AppTable {query}>
 	<svelte:fragment slot="title">

@@ -20,7 +20,9 @@
         "build:ui": "npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp",
         "dev": "npm run dev --workspaces",
         "dev:tauri": "nix develop .#tauri-shell -c cargo tauri dev --verbose",
-        "test": "npm run test --workspaces"
+        "test": "npm run test --workspaces",
+        "lint:all": "npm run lint --workspaces --if-present && npm run format:check --workspaces --if-present",
+        "format:all": "npm run format --workspaces --if-present"
     },
     "devDependencies": {
         "@tanstack/svelte-query": "^5.59.20",
