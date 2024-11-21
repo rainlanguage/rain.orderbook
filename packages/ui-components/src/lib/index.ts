@@ -14,7 +14,7 @@ export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBa
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
 export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
 //Types
-export type { AppStoresInterface } from './types/appStores';
+export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource } from './typeshare/config';
 
 // Functions
@@ -27,10 +27,10 @@ export {
 	createResolvableQuery,
 	createResolvableInfiniteQuery,
 	createResolvableMockQuery
-} from './mocks/queries';
+} from './__mocks__/queries.ts';
 
 // Constants
-export { mockConfigSource, mockSettingsStore } from './mocks/settings';
+export { mockConfigSource, mockSettingsStore } from './__mocks__/settings.ts';
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
 	QKEY_VAULTS,

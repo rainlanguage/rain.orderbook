@@ -3,17 +3,13 @@
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
-	import {
-		TanstackAppTable,
-		QKEY_ORDERS,
-		DEFAULT_PAGE_SIZE,
-		DEFAULT_REFRESH_INTERVAL,
-		Hash,
-		HashType,
-		formatTimestampSecondsAsLocal,
-		ListViewOrderbookFilters
-	} from '@rainlanguage/ui-components';
-
+	import TanstackAppTable from '../TanstackAppTable.svelte';
+	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
+	import Hash, { HashType } from '../Hash.svelte';
+	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
+	import { QKEY_ORDERS } from '../../queries/keys';
+	import type { AppStoresInterface } from '../../types/appStores';
 	import {
 		Badge,
 		Button,
@@ -22,7 +18,6 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,32 +148,34 @@
 			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
 		>
 		{#if walletAddressMatchesOrBlank && handleOrderRemoveModal}
-			<TableBodyCell tdClass="px-0 text-right">
+			<div data-testid="wallet-actions">
+				<TableBodyCell tdClass="px-0 text-right">
+					{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
+						<Button
+							color="alternative"
+							outline={false}
+							data-testid={`order-menu-${item.order.id}`}
+							id={`order-menu-${item.order.id}`}
+							class="mr-2 border-none px-2"
+							on:click={(e) => {
+								e.stopPropagation();
+							}}
+						>
+							<DotsVerticalOutline class="dark:text-white" />
+						</Button>
+					{/if}
+				</TableBodyCell>
 				{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
-					<Button
-						color="alternative"
-						outline={false}
-						data-testid={`order-menu-${item.order.id}`}
-						id={`order-menu-${item.order.id}`}
-						class="mr-2 border-none px-2"
-						on:click={(e) => {
-							e.stopPropagation();
-						}}
-					>
-						<DotsVerticalOutline class="dark:text-white" />
-					</Button>
+					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
+						<DropdownItem
+							on:click={(e) => {
+								e.stopPropagation();
+								handleOrderRemoveModal(item.order, $query.refetch);
+							}}>Remove</DropdownItem
+						>
+					</Dropdown>
 				{/if}
-			</TableBodyCell>
-			{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
-				<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
-					<DropdownItem
-						on:click={(e) => {
-							e.stopPropagation();
-							handleOrderRemoveModal(item.order, $query.refetch);
-						}}>Remove</DropdownItem
-					>
-				</Dropdown>
-			{/if}
+			</div>
 		{/if}
 	</svelte:fragment>
 </AppTable>
