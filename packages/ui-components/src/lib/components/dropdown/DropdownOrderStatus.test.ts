@@ -82,7 +82,7 @@ describe('DropdownOrderStatus', () => {
 
 	test('resets to undefined when no options are selected', async () => {
 		activeOrderStatus.set(true);
-		
+
 		render(DropdownOrderStatus, {
 			props: {
 				activeOrderStatus

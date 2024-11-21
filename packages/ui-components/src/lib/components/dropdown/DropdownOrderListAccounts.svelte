@@ -6,10 +6,12 @@
 	$: options = $accounts;
 </script>
 
-<DropdownCheckbox
-	{options}
-	bind:value={$activeAccountsItems}
-	label="Accounts"
-	allLabel="All accounts"
-	emptyMessage="No accounts added"
-/>
+<div data-testid="accounts-dropdown">
+	<DropdownCheckbox
+		{options}
+		bind:value={$activeAccountsItems}
+		label="Accounts"
+		allLabel="All accounts"
+		emptyMessage="No accounts added"
+	/>
+</div>

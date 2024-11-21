@@ -8,7 +8,7 @@
 	}
 </script>
 
-<div class="flex items-center gap-x-2">
+<div data-testid="zero-balance-vault-checkbox" class="flex items-center gap-x-2">
 	<Label
 		for="hide-empty-vaults"
 		class="cursor-pointer whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300"

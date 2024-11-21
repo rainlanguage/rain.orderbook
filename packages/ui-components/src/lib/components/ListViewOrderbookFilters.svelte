@@ -22,7 +22,7 @@
 
 <div class="flex min-w-[600px] items-center justify-end gap-x-2">
 	{#if isEmpty($settings?.networks)}
-		<Alert color="gray">
+		<Alert color="gray" data-testid="no-networks-alert">
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
