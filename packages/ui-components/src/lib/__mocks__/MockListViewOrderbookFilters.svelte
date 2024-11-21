@@ -1,12 +1,4 @@
 <script lang="ts">
-	export let query: any;
-	export let activeSubgraphs: any;
-	export let settings: any;
-	export let accounts: any;
-	export let activeAccountsItems: any;
-	export let activeOrderStatus: any;
-	export let orderHash: any;
-	export let hideZeroBalanceVaults: any;
 	export let isVaultsPage = false;
 	export let isOrdersPage = false;
 </script>

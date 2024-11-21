@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, expect } from 'vitest';
 import TanstackAppTableTest from './TanstackAppTable.test.svelte';
 import userEvent from '@testing-library/user-event';
-import { createResolvableInfiniteQuery } from '../__mocks__/queries';
+import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
 
 test('shows head and title', async () => {
 	const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {

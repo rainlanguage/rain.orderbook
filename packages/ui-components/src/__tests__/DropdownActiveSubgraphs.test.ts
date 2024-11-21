@@ -2,7 +2,7 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import DropdownActiveSubgraphs from '../lib/components/dropdown/DropdownActiveSubgraphs.svelte';
-import { mockConfigSource } from '../__mocks__/settings';
+import { mockConfigSource } from '../lib/__mocks__/settings';
 
 describe('DropdownActiveSubgraphs', () => {
 	const mockSettings = {

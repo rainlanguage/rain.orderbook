@@ -10,7 +10,7 @@ const {
 	mockActiveOrderStatusStore,
 	mockOrderHashStore,
 	mockHideZeroBalanceVaultsStore
-} = await vi.hoisted(() => import('../__mocks__/stores'));
+} = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OrdersListTableProps = ComponentProps<OrdersListTable<any>>;
@@ -24,13 +24,13 @@ vi.mock('@tanstack/svelte-query', async (importOriginal) => {
 
 vi.mock('../ListViewOrderbookFilters.svelte', async () => {
 	return {
-		default: await import('../__mocks__/MockListViewOrderbookFilters.svelte')
+		default: await import('../lib/__mocks__/MockListViewOrderbookFilters.svelte')
 	};
 });
 
 vi.mock('../TanstackAppTable.svelte', async () => {
 	return {
-		default: await import('../__mocks__/MockTanstackAppTable.svelte')
+		default: await import('../lib/__mocks__/MockTanstackAppTable.svelte')
 	};
 });
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	export let query: any;
+	// const query: CreateInfiniteQueryResult = createResolvableInfiniteQuery(1);
 	export let walletAddressMatchesOrBlank = undefined;
 	export let handleOrderRemoveModal = undefined;
 	export let currentRoute = '';

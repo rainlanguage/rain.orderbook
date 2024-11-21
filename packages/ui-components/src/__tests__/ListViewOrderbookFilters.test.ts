@@ -4,7 +4,7 @@ import { beforeEach, expect, test, describe } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
 import type { ConfigSource } from '../lib/typeshare/config';
 import userEvent from '@testing-library/user-event';
-import { createResolvableInfiniteQuery } from '../__mocks__/queries';
+import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
 import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 import type { ComponentProps } from 'svelte';
 

@@ -13,11 +13,13 @@ export { default as InputOrderHash } from './components/input/InputOrderHash.sve
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
 export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource } from './typeshare/config';
 
 // Functions
+export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
 export {
 	formatTimestampSecondsAsLocal,
 	timestampSecondsToUTCTimestamp,
@@ -37,3 +39,7 @@ export {
 	QKEY_ORDER_QUOTE,
 	QKEY_VAULTS_VOL_LIST
 } from './queries/keys';
+
+// Stores
+export { mockConfigSource } from './__mocks__/settings';
+export { mockSettingsStore } from './__mocks__/settings';
