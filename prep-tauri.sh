@@ -25,6 +25,7 @@ nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
+nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
 nix develop -i ${keep[@]} -c npm run build
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-unit-test
 

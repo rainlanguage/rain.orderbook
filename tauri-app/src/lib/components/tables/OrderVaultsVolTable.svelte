@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { TanstackAppTable } from '@rainlanguage/ui-components';
-  import { QKEY_VAULTS_VOL_LIST } from '$lib/queries/keys';
+  import { QKEY_VAULTS_VOL_LIST } from '@rainlanguage/ui-components';
   import { orderVaultsVolume } from '$lib/queries/orderTradesList';
   import { subgraphUrl } from '$lib/stores/settings';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
