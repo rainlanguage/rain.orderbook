@@ -17,6 +17,14 @@ pub struct PairValue {
 }
 impl_wasm_traits!(PairValue);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct AllFieldValuesResult {
+    pub binding: String,
+    pub value: GuiPreset,
+}
+impl_wasm_traits!(AllFieldValuesResult);
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "saveFieldValue")]
@@ -70,10 +78,13 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getAllFieldValues")]
-    pub fn get_all_field_values(&self) -> Result<Vec<GuiPreset>, GuiError> {
+    pub fn get_all_field_values(&self) -> Result<Vec<AllFieldValuesResult>, GuiError> {
         let mut result = Vec::new();
         for (binding, _) in self.field_values.iter() {
-            result.push(self.get_field_value(binding.clone())?);
+            result.push(AllFieldValuesResult {
+                binding: binding.clone(),
+                value: self.get_field_value(binding.clone())?,
+            });
         }
         Ok(result)
     }

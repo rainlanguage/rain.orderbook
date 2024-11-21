@@ -2,6 +2,7 @@ import assert from "assert";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DotrainOrderGui } from "../../dist/cjs/js_api.js";
 import {
+  AllFieldValuesResult,
   ApprovalCalldata,
   Config,
   Gui,
@@ -412,17 +413,23 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
           },
         },
       ]);
-      const fieldValues = gui.getAllFieldValues();
+      const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
       assert.deepEqual(fieldValues[0], {
-        id: "",
-        name: undefined,
-        value: "some-string",
+        binding: "binding-1",
+        value: {
+          id: "",
+          name: undefined,
+          value: "some-string",
+        },
       });
       assert.deepEqual(fieldValues[1], {
-        id: "",
-        name: undefined,
-        value: "true",
+        binding: "binding-2",
+        value: {
+          id: "",
+          name: undefined,
+          value: "true",
+        },
       });
     });
 
@@ -561,17 +568,23 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
     it("should deserialize gui state", async () => {
       gui.clearState();
       gui.deserializeState(serializedState);
-      const fieldValues = gui.getAllFieldValues();
+      const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
       assert.deepEqual(fieldValues[0], {
-        id: "0",
-        name: "Preset 1",
-        value: "0x1234567890abcdef1234567890abcdef12345678",
+        binding: "binding-1",
+        value: {
+          id: "0",
+          name: "Preset 1",
+          value: "0x1234567890abcdef1234567890abcdef12345678",
+        },
       });
       assert.deepEqual(fieldValues[1], {
-        id: "",
-        name: undefined,
-        value: "100",
+        binding: "binding-2",
+        value: {
+          id: "",
+          name: undefined,
+          value: "100",
+        },
       });
       const deposits = gui.getDeposits();
       assert.equal(deposits.length, 1);
