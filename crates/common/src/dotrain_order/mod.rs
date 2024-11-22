@@ -411,18 +411,42 @@ impl DotrainOrder {
         scenario_name: &str,
         bindings: HashMap<String, String>,
     ) -> Result<(), DotrainOrderError> {
+        let scenario_parts = scenario_name.split('.').collect::<Vec<_>>();
+        let base_scenario = scenario_parts[0];
+
         let mut scenario = self
             .config_source
             .scenarios
-            .get(scenario_name)
+            .get(base_scenario)
             .ok_or(DotrainOrderError::ScenarioNotFound(
-                scenario_name.to_string(),
+                base_scenario.to_string(),
             ))?
             .clone();
-        scenario.bindings = bindings;
+
+        if scenario_parts.len() == 1 {
+            scenario.bindings = bindings;
+        } else {
+            let mut current_scenario = &mut scenario;
+            for &part in scenario_parts.iter().skip(1) {
+                if let Some(sub_scenarios) = &mut current_scenario.scenarios {
+                    current_scenario =
+                        sub_scenarios
+                            .get_mut(part)
+                            .ok_or(DotrainOrderError::ScenarioNotFound(
+                                scenario_name.to_string(),
+                            ))?;
+                } else {
+                    return Err(DotrainOrderError::ScenarioNotFound(
+                        scenario_name.to_string(),
+                    ));
+                }
+            }
+            current_scenario.bindings = bindings;
+        }
+
         self.config_source
             .scenarios
-            .insert(scenario_name.to_string(), scenario.clone());
+            .insert(base_scenario.to_string(), scenario);
         self.update_config_source(self.config_source.clone())?;
         Ok(())
     }
