@@ -1,25 +1,57 @@
-import type { AppStoresInterface, ConfigSource } from '@rainlanguage/ui-components';
+import type {
+	AppStoresInterface,
+	ConfigSource,
+	OrderbookConfigSource,
+	OrderbookRef
+} from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
-import settings from '$lib/settings-12-11-24.json';
-
+import settingsJson from '$lib/settings-12-11-24.json';
+import pkg from 'lodash';
+const { pickBy } = pkg;
 export interface LayoutData {
 	stores: AppStoresInterface;
 }
 
 export const load = () => {
-	const settingsStore = writable<ConfigSource | undefined>(settings);
-
+	const activeNetworkRef = writable<string>('');
+	const settings = writable<ConfigSource | undefined>(settingsJson);
+	const activeOrderbookRef = writable<string>('');
+	const activeOrderbook = derived(
+		[settings, activeOrderbookRef],
+		([$settings, $activeOrderbookRef]) =>
+			$settings?.orderbooks !== undefined && $activeOrderbookRef !== undefined
+				? $settings.orderbooks[$activeOrderbookRef]
+				: undefined
+	);
+	const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
+		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
+			? $settings.subgraphs[$activeOrderbook.subgraph]
+			: undefined
+	);
+	const activeNetworkOrderbooks = derived(
+		[settings, activeNetworkRef],
+		([$settings, $activeNetworkRef]) =>
+			$settings?.orderbooks
+				? (pickBy(
+						$settings.orderbooks,
+						(orderbook) => orderbook.network === $activeNetworkRef
+					) as Record<OrderbookRef, OrderbookConfigSource>)
+				: ({} as Record<OrderbookRef, OrderbookConfigSource>)
+	);
 	return {
 		stores: {
-			settings: settingsStore,
+			settings,
 			activeSubgraphs: writable<Record<string, string>>({}),
-			accounts: derived(settingsStore, ($settings) => $settings?.accounts),
+			accounts: derived(settings, ($settings) => $settings?.accounts),
 			activeAccountsItems: writable<Record<string, string>>({}),
 			activeOrderStatus: writable<boolean | undefined>(undefined),
 			orderHash: writable<string>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
-			activeNetworkRef: writable<string>(''),
-			activeOrderbookRef: writable<string>('')
+			activeNetworkRef,
+			activeOrderbookRef,
+			activeOrderbook,
+			subgraphUrl,
+			activeNetworkOrderbooks
 		}
 	};
 };

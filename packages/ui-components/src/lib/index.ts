@@ -13,11 +13,12 @@ export { default as InputOrderHash } from './components/input/InputOrderHash.sve
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
 export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
+export { default as VaultsListTable } from './components/tables/VaultsListTable.svelte';
 export { default as PageHeader } from './components/PageHeader.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { ConfigSource, OrderbookConfigSource } from './typeshare/config';
+export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
 export type { Vault } from './typeshare/subgraphTypes';
 
 // Functions
@@ -28,7 +29,7 @@ export {
 	promiseTimeout
 } from './utils/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
-  export { vaultBalanceDisplay } from './utils/vault';
+export { vaultBalanceDisplay } from './utils/vault';
 
 // Constants
 

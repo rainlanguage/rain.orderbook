@@ -1,10 +1,44 @@
 <script lang="ts">
-	import { PageHeader } from '@rainlanguage/ui-components';
+	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
-	import VaultListTable from '$lib/components/tables/VaultListTable.svelte';
 	import { page } from '$app/stores';
 
-	const { activeOrderbook, resetActiveNetworkRef, resetActiveOrderbookRef } = $page.data.stores;
+	const {
+		activeOrderbook,
+		subgraphUrl,
+		orderHash,
+		accounts,
+		activeAccountsItems,
+		activeSubgraphs,
+		settings,
+		activeOrderStatus,
+		hideZeroBalanceVaults,
+		activeNetworkRef,
+		activeOrderbookRef,
+		activeAccounts,
+		walletAddressMatchesOrBlank,
+		activeNetworkOrderbooks
+	} = $page.data.stores;
+
+	export async function resetActiveNetworkRef() {
+		const $networks = $settings?.networks;
+
+		if ($networks !== undefined && Object.keys($networks).length > 0) {
+			activeNetworkRef.set(Object.keys($networks)[0]);
+		} else {
+			activeNetworkRef.set(undefined);
+		}
+	}
+
+	export function resetActiveOrderbookRef() {
+		const $activeNetworkOrderbookRefs = Object.keys($activeNetworkOrderbooks);
+
+		if ($activeNetworkOrderbookRefs.length > 0) {
+			activeOrderbookRef.set($activeNetworkOrderbookRefs[0]);
+		} else {
+			activeOrderbookRef.set(undefined);
+		}
+	}
 
 	onMount(async () => {
 		if (!$activeOrderbook) {
@@ -16,4 +50,19 @@
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
-<VaultListTable />
+<VaultsListTable
+	{activeOrderbook}
+	{subgraphUrl}
+	{orderHash}
+	{accounts}
+	{activeAccountsItems}
+	{activeSubgraphs}
+	{settings}
+	{activeOrderStatus}
+	{hideZeroBalanceVaults}
+	{activeNetworkRef}
+	{activeOrderbookRef}
+	{activeAccounts}
+	{walletAddressMatchesOrBlank}
+	currentRoute={$page.url.pathname}
+/>
