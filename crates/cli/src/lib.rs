@@ -9,6 +9,7 @@ mod execute;
 mod output;
 mod status;
 mod subgraph;
+pub mod telegram_notifications;
 mod transaction;
 
 #[derive(Subcommand)]
