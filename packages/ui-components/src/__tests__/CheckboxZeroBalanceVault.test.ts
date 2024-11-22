@@ -1,7 +1,7 @@
 import { render, fireEvent, screen } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
-import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
+import CheckboxZeroBalanceVault from '../lib/components/CheckboxZeroBalanceVault.svelte';
 
 describe('CheckboxZeroBalanceVault', () => {
 	let hideZeroBalanceVaults: Writable<boolean>;
