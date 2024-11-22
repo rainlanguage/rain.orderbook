@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import { PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import VaultDetail from '$lib/components/detail/VaultDetail.svelte';
 </script>
