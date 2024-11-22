@@ -6326,6 +6326,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_analytics"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "async-trait",
+ "rain_orderbook_subgraph_client",
+ "reqwest 0.12.5",
+ "tokio",
+]
+
+[[package]]
 name = "rain_orderbook_app_settings"
 version = "0.0.0-alpha.0"
 dependencies = [

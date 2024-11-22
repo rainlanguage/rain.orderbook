@@ -353,4 +353,31 @@ impl OrderbookSubgraphClient {
         }
         Ok(all_pages_merged)
     }
+
+    /// Fetch all trades from all orders within a time period
+    pub async fn all_trades_list(
+        &self,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<Vec<Trade>, OrderbookSubgraphClientError> {
+        let orders = self.orders_list_all().await?;
+
+        let mut all_trades = Vec::new();
+        for order in orders {
+            let trades = self
+                .order_trades_list_all(Id::new(&order.id.0), start_timestamp, end_timestamp)
+                .await?;
+            all_trades.extend(trades);
+        }
+
+        all_trades.sort_by(|a, b| {
+            a.timestamp
+                .0
+                .parse::<u64>()
+                .unwrap()
+                .cmp(&b.timestamp.0.parse::<u64>().unwrap())
+        });
+
+        Ok(all_trades)
+    }
 }
