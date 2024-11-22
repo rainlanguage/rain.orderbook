@@ -3,6 +3,8 @@ import { test, expect } from 'vitest';
 import TanstackAppTableTest from './TanstackAppTable.test.svelte';
 import userEvent from '@testing-library/user-event';
 import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
+import { writable } from 'svelte/store';
+import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 
 test('shows head and title', async () => {
 	const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
@@ -131,4 +133,45 @@ test('load more button message changes when loading', async () => {
 	await waitFor(() => {
 		expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Load More');
 	});
+});
+
+test('shows refresh icon', async () => {
+	const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+		return ['page' + pageParam];
+	});
+
+	render(TanstackAppTableTest, {
+		query,
+		emptyMessage: 'No rows',
+		title: 'Test Table',
+		head: 'Test head'
+	});
+
+	resolve();
+
+	await waitFor(() => expect(screen.getByTestId('refreshButton')).toBeInTheDocument());
+});
+
+test('refetches data when refresh button is clicked', async () => {
+	const mockRefetch = vi.fn();
+	const mockQuery = writable({
+		status: 'success',
+		fetchStatus: 'idle',
+		refetch: mockRefetch
+	});
+
+	render(TanstackAppTableTest, {
+		query: mockQuery as unknown as CreateInfiniteQueryResult<
+			InfiniteData<unknown[], unknown>,
+			Error
+		>,
+		emptyMessage: 'No rows',
+		title: 'Test Table',
+		head: 'Test head'
+	});
+
+	const refreshButton = screen.getByTestId('refreshButton');
+	await userEvent.click(refreshButton);
+
+	expect(mockRefetch).toHaveBeenCalled();
 });

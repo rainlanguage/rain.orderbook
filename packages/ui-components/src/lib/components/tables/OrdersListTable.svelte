@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { goto } from '$app/navigation';
+
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
@@ -34,6 +36,8 @@
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let currentRoute: string;
+	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
+	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -76,14 +80,11 @@
 
 	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
 
-	$: console.log($query);
-
 	$: isVaultsPage = currentRoute.startsWith('/vaults');
 	$: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
 <ListViewOrderbookFilters
-	{query}
 	{activeSubgraphs}
 	{settings}
 	{accounts}
@@ -95,7 +96,15 @@
 	{isOrdersPage}
 />
 
-<AppTable {query}>
+<AppTable
+	{query}
+	emptyMessage="No Orders Found"
+	on:clickRow={(e) => {
+		activeNetworkRef.set(e.detail.item.subgraphName);
+		activeOrderbookRef.set(e.detail.item.subgraphName);
+		goto(`/orders/${e.detail.item.order.id}`);
+	}}
+>
 	<svelte:fragment slot="title">
 		<slot name="filters" />
 	</svelte:fragment>
