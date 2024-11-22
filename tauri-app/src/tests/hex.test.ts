@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { HEX_INPUT_REGEX } from '$lib/utils/hex';
+import { HEX_INPUT_REGEX } from '@rainlanguage/ui-components';
 
 test('HEX_INPUT_REGEX matches user typing hex input', () => {
   expect(HEX_INPUT_REGEX.test('a')).toBeTruthy();

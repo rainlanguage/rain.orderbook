@@ -26,6 +26,8 @@ export {
 	timestampSecondsToUTCTimestamp,
 	promiseTimeout
 } from './utils/time';
+export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
+  export { vaultBalanceDisplay } from './utils/vault';
 
 // Constants
 

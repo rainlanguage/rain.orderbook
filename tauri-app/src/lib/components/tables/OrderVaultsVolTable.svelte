@@ -9,7 +9,7 @@
 
   import { formatUnits } from 'viem';
   import TableTimeFilters from '../charts/TableTimeFilters.svelte';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
 
   export let id: string;
 
