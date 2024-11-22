@@ -1,7 +1,7 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
-import DropdownOrderStatus from './DropdownOrderStatus.svelte';
+import DropdownOrderStatus from '../lib/components/dropdown/DropdownOrderStatus.svelte';
 
 describe('DropdownOrderStatus', () => {
 	let activeOrderStatus: Writable<boolean | undefined>;

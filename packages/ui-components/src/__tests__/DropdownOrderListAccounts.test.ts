@@ -1,6 +1,6 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
-import DropdownOrderListAccounts from './DropdownOrderListAccounts.svelte';
+import DropdownOrderListAccounts from '../lib/components/dropdown/DropdownOrderListAccounts.svelte';
 import { expect, test, describe, beforeEach } from 'vitest';
 
 describe('DropdownOrderListAccounts', () => {
