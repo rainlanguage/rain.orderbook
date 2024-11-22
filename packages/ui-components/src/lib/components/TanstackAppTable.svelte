@@ -44,7 +44,6 @@
 					<TableBodyRow
 						data-testid="bodyRow"
 						on:click={() => {
-							console.log('clickRow', item);
 							dispatch('clickRow', { item });
 						}}
 					>
