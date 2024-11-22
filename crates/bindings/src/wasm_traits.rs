@@ -93,8 +93,6 @@ macro_rules! impl_complementary_wasm_traits {
                 let mut err = "".to_string();
                 let result = $crate::wasm_traits::prelude::to_value(&value);
                 $crate::wasm_traits::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err)
-                    // .inspect_err(|e| err.push_str(&e.to_string()))
-                    // .expect_throw(&err)
             }
         }
         impl $crate::wasm_traits::prelude::TryFromJsValue for $type_name {
