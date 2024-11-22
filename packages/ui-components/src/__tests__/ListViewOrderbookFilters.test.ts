@@ -3,9 +3,7 @@ import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
 import type { ConfigSource } from '../lib/typeshare/config';
-import userEvent from '@testing-library/user-event';
 import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
-import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 import type { ComponentProps } from 'svelte';
 
 // Get the props type from the component
@@ -104,28 +102,5 @@ describe('ListViewOrderbookFilters', () => {
 		expect(screen.queryByTestId('zero-balance-vault-checkbox')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-status-dropdown')).not.toBeInTheDocument();
-	});
-
-	test('refetches data when refresh button is clicked', async () => {
-		const mockRefetch = vi.fn();
-		const mockQuery = writable({
-			status: 'success',
-			fetchStatus: 'idle',
-			refetch: mockRefetch
-			// ... other required properties
-		});
-
-		render(ListViewOrderbookFilters, {
-			...defaultProps,
-			query: mockQuery as unknown as CreateInfiniteQueryResult<
-				InfiniteData<unknown[], unknown>,
-				Error
-			>
-		});
-
-		const refreshButton = screen.getByTestId('refresh-button');
-		await userEvent.click(refreshButton);
-
-		expect(mockRefetch).toHaveBeenCalled();
 	});
 });

@@ -17,7 +17,9 @@ export const load = () => {
 			activeAccountsItems: writable<Record<string, string>>({}),
 			activeOrderStatus: writable<boolean | undefined>(undefined),
 			orderHash: writable<string>(''),
-			hideZeroBalanceVaults: writable<boolean>(false)
+			hideZeroBalanceVaults: writable<boolean>(false),
+			activeNetworkRef: writable<string>(''),
+			activeOrderbookRef: writable<string>('')
 		}
 	};
 };

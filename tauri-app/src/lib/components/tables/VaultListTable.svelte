@@ -95,7 +95,6 @@
         </div>
         <div class="flex flex-col items-end gap-y-2">
           <ListViewOrderbookFilters
-            {query}
             {activeSubgraphs}
             {settings}
             {accounts}

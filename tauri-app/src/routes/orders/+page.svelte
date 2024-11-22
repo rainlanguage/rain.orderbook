@@ -17,6 +17,8 @@
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
     activeOrderbook,
+    activeNetworkRef,
+    activeOrderbookRef,
   } from '$lib/stores/settings';
   import { page } from '$app/stores';
 
@@ -33,6 +35,8 @@
 <PageHeader title="Orders" />
 
 <OrdersListTable
+  {activeNetworkRef}
+  {activeOrderbookRef}
   {walletAddressMatchesOrBlank}
   {handleOrderRemoveModal}
   {activeSubgraphs}
