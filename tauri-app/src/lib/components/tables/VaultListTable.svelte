@@ -5,22 +5,6 @@
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { bigintStringToHex } from '$lib/utils/hex';
   import { vaultBalanceDisplay } from '$lib/utils/vault';
-
-  import {
-    activeOrderbook,
-    subgraphUrl,
-    orderHash,
-    accounts,
-    activeAccountsItems,
-    activeSubgraphs,
-    settings,
-    activeOrderStatus,
-    hideZeroBalanceVaults,
-    activeNetworkRef,
-    activeOrderbookRef,
-    activeAccounts,
-  } from '$lib/stores/settings';
-
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
   import {
@@ -31,6 +15,7 @@
     Hash,
     HashType,
     ListViewOrderbookFilters,
+    type ConfigSource,
   } from '@rainlanguage/ui-components';
 
   import {
@@ -41,6 +26,24 @@
 
   import { get } from 'svelte/store';
   import { page } from '$app/stores';
+
+  import type { Writable, Readable } from 'svelte/store';
+  import type { OrderbookConfigSource } from '$lib/typeshare/config';
+
+  export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
+  export let subgraphUrl: Readable<string | undefined>;
+  export let orderHash: Writable<string>;
+  export let accounts: Readable<Record<string, string>>;
+  export let activeAccountsItems: Writable<Record<string, string>>;
+  export let activeSubgraphs: Writable<Record<string, string>>;
+  export let settings: Writable<ConfigSource | undefined>;
+  export let activeOrderStatus: Writable<boolean | undefined>;
+  export let hideZeroBalanceVaults: Writable<boolean>;
+  export let activeNetworkRef: Writable<string | undefined>;
+  export let activeOrderbookRef: Writable<string | undefined>;
+  export let activeAccounts: Readable<{
+    [k: string]: string;
+  }>;
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults, $activeSubgraphs],

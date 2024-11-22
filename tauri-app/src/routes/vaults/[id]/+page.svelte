@@ -4,6 +4,6 @@
   import VaultDetail from '$lib/components/detail/VaultDetail.svelte';
 </script>
 
-<PageHeader title="Vault" />
+<PageHeader title="Vault" pathname={$page.url.pathname} />
 
 <VaultDetail id={$page.params.id} />

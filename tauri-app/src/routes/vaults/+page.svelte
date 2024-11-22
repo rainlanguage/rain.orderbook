@@ -1,12 +1,24 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import { PageHeader } from '@rainlanguage/ui-components';
+  import { onMount } from 'svelte';
+  import VaultListTable from '$lib/components/tables/VaultListTable.svelte';
+  import { page } from '$app/stores';
   import {
     activeOrderbook,
+    subgraphUrl,
+    orderHash,
+    accounts,
+    activeAccountsItems,
+    activeSubgraphs,
+    settings,
+    activeOrderStatus,
+    hideZeroBalanceVaults,
+    activeNetworkRef,
+    activeOrderbookRef,
+    activeAccounts,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
   } from '$lib/stores/settings';
-  import { onMount } from 'svelte';
-  import VaultListTable from '$lib/components/tables/VaultListTable.svelte';
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -16,6 +28,19 @@
   });
 </script>
 
-<PageHeader title="Vaults" />
+<PageHeader title="Vaults" pathname={$page.url.pathname} />
 
-<VaultListTable />
+<VaultListTable
+  {activeAccounts}
+  {activeOrderbook}
+  {subgraphUrl}
+  {orderHash}
+  {accounts}
+  {activeAccountsItems}
+  {activeSubgraphs}
+  {settings}
+  {activeOrderStatus}
+  {hideZeroBalanceVaults}
+  {activeNetworkRef}
+  {activeOrderbookRef}
+/>
