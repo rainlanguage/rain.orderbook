@@ -32,6 +32,11 @@ mod order_operations;
 mod select_tokens;
 mod state_management;
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct AvailableDeployments(Vec<String>);
+impl_wasm_traits!(AvailableDeployments);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
@@ -44,8 +49,19 @@ pub struct DotrainOrderGui {
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    #[wasm_bindgen(js_name = "init")]
-    pub async fn init(
+    #[wasm_bindgen(js_name = "getAvailableDeployments")]
+    pub async fn get_available_deployments(
+        dotrain: String,
+    ) -> Result<AvailableDeployments, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let config = dotrain_order.config();
+        Ok(AvailableDeployments(
+            config.deployments.keys().cloned().collect(),
+        ))
+    }
+
+    #[wasm_bindgen(js_name = "chooseDeployment")]
+    pub async fn choose_deployment(
         dotrain: String,
         deployment_name: String,
         multicall_address: Option<String>,
