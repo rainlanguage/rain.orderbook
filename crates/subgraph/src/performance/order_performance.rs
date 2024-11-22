@@ -159,8 +159,8 @@ impl OrderPerformance {
         // if there was no success with any of the order's tokens, simply return None
         // for the APY.
         let mut processed_tokens: Vec<&Erc20> = vec![];
-        let mut all_tokens_vols_list: Vec<TokenDenominationVol> = vec![];
-        let mut full_apy_in_distinct_token_denominations = vec![];
+        let mut tokens_vol_list: Vec<TokenBasedVol> = vec![];
+        let mut token_denominated_performance = vec![];
         for token in &vaults_apy {
             // skip if token is alreaedy processed
             if processed_tokens.contains(&&token.token) {
@@ -174,7 +174,7 @@ impl OrderPerformance {
             let mut combined_capital = U256::ZERO;
             let mut combined_net_vol = U256::ZERO;
             let mut combined_annual_rate_vol = U256::ZERO;
-            let mut current_token_vol_list: Vec<TokenDenominationVol> = vec![];
+            let mut current_token_vol_list: Vec<TokenBasedVol> = vec![];
             for token_vault in &vaults_apy {
                 if let Some(apy_details) = token_vault.apy_details {
                     // a closure fn handles net vol combination
@@ -223,8 +223,7 @@ impl OrderPerformance {
                         .div_18(*YEAR18)
                         .map_err(PerformanceError::from)?;
 
-                    // sum up all token vaults' capitals and vols in the current's iteration's
-                    // token denomination by using the direct ratio between the tokens
+                    // sum up all token vaults' capitals and vols by using the direct ratio between the tokens
                     if token_vault.token == token.token {
                         combined_capital += apy_details.capital;
                         handle_combined_net_vol(apy_details.net_vol);
@@ -235,7 +234,7 @@ impl OrderPerformance {
                             .map_err(PerformanceError::from)?;
                         handle_combined_annual_rate_vol(annual_rate_vol);
 
-                        current_token_vol_list.push(TokenDenominationVol {
+                        current_token_vol_list.push(TokenBasedVol {
                             net_vol: apy_details.net_vol,
                             is_neg: apy_details.is_neg,
                             token: &token.token,
@@ -245,7 +244,7 @@ impl OrderPerformance {
                             input: token.token.clone(),
                             output: token_vault.token.clone(),
                         };
-                        // convert to current denomination by the direct pair ratio if exists
+                        // convert to current denomination by the direct pair ratio if it exists
                         if let Some(Some(ratio)) = pair_ratio_map.get(&pair) {
                             let capital_converted = apy_details
                                 .capital
@@ -264,12 +263,14 @@ impl OrderPerformance {
                                 .map_err(PerformanceError::from)?;
                             handle_combined_annual_rate_vol(annual_rate_vol_converted);
 
-                            current_token_vol_list.push(TokenDenominationVol {
+                            current_token_vol_list.push(TokenBasedVol {
                                 net_vol: net_vol_converted,
                                 is_neg: apy_details.is_neg,
                                 token: &token_vault.token,
                             });
                         } else {
+                            // if found no way to convert (there were no direct ratio between the tokens),
+                            // break the loop and go to the next token and try that
                             noway = true;
                             break;
                         }
@@ -279,10 +280,11 @@ impl OrderPerformance {
 
             // for every success apy calc in a token denomination, gather them in an array,
             // this means at the end we have all the successful apy calculated in each of
-            // the order's io tokens in order from highest to lowest when sorted.
+            // the order's io tokens, and will pick the one that its token had the highest
+            // net vol amon all other vaults
             if !noway {
                 if let Ok(apy) = combined_annual_rate_vol.div_18(combined_capital) {
-                    full_apy_in_distinct_token_denominations.push(DenominatedPerformance {
+                    token_denominated_performance.push(DenominatedPerformance {
                         apy,
                         apy_is_neg: net_vol_rate_is_neg,
                         token: token.token.clone(),
@@ -291,27 +293,27 @@ impl OrderPerformance {
                         net_vol_is_neg,
                     });
                 }
-            } else {
-                current_token_vol_list.clear();
-            }
 
-            // if we already have ordered token net vol in a denomination
-            // we dont need them in other denominations in order to pick
-            // the highest vol token as settlement denomination
-            if all_tokens_vols_list.is_empty() {
-                all_tokens_vols_list.extend(current_token_vol_list);
+                // if we found a way to calculate apy in the current token denomination,
+                // we'll include all the tokens vaults net vol in this array to have a list
+                // of tokens net vols converted to current token
+                // later, sorting this array will give us the highest to lowest tokens net vols
+                // to pick the denomination from
+                if tokens_vol_list.is_empty() {
+                    tokens_vol_list.extend(current_token_vol_list);
+                }
             }
         }
 
         // after array is sorted, pick the denomination with highest net vol by
         // iterating over tokens with highest vol to lowest and pick the first matching one
-        all_tokens_vols_list.sort();
-        for token in all_tokens_vols_list.iter().rev() {
-            if let Some(denominated_apy) = full_apy_in_distinct_token_denominations
+        tokens_vol_list.sort();
+        for token in tokens_vol_list.iter().rev() {
+            if let Some(denominated_performance) = token_denominated_performance
                 .iter()
                 .find(|&v| &v.token == token.token)
             {
-                order_performance.denominated_performance = Some(denominated_apy.clone());
+                order_performance.denominated_performance = Some(denominated_performance.clone());
                 // return early as soon as a match is found
                 return Ok(order_performance);
             }
@@ -381,14 +383,14 @@ pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPa
     pair_ratio_map
 }
 
-/// helper struct that provides sorting tokens based on their combined net vol
+/// helper struct that provides sorting tokens based on a given net vol
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TokenDenominationVol<'a> {
+struct TokenBasedVol<'a> {
     token: &'a Erc20,
     net_vol: U256,
     is_neg: bool,
 }
-impl<'a> Ord for TokenDenominationVol<'a> {
+impl<'a> Ord for TokenBasedVol<'a> {
     fn clamp(self, _min: Self, _max: Self) -> Self
     where
         Self: Sized,
@@ -442,7 +444,7 @@ impl<'a> Ord for TokenDenominationVol<'a> {
         }
     }
 }
-impl<'a> PartialOrd for TokenDenominationVol<'a> {
+impl<'a> PartialOrd for TokenBasedVol<'a> {
     fn ge(&self, other: &Self) -> bool {
         !matches!(self.cmp(other), Ordering::Less)
     }
