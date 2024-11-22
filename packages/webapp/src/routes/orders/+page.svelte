@@ -10,13 +10,17 @@
 		activeAccountsItems,
 		activeOrderStatus,
 		orderHash,
-		hideZeroBalanceVaults
+		hideZeroBalanceVaults,
+		activeNetworkRef,
+		activeOrderbookRef
 	}: AppStoresInterface = $page.data.stores;
 
 	$: currentRoute = $page.url.pathname;
 </script>
 
 <OrdersListTable
+	{activeNetworkRef}
+	{activeOrderbookRef}
 	{activeSubgraphs}
 	{settings}
 	{accounts}

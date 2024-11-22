@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import Refresh from './icon/Refresh.svelte';
+
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -15,6 +17,14 @@
 	<slot name="info" />
 	<slot name="timeFilter" />
 	<slot name="title" />
+	<Refresh
+		data-testid="refreshButton"
+		class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
+		spin={$query.isLoading || $query.isFetching}
+		on:click={() => {
+			$query.refetch();
+		}}
+	/>
 </div>
 {#if $query.data?.pages[0].length === 0}
 	<div data-testid="emptyMessage" class="text-center text-gray-900 dark:text-white">
@@ -34,6 +44,7 @@
 					<TableBodyRow
 						data-testid="bodyRow"
 						on:click={() => {
+							console.log('clickRow', item);
 							dispatch('clickRow', { item });
 						}}
 					>

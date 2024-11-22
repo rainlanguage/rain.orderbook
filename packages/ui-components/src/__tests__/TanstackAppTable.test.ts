@@ -132,3 +132,20 @@ test('load more button message changes when loading', async () => {
 		expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Load More');
 	});
 });
+
+test('shows refresh icon', async () => {
+	const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
+		return ['page' + pageParam];
+	});
+
+	render(TanstackAppTableTest, {
+		query,
+		emptyMessage: 'No rows',
+		title: 'Test Table',
+		head: 'Test head'
+	});
+
+	resolve();
+
+	await waitFor(() => expect(screen.getByTestId('refresh-icon')).toBeInTheDocument());
+});
