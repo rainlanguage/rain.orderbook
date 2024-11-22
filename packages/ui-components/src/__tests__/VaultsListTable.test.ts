@@ -1,40 +1,50 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-import type { Vault } from '../lib/typeshare/subgraphTypes';
-import { createResolvableInfiniteQuery } from '$lib/__mocks__/queries';
-import type { MultiSubgraphArgs, VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
-import { getVaults } from '@rainlanguage/orderbook/js_api';
 
-const mockVault: Vault = {
-	id: '1',
-	vaultId: '1',
-	owner: '0x123',
-	token: {
-		id: '0xtoken',
-		name: 'Test Token',
-		symbol: 'TEST',
-		decimals: '18'
+import type {  VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+
+
+const mockVaultWithSubgraph: VaultWithSubgraphName = {
+	vault: {
+		id: '0x1234567890abcdef1234567890abcdef12345678',
+		owner: '0xabcdef1234567890abcdef1234567890abcdef12',
+		vaultId: '42',
+		balance: '1000000000000000000', // 1 ETH in wei
+		token: {
+			id: '0x1111111111111111111111111111111111111111',
+			address: '0x1111111111111111111111111111111111111111',
+			name: 'Mock Token',
+			symbol: 'MTK',
+			decimals: '18'
+		},
+		orderbook: {
+			id: '0x2222222222222222222222222222222222222222'
+		},
+		ordersAsOutput: [
+			{
+				id: '0x3333333333333333333333333333333333333333',
+				orderHash: '0x4444444444444444444444444444444444444444',
+				active: true
+			}
+		],
+		ordersAsInput: [],
+		balanceChanges: []
 	},
-	balance: '1000000000000000000',
-	orderbook: {
-		id: '0xorderbook'
-	},
-	ordersAsInput: [],
-	ordersAsOutput: []
+	subgraphName: 'mock-subgraph-mainnet'
 };
 
-const mockVaultWithSubgraph = {
-	vault: mockVault,
-	subgraphName: 'testnet'
-};
-
-vi.mock('@tanstack/svelte-query', () => ({
-	createInfiniteQuery: createResolvableInfiniteQuery((pageParam) => {
-		return ['Hello!' + pageParam];
-	})
+vi.mock('@rainlanguage/orderbook/js_api', () => ({
+	getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
 }));
+
+// vi.mock('@tanstack/svelte-query', async (importOriginal) => ({
+// 	...(await importOriginal<typeof import('@tanstack/svelte-query')>()),
+// 	createInfiniteQuery: createResolvableInfiniteQuery((pageParam) => {
+// 		return ['Hello!' + pageParam];
+// 	})
+// }));
 
 // Hoisted mock stores
 const {
