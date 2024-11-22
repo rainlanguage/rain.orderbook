@@ -18,4 +18,4 @@ if (import.meta.vitest) {
 
     expect(result).toEqual(expected);
   });
-};
+}

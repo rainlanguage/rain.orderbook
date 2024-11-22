@@ -29,13 +29,13 @@ if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
 
   it('should get percentage string from bigint string', () => {
-    const value = "123456000000000000";
+    const value = '123456000000000000';
     const decimals = 18;
     const finalDecimalsDigits = 4;
 
     const result = bigintStringToPercentage(value, decimals, finalDecimalsDigits);
-    const expected = "12.3456";
+    const expected = '12.3456';
 
     expect(result).toEqual(expected);
   });
-};
+}
