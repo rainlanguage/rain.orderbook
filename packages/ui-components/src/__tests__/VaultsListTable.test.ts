@@ -30,13 +30,11 @@ const mockVaultWithSubgraph = {
 	subgraphName: 'testnet'
 };
 
-
-
 vi.mock('@tanstack/svelte-query', () => ({
-			createInfiniteQuery: createResolvableInfiniteQuery((pageParam) => {
-				return ["Hello!" + pageParam];
-			})
-		}));
+	createInfiniteQuery: createResolvableInfiniteQuery((pageParam) => {
+		return ['Hello!' + pageParam];
+	})
+}));
 
 // Hoisted mock stores
 const {
@@ -51,7 +49,6 @@ const {
 	mockSettingsStore,
 	mockActiveAccountsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
-
 
 const defaultProps = {
 	activeOrderbook: mockActiveOrderbookRefStore,
@@ -77,8 +74,6 @@ describe('VaultsListTable', () => {
 	});
 
 	it.only('displays vault information correctly', () => {
-
-
 		render(VaultsListTable, defaultProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('testnet');
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Test Token');

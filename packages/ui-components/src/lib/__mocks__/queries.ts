@@ -18,7 +18,7 @@ export const createResolvableMockQuery = <T>(queryFn: (() => T) | ((pageParam: n
 		const mockData = queryFn(pageParam as number);
 		await currentPromise;
 		createNewPromise(); // Create a new promise for the next call
-		return mockData
+		return mockData;
 	};
 
 	const resolve = () => {
