@@ -16,6 +16,7 @@
 		"svelte-lint-format-check": "npm run lint && npm run check"
 	},
 	"dependencies": {
+		"ethers": "^6.13.4",
 		"flowbite-svelte": "^0.44.21"
 	},
 	"devDependencies": {

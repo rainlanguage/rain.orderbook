@@ -2,12 +2,16 @@
 	import { DropdownRadio } from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
+		type ApprovalCalldataResult,
+		type AvailableDeployments,
+		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type TokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { Button, Input, Label } from 'flowbite-svelte';
+	import { ethers } from 'ethers';
 
 	let dotrain = `
 raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
@@ -2918,12 +2922,14 @@ min-trade-amount: mul(min-amount 0.9),
 	let availableDeployments: Record<string, { label: string }> = {};
 	onMount(async () => {
 		try {
-			let result = await DotrainOrderGui.getAvailableDeployments(dotrain);
+			let deployments: AvailableDeployments =
+				await DotrainOrderGui.getAvailableDeployments(dotrain);
 			availableDeployments = Object.fromEntries(
-				result.map((deployment) => [
-					deployment,
+				deployments.map((deployment) => [
+					deployment.deployment_name,
 					{
-						label: deployment
+						label: deployment.deployment_name,
+						deployment
 					}
 				])
 			);
@@ -2975,16 +2981,32 @@ min-trade-amount: mul(min-amount 0.9),
 	}
 
 	async function handleAddOrder() {
-		if (!gui) return;
+		try {
+			if (!gui) return;
 
-		const fieldValues = gui.getAllFieldValues();
-		console.log(fieldValues);
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+			const address = await signer.getAddress();
 
-		const deposits = gui.getDeposits();
-		console.log(deposits);
+			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
+			for (const approval of approvals) {
+				const tx = await signer.sendTransaction({
+					to: approval.token,
+					data: approval.calldata
+				});
+				await tx.wait();
+			}
 
-		const calldata = await gui.generateDepositAndAddOrderCalldatas();
-		console.log(calldata);
+			const calldata: DepositAndAddOrderCalldataResult =
+				await gui.generateDepositAndAddOrderCalldatas();
+			const tx = await signer.sendTransaction({
+				to: '0xcA11bde05977b3631167028862bE2a173976CA11',
+				data: calldata
+			});
+			await tx.wait();
+		} catch (error) {
+			console.error('Failed to add order:', error);
+		}
 	}
 </script>
 
@@ -3135,5 +3157,7 @@ min-trade-amount: mul(min-amount 0.9),
 {/if}
 
 {#if selectedDeployment}
+	<Button on:click={() => gui?.populateVaultIds()}>Populate Vault IDs</Button>
+
 	<Button on:click={handleAddOrder}>Add Order</Button>
 {/if}
