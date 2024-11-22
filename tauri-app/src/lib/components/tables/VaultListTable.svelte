@@ -3,7 +3,6 @@
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import { vaultList } from '$lib/queries/vaultList';
   import {
     bigintStringToHex,
     vaultBalanceDisplay,
@@ -18,10 +17,7 @@
     type OrderbookConfigSource,
     type Vault,
   } from '@rainlanguage/ui-components';
-
-  import { get } from 'svelte/store';
-  import { page } from '$app/stores';
-
+  import { getVaults, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
   import type { Writable, Readable } from 'svelte/store';
 
   export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
@@ -42,15 +38,34 @@
   export let handleDepositGenericModal: () => void;
   export let handleDepositModal: (vault: Vault, refetch: () => void) => void;
   export let handleWithdrawModal: (vault: Vault, refetch: () => void) => void;
+  export let currentRoute: string;
+
+  $: multiSubgraphArgs = Object.entries(
+    Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {}),
+  ).map(([name, url]) => ({
+    name,
+    url,
+  })) as MultiSubgraphArgs[];
+
+  $: owners =
+    Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
 
   $: query = createInfiniteQuery({
-    queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults, $activeSubgraphs],
+    queryKey: [
+      QKEY_VAULTS,
+      $activeAccounts,
+      $hideZeroBalanceVaults,
+      $activeSubgraphs,
+      multiSubgraphArgs,
+    ],
     queryFn: ({ pageParam }) => {
-      return vaultList(
-        $activeSubgraphs,
-        Object.values(get(activeAccounts)),
-        $hideZeroBalanceVaults,
-        pageParam,
+      return getVaults(
+        multiSubgraphArgs,
+        {
+          owners,
+          hideZeroBalance: $hideZeroBalanceVaults,
+        },
+        { page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE },
       );
     },
     initialPageParam: 0,
@@ -58,7 +73,7 @@
       return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
     },
     refetchInterval: DEFAULT_REFRESH_INTERVAL,
-    enabled: !!$subgraphUrl,
+    enabled: true,
   });
 
   const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
@@ -66,12 +81,14 @@
     activeOrderbookRef.set(subgraphName);
   };
 
-  $: currentRoute = $page.url.pathname;
   $: isVaultsPage = currentRoute.startsWith('/vaults');
   $: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
 {#if $query}
+  {$query.data}
+  {$query.isFetching}
+  {$query.isError}
   <TanstackAppTable
     {query}
     emptyMessage="No Vaults Found"

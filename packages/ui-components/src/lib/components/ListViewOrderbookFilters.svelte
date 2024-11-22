@@ -18,6 +18,8 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
+
+	$: console.log($settings.networks);
 </script>
 
 <div class="flex min-w-[600px] items-center justify-end gap-x-2">

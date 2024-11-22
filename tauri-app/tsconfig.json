@@ -15,7 +15,7 @@
       "vitest/importMeta"
     ],
   },
-  "include": ["./vitest-setup.ts", "./src/**/*"],
+  "include": ["./vitest-setup.ts", "./src/**/*", "../packages/ui-components/src/__tests__/hex.test.ts", "../packages/ui-components/src/__tests__/hex.test.ts"],
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //
   // If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
