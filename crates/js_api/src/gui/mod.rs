@@ -37,6 +37,11 @@ mod state_management;
 pub struct AvailableDeployments(Vec<String>);
 impl_wasm_traits!(AvailableDeployments);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
+impl_wasm_traits!(TokenInfos);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
@@ -153,8 +158,8 @@ impl DotrainOrderGui {
     ///
     /// Returns a map of token address to [`TokenInfo`]
     #[wasm_bindgen(js_name = "getTokenInfos")]
-    pub fn get_token_infos(&self) -> Result<JsValue, GuiError> {
-        Ok(serde_wasm_bindgen::to_value(&self.onchain_token_info)?)
+    pub fn get_token_infos(&self) -> Result<TokenInfos, GuiError> {
+        Ok(TokenInfos(self.onchain_token_info.clone()))
     }
 }
 

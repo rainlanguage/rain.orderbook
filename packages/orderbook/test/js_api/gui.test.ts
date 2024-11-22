@@ -2,14 +2,19 @@ import assert from "assert";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DotrainOrderGui } from "../../dist/cjs/js_api.js";
 import {
+  AddOrderCalldataResult,
   AllFieldValuesResult,
-  ApprovalCalldata,
+  AllowancesResult,
+  ApprovalCalldataResult,
   AvailableDeployments,
   Config,
+  DepositAndAddOrderCalldataResult,
+  DepositCalldataResult,
   Gui,
   GuiDeployment,
-  TokenAllowance,
-  TokenInfo,
+  SelectTokens,
+  TokenDeposit,
+  TokenInfos,
 } from "../../dist/types/js_api.js";
 import { getLocal } from "mockttp";
 
@@ -312,7 +317,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       "other-deployment"
     );
 
-    const tokenInfos: Map<string, TokenInfo> = gui.getTokenInfos();
+    const tokenInfos: TokenInfos = gui.getTokenInfos();
     const token1Address = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
     const token2Address = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063";
     assert.equal(tokenInfos.get(token1Address)?.decimals, 6);
@@ -340,7 +345,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
     it("should add deposit", async () => {
       gui.saveDeposit("token1", "50.6");
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 1);
     });
 
@@ -352,11 +357,11 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
     it("should remove deposit", async () => {
       gui.saveDeposit("token1", "50.6");
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 1);
 
       gui.removeDeposit("token1");
-      const depositsAfterRemove = gui.getDeposits();
+      const depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
       assert.equal(depositsAfterRemove.length, 0);
     });
   });
@@ -616,7 +621,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
           value: "100",
         },
       });
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 1);
       assert.equal(deposits[0].token, "token1");
       assert.equal(deposits[0].amount, "50.6");
@@ -661,9 +666,9 @@ ${dotrain}
 
     it("should clear state", async () => {
       gui.clearState();
-      const fieldValues = gui.getAllFieldValues();
+      const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 0);
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 0);
     });
   });
@@ -711,7 +716,7 @@ ${dotrain}
 
       gui.saveDeposit("token2", "200");
 
-      const allowances: TokenAllowance[] = await gui.checkAllowances(
+      const allowances: AllowancesResult = await gui.checkAllowances(
         "0x1234567890abcdef1234567890abcdef12345678"
       );
       assert.equal(allowances.length, 1);
@@ -732,7 +737,7 @@ ${dotrain}
 
       gui.saveDeposit("token2", "5000");
 
-      const approvalCalldatas: ApprovalCalldata[] =
+      const approvalCalldatas: ApprovalCalldataResult =
         await gui.generateApprovalCalldatas(
           "0x1234567890abcdef1234567890abcdef12345678"
         );
@@ -774,7 +779,8 @@ ${dotrain}
 
       gui.saveDeposit("token2", "5000");
 
-      const depositCalldatas: string[] = await gui.generateDepositCalldatas();
+      const depositCalldatas: DepositCalldataResult =
+        await gui.generateDepositCalldatas();
       assert.equal(depositCalldatas.length, 1);
       assert.equal(
         depositCalldatas[0],
@@ -811,7 +817,8 @@ ${dotrain}
         value: "10",
       });
 
-      const addOrderCalldata: string = await gui.generateAddOrderCalldata();
+      const addOrderCalldata: AddOrderCalldataResult =
+        await gui.generateAddOrderCalldata();
       assert.equal(addOrderCalldata.length, 2314);
 
       const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
@@ -852,7 +859,8 @@ ${dotrain}
         value: "0",
       });
 
-      const calldata: string = await gui.generateDepositAndAddOrderCalldatas();
+      const calldata: DepositAndAddOrderCalldataResult =
+        await gui.generateDepositAndAddOrderCalldatas();
       assert.equal(calldata.length, 3530);
 
       const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
@@ -998,7 +1006,7 @@ ${dotrain}
     });
 
     it("should get select tokens", async () => {
-      const selectTokens: Map<string, string> = gui.getSelectTokens();
+      const selectTokens: SelectTokens = gui.getSelectTokens();
       assert.equal(selectTokens.size, 2);
       assert.equal(
         selectTokens.get("token1"),
@@ -1052,7 +1060,7 @@ ${dotrain}
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000"
         );
 
-      let initialTokenInfo: Map<string, TokenInfo> = await gui.getTokenInfos();
+      let initialTokenInfo: TokenInfos = await gui.getTokenInfos();
       assert.equal(initialTokenInfo.size, 0);
 
       let dotrainConfig: Config = gui.getDotrainConfig();
@@ -1092,7 +1100,7 @@ ${dotrain}
         "0x8888888888888888888888888888888888888888"
       );
 
-      let tokenInfo: Map<string, TokenInfo> = await gui.getTokenInfos();
+      let tokenInfo: TokenInfos = await gui.getTokenInfos();
       assert.equal(tokenInfo.size, 2);
 
       let newDotrainConfig: Config = gui.getDotrainConfig();
