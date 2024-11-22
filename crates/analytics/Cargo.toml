@@ -7,7 +7,7 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-async-trait = "0.1"
+async-trait = "0.1.77"
 rain_orderbook_subgraph_client = { workspace = true }
 
 [dev-dependencies]

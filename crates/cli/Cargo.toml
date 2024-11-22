@@ -28,6 +28,8 @@ tracing-subscriber = { workspace = true, features = ['env-filter'] }
 comfy-table = { workspace = true }
 chrono = { workspace = true }
 csv = { workspace = true }
+rain_orderbook_analytics = { workspace = true }
+async-trait = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }

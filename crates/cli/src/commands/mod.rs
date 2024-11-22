@@ -1,3 +1,4 @@
+mod analytics;
 mod chart;
 mod order;
 mod quote;
@@ -7,5 +8,6 @@ mod vault;
 mod words;
 
 pub use self::{
-    chart::Chart, order::Order, subgraph::Subgraph, trade::Trade, vault::Vault, words::Words,
+    analytics::Analytics, chart::Chart, order::Order, subgraph::Subgraph, trade::Trade,
+    vault::Vault, words::Words,
 };
