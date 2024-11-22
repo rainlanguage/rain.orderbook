@@ -23,4 +23,6 @@ pub enum PerformanceError {
     ParseUnsignedError(#[from] ParseError),
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
+    #[error("divide by zero")]
+    DivByZero,
 }

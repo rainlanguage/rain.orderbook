@@ -140,13 +140,7 @@ impl VaultVolume {
 
     /// Creates a new instance of self with all volume values as 18 decimals point
     pub fn scale_18(&self) -> Result<VaultVolume, PerformanceError> {
-        let token_decimals: u8 = self
-            .token
-            .decimals
-            .as_ref()
-            .map(|v| v.0.as_str())
-            .unwrap_or("18")
-            .parse()?;
+        let token_decimals: u8 = self.token.get_decimals()?;
         Ok(VaultVolume {
             id: self.id.clone(),
             token: self.token.clone(),

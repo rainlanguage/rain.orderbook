@@ -103,16 +103,7 @@ pub fn get_vaults_apy(
             &first_day_last_trade.output_vault_balance_change
         };
         let starting_capital = U256::from_str(&vault_balance_change.new_vault_balance.0)?
-            .scale_18(
-                vault_balance_change
-                    .vault
-                    .token
-                    .decimals
-                    .as_ref()
-                    .map(|v| v.0.as_str())
-                    .unwrap_or("18")
-                    .parse()?,
-            )
+            .scale_18(vault_balance_change.vault.token.get_decimals()?)
             .map_err(PerformanceError::from)?;
 
         // the time range for this token vault
