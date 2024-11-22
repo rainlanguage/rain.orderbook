@@ -3,8 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
 
-import type {  VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
-
+import type { VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 
 const mockVaultWithSubgraph: VaultWithSubgraphName = {
 	vault: {

@@ -11,8 +11,6 @@
 	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
 	export let emptyMessage: string = 'None found';
 	export let rowHoverable = true;
-
-	$: console.log('QUERY!', $query);
 </script>
 
 <div data-testid="title" class="flex h-16 w-full items-center justify-end">

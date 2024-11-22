@@ -56,8 +56,6 @@
 	$: owners =
 		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
 
-	$: console.log('ACTIVE ACCOUNTS!', $activeAccounts);
-
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
@@ -95,10 +93,6 @@
 	$: isOrdersPage = currentRoute.startsWith('/orders');
 
 	const AppTable = TanstackAppTable<VaultWithSubgraphName>;
-
-	$: console.log('DATA!', $query);
-	$: console.log(owners);
-	$: console.log(multiSubgraphArgs);
 </script>
 
 {#if $query}
