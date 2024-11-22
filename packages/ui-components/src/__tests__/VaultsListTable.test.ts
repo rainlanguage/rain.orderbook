@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-
+import { getVaults } from '@rainlanguage/orderbook/js_api';
 import type { VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 
 const mockVaultWithSubgraph: VaultWithSubgraphName = {
@@ -35,7 +35,7 @@ const mockVaultWithSubgraph: VaultWithSubgraphName = {
 };
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
+	getVaults: vi.fn()
 }));
 
 // vi.mock('@tanstack/svelte-query', async (importOriginal) => ({
@@ -83,6 +83,7 @@ describe('VaultsListTable', () => {
 	});
 
 	it.only('displays vault information correctly', () => {
+		(getVaults as Mock).mockResolvedValue([mockVaultWithSubgraph]);
 		render(VaultsListTable, defaultProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('testnet');
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Test Token');

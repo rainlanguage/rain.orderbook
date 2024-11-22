@@ -93,6 +93,8 @@
 	$: isOrdersPage = currentRoute.startsWith('/orders');
 
 	const AppTable = TanstackAppTable<VaultWithSubgraphName>;
+
+	$: console.log('QUERY!', $query.data);
 </script>
 
 {#if $query}
