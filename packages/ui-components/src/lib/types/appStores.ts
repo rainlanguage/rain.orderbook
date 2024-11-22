@@ -8,6 +8,6 @@ export interface AppStoresInterface {
 	activeOrderStatus: Writable<boolean | undefined>;
 	orderHash: Writable<string>;
 	hideZeroBalanceVaults: Writable<boolean>;
-	activeNetworkRef: Writable<string>;
-	activeOrderbookRef: Writable<string>;
+	activeNetworkRef: Writable<string | undefined>;
+	activeOrderbookRef: Writable<string | undefined>;
 }
