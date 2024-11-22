@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { PageHeader } from '@rainlanguage/ui-components';
+  import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
-  import VaultListTable from '$lib/components/tables/VaultListTable.svelte';
+
   import { page } from '$app/stores';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
@@ -40,7 +40,7 @@
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
-<VaultListTable
+<VaultsListTable
   {walletAddressMatchesOrBlank}
   {activeAccounts}
   {activeOrderbook}

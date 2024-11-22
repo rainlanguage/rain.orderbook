@@ -14,6 +14,6 @@ export interface AppStoresInterface {
 	activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	subgraphUrl: Readable<string | undefined>;
 	activeAccounts: Readable<{
-    [k: string]: string;
-}>;
+		[k: string]: string;
+	}>;
 }
