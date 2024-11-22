@@ -30,9 +30,13 @@ const mockVaultWithSubgraph = {
 	subgraphName: 'testnet'
 };
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	getVaults: vi.fn()
-}));
+
+
+vi.mock('@tanstack/svelte-query', () => ({
+			createInfiniteQuery: createResolvableInfiniteQuery((pageParam) => {
+				return ["Hello!" + pageParam];
+			})
+		}));
 
 // Hoisted mock stores
 const {
@@ -48,10 +52,6 @@ const {
 	mockActiveAccountsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
-// vi.mock('@rainlanguage/orderbook/js_api', async (importOriginal) => ({
-// 	...(await importOriginal<typeof import('@rainlanguage/orderbook/js_api')>()),
-// 	getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
-// }));
 
 const defaultProps = {
 	activeOrderbook: mockActiveOrderbookRefStore,
@@ -71,19 +71,14 @@ const defaultProps = {
 };
 
 describe('VaultsListTable', () => {
-	beforeEach(() => {
-		vi.mock('@tanstack/svelte-query', () => ({
-			createInfiniteQuery: createResolvableInfiniteQuery
-		}));
-	});
-
 	it('renders without crashing', () => {
 		render(VaultsListTable, defaultProps);
 		expect(screen.getByText('Vaults')).toBeInTheDocument();
 	});
 
 	it.only('displays vault information correctly', () => {
-		getVaults.mockResolvedValue([mockVaultWithSubgraph]);
+
+
 		render(VaultsListTable, defaultProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('testnet');
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Test Token');
@@ -91,7 +86,6 @@ describe('VaultsListTable', () => {
 	});
 
 	it('shows deposit/withdraw buttons when handlers are provided', () => {
-
 		const handleDepositModal = vi.fn();
 		const handleWithdrawModal = vi.fn();
 
