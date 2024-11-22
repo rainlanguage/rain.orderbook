@@ -16,6 +16,10 @@ export default ts.config(
 				...globals.browser,
 				...globals.node
 			}
+		},
+		rules: {
+			'no-console': process.env.NODE_ENV === 'production' || process.env.CI ? 'error' : 'off',
+			'no-trailing-spaces': 'error'
 		}
 	},
 	{
