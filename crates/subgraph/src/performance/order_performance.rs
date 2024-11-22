@@ -177,46 +177,6 @@ impl OrderPerformance {
             let mut current_token_vol_list: Vec<TokenBasedVol> = vec![];
             for token_vault in &vaults_apy {
                 if let Some(apy_details) = token_vault.apy_details {
-                    // a closure fn handles net vol combination
-                    let mut handle_combined_net_vol = |new_net_vol: U256| {
-                        if apy_details.is_neg == net_vol_is_neg {
-                            combined_net_vol += new_net_vol;
-                        } else if net_vol_is_neg {
-                            if new_net_vol >= combined_net_vol {
-                                net_vol_is_neg = false;
-                                combined_net_vol = new_net_vol - combined_net_vol;
-                            } else {
-                                combined_net_vol -= new_net_vol;
-                            }
-                        } else if combined_net_vol >= new_net_vol {
-                            combined_net_vol -= new_net_vol;
-                        } else {
-                            net_vol_is_neg = true;
-                            combined_net_vol = new_net_vol - combined_net_vol;
-                        }
-                    };
-
-                    // a closure fn handles annual rate vol combination
-                    let mut handle_combined_annual_rate_vol = |new_annual_rate_vol: U256| {
-                        if apy_details.is_neg == net_vol_rate_is_neg {
-                            combined_annual_rate_vol += new_annual_rate_vol;
-                        } else if net_vol_rate_is_neg {
-                            if new_annual_rate_vol >= combined_annual_rate_vol {
-                                net_vol_rate_is_neg = false;
-                                combined_annual_rate_vol =
-                                    new_annual_rate_vol - combined_annual_rate_vol;
-                            } else {
-                                combined_annual_rate_vol -= new_annual_rate_vol;
-                            }
-                        } else if combined_annual_rate_vol >= new_annual_rate_vol {
-                            combined_annual_rate_vol -= new_annual_rate_vol;
-                        } else {
-                            net_vol_rate_is_neg = true;
-                            combined_annual_rate_vol =
-                                new_annual_rate_vol - combined_annual_rate_vol;
-                        }
-                    };
-
                     // this vault's timeframe to year ratio
                     let annual_rate = U256::from(apy_details.end_time - apy_details.start_time)
                         .saturating_mul(ONE18)
@@ -226,13 +186,19 @@ impl OrderPerformance {
                     // sum up all token vaults' capitals and vols by using the direct ratio between the tokens
                     if token_vault.token == token.token {
                         combined_capital += apy_details.capital;
-                        handle_combined_net_vol(apy_details.net_vol);
+                        (combined_net_vol, net_vol_is_neg) = combine(
+                            (apy_details.net_vol, apy_details.is_neg),
+                            (combined_net_vol, net_vol_is_neg),
+                        );
 
                         let annual_rate_vol = apy_details
                             .net_vol
                             .div_18(annual_rate)
                             .map_err(PerformanceError::from)?;
-                        handle_combined_annual_rate_vol(annual_rate_vol);
+                        (combined_annual_rate_vol, net_vol_rate_is_neg) = combine(
+                            (annual_rate_vol, apy_details.is_neg),
+                            (combined_annual_rate_vol, net_vol_rate_is_neg),
+                        );
 
                         current_token_vol_list.push(TokenBasedVol {
                             net_vol: apy_details.net_vol,
@@ -256,12 +222,18 @@ impl OrderPerformance {
                                 .net_vol
                                 .mul_18(*ratio)
                                 .map_err(PerformanceError::from)?;
-                            handle_combined_net_vol(net_vol_converted);
+                            (combined_net_vol, net_vol_is_neg) = combine(
+                                (net_vol_converted, apy_details.is_neg),
+                                (combined_net_vol, net_vol_is_neg),
+                            );
 
                             let annual_rate_vol_converted = net_vol_converted
                                 .div_18(annual_rate)
                                 .map_err(PerformanceError::from)?;
-                            handle_combined_annual_rate_vol(annual_rate_vol_converted);
+                            (combined_annual_rate_vol, net_vol_rate_is_neg) = combine(
+                                (annual_rate_vol_converted, apy_details.is_neg),
+                                (combined_annual_rate_vol, net_vol_rate_is_neg),
+                            );
 
                             current_token_vol_list.push(TokenBasedVol {
                                 net_vol: net_vol_converted,
@@ -381,6 +353,27 @@ pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPa
     }
 
     pair_ratio_map
+}
+
+fn combine(new_val: (U256, bool), old_val: (U256, bool)) -> (U256, bool) {
+    let mut acc = old_val.0;
+    let mut sign = old_val.1;
+    if new_val.1 == sign {
+        acc += new_val.0;
+    } else if sign {
+        if new_val.0 >= acc {
+            sign = false;
+            acc = new_val.0 - acc;
+        } else {
+            acc -= new_val.0;
+        }
+    } else if acc >= new_val.0 {
+        acc -= new_val.0;
+    } else {
+        sign = true;
+        acc = new_val.0 - acc;
+    }
+    (acc, sign)
 }
 
 /// helper struct that provides sorting tokens based on a given net vol

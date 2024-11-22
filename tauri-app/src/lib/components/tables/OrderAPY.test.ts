@@ -62,7 +62,7 @@ test('renders table with correct data', async () => {
   const queryClient = new QueryClient();
 
   mockIPC((cmd) => {
-    if (cmd === 'order_apy') {
+    if (cmd === 'order_performance') {
       return mockOrderApy[0];
     }
   });
