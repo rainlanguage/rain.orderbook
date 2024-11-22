@@ -7,12 +7,10 @@ use alloy::primitives::{
     Address, U256,
 };
 use rain_orderbook_bindings::js_api::{Quote, SignedContextV1};
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_subgraph_client::{types::common::Order, utils::make_order_id};
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::to_value;
 use std::str::FromStr;
-use tsify::Tsify;
-use wasm_bindgen::prelude::*;
 
 mod impls;
 

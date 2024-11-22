@@ -5,18 +5,15 @@ use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::gui::{
     Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError,
 };
-use rain_orderbook_bindings::impl_all_wasm_traits;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
     erc20::{TokenInfo, ERC20},
 };
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::{from_value, to_value};
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
-use tsify::Tsify;
-use rain_orderbook_bindings::wasm_traits::prelude::wasm_bindgen;
 
 mod deposits;
 mod field_values;

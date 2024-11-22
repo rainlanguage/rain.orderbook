@@ -6,7 +6,6 @@ use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
-use rain_orderbook_bindings::impl_all_wasm_traits;
 use rain_orderbook_bindings::js_api::Quote;
 use rain_orderbook_bindings::IOrderBookV4::{
     Quote as MainQuote, SignedContextV1 as MainSignedContextV1,

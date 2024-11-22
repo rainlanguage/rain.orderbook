@@ -1,3 +1,4 @@
+use crate::wasm_traits::prelude::*;
 use crate::IOrderBookV4::{
     takeOrders2Call, EvaluableV3 as MainEvaluableV3, OrderV3 as MainOrderV3, Quote as MainQuote,
     SignedContextV1 as MainSignedContextV1, TakeOrderConfigV3 as MainTakeOrderConfigV3,
@@ -13,8 +14,6 @@ use alloy::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use tsify::Tsify;
-use wasm_bindgen::prelude::*;
 
 // a serializer fn for serializing Vec<u8> as Uint8Array for js
 fn bytes_serilializer<S: serde::Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
