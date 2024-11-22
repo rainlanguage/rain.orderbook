@@ -1,27 +1,15 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
-import { writable, readable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import type { Vault } from '../lib/typeshare/subgraphTypes';
-
 import { createResolvableInfiniteQuery } from '$lib/__mocks__/queries';
+	import type {
+		MultiSubgraphArgs,
+		VaultWithSubgraphName
+	} from '@rainlanguage/orderbook/js_api';
 
-
-
-// Hoisted mock stores
-const {
-	mockActiveNetworkRefStore,
-	mockActiveOrderbookRefStore,
-	mockHideZeroBalanceVaultsStore,
-	mockOrderHashStore,
-	mockAccountsStore,
-	mockActiveAccountsItemsStore,
-	mockActiveOrderStatusStore,
-	mockActiveSubgraphsStore,
-	mockSettingsStore
-} = await vi.hoisted(() => import('../lib/__mocks__/stores'));
-
-const mockVault: Vault = {
+	const mockVault: Vault = {
 	id: '1',
 	vaultId: '1',
 	owner: '0x123',
@@ -44,6 +32,29 @@ const mockVaultWithSubgraph = {
 	subgraphName: 'testnet'
 };
 
+	vi.mock('@rainlanguage/orderbook/js_api', () => ({
+		getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
+	}));
+// Hoisted mock stores
+const {
+	mockActiveNetworkRefStore,
+	mockActiveOrderbookRefStore,
+	mockHideZeroBalanceVaultsStore,
+	mockOrderHashStore,
+	mockAccountsStore,
+	mockActiveAccountsItemsStore,
+	mockActiveOrderStatusStore,
+	mockActiveSubgraphsStore,
+	mockSettingsStore
+} = await vi.hoisted(() => import('../lib/__mocks__/stores'));
+
+
+
+// vi.mock('@rainlanguage/orderbook/js_api', async (importOriginal) => ({
+// 	...(await importOriginal<typeof import('@rainlanguage/orderbook/js_api')>()),
+// 	getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
+// }));
+
 const defaultProps = {
 	activeOrderbook: mockActiveOrderbookRefStore,
 	subgraphUrl: readable('https://api.thegraph.com/subgraphs/name/test'),
@@ -63,27 +74,7 @@ const defaultProps = {
 describe('VaultsListTable', () => {
 	beforeEach(() => {
 		vi.mock('@tanstack/svelte-query', () => ({
-			createInfiniteQuery: createResolvableInfiniteQuery(() => [
-				{
-					vault: {
-						id: '0xabc',
-						vaultId: '0xabc',
-						owner: '0x123',
-						token: {
-							id: '1',
-							address: '0x456',
-							name: 'USDC coin',
-							symbol: 'USDC',
-							decimals: '6'
-						},
-						balance: '100000000000',
-						ordersAsInput: [],
-						ordersAsOutput: [],
-						orderbook: { id: '0x00' }
-					},
-					subgraphName: 'network-one'
-				}
-			])
+			createInfiniteQuery: createResolvableInfiniteQuery
 		}));
 	});
 
@@ -92,9 +83,7 @@ describe('VaultsListTable', () => {
 		expect(screen.getByText('Vaults')).toBeInTheDocument();
 	});
 
-	it('displays vault information correctly', () => {
-
-
+	it.only('displays vault information correctly', () => {
 		render(VaultsListTable, defaultProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('testnet');
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Test Token');

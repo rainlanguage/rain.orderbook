@@ -62,7 +62,9 @@
 			$activeAccounts,
 			$hideZeroBalanceVaults,
 			$activeSubgraphs,
-			multiSubgraphArgs
+			multiSubgraphArgs,
+			$settings,
+			owners
 		],
 		queryFn: ({ pageParam }) => {
 			return getVaults(
@@ -93,6 +95,8 @@
 	const AppTable = TanstackAppTable<VaultWithSubgraphName>;
 
 	$: console.log('DATA!', $query);
+	$: console.log(owners);
+	$: console.log(multiSubgraphArgs);
 </script>
 
 {#if $query}
