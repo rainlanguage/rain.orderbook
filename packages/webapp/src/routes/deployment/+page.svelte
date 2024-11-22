@@ -2984,6 +2984,7 @@ min-trade-amount: mul(min-amount 0.9),
 		try {
 			if (!gui) return;
 
+			// @ts-expect-error window.ethereum is not typed
 			const provider = new ethers.BrowserProvider(window.ethereum);
 			const signer = await provider.getSigner();
 			const address = await signer.getAddress();
