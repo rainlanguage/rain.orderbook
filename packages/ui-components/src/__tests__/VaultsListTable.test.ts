@@ -4,12 +4,9 @@ import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
 import type { Vault } from '../lib/typeshare/subgraphTypes';
 import { createResolvableInfiniteQuery } from '$lib/__mocks__/queries';
-	import type {
-		MultiSubgraphArgs,
-		VaultWithSubgraphName
-	} from '@rainlanguage/orderbook/js_api';
+import type { MultiSubgraphArgs, VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 
-	const mockVault: Vault = {
+const mockVault: Vault = {
 	id: '1',
 	vaultId: '1',
 	owner: '0x123',
@@ -32,9 +29,9 @@ const mockVaultWithSubgraph = {
 	subgraphName: 'testnet'
 };
 
-	vi.mock('@rainlanguage/orderbook/js_api', () => ({
-		getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
-	}));
+vi.mock('@rainlanguage/orderbook/js_api', () => ({
+	getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
+}));
 // Hoisted mock stores
 const {
 	mockActiveNetworkRefStore,
@@ -47,8 +44,6 @@ const {
 	mockActiveSubgraphsStore,
 	mockSettingsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
-
-
 
 // vi.mock('@rainlanguage/orderbook/js_api', async (importOriginal) => ({
 // 	...(await importOriginal<typeof import('@rainlanguage/orderbook/js_api')>()),
