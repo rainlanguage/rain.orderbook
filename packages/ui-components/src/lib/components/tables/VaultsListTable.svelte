@@ -56,6 +56,8 @@
 	$: owners =
 		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
 
+	$: console.log('ACTIVE ACCOUNTS!', $activeAccounts);
+
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,

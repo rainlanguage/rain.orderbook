@@ -38,12 +38,26 @@ export const load = () => {
 					) as Record<OrderbookRef, OrderbookConfigSource>)
 				: ({} as Record<OrderbookRef, OrderbookConfigSource>)
 	);
+
+	const accounts = derived(settings, ($settings) => $settings?.accounts);
+	const activeAccountsItems = writable<Record<string, string>>({});
+
+	const activeAccounts = derived(
+		[accounts, activeAccountsItems],
+		([$accounts, $activeAccountsItems]) =>
+			Object.keys($activeAccountsItems).length === 0
+				? {}
+				: Object.fromEntries(
+						Object.entries($accounts || {}).filter(([key]) => key in $activeAccountsItems)
+					)
+	);
 	return {
 		stores: {
 			settings,
 			activeSubgraphs: writable<Record<string, string>>({}),
-			accounts: derived(settings, ($settings) => $settings?.accounts),
-			activeAccountsItems: writable<Record<string, string>>({}),
+			accounts,
+			activeAccountsItems,
+			activeAccounts,
 			activeOrderStatus: writable<boolean | undefined>(undefined),
 			orderHash: writable<string>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),

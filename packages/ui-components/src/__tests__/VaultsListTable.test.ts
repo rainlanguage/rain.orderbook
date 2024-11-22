@@ -5,6 +5,7 @@ import { readable } from 'svelte/store';
 import type { Vault } from '../lib/typeshare/subgraphTypes';
 import { createResolvableInfiniteQuery } from '$lib/__mocks__/queries';
 import type { MultiSubgraphArgs, VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+import { getVaults } from '@rainlanguage/orderbook/js_api';
 
 const mockVault: Vault = {
 	id: '1',
@@ -30,8 +31,9 @@ const mockVaultWithSubgraph = {
 };
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	getVaults: vi.fn().mockResolvedValue([mockVaultWithSubgraph])
+	getVaults: vi.fn()
 }));
+
 // Hoisted mock stores
 const {
 	mockActiveNetworkRefStore,
@@ -42,7 +44,8 @@ const {
 	mockActiveAccountsItemsStore,
 	mockActiveOrderStatusStore,
 	mockActiveSubgraphsStore,
-	mockSettingsStore
+	mockSettingsStore,
+	mockActiveAccountsStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 // vi.mock('@rainlanguage/orderbook/js_api', async (importOriginal) => ({
@@ -63,6 +66,7 @@ const defaultProps = {
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
 	walletAddressMatchesOrBlank: readable(() => true),
+	activeAccounts: mockActiveAccountsStore,
 	currentRoute: '/vaults'
 };
 
@@ -79,6 +83,7 @@ describe('VaultsListTable', () => {
 	});
 
 	it.only('displays vault information correctly', () => {
+		getVaults.mockResolvedValue([mockVaultWithSubgraph]);
 		render(VaultsListTable, defaultProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('testnet');
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Test Token');
@@ -86,6 +91,7 @@ describe('VaultsListTable', () => {
 	});
 
 	it('shows deposit/withdraw buttons when handlers are provided', () => {
+
 		const handleDepositModal = vi.fn();
 		const handleWithdrawModal = vi.fn();
 
