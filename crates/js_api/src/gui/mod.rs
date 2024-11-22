@@ -34,7 +34,7 @@ mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
-pub struct AvailableDeployments(Vec<String>);
+pub struct AvailableDeployments(Vec<GuiDeployment>);
 impl_wasm_traits!(AvailableDeployments);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -60,9 +60,8 @@ impl DotrainOrderGui {
     ) -> Result<AvailableDeployments, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let config = dotrain_order.config();
-        Ok(AvailableDeployments(
-            config.deployments.keys().cloned().collect(),
-        ))
+        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
+        Ok(AvailableDeployments(gui_config.deployments))
     }
 
     #[wasm_bindgen(js_name = "chooseDeployment")]

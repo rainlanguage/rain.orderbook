@@ -54,6 +54,27 @@ gui:
             - value: "99.2"
             - value: "582.1"
             - value: "648.239"
+    - deployment: other-deployment
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
 `;
 const guiConfig2 = `
 gui:
@@ -264,8 +285,8 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
     const deployments: AvailableDeployments =
       await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
     assert.equal(deployments.length, 2);
-    assert.equal(deployments[0], "some-deployment");
-    assert.equal(deployments[1], "other-deployment");
+    assert.equal(deployments[0].deployment_name, "some-deployment");
+    assert.equal(deployments[1].deployment_name, "other-deployment");
   });
 
   it("should return error if gui config is not found", async () => {
@@ -573,7 +594,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedState =
-      "H4sIAAAAAAAA_3WNPQrCQBCFjUbRTtAyhbUQ2c1k_zprK6-wO7srQYigKbyBYKF4GC9g4QU8hpewcNIIvuZ7bwbeW3a-sh5lsDYioGRgjEKvnYCogtalZFyh8kEEAFdiKQGscShAuugAtSlEl3pGRFfVvqo3OU_owJIhufU-HEIz4_P2c-QFlEIqbZh16EP8l3_Li06rHpEz1g4OiM1uG2qeUhJsIafkH5O8_8puq9PTZuPm_E7vl-sHEy8ctBABAAA=";
+      "H4sIAAAAAAAA_3WPPQrCQBCFjUbRTtAyhbUQmdlsdjedtZVX2J9ZCUIETeENBAvFw3gBCy_gMbyEhbuN4Gu-NzPwhrfsfFVWXHjLuZNGSUCLUFqpDEkCLgqoPFlA7yTJQipdMkNoQXPGmXIKteiGnFGgqRtXN5sck7CAZBjcek8Hamc4j5cjsoKXQqoKtLGO_L_5N5x1onqBCBAfDgLb3ZYaTGNPWIhp8I9J3n9lt9XpqbNxe36n98v1A0N-TrAQAQAA";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
