@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import VaultListTable from '$lib/components/tables/VaultListTable.svelte';
   import { page } from '$app/stores';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
+
   import {
     activeOrderbook,
     subgraphUrl,
@@ -20,6 +22,12 @@
     resetActiveOrderbookRef,
   } from '$lib/stores/settings';
 
+  import {
+    handleDepositGenericModal,
+    handleDepositModal,
+    handleWithdrawModal,
+  } from '$lib/services/modal';
+
   onMount(async () => {
     if (!$activeOrderbook) {
       await resetActiveNetworkRef();
@@ -31,6 +39,7 @@
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultListTable
+  {walletAddressMatchesOrBlank}
   {activeAccounts}
   {activeOrderbook}
   {subgraphUrl}
@@ -43,4 +52,7 @@
   {hideZeroBalanceVaults}
   {activeNetworkRef}
   {activeOrderbookRef}
+  {handleDepositGenericModal}
+  {handleDepositModal}
+  {handleWithdrawModal}
 />

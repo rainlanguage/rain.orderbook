@@ -18,6 +18,7 @@ export { default as PageHeader } from './components/PageHeader.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource } from './typeshare/config';
+export type { Vault } from './typeshare/subgraphTypes';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

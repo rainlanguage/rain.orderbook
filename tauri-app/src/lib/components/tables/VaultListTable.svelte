@@ -2,12 +2,11 @@
   import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
   import { goto } from '$app/navigation';
   import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { bigintStringToHex } from '@rainlanguage/ui-components';
-  import { vaultBalanceDisplay } from '@rainlanguage/ui-components';
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { vaultList } from '$lib/queries/vaultList';
   import {
+    bigintStringToHex,
+    vaultBalanceDisplay,
     TanstackAppTable,
     QKEY_VAULTS,
     DEFAULT_PAGE_SIZE,
@@ -16,19 +15,14 @@
     HashType,
     ListViewOrderbookFilters,
     type ConfigSource,
+    type OrderbookConfigSource,
+    type Vault,
   } from '@rainlanguage/ui-components';
-
-  import {
-    handleDepositGenericModal,
-    handleDepositModal,
-    handleWithdrawModal,
-  } from '$lib/services/modal';
 
   import { get } from 'svelte/store';
   import { page } from '$app/stores';
 
   import type { Writable, Readable } from 'svelte/store';
-  import type { OrderbookConfigSource } from '$lib/typeshare/config';
 
   export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
   export let subgraphUrl: Readable<string | undefined>;
@@ -44,6 +38,10 @@
   export let activeAccounts: Readable<{
     [k: string]: string;
   }>;
+  export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean>;
+  export let handleDepositGenericModal: () => void;
+  export let handleDepositModal: (vault: Vault, refetch: () => void) => void;
+  export let handleWithdrawModal: (vault: Vault, refetch: () => void) => void;
 
   $: query = createInfiniteQuery({
     queryKey: [QKEY_VAULTS, $activeAccounts, $hideZeroBalanceVaults, $activeSubgraphs],
