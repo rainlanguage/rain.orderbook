@@ -393,6 +393,22 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       const depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
       assert.equal(depositsAfterRemove.length, 0);
     });
+
+    it("should get deposit presets", async () => {
+      const presets = gui.getDepositPresets("token1");
+      assert.equal(presets.length, 5);
+      assert.equal(presets[0], "0");
+      assert.equal(presets[1], "10");
+      assert.equal(presets[2], "100");
+      assert.equal(presets[3], "1000");
+      assert.equal(presets[4], "10000");
+    });
+
+    it("should throw error if deposit token is not found in gui config", () => {
+      expect(() => gui.getDepositPresets("token2")).toThrow(
+        "Deposit token not found in gui config: token2"
+      );
+    });
   });
 
   describe("field value tests", async () => {

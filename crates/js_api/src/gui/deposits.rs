@@ -43,4 +43,15 @@ impl DotrainOrderGui {
     pub fn remove_deposit(&mut self, token: String) {
         self.deposits.retain(|deposit| deposit.token != token);
     }
+
+    #[wasm_bindgen(js_name = "getDepositPresets")]
+    pub fn get_deposit_presets(&self, token: String) -> Result<Vec<String>, GuiError> {
+        let gui_deposit = self
+            .deployment
+            .deposits
+            .iter()
+            .find(|dg| dg.token_name == token)
+            .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
+        Ok(gui_deposit.presets.clone())
+    }
 }
