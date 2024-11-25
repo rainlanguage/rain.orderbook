@@ -21,7 +21,6 @@ export { default as BadgeActive } from './components/BadgeActive.svelte';
 export { default as TanstackPageContentDetail } from './components/detail/TanstackPageContentDetail.svelte';
 export { default as CodeMirrorRainlang } from './components/CodeMirrorRainlang.svelte';
 
-
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

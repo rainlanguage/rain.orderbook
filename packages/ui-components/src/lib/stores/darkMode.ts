@@ -3,14 +3,14 @@ import { themes as lightweightChartsThemes } from '../utils/lightweightChartsThe
 import { derived, writable } from 'svelte/store';
 
 function readColorTheme(): 'dark' | 'light' {
-  const saved = localStorage.getItem('color-theme');
-  if (saved) {
-    return saved as 'dark' | 'light';
-  } else if (document.body.classList.contains('dark')) {
-    return 'dark';
-  } else {
-    return 'light';
-  }
+	const saved = localStorage.getItem('color-theme');
+	if (saved) {
+		return saved as 'dark' | 'light';
+	} else if (document.body.classList.contains('dark')) {
+		return 'dark';
+	} else {
+		return 'light';
+	}
 }
 
 export const colorTheme = writable(readColorTheme());
@@ -18,9 +18,9 @@ export const colorTheme = writable(readColorTheme());
 colorTheme.subscribe((val: string) => localStorage.setItem('color-theme', val));
 
 export const codeMirrorTheme = derived(colorTheme, ($colorTheme) =>
-  $colorTheme === 'dark' ? codeMirrorThemes.dark : codeMirrorThemes.light,
+	$colorTheme === 'dark' ? codeMirrorThemes.dark : codeMirrorThemes.light
 );
 
 export const lightweightChartsTheme = derived(colorTheme, ($colorTheme) =>
-  $colorTheme === 'dark' ? lightweightChartsThemes.dark : lightweightChartsThemes.light,
+	$colorTheme === 'dark' ? lightweightChartsThemes.dark : lightweightChartsThemes.light
 );
