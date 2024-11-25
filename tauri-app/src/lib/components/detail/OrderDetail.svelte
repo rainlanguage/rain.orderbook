@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Badge, Button, TabItem, Tabs } from 'flowbite-svelte';
+  import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import {
     Hash,
@@ -8,6 +8,7 @@
     formatTimestampSecondsAsLocal,
     QKEY_ORDER,
     ButtonVaultLink,
+    BadgeActive,
   } from '@rainlanguage/ui-components';
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
@@ -55,9 +56,7 @@
         <span class="font-light">Order</span>
         <Hash shorten value={data.order.orderHash} />
       </div>
-      <Badge color={data.order.active ? 'green' : 'yellow'} large
-        >{data.order.active ? 'Active' : 'Inactive'}</Badge
-      >
+      <BadgeActive active={data.order.active} />
     </div>
     {#if data.order && $walletAddressMatchesOrBlank(data.order.owner) && data.order.active}
       <Button

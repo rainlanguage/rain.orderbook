@@ -11,14 +11,8 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { QKEY_ORDERS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import {
-		Badge,
-		Button,
-		Dropdown,
-		DropdownItem,
-		TableBodyCell,
-		TableHeadCell
-	} from 'flowbite-svelte';
+	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+	import BadgeActive from '../BadgeActive.svelte';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,11 +124,7 @@
 			{item.subgraphName}
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
-			{#if item.order.active}
-				<Badge color="green">Active</Badge>
-			{:else}
-				<Badge color="yellow">Inactive</Badge>
-			{/if}
+			<BadgeActive active={item.order.active} />
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
 			<Hash type={HashType.Identifier} value={item.order.orderHash} />
