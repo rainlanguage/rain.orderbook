@@ -6,6 +6,7 @@ use alloy::{
 };
 use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
+use rain_orderbook_bindings::OrderBook::multicallCall;
 use rain_orderbook_common::{deposit::DepositArgs, dotrain_order, transaction::TransactionArgs};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
@@ -247,21 +248,13 @@ impl DotrainOrderGui {
             .generate_add_order_calldata(&self.deployment.deployment_name)
             .await?;
 
+        calls.push(Bytes::copy_from_slice(&add_order_calldata));
         for calldata in deposit_calldatas.iter() {
-            calls.push(Call3 {
-                target: orderbook.address,
-                allowFailure: false,
-                callData: Bytes::copy_from_slice(calldata),
-            });
+            calls.push(Bytes::copy_from_slice(calldata));
         }
-        calls.push(Call3 {
-            target: orderbook.address,
-            allowFailure: false,
-            callData: Bytes::copy_from_slice(&add_order_calldata),
-        });
 
         Ok(DepositAndAddOrderCalldataResult(Bytes::copy_from_slice(
-            &aggregate3Call { calls }.abi_encode(),
+            &multicallCall { data: calls }.abi_encode(),
         )))
     }
 
