@@ -14,39 +14,21 @@ use alloy_ethers_typecast::{
 };
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_bindings::IERC20::{decimalsCall, nameCall, symbolCall};
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
 
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::impl_wasm_traits;
-#[cfg(target_family = "wasm")]
-use serde_wasm_bindgen::{from_value, to_value};
-#[cfg(target_family = "wasm")]
-use tsify::Tsify;
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::convert::{
-    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
-    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
-};
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::{JsValue, UnwrapThrowExt};
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    target_family = "wasm",
-    derive(Tsify),
-    tsify(into_wasm_abi, from_wasm_abi)
-)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TokenInfo {
     pub decimals: u8,
     pub name: String,
     pub symbol: String,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(TokenInfo);
+impl_all_wasm_traits!(TokenInfo);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ERC20 {

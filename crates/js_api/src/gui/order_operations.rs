@@ -11,39 +11,34 @@ use rain_orderbook_common::{deposit::DepositArgs, dotrain_order, transaction::Tr
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
+
 pub struct TokenAllowance {
     #[tsify(type = "string")]
     token: Address,
     #[tsify(type = "string")]
     allowance: U256,
 }
-impl_wasm_traits!(TokenAllowance);
+impl_all_wasm_traits!(TokenAllowance);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct AllowancesResult(Vec<TokenAllowance>);
-impl_wasm_traits!(AllowancesResult);
+impl_all_wasm_traits!(AllowancesResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ApprovalCalldataResult(Vec<dotrain_order::calldata::ApprovalCalldata>);
-impl_wasm_traits!(ApprovalCalldataResult);
+impl_all_wasm_traits!(ApprovalCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct DepositCalldataResult(Vec<Bytes>);
-impl_wasm_traits!(DepositCalldataResult);
+impl_all_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct AddOrderCalldataResult(Bytes);
-impl_wasm_traits!(AddOrderCalldataResult);
+impl_all_wasm_traits!(AddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct DepositAndAddOrderCalldataResult(Bytes);
-impl_wasm_traits!(DepositAndAddOrderCalldataResult);
+impl_all_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {

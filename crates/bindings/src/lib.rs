@@ -24,3 +24,6 @@ sol!(
 
 #[cfg(target_family = "wasm")]
 pub mod js_api;
+
+#[cfg(target_family = "wasm")]
+pub mod wasm_traits;

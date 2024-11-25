@@ -6,25 +6,15 @@ use rain_orderbook_app_settings::{
     gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
     Config,
 };
-use rain_orderbook_bindings::impl_wasm_traits;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
     erc20::{TokenInfo, ERC20},
 };
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::{from_value, to_value};
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
-use tsify::Tsify;
-use wasm_bindgen::{
-    convert::{
-        js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
-        LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
-    },
-    describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR},
-    prelude::*,
-};
 
 mod deposits;
 mod field_values;
@@ -33,14 +23,12 @@ mod select_tokens;
 mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct AvailableDeployments(Vec<GuiDeployment>);
-impl_wasm_traits!(AvailableDeployments);
+impl_all_wasm_traits!(AvailableDeployments);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
-impl_wasm_traits!(TokenInfos);
+impl_all_wasm_traits!(TokenInfos);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
