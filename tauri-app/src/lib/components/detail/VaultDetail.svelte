@@ -155,4 +155,4 @@
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>
-</TanstackPage>
+</TanstackPageContentDetail>
