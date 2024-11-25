@@ -31,7 +31,9 @@ impl DotrainOrderGui {
             address: gui_deposit.token.address,
         };
 
-        if !self.deposits.iter().any(|d| d.token == token) {
+        if let Some(existing_deposit) = self.deposits.iter_mut().find(|d| d.token == token) {
+            *existing_deposit = deposit_token;
+        } else {
             self.deposits.push(deposit_token);
         }
         Ok(())

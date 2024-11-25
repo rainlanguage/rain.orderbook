@@ -370,6 +370,14 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       assert.equal(deposits.length, 1);
     });
 
+    it("should update deposit", async () => {
+      gui.saveDeposit("token1", "50.6");
+      gui.saveDeposit("token1", "100.6");
+      const deposits: TokenDeposit[] = gui.getDeposits();
+      assert.equal(deposits.length, 1);
+      assert.equal(deposits[0].amount, "100.6");
+    });
+
     it("should throw error if deposit token is not found in gui config", () => {
       expect(() => gui.saveDeposit("token3", "1")).toThrow(
         "Deposit token not found in gui config: token3"
