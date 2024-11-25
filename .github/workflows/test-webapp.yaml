@@ -30,6 +30,8 @@ jobs:
       - run: nix develop -c rainix-sol-prelude
       - run: nix develop -c rainix-rs-prelude
       - run: nix develop -c raindex-prelude
+      - run: nix develop -c ob-ui-components-prelude
+
       - run: nix develop -c npm run build
         working-directory: packages/ui-components
       - run: nix develop -c npm run build

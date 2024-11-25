@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Alert, Spinner } from 'flowbite-svelte';
   import { hasRequiredSettings, settingsText, settings, settingsFile } from '$lib/stores/settings';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
@@ -9,6 +9,7 @@
   import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
   import { onMount } from 'svelte';
   import { CheckOutline, CloseOutline } from 'flowbite-svelte-icons';
+  import { page } from '$app/stores';
 
   let settingsStatus: 'idle' | 'checking' | 'success' | 'error' = 'idle';
   let errorMessage: string | undefined = undefined;
@@ -46,7 +47,7 @@
 </script>
 
 <div class="mb-4">
-  <PageHeader title="Settings" />
+  <PageHeader title="Settings" pathname={$page.url.pathname} />
 
   <Alert color="blue" class="mb-4 mt-8 text-lg">
     Looking for some settings to get started? Check out the <a

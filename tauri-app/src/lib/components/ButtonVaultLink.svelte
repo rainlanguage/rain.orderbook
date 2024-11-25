@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import type { Vault } from '$lib/typeshare/subgraphTypes';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
   import { Tooltip } from 'flowbite-svelte';
   import { formatUnits } from 'viem';
 

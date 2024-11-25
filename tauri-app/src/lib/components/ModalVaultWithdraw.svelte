@@ -3,7 +3,7 @@
   import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
