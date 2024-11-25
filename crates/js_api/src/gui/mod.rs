@@ -23,14 +23,12 @@ mod select_tokens;
 mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct AvailableDeployments(Vec<GuiDeployment>);
-impl_wasm_traits!(AvailableDeployments);
+impl_all_wasm_traits!(AvailableDeployments);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
-impl_wasm_traits!(TokenInfos);
+impl_all_wasm_traits!(TokenInfos);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]

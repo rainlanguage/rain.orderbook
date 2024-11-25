@@ -3,9 +3,8 @@ use std::str::FromStr;
 use super::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SelectTokens(#[tsify(type = "Map<string, string>")] BTreeMap<String, Address>);
-impl_wasm_traits!(SelectTokens);
+impl_all_wasm_traits!(SelectTokens);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
