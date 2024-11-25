@@ -342,27 +342,30 @@ mod tests {
         assert_eq!(field1.binding, "test-binding");
         assert_eq!(field1.name, "test-name");
         assert_eq!(field1.description, "test-description");
-        assert_eq!(field1.presets.len(), 2);
-        assert_eq!(field1.presets[0].name, Some("test-preset".to_string()));
-        assert_eq!(field1.presets[0].value, "0.015".to_string());
-        assert_eq!(field1.presets[1].name, Some("test-preset-2".to_string()));
-        assert_eq!(field1.presets[1].value, "0.3".to_string());
+        let presets = field1.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0].name, Some("test-preset".to_string()));
+        assert_eq!(presets[0].value, "0.015".to_string());
+        assert_eq!(presets[1].name, Some("test-preset-2".to_string()));
+        assert_eq!(presets[1].value, "0.3".to_string());
         let field2 = &deployment.fields[1];
         assert_eq!(field2.binding, "test-binding-2");
         assert_eq!(field2.name, "test-name-2");
         assert_eq!(field2.description, "test-description-2");
-        assert_eq!(field2.presets.len(), 2);
-        assert_eq!(field2.presets[0].name, None);
-        assert_eq!(field2.presets[1].name, None);
-        assert_eq!(field2.presets[1].value, "4.8".to_string());
+        let presets = field2.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0].name, None);
+        assert_eq!(presets[1].name, None);
+        assert_eq!(presets[1].value, "4.8".to_string());
         let field3 = &deployment.fields[2];
         assert_eq!(field3.binding, "test-binding-3");
         assert_eq!(field3.name, "test-name-3");
         assert_eq!(field3.description, "test-description-3");
-        assert_eq!(field3.presets.len(), 3);
-        assert_eq!(field3.presets[0].value, Address::default().to_string());
-        assert_eq!(field3.presets[1].value, "some-value".to_string());
-        assert_eq!(field3.presets[2].value, "true".to_string());
+        let presets = field3.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 3);
+        assert_eq!(presets[0].value, Address::default().to_string());
+        assert_eq!(presets[1].value, "some-value".to_string());
+        assert_eq!(presets[2].value, "true".to_string());
         assert_eq!(
             deployment.select_tokens,
             Some(vec!["test-token".to_string()])
