@@ -11,7 +11,7 @@
     DeepPartial<O & SeriesOptionsCommon>
   >;
 
-  import { lightweightChartsTheme } from '$lib/stores/darkMode';
+  import { lightweightChartsTheme } from '@rainlanguage/ui-components';
   import { Spinner } from 'flowbite-svelte';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   import {

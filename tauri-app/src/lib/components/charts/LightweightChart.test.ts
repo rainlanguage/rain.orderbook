@@ -23,7 +23,7 @@ vi.mock('lightweight-charts', async (importOriginal) => ({
   })),
 }));
 
-vi.mock('$lib/stores/darkMode', async (importOriginal) => {
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
   const { readable } = await import('svelte/store');
   return {
     ...((await importOriginal()) as object),
