@@ -17,12 +17,11 @@ pub struct PairValue {
 impl_all_wasm_traits!(PairValue);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct AllFieldValuesResult {
     pub binding: String,
     pub value: GuiPreset,
 }
-impl_wasm_traits!(AllFieldValuesResult);
+impl_all_wasm_traits!(AllFieldValuesResult);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
