@@ -16,7 +16,7 @@ export { default as OrdersListTable } from './components/tables/OrdersListTable.
 export { default as VaultsListTable } from './components/tables/VaultsListTable.svelte';
 export { default as PageHeader } from './components/PageHeader.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
-
+export { default as ButtonTab } from './components/ButtonTab.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

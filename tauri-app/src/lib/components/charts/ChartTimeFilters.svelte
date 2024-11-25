@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ButtonTab from '$lib/components/ButtonTab.svelte';
+  import { ButtonTab } from '@rainlanguage/ui-components';
   import { ButtonGroup } from 'flowbite-svelte';
 
   const TIME_DELTA_24_HOURS = 60 * 60 * 24;
