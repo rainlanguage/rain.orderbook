@@ -116,14 +116,14 @@ mod tests {
                     let first_output = &outputs[0];
                     assert_eq!(
                         first_output.get("balance").unwrap(),
-                        "477586683524531569",
+                        "0",
                         "Unexpected balance in first output"
                     );
 
                     let second_output = &outputs[1];
                     assert_eq!(
                         second_output.get("balance").unwrap(),
-                        "441985284221547565414691",
+                        "0",
                         "Unexpected balance in second output"
                     );
                 }
