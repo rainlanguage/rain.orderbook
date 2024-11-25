@@ -882,7 +882,7 @@ ${dotrain}
 
       const calldata: DepositAndAddOrderCalldataResult =
         await gui.generateDepositAndAddOrderCalldatas();
-      assert.equal(calldata.length, 3530);
+      assert.equal(calldata.length, 3146);
 
       const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
       assert.deepEqual(

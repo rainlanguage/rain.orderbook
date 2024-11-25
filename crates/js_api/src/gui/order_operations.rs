@@ -4,7 +4,6 @@ use alloy::{
     primitives::{utils::parse_units, Bytes, U256},
     sol_types::SolCall,
 };
-use alloy_ethers_typecast::multicall::IMulticall3::{aggregate3Call, Call3};
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
 use rain_orderbook_bindings::OrderBook::multicallCall;
 use rain_orderbook_common::{deposit::DepositArgs, dotrain_order, transaction::TransactionArgs};
@@ -211,7 +210,6 @@ impl DotrainOrderGui {
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
         self.check_token_addresses()?;
 
-        let orderbook = self.get_orderbook()?;
         let token_deposits = self
             .get_vaults_and_deposits()?
             .iter()
