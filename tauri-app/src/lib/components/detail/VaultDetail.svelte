@@ -3,7 +3,7 @@
   import { Button } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { bigintStringToHex } from '@rainlanguage/ui-components';
-  import { Hash, HashType } from '@rainlanguage/ui-components';
+  import { Hash, HashType, TanstackPageContentDetail } from '@rainlanguage/ui-components';
 
   import { goto } from '$app/navigation';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
@@ -14,7 +14,6 @@
   import { QKEY_VAULT } from '@rainlanguage/ui-components';
   import { subgraphUrl } from '$lib/stores/settings';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
-  import TanstackContentDetail from '$lib/components/detail/TanstackPageContentDetail.svelte';
   import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
@@ -44,7 +43,7 @@
   });
 </script>
 
-<TanstackContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
+<TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
   <svelte:fragment slot="top" let:data>
     <div
       data-testid="vaultDetailTokenName"
@@ -156,4 +155,4 @@
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>
-</TanstackContentDetail>
+</TanstackPage>

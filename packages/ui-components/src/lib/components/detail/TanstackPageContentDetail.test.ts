@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
-import { expect } from '$lib/test/matchers';
+import { expect } from '../../test/matchers';
 import TanstackPageContentDetailTest from './TanstackPageContentDetail.test.svelte';
-import { createResolvableQuery } from '@rainlanguage/ui-components';
+import { createResolvableQuery } from '../../__mocks__/queries';
 
 test('shows query data in correct places', async () => {
 	const { query, resolve } = createResolvableQuery(() => {
