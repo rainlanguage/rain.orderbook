@@ -1,21 +1,20 @@
 use super::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
+
 pub struct FieldValuePair {
     binding: String,
     value: PairValue,
 }
-impl_wasm_traits!(FieldValuePair);
+impl_all_wasm_traits!(FieldValuePair);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct PairValue {
     pub is_preset: bool,
     pub value: String,
 }
-impl_wasm_traits!(PairValue);
+impl_all_wasm_traits!(PairValue);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {

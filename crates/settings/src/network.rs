@@ -6,28 +6,11 @@ use typeshare::typeshare;
 use url::{ParseError, Url};
 
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::impl_wasm_traits;
-#[cfg(target_family = "wasm")]
-use serde_wasm_bindgen::{from_value, to_value};
-#[cfg(target_family = "wasm")]
-use tsify::Tsify;
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::convert::{
-    js_value_vector_from_abi, js_value_vector_into_abi, FromWasmAbi, IntoWasmAbi,
-    LongRefFromWasmAbi, RefFromWasmAbi, TryFromJsValue, VectorFromWasmAbi, VectorIntoWasmAbi,
-};
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR};
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::{JsValue, UnwrapThrowExt};
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(
-    target_family = "wasm",
-    derive(Tsify),
-    tsify(into_wasm_abi, from_wasm_abi)
-)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct Network {
     pub name: String,
@@ -54,7 +37,7 @@ impl Network {
     }
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(Network);
+impl_all_wasm_traits!(Network);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseNetworkConfigSourceError {
