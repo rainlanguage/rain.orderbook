@@ -3,20 +3,15 @@
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import {
-		bigintStringToHex,
-		vaultBalanceDisplay,
-		TanstackAppTable,
-		QKEY_VAULTS,
-		DEFAULT_PAGE_SIZE,
-		DEFAULT_REFRESH_INTERVAL,
-		Hash,
-		HashType,
-		ListViewOrderbookFilters,
-		type ConfigSource,
-		type OrderbookConfigSource,
-		type Vault
-	} from '@rainlanguage/ui-components';
+	import TanstackAppTable from '../TanstackAppTable.svelte';
+	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
+	import Hash, { HashType } from '../Hash.svelte';
+	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
+	import { vaultBalanceDisplay } from '../../utils/vault';
+	import { bigintStringToHex } from '../../utils/hex';
+	import { type ConfigSource, type OrderbookConfigSource } from '../../typeshare/config';
+	import { type Vault } from '../../typeshare/subgraphTypes';
+	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,
 		type MultiSubgraphArgs,
