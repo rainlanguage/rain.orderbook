@@ -166,8 +166,11 @@ impl DotrainOrderGui {
         let token_deposits = self
             .get_vaults_and_deposits()?
             .iter()
-            .map(|(order_io, amount)| {
-                let vault_id = order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?;
+            .enumerate()
+            .map(|(i, (order_io, amount))| {
+                let vault_id = order_io
+                    .vault_id
+                    .ok_or(GuiError::VaultIdNotFound(i.to_string()))?;
                 Ok(((vault_id, order_io.token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
@@ -213,8 +216,11 @@ impl DotrainOrderGui {
         let token_deposits = self
             .get_vaults_and_deposits()?
             .iter()
-            .map(|(order_io, amount)| {
-                let vault_id = order_io.vault_id.ok_or(GuiError::VaultIdNotFound)?;
+            .enumerate()
+            .map(|(i, (order_io, amount))| {
+                let vault_id = order_io
+                    .vault_id
+                    .ok_or(GuiError::VaultIdNotFound(i.to_string()))?;
                 Ok(((vault_id, order_io.token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;

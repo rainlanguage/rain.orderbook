@@ -1032,7 +1032,7 @@ ${dotrain}
       testGui.saveDeposit("token2", "5000");
       expect(
         async () => await testGui.generateDepositCalldatas()
-      ).rejects.toThrow("Vault id not found");
+      ).rejects.toThrow("Vault id not found for output index: 0");
     });
   });
 

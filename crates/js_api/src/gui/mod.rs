@@ -164,8 +164,8 @@ pub enum GuiError {
     OrderbookNotFound,
     #[error("Deserialized config mismatch")]
     DeserializedConfigMismatch,
-    #[error("Vault id not found")]
-    VaultIdNotFound,
+    #[error("Vault id not found for output index: {0}")]
+    VaultIdNotFound(String),
     #[error("Deployer not found")]
     DeployerNotFound,
     #[error("Token not found {0}")]
