@@ -18,7 +18,6 @@
 		type VaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
 	import type { Writable, Readable } from 'svelte/store';
-
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
 	export let orderHash: Writable<string>;
