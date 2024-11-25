@@ -16,11 +16,11 @@ use rain_orderbook_app_settings::{
     merge::MergeError,
     Config, ParseConfigSourceError,
 };
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use typeshare::typeshare;
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::prelude::*;
 
 pub mod calldata;
 pub mod filter;

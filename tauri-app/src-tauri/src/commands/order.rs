@@ -7,8 +7,6 @@ use rain_orderbook_common::{
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
 };
-use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
-use rain_orderbook_subgraph_client::{MultiOrderbookSubgraphClient, MultiSubgraphArgs};
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;

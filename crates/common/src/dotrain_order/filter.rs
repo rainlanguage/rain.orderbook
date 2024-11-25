@@ -2,7 +2,7 @@ use crate::dotrain_order::{DotrainOrder, DotrainOrderError};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::config_source::ConfigSource;
 #[cfg(target_family = "wasm")]
-use wasm_bindgen::prelude::*;
+use rain_orderbook_bindings::wasm_traits::prelude::*;
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 impl DotrainOrder {
