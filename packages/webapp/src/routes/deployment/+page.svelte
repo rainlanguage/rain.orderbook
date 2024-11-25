@@ -2,9 +2,12 @@
 	import { DropdownRadio } from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
+		// type AddOrderCalldataResult,
+		// type AllowancesResult,
 		type ApprovalCalldataResult,
 		type AvailableDeployments,
 		type DepositAndAddOrderCalldataResult,
+		// type DepositCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type TokenInfos
@@ -2989,6 +2992,9 @@ min-trade-amount: mul(min-amount 0.9),
 			const signer = await provider.getSigner();
 			const address = await signer.getAddress();
 
+			// const allowances: AllowancesResult = await gui.checkAllowances(address);
+			// console.log(allowances);
+
 			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
 			for (const approval of approvals) {
 				const tx = await signer.sendTransaction({
@@ -2998,10 +3004,32 @@ min-trade-amount: mul(min-amount 0.9),
 				await tx.wait();
 			}
 
+			// const tokenInfos: TokenInfos = gui.getTokenInfos();
+			// const calldatas: DepositCalldataResult = await gui.generateDepositCalldatas();
+			// console.log(calldatas);
+			// for (const calldata of calldatas) {
+			// 	const tx = await signer.sendTransaction({
+			// 		// @ts-expect-error orderbook is not typed
+			// 		to: gui.getCurrentDeployment().deployment.order.orderbook.address,
+			// 		data: calldata
+			// 	});
+			// 	await tx.wait();
+			// }
+
+			// const calldata: AddOrderCalldataResult = await gui.generateAddOrderCalldata();
+			// console.log('CALLLDATA', calldata);
+			// const tx = await signer.sendTransaction({
+			// 	// @ts-expect-error orderbook is not typed
+			// 	to: gui.getCurrentDeployment().deployment.order.orderbook.address,
+			// 	data: calldata
+			// });
+			// await tx.wait();
+
 			const calldata: DepositAndAddOrderCalldataResult =
 				await gui.generateDepositAndAddOrderCalldatas();
 			const tx = await signer.sendTransaction({
-				to: '0xcA11bde05977b3631167028862bE2a173976CA11',
+				// @ts-expect-error orderbook is not typed
+				to: gui.getCurrentDeployment().deployment.order.orderbook.address,
 				data: calldata
 			});
 			await tx.wait();
@@ -3122,6 +3150,7 @@ min-trade-amount: mul(min-amount 0.9),
 						isDepositPreset[deposit.token_name] = false;
 					} else {
 						isDepositPreset[deposit.token_name] = true;
+						gui?.removeDeposit(deposit.token_name);
 						gui?.saveDeposit(deposit.token_name, detail.value || '');
 					}
 				}}
@@ -3148,6 +3177,7 @@ min-trade-amount: mul(min-amount 0.9),
 					placeholder="Enter deposit amount"
 					on:change={({ currentTarget }) => {
 						if (currentTarget instanceof HTMLInputElement) {
+							gui?.removeDeposit(deposit.token_name);
 							gui?.saveDeposit(deposit.token_name, currentTarget.value);
 						}
 					}}
