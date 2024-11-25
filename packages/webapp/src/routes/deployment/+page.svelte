@@ -2937,6 +2937,7 @@ min-trade-amount: mul(min-amount 0.9),
 				])
 			);
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Failed to load deployments:', error);
 		}
 	});
@@ -2948,6 +2949,7 @@ min-trade-amount: mul(min-amount 0.9),
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Failed to get gui:', error);
 		}
 	}
@@ -3034,6 +3036,7 @@ min-trade-amount: mul(min-amount 0.9),
 			});
 			await tx.wait();
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Failed to add order:', error);
 		}
 	}
