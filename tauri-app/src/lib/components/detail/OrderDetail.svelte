@@ -9,20 +9,22 @@
     QKEY_ORDER,
     ButtonVaultLink,
     BadgeActive,
+    TanstackPageContentDetail,
+    CodeMirrorRainlang,
   } from '@rainlanguage/ui-components';
 
-  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { subgraphUrl } from '$lib/stores/settings';
-  import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
   import { orderDetail } from '$lib/queries/orderDetail';
-  import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
-  import OrderTradesChart from '../charts/OrderTradesChart.svelte';
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
-  import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+
+  // Components
+  import OrderTradesChart from '../charts/OrderTradesChart.svelte';
+  import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
+  import OrderVaultsVolTable from '$lib/components/tables/OrderVaultsVolTable.svelte';
 
   export let id: string;
 

@@ -40,6 +40,6 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"dependencies": {
-		"flowbite-svelte": "^0.44.21"
+				"flowbite-svelte": "^0.44.21"
 	}
 }

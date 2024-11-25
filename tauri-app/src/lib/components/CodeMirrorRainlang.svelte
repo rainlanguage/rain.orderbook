@@ -1,7 +1,7 @@
 <script lang="ts">
   import CodeMirror from 'svelte-codemirror-editor';
   import { RainlangLR } from 'codemirror-rainlang';
-  import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import { codeMirrorTheme } from '@rainlanguage/ui-components';
 
   export let value: string;
   export let disabled = false;

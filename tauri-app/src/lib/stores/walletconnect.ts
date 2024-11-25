@@ -1,5 +1,5 @@
 import { toasts } from './toasts';
-import { colorTheme } from './darkMode';
+import { colorTheme } from '@rainlanguage/ui-components';
 import { settings } from './settings';
 import { get, writable } from '@square/svelte-store';
 import Provider from '@walletconnect/ethereum-provider';

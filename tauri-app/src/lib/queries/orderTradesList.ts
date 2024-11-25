@@ -2,7 +2,7 @@ import type { Trade, VaultVolume } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
 import { prepareHistoricalOrderChartData } from '$lib/services/historicalOrderCharts';
-import { colorTheme } from '$lib/stores/darkMode';
+import { colorTheme } from '@rainlanguage/ui-components';
 import { get } from 'svelte/store';
 
 export type OrderTradesListArgs = {

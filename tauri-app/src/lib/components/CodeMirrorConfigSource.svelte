@@ -1,6 +1,6 @@
 <script lang="ts">
   import CodeMirror from 'svelte-codemirror-editor';
-  import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import { codeMirrorTheme } from '@rainlanguage/ui-components';
   import { yaml } from '@codemirror/lang-yaml';
   import { parseConfigSourceProblems } from '$lib/services/configCodemirrorProblems';
   import { RawRainlangExtension } from 'codemirror-rainlang';

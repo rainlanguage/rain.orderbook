@@ -18,6 +18,9 @@ export { default as PageHeader } from './components/PageHeader.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
 export { default as ButtonTab } from './components/ButtonTab.svelte';
 export { default as BadgeActive } from './components/BadgeActive.svelte';
+export { default as TanstackPageContentDetail } from './components/detail/TanstackPageContentDetail.svelte';
+export { default as CodeMirrorRainlang } from './components/CodeMirrorRainlang.svelte';
+
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -51,3 +54,4 @@ export {
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
+export { colorTheme, codeMirrorTheme, lightweightChartsTheme } from './stores/darkMode';

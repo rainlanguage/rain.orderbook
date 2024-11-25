@@ -1,7 +1,7 @@
 <script lang="ts">
   import CodeMirror from 'svelte-codemirror-editor';
   import { RawRainlangExtension } from 'codemirror-rainlang';
-  import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import { codeMirrorTheme } from '@rainlanguage/ui-components';
   import { openLintPanel } from '@codemirror/lint';
 
   export let value: string;

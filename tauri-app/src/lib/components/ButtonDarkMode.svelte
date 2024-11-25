@@ -1,6 +1,6 @@
 <script lang="ts">
   import { DarkMode } from 'flowbite-svelte';
-  import { colorTheme } from '$lib/stores/darkMode';
+  import { colorTheme } from '@rainlanguage/ui-components';
 
   function toggle(e: MouseEvent) {
     const isDark = (e.target as HTMLElement).ownerDocument.documentElement.classList.contains(
