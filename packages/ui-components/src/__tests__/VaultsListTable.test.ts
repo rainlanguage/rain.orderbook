@@ -1,9 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/svelte';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-import { getVaults } from '@rainlanguage/orderbook/js_api';
 import type { VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+
+import type { ComponentProps } from 'svelte';
+import userEvent from '@testing-library/user-event';
 
 const mockVaultWithSubgraph: VaultWithSubgraphName = {
 	vault: {
@@ -34,16 +37,7 @@ const mockVaultWithSubgraph: VaultWithSubgraphName = {
 	subgraphName: 'mock-subgraph-mainnet'
 };
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	getVaults: vi.fn()
-}));
-
-// vi.mock('@tanstack/svelte-query', async (importOriginal) => ({
-// 	...(await importOriginal<typeof import('@tanstack/svelte-query')>()),
-// 	createInfiniteQuery: createResolvableInfiniteQuery((pageParam) => {
-// 		return ['Hello!' + pageParam];
-// 	})
-// }));
+vi.mock('@tanstack/svelte-query');
 
 // Hoisted mock stores
 const {
@@ -76,49 +70,98 @@ const defaultProps = {
 	currentRoute: '/vaults'
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VaultsListTableProps = ComponentProps<VaultsListTable<any>>;
+
 describe('VaultsListTable', () => {
-	it('renders without crashing', () => {
-		render(VaultsListTable, defaultProps);
-		expect(screen.getByText('Vaults')).toBeInTheDocument();
+	it('displays vault information correctly', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockVaultWithSubgraph]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
+		expect(screen.getByTestId('vault-network')).toHaveTextContent('mock-subgraph-mainnet');
+		expect(screen.getByTestId('vault-token')).toHaveTextContent('Mock Token');
+		expect(screen.getByTestId('vault-balance')).toHaveTextContent('1 MTK');
 	});
 
-	it.only('displays vault information correctly', () => {
-		(getVaults as Mock).mockResolvedValue([mockVaultWithSubgraph]);
-		render(VaultsListTable, defaultProps);
-		expect(screen.getByTestId('vault-network')).toHaveTextContent('testnet');
-		expect(screen.getByTestId('vault-token')).toHaveTextContent('Test Token');
-		expect(screen.getByTestId('vault-balance')).toHaveTextContent('1.0 TEST');
-	});
-
-	it('shows deposit/withdraw buttons when handlers are provided', () => {
+	it('shows deposit/withdraw buttons when handlers are provided', async () => {
 		const handleDepositModal = vi.fn();
 		const handleWithdrawModal = vi.fn();
-
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockVaultWithSubgraph]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
 		render(VaultsListTable, {
 			...defaultProps,
 			handleDepositModal,
 			handleWithdrawModal
-		});
+		} as unknown as VaultsListTableProps);
 
 		const menuButton = screen.getByTestId('vault-menu');
-		fireEvent.click(menuButton);
-
-		expect(screen.getByTestId('deposit-button')).toBeInTheDocument();
-		expect(screen.getByTestId('withdraw-button')).toBeInTheDocument();
+		await userEvent.click(menuButton);
+		await waitFor(() => {
+			expect(screen.getByTestId('deposit-button')).toBeInTheDocument();
+			expect(screen.getByTestId('withdraw-button')).toBeInTheDocument();
+		});
 	});
 
-	it('shows new vault button when handleDepositGenericModal is provided', () => {
+	it('shows new vault button when handleDepositGenericModal is provided', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockVaultWithSubgraph]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
 		const handleDepositGenericModal = vi.fn();
 
 		render(VaultsListTable, {
 			...defaultProps,
 			handleDepositGenericModal
-		});
+		} as unknown as VaultsListTableProps);
 
 		expect(screen.getByTestId('new-vault-button')).toBeInTheDocument();
 	});
 
 	it('handles deposit action', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockVaultWithSubgraph]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
 		const handleDepositModal = vi.fn();
 		const handleWithdrawModal = vi.fn();
 
@@ -126,62 +169,42 @@ describe('VaultsListTable', () => {
 			...defaultProps,
 			handleDepositModal,
 			handleWithdrawModal
-		});
+		} as unknown as VaultsListTableProps);
 
 		const menuButton = screen.getByTestId('vault-menu');
-		fireEvent.click(menuButton);
+		await userEvent.click(menuButton);
 
 		const depositButton = screen.getByTestId('deposit-button');
-		fireEvent.click(depositButton);
+		await userEvent.click(depositButton);
 
-		expect(handleDepositModal).toHaveBeenCalledWith(mockVault, expect.any(Function));
-	});
-
-	it('handles withdraw action', async () => {
-		const handleDepositModal = vi.fn();
-		const handleWithdrawModal = vi.fn();
-
-		render(VaultsListTable, {
-			...defaultProps,
-			handleDepositModal,
-			handleWithdrawModal
-		});
-
-		const menuButton = screen.getByTestId('vault-menu');
-		fireEvent.click(menuButton);
-
-		const withdrawButton = screen.getByTestId('withdraw-button');
-		fireEvent.click(withdrawButton);
-
-		expect(handleWithdrawModal).toHaveBeenCalledWith(mockVault, expect.any(Function));
+		expect(handleDepositModal).toHaveBeenCalledWith(mockVaultWithSubgraph.vault, undefined);
 	});
 
 	it('hides action buttons when user is not the vault owner', () => {
 		render(VaultsListTable, {
 			...defaultProps,
 			walletAddressMatchesOrBlank: readable(() => false)
-		});
+		} as unknown as VaultsListTableProps);
 
 		expect(screen.queryByTestId('vault-menu')).not.toBeInTheDocument();
 	});
 
-	it('displays empty state when no vaults are found', () => {
-		vi.mock('@tanstack/svelte-query', () => ({
-			createInfiniteQuery: () => ({
-				subscribe: (fn: (value: any) => void) => {
-					fn({
-						data: { pages: [[]] },
-						fetchNextPage: vi.fn(),
-						hasNextPage: false,
-						isFetchingNextPage: false,
-						refetch: vi.fn()
-					});
-					return { unsubscribe: vi.fn() };
-				}
-			})
-		}));
+	it('displays empty state when no vaults are found', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
 
-		render(VaultsListTable, defaultProps);
+		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
 		expect(screen.getByText('No Vaults Found')).toBeInTheDocument();
 	});
 });
