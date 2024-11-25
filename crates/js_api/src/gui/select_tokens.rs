@@ -2,6 +2,10 @@ use std::str::FromStr;
 
 use super::*;
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct SelectTokens(#[tsify(type = "Map<string, string>")] BTreeMap<String, Address>);
+impl_all_wasm_traits!(SelectTokens);
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
     pub fn check_token_addresses(&self) -> Result<(), GuiError> {
@@ -19,12 +23,12 @@ impl DotrainOrderGui {
     ///
     /// Returns a map of token name to address
     #[wasm_bindgen(js_name = "getSelectTokens")]
-    pub fn get_select_tokens(&self) -> Result<JsValue, GuiError> {
+    pub fn get_select_tokens(&self) -> Result<SelectTokens, GuiError> {
         let select_tokens = self
             .select_tokens
             .clone()
             .ok_or(GuiError::SelectTokensNotSet)?;
-        Ok(serde_wasm_bindgen::to_value(&select_tokens)?)
+        Ok(SelectTokens(select_tokens))
     }
 
     #[wasm_bindgen(js_name = "saveSelectTokenAddress")]

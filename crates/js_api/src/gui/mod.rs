@@ -22,6 +22,14 @@ mod order_operations;
 mod select_tokens;
 mod state_management;
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct AvailableDeployments(Vec<GuiDeployment>);
+impl_all_wasm_traits!(AvailableDeployments);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
+impl_all_wasm_traits!(TokenInfos);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
@@ -34,8 +42,18 @@ pub struct DotrainOrderGui {
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    #[wasm_bindgen(js_name = "init")]
-    pub async fn init(
+    #[wasm_bindgen(js_name = "getAvailableDeployments")]
+    pub async fn get_available_deployments(
+        dotrain: String,
+    ) -> Result<AvailableDeployments, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let config = dotrain_order.config();
+        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
+        Ok(AvailableDeployments(gui_config.deployments))
+    }
+
+    #[wasm_bindgen(js_name = "chooseDeployment")]
+    pub async fn choose_deployment(
         dotrain: String,
         deployment_name: String,
         multicall_address: Option<String>,
@@ -127,8 +145,8 @@ impl DotrainOrderGui {
     ///
     /// Returns a map of token address to [`TokenInfo`]
     #[wasm_bindgen(js_name = "getTokenInfos")]
-    pub fn get_token_infos(&self) -> Result<JsValue, GuiError> {
-        Ok(serde_wasm_bindgen::to_value(&self.onchain_token_info)?)
+    pub fn get_token_infos(&self) -> Result<TokenInfos, GuiError> {
+        Ok(TokenInfos(self.onchain_token_info.clone()))
     }
 }
 
