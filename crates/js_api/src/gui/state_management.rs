@@ -26,12 +26,14 @@ impl DotrainOrderGui {
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
                 let field_definition = self.get_field_definition(k)?;
-                let preset = field_definition
+                let presets = field_definition
                     .presets
+                    .ok_or(GuiError::BindingHasNoPresets(k.clone()))?;
+                presets
                     .iter()
                     .find(|preset| preset.id == v.value)
-                    .ok_or(GuiError::InvalidPreset)?;
-                preset.clone()
+                    .ok_or(GuiError::InvalidPreset)?
+                    .clone()
             } else {
                 GuiPreset {
                     id: "".to_string(),

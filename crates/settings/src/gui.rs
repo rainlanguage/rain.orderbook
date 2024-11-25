@@ -36,7 +36,7 @@ pub struct GuiFieldDefinitionSource {
     pub binding: String,
     pub name: String,
     pub description: String,
-    pub presets: Vec<GuiPresetSource>,
+    pub presets: Option<Vec<GuiPresetSource>>,
 }
 
 #[typeshare]
@@ -106,16 +106,21 @@ impl GuiConfigSource {
                             description: field_source.description.clone(),
                             presets: field_source
                                 .presets
-                                .iter()
-                                .enumerate()
-                                .map(|(i, preset)| {
-                                    Ok(GuiPreset {
-                                        id: i.to_string(),
-                                        name: preset.name.clone(),
-                                        value: preset.value.clone(),
-                                    })
+                                .as_ref()
+                                .map(|presets| {
+                                    presets
+                                        .iter()
+                                        .enumerate()
+                                        .map(|(i, preset)| {
+                                            Ok(GuiPreset {
+                                                id: i.to_string(),
+                                                name: preset.name.clone(),
+                                                value: preset.value.clone(),
+                                            })
+                                        })
+                                        .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()
                                 })
-                                .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?,
+                                .transpose()?,
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -203,7 +208,7 @@ pub struct GuiFieldDefinition {
     pub binding: String,
     pub name: String,
     pub description: String,
-    pub presets: Vec<GuiPreset>,
+    pub presets: Option<Vec<GuiPreset>>,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(GuiFieldDefinition);
@@ -246,7 +251,7 @@ mod tests {
                         binding: "test-binding".to_string(),
                         name: "test-name".to_string(),
                         description: "test-description".to_string(),
-                        presets: vec![
+                        presets: Some(vec![
                             GuiPresetSource {
                                 name: Some("test-preset".to_string()),
                                 value: "0.015".to_string(),
@@ -255,13 +260,13 @@ mod tests {
                                 name: Some("test-preset-2".to_string()),
                                 value: "0.3".to_string(),
                             },
-                        ],
+                        ]),
                     },
                     GuiFieldDefinitionSource {
                         binding: "test-binding-2".to_string(),
                         name: "test-name-2".to_string(),
                         description: "test-description-2".to_string(),
-                        presets: vec![
+                        presets: Some(vec![
                             GuiPresetSource {
                                 name: None,
                                 value: "3.2".to_string(),
@@ -270,13 +275,13 @@ mod tests {
                                 name: None,
                                 value: "4.8".to_string(),
                             },
-                        ],
+                        ]),
                     },
                     GuiFieldDefinitionSource {
                         binding: "test-binding-3".to_string(),
                         name: "test-name-3".to_string(),
                         description: "test-description-3".to_string(),
-                        presets: vec![
+                        presets: Some(vec![
                             GuiPresetSource {
                                 name: None,
                                 value: Address::default().to_string(),
@@ -289,7 +294,7 @@ mod tests {
                                 name: None,
                                 value: "true".to_string(),
                             },
-                        ],
+                        ]),
                     },
                 ],
                 select_tokens: Some(vec!["test-token".to_string()]),
