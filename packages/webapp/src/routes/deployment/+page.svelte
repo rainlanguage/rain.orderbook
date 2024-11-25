@@ -40,7 +40,6 @@ gui:
           name: Initial price (USDGLO per LUSD)
           description: The rough price ratio for USDGLO to LUSD (e.g. 0.99209209209 if LUSD is lower).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -139,7 +138,6 @@ gui:
           name: Initial price (QUICK per WPOL/WMATIC)
           description: The rough price ratio for QUICK to WPOL/WMATIC (e.g. 0.1).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -232,7 +230,6 @@ gui:
           name: Initial price (QUICK per QUICK (old))
           description: The rough price ratio for new QUICK to old QUICK (e.g. 1034).
           min: 1000
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -331,7 +328,6 @@ gui:
           name: Initial price (USDC per IOEN)
           description: The rough USD price you see for IOEN on Dextools (e.g. 0.0026).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -425,7 +421,6 @@ gui:
           name: Initial price (USDC per WETH)
           description: The rough USDC price you see for WETH on Dextools (e.g. 2500).
           min: 1
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -524,7 +519,6 @@ gui:
           name: Initial price (WETH per LUCKY)
           description: The rough LUCKY price you see for WETH on Dextools (e.g. 0.0000009419).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -624,7 +618,6 @@ gui:
           name: Initial price (USDC per PAID)
           description: The rough USDC price you see for PAID on Dex Screener (e.g. 0.04983).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -723,7 +716,6 @@ gui:
           name: Initial price (USDC per WETH)
           description: The rough USDC price you see for WETH on Dextools (e.g. 2500).
           min: 1
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -823,7 +815,6 @@ gui:
           name: Initial price (WBTC per WETH)
           description: This should be the WETH price you see for WBTC on Dextools (e.g. 0.038).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -921,7 +912,6 @@ gui:
           name: Initial price (USDC per TOSHI)
           description: The rough USDC price you see for TOSHI on Dextools (e.g. 0.000175)
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1018,7 +1008,6 @@ gui:
           name: Initial price (WFLR per sFLR)
           description: The rough initial WFLR to sFLR ratio (e.g. 1.11).
           min: 1
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1115,7 +1104,6 @@ gui:
           name: Initial price (USDC.e per sFLR)
           description: The rough USD price you see for sFLR on Dextools (e.g. 0.0172).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1210,7 +1198,6 @@ gui:
           name: Initial price (USDC.e per WETH)
           description: The rough USD price you see for WETH on Dextools (e.g. 2500).
           min: 1
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1309,7 +1296,6 @@ gui:
           name: Initial price (sFLR per JOULE)
           description: The rough initial sFLR to JOULE ratio (e.g. 1.5298).
           min: 1
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1407,7 +1393,6 @@ gui:
           name: Initial price (USDC per BLOOD)
           description: The rough USDC price you see for BLOOD on Dex Screener (e.g. 0.00004834799901478809).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1506,7 +1491,6 @@ gui:
           name: Initial price (WETH per CLIP) (e.g. 0.000049801852465796 WETH per CLIP)
           description: The rough WETH price you see for CLIP on Dextools.
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1602,7 +1586,6 @@ gui:
           name: Initial price (WETH per PAI)
           description: The rough WETH price you see for PAI on Dextools (e.g. 0.0001205).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1701,7 +1684,6 @@ gui:
           name: Initial price (BUSD per TFT)
           description: The rough USD price you see for TFT on Dextools (e.g. 0.009)
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1798,7 +1780,6 @@ gui:
           name: Initial price (USDC per TFT)
           description: The rough USDC price you see for TFT on Dextools (e.g. 0.009)
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1895,7 +1876,6 @@ gui:
           name: Initial price (WETH per UMJA)
           description: The rough WETH price you see for UMJA on Dextools (.eg. 0.0000058637)
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -1993,7 +1973,6 @@ gui:
           name: Initial price (USDC per WLTH)
           description: The rough USDC price you see for WLTH on Dextools (e.g. 0.035).
           min: 0
-          presets:
         - binding: next-trade-multiplier
           name: Next trade multiplier
           description: This is the most the strategy will move the price in a single trade. Larger numbers will capture larger price jumps but trade less often, smaller numbers will trade more often but be less defensive against large price jumps in the market.
@@ -3073,7 +3052,7 @@ min-trade-amount: mul(min-amount 0.9),
 			<DropdownRadio
 				options={{
 					...Object.fromEntries(
-						fieldDefinition.presets.map((preset) => [
+						(fieldDefinition.presets ?? []).map((preset) => [
 							preset.id,
 							{
 								label: preset.name,
@@ -3153,7 +3132,6 @@ min-trade-amount: mul(min-amount 0.9),
 						isDepositPreset[deposit.token_name] = false;
 					} else {
 						isDepositPreset[deposit.token_name] = true;
-						gui?.removeDeposit(deposit.token_name);
 						gui?.saveDeposit(deposit.token_name, detail.value || '');
 					}
 				}}
@@ -3180,7 +3158,6 @@ min-trade-amount: mul(min-amount 0.9),
 					placeholder="Enter deposit amount"
 					on:change={({ currentTarget }) => {
 						if (currentTarget instanceof HTMLInputElement) {
-							gui?.removeDeposit(deposit.token_name);
 							gui?.saveDeposit(deposit.token_name, currentTarget.value);
 						}
 					}}
