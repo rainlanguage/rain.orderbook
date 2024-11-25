@@ -1,18 +1,20 @@
 <script lang="ts">
-  import CardProperty from './../../../lib/components/CardProperty.svelte';
-  import { Button, TabItem, Tabs } from 'flowbite-svelte';
+  import { Badge, Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import BadgeActive from '$lib/components/BadgeActive.svelte';
-  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-  import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
-  import { Hash, HashType } from '@rainlanguage/ui-components';
+  import {
+    Hash,
+    HashType,
+    CardProperty,
+    formatTimestampSecondsAsLocal,
+    QKEY_ORDER,
+    ButtonVaultLink,
+  } from '@rainlanguage/ui-components';
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { subgraphUrl } from '$lib/stores/settings';
   import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
-  import { QKEY_ORDER } from '@rainlanguage/ui-components';
   import { orderDetail } from '$lib/queries/orderDetail';
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';
@@ -53,7 +55,9 @@
         <span class="font-light">Order</span>
         <Hash shorten value={data.order.orderHash} />
       </div>
-      <BadgeActive active={data.order.active} large />
+      <Badge color={data.order.active ? 'green' : 'yellow'} large
+        >{data.order.active ? 'Active' : 'Inactive'}</Badge
+      >
     </div>
     {#if data.order && $walletAddressMatchesOrBlank(data.order.owner) && data.order.active}
       <Button
