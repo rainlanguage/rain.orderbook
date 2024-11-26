@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
-import { expect } from '../../test/matchers';
-import LightweightChart from './LightweightChart.svelte';
+import { expect } from '../lib/test/matchers';
+import LightweightChart from '../lib/components/charts/LightweightChart.svelte';
 import { type IChartApi, type UTCTimestamp } from 'lightweight-charts';
 
 const setDataMock = vi.fn();
@@ -23,7 +23,7 @@ vi.mock('lightweight-charts', async (importOriginal) => ({
 	}))
 }));
 
-vi.mock('../../stores/darkMode', async (importOriginal) => {
+vi.mock('../lib/stores/darkMode', async (importOriginal) => {
 	const { readable } = await import('svelte/store');
 	return {
 		...((await importOriginal()) as object),

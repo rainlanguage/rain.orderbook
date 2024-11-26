@@ -1,14 +1,14 @@
 import { render, waitFor } from '@testing-library/svelte';
 import { test, expect, vi } from 'vitest';
-import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
-import { props } from '../../__mocks__/MockComponent';
-import { createResolvableQuery } from '../../__mocks__/queries';
+import TanstackLightweightChartLine from '../lib/components/charts/TanstackLightweightChartLine.svelte';
+import { props } from '../lib/__mocks__/MockComponent';
+import { createResolvableQuery } from '../lib/__mocks__/queries';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { get } from 'svelte/store';
 
 // Mock the LightweightChart component
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-	const MockLightweightChart = (await import('../../__mocks__/MockComponent.svelte')).default;
+	const MockLightweightChart = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal<Record<string, unknown>>()),
 		LightweightChart: MockLightweightChart
