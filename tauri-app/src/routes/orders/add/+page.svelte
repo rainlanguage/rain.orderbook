@@ -13,7 +13,7 @@
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
   import type { Config } from '$lib/typeshare/config';
-  import DropdownRadio from '$lib/components/DropdownRadio.svelte';
+  import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/config';
   import ModalExecute from '$lib/components/ModalExecute.svelte';

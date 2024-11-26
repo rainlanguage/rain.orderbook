@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Helper, Label } from 'flowbite-svelte';
   import { activeNetworkOrderbooks, activeOrderbookRef } from '$lib/stores/settings';
-  import DropdownRadio from '$lib/components/DropdownRadio.svelte';
+  import { DropdownRadio } from '@rainlanguage/ui-components';
   import SkeletonRow from '$lib/components/SkeletonRow.svelte';
   import { isEmpty } from 'lodash';
 </script>
