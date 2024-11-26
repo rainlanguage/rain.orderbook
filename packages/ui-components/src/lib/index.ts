@@ -15,6 +15,8 @@ export { default as ListViewOrderbookFilters } from './components/ListViewOrderb
 export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
 export { default as VaultsListTable } from './components/tables/VaultsListTable.svelte';
 export { default as PageHeader } from './components/PageHeader.svelte';
+export { default as BadgeActive } from './components/BadgeActive.svelte';
+export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

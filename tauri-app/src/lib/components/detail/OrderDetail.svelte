@@ -2,9 +2,9 @@
   import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import BadgeActive from '$lib/components/BadgeActive.svelte';
+  import { BadgeActive } from '@rainlanguage/ui-components';
   import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-  import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
+  import { ButtonVaultLink } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
