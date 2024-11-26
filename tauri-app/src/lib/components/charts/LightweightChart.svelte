@@ -28,7 +28,7 @@
     type SeriesOptionsMap,
   } from 'lightweight-charts';
   import { onDestroy, onMount } from 'svelte';
-  import ChartTimeFilters from './ChartTimeFilters.svelte';
+  import { ChartTimeFilters } from '@rainlanguage/ui-components';
 
   export let data: { value: number; time: UTCTimestamp; color?: string }[] = [];
   export let loading = false;

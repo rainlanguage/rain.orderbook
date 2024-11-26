@@ -17,7 +17,8 @@ export { default as VaultsListTable } from './components/tables/VaultsListTable.
 export { default as PageHeader } from './components/PageHeader.svelte';
 export { default as BadgeActive } from './components/BadgeActive.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
-
+export { default as ButtonTab } from './components/ButtonTab.svelte';
+export { default as ChartTimeFilters } from './components/charts/ChartTimeFilters.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
