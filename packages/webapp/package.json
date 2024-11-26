@@ -16,8 +16,8 @@
 		"svelte-lint-format-check": "npm run lint && npm run check"
 	},
 	"dependencies": {
-		"ethers": "^6.13.4",
-		"flowbite-svelte": "^0.44.21"
+		"flowbite-svelte": "^0.44.21",
+		"viem": "^2.21.51"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-vercel": "^5.4.7"
