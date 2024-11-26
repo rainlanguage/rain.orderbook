@@ -13,9 +13,11 @@
 	export let value: string | undefined = undefined;
 	let open = false;
 
-	$: if (value) {
-		open = false;
+	$: {
 		dispatch('change', { value });
+		if (value) {
+			open = false;
+		}
 	}
 	$: optionsSorted = sortBy(Object.entries(options), (o) => o[0]);
 </script>
@@ -34,7 +36,7 @@
 	<ChevronDownSolid class="mx-2 h-3 w-3 text-black dark:text-white" />
 </Button>
 
-<Dropdown class="w-full min-w-72 py-0" bind:open>
+<Dropdown class="w-full min-w-72 py-0" bind:open data-testid="dropdown">
 	{#each optionsSorted as [ref, option]}
 		<Radio
 			bind:group={value}
