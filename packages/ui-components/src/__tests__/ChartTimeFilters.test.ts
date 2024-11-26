@@ -1,7 +1,7 @@
 import { render, fireEvent, screen } from '@testing-library/svelte';
 import { get, writable } from 'svelte/store';
 import { test, expect } from 'vitest';
-import ChartTimeFiltersTest from '../lib/components/charts/ChartTimeFilters.svelte';
+import ChartTimeFiltersTest from './ChartTimeFilters.test.svelte';
 
 const TIME_DELTA_24_HOURS = 60 * 60 * 24;
 const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
