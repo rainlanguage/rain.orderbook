@@ -105,6 +105,11 @@ impl DotrainOrder {
                 .ok_or(DotrainOrderCalldataError::TokenNotFound(
                     output.token.address.to_string(),
                 ))?;
+
+            if *token_deposit == U256::ZERO {
+                continue;
+            }
+
             let calldata = DepositArgs {
                 token: output.token.address,
                 amount: token_deposit.to_owned(),
