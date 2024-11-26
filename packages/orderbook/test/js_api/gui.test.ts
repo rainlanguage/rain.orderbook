@@ -618,7 +618,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedState =
-      "H4sIAAAAAAAA_3WNPQrCQBCFE42inaBlCmshMrObbHY7ayuvsL8ShAiawhsIFoqH8QIWXsBjeAkFJ43ga973ZuC9RfQVY6X0EgRTZW7QWv8BDiYoA1xIriRnoArDQWMwNmjNuMOcOymRCSlUh3qG5KaqXVWvM4zpAPGAaLXze99McdZ-Dsh4XohSKtDGOh_-5d9yFrXqkiNAO9gnb7YbX2NCqYC5mBDfx1nvmV6Xx4dOR83pldzOlzdUa_DNEAEAAA==";
+      "H4sIAAAAAAAA_3WNSwrCQBBEExXRW7gWlP4kk56dR_AK0_ORIETQLDy-gj0uBGvzqj9UnZqPiAbJAo780CnGmN-GQYtXYCfshQl8rwwBi8YSAnHCjpMIkhPnF5azNeo4pXG6HLC1BbQbc-d7fuR5h_t6eSJx17tBPASNKZd_8284NVVLIwLUwrVxvl3zhN_PlbGHo3sBrC9nnP0AAAA=";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
@@ -715,6 +715,26 @@ ${dotrain}
       assert.equal(fieldValues.length, 0);
       const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 0);
+    });
+
+    it("should check if field is preset", async () => {
+      gui.saveFieldValue("binding-1", {
+        isPreset: true,
+        value: gui.getFieldDefinition("binding-1").presets[0].id,
+      });
+      assert.equal(gui.isFieldPreset("binding-1"), true);
+      gui.saveFieldValue("binding-2", {
+        isPreset: false,
+        value: "100",
+      });
+      assert.equal(gui.isFieldPreset("binding-2"), false);
+    });
+
+    it("should check if deposit is preset", async () => {
+      gui.saveDeposit("token1", "55");
+      assert.equal(gui.isDepositPreset("token1"), false);
+      gui.saveDeposit("token1", "100");
+      assert.equal(gui.isDepositPreset("token1"), true);
     });
   });
 

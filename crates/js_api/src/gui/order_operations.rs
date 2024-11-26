@@ -55,7 +55,7 @@ impl DotrainOrderGui {
 
     fn get_deposits_as_map(&self) -> Result<HashMap<Address, U256>, GuiError> {
         let mut map: HashMap<Address, U256> = HashMap::new();
-        for d in self.get_deposits() {
+        for d in self.get_deposits()? {
             let token_decimals = self
                 .onchain_token_info
                 .get(&d.address)

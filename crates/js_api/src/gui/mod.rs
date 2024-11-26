@@ -36,7 +36,7 @@ pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
     field_values: BTreeMap<String, field_values::PairValue>,
-    deposits: Vec<deposits::TokenDeposit>,
+    deposits: BTreeMap<String, field_values::PairValue>,
     select_tokens: Option<BTreeMap<String, Address>>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
@@ -106,7 +106,7 @@ impl DotrainOrderGui {
             dotrain_order,
             deployment: gui_deployment.clone(),
             field_values: BTreeMap::new(),
-            deposits: vec![],
+            deposits: BTreeMap::new(),
             select_tokens,
             onchain_token_info,
         })

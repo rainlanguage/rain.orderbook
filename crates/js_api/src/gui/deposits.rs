@@ -12,8 +12,33 @@ impl_all_wasm_traits!(TokenDeposit);
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeposits")]
-    pub fn get_deposits(&self) -> Vec<TokenDeposit> {
-        self.deposits.clone()
+    pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
+        self.deposits
+            .iter()
+            .map(|(token, value)| {
+                let gui_deposit = self
+                    .deployment
+                    .deposits
+                    .iter()
+                    .find(|dg| dg.token_name == *token)
+                    .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
+                let amount: String = if value.is_preset {
+                    gui_deposit
+                        .presets
+                        .iter()
+                        .find(|preset| **preset == value.value)
+                        .ok_or(GuiError::InvalidPreset)?
+                        .clone()
+                } else {
+                    value.value.clone()
+                };
+                Ok(TokenDeposit {
+                    token: gui_deposit.token_name.clone(),
+                    amount,
+                    address: gui_deposit.token.address,
+                })
+            })
+            .collect::<Result<Vec<TokenDeposit>, GuiError>>()
     }
 
     #[wasm_bindgen(js_name = "saveDeposit")]
@@ -25,23 +50,25 @@ impl DotrainOrderGui {
             .find(|dg| dg.token_name == token)
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
 
-        let deposit_token = TokenDeposit {
-            token: gui_deposit.token_name.clone(),
-            amount,
-            address: gui_deposit.token.address,
+        let value = if let Some(index) = gui_deposit.presets.iter().position(|p| **p == amount) {
+            field_values::PairValue {
+                is_preset: true,
+                value: index.to_string(),
+            }
+        } else {
+            field_values::PairValue {
+                is_preset: false,
+                value: amount,
+            }
         };
 
-        if let Some(existing_deposit) = self.deposits.iter_mut().find(|d| d.token == token) {
-            *existing_deposit = deposit_token;
-        } else {
-            self.deposits.push(deposit_token);
-        }
+        self.deposits.insert(token, value);
         Ok(())
     }
 
     #[wasm_bindgen(js_name = "removeDeposit")]
     pub fn remove_deposit(&mut self, token: String) {
-        self.deposits.retain(|deposit| deposit.token != token);
+        self.deposits.remove(&token);
     }
 
     #[wasm_bindgen(js_name = "getDepositPresets")]
