@@ -1,5 +1,5 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { ConfigSource } from '../typeshare/config';
+import type { ConfigSource, OrderbookConfigSource } from '../typeshare/config';
 export interface AppStoresInterface {
 	settings: Writable<ConfigSource | undefined>;
 	activeSubgraphs: Writable<Record<string, string>>;
@@ -10,4 +10,10 @@ export interface AppStoresInterface {
 	hideZeroBalanceVaults: Writable<boolean>;
 	activeNetworkRef: Writable<string | undefined>;
 	activeOrderbookRef: Writable<string | undefined>;
+	// New ones
+	activeOrderbook: Readable<OrderbookConfigSource | undefined>;
+	subgraphUrl: Readable<string | undefined>;
+	activeAccounts: Readable<{
+		[k: string]: string;
+	}>;
 }

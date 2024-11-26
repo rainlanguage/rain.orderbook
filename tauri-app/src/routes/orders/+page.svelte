@@ -1,6 +1,5 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
-
+  import { PageHeader } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
   import { OrdersListTable } from '@rainlanguage/ui-components';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
@@ -32,7 +31,7 @@
   });
 </script>
 
-<PageHeader title="Orders" />
+<PageHeader title="Orders" pathname={$page.url.pathname} />
 
 <OrdersListTable
   {activeNetworkRef}

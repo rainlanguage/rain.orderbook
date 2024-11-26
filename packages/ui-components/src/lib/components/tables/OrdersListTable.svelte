@@ -1,6 +1,5 @@
 <script lang="ts" generics="T">
 	import { goto } from '$app/navigation';
-
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';

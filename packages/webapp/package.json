@@ -17,7 +17,8 @@
 	},
 	"dependencies": {
 		"flowbite-svelte": "^0.44.21",
-		"viem": "^2.21.51"
+		"viem": "^2.21.51",
+		"lodash": "^4.17.21"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-vercel": "^5.4.7"
