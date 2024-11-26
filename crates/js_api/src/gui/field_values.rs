@@ -53,6 +53,11 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = "removeFieldValue")]
+    pub fn remove_field_value(&mut self, binding: String) {
+        self.field_values.remove(&binding);
+    }
+
     #[wasm_bindgen(js_name = "getFieldValue")]
     pub fn get_field_value(&self, binding: String) -> Result<GuiPreset, GuiError> {
         let field_value = self

@@ -151,24 +151,14 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "isFieldPreset")]
-    pub fn is_field_preset(&self, binding: String) -> bool {
-        self.field_values
-            .get(&binding)
-            .unwrap_or(&field_values::PairValue {
-                is_preset: false,
-                value: String::default(),
-            })
-            .is_preset
+    pub fn is_field_preset(&self, binding: String) -> Option<bool> {
+        let value = self.field_values.get(&binding);
+        value.map(|v| v.is_preset)
     }
 
     #[wasm_bindgen(js_name = "isDepositPreset")]
-    pub fn is_deposit_preset(&self, token: String) -> bool {
-        self.deposits
-            .get(&token)
-            .unwrap_or(&field_values::PairValue {
-                is_preset: false,
-                value: String::default(),
-            })
-            .is_preset
+    pub fn is_deposit_preset(&self, token: String) -> Option<bool> {
+        let value = self.deposits.get(&token);
+        value.map(|v| v.is_preset)
     }
 }

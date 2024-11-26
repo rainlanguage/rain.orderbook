@@ -80,20 +80,16 @@
 		tokenInfos = gui.getTokenInfos();
 	}
 
-	let isFieldPreset: Record<string, boolean> = {};
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	function getAllFieldDefinitions() {
 		if (!gui) return;
 		allFieldDefinitions = gui.getAllFieldDefinitions();
-		isFieldPreset = Object.fromEntries(allFieldDefinitions.map((field) => [field.binding, true]));
 	}
 
-	let isDepositPreset: Record<string, boolean> = {};
 	let allDeposits: GuiDeposit[] = [];
 	function getDeposits() {
 		if (!gui) return;
 		allDeposits = gui.getCurrentDeployment().deposits;
-		isDepositPreset = Object.fromEntries(allDeposits.map((deposit) => [deposit.token_name, true]));
 	}
 
 	$: if (gui) {
@@ -187,15 +183,11 @@
 					...{ custom: { label: 'Custom value', id: '' } }
 				}}
 				on:change={({ detail }) => {
-					if (detail.value === 'custom') {
-						isFieldPreset[fieldDefinition.binding] = false;
-					} else {
-						isFieldPreset[fieldDefinition.binding] = true;
-						gui?.saveFieldValue(fieldDefinition.binding, {
-							isPreset: true,
-							value: detail.value || ''
-						});
-					}
+					gui?.saveFieldValue(fieldDefinition.binding, {
+						isPreset: detail.value !== 'custom',
+						value: detail.value === 'custom' ? '' : detail.value || ''
+					});
+					gui = gui;
 				}}
 			>
 				<svelte:fragment slot="content" let:selectedOption let:selectedRef>
@@ -215,7 +207,7 @@
 				</svelte:fragment>
 			</DropdownRadio>
 
-			{#if !isFieldPreset[fieldDefinition.binding]}
+			{#if gui?.isFieldPreset(fieldDefinition.binding) === false}
 				<Input
 					placeholder="Enter value"
 					on:change={({ currentTarget }) => {
@@ -252,12 +244,8 @@
 					...{ custom: { label: 'Custom value' } }
 				}}
 				on:change={({ detail }) => {
-					if (detail.value === 'custom') {
-						isDepositPreset[deposit.token_name] = false;
-					} else {
-						isDepositPreset[deposit.token_name] = true;
-						gui?.saveDeposit(deposit.token_name, detail.value || '');
-					}
+					gui?.saveDeposit(deposit.token_name, detail.value === 'custom' ? '' : detail.value || '');
+					gui = gui;
 				}}
 			>
 				<svelte:fragment slot="content" let:selectedOption let:selectedRef>
@@ -277,7 +265,7 @@
 				</svelte:fragment>
 			</DropdownRadio>
 
-			{#if !isDepositPreset[deposit.token_name]}
+			{#if gui?.isDepositPreset(deposit.token_name) === false}
 				<Input
 					placeholder="Enter deposit amount"
 					on:change={({ currentTarget }) => {
