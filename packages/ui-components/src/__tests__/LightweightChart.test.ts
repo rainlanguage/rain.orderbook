@@ -3,7 +3,7 @@ import { test, vi } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import LightweightChart from '../lib/components/charts/LightweightChart.svelte';
 import { type IChartApi, type UTCTimestamp } from 'lightweight-charts';
-
+import { lightweightChartsTheme } from '../lib/stores/darkMode';
 const setDataMock = vi.fn();
 const applyOptionsMock = vi.fn();
 const setVisibleRangeMock = vi.fn();
@@ -43,7 +43,8 @@ test('renders without data correctly', async () => {
 		emptyMessage,
 		loading,
 		priceSymbol,
-		createSeries
+		createSeries,
+		lightweightChartsTheme
 	});
 
 	await waitFor(() => {
@@ -89,7 +90,8 @@ test('renders with data correctly', async () => {
 		loading,
 		priceSymbol,
 		createSeries,
-		data
+		data,
+		lightweightChartsTheme
 	});
 
 	await waitFor(() => {
@@ -125,7 +127,8 @@ test('updates data correctly when props change', async () => {
 		loading,
 		priceSymbol,
 		createSeries,
-		data: initialData
+		data: initialData,
+		lightweightChartsTheme
 	});
 
 	await waitFor(() => {
@@ -151,7 +154,8 @@ test('setOptions is called correctly', async () => {
 		emptyMessage,
 		loading,
 		priceSymbol,
-		createSeries: (chart: IChartApi) => chart.addLineSeries()
+		createSeries: (chart: IChartApi) => chart.addLineSeries(),
+		lightweightChartsTheme
 	});
 
 	await waitFor(() => {
@@ -191,7 +195,8 @@ test('setTimeScale is called correctly', async () => {
 		loading,
 		priceSymbol,
 		createSeries: (chart: IChartApi) => chart.addLineSeries(),
-		data
+		data,
+		lightweightChartsTheme
 	});
 
 	// Simulate clicking the "30 Days" button to change the timeDelta
@@ -239,7 +244,8 @@ test('setupChart is called correctly', async () => {
 		loading,
 		priceSymbol,
 		createSeries: (chart: IChartApi) => chart.addLineSeries(),
-		data
+		data,
+		lightweightChartsTheme
 	});
 
 	await waitFor(() => {
@@ -259,7 +265,8 @@ test('destroyChart is called correctly', async () => {
 		emptyMessage,
 		loading,
 		priceSymbol,
-		createSeries: (chart: IChartApi) => chart.addLineSeries()
+		createSeries: (chart: IChartApi) => chart.addLineSeries(),
+		lightweightChartsTheme
 	});
 
 	component.$destroy();

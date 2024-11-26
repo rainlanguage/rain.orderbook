@@ -1,4 +1,6 @@
 <script lang="ts" generics="T extends keyof SeriesOptionsMap, D, O">
+	import type { Readable } from 'svelte/store';
+
 	// eslint-disable-next-line no-undef
 	type ISeriesApiType = ISeriesApi<
 		// eslint-disable-next-line no-undef
@@ -11,7 +13,6 @@
 		DeepPartial<O & SeriesOptionsCommon>
 	>;
 
-	import { lightweightChartsTheme } from '../../stores/darkMode';
 	import { Spinner } from 'flowbite-svelte';
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	import {
@@ -36,6 +37,7 @@
 	export let title: string | undefined = undefined;
 	export let priceSymbol: string | undefined = undefined;
 	export let createSeries: (chart: IChartApi) => ISeriesApiType;
+	export let lightweightChartsTheme: Readable<Record<string, unknown>>;
 
 	let chartElement: HTMLElement | undefined = undefined;
 	let chart: IChartApi | undefined;

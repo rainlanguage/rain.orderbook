@@ -7,7 +7,7 @@
   import { subgraphUrl } from '$lib/stores/settings';
   import { TanstackLightweightChartLine } from '@rainlanguage/ui-components';
   import { QKEY_VAULT_CHANGES } from '@rainlanguage/ui-components';
-
+  import { lightweightChartsTheme } from '$lib/stores/darkMode';
   export let vault: Vault;
 
   $: query = createQuery({
@@ -28,5 +28,6 @@
     valueTransform={(d) =>
       bigintToFloat(BigInt(d.newVaultBalance), Number(vault.token.decimals ?? 0))}
     emptyMessage="No deposits or withdrawals found"
+    {lightweightChartsTheme}
   />
 {/if}
