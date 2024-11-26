@@ -3,7 +3,7 @@
   import { QKEY_ORDER_TRADES_LIST } from '@rainlanguage/ui-components';
   import { createQuery } from '@tanstack/svelte-query';
   import { subgraphUrl } from '$lib/stores/settings';
-  import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
+  import { TanstackLightweightChartLine } from '@rainlanguage/ui-components';
 
   export let id: string;
 

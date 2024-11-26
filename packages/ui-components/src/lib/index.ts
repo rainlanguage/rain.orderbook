@@ -19,6 +19,9 @@ export { default as BadgeActive } from './components/BadgeActive.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
 export { default as ButtonTab } from './components/ButtonTab.svelte';
 export { default as ChartTimeFilters } from './components/charts/ChartTimeFilters.svelte';
+export { default as LightweightChart } from './components/charts/LightweightChart.svelte';
+export { default as TanstackLightweightChartLine } from './components/charts/TanstackLightweightChartLine.svelte';
+export { default as MockComponent } from './__mocks__/MockComponent.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

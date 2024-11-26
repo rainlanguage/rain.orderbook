@@ -5,7 +5,7 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultBalanceChangesList } from '$lib/queries/vaultBalanceChangesList';
   import { subgraphUrl } from '$lib/stores/settings';
-  import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
+  import { TanstackLightweightChartLine } from '@rainlanguage/ui-components';
   import { QKEY_VAULT_CHANGES } from '@rainlanguage/ui-components';
 
   export let vault: Vault;

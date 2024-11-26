@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-  import LightweightChart from './LightweightChart.svelte';
+  import { LightweightChart } from '@rainlanguage/ui-components';
   import type { CreateQueryResult } from '@tanstack/svelte-query';
   import type { IChartApi, UTCTimestamp } from 'lightweight-charts';
   import { sortBy } from 'lodash';
