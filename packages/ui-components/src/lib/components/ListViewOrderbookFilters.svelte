@@ -27,7 +27,9 @@
 		</Alert>
 	{:else}
 		{#if isVaultsPage}
-			<CheckboxZeroBalanceVault {hideZeroBalanceVaults} />
+			<div class="mt-4">
+				<CheckboxZeroBalanceVault {hideZeroBalanceVaults} />
+			</div>
 		{/if}
 
 		{#if isOrdersPage}
