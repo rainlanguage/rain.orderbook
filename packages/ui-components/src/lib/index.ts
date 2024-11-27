@@ -50,6 +50,8 @@ export {
 	QKEY_ORDER_QUOTE,
 	QKEY_VAULTS_VOL_LIST
 } from './queries/keys';
+export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes';
+export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
 export { mockConfigSource } from './__mocks__/settings';

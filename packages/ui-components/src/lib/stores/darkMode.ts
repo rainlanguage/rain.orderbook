@@ -1,5 +1,5 @@
-import { darkCodeMirrorTheme, lightCodeMirrorTheme } from '$lib/utils/codeMirrorThemes';
-import { darkChartTheme, lightChartTheme } from '$lib/utils/lightweightChartsThemes';
+import { darkCodeMirrorTheme, lightCodeMirrorTheme } from '../utils/codeMirrorThemes';
+import { darkChartTheme, lightChartTheme } from '../utils/lightweightChartsThemes';
 import { derived, writable } from 'svelte/store';
 
 function readColorTheme(): 'dark' | 'light' {
