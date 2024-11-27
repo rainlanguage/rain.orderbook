@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
+use rain_orderbook_cli::telegram_notifications::check_balance;
 use rain_orderbook_cli::Orderbook;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
@@ -27,6 +28,9 @@ async fn main() -> Result<()> {
         .without_time()
         .compact()
         .init();
+
+    let balance = 8; // Example balance
+    check_balance(balance); // Call the function
 
     let cli = Cli::parse();
     cli.orderbook.execute().await
