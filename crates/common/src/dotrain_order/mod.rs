@@ -471,7 +471,7 @@ impl DotrainOrder {
             .ok_or(DotrainOrderError::OrderNotFound(deployment.order.clone()))?
             .clone();
 
-        let vault_id = custom_vault_id.unwrap_or_else(|| rand::random());
+        let vault_id = custom_vault_id.unwrap_or(rand::random());
 
         let new_inputs = order
             .inputs

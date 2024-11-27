@@ -260,6 +260,7 @@ io: if(
 				// Convert string to BigInt and then to hex string
 				const vaultIdBigInt = BigInt(customVaultId);
 				if (vaultIdBigInt < 0n) {
+					// eslint-disable-next-line no-console
 					console.error('Invalid vault ID - must be non-negative');
 					return;
 				}
@@ -271,6 +272,7 @@ io: if(
 			// Trigger reactivity
 			gui = gui;
 		} catch (error) {
+			// eslint-disable-next-line no-console
 			console.error('Failed to populate vault IDs:', error);
 		}
 	}
