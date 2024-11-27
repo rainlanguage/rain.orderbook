@@ -5,7 +5,7 @@ use crate::{
     add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
     rainlang::compose_to_rainlang,
 };
-use alloy::primitives::{private::rand, Address};
+use alloy::primitives::{private::rand, Address, U256};
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
@@ -451,7 +451,11 @@ impl DotrainOrder {
         Ok(())
     }
 
-    pub fn populate_vault_ids(&mut self, deployment_name: &str) -> Result<(), DotrainOrderError> {
+    pub fn populate_vault_ids(
+        &mut self,
+        deployment_name: &str,
+        custom_vault_id: Option<U256>,
+    ) -> Result<(), DotrainOrderError> {
         let deployment = self
             .config_source
             .deployments
@@ -467,7 +471,7 @@ impl DotrainOrder {
             .ok_or(DotrainOrderError::OrderNotFound(deployment.order.clone()))?
             .clone();
 
-        let vault_id = rand::random();
+        let vault_id = custom_vault_id.unwrap_or_else(|| rand::random());
 
         let new_inputs = order
             .inputs

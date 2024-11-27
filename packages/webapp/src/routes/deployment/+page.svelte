@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DropdownRadio } from '@rainlanguage/ui-components';
+	import { DropdownRadio, Checkbox } from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
 		// type AddOrderCalldataResult,
@@ -137,6 +137,31 @@
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Failed to add order:', error);
+		}
+	}
+
+	let useCustomVaultIds = false;
+	let customVaultId = '';
+	async function handlePopulateVaultIds() {
+		try {
+			if (!gui) return;
+
+			if (useCustomVaultIds && customVaultId) {
+				// Convert string to BigInt and then to hex string
+				const vaultIdBigInt = BigInt(customVaultId);
+				if (vaultIdBigInt < 0n) {
+					console.error('Invalid vault ID - must be non-negative');
+					return;
+				}
+				gui.populateVaultIds('0x' + vaultIdBigInt.toString(16));
+			} else {
+				gui.populateVaultIds();
+			}
+
+			// Trigger reactivity
+			gui = gui;
+		} catch (error) {
+			console.error('Failed to populate vault IDs:', error);
 		}
 	}
 </script>
@@ -280,7 +305,21 @@
 {/if}
 
 {#if selectedDeployment}
-	<Button on:click={() => gui?.populateVaultIds()}>Populate Vault IDs</Button>
+	<div class="my-4 flex flex-col gap-4">
+		<div class="flex items-center gap-2">
+			<Checkbox bind:checked={useCustomVaultIds} label="Choose Vault IDs" />
+		</div>
 
-	<Button on:click={handleAddOrder}>Add Order</Button>
+		{#if useCustomVaultIds}
+			<div class="flex items-center gap-2">
+				<Input type="text" placeholder="Enter vault ID" bind:value={customVaultId} />
+			</div>
+		{/if}
+
+		<Button on:click={handlePopulateVaultIds}>
+			{useCustomVaultIds ? 'Set Custom Vault IDs' : 'Populate Random Vault IDs'}
+		</Button>
+	</div>
+
+	<Button class="flex w-full" on:click={handleAddOrder}>Add Order</Button>
 {/if}

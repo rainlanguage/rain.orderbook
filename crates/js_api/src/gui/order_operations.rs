@@ -257,11 +257,17 @@ impl DotrainOrderGui {
         )))
     }
 
+    /// Populate vault IDs for all inputs and outputs
+    /// If custom_vault_id is provided, use that value instead of generating a random one
     #[wasm_bindgen(js_name = "populateVaultIds")]
-    pub fn populate_vault_ids(&mut self) -> Result<(), GuiError> {
+    pub fn populate_vault_ids(&mut self, custom_vault_id: Option<String>) -> Result<(), GuiError> {
+        let parsed_vault_id = custom_vault_id
+            .map(|vault_id_str| U256::from_str(&vault_id_str))
+            .transpose()
+            .map_err(|e| e)?;
+
         self.dotrain_order
-            .populate_vault_ids(&self.deployment.deployment_name)?;
-        self.refresh_gui_deployment()?;
-        Ok(())
+            .populate_vault_ids(&self.deployment.deployment_name, parsed_vault_id)?;
+        self.refresh_gui_deployment()
     }
 }
