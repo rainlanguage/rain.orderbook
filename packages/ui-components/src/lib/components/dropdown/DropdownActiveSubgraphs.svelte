@@ -36,11 +36,13 @@
 				);
 </script>
 
-<DropdownCheckbox
-	options={dropdownOptions}
-	on:change={handleStatusChange}
-	label="Networks"
-	showAllLabel={false}
-	onlyTitle={true}
-	{value}
-/>
+<div data-testid="subgraphs-dropdown">
+	<DropdownCheckbox
+		options={dropdownOptions}
+		on:change={handleStatusChange}
+		label="Networks"
+		showAllLabel={false}
+		onlyTitle={true}
+		{value}
+	/>
+</div>

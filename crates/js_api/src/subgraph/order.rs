@@ -1,12 +1,10 @@
 use cynic::Id;
+use rain_orderbook_bindings::wasm_traits::prelude::*;
 use rain_orderbook_subgraph_client::{
     types::common::OrdersListFilterArgs, MultiOrderbookSubgraphClient, MultiSubgraphArgs,
     OrderbookSubgraphClient, OrderbookSubgraphClientError, PaginationArgs,
 };
 use reqwest::Url;
-use serde_wasm_bindgen::to_value;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
 
 /// Fetch all orders from multiple subgraphs
 /// Returns a list of OrderWithSubgraphName structs

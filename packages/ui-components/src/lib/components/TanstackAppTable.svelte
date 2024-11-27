@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
 	import Refresh from './icon/Refresh.svelte';
+
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';

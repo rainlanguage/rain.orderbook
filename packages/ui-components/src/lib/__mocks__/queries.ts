@@ -43,7 +43,7 @@ export const createResolvableInfiniteQuery = (
 		lastPageParam + 1
 ) => {
 	const { queryFn, resolve } = createResolvableMockQuery(_queryFn);
-
+	const refetch = vi.fn();
 	const query = createInfiniteQuery(
 		{
 			queryKey: [],
@@ -62,7 +62,7 @@ export const createResolvableInfiniteQuery = (
 		})
 	);
 
-	return { query, resolve };
+	return { query, resolve, refetch };
 };
 
 // A helper function to create a regular Tanstack query that resolves when you call resolve

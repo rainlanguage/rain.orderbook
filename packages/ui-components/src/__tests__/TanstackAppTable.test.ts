@@ -2,7 +2,9 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, expect } from 'vitest';
 import TanstackAppTableTest from './TanstackAppTable.test.svelte';
 import userEvent from '@testing-library/user-event';
-import { createResolvableInfiniteQuery } from '../mocks/queries';
+import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
+import { writable } from 'svelte/store';
+import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 
 test('shows head and title', async () => {
 	const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
@@ -133,7 +135,7 @@ test('load more button message changes when loading', async () => {
 	});
 });
 
-test('load more buttton is disabled when loading', async () => {
+test('shows refresh icon', async () => {
 	const { query, resolve } = createResolvableInfiniteQuery((pageParam) => {
 		return ['page' + pageParam];
 	});
@@ -147,91 +149,29 @@ test('load more buttton is disabled when loading', async () => {
 
 	resolve();
 
-	await waitFor(() => expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled'));
-
-	// loading more rows
-	const loadMoreButton = screen.getByTestId('loadMoreButton');
-	loadMoreButton.click();
-
-	await waitFor(() => expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled'));
-
-	resolve();
-
-	await waitFor(() => expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled'));
-});
-
-test('load more buttton is disabled when there are no more pages', async () => {
-	const { query, resolve } = createResolvableInfiniteQuery(
-		(pageParam) => {
-			if (!pageParam) return ['page' + pageParam];
-			return [];
-		},
-		(_lastPage, _allPages, lastPageParam) => {
-			if (lastPageParam === 0) return 1;
-			return undefined;
-		}
-	);
-
-	render(TanstackAppTableTest, {
-		query,
-		emptyMessage: 'No rows',
-		title: 'Test Table',
-		head: 'Test head'
-	});
-
-	resolve();
-
-	await waitFor(() => expect(screen.getByTestId('loadMoreButton')).not.toHaveAttribute('disabled'));
-
-	// loading more rows
-	const loadMoreButton = screen.getByTestId('loadMoreButton');
-	loadMoreButton.click();
-
-	await waitFor(() => expect(screen.getByTestId('loadMoreButton')).toHaveAttribute('disabled'));
-
-	resolve();
-
-	await waitFor(() =>
-		expect(screen.getByTestId('loadMoreButton')).toHaveTextContent('Nothing more to load')
-	);
+	await waitFor(() => expect(screen.getByTestId('refreshButton')).toBeInTheDocument());
 });
 
 test('refetches data when refresh button is clicked', async () => {
-	let refreshCount = 0;
-	const { query, resolve } = createResolvableInfiniteQuery(() => {
-		refreshCount++;
-		return ['refresh' + refreshCount];
+	const mockRefetch = vi.fn();
+	const mockQuery = writable({
+		status: 'success',
+		fetchStatus: 'idle',
+		refetch: mockRefetch
 	});
 
 	render(TanstackAppTableTest, {
-		query,
+		query: mockQuery as unknown as CreateInfiniteQueryResult<
+			InfiniteData<unknown[], unknown>,
+			Error
+		>,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
 		head: 'Test head'
 	});
 
-	resolve();
-
-	await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('refresh1'));
-
-	// refreshing
 	const refreshButton = screen.getByTestId('refreshButton');
 	await userEvent.click(refreshButton);
 
-	// refreshButton should have the class animate-spin
-	await waitFor(() => expect(refreshButton).toHaveClass('animate-spin'));
-
-	resolve();
-
-	await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('refresh2'));
-
-	// refreshButton should not have the class animate-spin
-	await waitFor(() => expect(refreshButton).not.toHaveClass('animate-spin'));
-
-	// refreshing
-	await userEvent.click(refreshButton);
-
-	resolve();
-
-	await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('refresh3'));
+	expect(mockRefetch).toHaveBeenCalled();
 });

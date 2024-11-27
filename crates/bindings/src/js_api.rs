@@ -1,3 +1,4 @@
+use crate::wasm_traits::prelude::*;
 use crate::IOrderBookV4::{
     takeOrders2Call, EvaluableV3 as MainEvaluableV3, OrderV3 as MainOrderV3, Quote as MainQuote,
     SignedContextV1 as MainSignedContextV1, TakeOrderConfigV3 as MainTakeOrderConfigV3,
@@ -12,15 +13,7 @@ use alloy::{
     sol_types::SolCall,
 };
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::{from_value, to_value};
 use std::str::FromStr;
-use tsify::Tsify;
-use wasm_bindgen::{
-    convert::*,
-    describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR},
-    prelude::*,
-    JsValue, UnwrapThrowExt,
-};
 
 // a serializer fn for serializing Vec<u8> as Uint8Array for js
 fn bytes_serilializer<S: serde::Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
@@ -29,7 +22,6 @@ fn bytes_serilializer<S: serde::Serializer>(val: &[u8], serializer: S) -> Result
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct EvaluableV3 {
     pub interpreter: String,
     pub store: String,
@@ -40,7 +32,6 @@ pub struct EvaluableV3 {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct IO {
     pub token: String,
     pub decimals: u8,
@@ -49,7 +40,6 @@ pub struct IO {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct OrderV3 {
     pub owner: String,
     pub evaluable: EvaluableV3,
@@ -60,7 +50,6 @@ pub struct OrderV3 {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct SignedContextV1 {
     pub signer: String,
     pub context: Vec<String>,
@@ -71,7 +60,6 @@ pub struct SignedContextV1 {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Quote {
     pub order: OrderV3,
     #[serde(rename = "inputIOIndex")]
@@ -83,7 +71,6 @@ pub struct Quote {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TakeOrderConfigV3 {
     order: OrderV3,
     #[serde(rename = "inputIOIndex")]
@@ -95,7 +82,6 @@ pub struct TakeOrderConfigV3 {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TakeOrdersConfigV3 {
     minimum_input: String,
     maximum_input: String,
@@ -385,65 +371,17 @@ impl From<MainTakeOrdersConfigV3> for TakeOrdersConfigV3 {
     }
 }
 
-#[macro_export]
-macro_rules! impl_wasm_traits {
-    ($struct_name:ident) => {
-        impl RefFromWasmAbi for $struct_name {
-            type Abi = <JsValue as RefFromWasmAbi>::Abi;
-            type Anchor = Box<$struct_name>;
-            unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new($struct_name::from_abi(js))
-            }
-        }
-        impl LongRefFromWasmAbi for $struct_name {
-            type Abi = <JsValue as RefFromWasmAbi>::Abi;
-            type Anchor = Box<$struct_name>;
-            unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new($struct_name::from_abi(js))
-            }
-        }
-        impl VectorIntoWasmAbi for $struct_name {
-            type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-            fn vector_into_abi(vector: Box<[Self]>) -> Self::Abi {
-                js_value_vector_into_abi(vector)
-            }
-        }
-        impl VectorFromWasmAbi for $struct_name {
-            type Abi = <Box<[JsValue]> as IntoWasmAbi>::Abi;
-            unsafe fn vector_from_abi(js: Self::Abi) -> Box<[Self]> {
-                js_value_vector_from_abi(js)
-            }
-        }
-        impl WasmDescribeVector for $struct_name {
-            fn describe_vector() {
-                inform(VECTOR);
-                $struct_name::describe();
-            }
-        }
-        impl From<$struct_name> for JsValue {
-            fn from(value: $struct_name) -> Self {
-                let mut err = "".to_string();
-                to_value(&value)
-                    .inspect_err(|e| err.push_str(&e.to_string()))
-                    .expect_throw(&err)
-            }
-        }
-        impl TryFromJsValue for $struct_name {
-            type Error = serde_wasm_bindgen::Error;
-            fn try_from_js_value(value: JsValue) -> Result<Self, Self::Error> {
-                from_value(value)
-            }
-        }
-    };
-}
+mod impls {
+    use crate::impl_all_wasm_traits;
 
-impl_wasm_traits!(IO);
-impl_wasm_traits!(Quote);
-impl_wasm_traits!(OrderV3);
-impl_wasm_traits!(EvaluableV3);
-impl_wasm_traits!(SignedContextV1);
-impl_wasm_traits!(TakeOrderConfigV3);
-impl_wasm_traits!(TakeOrdersConfigV3);
+    impl_all_wasm_traits!(super::IO);
+    impl_all_wasm_traits!(super::Quote);
+    impl_all_wasm_traits!(super::OrderV3);
+    impl_all_wasm_traits!(super::EvaluableV3);
+    impl_all_wasm_traits!(super::SignedContextV1);
+    impl_all_wasm_traits!(super::TakeOrderConfigV3);
+    impl_all_wasm_traits!(super::TakeOrdersConfigV3);
+}
 
 #[cfg(test)]
 mod tests {

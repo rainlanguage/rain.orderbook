@@ -1,14 +1,13 @@
 use super::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct TokenDeposit {
     pub token: String,
     pub amount: String,
     #[tsify(type = "string")]
     pub address: Address,
 }
-impl_wasm_traits!(TokenDeposit);
+impl_all_wasm_traits!(TokenDeposit);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
