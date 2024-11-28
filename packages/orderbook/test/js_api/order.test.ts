@@ -1,156 +1,16 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
-import { Order, OrderWithSubgraphName } from "../../dist/types/js_api.js";
-import { getOrders, getOrder, getOrderTradesList } from "../../dist/cjs/js_api.js";
-
-const mockTradeOrdersList = [
-  {
-    id: '1',
-    timestamp: '1632000000',
-    tradeEvent: {
-      sender: 'sender_address',
-      transaction: {
-        id: 'transaction_id',
-        from: 'sender_address',
-        timestamp: '1632000000',
-        blockNumber: '0',
-      },
-    },
-    outputVaultBalanceChange: {
-      amount: '-100',
-      vault: {
-        id: 'id',
-        vault_id: 'vault-id',
-        token: {
-          id: 'output_token',
-          address: 'output_token',
-          name: 'output_token',
-          symbol: 'output_token',
-          decimals: '1',
-        },
-      },
-      id: '1',
-      typename: 'Withdraw',
-      newVaultBalance: '0',
-      oldVaultBalance: '0',
-      timestamp: '0',
-      transaction: {
-        id: 'transaction_id',
-        from: 'sender_address',
-        timestamp: '1632000000',
-        blockNumber: '0',
-      },
-      orderbook: { id: '1' },
-    },
-    order: {
-      id: 'order_id',
-      orderHash: 'orderHash',
-    },
-    inputVaultBalanceChange: {
-      vault: {
-        id: 'id',
-        vault_id: 'vault-id',
-        token: {
-          id: 'output_token',
-          address: 'output_token',
-          name: 'output_token',
-          symbol: 'output_token',
-          decimals: '1',
-        },
-      },
-      amount: '50',
-      id: '1',
-      typename: 'Withdraw',
-      newVaultBalance: '0',
-      oldVaultBalance: '0',
-      timestamp: '0',
-      transaction: {
-        id: 'transaction_id',
-        from: 'sender_address',
-        timestamp: '1632000000',
-        blockNumber: '0',
-      },
-      orderbook: { id: '1' },
-    },
-    orderbook: {
-      id: '0x00',
-    },
-  },
-  {
-    id: '2',
-    timestamp: '1632000000',
-    tradeEvent: {
-      sender: 'sender_address',
-      transaction: {
-        id: 'transaction_id',
-        from: 'sender_address',
-        timestamp: '1632000000',
-        blockNumber: '0',
-      },
-    },
-    outputVaultBalanceChange: {
-      amount: '-100',
-      vault: {
-        id: 'id',
-        vault_id: 'vault-id',
-        token: {
-          id: 'output_token',
-          address: 'output_token',
-          name: 'output_token',
-          symbol: 'output_token',
-          decimals: '1',
-        },
-      },
-      id: '1',
-      typename: 'Withdraw',
-      newVaultBalance: '0',
-      oldVaultBalance: '0',
-      timestamp: '0',
-      transaction: {
-        id: 'transaction_id',
-        from: 'sender_address',
-        timestamp: '1632000000',
-        blockNumber: '0',
-      },
-      orderbook: { id: '1' },
-    },
-    order: {
-      id: 'order_id',
-      orderHash: 'orderHash',
-    },
-    inputVaultBalanceChange: {
-      vault: {
-        id: 'id',
-        vault_id: 'vault-id',
-        token: {
-          id: 'output_token',
-          address: 'output_token',
-          name: 'output_token',
-          symbol: 'output_token',
-          decimals: '1',
-        },
-      },
-      amount: '50',
-      id: '1',
-      typename: 'Withdraw',
-      newVaultBalance: '0',
-      oldVaultBalance: '0',
-      timestamp: '0',
-      transaction: {
-        id: 'transaction_id',
-        from: 'sender_address',
-        timestamp: '1632000000',
-        blockNumber: '0',
-      },
-      orderbook: { id: '1' },
-    },
-    orderbook: {
-      id: '0x00',
-    },
-  },
-];
-
+import {
+  Order,
+  OrderWithSubgraphName,
+  // Trade,
+} from "../../dist/types/js_api.js";
+import {
+  getOrders,
+  getOrder,
+  getOrderTradesList,
+} from "../../dist/cjs/js_api.js";
 
 const order1 = {
   id: "order1",
@@ -282,8 +142,85 @@ const order2 = {
   orderbook: {
     id: "0x0000000000000000000000000000000000000000",
   },
-  trades: mockTradeOrdersList,
+  trades: [],
 };
+
+// Replace the mockTradeOrdersList array with this single trade object
+const mockTradeOrdersList = [
+  {
+    id: "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+    timestamp: "1632000000",
+    tradeEvent: {
+      sender: "0x0000000000000000000000000000000000000000",
+      transaction: {
+        id: "0x0000000000000000000000000000000000000000",
+        from: "0x0000000000000000000000000000000000000000",
+        timestamp: "1632000000",
+        blockNumber: "0",
+      },
+    },
+    outputVaultBalanceChange: {
+      amount: "-100",
+      vault: {
+        id: "vault-1",
+        vaultId: "1",
+        token: {
+          id: "token-1",
+          address: "0x1111111111111111111111111111111111111111",
+          name: "Token One",
+          symbol: "TK1",
+          decimals: "18",
+        },
+      },
+      id: "output-change-1",
+      __typename: "TradeVaultBalanceChange",
+      newVaultBalance: "900",
+      oldVaultBalance: "1000",
+      timestamp: "1632000000",
+      transaction: {
+        id: "0x0000000000000000000000000000000000000000",
+        from: "0x0000000000000000000000000000000000000000",
+        timestamp: "1632000000",
+        blockNumber: "0",
+      },
+      orderbook: { id: "orderbook-1" },
+    },
+    order: {
+      id: order1.id,
+      orderHash:
+        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    },
+    inputVaultBalanceChange: {
+      amount: "50",
+      vault: {
+        id: "vault-2",
+        vaultId: "2",
+        token: {
+          id: "token-2",
+          address: "0x2222222222222222222222222222222222222222",
+          name: "Token Two",
+          symbol: "TK2",
+          decimals: "18",
+        },
+      },
+      id: "input-change-1",
+      __typename: "TradeVaultBalanceChange",
+      newVaultBalance: "150",
+      oldVaultBalance: "100",
+      timestamp: "1632000000",
+      transaction: {
+        id: "0x0000000000000000000000000000000000000000",
+        from: "0x0000000000000000000000000000000000000000",
+        timestamp: "1632000000",
+        blockNumber: "0",
+      },
+      orderbook: { id: "orderbook-1" },
+    },
+    orderbook: {
+      id: "orderbook-1",
+    },
+  },
+];
 
 describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function () {
   const mockServer = getLocal();
@@ -339,41 +276,41 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
     }
   });
 
-it("should fetch trades for a single order", async () => {
-  // Mock server response for trades - wrap the trades in the expected structure
-  await mockServer
-    .forPost("/sg1")
-    .thenReply(200, JSON.stringify({ 
-      data: {   
-          trades: mockTradeOrdersList
-      } 
-    }));
-
-  try {
-    const result = await getOrderTradesList(
-      mockServer.url + "/sg1",
-      order1.id,
-      {
-        page: 1,
-        pageSize: 10,
-      },
-
-      BigInt(1000), 
-      undefined
+  it("should fetch trades for a single order", async () => {
+    // Mock server response for trades - wrap the trades in the expected structure
+    await mockServer.forPost("/sg1").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockTradeOrdersList,
+        },
+      })
     );
 
-    console.log("RESULT!", result);
+    try {
+      const result = await getOrderTradesList(
+        mockServer.url + "/sg1",
+        order1.id,
+        {
+          page: 1,
+          pageSize: 10,
+        },
+        undefined,
+        undefined
+      );
 
-    assert.ok(result, "Result should exist");
-    assert.equal(result.length, 1, "Should have one trade");
-    assert.equal(
-      result[0].id, 
-      "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
-      "Trade ID should match"
-    );
-  } catch (e) {
-    console.error("Test error:", e);
-    assert.fail("Expected to resolve, but failed: " + e.message);
-  }
-});
+      console.log("RESULT!", result);
+
+      assert.ok(result, "Result should exist");
+      assert.equal(result.length, 1, "Should have one trade");
+      assert.equal(
+        result[0].id,
+        "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+        "Trade ID should match"
+      );
+    } catch (e) {
+      console.error("Test error:", e);
+      assert.fail("Expected to resolve, but failed: " + e.message);
+    }
+  });
 });
