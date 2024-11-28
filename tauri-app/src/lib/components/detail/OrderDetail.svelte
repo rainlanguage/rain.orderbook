@@ -44,8 +44,6 @@
   onDestroy(() => {
     clearInterval(interval);
   });
-
-  $: console.log($orderDetailQuery.data?.rainlang);
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
