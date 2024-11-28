@@ -4,21 +4,27 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct VaultVolume {
-    id: String,
-    token: Erc20,
-    #[typeshare(typescript(type = "string"))]
-    total_in: U256,
-    #[typeshare(typescript(type = "string"))]
-    total_out: U256,
-    #[typeshare(typescript(type = "string"))]
-    total_vol: U256,
-    #[typeshare(typescript(type = "string"))]
-    net_vol: I256,
+    pub id: String,
+    pub token: Erc20,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub total_in: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub total_out: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub total_vol: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub net_vol: I256,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(VaultVolume);
 
 /// Get the vaults volume from array of trades
 pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> {

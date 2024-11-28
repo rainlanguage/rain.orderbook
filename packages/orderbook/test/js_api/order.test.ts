@@ -1,8 +1,19 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
-import { Order, OrderWithSubgraphName } from "../../dist/types/js_api.js";
-import { getOrders, getOrder } from "../../dist/cjs/js_api.js";
+import {
+  Order,
+  OrderWithSubgraphName,
+  Trade,
+  VaultVolume,
+} from "../../dist/types/js_api.js";
+import {
+  getOrders,
+  getOrder,
+  getOrderVaultsVolume,
+  getOrderTradesList,
+  getOrderTradeDetail,
+} from "../../dist/cjs/js_api.js";
 
 const order1 = {
   id: "order1",
@@ -137,6 +148,114 @@ const order2 = {
   trades: [],
 };
 
+const mockTrade = {
+  id: "trade1",
+  order: {
+    id: "order1",
+    orderHash: "0x1",
+  },
+  tradeEvent: {
+    sender: "0x0000000000000000000000000000000000000000",
+    transaction: {
+      id: "0x0000000000000000000000000000000000000000",
+      from: "0x0000000000000000000000000000000000000000",
+      blockNumber: "0",
+      timestamp: "0",
+    },
+  },
+  timestamp: "0",
+  orderbook: {
+    id: "0x0000000000000000000000000000000000000000",
+  },
+  outputVaultBalanceChange: {
+    id: "0x0000000000000000000000000000000000000000",
+    __typename: "TradeVaultBalanceChange",
+    amount: "-7",
+    newVaultBalance: "93",
+    oldVaultBalance: "100",
+    vault: {
+      id: "0x0000000000000000000000000000000000000000",
+      vaultId: "1",
+      token: {
+        id: "0x0000000000000000000000000000000000000000",
+        address: "0x0000000000000000000000000000000000000000",
+        name: "T1",
+        symbol: "T1",
+        decimals: "18",
+      },
+    },
+    timestamp: "0",
+    transaction: {
+      id: "0x0000000000000000000000000000000000000000",
+      from: "0x0000000000000000000000000000000000000000",
+      blockNumber: "0",
+      timestamp: "0",
+    },
+    orderbook: {
+      id: "0x0000000000000000000000000000000000000000",
+    },
+  },
+  inputVaultBalanceChange: {
+    id: "0x0000000000000000000000000000000000000000",
+    __typename: "TradeVaultBalanceChange",
+    amount: "5",
+    newVaultBalance: "105",
+    oldVaultBalance: "100",
+    vault: {
+      id: "0x0000000000000000000000000000000000000000",
+      vaultId: "2",
+      token: {
+        id: "0x0000000000000000000000000000000000000000",
+        address: "0x0000000000000000000000000000000000000000",
+        name: "T2",
+        symbol: "T2",
+        decimals: "6",
+      },
+    },
+    timestamp: "0",
+    transaction: {
+      id: "0x0000000000000000000000000000000000000000",
+      from: "0x0000000000000000000000000000000000000000",
+      blockNumber: "0",
+      timestamp: "0",
+    },
+    orderbook: {
+      id: "0x0000000000000000000000000000000000000000",
+    },
+  },
+};
+
+const mockVaultVolume = [
+  {
+    id: "1",
+    token: {
+      id: "0x0000000000000000000000000000000000000000",
+      address: "0x0000000000000000000000000000000000000000",
+      name: "T1",
+      symbol: "T1",
+      decimals: "18",
+    },
+    totalIn: "10",
+    totalOut: "7",
+    totalVol: "17",
+    netVol: "3",
+  },
+  {
+    id: "2",
+    token: {
+      id: "0x0000000000000000000000000000000000000000",
+      address: "0x0000000000000000000000000000000000000000",
+      name: "T2",
+      symbol: "T2",
+      decimals: "6",
+    },
+    totalIn: "5",
+    totalOut: "2",
+    totalVol: "7",
+    netVol: "3",
+  },
+];
+
 describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function () {
   const mockServer = getLocal();
   beforeEach(() => mockServer.start(8082));
@@ -185,6 +304,91 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       assert.equal(result[0].subgraphName, "network-one");
       assert.equal(result[1].order.id, order2.id);
       assert.equal(result[1].subgraphName, "network-two");
+    } catch (e) {
+      console.log(e);
+      assert.fail("expected to resolve, but failed");
+    }
+  });
+
+  it("should fetch order vaults volume", async () => {
+    await mockServer.forPost("/sg1").thenReply(
+      200,
+      JSON.stringify({
+        data: { trades: [mockTrade], vaultVolumes: mockVaultVolume },
+      })
+    );
+
+    try {
+      const result: VaultVolume[] = await getOrderVaultsVolume(
+        mockServer.url + "/sg1",
+        "order1",
+        undefined,
+        undefined
+      );
+      assert.equal(result.length, 2);
+      assert.equal(result[0].id, "1");
+      assert.equal(result[0].totalVol, "17");
+      assert.equal(result[1].id, "2");
+      assert.equal(result[1].totalVol, "7");
+    } catch (e) {
+      console.log(e);
+      assert.fail("expected to resolve, but failed");
+    }
+  });
+
+  it("should fetch order trades list", async () => {
+    await mockServer
+      .forPost("/sg1")
+      .thenReply(200, JSON.stringify({ data: { trades: [mockTrade] } }));
+
+    try {
+      const result: Trade[] = await getOrderTradesList(
+        mockServer.url + "/sg1",
+        "order1",
+        {
+          page: 1,
+          pageSize: 10,
+        },
+        undefined,
+        undefined
+      );
+      assert.equal(result.length, 1);
+      assert.equal(result[0].id, mockTrade.id);
+      assert.equal(result[0].order.id, mockTrade.order.id);
+      assert.equal(
+        result[0].outputVaultBalanceChange.amount,
+        mockTrade.outputVaultBalanceChange.amount
+      );
+      assert.equal(
+        result[0].inputVaultBalanceChange.amount,
+        mockTrade.inputVaultBalanceChange.amount
+      );
+    } catch (e) {
+      console.log(e);
+      assert.fail("expected to resolve, but failed");
+    }
+  });
+
+  it("should fetch order trade detail", async () => {
+    await mockServer
+      .forPost("/sg1")
+      .thenReply(200, JSON.stringify({ data: { trade: mockTrade } }));
+
+    try {
+      const result: Trade = await getOrderTradeDetail(
+        mockServer.url + "/sg1",
+        mockTrade.id
+      );
+      assert.equal(result.id, mockTrade.id);
+      assert.equal(result.order.id, mockTrade.order.id);
+      assert.equal(
+        result.outputVaultBalanceChange.amount,
+        mockTrade.outputVaultBalanceChange.amount
+      );
+      assert.equal(
+        result.inputVaultBalanceChange.amount,
+        mockTrade.inputVaultBalanceChange.amount
+      );
     } catch (e) {
       console.log(e);
       assert.fail("expected to resolve, but failed");
