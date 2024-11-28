@@ -54,7 +54,10 @@ pub async fn get_balances_single_order(subgraph_url: &str, order_hash: &str) -> 
     Ok(res)
 }
 
-pub async fn get_balances_list(subgraph_url: &str) -> Result<Value> {
+pub async fn get_balances_list(
+    subgraph_url: &str,
+    filters: OrdersListQueryFilters,
+) -> Result<Value> {
     let mut all_orders = Vec::new();
     let mut page_skip = 0;
     let page_limit = 100; // Number of orders to fetch per page
@@ -64,7 +67,7 @@ pub async fn get_balances_list(subgraph_url: &str) -> Result<Value> {
         let variables = OrdersListQueryVariables {
             skip: Some(page_skip),
             first: Some(page_limit),
-            filters: None,
+            filters: Some(filters.clone()),
         };
 
         let res = get_data(subgraph_url, variables).await?;
@@ -173,7 +176,85 @@ mod tests {
         let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
             .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
 
-        let result = get_balances_list(&orderbook_mainnet_subgraph_url).await;
+        let filters = OrdersListQueryFilters {
+            owner_in: Vec::new(),
+            active: None,
+            order_hash: None,
+        };
+
+        let result = get_balances_list(&orderbook_mainnet_subgraph_url, filters).await;
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_get_balances_list_mainnet() {
+        // Load the subgraph URL from the environment variable
+        let orderbook_mainnet_subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
+            .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set for tests.");
+
+        let order_hash = "0x12863c37d7dd314984b237619f569f6f6f645383bb39aec4cb219abd52f8eff2";
+
+        let hex_order_hash = &order_hash[2..];
+
+        // Create the filters struct
+        let filters = OrdersListQueryFilters {
+            owner_in: Vec::new(), // No owner filter for this test
+            active: None,         // No active filter for this test
+            order_hash: Some(Bytes(hex_order_hash.to_string())), // Filter by order hash
+        };
+
+        // Call the function and pass the filters
+        let result = get_balances_list(&orderbook_mainnet_subgraph_url, filters).await;
+
+        // Assert the function call was successful
+        assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
+
+        if let Ok(data) = result {
+            // Ensure "data" key exists
+            let orders = data.get("data").and_then(|d| d.get("orders"));
+            assert!(orders.is_some(), "Orders data missing in response");
+
+            // Validate the returned data structure and values
+            if let Some(order_array) = orders.and_then(|o| o.as_array()) {
+                // Find the order with the matching `id`
+                let target_order_id =
+                    "0x389d61c749f571e2da90a56385600ec421b487f8679ec7a98e2dcbd888a3c1ed";
+                let target_order = order_array
+                    .iter()
+                    .find(|order| order.get("id").map_or(false, |id| id == target_order_id));
+
+                // Ensure the target order was found
+                assert!(
+                    target_order.is_some(),
+                    "Order with ID {} not found",
+                    target_order_id
+                );
+
+                if let Some(order) = target_order {
+                    assert_eq!(
+                        order.get("owner").unwrap(),
+                        "0x5ef02599f44eed91ec7b3be4892b1a0665944a04"
+                    );
+                    assert_eq!(order.get("active").unwrap(), true);
+
+                    // Validate the `outputs` -> `balance`
+                    let outputs = order.get("outputs").unwrap().as_array().unwrap();
+
+                    let first_output = &outputs[0];
+                    assert_eq!(
+                        first_output.get("balance").unwrap(),
+                        "0",
+                        "Unexpected balance in first output"
+                    );
+
+                    let second_output = &outputs[1];
+                    assert_eq!(
+                        second_output.get("balance").unwrap(),
+                        "0",
+                        "Unexpected balance in second output"
+                    );
+                }
+            }
+        }
     }
 }
