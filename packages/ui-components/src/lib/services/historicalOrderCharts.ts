@@ -1,4 +1,4 @@
-import type { Trade } from '$lib/typeshare/subgraphTypes';
+import type { Trade } from '../typeshare/subgraphTypes';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '@rainlanguage/ui-components';
 import { sortBy } from 'lodash';

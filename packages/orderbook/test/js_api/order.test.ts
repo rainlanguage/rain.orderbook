@@ -2,7 +2,155 @@ import assert from "assert";
 import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
 import { Order, OrderWithSubgraphName } from "../../dist/types/js_api.js";
-import { getOrders, getOrder } from "../../dist/cjs/js_api.js";
+import { getOrders, getOrder, getOrderTradesList } from "../../dist/cjs/js_api.js";
+
+const mockTradeOrdersList = [
+  {
+    id: '1',
+    timestamp: '1632000000',
+    tradeEvent: {
+      sender: 'sender_address',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+    },
+    outputVaultBalanceChange: {
+      amount: '-100',
+      vault: {
+        id: 'id',
+        vault_id: 'vault-id',
+        token: {
+          id: 'output_token',
+          address: 'output_token',
+          name: 'output_token',
+          symbol: 'output_token',
+          decimals: '1',
+        },
+      },
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
+    },
+    order: {
+      id: 'order_id',
+      orderHash: 'orderHash',
+    },
+    inputVaultBalanceChange: {
+      vault: {
+        id: 'id',
+        vault_id: 'vault-id',
+        token: {
+          id: 'output_token',
+          address: 'output_token',
+          name: 'output_token',
+          symbol: 'output_token',
+          decimals: '1',
+        },
+      },
+      amount: '50',
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
+    },
+    orderbook: {
+      id: '0x00',
+    },
+  },
+  {
+    id: '2',
+    timestamp: '1632000000',
+    tradeEvent: {
+      sender: 'sender_address',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+    },
+    outputVaultBalanceChange: {
+      amount: '-100',
+      vault: {
+        id: 'id',
+        vault_id: 'vault-id',
+        token: {
+          id: 'output_token',
+          address: 'output_token',
+          name: 'output_token',
+          symbol: 'output_token',
+          decimals: '1',
+        },
+      },
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
+    },
+    order: {
+      id: 'order_id',
+      orderHash: 'orderHash',
+    },
+    inputVaultBalanceChange: {
+      vault: {
+        id: 'id',
+        vault_id: 'vault-id',
+        token: {
+          id: 'output_token',
+          address: 'output_token',
+          name: 'output_token',
+          symbol: 'output_token',
+          decimals: '1',
+        },
+      },
+      amount: '50',
+      id: '1',
+      typename: 'Withdraw',
+      newVaultBalance: '0',
+      oldVaultBalance: '0',
+      timestamp: '0',
+      transaction: {
+        id: 'transaction_id',
+        from: 'sender_address',
+        timestamp: '1632000000',
+        blockNumber: '0',
+      },
+      orderbook: { id: '1' },
+    },
+    orderbook: {
+      id: '0x00',
+    },
+  },
+];
+
 
 const order1 = {
   id: "order1",
@@ -134,7 +282,7 @@ const order2 = {
   orderbook: {
     id: "0x0000000000000000000000000000000000000000",
   },
-  trades: [],
+  trades: mockTradeOrdersList,
 };
 
 describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function () {
@@ -190,4 +338,42 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       assert.fail("expected to resolve, but failed");
     }
   });
+
+it("should fetch trades for a single order", async () => {
+  // Mock server response for trades - wrap the trades in the expected structure
+  await mockServer
+    .forPost("/sg1")
+    .thenReply(200, JSON.stringify({ 
+      data: {   
+          trades: mockTradeOrdersList
+      } 
+    }));
+
+  try {
+    const result = await getOrderTradesList(
+      mockServer.url + "/sg1",
+      order1.id,
+      {
+        page: 1,
+        pageSize: 10,
+      },
+
+      BigInt(1000), 
+      undefined
+    );
+
+    console.log("RESULT!", result);
+
+    assert.ok(result, "Result should exist");
+    assert.equal(result.length, 1, "Should have one trade");
+    assert.equal(
+      result[0].id, 
+      "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+      "Trade ID should match"
+    );
+  } catch (e) {
+    console.error("Test error:", e);
+    assert.fail("Expected to resolve, but failed: " + e.message);
+  }
+});
 });
