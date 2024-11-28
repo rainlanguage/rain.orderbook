@@ -1,9 +1,6 @@
 import type { Trade, VaultVolume } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
-import { prepareHistoricalOrderChartData } from '@rainlanguage/ui-components';
-import { colorTheme } from '$lib/stores/darkMode';
-import { get } from 'svelte/store';
 
 export type OrderTradesListArgs = {
   orderId: string;
@@ -36,27 +33,6 @@ export const orderTradesList = async (
     startTimestamp,
     endTimestamp,
   } as OrderTradesListArgs);
-};
-
-export const orderTradesListForChart = async (
-  id: string,
-  url: string | undefined,
-  pageParam: number,
-  pageSize: number = DEFAULT_PAGE_SIZE,
-  startTimestamp?: number,
-  endTimestamp?: number,
-) => {
-  if (!url) {
-    return [];
-  }
-  const data = await invoke<Trade[]>('order_trades_list', {
-    orderId: id,
-    subgraphArgs: { url },
-    paginationArgs: { page: pageParam + 1, pageSize },
-    startTimestamp,
-    endTimestamp,
-  } as OrderTradesListArgs);
-  return prepareHistoricalOrderChartData(data, get(colorTheme));
 };
 
 export const orderVaultsVolume = async (
