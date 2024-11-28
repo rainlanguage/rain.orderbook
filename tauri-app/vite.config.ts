@@ -57,7 +57,7 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./vitest-setup.ts'],
       server: {
         deps: {
-          inline: [/@sveltejs\/kit/, /@tanstack\/svelte-query/],
+          inline: [/@sveltejs\/kit/, /@tanstack\/svelte-query/, /codemirror-rainlang/],
         }
       },
     },
