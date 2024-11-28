@@ -7,7 +7,7 @@
   import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
-  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { subgraphUrl } from '$lib/stores/settings';
   import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
   import { handleOrderRemoveModal } from '$lib/services/modal';
@@ -20,7 +20,7 @@
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
-
+  import { codeMirrorTheme } from '$lib/stores/darkMode';
   export let id: string;
 
   $: orderDetailQuery = createQuery({
@@ -44,6 +44,8 @@
   onDestroy(() => {
     clearInterval(interval);
   });
+
+  $: console.log($orderDetailQuery.data?.rainlang);
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -129,7 +131,7 @@
       <TabItem open title="Rainlang source">
         {#if data.rainlang}
           <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-            <CodeMirrorRainlang disabled={true} value={data.rainlang} />
+            <CodeMirrorRainlang disabled={true} value={data.rainlang} {codeMirrorTheme} />
           </div>
         {:else}
           <div class="w-full tracking-tight text-gray-900 dark:text-white">
