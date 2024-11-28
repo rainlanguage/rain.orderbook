@@ -71,3 +71,16 @@ pub async fn get_order_trades_count(
     // Convert the count to a JavaScript-compatible value and return
     Ok(to_value(&trades_count)?)
 }
+
+/// Get details for a specific trade
+/// Returns a Trade struct
+#[wasm_bindgen(js_name = "getOrderTradeDetail")]
+pub async fn get_order_trade_detail(
+    url: &str,
+    trade_id: &str,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let trade = client.order_trade_detail(Id::new(trade_id)).await?;
+    Ok(to_value(&trade)?)
+}
+
