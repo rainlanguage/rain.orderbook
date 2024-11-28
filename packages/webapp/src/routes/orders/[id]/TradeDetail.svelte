@@ -14,7 +14,9 @@
 	});
 </script>
 
-<h1>Trade Detail</h1>
-{#if $query.data}
-	{$query.data.timestamp}
-{/if}
+<div class="border border-green-500">
+	<h1>Trade Detail</h1>
+	{#if $query.data}
+		{$query.data.timestamp}
+	{/if}
+</div>

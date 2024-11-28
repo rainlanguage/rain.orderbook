@@ -4,13 +4,10 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { page } from '$app/stores';
 	import TradeDetail from './TradeDetail.svelte';
-	const { subgraphUrl } = $page.data.stores
+	import TradeCount from './TradeCount.svelte';
+	const { subgraphUrl } = $page.data.stores;
 	const { id } = $page.params;
-
-	$: console.log($subgraphUrl)
-
-	// TODO: Going directly to the page, the subgraphUrl is undefined
-
+	// TODO: Going directly to the page, the subgraphUrl is undefined.
 	$: query = createQuery({
 		queryKey: [QKEY_ORDER_TRADES_LIST, id],
 		queryFn: () => {
@@ -27,13 +24,13 @@
 		},
 		enabled: !!$subgraphUrl
 	});
-
-	$: console.log($query.data)
 </script>
+
+<TradeCount orderId={id} />
 
 {#if $query.data}
 	{#each $query.data as trade}
 		{trade.id}
-		<TradeDetail {trade}  />
+		<TradeDetail {trade} />
 	{/each}
 {/if}
