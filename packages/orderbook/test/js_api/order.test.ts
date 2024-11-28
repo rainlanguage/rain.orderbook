@@ -147,8 +147,7 @@ const order2 = {
   trades: [],
 };
 
-
-const mockOrderTradesList = [
+const mockOrderTradesList: Trade[] = [
   {
     id: "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
     timestamp: "1632000000",
@@ -159,8 +158,9 @@ const mockOrderTradesList = [
         from: "0x0000000000000000000000000000000000000000",
         timestamp: "1632000000",
         blockNumber: "0",
-      },
+      }
     },
+    
     outputVaultBalanceChange: {
       amount: "-100",
       vault: {
@@ -416,12 +416,12 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
     }
   });
   it("should fetch trade count for a single order", async () => {
-  await mockServer
-    .forPost("/sg1")
-    .thenReply(
+   await mockServer.forPost("/sg1").thenReply(
       200,
       JSON.stringify({
-        data: 1
+        data: {
+          trades: mockOrderTradesList,
+        },
       })
     );
 
@@ -441,6 +441,6 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       console.error("Error details:", e.stack);
     }
     assert.fail("Expected to resolve, but failed: " + (e instanceof Error ? e.message : String(e)));
-  }
-});
+    }
+  });
 });
