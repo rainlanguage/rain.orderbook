@@ -50,28 +50,6 @@ pub async fn get_order_trades_list(
     Ok(to_value(&trades)?)
 }
 
-/// Fetch the count of trades for a specific order
-/// Returns the count as a JavaScript-compatible number
-#[wasm_bindgen(js_name = "getOrderTradesCount")]
-pub async fn get_order_trades_count(
-    url: &str,
-    order_id: &str,
-    start_timestamp: Option<u64>,
-    end_timestamp: Option<u64>,
-) -> Result<JsValue, OrderbookSubgraphClientError> {
-    // Create the subgraph client using the provided URL
-    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
-
-    // Fetch all trades for the specific order and calculate the count
-    let trades_count = client
-        .order_trades_list_all(Id::new(order_id), start_timestamp, end_timestamp)
-        .await?
-        .len();
-
-    // Convert the count to a JavaScript-compatible value and return
-    Ok(to_value(&trades_count)?)
-}
-
 /// Get details for a specific trade
 /// Returns a Trade struct
 #[wasm_bindgen(js_name = "getOrderTradeDetail")]
