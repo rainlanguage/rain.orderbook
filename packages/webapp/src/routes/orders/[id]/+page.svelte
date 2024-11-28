@@ -3,9 +3,11 @@
 	import { QKEY_ORDER_TRADES_LIST } from '@rainlanguage/ui-components';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { page } from '$app/stores';
-
+	import TradeDetail from './TradeDetail.svelte';
+	const { subgraphUrl } = $page.data.stores
 	const { id } = $page.params;
-	const { subgraphUrl } = $page.data.stores;
+
+	$: console.log($subgraphUrl)
 
 	// TODO: Going directly to the page, the subgraphUrl is undefined
 
@@ -25,10 +27,13 @@
 		},
 		enabled: !!$subgraphUrl
 	});
+
+	$: console.log($query.data)
 </script>
 
 {#if $query.data}
 	{#each $query.data as trade}
 		{trade.id}
+		<TradeDetail {trade}  />
 	{/each}
 {/if}

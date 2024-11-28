@@ -11,7 +11,7 @@ import {
   getOrder,
   getOrderTradesList,
   getOrderTradeDetail,
-  
+  getOrderTradesCount,
 } from "../../dist/cjs/js_api.js";
 
 const order1 = {
@@ -356,7 +356,6 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
   });
 
   it("should fetch trades for a single order", async () => {
-    // Mock server response for trades - wrap the trades in the expected structure
     await mockServer.forPost("/sg1").thenReply(
       200,
       JSON.stringify({
@@ -377,8 +376,6 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
         undefined,
         undefined
       );
-
-      console.log("RESULT!", result);
 
       assert.ok(result, "Result should exist");
       assert.equal(result.length, 1, "Should have one trade");
@@ -418,4 +415,28 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       assert.fail("expected to resolve, but failed" + + (e instanceof Error ? e.message : String(e)));
     }
   });
+  it("should fetch trade count for a single order", async () => {
+  await mockServer.forPost("/sg1").thenReply(
+    200,
+    JSON.stringify({
+      data: {
+        trades: mockTradeOrdersList // Using your existing mock trades list
+      }
+    })
+  );
+
+  try {
+    const count = await getOrderTradesCount(
+      mockServer.url + "/sg1",
+      order1.id,
+      undefined,  // start timestamp
+      undefined  
+    );
+
+    assert.equal(count, 1, "Should have one trade in the count");
+  } catch (e) {
+    console.error("Test error:", e);
+    assert.fail("Expected to resolve, but failed: " + (e instanceof Error ? e.message : String(e)));
+  }
+});
 });
