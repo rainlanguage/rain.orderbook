@@ -1,1 +1,1 @@
-export const rainlang = "";
+export const rainlang = '';
