@@ -27,3 +27,25 @@ pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraph
     let order = client.order_detail(Id::new(id)).await?;
     Ok(to_value(&order)?)
 }
+
+/// Fetch trades for a specific order
+/// Returns a list of Trade structs
+#[wasm_bindgen(js_name = "getOrderTradesList")]
+pub async fn get_order_trades_list(
+    url: &str,
+    order_id: &str,
+    pagination_args: PaginationArgs,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let trades = client
+        .order_trades_list(
+            Id::new(order_id),
+            pagination_args,
+            start_timestamp,
+            end_timestamp,
+        )
+        .await?;
+    Ok(to_value(&trades)?)
+}
