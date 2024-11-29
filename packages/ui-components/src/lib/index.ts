@@ -7,6 +7,7 @@ export { default as TanstackAppTable } from './components/TanstackAppTable.svelt
 export { default as DropdownActiveSubgraphs } from './components/dropdown/DropdownActiveSubgraphs.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
+export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as DropdownOrderStatus } from './components/dropdown/DropdownOrderStatus.svelte';
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
@@ -17,6 +18,7 @@ export { default as VaultsListTable } from './components/tables/VaultsListTable.
 export { default as PageHeader } from './components/PageHeader.svelte';
 export { default as BadgeActive } from './components/BadgeActive.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
+export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
