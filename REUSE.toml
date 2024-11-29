@@ -1,0 +1,18 @@
+version = 1
+
+[[annotations]]
+path = [
+    ".gas-snapshot",
+    ".github/workflows/**/",
+    ".gitignore",
+    ".gitmodules",
+    ".vscode/**/",
+    "README.md",
+    "flake.lock",
+    "flake.nix",
+    "foundry.toml",
+    "slither.config.json",
+    "REUSE.toml"
+]
+SPDX-FileCopyrightText = "Copyright (c) 2020 thedavidmeister"
+SPDX-License-Identifier = "LicenseRef-DCL-1.0"
