@@ -35,7 +35,7 @@ pub struct GuiDepositSource {
 pub struct GuiFieldDefinitionSource {
     pub binding: String,
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
     pub presets: Option<Vec<GuiPresetSource>>,
 }
 
@@ -207,7 +207,7 @@ impl_all_wasm_traits!(GuiDeployment);
 pub struct GuiFieldDefinition {
     pub binding: String,
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
     pub presets: Option<Vec<GuiPreset>>,
 }
 #[cfg(target_family = "wasm")]
@@ -250,7 +250,7 @@ mod tests {
                     GuiFieldDefinitionSource {
                         binding: "test-binding".to_string(),
                         name: "test-name".to_string(),
-                        description: "test-description".to_string(),
+                        description: Some("test-description".to_string()),
                         presets: Some(vec![
                             GuiPresetSource {
                                 name: Some("test-preset".to_string()),
@@ -265,7 +265,7 @@ mod tests {
                     GuiFieldDefinitionSource {
                         binding: "test-binding-2".to_string(),
                         name: "test-name-2".to_string(),
-                        description: "test-description-2".to_string(),
+                        description: Some("test-description-2".to_string()),
                         presets: Some(vec![
                             GuiPresetSource {
                                 name: None,
@@ -280,7 +280,7 @@ mod tests {
                     GuiFieldDefinitionSource {
                         binding: "test-binding-3".to_string(),
                         name: "test-name-3".to_string(),
-                        description: "test-description-3".to_string(),
+                        description: Some("test-description-3".to_string()),
                         presets: Some(vec![
                             GuiPresetSource {
                                 name: None,
@@ -341,7 +341,7 @@ mod tests {
         let field1 = &deployment.fields[0];
         assert_eq!(field1.binding, "test-binding");
         assert_eq!(field1.name, "test-name");
-        assert_eq!(field1.description, "test-description");
+        assert_eq!(field1.description, Some("test-description".to_string()));
         let presets = field1.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
         assert_eq!(presets[0].name, Some("test-preset".to_string()));
@@ -351,7 +351,7 @@ mod tests {
         let field2 = &deployment.fields[1];
         assert_eq!(field2.binding, "test-binding-2");
         assert_eq!(field2.name, "test-name-2");
-        assert_eq!(field2.description, "test-description-2");
+        assert_eq!(field2.description, Some("test-description-2".to_string()));
         let presets = field2.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
         assert_eq!(presets[0].name, None);
@@ -360,7 +360,7 @@ mod tests {
         let field3 = &deployment.fields[2];
         assert_eq!(field3.binding, "test-binding-3");
         assert_eq!(field3.name, "test-name-3");
-        assert_eq!(field3.description, "test-description-3");
+        assert_eq!(field3.description, Some("test-description-3".to_string()));
         let presets = field3.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 3);
         assert_eq!(presets[0].value, Address::default().to_string());

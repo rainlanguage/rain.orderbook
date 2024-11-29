@@ -669,7 +669,7 @@ gui:
         let field = &deployment.fields[0];
         assert_eq!(field.binding, "binding-1");
         assert_eq!(field.name, "Field 1 name");
-        assert_eq!(field.description, "Field 1 description");
+        assert_eq!(field.description, Some("Field 1 description".to_string()));
         let presets = field.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 3);
         assert_eq!(presets[0].name, Some("Preset 1".to_string()));
@@ -684,7 +684,7 @@ gui:
         let field = &deployment.fields[1];
         assert_eq!(field.binding, "binding-2");
         assert_eq!(field.name, "Field 2 name");
-        assert_eq!(field.description, "Field 2 description");
+        assert_eq!(field.description, Some("Field 2 description".to_string()));
         let presets = field.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 3);
         assert_eq!(presets[0].value, "99.2".to_string());
