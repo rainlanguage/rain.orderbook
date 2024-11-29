@@ -5,7 +5,8 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-license = "CAL-1.0"
+license = "LicenseRef-DCL-1.0"
+author = "Rain Open Source LLC"
 version = "0.0.0-alpha.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 

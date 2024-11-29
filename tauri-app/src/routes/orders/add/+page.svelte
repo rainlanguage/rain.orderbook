@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
@@ -13,7 +13,7 @@
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
   import type { Config } from '$lib/typeshare/config';
-  import DropdownRadio from '$lib/components/DropdownRadio.svelte';
+  import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/config';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
@@ -39,6 +39,7 @@
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
+  import { page } from '$app/stores';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -210,7 +211,7 @@
   $: debounceValidateRaindexVersion($globalDotrainFile.text, $settingsText);
 </script>
 
-<PageHeader title="Add Order" />
+<PageHeader title="Add Order" pathname={$page.url.pathname} />
 
 <FileTextarea textFile={globalDotrainFile}>
   <svelte:fragment slot="alert">

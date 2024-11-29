@@ -2,10 +2,19 @@ import assert from "assert";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DotrainOrderGui } from "../../dist/cjs/js_api.js";
 import {
-  ApprovalCalldata,
+  AddOrderCalldataResult,
+  AllFieldValuesResult,
+  AllowancesResult,
+  ApprovalCalldataResult,
+  AvailableDeployments,
+  Config,
+  DepositAndAddOrderCalldataResult,
+  DepositCalldataResult,
   Gui,
-  TokenAllowance,
-  TokenInfo,
+  GuiDeployment,
+  SelectTokens,
+  TokenDeposit,
+  TokenInfos,
 } from "../../dist/types/js_api.js";
 import { getLocal } from "mockttp";
 
@@ -45,6 +54,27 @@ gui:
             - value: "99.2"
             - value: "582.1"
             - value: "648.239"
+    - deployment: other-deployment
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
 `;
 const guiConfig2 = `
 gui:
@@ -68,10 +98,107 @@ gui:
           name: Test binding
           description: Test binding description
           presets:
+            - value: "0xbeef"
+`;
+const guiConfig3 = `
+gui:
+  name: Test test
+  description: Test test test
+  deployments:
+    - deployment: other-deployment
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
             - value: "test-value"
+      select-tokens:
+        - token1
+        - token2
 `;
 
 const dotrain = `
+networks:
+    some-network:
+        rpc: http://localhost:8085/rpc-url
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: Token 2
+        symbol: T2
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+        bindings:
+            test-binding: "5"
+
+orders:
+    some-order:
+      inputs:
+        - token: token1
+          vault-id: 1
+      outputs:
+        - token: token2
+          vault-id: 1
+      deployer: some-deployer
+      orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+    other-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#test-binding !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+`;
+const dotrainWithoutVaultIds = `
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -116,10 +243,8 @@ orders:
     some-order:
       inputs:
         - token: token1
-          vault-id: 1
       outputs:
         - token: token2
-          vault-id: 1
       deployer: some-deployer
       orderbook: some-orderbook
 
@@ -156,9 +281,17 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
     mockServer.reset();
   });
 
+  it("should return available deployments", async () => {
+    const deployments: AvailableDeployments =
+      await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
+    assert.equal(deployments.length, 2);
+    assert.equal(deployments[0].deployment_name, "some-deployment");
+    assert.equal(deployments[1].deployment_name, "other-deployment");
+  });
+
   it("should return error if gui config is not found", async () => {
     await expect(
-      DotrainOrderGui.init(dotrain, "some-deployment")
+      DotrainOrderGui.chooseDeployment(dotrain, "some-deployment")
     ).rejects.toEqual(new Error("Gui config not found"));
   });
 
@@ -171,7 +304,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
         "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
       );
 
-    const gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+    const gui = await DotrainOrderGui.chooseDeployment(
+      dotrainWithGui,
+      "some-deployment"
+    );
     const guiConfig = gui.getGuiConfig() as Gui;
     assert.equal(guiConfig.name, "Fixed limit");
     assert.equal(guiConfig.description, "Fixed limit order strategy");
@@ -197,9 +333,12 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
     ${dotrain}
     `;
-    const gui = await DotrainOrderGui.init(dotrainWithGui, "other-deployment");
+    const gui = await DotrainOrderGui.chooseDeployment(
+      dotrainWithGui,
+      "other-deployment"
+    );
 
-    const tokenInfos: Map<string, TokenInfo> = gui.getTokenInfos();
+    const tokenInfos: TokenInfos = gui.getTokenInfos();
     const token1Address = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
     const token2Address = "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063";
     assert.equal(tokenInfos.get(token1Address)?.decimals, 6);
@@ -219,13 +358,24 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
         .thenSendJsonRpcResult(
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
         );
-      gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+      gui = await DotrainOrderGui.chooseDeployment(
+        dotrainWithGui,
+        "some-deployment"
+      );
     });
 
     it("should add deposit", async () => {
       gui.saveDeposit("token1", "50.6");
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 1);
+    });
+
+    it("should update deposit", async () => {
+      gui.saveDeposit("token1", "50.6");
+      gui.saveDeposit("token1", "100.6");
+      const deposits: TokenDeposit[] = gui.getDeposits();
+      assert.equal(deposits.length, 1);
+      assert.equal(deposits[0].amount, "100.6");
     });
 
     it("should throw error if deposit token is not found in gui config", () => {
@@ -236,12 +386,28 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
     it("should remove deposit", async () => {
       gui.saveDeposit("token1", "50.6");
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 1);
 
       gui.removeDeposit("token1");
-      const depositsAfterRemove = gui.getDeposits();
+      const depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
       assert.equal(depositsAfterRemove.length, 0);
+    });
+
+    it("should get deposit presets", async () => {
+      const presets = gui.getDepositPresets("token1");
+      assert.equal(presets.length, 5);
+      assert.equal(presets[0], "0");
+      assert.equal(presets[1], "10");
+      assert.equal(presets[2], "100");
+      assert.equal(presets[3], "1000");
+      assert.equal(presets[4], "10000");
+    });
+
+    it("should throw error if deposit token is not found in gui config", () => {
+      expect(() => gui.getDepositPresets("token2")).toThrow(
+        "Deposit token not found in gui config: token2"
+      );
     });
   });
 
@@ -254,7 +420,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
         .thenSendJsonRpcResult(
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
         );
-      gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+      gui = await DotrainOrderGui.chooseDeployment(
+        dotrainWithGui,
+        "some-deployment"
+      );
     });
 
     it("should save the field value as presets", async () => {
@@ -318,17 +487,23 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
           },
         },
       ]);
-      const fieldValues = gui.getAllFieldValues();
+      const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
       assert.deepEqual(fieldValues[0], {
-        id: "",
-        name: undefined,
-        value: "some-string",
+        binding: "binding-1",
+        value: {
+          id: "",
+          name: undefined,
+          value: "some-string",
+        },
       });
       assert.deepEqual(fieldValues[1], {
-        id: "",
-        name: undefined,
-        value: "true",
+        binding: "binding-2",
+        value: {
+          id: "",
+          name: undefined,
+          value: "true",
+        },
       });
     });
 
@@ -403,7 +578,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
         .thenSendJsonRpcResult(
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
         );
-      gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+      gui = await DotrainOrderGui.chooseDeployment(
+        dotrainWithGui,
+        "some-deployment"
+      );
     });
 
     it("should get field definition", async () => {
@@ -440,7 +618,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedState =
-      "H4sIAAAAAAAA_3WNPQrCQBSEE42inaBlCmshsv8_nbWVV9jNvpUgRNAU3kCwUDyMF7DwAh7DSyj40ghOMzPvwTeL5CsQXHpwmrJovJJKEW-F5Vox73W0xjhrrOTaQLAyeBAlo44RLmRkjFvSQc4Q3Vd1qOp1QVM8kHSAabWDPTRTOms_B8o-HKWNJc6XAeK__gtnSasuOiWkHeyjN9sN1DTDJslcTTDfx0XvmV-Xx4fLR83pld3Olzew3eUoEAEAAA==";
+      "H4sIAAAAAAAA_3WNSwrCQBBEExXRW7gWlO6ezG_nEbzCfHokCCNoFh7fgD0uhNSm-lO8unRfxaigFJVUIGTlNWZiYyFkS0mzA60GjQF4mGNDIEpZgfNOF28iOMor4ewbb6x5rLcT9nKAfifT9ckvng54bJ830kw31nkIMWUuS_s_nLqmtTgCtMKt-PS4c8VfciOu4Ww-Bfyqq_0AAAA=";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
@@ -449,7 +627,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
         .thenSendJsonRpcResult(
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
         );
-      gui = await DotrainOrderGui.init(dotrainWithGui, "some-deployment");
+      gui = await DotrainOrderGui.chooseDeployment(
+        dotrainWithGui,
+        "some-deployment"
+      );
 
       gui.saveFieldValue("binding-1", {
         isPreset: true,
@@ -467,19 +648,25 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
     it("should deserialize gui state", async () => {
       gui.clearState();
       gui.deserializeState(serializedState);
-      const fieldValues = gui.getAllFieldValues();
+      const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 2);
       assert.deepEqual(fieldValues[0], {
-        id: "0",
-        name: "Preset 1",
-        value: "0x1234567890abcdef1234567890abcdef12345678",
+        binding: "binding-1",
+        value: {
+          id: "0",
+          name: "Preset 1",
+          value: "0x1234567890abcdef1234567890abcdef12345678",
+        },
       });
       assert.deepEqual(fieldValues[1], {
-        id: "",
-        name: undefined,
-        value: "100",
+        binding: "binding-2",
+        value: {
+          id: "",
+          name: undefined,
+          value: "100",
+        },
       });
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 1);
       assert.equal(deposits[0].token, "token1");
       assert.equal(deposits[0].amount, "50.6");
@@ -512,7 +699,10 @@ ${guiConfig2}
 
 ${dotrain}
 `;
-      let gui2 = await DotrainOrderGui.init(dotrain2, "other-deployment");
+      let gui2 = await DotrainOrderGui.chooseDeployment(
+        dotrain2,
+        "other-deployment"
+      );
       let serialized = gui2.serializeState();
       expect(() => gui.deserializeState(serialized)).toThrow(
         "Deserialized config mismatch"
@@ -521,10 +711,30 @@ ${dotrain}
 
     it("should clear state", async () => {
       gui.clearState();
-      const fieldValues = gui.getAllFieldValues();
+      const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
       assert.equal(fieldValues.length, 0);
-      const deposits = gui.getDeposits();
+      const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 0);
+    });
+
+    it("should check if field is preset", async () => {
+      gui.saveFieldValue("binding-1", {
+        isPreset: true,
+        value: gui.getFieldDefinition("binding-1").presets[0].id,
+      });
+      assert.equal(gui.isFieldPreset("binding-1"), true);
+      gui.saveFieldValue("binding-2", {
+        isPreset: false,
+        value: "100",
+      });
+      assert.equal(gui.isFieldPreset("binding-2"), false);
+    });
+
+    it("should check if deposit is preset", async () => {
+      gui.saveDeposit("token1", "55");
+      assert.equal(gui.isDepositPreset("token1"), false);
+      gui.saveDeposit("token1", "100");
+      assert.equal(gui.isDepositPreset("token1"), true);
     });
   });
 
@@ -554,7 +764,10 @@ ${dotrain}
       
       ${dotrain}
       `;
-      gui = await DotrainOrderGui.init(dotrain2, "other-deployment");
+      gui = await DotrainOrderGui.chooseDeployment(
+        dotrain2,
+        "other-deployment"
+      );
     });
 
     it("checks input and output allowances", async () => {
@@ -568,7 +781,7 @@ ${dotrain}
 
       gui.saveDeposit("token2", "200");
 
-      const allowances: TokenAllowance[] = await gui.checkAllowances(
+      const allowances: AllowancesResult = await gui.checkAllowances(
         "0x1234567890abcdef1234567890abcdef12345678"
       );
       assert.equal(allowances.length, 1);
@@ -589,7 +802,7 @@ ${dotrain}
 
       gui.saveDeposit("token2", "5000");
 
-      const approvalCalldatas: ApprovalCalldata[] =
+      const approvalCalldatas: ApprovalCalldataResult =
         await gui.generateApprovalCalldatas(
           "0x1234567890abcdef1234567890abcdef12345678"
         );
@@ -631,7 +844,8 @@ ${dotrain}
 
       gui.saveDeposit("token2", "5000");
 
-      const depositCalldatas: string[] = await gui.generateDepositCalldatas();
+      const depositCalldatas: DepositCalldataResult =
+        await gui.generateDepositCalldatas();
       assert.equal(depositCalldatas.length, 1);
       assert.equal(
         depositCalldatas[0],
@@ -663,8 +877,20 @@ ${dotrain}
           "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000"
         );
 
-      const addOrderCalldata: string = await gui.generateAddOrderCalldata();
+      gui.saveFieldValue("test-binding", {
+        isPreset: false,
+        value: "10",
+      });
+
+      const addOrderCalldata: AddOrderCalldataResult =
+        await gui.generateAddOrderCalldata();
       assert.equal(addOrderCalldata.length, 2314);
+
+      const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.deepEqual(
+        currentDeployment.deployment.scenario.bindings,
+        new Map([["test-binding", "10"]])
+      );
     });
 
     it("should generate multicalldata for deposit and add order", async () => {
@@ -693,8 +919,259 @@ ${dotrain}
 
       gui.saveDeposit("token2", "5000");
 
-      const calldata: string = await gui.generateDepositAndAddOrderCalldatas();
-      assert.equal(calldata.length, 3530);
+      gui.saveFieldValue("test-binding", {
+        isPreset: true,
+        value: "0",
+      });
+
+      const calldata: DepositAndAddOrderCalldataResult =
+        await gui.generateDepositAndAddOrderCalldatas();
+      assert.equal(calldata.length, 3146);
+
+      const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.deepEqual(
+        currentDeployment.deployment.scenario.bindings,
+        new Map([["test-binding", "0xbeef"]])
+      );
+    });
+
+    it("should throw error on order operations without selecting required tokens", async () => {
+      let testDotrain = `
+      ${guiConfig3}
+
+      ${dotrain}
+      `;
+      let testGui = await DotrainOrderGui.chooseDeployment(
+        testDotrain,
+        "other-deployment"
+      );
+
+      await expect(async () =>
+        testGui.checkAllowances("0x1234567890abcdef1234567890abcdef12345678")
+      ).rejects.toThrow("Token must be selected: token1");
+      await expect(
+        async () =>
+          await testGui.generateApprovalCalldatas(
+            "0x1234567890abcdef1234567890abcdef12345678"
+          )
+      ).rejects.toThrow("Token must be selected: token1");
+      await expect(
+        async () => await testGui.generateDepositCalldatas()
+      ).rejects.toThrow("Token must be selected: token1");
+      await expect(
+        async () => await testGui.generateAddOrderCalldata()
+      ).rejects.toThrow("Token must be selected: token1");
+      await expect(
+        async () => await testGui.generateDepositAndAddOrderCalldatas()
+      ).rejects.toThrow("Token must be selected: token1");
+    });
+
+    it("should set vault ids", async () => {
+      mockServer
+        .forPost("/rpc-url")
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
+        );
+
+      let testDotrain = `
+          ${guiConfig2}
+          
+          ${dotrainWithoutVaultIds}
+          `;
+      gui = await DotrainOrderGui.chooseDeployment(
+        testDotrain,
+        "other-deployment"
+      );
+
+      let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.equal(
+        currentDeployment.deployment.order.inputs[0].vaultId,
+        undefined
+      );
+      assert.equal(
+        currentDeployment.deployment.order.outputs[0].vaultId,
+        undefined
+      );
+
+      gui.setVaultId(true, 0, "0x123123123456456456");
+      gui.setVaultId(false, 0, "0x123123123456456456");
+
+      let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.notEqual(
+        newCurrentDeployment.deployment.order.inputs[0].vaultId,
+        undefined
+      );
+      assert.notEqual(
+        newCurrentDeployment.deployment.order.outputs[0].vaultId,
+        undefined
+      );
+      assert.equal(
+        newCurrentDeployment.deployment.order.inputs[0].vaultId,
+        "0x123123123456456456"
+      );
+      assert.equal(
+        newCurrentDeployment.deployment.order.outputs[0].vaultId,
+        "0x123123123456456456"
+      );
+    });
+
+    it("should skip deposits with zero amount for deposit calldata", async () => {
+      // token1 info
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
+        );
+      // token2 info
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000"
+        );
+
+      gui.saveDeposit("token1", "0");
+      gui.saveDeposit("token2", "0");
+      const calldatas = await gui.generateDepositCalldatas();
+      assert.equal(calldatas.length, 0);
+    });
+  });
+
+  describe("select tokens tests", async () => {
+    let gui: DotrainOrderGui;
+    beforeAll(async () => {
+      let dotrain3 = `
+      ${guiConfig3}
+
+      ${dotrain}
+      `;
+      gui = await DotrainOrderGui.chooseDeployment(
+        dotrain3,
+        "other-deployment"
+      );
+    });
+
+    it("should get select tokens", async () => {
+      const selectTokens: SelectTokens = gui.getSelectTokens();
+      assert.equal(selectTokens.size, 2);
+      assert.equal(
+        selectTokens.get("token1"),
+        "0x0000000000000000000000000000000000000000"
+      );
+      assert.equal(
+        selectTokens.get("token2"),
+        "0x0000000000000000000000000000000000000000"
+      );
+    });
+
+    it("should throw error if select tokens not set", async () => {
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
+        );
+      let testGui = await DotrainOrderGui.chooseDeployment(
+        dotrainWithGui,
+        "some-deployment"
+      );
+
+      expect(() => testGui.getSelectTokens()).toThrow("Select tokens not set");
+      await expect(
+        async () => await testGui.saveSelectTokenAddress("token1", "0x1")
+      ).rejects.toThrow("Select tokens not set");
+    });
+
+    it("should throw error if token not found", async () => {
+      await expect(
+        async () => await gui.saveSelectTokenAddress("token3", "0x1")
+      ).rejects.toThrow("Token not found");
+    });
+
+    it("should save select token address", async () => {
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
+        );
+      // token2 info
+      mockServer
+        .forPost("/rpc-url")
+        .once()
+        .withBodyIncluding("0x82ad56cb")
+        .thenSendJsonRpcResult(
+          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000"
+        );
+
+      let initialTokenInfo: TokenInfos = await gui.getTokenInfos();
+      assert.equal(initialTokenInfo.size, 0);
+
+      let dotrainConfig: Config = gui.getDotrainConfig();
+      assert.equal(
+        dotrainConfig.tokens.get("token1")?.address,
+        "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+      );
+      assert.equal(
+        dotrainConfig.tokens.get("token2")?.address,
+        "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"
+      );
+
+      let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.equal(
+        currentDeployment.deployment.order.inputs[0].token.address,
+        "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+      );
+      assert.equal(
+        currentDeployment.deployment.order.outputs[0].token.address,
+        "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"
+      );
+
+      await gui.saveSelectTokenAddress(
+        "token1",
+        "0x6666666666666666666666666666666666666666"
+      );
+      await gui.saveSelectTokenAddress(
+        "token2",
+        "0x8888888888888888888888888888888888888888"
+      );
+      assert.equal(
+        gui.getSelectTokens().get("token1"),
+        "0x6666666666666666666666666666666666666666"
+      );
+      assert.equal(
+        gui.getSelectTokens().get("token2"),
+        "0x8888888888888888888888888888888888888888"
+      );
+
+      let tokenInfo: TokenInfos = await gui.getTokenInfos();
+      assert.equal(tokenInfo.size, 2);
+
+      let newDotrainConfig: Config = gui.getDotrainConfig();
+      assert.equal(
+        newDotrainConfig.tokens.get("token1")?.address,
+        "0x6666666666666666666666666666666666666666"
+      );
+      assert.equal(
+        newDotrainConfig.tokens.get("token2")?.address,
+        "0x8888888888888888888888888888888888888888"
+      );
+
+      let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
+      assert.equal(
+        newCurrentDeployment.deployment.order.inputs[0].token.address,
+        "0x6666666666666666666666666666666666666666"
+      );
+      assert.equal(
+        newCurrentDeployment.deployment.order.outputs[0].token.address,
+        "0x8888888888888888888888888888888888888888"
+      );
     });
   });
 });

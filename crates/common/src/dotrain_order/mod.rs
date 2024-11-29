@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 use crate::GH_COMMIT_SHA;
 use crate::{
     add_order::{ORDERBOOK_ADDORDER_POST_TASK_ENTRYPOINTS, ORDERBOOK_ORDER_ENTRYPOINTS},
     rainlang::compose_to_rainlang,
 };
-use alloy::primitives::{private::rand, Address};
+use alloy::primitives::{private::rand, Address, U256};
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
@@ -17,7 +19,6 @@ use rain_orderbook_app_settings::{
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use thiserror::Error;
 use typeshare::typeshare;
 
@@ -75,6 +76,15 @@ pub enum DotrainOrderError {
 
     #[error("Deployment {0} not found")]
     DeploymentNotFound(String),
+
+    #[error("Order {0} not found")]
+    OrderNotFound(String),
+
+    #[error("Token {0} not found")]
+    TokenNotFound(String),
+
+    #[error("Invalid index for vault ID")]
+    InvalidVaultIdIndex,
 }
 
 #[cfg(target_family = "wasm")]
@@ -390,22 +400,83 @@ impl DotrainOrder {
         Ok(())
     }
 
-    pub fn populate_vault_ids(&mut self, deployment_name: &str) -> Result<(), DotrainOrderError> {
-        let mut deployment = self
-            .config
+    fn update_config_source(
+        &mut self,
+        config_source: ConfigSource,
+    ) -> Result<(), DotrainOrderError> {
+        self.config_source = config_source.clone();
+        self.config = config_source.try_into()?;
+        Ok(())
+    }
+
+    pub fn update_config_source_bindings(
+        &mut self,
+        scenario_name: &str,
+        bindings: HashMap<String, String>,
+    ) -> Result<(), DotrainOrderError> {
+        let scenario_parts = scenario_name.split('.').collect::<Vec<_>>();
+        let base_scenario = scenario_parts[0];
+
+        let mut scenario = self
+            .config_source
+            .scenarios
+            .get(base_scenario)
+            .ok_or(DotrainOrderError::ScenarioNotFound(
+                base_scenario.to_string(),
+            ))?
+            .clone();
+
+        if scenario_parts.len() == 1 {
+            scenario.bindings = bindings;
+        } else {
+            let mut current_scenario = &mut scenario;
+            for &part in scenario_parts.iter().skip(1) {
+                if let Some(sub_scenarios) = &mut current_scenario.scenarios {
+                    current_scenario =
+                        sub_scenarios
+                            .get_mut(part)
+                            .ok_or(DotrainOrderError::ScenarioNotFound(
+                                scenario_name.to_string(),
+                            ))?;
+                } else {
+                    return Err(DotrainOrderError::ScenarioNotFound(
+                        scenario_name.to_string(),
+                    ));
+                }
+            }
+            current_scenario.bindings = bindings;
+        }
+
+        self.config_source
+            .scenarios
+            .insert(base_scenario.to_string(), scenario);
+        self.update_config_source(self.config_source.clone())?;
+        Ok(())
+    }
+
+    pub fn populate_vault_ids(
+        &mut self,
+        deployment_name: &str,
+        custom_vault_id: Option<U256>,
+    ) -> Result<(), DotrainOrderError> {
+        let deployment = self
+            .config_source
             .deployments
             .get(deployment_name)
-            .cloned()
             .ok_or(DotrainOrderError::DeploymentNotFound(
                 deployment_name.to_string(),
             ))?
-            .as_ref()
             .clone();
-        let mut order = deployment.order.as_ref().clone();
-        let vault_id = rand::random();
+        let mut order = self
+            .config_source
+            .orders
+            .get(&deployment.order)
+            .ok_or(DotrainOrderError::OrderNotFound(deployment.order.clone()))?
+            .clone();
 
-        let new_inputs = deployment
-            .order
+        let vault_id = custom_vault_id.unwrap_or(rand::random());
+
+        let new_inputs = order
             .inputs
             .iter()
             .map(|input| {
@@ -414,8 +485,7 @@ impl DotrainOrder {
                 input
             })
             .collect();
-        let new_outputs = deployment
-            .order
+        let new_outputs = order
             .outputs
             .iter()
             .map(|output| {
@@ -427,10 +497,69 @@ impl DotrainOrder {
 
         order.inputs = new_inputs;
         order.outputs = new_outputs;
-        deployment.order = Arc::new(order);
-        self.config
+        self.config_source
+            .orders
+            .insert(deployment.order.clone(), order.clone());
+        self.update_config_source(self.config_source.clone())?;
+
+        Ok(())
+    }
+
+    pub fn update_token_address(
+        &mut self,
+        token_name: String,
+        address: Address,
+    ) -> Result<(), DotrainOrderError> {
+        let mut token = self
+            .config_source
+            .tokens
+            .get(&token_name)
+            .ok_or(DotrainOrderError::TokenNotFound(token_name.clone()))?
+            .clone();
+        token.address = address;
+        self.config_source.tokens.insert(token_name, token);
+        self.update_config_source(self.config_source.clone())?;
+        Ok(())
+    }
+
+    pub fn set_vault_id(
+        &mut self,
+        deployment_name: &str,
+        is_input: bool,
+        index: u8,
+        vault_id: U256,
+    ) -> Result<(), DotrainOrderError> {
+        let deployment = self
+            .config_source
             .deployments
-            .insert(deployment_name.to_string(), Arc::new(deployment));
+            .get(deployment_name)
+            .ok_or(DotrainOrderError::DeploymentNotFound(
+                deployment_name.to_string(),
+            ))?
+            .clone();
+        let mut order = self
+            .config_source
+            .orders
+            .get(&deployment.order)
+            .ok_or(DotrainOrderError::OrderNotFound(deployment.order.clone()))?
+            .clone();
+
+        if is_input {
+            if index as usize >= order.inputs.len() {
+                return Err(DotrainOrderError::InvalidVaultIdIndex);
+            }
+            order.inputs[index as usize].vault_id = Some(vault_id);
+        } else {
+            if index as usize >= order.outputs.len() {
+                return Err(DotrainOrderError::InvalidVaultIdIndex);
+            }
+            order.outputs[index as usize].vault_id = Some(vault_id);
+        }
+
+        self.config_source
+            .orders
+            .insert(deployment.order.clone(), order.clone());
+        self.update_config_source(self.config_source.clone())?;
 
         Ok(())
     }

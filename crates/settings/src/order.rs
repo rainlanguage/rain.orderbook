@@ -16,7 +16,11 @@ pub struct OrderIO {
     #[typeshare(typescript(type = "Token"))]
     pub token: Arc<Token>,
     #[typeshare(typescript(type = "string"))]
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    #[cfg_attr(
+        target_family = "wasm",
+        tsify(type = "string"),
+        serde(rename = "vaultId")
+    )]
     pub vault_id: Option<U256>,
 }
 #[cfg(target_family = "wasm")]
