@@ -7,6 +7,7 @@ import {LibCodeGen} from "rain.sol.codegen/lib/LibCodeGen.sol";
 import {LibFs} from "rain.sol.codegen/lib/LibFs.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {LibOrderBookSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "src/lib/LibOrderBookSubParser.sol";
+import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
 
 contract BuildPointers is Script {
     function buildOrderBookSubParserPointers() internal {
@@ -20,7 +21,7 @@ contract BuildPointers is Script {
             name,
             string.concat(
                 LibCodeGen.describedByMetaHashConstantString(vm, name),
-                LibCodeGen.parseMetaConstantString(
+                LibGenParseMeta.parseMetaConstantString(
                     vm, LibOrderBookSubParser.authoringMetaV2(), EXTERN_PARSE_META_BUILD_DEPTH
                 ),
                 LibCodeGen.subParserWordParsersConstantString(vm, subParser),
