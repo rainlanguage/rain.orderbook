@@ -177,7 +177,7 @@ test('shows remove button if owner wallet matches and order is active, opens cor
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: mockData.order.id, network: 'mainnet' },
+    props: { id: mockData.order.id, network: 'mainnet',  },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
