@@ -38,104 +38,11 @@
 		);
 		dotrain = await response.text();
 	}
-	function loadLimit() {
-		dotrain = `
-raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
-networks:
-  base:
-    rpc: https://mainnet.base.org
-    chain-id: 8453
-    network-id: 8453
-    currency: ETH
-metaboards:
-  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn
-subgraphs:
-  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.7/gn
-orderbooks:
-  base:
-    address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7
-    network: base
-    subgraph: base
-deployers:
-  base:
-    address: 0xC1A14cE2fd58A3A2f99deCb8eDd866204eE07f8D
-    network: base
-tokens:
-  token1:
-    network: base
-    address: "0x1234567890abcdef1234567890abcdef12345678"
-  token2:
-    network: base
-    address: "0x1234567890abcdef1234567890abcdef12345678"
-orders:
-  base-token1-token2:
-    orderbook: base
-    network: base
-    inputs:
-      - token: token1
-    outputs:
-      - token: token2
-scenarios:
-  base:
-    orderbook: base
-    runs: 1
-    bindings:
-      raindex-subparser: 0x662dFd6d5B6DF94E07A60954901D3001c24F856a
-    scenarios:
-      token1-token2:
-        runs: 1
-        bindings:
-          fixed-io-output-token: 0x4200000000000000000000000000000000000006
-deployments:
-  base-token1-token2:
-    order: base-token1-token2
-    scenario: base.token1-token2
-gui:
-  name: Fixed limit
-  description: >
-    Fixed limit order strategy
-  deployments:
-    - deployment: base-token1-token2
-      name: Buy token1 with token2 on Base.
-      description:
-        Buy token1 with token2 for fixed price on Base network.
-      deposits:
-        - token: token2
-          min: 0
-          presets:
-            - 0
-            - 10
-            - 100
-            - 1000
-            - 10000
-      fields:
-        - binding: fixed-io
-          name: token1 price in token2 ($ per token1)
-          description: The price of token1 in token2.
-          min: 1000
-      select-tokens:
-        - token1
-        - token2
----
-#raindex-subparser !The subparser to use.
-#fixed-io !The io ratio for the limit order.
-#fixed-io-output-token !The output token that the fixed io is for. If this doesn't match the runtime output then the fixed-io will be inverted.
-#calculate-io
-using-words-from raindex-subparser
-max-output: max-value(),
-io: if(
-  equal-to(
-    output-token()
-    fixed-io-output-token
-  )
-  fixed-io
-  inv(fixed-io)
-);
-#handle-io
-:;
-#handle-add-order
-:;
-		`;
+	async function loadLimit() {
+		const response = await fetch(
+			'https://raw.githubusercontent.com/findolor/sample-dotrains/refs/heads/main/fixed-ratio-limit.rain'
+		);
+		dotrain = await response.text();
 	}
 
 	let gui: DotrainOrderGui | undefined = undefined;
