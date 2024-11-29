@@ -8,7 +8,7 @@
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import { formatUnits } from 'viem';
-  import TableTimeFilters from '../charts/TableTimeFilters.svelte';
+  import { TableTimeFilters } from '@rainlanguage/ui-components';
   import { bigintStringToHex } from '@rainlanguage/ui-components';
 
   export let id: string;
