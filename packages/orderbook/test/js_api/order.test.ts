@@ -4,7 +4,7 @@ import { describe, it, beforeEach, afterEach } from "vitest";
 import {
   Order,
   OrderWithSubgraphName,
-  Trade
+  Trade,
 } from "../../dist/types/js_api.js";
 import {
   getOrders,
@@ -158,9 +158,8 @@ const mockOrderTradesList: Trade[] = [
         from: "0x0000000000000000000000000000000000000000",
         timestamp: "1632000000",
         blockNumber: "0",
-      }
+      },
     },
-    
     outputVaultBalanceChange: {
       amount: "-100",
       vault: {
@@ -175,7 +174,8 @@ const mockOrderTradesList: Trade[] = [
         },
       },
       id: "output-change-1",
-      typename: "TradeVaultBalanceChange",
+      // @ts-expect-error __typename is expected in rpc response
+      __typename: "TradeVaultBalanceChange",
       newVaultBalance: "900",
       oldVaultBalance: "1000",
       timestamp: "1632000000",
@@ -206,7 +206,8 @@ const mockOrderTradesList: Trade[] = [
         },
       },
       id: "input-change-1",
-      typename: "TradeVaultBalanceChange",
+      // @ts-expect-error __typename is expected in rpc response
+      __typename: "TradeVaultBalanceChange",
       newVaultBalance: "150",
       oldVaultBalance: "100",
       timestamp: "1632000000",
@@ -245,7 +246,8 @@ const mockTrade: Trade = {
   },
   outputVaultBalanceChange: {
     id: "0x0000000000000000000000000000000000000000",
-    typename: "TradeVaultBalanceChange",
+    // @ts-expect-error __typename is expected in rpc response
+    __typename: "TradeVaultBalanceChange",
     amount: "-7",
     newVaultBalance: "93",
     oldVaultBalance: "100",
@@ -273,7 +275,8 @@ const mockTrade: Trade = {
   },
   inputVaultBalanceChange: {
     id: "0x0000000000000000000000000000000000000000",
-    typename: "TradeVaultBalanceChange",
+    // @ts-expect-error __typename is expected in rpc response
+    __typename: "TradeVaultBalanceChange",
     amount: "5",
     newVaultBalance: "105",
     oldVaultBalance: "100",
@@ -316,7 +319,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       assert.equal(result.id, order1.id);
     } catch (e) {
       console.log(e);
-      assert.fail("expected to resolve, but failed" + (e instanceof Error ? e.message : String(e)));
+      assert.fail(
+        "expected to resolve, but failed" +
+          (e instanceof Error ? e.message : String(e))
+      );
     }
   });
 
@@ -351,7 +357,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       assert.equal(result[1].subgraphName, "network-two");
     } catch (e) {
       console.log(e);
-      assert.fail("expected to resolve, but failed" + (e instanceof Error ? e.message : String(e)));
+      assert.fail(
+        "expected to resolve, but failed" +
+          (e instanceof Error ? e.message : String(e))
+      );
     }
   });
 
@@ -386,7 +395,10 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       );
     } catch (e: unknown) {
       console.error("Test error:", e);
-      assert.fail("Expected to resolve, but failed: " + (e instanceof Error ? e.message : String(e)));
+      assert.fail(
+        "Expected to resolve, but failed: " +
+          (e instanceof Error ? e.message : String(e))
+      );
     }
   });
 
@@ -412,46 +424,51 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       );
     } catch (e) {
       console.log(e);
-      assert.fail("expected to resolve, but failed" + + (e instanceof Error ? e.message : String(e)));
+      assert.fail(
+        "expected to resolve, but failed" +
+          +(e instanceof Error ? e.message : String(e))
+      );
     }
   });
   it("should fetch trade count for a single order", async () => {
-   await mockServer.forPost("/sg1").thenReply(
-  200,
-  JSON.stringify({
-    data: {
-      trades: mockOrderTradesList,
-    },
-  }),
-);
-
-await mockServer.forPost("/sg1").thenReply(
-  200,
-  JSON.stringify({
-    data: {
-      trades: []
-    },
-  })
-);
-
-
-  try {
-    const count = await getOrderTradesCount(
-      mockServer.url + "/sg1",
-      "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
-      undefined,
-      undefined
+    await mockServer.forPost("/sg1").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockOrderTradesList,
+        },
+      })
     );
-    console.log(count);
 
-    assert.strictEqual(typeof count, 'number', "Count should be a number");
-    assert.strictEqual(count, 1, "Should count one trade");
-  } catch (e) {
-    console.error("Test error:", e);
-    if (e instanceof Error) {
-      console.error("Error details:", e.stack);
-    }
-    assert.fail("Expected to resolve, but failed: " + (e instanceof Error ? e.message : String(e)));
+    await mockServer.forPost("/sg1").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: [],
+        },
+      })
+    );
+
+    try {
+      const count = await getOrderTradesCount(
+        mockServer.url + "/sg1",
+        "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+        undefined,
+        undefined
+      );
+      console.log(count);
+
+      assert.strictEqual(typeof count, "number", "Count should be a number");
+      assert.strictEqual(count, 1, "Should count one trade");
+    } catch (e) {
+      console.error("Test error:", e);
+      if (e instanceof Error) {
+        console.error("Error details:", e.stack);
+      }
+      assert.fail(
+        "Expected to resolve, but failed: " +
+          (e instanceof Error ? e.message : String(e))
+      );
     }
   });
 });
