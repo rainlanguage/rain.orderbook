@@ -20,6 +20,7 @@ on:
           - sepolia
           - songbird
           - linea
+          - matchain
 
       suite:
         description: 'Suite to deploy'

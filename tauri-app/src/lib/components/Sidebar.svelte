@@ -9,6 +9,7 @@
   import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
+  import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
   import IconExternalLink from '$lib/components/IconExternalLink.svelte';
   import { page } from '$app/stores';
   import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
@@ -98,6 +99,12 @@
           <span data-testid="sidebar-telegram"></span>
         </svelte:fragment>
       </SidebarItem>
+      <SidebarItem label="License" href="/license">
+        <svelte:fragment slot="icon">
+          <FileLinesSolid />
+          <span data-testid="sidebar-license"></span>
+        </svelte:fragment>
+      </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border class="flex justify-start">
       <ButtonDarkMode />
@@ -105,7 +112,9 @@
     <SidebarGroup border class="flex justify-start self-end">
       <div class="flex flex-col text-xs text-gray-500 dark:text-gray-400">
         <p>Raindex version commit:</p>
-        <p>{app_sha}</p>
+        <p class="break-all">
+          {app_sha}
+        </p>
       </div>
     </SidebarGroup>
   </SidebarWrapper>

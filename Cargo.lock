@@ -28,6 +28,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
+name = "adler2"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
+
+[[package]]
 name = "adler32"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1637,7 +1643,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "libc",
- "miniz_oxide",
+ "miniz_oxide 0.7.4",
  "object",
  "rustc-demangle",
 ]
@@ -1710,6 +1716,15 @@ name = "bimap"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "230c5f1ca6a325a32553f8640d31ac9b49f2411e901e427570154868b46da4f7"
+
+[[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bit-set"
@@ -3405,12 +3420,12 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "flate2"
-version = "1.0.31"
+version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f211bbe8e69bbd0cfdea405084f128ae8b4aaa6b0b522fc8f2b009084797920"
+checksum = "a1b589b4dc103969ad3cf85c950899926ec64300a1a46d76c03a6072957036f0"
 dependencies = [
  "crc32fast",
- "miniz_oxide",
+ "miniz_oxide 0.8.0",
 ]
 
 [[package]]
@@ -5211,6 +5226,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "miniz_oxide"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2d80299ef12ff69b16a84bb182e3b9df68b5a91574d3d4fa6e41b65deec4df1"
+dependencies = [
+ "adler2",
+]
+
+[[package]]
 name = "mio"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6308,15 +6332,19 @@ dependencies = [
  "alloy",
  "derive_builder 0.20.0",
  "httpmock",
+ "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
  "tokio",
+ "tsify",
  "typeshare",
  "url",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -6416,6 +6444,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_js_api"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "alloy-ethers-typecast",
+ "base64 0.22.1",
+ "bincode",
+ "cynic",
+ "flate2",
+ "js-sys",
+ "rain_orderbook_app_settings",
+ "rain_orderbook_bindings",
+ "rain_orderbook_common",
+ "rain_orderbook_subgraph_client",
+ "reqwest 0.12.5",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "rain_orderbook_math"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "once_cell",
+ "thiserror",
+]
+
+[[package]]
 name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
@@ -6457,15 +6520,21 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "futures",
  "httpmock",
  "insta",
+ "js-sys",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
  "tokio",
+ "tsify",
  "typeshare",
+ "url",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -7482,9 +7551,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.125"
+version = "1.0.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83c8e735a073ccf5be70aa8066aa984eaf2fa000db6c8d0100ae605b366d31ed"
+checksum = "d726bfaff4b320266d395898905d0eba0345aae23b54aee3a737e260fd46db03"
 dependencies = [
  "indexmap",
  "itoa",

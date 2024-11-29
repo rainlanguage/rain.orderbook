@@ -1,7 +1,5 @@
 {
-    "name": "@rainlanguage/orderbook",
-    "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
-    "version": "0.0.1-alpha.4",
+    "name": "rainlanguage-packages",
     "author": "Rain Language",
     "license": "CAL-1.0",
     "repository": {
@@ -13,80 +11,74 @@
         "url": "https://github.com/rainlanguage/rain.orderbook/issues"
     },
     "homepage": "https://github.com/rainlanguage/rain.orderbook#readme",
-    "main": "./dist/cjs/index.js",
-    "module": "./dist/esm/index.js",
-    "types": "./dist/types/index.d.ts",
-    "typings": "./dist/types/index.d.ts",
-    "browser": {
-        "./dist/cjs/index.js": "./dist/cjs/index.js",
-        "./dist/esm/index.js": "./dist/esm/index.js"
-    },
-    "exports": {
-        ".": {
-            "require": "./dist/cjs/index.js",
-            "import": "./dist/esm/index.js",
-            "types": "./dist/types/index.d.ts"
-        },
-        "./common": {
-            "require": "./dist/cjs/common.js",
-            "import": "./dist/esm/common.js",
-            "types": "./dist/types/common.d.ts"
-        },
-        "./quote": {
-            "require": "./dist/cjs/quote.js",
-            "import": "./dist/esm/quote.js",
-            "types": "./dist/types/quote.d.ts"
-        }
-    },
-    "typesVersions": {
-        "*": {
-            "common": [
-                "./dist/types/common.d.ts"
-            ],
-            "quote": [
-                "./dist/types/quote.d.ts"
-            ]
-        }
-    },
     "engines": {
         "node": ">=18"
     },
-    "files": [
-        "/dist",
-        "/cjs.js",
-        "/esm.js",
-        "/cjs.d.ts",
-        "/esm.d.ts"
-    ],
     "scripts": {
-        "prepublish": "node scripts/setup",
-        "build": "npm run rm-dist && npm run rm-temp && node scripts/build",
-        "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests",
-        "rm-dist": "rimraf ./dist",
-        "rm-temp": "rimraf ./temp",
-        "lint-bindings": "eslint \"dist/**\" --fix",
-        "lint": "eslint \"dist/**\" \"test-js/**\"",
-        "lint-fix": "eslint \"dist/**\" \"test-js/**\" --fix",
-        "test": "vitest run --dir test-js"
+        "build": "npm run build --workspaces",
+        "build:orderbook": "npm run build -w @rainlanguage/orderbook",
+        "build:ui": "npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp",
+        "dev": "npm run dev --workspaces",
+        "dev:tauri": "nix develop .#tauri-shell -c cargo tauri dev --verbose",
+        "test": "npm run test --workspaces",
+        "lint:all": "npm run lint --workspaces --if-present",
+        "format:all": "npm run format --workspaces --if-present",
+        "check:all": "npm run check --workspaces --if-present",
+        "lint-format-check:all": "npm run lint:all && npm run format:all && npm run check:all" 
     },
     "devDependencies": {
-        "@types/mocha": "^10.0.0",
+        "@tanstack/svelte-query": "^5.59.20",
+        "@typescript-eslint/eslint-plugin": "^7.3.1",
+        "@typescript-eslint/parser": "^7.3.1",    
+        "@testing-library/jest-dom": "^6.4.2",
+        "@testing-library/svelte": "^5.1.0",
+        "@testing-library/user-event": "^14.5.2",
+        "@sveltejs/adapter-auto": "^3.0.0",
+        "@sveltejs/adapter-static": "^3.0.1",
+        "@sveltejs/vite-plugin-svelte": "^3.0.0",
+        "@types/eslint": "^9.6.0",
         "@types/node": "^18.13.0",
-        "@typescript-eslint/eslint-plugin": "^5.42.0",
-        "@typescript-eslint/parser": "^5.42.0",
-        "@vitest/expect": "^2.0.5",
-        "copyfiles": "^2.4.1",
-        "eslint": "^8.26.0",
+        "@types/lodash": "^4.14.202",
+        "@types/uuid": "^9.0.7",
+        "@vitest/expect": "^1.5.2",
+        "@square/svelte-store": "^1.0.18",
+        "dayjs": "^1.11.13",
+        "jsdom": "^24.0.0",    
+        "autoprefixer": "^10.4.20",
+        "eslint": "^8.56.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-prettier": "^5.1.1",
-        "mocha": "^10.1.0",
+        "eslint-plugin-svelte": "^2.36.0",
+        "globals": "^15.0.0",
+        "lodash": "^4.17.21",
         "mockttp": "^3.15.1",
-        "prettier": "^3.1.1",
+        "prettier": "^3.3.2",
+        "prettier-plugin-svelte": "^3.2.6",
+        "prettier-plugin-tailwindcss": "^0.6.5",
+        "publint": "^0.2.0",
+        "svelte": "^4.2.7",
+        "svelte-check": "^3.6.0",
+        "tailwind-merge": "^2.5.4",
+        "tailwindcss": "^3.4.9",
         "ts-node": "^10.9.1",
-        "typescript": "^4.8.4",
-        "vitest": "^2.0.5"
-    },
+        "typescript": "^5.0.0",
+        "typescript-eslint": "^8.0.0",
+        "vite": "^5.0.11",
+        "viem": "^2.21.44",
+        "vitest": "^2.0.5",
+        "postcss": "^8.4.32"
+
+	},
+    "workspaces": [
+        "packages/*", "tauri-app"
+    ],
     "dependencies": {
-        "buffer": "^6.0.3"
+        "flowbite": "^2.2.1",
+        "flowbite-svelte": "^0.44.21",
+        "flowbite-svelte-icons": "^0.4.5",
+        "@rainlanguage/orderbook": "*",
+        "@rainlanguage/ui-components": "*",
+        "@sveltejs/package": "^2.0.0",
+        "@sveltejs/kit": "^2.0.0"
     }
 }

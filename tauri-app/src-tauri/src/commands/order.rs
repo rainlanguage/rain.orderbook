@@ -7,24 +7,9 @@ use rain_orderbook_common::{
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
 };
-use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
-
-#[tauri::command]
-pub async fn orders_list(
-    subgraph_args: SubgraphArgs,
-    filter_args: OrdersListFilterArgs,
-    pagination_args: PaginationArgs,
-) -> CommandResult<Vec<Order>> {
-    let orders = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .orders_list(filter_args, pagination_args)
-        .await?;
-    Ok(orders)
-}
 
 #[tauri::command]
 pub async fn orders_list_write_csv(

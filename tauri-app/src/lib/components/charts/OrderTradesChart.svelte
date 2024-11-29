@@ -1,6 +1,6 @@
 <script lang="ts">
   import { orderTradesListForChart } from '$lib/queries/orderTradesList';
-  import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
+  import { QKEY_ORDER_TRADES_LIST } from '@rainlanguage/ui-components';
   import { createQuery } from '@tanstack/svelte-query';
   import { subgraphUrl } from '$lib/stores/settings';
   import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';

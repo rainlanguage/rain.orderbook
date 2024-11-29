@@ -5,15 +5,31 @@ use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Deployer {
     #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
     pub label: Option<String>,
 }
+impl Deployer {
+    pub fn dummy() -> Self {
+        Deployer {
+            address: Address::default(),
+            network: Arc::new(Network::dummy()),
+            label: None,
+        }
+    }
+}
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Deployer);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseDeployerConfigSourceError {

@@ -74,3 +74,6 @@ path = "crates/quote"
 
 [workspace.dependencies.rain_orderbook_test_fixtures]
 path = "crates/test_fixtures"
+
+[workspace.dependencies.rain_orderbook_math]
+path = "crates/math"

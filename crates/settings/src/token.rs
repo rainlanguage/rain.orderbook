@@ -5,18 +5,25 @@ use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Token {
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
     #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     pub decimals: Option<u8>,
     pub label: Option<String>,
     pub symbol: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Token);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseTokenConfigSourceError {

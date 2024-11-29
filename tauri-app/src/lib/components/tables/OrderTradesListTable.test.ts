@@ -9,7 +9,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('$lib/mocks/settings');
+  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
 
   const _activeOrderbook = writable();
 
@@ -46,7 +46,7 @@ const mockTradeOrdersList: Trade[] = [
       },
     },
     outputVaultBalanceChange: {
-      amount: '100',
+      amount: '-100',
       vault: {
         id: 'id',
         vault_id: 'vault-id',
@@ -118,7 +118,7 @@ const mockTradeOrdersList: Trade[] = [
       },
     },
     outputVaultBalanceChange: {
-      amount: '100',
+      amount: '-100',
       vault: {
         id: 'id',
         vault_id: 'vault-id',
@@ -207,8 +207,8 @@ test('renders table with correct data', async () => {
         BigInt(mockTradeOrdersList[i].outputVaultBalanceChange.amount),
         Number(mockTradeOrdersList[i].outputVaultBalanceChange.vault.token.decimals),
       );
-      const ioRatio = Number(inputDisplay) / Number(outputDisplay);
-      const oiRatio = Number(outputDisplay) / Number(inputDisplay);
+      const ioRatio = Number(inputDisplay) / (Number(outputDisplay) * -1);
+      const oiRatio = (Number(outputDisplay) * -1) / Number(inputDisplay);
       expect(rows[i]).toHaveTextContent(ioRatio.toString());
       expect(rows[i]).toHaveTextContent(oiRatio.toString());
     }

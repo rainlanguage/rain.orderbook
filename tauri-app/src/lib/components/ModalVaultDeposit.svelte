@@ -7,7 +7,7 @@
     vaultDepositApproveCalldata,
     vaultDepositCalldata,
   } from '$lib/services/vault';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
@@ -82,7 +82,7 @@
   async function fetchUserBalance() {
     try {
       userBalance = (await checkERC20Balance(vault.token.id)).toBigInt();
-    } catch (e) {
+    } catch (_e) {
       userBalance = 0n;
     }
   }

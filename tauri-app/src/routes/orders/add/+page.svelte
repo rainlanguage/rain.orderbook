@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
@@ -26,7 +26,7 @@
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import { promiseTimeout } from '$lib/utils/time';
+  import { promiseTimeout } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
   import {
@@ -39,6 +39,7 @@
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
+  import { page } from '$app/stores';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -61,7 +62,7 @@
   }
 
   $: bindings = deployment ? deployment.scenario.bindings : {};
-  $: $globalDotrainFile.text, updateMergedConfig();
+  $: if ($globalDotrainFile.text) updateMergedConfig();
 
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
@@ -210,7 +211,7 @@
   $: debounceValidateRaindexVersion($globalDotrainFile.text, $settingsText);
 </script>
 
-<PageHeader title="Add Order" />
+<PageHeader title="Add Order" pathname={$page.url.pathname} />
 
 <FileTextarea textFile={globalDotrainFile}>
   <svelte:fragment slot="alert">

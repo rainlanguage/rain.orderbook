@@ -198,7 +198,7 @@ _ _: 0 0;
     async fn test_execute_deployment_key() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_dotrain2.rain";
+        let dotrain_path = "./test_execute_deployment_key.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let keys = ListOrderFrontmatterKeys {
@@ -218,7 +218,7 @@ _ _: 0 0;
     async fn test_execute_scenario_key() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_dotrain3.rain";
+        let dotrain_path = "./test_execute_scenario_key.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let keys = ListOrderFrontmatterKeys {

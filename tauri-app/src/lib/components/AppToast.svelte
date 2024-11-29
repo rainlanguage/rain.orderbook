@@ -21,7 +21,7 @@
     | 'primary'
     | 'orange'
     | undefined;
-  $: toast, getToastColor();
+  $: if (toast) getToastColor();
 
   function getToastColor() {
     if (toast.message_type === ToastMessageType.Success) {

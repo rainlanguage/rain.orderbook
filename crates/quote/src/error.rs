@@ -1,7 +1,9 @@
 use alloy::primitives::{hex::FromHexError, U256};
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
+use rain_orderbook_subgraph_client::{
+    types::order_detail_traits::OrderDetailError, OrderbookSubgraphClientError,
+};
 use thiserror::Error;
 use url::ParseError;
 
@@ -33,6 +35,8 @@ pub enum Error {
     SubgraphClientError(#[from] OrderbookSubgraphClientError),
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
+    #[error(transparent)]
+    OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
     AlloySolTypesError(#[from] alloy::sol_types::Error),
     #[cfg(target_family = "wasm")]

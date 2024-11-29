@@ -1,15 +1,15 @@
 <script lang="ts">
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import TanstackAppTable from './TanstackAppTable.svelte';
-  import { QKEY_VAULTS_VOL_LIST } from '$lib/queries/keys';
+  import { TanstackAppTable } from '@rainlanguage/ui-components';
+  import { QKEY_VAULTS_VOL_LIST } from '@rainlanguage/ui-components';
   import { orderVaultsVolume } from '$lib/queries/orderTradesList';
   import { subgraphUrl } from '$lib/stores/settings';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import { formatUnits } from 'viem';
   import TableTimeFilters from '../charts/TableTimeFilters.svelte';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
 
   export let id: string;
 

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { createInfiniteQuery } from '@tanstack/svelte-query';
-  import TanstackAppTable from './TanstackAppTable.svelte';
-  import { QKEY_ORDER_TRADES_LIST } from '$lib/queries/keys';
+  import { TanstackAppTable } from '@rainlanguage/ui-components';
+  import { QKEY_ORDER_TRADES_LIST } from '@rainlanguage/ui-components';
   import { orderTradesCount, orderTradesList } from '$lib/queries/orderTradesList';
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
-  import { DEFAULT_PAGE_SIZE } from '$lib/queries/constants';
+  import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import { formatUnits } from 'viem';
   import { handleDebugTradeModal } from '$lib/services/modal';
   import { BugOutline } from 'flowbite-svelte-icons';
@@ -23,15 +23,19 @@
 
   $: orderTradesQuery = createInfiniteQuery({
     queryKey: [id, QKEY_ORDER_TRADES_LIST + id],
-    queryFn: ({ pageParam }: { pageParam: number }) => {
-      return orderTradesList(
-        id,
-        $subgraphUrl || '',
-        pageParam,
-        undefined,
-        startTimestamp,
-        endTimestamp,
-      );
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
+      tradesCount = undefined;
+
+      const [count, trades] = await Promise.all([
+        orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp),
+        orderTradesList(id, $subgraphUrl || '', pageParam, undefined, startTimestamp, endTimestamp),
+      ]);
+
+      if (typeof count === 'number') {
+        tradesCount = count;
+      }
+
+      return trades;
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
@@ -39,11 +43,6 @@
     },
     enabled: !!$subgraphUrl,
   });
-
-  $: $orderTradesQuery.isFetching || $orderTradesQuery.isLoading,
-    orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp)
-      .then((v) => (typeof v === 'number' ? (tradesCount = v) : (tradesCount = undefined)))
-      .catch(() => (tradesCount = undefined));
 </script>
 
 <TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
@@ -84,7 +83,7 @@
     </TableBodyCell>
     <TableBodyCell tdClass="break-all py-2">
       {formatUnits(
-        BigInt(item.outputVaultBalanceChange.amount),
+        BigInt(item.outputVaultBalanceChange.amount) * BigInt(-1),
         Number(item.outputVaultBalanceChange.vault.token.decimals ?? 0),
       )}
       {item.outputVaultBalanceChange.vault.token.symbol}

@@ -4,15 +4,21 @@ use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Deployment {
     #[typeshare(typescript(type = "Scenario"))]
     pub scenario: Arc<Scenario>,
     #[typeshare(typescript(type = "Order"))]
     pub order: Arc<Order>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Deployment);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseDeploymentConfigSourceError {

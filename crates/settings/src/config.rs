@@ -8,9 +8,13 @@ use thiserror::Error;
 use typeshare::typeshare;
 use url::Url;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Config {
     #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
@@ -36,7 +40,10 @@ pub struct Config {
     pub raindex_version: Option<String>,
     #[typeshare(typescript(type = "Record<string, string>"))]
     pub accounts: Option<HashMap<String, Arc<String>>>,
+    pub gui: Option<Gui>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Config);
 
 pub type Subgraph = Url;
 pub type Metaboard = Url;
@@ -60,6 +67,8 @@ pub enum ParseConfigSourceError {
     ParseChartConfigSourceError(#[from] ParseChartConfigSourceError),
     #[error(transparent)]
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error(transparent)]
+    ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
     #[error("Failed to parse subgraph {}", 0)]
     SubgraphParseError(url::ParseError),
     #[error(transparent)]
@@ -177,6 +186,11 @@ impl TryFrom<ConfigSource> for Config {
                 .collect::<HashMap<String, Arc<String>>>()
         });
 
+        let gui = match item.gui {
+            Some(g) => Some(g.try_into_gui(&deployments, &tokens)?),
+            None => None,
+        };
+
         let config = Config {
             raindex_version: item.raindex_version,
             networks,
@@ -191,6 +205,7 @@ impl TryFrom<ConfigSource> for Config {
             deployments,
             sentry: item.sentry,
             accounts,
+            gui,
         };
 
         Ok(config)
@@ -286,6 +301,11 @@ mod tests {
             "name-one".to_string(),
             "address-one".to_string(),
         )]));
+        let gui = Some(GuiConfigSource {
+            name: "Some name".to_string(),
+            description: "Some description".to_string(),
+            deployments: vec![],
+        });
 
         let config_string = ConfigSource {
             raindex_version: Some("0x123".to_string()),
@@ -302,6 +322,7 @@ mod tests {
             deployments,
             sentry,
             accounts,
+            gui,
         };
 
         let config_result = Config::try_from(config_string);
@@ -368,5 +389,11 @@ mod tests {
         let (name, address) = accounts.iter().next().unwrap();
         assert_eq!(name, "name-one");
         assert_eq!(address.as_str(), "address-one");
+
+        // Verify gui
+        assert!(config.gui.is_some());
+        let gui = config.gui.as_ref().unwrap();
+        assert_eq!(gui.name, "Some name");
+        assert_eq!(gui.description, "Some description");
     }
 }

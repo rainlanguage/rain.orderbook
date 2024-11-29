@@ -5,12 +5,17 @@ use thiserror::Error;
 use typeshare::typeshare;
 use url::{ParseError, Url};
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct Network {
     pub name: String,
     #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub rpc: Url,
     #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
@@ -19,6 +24,20 @@ pub struct Network {
     pub network_id: Option<u64>,
     pub currency: Option<String>,
 }
+impl Network {
+    pub fn dummy() -> Self {
+        Network {
+            name: "".to_string(),
+            rpc: Url::parse("http://rpc.com").unwrap(),
+            chain_id: 1,
+            label: None,
+            network_id: None,
+            currency: None,
+        }
+    }
+}
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Network);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseNetworkConfigSourceError {

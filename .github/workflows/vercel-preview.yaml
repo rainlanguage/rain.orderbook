@@ -1,0 +1,50 @@
+name: GitHub Actions Vercel Preview Deployment
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+on:
+  push:
+    branches-ignore:
+      - main
+jobs:
+  Deploy-Preview:
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter
+      - run: nix develop -c rainix-sol-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-rs-prelude
+        working-directory: lib/rain.interpreter/lib/rain.metadata
+      - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-rs-prelude
+      - run: nix develop -c raindex-prelude
+      - run: nix develop -c ob-ui-components-prelude
+
+      - run: nix develop -c npm run build
+        working-directory: packages/orderbook
+      - run: nix develop -c npm run build
+        working-directory: packages/ui-components
+      - run: nix develop -c npm run build
+        working-directory: packages/orderbook
+      - run: nix develop .#webapp-shell -c npm run build
+        working-directory: packages/webapp
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@canary
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} packages/webapp

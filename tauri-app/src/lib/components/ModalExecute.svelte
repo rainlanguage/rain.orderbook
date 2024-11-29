@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
   import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import { settings } from '$lib/stores/settings';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
@@ -31,6 +32,18 @@
       selectedWalletconnect = false;
     }
   }
+
+  const getNetworkName = (chainId: number) => {
+    const existingNetwork = Object.entries($settings?.networks || {}).find(
+      (entry) => entry[1]['chain-id'] === chainId,
+    );
+
+    if (existingNetwork) {
+      return existingNetwork[0];
+    }
+
+    return 'an unknown';
+  };
 </script>
 
 <Modal {title} bind:open outsideclose={!isSubmitting} size="sm" on:close={reset}>
@@ -97,8 +110,9 @@
         {execButtonLabel}
       </ButtonLoading>
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
-        <div class="text-red-500">
-          Please connect your wallet to {overrideNetwork?.name || $activeNetworkRef} network
+        <div class="text-red-500" data-testid="network-connection-error">
+          You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
+          to {overrideNetwork?.name || $activeNetworkRef} network.
         </div>
       {/if}
     </div>

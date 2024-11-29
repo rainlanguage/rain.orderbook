@@ -1,21 +1,16 @@
 use super::*;
 use crate::QuoteTarget as MainQuoteTarget;
+use crate::{BatchOrderQuotesResponse as MainBatchOrderQuotesResponse, Pair as MainPair};
 use crate::{OrderQuoteValue as MainOrderQuoteValue, QuoteSpec as MainQuoteSpec};
 use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
-use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_bindings::js_api::Quote;
 use rain_orderbook_bindings::IOrderBookV4::{
     Quote as MainQuote, SignedContextV1 as MainSignedContextV1,
 };
-use serde_wasm_bindgen::{from_value, to_value};
 use std::str::FromStr;
-use wasm_bindgen::{
-    describe::{inform, WasmDescribeVector, VECTOR},
-    JsValue, UnwrapThrowExt,
-};
 
 impl From<OrderQuoteValue> for MainOrderQuoteValue {
     fn from(value: OrderQuoteValue) -> Self {
@@ -106,11 +101,68 @@ impl From<crate::QuoteResult> for super::QuoteResult {
     }
 }
 
-impl_wasm_traits!(QuoteSpec);
-impl_wasm_traits!(QuoteTarget);
-impl_wasm_traits!(QuoteResult);
-impl_wasm_traits!(BatchQuoteSpec);
-impl_wasm_traits!(BatchQuoteTarget);
+impl From<MainPair> for Pair {
+    fn from(value: MainPair) -> Self {
+        Pair {
+            pair_name: value.pair_name,
+            input_index: value.input_index,
+            output_index: value.output_index,
+        }
+    }
+}
+impl From<Pair> for MainPair {
+    fn from(value: Pair) -> Self {
+        MainPair {
+            pair_name: value.pair_name,
+            input_index: value.input_index,
+            output_index: value.output_index,
+        }
+    }
+}
+
+impl From<MainBatchOrderQuotesResponse> for BatchOrderQuotesResponse {
+    fn from(value: MainBatchOrderQuotesResponse) -> Self {
+        let mut block_number_error = "block number, ".to_string();
+        BatchOrderQuotesResponse {
+            pair: value.pair.into(),
+            block_number: u64::try_from(value.block_number)
+                .inspect_err(|e| block_number_error.push_str(&e.to_string()))
+                .expect_throw(&block_number_error),
+            data: value.data.map(OrderQuoteValue::from),
+            success: value.success,
+            error: value.error,
+        }
+    }
+}
+impl From<BatchOrderQuotesResponse> for MainBatchOrderQuotesResponse {
+    fn from(value: BatchOrderQuotesResponse) -> Self {
+        let mut max_output_error = "max output, ".to_string();
+        let mut ratio_error = "ratio, ".to_string();
+        MainBatchOrderQuotesResponse {
+            pair: value.pair.into(),
+            block_number: U256::from(value.block_number),
+            data: value.data.map(|e| MainOrderQuoteValue {
+                max_output: U256::from_str(&e.max_output)
+                    .inspect_err(|e| max_output_error.push_str(&e.to_string()))
+                    .expect_throw(&max_output_error),
+                ratio: U256::from_str(&e.ratio)
+                    .inspect_err(|e| ratio_error.push_str(&e.to_string()))
+                    .expect_throw(&ratio_error),
+            }),
+            success: value.success,
+            error: value.error,
+        }
+    }
+}
+
+impl_all_wasm_traits!(Pair);
+impl_all_wasm_traits!(QuoteSpec);
+impl_all_wasm_traits!(QuoteTarget);
+impl_all_wasm_traits!(QuoteResult);
+impl_all_wasm_traits!(BatchQuoteSpec);
+impl_all_wasm_traits!(OrderQuoteValue);
+impl_all_wasm_traits!(BatchQuoteTarget);
+impl_all_wasm_traits!(BatchOrderQuotesResponse);
 
 #[cfg(test)]
 mod tests {
@@ -178,5 +230,32 @@ mod tests {
         let mut quote_target = QuoteTarget::from(main_quote_target);
         quote_target.quote_config.order.owner = "0x1234".to_string();
         let _ = MainQuoteTarget::from(quote_target);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_batch_order_quotes_response_roundtrip() {
+        let main_batch_order_quotes_response = MainBatchOrderQuotesResponse::default();
+        let batch_order_quotes_response =
+            BatchOrderQuotesResponse::from(main_batch_order_quotes_response.clone());
+        let expected: MainBatchOrderQuotesResponse =
+            MainBatchOrderQuotesResponse::from(batch_order_quotes_response.clone());
+        assert_eq!(main_batch_order_quotes_response, expected);
+
+        let main_batch_order_quotes_response =
+            MainBatchOrderQuotesResponse::from(batch_order_quotes_response.clone());
+        let expected = BatchOrderQuotesResponse::from(main_batch_order_quotes_response.clone());
+        assert_eq!(batch_order_quotes_response, expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_pair_roundtrip() {
+        let main_pair = MainPair::default();
+        let pair = Pair::from(main_pair.clone());
+        let expected = MainPair::from(pair.clone());
+        assert_eq!(main_pair, expected);
+
+        let main_pair = MainPair::from(pair.clone());
+        let expected = Pair::from(main_pair.clone());
+        assert_eq!(pair, expected);
     }
 }

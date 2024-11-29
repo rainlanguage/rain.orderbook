@@ -1,12 +1,13 @@
 import { invoke } from '@tauri-apps/api';
-import { DEFAULT_PAGE_SIZE } from './constants';
+import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Order } from '$lib/typeshare/subgraphTypes';
+import type { OrderWithSubgraphName } from '$lib/typeshare/subgraphTypes';
 
 export type OrdersListArgs = {
-  subgraphArgs: {
+  multiSubgraphArgs: {
     url: string;
-  };
+    name: string;
+  }[];
   filterArgs: {
     owners: string[];
     active: boolean | undefined;
@@ -14,29 +15,32 @@ export type OrdersListArgs = {
   };
   paginationArgs: {
     page: number;
-    page_size: number;
+    pageSize: number;
   };
 };
 
 export const ordersList = async (
-  url: string | undefined,
+  activeSubgraphs: Record<string, string>,
   owners: string[] = [],
   active: boolean | undefined = undefined,
   orderHash: string = '',
   pageParam: number,
   pageSize: number = DEFAULT_PAGE_SIZE,
 ) => {
-  if (!url) {
+  if (!Object.keys(activeSubgraphs).length) {
     return [];
   }
-  return await invoke<Order[]>('orders_list', {
-    subgraphArgs: { url },
+  return await invoke<OrderWithSubgraphName[]>('orders_list', {
+    multiSubgraphArgs: Object.entries(activeSubgraphs).map(([name, url]) => ({
+      name,
+      url,
+    })),
     filterArgs: {
       owners,
       active,
       orderHash: orderHash || undefined,
     },
-    paginationArgs: { page: pageParam + 1, page_size: pageSize },
+    paginationArgs: { page: pageParam + 1, pageSize },
   } as OrdersListArgs);
 };
 
@@ -63,10 +67,10 @@ if (import.meta.vitest) {
     });
 
     // check for a result with no URL
-    expect(await ordersList(undefined, [], undefined, undefined, 0)).toEqual([]);
+    expect(await ordersList({}, [], undefined, undefined, 0)).toEqual([]);
 
     // check for a result with a URL
-    expect(await ordersList('http://localhost:8000', [], undefined, undefined, 0)).toEqual([
+    expect(await ordersList({ network: 'url' }, [], undefined, undefined, 0)).toEqual([
       {
         id: '1',
         order_bytes: '0x123',

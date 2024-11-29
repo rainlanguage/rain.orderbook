@@ -1,0 +1,83 @@
+{
+    "name": "@rainlanguage/orderbook",
+    "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
+    "version": "0.0.1-alpha.5",
+    "author": "Rain Language",
+    "license": "CAL-1.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/rainlanguage/rain.orderbook.git"
+    },
+    "keywords": [],
+    "bugs": {
+        "url": "https://github.com/rainlanguage/rain.orderbook/issues"
+    },
+    "homepage": "https://github.com/rainlanguage/rain.orderbook#readme",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
+    "types": "./dist/types/index.d.ts",
+    "typings": "./dist/types/index.d.ts",
+    "browser": {
+        "./dist/cjs/index.js": "./dist/cjs/index.js",
+        "./dist/esm/index.js": "./dist/esm/index.js"
+    },
+    "exports": {
+        ".": {
+            "require": "./dist/cjs/index.js",
+            "import": "./dist/esm/index.js",
+            "types": "./dist/types/index.d.ts"
+        },
+        "./common": {
+            "require": "./dist/cjs/common.js",
+            "import": "./dist/esm/common.js",
+            "types": "./dist/types/common.d.ts"
+        },
+        "./quote": {
+            "require": "./dist/cjs/quote.js",
+            "import": "./dist/esm/quote.js",
+            "types": "./dist/types/quote.d.ts"
+        },
+        "./js_api": {
+            "require": "./dist/cjs/js_api.js",
+            "import": "./dist/esm/js_api.js",
+            "types": "./dist/types/js_api.d.ts"
+        }
+    },
+    "typesVersions": {
+        "*": {
+            "common": [
+                "./dist/types/common.d.ts"
+            ],
+            "quote": [
+                "./dist/types/quote.d.ts"
+            ],
+            "js_api": [
+                "./dist/types/js_api.d.ts"
+            ]
+        }
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "files": [
+        "./dist",
+        "./cjs.js",
+        "./esm.js",
+        "./cjs.d.ts",
+        "./esm.d.ts"
+    ],
+    "scripts": {
+        "prepublish": "node ./scripts/setup",
+        "build": "npm run rm-dist && npm run rm-temp && node ./scripts/build",
+        "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests",
+        "rm-dist": "rimraf ./dist",
+        "rm-temp": "rimraf ./temp",
+        "test": "vitest run --dir test"
+    },
+    "devDependencies": {
+        "rimraf": "^6.0.1"
+    },
+    "dependencies": {
+        "buffer": "^6.0.3"
+    }
+}

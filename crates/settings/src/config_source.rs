@@ -1,6 +1,6 @@
 use crate::blocks::Blocks;
 use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
-use crate::{Metric, Plot};
+use crate::{GuiConfigSource, Metric, Plot};
 use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -40,6 +40,8 @@ pub struct ConfigSource {
     pub raindex_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accounts: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gui: Option<GuiConfigSource>,
 }
 
 #[typeshare]
@@ -65,6 +67,9 @@ pub type TokenRef = String;
 
 #[typeshare]
 pub type MetaboardRef = String;
+
+#[typeshare]
+pub type DeploymentRef = String;
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -493,7 +498,44 @@ sentry: true
 
 accounts:
     name-one: address-one
-    name-two: address-two"#,
+    name-two: address-two
+
+gui:
+  name: Fixed limit
+  description: Fixed limit order strategy
+  deployments:
+    - deployment: some-deployment
+      name: Buy WETH with USDC on Base.
+      description: Buy WETH with USDC for fixed price on Base network.
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+            - "10"
+            - "100"
+            - "1000"
+            - "10000"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0x1234567890abcdef1234567890abcdef12345678"
+            - name: Preset 2
+              value: "false"
+            - name: Preset 3
+              value: "some-string"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "99.2"
+            - value: "582.1"
+            - value: "648.239"
+"#,
             mocked_chain_id_server.url("/json")
         );
 
@@ -605,6 +647,49 @@ accounts:
         let accounts = config.accounts.unwrap();
         assert_eq!(accounts.get("name-one").unwrap(), "address-one");
         assert_eq!(accounts.get("name-two").unwrap(), "address-two");
+
+        let gui = config.gui.unwrap();
+        assert_eq!(gui.name, "Fixed limit");
+        assert_eq!(gui.description, "Fixed limit order strategy");
+        assert_eq!(gui.deployments.len(), 1);
+        let deployment = &gui.deployments[0];
+        assert_eq!(deployment.name, "Buy WETH with USDC on Base.");
+        assert_eq!(
+            deployment.description,
+            "Buy WETH with USDC for fixed price on Base network."
+        );
+        assert_eq!(deployment.deposits.len(), 1);
+        let deposit = &deployment.deposits[0];
+        assert_eq!(deposit.token, "token1".to_string());
+        assert_eq!(deposit.presets.len(), 5);
+        assert_eq!(deposit.presets[0], "0".to_string());
+        assert_eq!(deposit.presets[1], "10".to_string());
+        assert_eq!(deposit.presets[2], "100".to_string());
+        assert_eq!(deposit.presets[3], "1000".to_string());
+        assert_eq!(deposit.presets[4], "10000".to_string());
+        assert_eq!(deployment.fields.len(), 2);
+        let field = &deployment.fields[0];
+        assert_eq!(field.binding, "binding-1");
+        assert_eq!(field.name, "Field 1 name");
+        assert_eq!(field.description, "Field 1 description");
+        assert_eq!(field.presets.len(), 3);
+        assert_eq!(field.presets[0].name, Some("Preset 1".to_string()));
+        assert_eq!(
+            field.presets[0].value,
+            "0x1234567890abcdef1234567890abcdef12345678"
+        );
+        assert_eq!(field.presets[1].name, Some("Preset 2".to_string()));
+        assert_eq!(field.presets[1].value, "false".to_string());
+        assert_eq!(field.presets[2].name, Some("Preset 3".to_string()));
+        assert_eq!(field.presets[2].value, "some-string".to_string());
+        let field = &deployment.fields[1];
+        assert_eq!(field.binding, "binding-2");
+        assert_eq!(field.name, "Field 2 name");
+        assert_eq!(field.description, "Field 2 description");
+        assert_eq!(field.presets.len(), 3);
+        assert_eq!(field.presets[0].value, "99.2".to_string());
+        assert_eq!(field.presets[1].value, "582.1".to_string());
+        assert_eq!(field.presets[2].value, "648.239".to_string());
     }
 
     #[tokio::test]

@@ -12,7 +12,7 @@ on:
           - avalanche
           - base
           - bsc
-          - ethereum
+          - mainnet
           - flare
           - mumbai
           - oasis_sapphire

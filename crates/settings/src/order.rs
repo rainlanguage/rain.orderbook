@@ -5,23 +5,37 @@ use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use typeshare::typeshare;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIO {
     #[typeshare(typescript(type = "Token"))]
     pub token: Arc<Token>,
     #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(
+        target_family = "wasm",
+        tsify(type = "string"),
+        serde(rename = "vaultId")
+    )]
     pub vault_id: Option<U256>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(OrderIO);
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct Order {
     #[typeshare(typescript(type = "OrderIO[]"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
     pub inputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "OrderIO[]"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
     pub outputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
@@ -30,6 +44,8 @@ pub struct Order {
     #[typeshare(typescript(type = "Orderbook"))]
     pub orderbook: Option<Arc<Orderbook>>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Order);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseOrderConfigSourceError {

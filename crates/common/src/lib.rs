@@ -3,6 +3,7 @@ pub mod csv;
 pub mod deposit;
 pub mod dotrain_add_order_lsp;
 pub mod dotrain_order;
+pub mod erc20;
 pub mod frontmatter;
 #[cfg(not(target_family = "wasm"))]
 pub mod fuzz;
@@ -14,6 +15,8 @@ pub mod replays;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
+#[cfg(not(target_family = "wasm"))]
+pub mod unit_tests;
 pub mod utils;
 pub mod withdraw;
 

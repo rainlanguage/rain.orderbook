@@ -1,8 +1,8 @@
 <script lang="ts">
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import AppTable from '$lib/components/AppTable.svelte';
   import type { ListStore } from '$lib/storesGeneric/listStore';
   import type { Trade } from '$lib/typeshare/subgraphTypes';
