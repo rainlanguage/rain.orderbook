@@ -13,6 +13,7 @@
 <div
 	class="cursor-pointer rounded-lg"
 	id="token-info"
+	data-testid="vault-link"
 	on:click={() => goto(`/vaults/${tokenVault.id}`)}
 >
 	<div class="flex flex-col space-y-2">
