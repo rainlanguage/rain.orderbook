@@ -19,7 +19,7 @@ use commands::order::{
 };
 use commands::order_quote::{batch_order_quotes, debug_order_quote};
 use commands::order_take::{
-    order_trades_count, order_trades_list_write_csv, order_vaults_volume,
+    order_trades_count, order_trades_list_write_csv, order_vaults_volume, order_trades_list
 };
 use commands::trade_debug::debug_trade;
 use commands::vault::{
