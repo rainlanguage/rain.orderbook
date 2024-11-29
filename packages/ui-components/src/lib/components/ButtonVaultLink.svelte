@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import type { Vault } from '../lib/typeshare/subgraphTypes';
+	import type { Vault } from '../typeshare/subgraphTypes';
 	import { bigintStringToHex } from '../utils/hex';
 	import { Tooltip } from 'flowbite-svelte';
 	import { formatUnits } from 'viem';
