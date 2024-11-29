@@ -80,7 +80,7 @@ const order1 = {
   },
   trades: [],
 };
-const order2 = {
+const order2: Order = {
   id: "order2",
   orderBytes:
     "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -145,7 +145,7 @@ const order2 = {
     id: "0x0000000000000000000000000000000000000000",
   },
   trades: [],
-};
+} as unknown as Order;
 
 const mockOrderTradesList: Trade[] = [
   {
@@ -175,7 +175,7 @@ const mockOrderTradesList: Trade[] = [
         },
       },
       id: "output-change-1",
-      __typename: "TradeVaultBalanceChange",
+      typename: "TradeVaultBalanceChange",
       newVaultBalance: "900",
       oldVaultBalance: "1000",
       timestamp: "1632000000",
@@ -206,7 +206,7 @@ const mockOrderTradesList: Trade[] = [
         },
       },
       id: "input-change-1",
-      __typename: "TradeVaultBalanceChange",
+      typename: "TradeVaultBalanceChange",
       newVaultBalance: "150",
       oldVaultBalance: "100",
       timestamp: "1632000000",
@@ -224,7 +224,7 @@ const mockOrderTradesList: Trade[] = [
   },
 ];
 
-const mockTrade = {
+const mockTrade: Trade = {
   id: "trade1",
   order: {
     id: "order1",
@@ -245,7 +245,7 @@ const mockTrade = {
   },
   outputVaultBalanceChange: {
     id: "0x0000000000000000000000000000000000000000",
-    __typename: "TradeVaultBalanceChange",
+    typename: "TradeVaultBalanceChange",
     amount: "-7",
     newVaultBalance: "93",
     oldVaultBalance: "100",
@@ -273,7 +273,7 @@ const mockTrade = {
   },
   inputVaultBalanceChange: {
     id: "0x0000000000000000000000000000000000000000",
-    __typename: "TradeVaultBalanceChange",
+    typename: "TradeVaultBalanceChange",
     amount: "5",
     newVaultBalance: "105",
     oldVaultBalance: "100",
@@ -417,21 +417,32 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
   });
   it("should fetch trade count for a single order", async () => {
    await mockServer.forPost("/sg1").thenReply(
-      200,
-      JSON.stringify({
-        data: {
-          trades: mockOrderTradesList,
-        },
-      })
-    );
+  200,
+  JSON.stringify({
+    data: {
+      trades: mockOrderTradesList,
+    },
+  }),
+);
+
+await mockServer.forPost("/sg1").thenReply(
+  200,
+  JSON.stringify({
+    data: {
+      trades: []
+    },
+  })
+);
+
 
   try {
     const count = await getOrderTradesCount(
       mockServer.url + "/sg1",
-      order1.id,
-      BigInt(0),
+      "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+      undefined,
       undefined
     );
+    console.log(count);
 
     assert.strictEqual(typeof count, 'number', "Count should be a number");
     assert.strictEqual(count, 1, "Should count one trade");
