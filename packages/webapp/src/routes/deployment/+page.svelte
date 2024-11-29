@@ -75,6 +75,7 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			initializeVaultIdArrays();
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Failed to get gui:', error);
@@ -158,30 +159,14 @@
 	}
 
 	let useCustomVaultIds = false;
-	let customVaultId = '';
-	async function handlePopulateVaultIds() {
-		try {
-			if (!gui) return;
-
-			if (useCustomVaultIds && customVaultId) {
-				// Convert string to BigInt and then to hex string
-				const vaultIdBigInt = BigInt(customVaultId);
-				if (vaultIdBigInt < 0n) {
-					// eslint-disable-next-line no-console
-					console.error('Invalid vault ID - must be non-negative');
-					return;
-				}
-				gui.populateVaultIds('0x' + vaultIdBigInt.toString(16));
-			} else {
-				gui.populateVaultIds();
-			}
-
-			// Trigger reactivity
-			gui = gui;
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to populate vault IDs:', error);
-		}
+	let inputVaultIds: string[] = [];
+	let outputVaultIds: string[] = [];
+	function initializeVaultIdArrays() {
+		if (!gui) return;
+		const deployment = gui.getCurrentDeployment();
+		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
+		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
+		useCustomVaultIds = false;
 	}
 </script>
 
@@ -364,18 +349,46 @@
 	{#if selectedDeployment}
 		<div class="my-4 flex flex-col gap-4">
 			<div class="flex items-center gap-2">
-				<Checkbox bind:checked={useCustomVaultIds} label="Choose Vault IDs" />
+				<Checkbox bind:checked={useCustomVaultIds} label="Set Custom Vault IDs" />
 			</div>
 
 			{#if useCustomVaultIds}
-				<div class="flex items-center gap-2">
-					<Input type="text" placeholder="Enter vault ID" bind:value={customVaultId} />
-				</div>
-			{/if}
+				<Label class="whitespace-nowrap text-2xl underline">Vault IDs</Label>
 
-			<Button on:click={handlePopulateVaultIds}>
-				{useCustomVaultIds ? 'Set Custom Vault IDs' : 'Populate Random Vault IDs'}
-			</Button>
+				{#if gui?.getCurrentDeployment().deployment.order.inputs.length > 0}
+					<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
+					{#each gui?.getCurrentDeployment().deployment.order.inputs as input, i}
+						<div class="flex items-center gap-2">
+							<Label class="whitespace-nowrap"
+								>Input {i + 1} ({tokenInfos.get(input.token.address)?.symbol})</Label
+							>
+							<Input
+								type="text"
+								placeholder="Enter vault ID"
+								bind:value={inputVaultIds[i]}
+								on:change={() => gui?.setVaultId(true, i, inputVaultIds[i])}
+							/>
+						</div>
+					{/each}
+				{/if}
+
+				{#if gui?.getCurrentDeployment().deployment.order.outputs.length > 0}
+					<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
+					{#each gui?.getCurrentDeployment().deployment.order.outputs as output, i}
+						<div class="flex items-center gap-2">
+							<Label class="whitespace-nowrap"
+								>Output {i + 1} ({tokenInfos.get(output.token.address)?.symbol})</Label
+							>
+							<Input
+								type="text"
+								placeholder="Enter vault ID"
+								bind:value={outputVaultIds[i]}
+								on:change={() => gui?.setVaultId(false, i, outputVaultIds[i])}
+							/>
+						</div>
+					{/each}
+				{/if}
+			{/if}
 		</div>
 
 		<Button class="flex w-full" on:click={handleAddOrder}>Add Order</Button>

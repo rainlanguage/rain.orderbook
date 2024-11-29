@@ -156,12 +156,32 @@ impl DotrainOrderGui {
         Ok(ApprovalCalldataResult(calldatas))
     }
 
+    fn populate_vault_ids(&mut self) -> Result<(), GuiError> {
+        self.dotrain_order
+            .populate_vault_ids(&self.deployment.deployment_name, None)?;
+        self.refresh_gui_deployment()?;
+        Ok(())
+    }
+
+    fn update_config_source_bindings(&mut self) -> Result<(), GuiError> {
+        self.dotrain_order.update_config_source_bindings(
+            &self.deployment.deployment.scenario.name,
+            self.field_values
+                .iter()
+                .map(|(k, _)| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
+                .collect::<Result<HashMap<String, String>, GuiError>>()?,
+        )?;
+        self.refresh_gui_deployment()?;
+        Ok(())
+    }
+
     /// Generate deposit calldatas for all deposits
     ///
     /// Returns a vector of bytes
     #[wasm_bindgen(js_name = "generateDepositCalldatas")]
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
         self.check_token_addresses()?;
+        self.populate_vault_ids()?;
 
         let token_deposits = self
             .get_vaults_and_deposits()?
@@ -187,19 +207,8 @@ impl DotrainOrderGui {
         &mut self,
     ) -> Result<AddOrderCalldataResult, GuiError> {
         self.check_token_addresses()?;
-
-        self.dotrain_order.update_config_source_bindings(
-            &self.deployment.deployment.scenario.name,
-            self.field_values
-                .iter()
-                .map(|(k, _)| {
-                    let field_value = self.get_field_value(k.clone())?;
-                    Ok((k.clone(), field_value.value.clone()))
-                })
-                .collect::<Result<HashMap<String, String>, GuiError>>()?,
-        )?;
-        self.refresh_gui_deployment()?;
-
+        self.populate_vault_ids()?;
+        self.update_config_source_bindings()?;
         let calldata = self
             .dotrain_order
             .generate_add_order_calldata(&self.deployment.deployment_name)
@@ -212,6 +221,8 @@ impl DotrainOrderGui {
         &mut self,
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
         self.check_token_addresses()?;
+        self.populate_vault_ids()?;
+        self.update_config_source_bindings()?;
 
         let token_deposits = self
             .get_vaults_and_deposits()?
@@ -224,18 +235,6 @@ impl DotrainOrderGui {
                 Ok(((vault_id, order_io.token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
-
-        self.dotrain_order.update_config_source_bindings(
-            &self.deployment.deployment.scenario.name,
-            self.field_values
-                .iter()
-                .map(|(k, _)| {
-                    let field_value = self.get_field_value(k.clone())?;
-                    Ok((k.clone(), field_value.value.clone()))
-                })
-                .collect::<Result<HashMap<String, String>, GuiError>>()?,
-        )?;
-        self.refresh_gui_deployment()?;
 
         let mut calls = Vec::new();
         let deposit_calldatas = self
@@ -257,17 +256,19 @@ impl DotrainOrderGui {
         )))
     }
 
-    /// Populate vault IDs for all inputs and outputs
-    /// If custom_vault_id is provided, use that value instead of generating a random one
-    #[wasm_bindgen(js_name = "populateVaultIds")]
-    pub fn populate_vault_ids(&mut self, custom_vault_id: Option<String>) -> Result<(), GuiError> {
-        let parsed_vault_id = custom_vault_id
-            .map(|vault_id_str| U256::from_str(&vault_id_str))
-            .transpose()
-            .map_err(|e| e)?;
-
-        self.dotrain_order
-            .populate_vault_ids(&self.deployment.deployment_name, parsed_vault_id)?;
+    #[wasm_bindgen(js_name = "setVaultId")]
+    pub fn set_vault_id(
+        &mut self,
+        is_input: bool,
+        index: u8,
+        vault_id: String,
+    ) -> Result<(), GuiError> {
+        self.dotrain_order.set_vault_id(
+            &self.deployment.deployment_name,
+            is_input,
+            index,
+            U256::from_str(&vault_id)?,
+        )?;
         self.refresh_gui_deployment()
     }
 }

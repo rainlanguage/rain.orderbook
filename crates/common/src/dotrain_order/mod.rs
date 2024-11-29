@@ -82,6 +82,9 @@ pub enum DotrainOrderError {
 
     #[error("Token {0} not found")]
     TokenNotFound(String),
+
+    #[error("Invalid index for vault ID")]
+    InvalidVaultIdIndex,
 }
 
 #[cfg(target_family = "wasm")]
@@ -516,6 +519,48 @@ impl DotrainOrder {
         token.address = address;
         self.config_source.tokens.insert(token_name, token);
         self.update_config_source(self.config_source.clone())?;
+        Ok(())
+    }
+
+    pub fn set_vault_id(
+        &mut self,
+        deployment_name: &str,
+        is_input: bool,
+        index: u8,
+        vault_id: U256,
+    ) -> Result<(), DotrainOrderError> {
+        let deployment = self
+            .config_source
+            .deployments
+            .get(deployment_name)
+            .ok_or(DotrainOrderError::DeploymentNotFound(
+                deployment_name.to_string(),
+            ))?
+            .clone();
+        let mut order = self
+            .config_source
+            .orders
+            .get(&deployment.order)
+            .ok_or(DotrainOrderError::OrderNotFound(deployment.order.clone()))?
+            .clone();
+
+        if is_input {
+            if index as usize >= order.inputs.len() {
+                return Err(DotrainOrderError::InvalidVaultIdIndex);
+            }
+            order.inputs[index as usize].vault_id = Some(vault_id);
+        } else {
+            if index as usize >= order.outputs.len() {
+                return Err(DotrainOrderError::InvalidVaultIdIndex);
+            }
+            order.outputs[index as usize].vault_id = Some(vault_id);
+        }
+
+        self.config_source
+            .orders
+            .insert(deployment.order.clone(), order.clone());
+        self.update_config_source(self.config_source.clone())?;
+
         Ok(())
     }
 }
