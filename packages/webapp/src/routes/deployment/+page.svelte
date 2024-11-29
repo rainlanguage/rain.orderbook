@@ -128,6 +128,8 @@
 		try {
 			if (!gui) return;
 
+			// @ts-expect-error window.ethereum is not typed
+			await window.ethereum?.request({ method: 'eth_requestAccounts' });
 			const walletClient = createWalletClient({
 				chain: getChainById(gui.getCurrentDeployment().deployment.order.network['chain-id']),
 				// @ts-expect-error window.ethereum is not typed
