@@ -14,7 +14,6 @@ export type OrderTradesListArgs = {
   endTimestamp?: number;
 };
 
-
 export const orderVaultsVolume = async (
   id: string,
   url: string | undefined,
@@ -31,4 +30,3 @@ export const orderVaultsVolume = async (
     endTimestamp,
   } as OrderTradesListArgs);
 };
-

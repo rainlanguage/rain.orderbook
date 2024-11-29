@@ -184,20 +184,20 @@ vi.mock('@tanstack/svelte-query');
 test('renders table with correct data', async () => {
   const queryClient = new QueryClient();
 
-const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { pages: [mockTradeOrdersList] },
-					status: 'success',
-					isFetching: false,
-					isFetched: true
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
+  const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    subscribe: (fn: (value: any) => void) => {
+      fn({
+        data: { pages: [mockTradeOrdersList] },
+        status: 'success',
+        isFetching: false,
+        isFetched: true,
+      });
+      return { unsubscribe: () => {} };
+    },
+  })) as Mock;
 
   render(OrderTradesListTable, {
     context: new Map([['$$_queryClient', queryClient]]),
