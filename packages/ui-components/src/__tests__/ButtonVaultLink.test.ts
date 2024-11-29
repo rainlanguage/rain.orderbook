@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 import * as navigation from '$app/navigation';
 import { userEvent } from '@testing-library/user-event';
-import type { Vault } from '../../dist/typeshare/subgraphTypes';
+import type { Vault } from '../lib/typeshare/subgraphTypes';
 
 // Mock the $app/navigation module
 vi.mock('$app/navigation', () => ({
