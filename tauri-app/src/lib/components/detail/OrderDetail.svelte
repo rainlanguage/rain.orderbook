@@ -20,6 +20,7 @@
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+  import OrderApy from '../tables/OrderAPY.svelte';
 
   export let id: string;
 
@@ -142,6 +143,9 @@
       </TabItem>
       <TabItem title="Volume">
         <OrderVaultsVolTable {id} />
+      </TabItem>
+      <TabItem title="APY">
+        <OrderApy {id} />
       </TabItem>
     </Tabs>
   </svelte:fragment>

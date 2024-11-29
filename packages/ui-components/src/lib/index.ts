@@ -46,7 +46,8 @@ export {
 	QKEY_ORDER,
 	QKEY_ORDER_TRADES_LIST,
 	QKEY_ORDER_QUOTE,
-	QKEY_VAULTS_VOL_LIST
+	QKEY_VAULTS_VOL_LIST,
+	QKEY_ORDER_APY
 } from './queries/keys';
 
 // Stores

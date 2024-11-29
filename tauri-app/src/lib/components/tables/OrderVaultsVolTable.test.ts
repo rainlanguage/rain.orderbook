@@ -42,10 +42,12 @@ const mockVaultsVol: VaultVolume[] = [
       symbol: 'output_token',
       decimals: '0',
     },
-    totalIn: '1',
-    totalOut: '2',
-    totalVol: '3',
-    netVol: '-1',
+    volDetails: {
+      totalIn: '1',
+      totalOut: '2',
+      totalVol: '3',
+      netVol: '1',
+    },
   },
   {
     id: '2',
@@ -56,10 +58,12 @@ const mockVaultsVol: VaultVolume[] = [
       symbol: 'output_token',
       decimals: '0',
     },
-    totalIn: '2',
-    totalOut: '5',
-    totalVol: '7',
-    netVol: '-3',
+    volDetails: {
+      totalIn: '2',
+      totalOut: '5',
+      totalVol: '7',
+      netVol: '3',
+    },
   },
 ];
 
@@ -74,7 +78,8 @@ test('renders table with correct data', async () => {
 
   render(OrderVaultsVolTable, {
     context: new Map([['$$_queryClient', queryClient]]),
-    props: { id: '1' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    props: { id: '1' } as any,
   });
 
   await waitFor(async () => {
@@ -84,7 +89,7 @@ test('renders table with correct data', async () => {
     // checking the total ins
     for (let i = 0; i < mockVaultsVol.length; i++) {
       const display = formatUnits(
-        BigInt(mockVaultsVol[i].totalIn),
+        BigInt(mockVaultsVol[i].volDetails.totalIn),
         Number(mockVaultsVol[i].token.decimals),
       );
       expect(rows[i]).toHaveTextContent(display.toString());
@@ -98,7 +103,7 @@ test('renders table with correct data', async () => {
     // checking the total outs
     for (let i = 0; i < mockVaultsVol.length; i++) {
       const display = formatUnits(
-        BigInt(mockVaultsVol[i].totalOut),
+        BigInt(mockVaultsVol[i].volDetails.totalOut),
         Number(mockVaultsVol[i].token.decimals),
       );
       expect(rows[i]).toHaveTextContent(display.toString());
@@ -112,10 +117,10 @@ test('renders table with correct data', async () => {
     // checking the net vols
     for (let i = 0; i < mockVaultsVol.length; i++) {
       const display = formatUnits(
-        BigInt(mockVaultsVol[i].netVol),
+        -BigInt(mockVaultsVol[i].volDetails.netVol),
         Number(mockVaultsVol[i].token.decimals),
       );
-      expect(rows[i]).toHaveTextContent(display.toString());
+      expect(rows[i]).toHaveTextContent(display);
     }
   });
 
@@ -126,7 +131,7 @@ test('renders table with correct data', async () => {
     // checking the total vols
     for (let i = 0; i < mockVaultsVol.length; i++) {
       const display = formatUnits(
-        BigInt(mockVaultsVol[i].totalVol),
+        BigInt(mockVaultsVol[i].volDetails.totalVol),
         Number(mockVaultsVol[i].token.decimals),
       );
       expect(rows[i]).toHaveTextContent(display.toString());

@@ -1,4 +1,4 @@
-import type { Trade, VaultVolume } from '$lib/typeshare/subgraphTypes';
+import type { OrderPerformance, Trade, VaultVolume } from '$lib/typeshare/subgraphTypes';
 import { invoke } from '@tauri-apps/api';
 import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
 import { prepareHistoricalOrderChartData } from '$lib/services/historicalOrderCharts';
@@ -91,4 +91,23 @@ export const orderTradesCount = async (
     startTimestamp,
     endTimestamp,
   } as OrderTradesListArgs);
+};
+
+export const getOrderApy = async (
+  id: string,
+  url: string | undefined,
+  startTimestamp?: number,
+  endTimestamp?: number,
+) => {
+  if (!url) {
+    return [];
+  }
+  return [
+    await invoke<OrderPerformance>('order_performance', {
+      orderId: id,
+      subgraphArgs: { url },
+      startTimestamp,
+      endTimestamp,
+    } as OrderTradesListArgs),
+  ];
 };

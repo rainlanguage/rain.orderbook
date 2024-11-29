@@ -2,11 +2,12 @@ import { render, fireEvent, screen } from '@testing-library/svelte';
 import { get, writable } from 'svelte/store';
 import { test, expect } from 'vitest';
 import ChartTimeFiltersTest from './ChartTimeFilters.test.svelte';
-
-const TIME_DELTA_24_HOURS = 60 * 60 * 24;
-const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
-const TIME_DELTA_30_DAYS = TIME_DELTA_24_HOURS * 30;
-const TIME_DELTA_1_YEAR = TIME_DELTA_24_HOURS * 365;
+import {
+  TIME_DELTA_1_YEAR,
+  TIME_DELTA_24_HOURS,
+  TIME_DELTA_30_DAYS,
+  TIME_DELTA_7_DAYS,
+} from '$lib/services/time';
 
 test('initial timeDelta is set to 1 year', async () => {
   const timeDeltaStore = writable(TIME_DELTA_1_YEAR);
