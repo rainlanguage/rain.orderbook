@@ -12,6 +12,7 @@ path = [
     "flake.nix",
     "foundry.toml",
     "slither.config.json",
+    "typeshare.toml",
     "REUSE.toml"
 ]
 SPDX-FileCopyrightText = "Copyright (c) 2020 thedavidmeister"
