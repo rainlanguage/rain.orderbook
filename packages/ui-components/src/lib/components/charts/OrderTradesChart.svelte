@@ -3,20 +3,20 @@
 	import { prepareHistoricalOrderChartData } from '../../services/historicalOrderCharts';
 	import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { page } from '$app/stores';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
-	import type { Readable } from 'svelte/store';
-	import { colorTheme, lightweightChartsTheme } from '../../stores/darkMode';
-	export let id: string;
-	export let subgraphUrl: Readable<string> = $page.data.stores?.subgraphUrl;
 
-	$: console.log('subgraphUrl', $subgraphUrl);
+	export let id: string;
+	export let subgraphUrl: string;
+	export let colorTheme;
+	export let lightweightChartsTheme;
+
+	$: console.log('subgraphUrl', subgraphUrl);
 
 	$: query = createQuery({
 		queryKey: [QKEY_ORDER_TRADES_LIST, id],
 		queryFn: async () => {
 			const data = await getOrderTradesList(
-				$subgraphUrl || '',
+				subgraphUrl || '',
 				id,
 				{
 					page: 1,
@@ -27,7 +27,7 @@
 			);
 			return prepareHistoricalOrderChartData(data, $colorTheme);
 		},
-		enabled: !!$subgraphUrl
+		enabled: !!subgraphUrl
 	});
 </script>
 

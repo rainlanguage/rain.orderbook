@@ -8,7 +8,7 @@
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import { subgraphUrl } from '$lib/stores/settings';
+  import { settings } from '$lib/stores/settings';
   import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
@@ -20,15 +20,17 @@
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
-
-  export let id: string;
+  import { page } from '$app/stores';
+  import { colorTheme, lightweightChartsTheme } from '$lib/stores/darkMode';
+  const { network, id } = $page.params;
+  const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
   $: orderDetailQuery = createQuery({
     queryKey: [id, QKEY_ORDER + id],
     queryFn: () => {
-      return orderDetail(id, $subgraphUrl || '');
+      return orderDetail(id, subgraphUrl || '');
     },
-    enabled: !!$subgraphUrl,
+    enabled: !!subgraphUrl,
   });
 
   const interval = setInterval(async () => {
@@ -117,7 +119,7 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
-    <OrderTradesChart {id} />
+    <OrderTradesChart {id} {subgraphUrl} {colorTheme} {lightweightChartsTheme} />
   </svelte:fragment>
   <svelte:fragment slot="below" let:data>
     <OrderQuote {id} order={data.order} />
