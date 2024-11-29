@@ -7,7 +7,7 @@
 	import TradeCount from './TradeCount.svelte';
 	const { subgraphUrl } = $page.data.stores;
 	const { id } = $page.params;
-	// TODO: Going directly to the page, the subgraphUrl is undefined.
+
 	$: query = createQuery({
 		queryKey: [QKEY_ORDER_TRADES_LIST, id],
 		queryFn: () => {
