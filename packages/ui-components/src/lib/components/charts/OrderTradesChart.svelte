@@ -1,0 +1,41 @@
+<script lang="ts">
+	import { getOrderTradesList } from '@rainlanguage/orderbook/js_api';
+	import { prepareHistoricalOrderChartData } from '../../services/historicalOrderCharts';
+	import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
+	import { createQuery } from '@tanstack/svelte-query';
+	import { page } from '$app/stores';
+	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
+	import type { Readable } from 'svelte/store';
+	import { colorTheme, lightweightChartsTheme } from '../../stores/darkMode';
+	export let id: string;
+	export let subgraphUrl: Readable<string> = $page.data.stores?.subgraphUrl;
+
+	$: console.log('subgraphUrl', $subgraphUrl);
+
+	$: query = createQuery({
+		queryKey: [QKEY_ORDER_TRADES_LIST, id],
+		queryFn: async () => {
+			const data = await getOrderTradesList(
+				$subgraphUrl || '',
+				id,
+				{
+					page: 1,
+					pageSize: 10
+				},
+				BigInt(1000),
+				undefined
+			);
+			return prepareHistoricalOrderChartData(data, $colorTheme);
+		},
+		enabled: !!$subgraphUrl
+	});
+</script>
+
+<TanstackLightweightChartLine
+	title="Trades"
+	{query}
+	timeTransform={(d) => d.time}
+	valueTransform={(d) => d.value}
+	emptyMessage="No trades found"
+	{lightweightChartsTheme}
+/>

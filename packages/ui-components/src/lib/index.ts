@@ -22,6 +22,8 @@ export { default as ChartTimeFilters } from './components/charts/ChartTimeFilter
 export { default as LightweightChart } from './components/charts/LightweightChart.svelte';
 export { default as TanstackLightweightChartLine } from './components/charts/TanstackLightweightChartLine.svelte';
 export { default as MockComponent } from './__mocks__/MockComponent.svelte';
+export { default as OrderTradesChart } from './components/charts/OrderTradesChart.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

@@ -15,7 +15,7 @@
   import { QKEY_ORDER } from '@rainlanguage/ui-components';
   import { orderDetail } from '$lib/queries/orderDetail';
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
-  import OrderTradesChart from '../charts/OrderTradesChart.svelte';
+  import { OrderTradesChart } from '@rainlanguage/ui-components';
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
