@@ -3,7 +3,8 @@ name = "tauri-app"
 version = "0.0.0"
 description = "raindex"
 edition = "2021"
-license = "CAL-1.0"
+license = "LicenseRef-DCL-1.0"
+author = "Rain Open Source LLC"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
