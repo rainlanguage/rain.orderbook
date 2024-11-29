@@ -7,6 +7,7 @@ export { default as TanstackAppTable } from './components/TanstackAppTable.svelt
 export { default as DropdownActiveSubgraphs } from './components/dropdown/DropdownActiveSubgraphs.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
+export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as DropdownOrderStatus } from './components/dropdown/DropdownOrderStatus.svelte';
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
@@ -22,6 +23,8 @@ export { default as ChartTimeFilters } from './components/charts/ChartTimeFilter
 export { default as LightweightChart } from './components/charts/LightweightChart.svelte';
 export { default as TanstackLightweightChartLine } from './components/charts/TanstackLightweightChartLine.svelte';
 export { default as MockComponent } from './__mocks__/MockComponent.svelte';
+export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

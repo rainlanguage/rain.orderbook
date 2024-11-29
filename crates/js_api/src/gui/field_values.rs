@@ -29,8 +29,11 @@ impl DotrainOrderGui {
     pub fn save_field_value(&mut self, binding: String, value: PairValue) -> Result<(), GuiError> {
         let field_definition = self.get_field_definition(&binding)?;
         if value.is_preset {
-            if !field_definition
+            let presets = field_definition
                 .presets
+                .ok_or(GuiError::BindingHasNoPresets(binding.clone()))?;
+
+            if !presets
                 .iter()
                 .find(|preset| preset.id == value.value)
                 .is_some()
@@ -50,6 +53,11 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = "removeFieldValue")]
+    pub fn remove_field_value(&mut self, binding: String) {
+        self.field_values.remove(&binding);
+    }
+
     #[wasm_bindgen(js_name = "getFieldValue")]
     pub fn get_field_value(&self, binding: String) -> Result<GuiPreset, GuiError> {
         let field_value = self
@@ -59,12 +67,14 @@ impl DotrainOrderGui {
         let preset = match field_value.is_preset {
             true => {
                 let field_definition = self.get_field_definition(&binding)?;
-                let preset = field_definition
+                let presets = field_definition
                     .presets
+                    .ok_or(GuiError::BindingHasNoPresets(binding.clone()))?;
+                presets
                     .iter()
                     .find(|preset| preset.id == field_value.value)
-                    .ok_or(GuiError::InvalidPreset)?;
-                preset.clone()
+                    .ok_or(GuiError::InvalidPreset)?
+                    .clone()
             }
             false => GuiPreset {
                 id: "".to_string(),
