@@ -36,7 +36,7 @@ pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     deployment: GuiDeployment,
     field_values: BTreeMap<String, field_values::PairValue>,
-    deposits: Vec<deposits::TokenDeposit>,
+    deposits: BTreeMap<String, field_values::PairValue>,
     select_tokens: Option<BTreeMap<String, Address>>,
     onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
@@ -106,7 +106,7 @@ impl DotrainOrderGui {
             dotrain_order,
             deployment: gui_deployment.clone(),
             field_values: BTreeMap::new(),
-            deposits: vec![],
+            deposits: BTreeMap::new(),
             select_tokens,
             onchain_token_info,
         })
@@ -164,8 +164,8 @@ pub enum GuiError {
     OrderbookNotFound,
     #[error("Deserialized config mismatch")]
     DeserializedConfigMismatch,
-    #[error("Vault id not found")]
-    VaultIdNotFound,
+    #[error("Vault id not found for output index: {0}")]
+    VaultIdNotFound(String),
     #[error("Deployer not found")]
     DeployerNotFound,
     #[error("Token not found {0}")]
@@ -176,6 +176,8 @@ pub enum GuiError {
     SelectTokensNotSet,
     #[error("Token must be selected: {0}")]
     TokenMustBeSelected(String),
+    #[error("Binding has no presets: {0}")]
+    BindingHasNoPresets(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
