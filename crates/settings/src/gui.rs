@@ -35,8 +35,8 @@ pub struct GuiDepositSource {
 pub struct GuiFieldDefinitionSource {
     pub binding: String,
     pub name: String,
-    pub description: String,
-    pub presets: Vec<GuiPresetSource>,
+    pub description: Option<String>,
+    pub presets: Option<Vec<GuiPresetSource>>,
 }
 
 #[typeshare]
@@ -106,16 +106,21 @@ impl GuiConfigSource {
                             description: field_source.description.clone(),
                             presets: field_source
                                 .presets
-                                .iter()
-                                .enumerate()
-                                .map(|(i, preset)| {
-                                    Ok(GuiPreset {
-                                        id: i.to_string(),
-                                        name: preset.name.clone(),
-                                        value: preset.value.clone(),
-                                    })
+                                .as_ref()
+                                .map(|presets| {
+                                    presets
+                                        .iter()
+                                        .enumerate()
+                                        .map(|(i, preset)| {
+                                            Ok(GuiPreset {
+                                                id: i.to_string(),
+                                                name: preset.name.clone(),
+                                                value: preset.value.clone(),
+                                            })
+                                        })
+                                        .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()
                                 })
-                                .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?,
+                                .transpose()?,
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -202,8 +207,8 @@ impl_all_wasm_traits!(GuiDeployment);
 pub struct GuiFieldDefinition {
     pub binding: String,
     pub name: String,
-    pub description: String,
-    pub presets: Vec<GuiPreset>,
+    pub description: Option<String>,
+    pub presets: Option<Vec<GuiPreset>>,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(GuiFieldDefinition);
@@ -245,8 +250,8 @@ mod tests {
                     GuiFieldDefinitionSource {
                         binding: "test-binding".to_string(),
                         name: "test-name".to_string(),
-                        description: "test-description".to_string(),
-                        presets: vec![
+                        description: Some("test-description".to_string()),
+                        presets: Some(vec![
                             GuiPresetSource {
                                 name: Some("test-preset".to_string()),
                                 value: "0.015".to_string(),
@@ -255,13 +260,13 @@ mod tests {
                                 name: Some("test-preset-2".to_string()),
                                 value: "0.3".to_string(),
                             },
-                        ],
+                        ]),
                     },
                     GuiFieldDefinitionSource {
                         binding: "test-binding-2".to_string(),
                         name: "test-name-2".to_string(),
-                        description: "test-description-2".to_string(),
-                        presets: vec![
+                        description: Some("test-description-2".to_string()),
+                        presets: Some(vec![
                             GuiPresetSource {
                                 name: None,
                                 value: "3.2".to_string(),
@@ -270,13 +275,13 @@ mod tests {
                                 name: None,
                                 value: "4.8".to_string(),
                             },
-                        ],
+                        ]),
                     },
                     GuiFieldDefinitionSource {
                         binding: "test-binding-3".to_string(),
                         name: "test-name-3".to_string(),
-                        description: "test-description-3".to_string(),
-                        presets: vec![
+                        description: Some("test-description-3".to_string()),
+                        presets: Some(vec![
                             GuiPresetSource {
                                 name: None,
                                 value: Address::default().to_string(),
@@ -289,7 +294,7 @@ mod tests {
                                 name: None,
                                 value: "true".to_string(),
                             },
-                        ],
+                        ]),
                     },
                 ],
                 select_tokens: Some(vec!["test-token".to_string()]),
@@ -336,28 +341,31 @@ mod tests {
         let field1 = &deployment.fields[0];
         assert_eq!(field1.binding, "test-binding");
         assert_eq!(field1.name, "test-name");
-        assert_eq!(field1.description, "test-description");
-        assert_eq!(field1.presets.len(), 2);
-        assert_eq!(field1.presets[0].name, Some("test-preset".to_string()));
-        assert_eq!(field1.presets[0].value, "0.015".to_string());
-        assert_eq!(field1.presets[1].name, Some("test-preset-2".to_string()));
-        assert_eq!(field1.presets[1].value, "0.3".to_string());
+        assert_eq!(field1.description, Some("test-description".to_string()));
+        let presets = field1.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0].name, Some("test-preset".to_string()));
+        assert_eq!(presets[0].value, "0.015".to_string());
+        assert_eq!(presets[1].name, Some("test-preset-2".to_string()));
+        assert_eq!(presets[1].value, "0.3".to_string());
         let field2 = &deployment.fields[1];
         assert_eq!(field2.binding, "test-binding-2");
         assert_eq!(field2.name, "test-name-2");
-        assert_eq!(field2.description, "test-description-2");
-        assert_eq!(field2.presets.len(), 2);
-        assert_eq!(field2.presets[0].name, None);
-        assert_eq!(field2.presets[1].name, None);
-        assert_eq!(field2.presets[1].value, "4.8".to_string());
+        assert_eq!(field2.description, Some("test-description-2".to_string()));
+        let presets = field2.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0].name, None);
+        assert_eq!(presets[1].name, None);
+        assert_eq!(presets[1].value, "4.8".to_string());
         let field3 = &deployment.fields[2];
         assert_eq!(field3.binding, "test-binding-3");
         assert_eq!(field3.name, "test-name-3");
-        assert_eq!(field3.description, "test-description-3");
-        assert_eq!(field3.presets.len(), 3);
-        assert_eq!(field3.presets[0].value, Address::default().to_string());
-        assert_eq!(field3.presets[1].value, "some-value".to_string());
-        assert_eq!(field3.presets[2].value, "true".to_string());
+        assert_eq!(field3.description, Some("test-description-3".to_string()));
+        let presets = field3.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 3);
+        assert_eq!(presets[0].value, Address::default().to_string());
+        assert_eq!(presets[1].value, "some-value".to_string());
+        assert_eq!(presets[2].value, "true".to_string());
         assert_eq!(
             deployment.select_tokens,
             Some(vec!["test-token".to_string()])
