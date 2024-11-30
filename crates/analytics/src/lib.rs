@@ -1,5 +1,6 @@
-use async_trait::async_trait;
 use std::ops::Div;
+
+use async_trait::async_trait;
 
 use rain_orderbook_subgraph_client::types::common::Trade;
 use rain_orderbook_subgraph_client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
@@ -37,7 +38,8 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
     pub async fn calculate_downtime_between_trades(
         &self,
         period: Option<(u64, u64)>,
-    ) -> (f64, f64, f64) {
+        threshold: u64,
+    ) -> (f64, f64, f64, usize, f64) {
         let trades: Vec<Trade> = match period {
             Some((start, end)) => self.client.all_trades_list(Some(start), Some(end)).await,
             None => self.client.all_trades_list(None, None).await,
@@ -49,19 +51,23 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
             if let [prev, curr] = window {
                 let diff = curr.timestamp.0.parse::<u64>().unwrap()
                     - prev.timestamp.0.parse::<u64>().unwrap();
-                time_diffs.push(diff);
+                if diff >= threshold {
+                    time_diffs.push(diff);
+                }
             }
         }
 
         if time_diffs.is_empty() {
-            return (0.0, 0.0, 0.0);
+            return (0.0, 0.0, 0.0, 0, 0.0);
         }
 
-        let avg: f64 = time_diffs.iter().sum::<u64>().div(time_diffs.len() as u64) as f64;
+        let count: usize = time_diffs.len();
+        let total: f64 = time_diffs.iter().sum::<u64>() as f64;
+        let avg: f64 = total.div(count as f64);
         let min: f64 = *time_diffs.iter().min().unwrap() as f64;
         let max: f64 = *time_diffs.iter().max().unwrap() as f64;
 
-        (avg, min, max)
+        (avg, min, max, count, total)
     }
 }
 
@@ -172,10 +178,13 @@ mod tests {
         let client = MockSubgraphClient { trades: vec![] };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max) = analytics.calculate_downtime_between_trades(None).await;
+        let (avg, min, max, count, total) =
+            analytics.calculate_downtime_between_trades(None, 0).await;
         assert_eq!(avg, 0.0);
         assert_eq!(min, 0.0);
         assert_eq!(max, 0.0);
+        assert_eq!(count, 0);
+        assert_eq!(total, 0.0);
     }
 
     #[tokio::test]
@@ -185,10 +194,13 @@ mod tests {
         };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max) = analytics.calculate_downtime_between_trades(None).await;
+        let (avg, min, max, count, total) =
+            analytics.calculate_downtime_between_trades(None, 0).await;
         assert_eq!(avg, 0.0);
         assert_eq!(min, 0.0);
         assert_eq!(max, 0.0);
+        assert_eq!(count, 0);
+        assert_eq!(total, 0.0);
     }
 
     #[tokio::test]
@@ -202,10 +214,13 @@ mod tests {
         };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max) = analytics.calculate_downtime_between_trades(None).await;
-        assert_eq!(avg, 750.0); // (500 + 1000) / 2
-        assert_eq!(min, 500.0);
+        let (avg, min, max, count, total) =
+            analytics.calculate_downtime_between_trades(None, 600).await;
+        assert_eq!(avg, 1000.0);
+        assert_eq!(min, 1000.0);
         assert_eq!(max, 1000.0);
+        assert_eq!(count, 1); // Only one gap above threshold
+        assert_eq!(total, 1000.0);
     }
 
     #[tokio::test]
@@ -219,11 +234,13 @@ mod tests {
         };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max) = analytics
-            .calculate_downtime_between_trades(Some((1000, 2500)))
+        let (avg, min, max, count, total) = analytics
+            .calculate_downtime_between_trades(Some((1000, 2500)), 400)
             .await;
         assert_eq!(avg, 750.0);
         assert_eq!(min, 500.0);
         assert_eq!(max, 1000.0);
+        assert_eq!(count, 2); // Two gaps above threshold
+        assert_eq!(total, 1500.0); // 500 + 1000
     }
 }

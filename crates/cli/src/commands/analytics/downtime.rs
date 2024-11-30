@@ -2,6 +2,7 @@ use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 use clap::Args;
+use humantime::Duration;
 use rain_orderbook_analytics::Analytics as OrderbookAnalytics;
 use rain_orderbook_subgraph_client::OrderbookSubgraphClient;
 use reqwest::Url;
@@ -14,6 +15,12 @@ pub struct DowntimeArgs {
     end: Option<String>,
     #[clap(long, required = true)]
     subgraph_url: String,
+    #[clap(
+        long,
+        default_value = "10m",
+        help = "Minimum time between trades to consider (e.g. 30s, 5m, 2h, 1d)"
+    )]
+    threshold: Duration,
 }
 
 impl DowntimeArgs {
@@ -45,11 +52,16 @@ impl Execute for DowntimeArgs {
         let client = OrderbookSubgraphClient::new(Url::parse(&self.subgraph_url)?);
         let analytics = OrderbookAnalytics::new(client);
 
-        let (avg, min, max) = analytics.calculate_downtime_between_trades(period).await;
+        let threshold_secs = self.threshold.as_secs();
+        let (avg, min, max, count, total) = analytics
+            .calculate_downtime_between_trades(period, threshold_secs)
+            .await;
 
-        println!("Average downtime: {} seconds", avg);
-        println!("Minimum downtime: {} seconds", min);
-        println!("Maximum downtime: {} seconds", max);
+        println!("Average downtime: {:.2} seconds", avg);
+        println!("Minimum downtime: {:.2} seconds", min);
+        println!("Maximum downtime: {:.2} seconds", max);
+        println!("Number of occurrences: {}", count);
+        println!("Total downtime: {:.2} seconds", total);
 
         Ok(())
     }

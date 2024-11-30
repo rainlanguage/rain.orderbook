@@ -9,7 +9,7 @@ use downtime::DowntimeArgs;
 #[derive(Parser)]
 pub enum Analytics {
     #[command(
-        about = "Provide KPI metrics (min, max, avg) for the downtime of all trades betwen a given time period."
+        about = "Provide KPI metrics (min, max, avg, count, total) for the downtime of all trades betwen a given time period, filtering out delays below the threshold."
     )]
     Downtime(DowntimeArgs),
 }
