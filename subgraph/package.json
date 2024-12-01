@@ -2,8 +2,8 @@
     "name": "rain-orderbook-subgraph",
     "description": "Subgraph setup",
     "version": "1.0.0",
-    "author": "rainlanguage",
-    "license": "CAL",
+    "license": "LicenseRef-DCL-1.0",
+    "author": "Rain Open Source LLC",
     "scripts": {
         "test": "graph test -d"
     },
