@@ -311,4 +311,76 @@ describe("Rain Orderbook Quote Package Bindgen Tests", async function () {
 
     assert.deepEqual(result, expected);
   });
+
+  it("should quote targets with gas", async () => {
+    // requires that "gas" be present in the request args
+    await mockServer
+      .forPost("/rpc-url")
+      .withBodyIncluding("gas")
+      .thenSendJsonRpcResult(
+        "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002"
+      );
+    const target: QuoteTarget = {
+      orderbook: "0xc6768d9e1cdd2f2058c92185364a3a5d2e1e47de",
+      quoteConfig: {
+        order: {
+          owner: "0x0000000000000000000000000000000000000000",
+          evaluable: {
+            interpreter: "0x0000000000000000000000000000000000000000",
+            store: "0x0000000000000000000000000000000000000000",
+            bytecode: Uint8Array.from([]),
+          },
+          validInputs: [
+            {
+              token: "0x0000000000000000000000000000000000000000",
+              decimals: 0,
+              vaultId:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+            },
+          ],
+          validOutputs: [
+            {
+              token: "0x0000000000000000000000000000000000000000",
+              decimals: 0,
+              vaultId:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+            },
+          ],
+          nonce:
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+        },
+        inputIOIndex: 0,
+        outputIOIndex: 0,
+        signedContext: [],
+      },
+    };
+
+    // should fail without gas specified
+    try {
+      await doQuoteTargets([target], mockServer.url + "/rpc-url");
+      throw "expected to fail, but resolved";
+    } catch (error) {
+      if (error === "expected to fail, but resolved") assert.fail(error);
+    }
+
+    // should pass with gas specified
+    try {
+      const result = await doQuoteTargets(
+        [target],
+        mockServer.url + "/rpc-url",
+        undefined,
+        BigInt(123456)
+      );
+      const expected: OrderQuoteValue = {
+        maxOutput:
+          "0x0000000000000000000000000000000000000000000000000000000000000001",
+        ratio:
+          "0x0000000000000000000000000000000000000000000000000000000000000002",
+      };
+      assert.deepEqual(result[0], expected);
+    } catch (error) {
+      console.log(error);
+      assert.fail("expected to resolve, but failed");
+    }
+  });
 });
