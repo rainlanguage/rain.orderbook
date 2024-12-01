@@ -18,6 +18,11 @@ export { default as VaultsListTable } from './components/tables/VaultsListTable.
 export { default as PageHeader } from './components/PageHeader.svelte';
 export { default as BadgeActive } from './components/BadgeActive.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
+export { default as ButtonTab } from './components/ButtonTab.svelte';
+export { default as ChartTimeFilters } from './components/charts/ChartTimeFilters.svelte';
+export { default as LightweightChart } from './components/charts/LightweightChart.svelte';
+export { default as TanstackLightweightChartLine } from './components/charts/TanstackLightweightChartLine.svelte';
+export { default as MockComponent } from './__mocks__/MockComponent.svelte';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 
 //Types
@@ -48,6 +53,8 @@ export {
 	QKEY_ORDER_QUOTE,
 	QKEY_VAULTS_VOL_LIST
 } from './queries/keys';
+export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes';
+export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
