@@ -76,12 +76,13 @@ jobs:
       # set npm version to rust crate version
       - name: Set Version
         run: echo "NEW_VERSION=$(node ./scripts/version.js ${{ inputs.version-level }})" >> $GITHUB_ENV
+        working-directory: packages/orderbook
 
       # Commit changes and tag
       - name: Commit And Tag
         run: |
-          git add "package.json"
-          git add "package-lock.json"
+          git add "packages/orderbook/package.json"
+          git add "packages/orderbook/package-lock.json"
           git commit -m "Release ${{ env.NEW_VERSION }}"
           git tag ${{ env.NEW_VERSION }}
 
@@ -96,9 +97,11 @@ jobs:
       # Create npm package tarball to put in release files
       - name: Create NPM Package Tarball
         run: echo "NPM_PACKAGE=$(npm pack --silent)" >> $GITHUB_ENV
+        working-directory: packages/orderbook
 
       - name: Rename NPM Package Tarball
         run: mv ${{ env.NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
+        working-directory: packages/orderbook
 
       # publish to npm
       - name: Publish To NPM
@@ -106,6 +109,7 @@ jobs:
         with:
           token: ${{ secrets.NPM_TOKEN }}
           access: public
+          package: packages/orderbook
 
       # Create gitHub release with npm tarball
       - name: Create GitHub Release
@@ -114,6 +118,6 @@ jobs:
         with:
           tag_name: ${{ env.NEW_VERSION }}
           name: Package Release ${{ env.NEW_VERSION }}
-          files: orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
+          files: packages/orderbook/orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -82,6 +82,7 @@ pub async fn do_quote_targets(
     quote_targets: &BatchQuoteTarget,
     rpc_url: &str,
     block_number: Option<u64>,
+    gas: Option<js_sys::BigInt>,
     multicall_address: Option<String>,
 ) -> Result<JsValue, Error> {
     let mut multicall_address_error = "multicall address, ".to_string();
@@ -90,6 +91,12 @@ pub async fn do_quote_targets(
             .inspect_err(|e| multicall_address_error.push_str(&e.to_string()))
             .expect_throw(&multicall_address_error)
     });
+    let mut gas_error = "gas, ".to_string();
+    let gas_value = gas.map(|v| {
+        U256::from_str(&format!("{}", v))
+            .inspect_err(|e| gas_error.push_str(&e.to_string()))
+            .expect_throw(&gas_error)
+    });
     let quote_targets: Vec<MainQuoteTarget> = quote_targets
         .0
         .iter()
@@ -97,7 +104,7 @@ pub async fn do_quote_targets(
         .collect();
     let batch_quote_target = MainBatchQuoteTarget(quote_targets);
     match batch_quote_target
-        .do_quote(rpc_url, block_number, multicall_address)
+        .do_quote(rpc_url, block_number, gas_value, multicall_address)
         .await
     {
         Err(e) => Err(e),
@@ -116,6 +123,7 @@ pub async fn do_quote_specs(
     subgraph_url: &str,
     rpc_url: &str,
     block_number: Option<u64>,
+    gas: Option<js_sys::BigInt>,
     multicall_address: Option<String>,
 ) -> Result<JsValue, Error> {
     let mut multicall_address_error = "multicall address, ".to_string();
@@ -124,6 +132,12 @@ pub async fn do_quote_specs(
             .inspect_err(|e| multicall_address_error.push_str(&e.to_string()))
             .expect_throw(&multicall_address_error)
     });
+    let mut gas_error = "gas, ".to_string();
+    let gas_value = gas.map(|v| {
+        U256::from_str(&format!("{}", v))
+            .inspect_err(|e| gas_error.push_str(&e.to_string()))
+            .expect_throw(&gas_error)
+    });
     let quote_specs: Vec<MainQuoteSpec> = quote_specs
         .0
         .iter()
@@ -131,7 +145,13 @@ pub async fn do_quote_specs(
         .collect();
     let batch_quote_spec = MainBatchQuoteSpec(quote_specs);
     match batch_quote_spec
-        .do_quote(subgraph_url, rpc_url, block_number, multicall_address)
+        .do_quote(
+            subgraph_url,
+            rpc_url,
+            block_number,
+            gas_value,
+            multicall_address,
+        )
         .await
     {
         Err(e) => Err(e),
@@ -194,9 +214,16 @@ pub async fn get_order_quote(
     order: Vec<Order>,
     rpc_url: &str,
     block_number: Option<u64>,
+    gas: Option<js_sys::BigInt>,
 ) -> Result<JsValue, Error> {
+    let mut gas_error = "gas, ".to_string();
+    let gas_value = gas.map(|v| {
+        U256::from_str(&format!("{}", v))
+            .inspect_err(|e| gas_error.push_str(&e.to_string()))
+            .expect_throw(&gas_error)
+    });
     Ok(to_value(
-        &get_order_quotes(order, block_number, rpc_url.to_string())
+        &get_order_quotes(order, block_number, rpc_url.to_string(), gas_value)
             .await
             .map(|v| {
                 v.into_iter()
