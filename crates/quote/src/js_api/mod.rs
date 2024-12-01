@@ -9,7 +9,7 @@ use alloy::primitives::{
 use rain_orderbook_bindings::js_api::{Quote, SignedContextV1};
 use rain_orderbook_bindings::{
     impl_all_wasm_traits,
-    wasm_traits::{prelude::*, ToU256},
+    wasm_traits::{prelude::*, TryIntoU256},
 };
 use rain_orderbook_subgraph_client::{types::common::Order, utils::make_order_id};
 use serde::{Deserialize, Serialize};
@@ -96,7 +96,7 @@ pub async fn do_quote_targets(
     });
     let mut gas_error = "gas, ".to_string();
     let gas_value = gas.map(|v| {
-        v.to_u256()
+        v.try_into_u256()
             .inspect_err(|e| gas_error.push_str(&e.to_string()))
             .expect_throw(&gas_error)
     });
@@ -137,7 +137,7 @@ pub async fn do_quote_specs(
     });
     let mut gas_error = "gas, ".to_string();
     let gas_value = gas.map(|v| {
-        v.to_u256()
+        v.try_into_u256()
             .inspect_err(|e| gas_error.push_str(&e.to_string()))
             .expect_throw(&gas_error)
     });
@@ -221,7 +221,7 @@ pub async fn get_order_quote(
 ) -> Result<JsValue, Error> {
     let mut gas_error = "gas, ".to_string();
     let gas_value = gas.map(|v| {
-        v.to_u256()
+        v.try_into_u256()
             .inspect_err(|e| gas_error.push_str(&e.to_string()))
             .expect_throw(&gas_error)
     });

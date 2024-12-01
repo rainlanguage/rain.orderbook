@@ -12,13 +12,13 @@ pub mod prelude {
 }
 
 // A trait for converting types to U256
-pub trait ToU256 {
+pub trait TryIntoU256 {
     type Error;
-    fn to_u256(&self) -> Result<alloy::primitives::U256, Self::Error>;
+    fn try_into_u256(&self) -> Result<alloy::primitives::U256, Self::Error>;
 }
-impl ToU256 for js_sys::BigInt {
+impl TryIntoU256 for js_sys::BigInt {
     type Error = alloy::primitives::ruint::ParseError;
-    fn to_u256(&self) -> Result<alloy::primitives::U256, Self::Error> {
+    fn try_into_u256(&self) -> Result<alloy::primitives::U256, Self::Error> {
         alloy::primitives::U256::from_str(&format!("{}", &self))
     }
 }
