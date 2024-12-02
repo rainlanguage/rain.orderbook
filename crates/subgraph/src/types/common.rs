@@ -324,11 +324,9 @@ pub struct Trade {
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: TradeStructPartialOrder,
     pub input_vault_balance_change: TradeVaultBalanceChange,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
     pub orderbook: Orderbook,
 }
-#[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Trade);
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
