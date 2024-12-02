@@ -1,12 +1,18 @@
 use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-use alloy::primitives::private::rand;
-use alloy::primitives::U256;
+use alloy::{
+    primitives::{private::rand, Address, U256},
+    sol_types::SolCall,
+};
 use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::prelude::RngCore;
 use proptest::test_runner::{RngAlgorithm, TestRng};
+use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
+use rain_interpreter_bindings::DeployerISP::{iInterpreterCall, iStoreCall};
 use rain_interpreter_bindings::IInterpreterStoreV1::FullyQualifiedNamespace;
+use rain_interpreter_bindings::IInterpreterV3::eval3Call;
+use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::NewForkedEvm;
 pub use rain_interpreter_eval::trace::{
     RainEvalResultError, RainEvalResults, RainEvalResultsTable, TraceSearchError,
@@ -110,6 +116,10 @@ pub enum FuzzRunnerError {
     BlockError(#[from] BlockError),
     #[error(transparent)]
     RainEvalResultError(#[from] RainEvalResultError),
+    #[error(transparent)]
+    AbiDecodedErrorType(#[from] AbiDecodedErrorType),
+    #[error(transparent)]
+    AbiDecodeFailedErrors(#[from] AbiDecodeFailedErrors),
 }
 
 impl FuzzRunner {
@@ -363,7 +373,8 @@ impl FuzzRunner {
                 &ORDERBOOK_ORDER_ENTRYPOINTS,
                 None,
                 Some(final_bindings),
-            )?;
+            )
+            .map_err(FuzzRunnerError::ComposeError)?;
 
             // Create a 5x5 grid of zero values for context - later we'll
             // replace these with sane values based on Orderbook context
@@ -391,25 +402,88 @@ impl FuzzRunner {
             // output vault balance before
             context[4][3] = U256::from(0);
 
-            let args = ForkEvalArgs {
-                rainlang_string,
-                source_index: 0,
-                deployer: deployer.address,
-                namespace: FullyQualifiedNamespace::default(),
-                context,
-                decode_errors: true,
-            };
-            fork_clone
-                .fork_eval(args)
-                .map_err(FuzzRunnerError::ForkCallError)
+            // NOTE:
+            // This was the initial approach to using fork_eval
+            // but i've changed the logic to use individual calls
+            // to alloy_call and final call to get the stack, writes, and traces
+
+            // let args = ForkEvalArgs {
+            //     rainlang_string: rainlang_string.clone(),
+            //     source_index: 0,
+            //     deployer: deployer.address,
+            //     namespace: FullyQualifiedNamespace::default(),
+            //     context: context.clone(),
+            //     decode_errors: true,
+            // };
+            // let res = fork_clone.fork_eval(args).await?;
+            // let rain_eval_result: RainEvalResult = res.into();
+            // println!("RainEvalResult: {:?}", rain_eval_result);
+
+            // NOTE:
+            // This is the same logic that is in fork_eval
+            // but for the last call we are using the raw call
+            // to get the stack, writes, and traces from the interpreter
+
+            let parse_result = fork_clone
+                .fork_parse(ForkParseArgs {
+                    rainlang_string: rainlang_string.clone(),
+                    deployer: deployer.address,
+                    decode_errors: true,
+                })
                 .await
+                .map_err(FuzzRunnerError::ForkCallError)?;
+            let store = fork_clone
+                .alloy_call(Address::default(), deployer.address, iStoreCall {}, true)
+                .await?
+                .typed_return
+                ._0;
+            let interpreter = fork_clone
+                .alloy_call(
+                    Address::default(),
+                    deployer.address,
+                    iInterpreterCall {},
+                    true,
+                )
+                .await?
+                .typed_return
+                ._0;
+            let res = fork_clone.call(
+                Address::default().as_slice(),
+                interpreter.as_slice(),
+                &eval3Call {
+                    bytecode: parse_result.typed_return.bytecode,
+                    sourceIndex: U256::from(0),
+                    store,
+                    namespace: FullyQualifiedNamespace::default().into(),
+                    context,
+                    inputs: vec![],
+                }
+                .abi_encode(),
+            )?;
+
+            let mut error = None;
+            if res.exit_reason.is_revert() {
+                error = Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
+            }
+
+            Ok::<
+                (
+                    RainEvalResult,
+                    Option<Result<AbiDecodedErrorType, AbiDecodeFailedErrors>>,
+                ),
+                FuzzRunnerError,
+            >((res.into(), error))
         });
+
+        let (result, error) = handle.await??;
+        println!("Result: {:?}", result);
+        println!("Error: {:?}", error);
 
         Ok((
             pair_symbols,
             FuzzResult {
                 scenario: scenario.name.clone(),
-                runs: vec![handle.await??.into()].into(),
+                runs: vec![result].into(),
             },
         ))
     }
@@ -938,6 +1012,7 @@ _: output-token-decimals(),
 _: output-vault-id(),
 
 max-output: 30,
+_: sub(16 52),
 io-ratio: mul(0.99 20);
 #handle-io
 :;
