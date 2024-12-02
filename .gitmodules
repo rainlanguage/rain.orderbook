@@ -1,0 +1,10 @@
+[submodule "lib/sushixswap-v2"]
+	path = lib/sushixswap-v2
+	url = https://github.com/rainprotocol/sushixswap-v2
+[submodule "lib/rain.interpreter"]
+	path = lib/rain.interpreter
+	url = https://github.com/rainlanguage/rain.interpreter
+	branch = 3.x
+[submodule "lib/rain.orderbook.interface"]
+	path = lib/rain.orderbook.interface
+	url = https://github.com/rainlanguage/rain.orderbook.interface
