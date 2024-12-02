@@ -8248,7 +8248,7 @@ name = "rain_interpreter_dispair"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0881930a22e84db49ba955c5b88e790e1266ac66)",
  "ethers",
  "rain_interpreter_bindings",
  "serde",
@@ -8264,7 +8264,7 @@ name = "rain_interpreter_parser"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0881930a22e84db49ba955c5b88e790e1266ac66)",
  "ethers",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
