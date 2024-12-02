@@ -167,9 +167,8 @@
               set -euxo pipefail
 
               # Source .env file if it exists
-              ENV_FILE=.env
-              if [ -f "$ENV_FILE" ]; then
-                  source $ENV_FILE
+              if [ -f ".env" ]; then
+                  source .env
               fi
 
               # Exit if required env variables are not defined
