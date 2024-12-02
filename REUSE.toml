@@ -1,0 +1,35 @@
+version = 1
+
+[[annotations]]
+path = [
+    ".gas-snapshot",
+    ".github/workflows/**/",
+    ".gitignore",
+    ".gitmodules",
+    ".vscode/**/",
+    "README.md",
+    "flake.lock",
+    "flake.nix",
+    "foundry.toml",
+    "slither.config.json",
+    "typeshare.toml",
+    "REUSE.toml",
+    "pointers.sh",
+    "prep-tauri.sh",
+    "package.json",
+    "package-lock.json",
+    "Cargo.lock",
+    "Cargo.toml",
+]
+SPDX-FileCopyrightText = "Copyright (c) 2020 thedavidmeister"
+SPDX-License-Identifier = "LicenseRef-DCL-1.0"
+
+[[annotations]]
+path = [
+    "packages/**/",
+    "subgraph/**/",
+    "crates/**/",
+    "tauri-app/**/",
+]
+SPDX-FileCopyrightText = "Copyright (c) 2020 Rain Open Source LLC"
+SPDX-License-Identifier = "LicenseRef-DCL-1.0"

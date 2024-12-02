@@ -90,7 +90,12 @@ impl Quoter {
     pub async fn run(&self) -> anyhow::Result<QuoterResult> {
         let result: QuoterResult = match self.input.read_content()? {
             InputContentType::Target(v) => v
-                .do_quote(self.rpc.as_str(), self.block_number, self.multicall_address)
+                .do_quote(
+                    self.rpc.as_str(),
+                    self.block_number,
+                    None,
+                    self.multicall_address,
+                )
                 .await?
                 .into(),
             InputContentType::Spec(v) => {
@@ -99,6 +104,7 @@ impl Quoter {
                         sg.as_str(),
                         self.rpc.as_str(),
                         self.block_number,
+                        None,
                         self.multicall_address,
                     )
                     .await?

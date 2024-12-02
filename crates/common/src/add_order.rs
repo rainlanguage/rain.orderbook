@@ -93,6 +93,7 @@ impl AddOrderArgs {
                     address: input.token.address,
                     call: decimalsCall {},
                     block_number: None,
+                    gas: None,
                 };
                 let decimals = client.read(parameters).await?._0;
                 inputs.push(IO {
@@ -118,6 +119,7 @@ impl AddOrderArgs {
                     address: output.token.address,
                     call: decimalsCall {},
                     block_number: None,
+                    gas: None,
                 };
                 let decimals = client.read(parameters).await?._0;
                 outputs.push(IO {

@@ -6,9 +6,10 @@
   } from '@rainlanguage/ui-components';
   import { createQuery } from '@tanstack/svelte-query';
   import { subgraphUrl } from '$lib/stores/settings';
-  import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
   import { colorTheme } from '$lib/stores/darkMode';
   import { get } from 'svelte/store';
+  import { TanstackLightweightChartLine } from '@rainlanguage/ui-components';
+  import { lightweightChartsTheme } from '$lib/stores/darkMode';
 
   export let id: string;
 
@@ -37,4 +38,5 @@
   timeTransform={(d) => d.time}
   valueTransform={(d) => d.value}
   emptyMessage="No trades found"
+  {lightweightChartsTheme}
 />

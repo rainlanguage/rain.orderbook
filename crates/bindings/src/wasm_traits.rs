@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 pub mod prelude {
     pub use serde_wasm_bindgen::{from_value, to_value};
     pub use tsify::Tsify;
@@ -7,6 +9,18 @@ pub mod prelude {
         prelude::*,
         JsValue, UnwrapThrowExt,
     };
+}
+
+// A trait for converting types to U256
+pub trait TryIntoU256 {
+    type Error;
+    fn try_into_u256(&self) -> Result<alloy::primitives::U256, Self::Error>;
+}
+impl TryIntoU256 for js_sys::BigInt {
+    type Error = alloy::primitives::ruint::ParseError;
+    fn try_into_u256(&self) -> Result<alloy::primitives::U256, Self::Error> {
+        alloy::primitives::U256::from_str(&format!("{}", &self))
+    }
 }
 
 #[macro_export]
