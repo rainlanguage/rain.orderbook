@@ -1,12 +1,27 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import { PageHeader } from '@rainlanguage/ui-components';
+  import { onMount } from 'svelte';
+  import { OrdersListTable } from '@rainlanguage/ui-components';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
+  import { handleOrderRemoveModal } from '$lib/services/modal';
+
   import {
+    activeSubgraphs,
+    settings,
+    accounts,
+    activeAccountsItems,
+    activeOrderStatus,
+    orderHash,
+    hideZeroBalanceVaults,
     resetActiveNetworkRef,
     resetActiveOrderbookRef,
     activeOrderbook,
+    activeNetworkRef,
+    activeOrderbookRef,
   } from '$lib/stores/settings';
-  import { onMount } from 'svelte';
-  import OrdersListTable from '$lib/components/tables/OrdersListTable.svelte';
+  import { page } from '$app/stores';
+
+  $: currentRoute = $page.url.pathname;
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -16,6 +31,19 @@
   });
 </script>
 
-<PageHeader title="Orders" />
+<PageHeader title="Orders" pathname={$page.url.pathname} />
 
-<OrdersListTable />
+<OrdersListTable
+  {activeNetworkRef}
+  {activeOrderbookRef}
+  {walletAddressMatchesOrBlank}
+  {handleOrderRemoveModal}
+  {activeSubgraphs}
+  {settings}
+  {accounts}
+  {activeAccountsItems}
+  {activeOrderStatus}
+  {orderHash}
+  {hideZeroBalanceVaults}
+  {currentRoute}
+/>

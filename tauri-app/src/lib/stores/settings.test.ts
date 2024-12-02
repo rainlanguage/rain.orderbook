@@ -1,6 +1,6 @@
 import { expect, test, beforeEach, describe } from 'vitest';
 import { settings, activeAccountsItems, activeSubgraphs } from './settings';
-import { mockConfigSource } from '$lib/mocks/settings';
+import { mockConfigSource } from '@rainlanguage/ui-components';
 import { get } from 'svelte/store';
 
 describe('Settings active accounts items', async () => {

@@ -5,11 +5,11 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import VaultBalanceChangesTable from './VaultBalanceChangesTable.svelte';
 import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
-import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('$lib/mocks/settings');
+  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
 
   const _activeOrderbook = writable();
 

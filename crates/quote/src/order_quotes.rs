@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{
     error::Error,
     quote::{BatchQuoteTarget, QuoteTarget},
@@ -10,6 +8,7 @@ use alloy_ethers_typecast::transaction::ReadableClient;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
 use rain_orderbook_subgraph_client::types::common::Order;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -35,6 +34,7 @@ pub async fn get_order_quotes(
     orders: Vec<Order>,
     block_number: Option<u64>,
     rpc_url: String,
+    gas: Option<U256>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
@@ -100,7 +100,7 @@ pub async fn get_order_quotes(
         );
 
         let quote_values = BatchQuoteTarget(quote_targets)
-            .do_quote(&rpc_url, Some(req_block_number), None)
+            .do_quote(&rpc_url, Some(req_block_number), gas, None)
             .await;
 
         if let Ok(quote_values) = quote_values {
@@ -315,7 +315,7 @@ amount price: context<3 0>() context<4 0>();
             trades: vec![],
         };
 
-        let result = get_order_quotes(vec![order], None, local_evm.url())
+        let result = get_order_quotes(vec![order], None, local_evm.url(), None)
             .await
             .unwrap();
 

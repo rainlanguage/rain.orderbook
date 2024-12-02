@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => ({
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
 	},
+	
 	test: {
 		// Jest like globals
 		includeSource: ['src/**/*.{js,ts}'],
@@ -21,6 +22,11 @@ export default defineConfig(({ mode }) => ({
 		setupFiles: ['./test-setup.ts'],
 		// load env vars
 		env: loadEnv('', process.cwd(), ''),
-		testTimeout: 10000
+		testTimeout: 10000,
+		server: {
+			deps: {
+				inline: [/@tanstack\/svelte-query/]
+			}
+		}
 	}
 }));

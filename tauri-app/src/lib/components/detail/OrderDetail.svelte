@@ -2,9 +2,9 @@
   import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import BadgeActive from '$lib/components/BadgeActive.svelte';
-  import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
-  import ButtonVaultLink from '$lib/components/ButtonVaultLink.svelte';
+  import { BadgeActive } from '@rainlanguage/ui-components';
+  import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
+  import { ButtonVaultLink } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
@@ -12,7 +12,7 @@
   import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
   import { handleOrderRemoveModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
-  import { QKEY_ORDER } from '$lib/queries/keys';
+  import { QKEY_ORDER } from '@rainlanguage/ui-components';
   import { orderDetail } from '$lib/queries/orderDetail';
   import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
   import OrderTradesChart from '../charts/OrderTradesChart.svelte';

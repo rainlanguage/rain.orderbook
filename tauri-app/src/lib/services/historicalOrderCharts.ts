@@ -1,6 +1,6 @@
 import type { Trade } from '$lib/typeshare/subgraphTypes';
 import type { UTCTimestamp } from 'lightweight-charts';
-import { timestampSecondsToUTCTimestamp } from '$lib/utils/time';
+import { timestampSecondsToUTCTimestamp } from '@rainlanguage/ui-components';
 import { sortBy } from 'lodash';
 import { formatUnits } from 'viem';
 

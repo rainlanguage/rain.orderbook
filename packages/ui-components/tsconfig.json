@@ -10,7 +10,7 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"module": "es2015",
+		"module": "es2022",
 		"moduleResolution": "bundler",
 		"types": ["vitest/globals", "@testing-library/jest-dom", "vitest/importMeta"]
 	},

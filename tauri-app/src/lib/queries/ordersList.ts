@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api';
-import { DEFAULT_PAGE_SIZE } from './constants';
+import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { OrderWithSubgraphName } from '$lib/typeshare/subgraphTypes';
 

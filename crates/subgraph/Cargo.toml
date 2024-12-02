@@ -4,6 +4,7 @@ description = "Subgraph client, queries & schemas for the Rain Orderbook"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+author.workspace = true
 homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -18,15 +19,17 @@ serde_json = { workspace = true }
 alloy = { workspace = true, features = ["rand"] }
 rain_orderbook_bindings = { workspace = true }
 chrono = { workspace = true }
-url = { workspace = true }
+url = { workspace = true, features = ["serde"] }
 cynic-introspection = "3.7.3"
 futures = "0.3.17"
-tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
-wasm-bindgen = { version = "0.2.92" }
-js-sys = { version = "0.3.69" }
-serde-wasm-bindgen = { version = "0.6.5" }
 
-[dev-dependencies]
+[target.'cfg(target_family = "wasm")'.dependencies]
+js-sys = { version = "0.3.69" }
+wasm-bindgen = { version = "0.2.92" }
+serde-wasm-bindgen = { version = "0.6.5" }
+tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 insta = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 httpmock = "0.7.0"

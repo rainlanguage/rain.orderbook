@@ -6,17 +6,11 @@ use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
-use rain_orderbook_bindings::impl_wasm_traits;
 use rain_orderbook_bindings::js_api::Quote;
 use rain_orderbook_bindings::IOrderBookV4::{
     Quote as MainQuote, SignedContextV1 as MainSignedContextV1,
 };
-use serde_wasm_bindgen::{from_value, to_value};
 use std::str::FromStr;
-use wasm_bindgen::{
-    describe::{inform, WasmDescribeVector, VECTOR},
-    JsValue, UnwrapThrowExt,
-};
 
 impl From<OrderQuoteValue> for MainOrderQuoteValue {
     fn from(value: OrderQuoteValue) -> Self {
@@ -161,13 +155,14 @@ impl From<BatchOrderQuotesResponse> for MainBatchOrderQuotesResponse {
     }
 }
 
-impl_wasm_traits!(QuoteSpec);
-impl_wasm_traits!(QuoteTarget);
-impl_wasm_traits!(QuoteResult);
-impl_wasm_traits!(BatchQuoteSpec);
-impl_wasm_traits!(BatchQuoteTarget);
-impl_wasm_traits!(Pair);
-impl_wasm_traits!(BatchOrderQuotesResponse);
+impl_all_wasm_traits!(Pair);
+impl_all_wasm_traits!(QuoteSpec);
+impl_all_wasm_traits!(QuoteTarget);
+impl_all_wasm_traits!(QuoteResult);
+impl_all_wasm_traits!(BatchQuoteSpec);
+impl_all_wasm_traits!(OrderQuoteValue);
+impl_all_wasm_traits!(BatchQuoteTarget);
+impl_all_wasm_traits!(BatchOrderQuotesResponse);
 
 #[cfg(test)]
 mod tests {

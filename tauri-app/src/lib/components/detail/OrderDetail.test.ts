@@ -6,7 +6,7 @@ import OrderDetail from './OrderDetail.svelte';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import { mockOrderDetailsExtended } from '$lib/queries/orderDetail';
 import { handleOrderRemoveModal } from '$lib/services/modal';
-import { formatTimestampSecondsAsLocal } from '$lib/utils/time';
+import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
 import { formatUnits } from 'viem';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
@@ -26,7 +26,7 @@ vi.mock('$lib/components/CodeMirrorRainlang.svelte', async () => {
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
   const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('$lib/mocks/settings');
+  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
 
   const _activeOrderbook = writable();
 

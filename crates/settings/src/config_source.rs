@@ -669,25 +669,27 @@ gui:
         let field = &deployment.fields[0];
         assert_eq!(field.binding, "binding-1");
         assert_eq!(field.name, "Field 1 name");
-        assert_eq!(field.description, "Field 1 description");
-        assert_eq!(field.presets.len(), 3);
-        assert_eq!(field.presets[0].name, Some("Preset 1".to_string()));
+        assert_eq!(field.description, Some("Field 1 description".to_string()));
+        let presets = field.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 3);
+        assert_eq!(presets[0].name, Some("Preset 1".to_string()));
         assert_eq!(
-            field.presets[0].value,
+            presets[0].value,
             "0x1234567890abcdef1234567890abcdef12345678"
         );
-        assert_eq!(field.presets[1].name, Some("Preset 2".to_string()));
-        assert_eq!(field.presets[1].value, "false".to_string());
-        assert_eq!(field.presets[2].name, Some("Preset 3".to_string()));
-        assert_eq!(field.presets[2].value, "some-string".to_string());
+        assert_eq!(presets[1].name, Some("Preset 2".to_string()));
+        assert_eq!(presets[1].value, "false".to_string());
+        assert_eq!(presets[2].name, Some("Preset 3".to_string()));
+        assert_eq!(presets[2].value, "some-string".to_string());
         let field = &deployment.fields[1];
         assert_eq!(field.binding, "binding-2");
         assert_eq!(field.name, "Field 2 name");
-        assert_eq!(field.description, "Field 2 description");
-        assert_eq!(field.presets.len(), 3);
-        assert_eq!(field.presets[0].value, "99.2".to_string());
-        assert_eq!(field.presets[1].value, "582.1".to_string());
-        assert_eq!(field.presets[2].value, "648.239".to_string());
+        assert_eq!(field.description, Some("Field 2 description".to_string()));
+        let presets = field.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 3);
+        assert_eq!(presets[0].value, "99.2".to_string());
+        assert_eq!(presets[1].value, "582.1".to_string());
+        assert_eq!(presets[2].value, "648.239".to_string());
     }
 
     #[tokio::test]
