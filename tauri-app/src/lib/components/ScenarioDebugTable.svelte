@@ -11,7 +11,7 @@
   } from 'flowbite-svelte';
   import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
   import { handleScenarioDebugModal } from '$lib/services/modal';
-  import Refresh from './icon/Refresh.svelte';
+  import { Refresh } from '@rainlanguage/ui-components';
   import EditableSpan from './EditableSpan.svelte';
   import { makeDeploymentDebugData } from '$lib/services/chart';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -21,7 +21,7 @@
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { writable } from 'svelte/store';
 
-  let enabled = true;
+  let enabled = false;
   let blockNumber: number | undefined;
 
   $: queryKey = writable([$globalDotrainFile.text, $settingsText]);

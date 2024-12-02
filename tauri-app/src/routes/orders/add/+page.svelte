@@ -257,7 +257,7 @@
 </FileTextarea>
 
 <Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
-  ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button
+  ><span class="mr-2">Generate charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button
 >
 
 <Tabs
