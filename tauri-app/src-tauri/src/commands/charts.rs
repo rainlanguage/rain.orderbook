@@ -11,3 +11,16 @@ pub async fn make_charts(dotrain: String, settings: String) -> CommandResult<Cha
 
     Ok(fuzzer.make_chart_data().await?)
 }
+
+#[tauri::command]
+pub async fn make_deployment_debug(
+    dotrain: String,
+    settings: String,
+    block_number: Option<u64>,
+) -> CommandResult<DeploymentDebugData> {
+    let config = merge_configstrings(dotrain.clone(), settings).await?;
+    let final_config: Config = config.try_into()?;
+    let fuzzer = FuzzRunner::new(dotrain.as_str(), final_config.clone(), None).await;
+
+    Ok(fuzzer.make_debug_data(block_number).await?)
+}
