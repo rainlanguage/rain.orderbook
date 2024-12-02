@@ -2,10 +2,10 @@
 
 ## Setup for local development
 
-## Environment Setup
+### Environment Setup
 
 1. Copy `.env.example` to `.env`
-2. Copy `tauri-app/.env.example` to `tauri-app/.env` and fill in values
+2. Copy `tauri-app/.env.example` to `tauri-app/.env` and fill out `VITE_WALLETCONNECT_PROJECT_ID` with a test project ID from [Reown (FKA WalletConnect)](https://cloud.reown.com/sign-in)
 
 Then run the following to install dependencies and build the project:
 ```bash
@@ -17,27 +17,12 @@ You may need to make the shell script executable:
 chmod +x prep-all.sh
 ```
 
-## Run Webapp for local development
+### Run Webapp for local development
 ```
-nix develop -c npm run dev -w @rainlanguage/webapp
+cd packages/webapp && nix develop -c npm run dev
 ```
 
-## Run Tauri App for local development
+### Run Tauri App for local development
 ```
 nix develop .#tauri-shell --command cargo tauri dev
 ```
-
-## Use as template
-
-Docs at https://rainprotocol.github.io/foundry.template
-
-```
-forge init -t rainprotocol/foundry.template <projectname>
-cd <projectname>
-forge install foundry-rs/forge-std
-```
-
-Then update the readme, set the docs url and configure github pages on github repo settings.
-
-For CI deployments, setup all the environment variables and define contracts to
-deploy in the matrix.

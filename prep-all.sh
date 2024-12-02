@@ -50,11 +50,17 @@ echo "Building packages..."
 nix develop -i ${keep[@]} -c npm run build -w @rainlanguage/orderbook
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
 
-echo -e "\n┌────────────────────────────────────────────────────────────────────────┐"
-echo -e "│\033[32m                            Setup Complete!                             \033[0m│"
-echo -e "├────────────────────────────────────────────────────────────────────────┤"
-echo -e "│\033[32m                          How to run the apps:                          \033[0m│"
-echo -e "│\033[32m                                                                        \033[0m│"
-echo -e "│\033[32m  To run webapp:     nix develop -c 'cd packages/webapp && npm run dev' \033[0m│"
-echo -e "│\033[32m  To run tauri app:  nix develop .#tauri-shell -c cargo tauri dev       \033[0m│"
-echo -e "└────────────────────────────────────────────────────────────────────────┘\n"
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+echo "╔════════════════════════════════════════════════════════════════════════╗"
+echo "║                            ${GREEN}Setup Complete!${NC}                             ║"
+echo "╠════════════════════════════════════════════════════════════════════════╣"
+echo "║                          ${GREEN}How to run the apps:${NC}                          ║"
+echo "║                                                                        ║"
+echo "║  ${GREEN}To run webapp:     cd packages/webapp && nix develop -c npm run dev'${NC} ║"
+echo "║  ${GREEN}To run tauri app:  nix develop .#tauri-shell -c cargo tauri dev${NC}       ║"
+echo "╚════════════════════════════════════════════════════════════════════════╝"
