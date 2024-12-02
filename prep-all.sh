@@ -47,8 +47,11 @@ nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
 nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
 
 echo "Building packages..."
-nix develop -i ${keep[@]} -c npm run build -w @rainlanguage/orderbook
+nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
+
+# Temporarily disable command echoing
+set +x
 
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
@@ -56,11 +59,17 @@ export LC_ALL=en_US.UTF-8
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-echo "╔════════════════════════════════════════════════════════════════════════╗"
-echo "║                            ${GREEN}Setup Complete!${NC}                             ║"
-echo "╠════════════════════════════════════════════════════════════════════════╣"
-echo "║                          ${GREEN}How to run the apps:${NC}                          ║"
-echo "║                                                                        ║"
-echo "║  ${GREEN}To run webapp:     cd packages/webapp && nix develop -c npm run dev'${NC} ║"
-echo "║  ${GREEN}To run tauri app:  nix develop .#tauri-shell -c cargo tauri dev${NC}       ║"
-echo "╚════════════════════════════════════════════════════════════════════════╝"
+# Print the completion message
+printf "\033[0;32m" # Set text to green
+printf "╔════════════════════════════════════════════════════════════════════════╗\n"
+printf "║                            Setup Complete!                             ║\n"
+printf "╠════════════════════════════════════════════════════════════════════════╣\n"
+printf "║                          How to run the apps:                          ║\n"
+printf "║                                                                        ║\n"
+printf "║  To run webapp:     cd packages/webapp && nix develop -c npm run dev   ║\n"
+printf "║  To run tauri app:  nix develop .#tauri-shell -c cargo tauri dev       ║\n"
+printf "╚════════════════════════════════════════════════════════════════════════╝\n"
+printf "\033[0m" # Reset text color
+
+# Re-enable command echoing
+set -x
