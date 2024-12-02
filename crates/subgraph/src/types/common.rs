@@ -190,7 +190,6 @@ pub struct VaultWithSubgraphName {
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Vault")]
 #[typeshare]
-#[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeVault {
     pub id: Bytes,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
@@ -328,7 +327,6 @@ pub struct Trade {
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
     pub orderbook: Orderbook,
-
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Trade);
