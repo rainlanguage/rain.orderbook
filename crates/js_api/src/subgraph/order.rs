@@ -27,3 +27,59 @@ pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraph
     let order = client.order_detail(Id::new(id)).await?;
     Ok(to_value(&order)?)
 }
+
+/// Fetch trades for a specific order
+/// Returns a list of Trade structs
+#[wasm_bindgen(js_name = "getOrderTradesList")]
+pub async fn get_order_trades_list(
+    url: &str,
+    order_id: &str,
+    pagination_args: PaginationArgs,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let trades = client
+        .order_trades_list(
+            Id::new(order_id),
+            pagination_args,
+            start_timestamp,
+            end_timestamp,
+        )
+        .await?;
+    Ok(to_value(&trades)?)
+}
+
+/// Get details for a specific trade
+/// Returns a Trade struct
+#[wasm_bindgen(js_name = "getOrderTradeDetail")]
+pub async fn get_order_trade_detail(
+    url: &str,
+    trade_id: &str,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let trade = client.order_trade_detail(Id::new(trade_id)).await?;
+    Ok(to_value(&trade)?)
+}
+
+/// Fetch the count of trades for a specific order
+/// Returns the count as a JavaScript-compatible number
+#[wasm_bindgen(js_name = "getOrderTradesCount")]
+pub async fn get_order_trades_count(
+    url: &str,
+    order_id: &str,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    // Create the subgraph client using the provided URL
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+
+    // Fetch all trades for the specific order and calculate the count
+    let trades_count = client
+        .order_trades_list_all(Id::new(order_id), start_timestamp, end_timestamp)
+        .await?
+        .len();
+
+    // Convert the count to a JavaScript-compatible value and return
+    Ok(to_value(&trades_count)?)
+}
