@@ -23,7 +23,7 @@
   import { TanstackOrderQuote } from '@rainlanguage/ui-components';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
-  import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+  import { OrderVaultsVolTable } from '@rainlanguage/ui-components';
   import { colorTheme, lightweightChartsTheme } from '$lib/stores/darkMode';
   export let id, network;
   const subgraphUrl = $settings?.subgraphs?.[network] || '';
@@ -153,7 +153,7 @@
         <OrderTradesListTable {id} {subgraphUrl} {rpcUrl} {handleDebugTradeModal} />
       </TabItem>
       <TabItem title="Volume">
-        <OrderVaultsVolTable {id} />
+        <OrderVaultsVolTable {id} {subgraphUrl} />
       </TabItem>
     </Tabs>
   </svelte:fragment>

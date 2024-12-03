@@ -30,6 +30,8 @@ export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 export { default as TanstackPageContentDetail } from './components/detail/TanstackPageContentDetail.svelte';
 export { default as TanstackOrderQuote } from './components/detail/TanstackOrderQuote.svelte';
 export { default as EditableSpan } from './components/EditableSpan.svelte';
+export { default as OrderVaultsVolTable } from './components/tables/OrderVaultsVolTable.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

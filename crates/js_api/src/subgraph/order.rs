@@ -83,3 +83,22 @@ pub async fn get_order_trades_count(
     // Convert the count to a JavaScript-compatible value and return
     Ok(to_value(&trades_count)?)
 }
+
+/// Fetch volume information for vaults associated with an order
+#[wasm_bindgen(js_name = "getOrderVaultsVolume")]
+pub async fn order_vaults_volume(
+    url: &str,
+    order_id: &str,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let volumes = client
+        .order_vaults_volume(
+            Id::new(order_id),
+            start_timestamp,
+            end_timestamp,
+        )
+        .await?;
+    Ok(to_value(&volumes)?)
+}

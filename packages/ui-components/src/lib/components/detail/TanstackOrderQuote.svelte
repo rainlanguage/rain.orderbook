@@ -2,7 +2,6 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote } from '@rainlanguage/orderbook/quote';
-	// TODO: I Should be able to use the typeshare type here (and everywhere)
 	import type { Order as OrderPackage } from '@rainlanguage/orderbook/quote';
 	import type { Order as OrderTypeshare } from '../../typeshare/subgraphTypes';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
@@ -21,7 +20,7 @@
 
 	export let id: string;
 	export let order: OrderTypeshare;
-	export let rpcUrl: string = '';
+	export let rpcUrl: string;
 	export let orderbookAddress: string = '';
 	export let handleQuoteDebugModal:
 		| undefined
@@ -107,7 +106,7 @@
 				{#each $orderQuoteQuery.data as item}
 					{#if item.success && item.data}
 						<TableBodyRow data-testid="bodyRow">
-							<TableBodyCell>{item.pair.pair_name}</TableBodyCell>
+							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
 							<TableBodyCell>{formatUnits(BigInt(item.data.maxOutput), 18)}</TableBodyCell>
 							<TableBodyCell
 								>{formatUnits(BigInt(item.data.ratio), 18)}
