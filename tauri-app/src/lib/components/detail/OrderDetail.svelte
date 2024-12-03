@@ -8,15 +8,19 @@
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import { settings } from '$lib/stores/settings';
+  import { settings, orderbookAddress } from '$lib/stores/settings';
   import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
-  import { handleOrderRemoveModal, handleDebugTradeModal } from '$lib/services/modal';
+  import {
+    handleOrderRemoveModal,
+    handleDebugTradeModal,
+    handleQuoteDebugModal,
+  } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
   import { QKEY_ORDER } from '@rainlanguage/ui-components';
   import { orderDetail } from '$lib/queries/orderDetail';
   import { OrderTradesListTable } from '@rainlanguage/ui-components';
   import { OrderTradesChart } from '@rainlanguage/ui-components';
-  import OrderQuote from '../detail/TanstackOrderQuote.svelte';
+  import { TanstackOrderQuote } from '@rainlanguage/ui-components';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
@@ -122,7 +126,13 @@
     <OrderTradesChart {id} {subgraphUrl} {colorTheme} {lightweightChartsTheme} />
   </svelte:fragment>
   <svelte:fragment slot="below" let:data>
-    <OrderQuote {id} order={data.order} />
+    <TanstackOrderQuote
+      {id}
+      order={data.order}
+      {rpcUrl}
+      orderbookAddress={$orderbookAddress}
+      {handleQuoteDebugModal}
+    />
     <Tabs
       style="underline"
       contentClass="mt-4"

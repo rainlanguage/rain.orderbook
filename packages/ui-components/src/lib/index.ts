@@ -28,6 +28,7 @@ export { default as TableTimeFilters } from './components/charts/TableTimeFilter
 export { default as OrderTradesListTable } from './components/tables/OrderTradesListTable.svelte';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 export { default as TanstackPageContentDetail } from './components/detail/TanstackPageContentDetail.svelte';
+export { default as TanstackOrderQuote } from './components/detail/TanstackOrderQuote.svelte';
 export { default as EditableSpan } from './components/EditableSpan.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

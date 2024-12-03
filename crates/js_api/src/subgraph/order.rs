@@ -6,7 +6,6 @@ use rain_orderbook_subgraph_client::{
 };
 use reqwest::Url;
 
-
 /// Fetch all orders from multiple subgraphs
 /// Returns a list of OrderWithSubgraphName structs
 #[wasm_bindgen(js_name = "getOrders")]
