@@ -3,7 +3,8 @@
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote } from '@rainlanguage/orderbook/quote';
 	// TODO: I Should be able to use the typeshare type here (and everywhere)
-	import type { Order } from '@rainlanguage/orderbook/quote';
+	import type { Order as OrderPackage } from '@rainlanguage/orderbook/quote';
+	import type { Order as OrderTypeshare } from '../../typeshare/subgraphTypes';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
@@ -19,11 +20,11 @@
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 
 	export let id: string;
-	export let order: Order;
+	export let order: OrderTypeshare;
 	export let rpcUrl: string = '';
 	export let orderbookAddress: string = '';
 	export let handleQuoteDebugModal: (
-		order: Order,
+		order: OrderTypeshare,
 		rpcUrl: string,
 		orderbookAddress: string,
 		inputIndex: number,
@@ -40,12 +41,13 @@
 
 	$: orderQuoteQuery = createQuery({
 		queryKey: [QKEY_ORDER_QUOTE + id],
-		queryFn: () => getOrderQuote([order], rpcUrl),
+		queryFn: () => getOrderQuote([order as OrderPackage], rpcUrl),
 		enabled: !!id && enabled,
 		refetchInterval: 10000
 	});
 
 	let blockNumber: number | undefined;
+	$: orderModalArg = order as OrderTypeshare;
 </script>
 
 <div class="mt-4">
@@ -123,7 +125,7 @@
 								<button
 									on:click={() =>
 										handleQuoteDebugModal(
-											order,
+											orderModalArg,
 											rpcUrl || '',
 											orderbookAddress || '',
 											item.pair.input_index,
