@@ -2,7 +2,7 @@ use crate::{
     error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
-use alloy::primitives::{hex::FromHex, Address, U64};
+use alloy::primitives::{hex::FromHex, Address, U256, U64};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     multicall::{
@@ -19,10 +19,12 @@ pub async fn batch_quote(
     quote_targets: &[QuoteTarget],
     rpc: &str,
     block_number: Option<u64>,
+    gas: Option<U256>,
     multicall_address: Option<Address>,
 ) -> Result<Vec<QuoteResult>, Error> {
     let client = ReadableClient::new_from_url(rpc.to_string())?;
     let parameters = ReadContractParameters {
+        gas,
         address: multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
         block_number: block_number.map(U64::from),
         call: aggregate3Call {
@@ -70,7 +72,7 @@ pub async fn batch_quote(
 mod tests {
     use super::*;
     use crate::quote::OrderQuoteValue;
-    use alloy::primitives::{hex::encode_prefixed, U256};
+    use alloy::primitives::hex::encode_prefixed;
     use alloy::sol_types::SolValue;
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
     use alloy_ethers_typecast::{
@@ -151,9 +153,15 @@ mod tests {
             );
         });
 
-        let result = batch_quote(&quote_targets, rpc_server.url("/").as_str(), None, None)
-            .await
-            .unwrap();
+        let result = batch_quote(
+            &quote_targets,
+            rpc_server.url("/").as_str(),
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
         let mut iter_result = result.into_iter();
 
         assert_eq!(

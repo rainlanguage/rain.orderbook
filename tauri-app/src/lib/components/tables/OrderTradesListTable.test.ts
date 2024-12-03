@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { test, vi } from 'vitest';
+import { test, vi, type Mock } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { Trade } from '$lib/typeshare/subgraphTypes';
@@ -179,14 +179,25 @@ const mockTradeOrdersList: Trade[] = [
   },
 ];
 
+vi.mock('@tanstack/svelte-query');
+
 test('renders table with correct data', async () => {
   const queryClient = new QueryClient();
 
-  mockIPC((cmd) => {
-    if (cmd === 'order_trades_list') {
-      return mockTradeOrdersList;
-    }
-  });
+  const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    subscribe: (fn: (value: any) => void) => {
+      fn({
+        data: { pages: [mockTradeOrdersList] },
+        status: 'success',
+        isFetching: false,
+        isFetched: true,
+      });
+      return { unsubscribe: () => {} };
+    },
+  })) as Mock;
 
   render(OrderTradesListTable, {
     context: new Map([['$$_queryClient', queryClient]]),
