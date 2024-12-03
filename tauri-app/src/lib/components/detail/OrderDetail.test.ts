@@ -19,9 +19,11 @@ vi.mock('$lib/stores/wallets', async () => {
   };
 });
 
-vi.mock('$lib/components/CodeMirrorRainlang.svelte', async () => {
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
   const MockCodeMirror = (await import('$lib/mocks/MockComponent.svelte')).default;
-  return { default: MockCodeMirror };
+  return {
+    ...((await importOriginal()) as object),
+    codeMirrorRainlang: MockCodeMirror };
 });
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {

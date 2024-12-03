@@ -7,7 +7,7 @@
   import { ButtonVaultLink } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
-  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { settings, orderbookAddress } from '$lib/stores/settings';
   import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
   import {
@@ -23,11 +23,13 @@
   import { TanstackOrderQuote } from '@rainlanguage/ui-components';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
+
   import { OrderVaultsVolTable } from '@rainlanguage/ui-components';
   import { colorTheme, lightweightChartsTheme } from '$lib/stores/darkMode';
   export let id, network;
   const subgraphUrl = $settings?.subgraphs?.[network] || '';
   const rpcUrl = $settings?.networks?.[network]?.rpc || '';
+  import { codeMirrorTheme } from '$lib/stores/darkMode';
 
   $: orderDetailQuery = createQuery({
     queryKey: [id, QKEY_ORDER + id],
@@ -141,7 +143,7 @@
       <TabItem open title="Rainlang source">
         {#if data.rainlang}
           <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-            <CodeMirrorRainlang disabled={true} value={data.rainlang} />
+            <CodeMirrorRainlang disabled={true} value={data.rainlang} {codeMirrorTheme} />
           </div>
         {:else}
           <div class="w-full tracking-tight text-gray-900 dark:text-white">
