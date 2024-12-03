@@ -4,6 +4,7 @@ description = "Javascript bindings for common functions accross the app."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+author.workspace = true
 homepage.workspace = true
 publish = false
 

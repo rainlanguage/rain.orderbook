@@ -12,8 +12,6 @@
 		},
 		enabled: !!$subgraphUrl
 	});
-
-	$: console.log($query.data);
 </script>
 
 <div class="border border-red-500">

@@ -83,4 +83,3 @@ pub async fn get_order_trades_count(
     // Convert the count to a JavaScript-compatible value and return
     Ok(to_value(&trades_count)?)
 }
-
