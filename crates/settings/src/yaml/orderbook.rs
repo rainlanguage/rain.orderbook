@@ -1,19 +1,7 @@
+use super::{optional_hash, optional_string, require_hash, require_string, YamlError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use strict_yaml_rust::{ScanError, StrictYamlLoader};
-use thiserror::Error;
-
-#[derive(Error, Debug, PartialEq)]
-pub enum OrderbookYamlError {
-    #[error(transparent)]
-    ScanError(#[from] ScanError),
-    #[error("Required field missing: {0}")]
-    MissingField(String),
-    #[error("Invalid field type: {0}")]
-    InvalidFieldType(String),
-    #[error("Empty yaml file")]
-    EmptyFile,
-}
+use strict_yaml_rust::StrictYamlLoader;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -85,184 +73,139 @@ pub struct DeployerYaml {
 }
 
 impl OrderbookYaml {
-    pub fn from_str(yaml: &str) -> Result<Self, OrderbookYamlError> {
+    pub fn from_str(yaml: &str) -> Result<Self, YamlError> {
         let docs = StrictYamlLoader::load_from_str(yaml)?;
 
         if docs.is_empty() {
-            return Err(OrderbookYamlError::EmptyFile);
+            return Err(YamlError::EmptyFile);
         }
 
         let doc = &docs[0];
         let mut yaml = Self::default();
 
-        match doc["networks"].as_hash() {
-            Some(networks) => {
-                for (key, value) in networks {
-                    let key_str = key.as_str().unwrap_or_default();
-                    let rpc = value["rpc"].as_str().ok_or_else(|| {
-                        OrderbookYamlError::MissingField(format!(
-                            "rpc missing for network {:?}",
-                            key_str
-                        ))
-                    })?;
-
-                    let chain_id = value["chain-id"].as_str().ok_or_else(|| {
-                        OrderbookYamlError::MissingField(format!(
-                            "chain-id missing for network {:?}",
-                            key_str
-                        ))
-                    })?;
-
-                    let network = NetworkYaml {
-                        rpc: rpc.to_string(),
-                        chain_id: chain_id.to_string(),
-                        label: value["label"].as_str().map(|s| s.to_string()),
-                        network_id: value["network-id"].as_str().map(|s| s.to_string()),
-                        currency: value["currency"].as_str().map(|s| s.to_string()),
-                    };
-                    yaml.networks.insert(key_str.to_string(), network);
-                }
-            }
-            None => return Err(OrderbookYamlError::MissingField("networks".to_string())),
+        for (key, value) in require_hash(doc, "networks", Some(format!("missing field networks")))?
+        {
+            let key = key.as_str().unwrap_or_default();
+            let network = NetworkYaml {
+                rpc: require_string(
+                    value,
+                    Some("rpc"),
+                    Some(format!("rpc missing for network: {:?}", key)),
+                )?,
+                chain_id: require_string(
+                    value,
+                    Some("chain-id"),
+                    Some(format!("chain-id missing for network: {:?}", key)),
+                )?,
+                label: optional_string(value, "label"),
+                network_id: optional_string(value, "network-id"),
+                currency: optional_string(value, "currency"),
+            };
+            yaml.networks.insert(key.to_string(), network);
         }
 
-        match doc["subgraphs"].as_hash() {
-            Some(subgraphs) => {
-                for (key, value) in subgraphs {
-                    let key_str = key.as_str().unwrap_or_default();
-                    let value_str = value.as_str().ok_or_else(|| {
-                        OrderbookYamlError::InvalidFieldType(format!(
-                            "subgraph value must be a string for key {:?}",
-                            key_str
-                        ))
-                    })?;
-                    yaml.subgraphs
-                        .insert(key_str.to_string(), value_str.to_string());
-                }
-            }
-            None => return Err(OrderbookYamlError::MissingField("subgraphs".to_string())),
+        for (key, value) in
+            require_hash(doc, "subgraphs", Some(format!("missing field subgraphs")))?
+        {
+            let key = key.as_str().unwrap_or_default();
+            yaml.subgraphs.insert(
+                key.to_string(),
+                require_string(
+                    value,
+                    None,
+                    Some(format!("subgraph value must be a string for key {:?}", key)),
+                )?,
+            );
         }
 
-        match doc["metaboards"].as_hash() {
-            Some(metaboards) => {
-                for (key, value) in metaboards {
-                    let key_str = key.as_str().unwrap_or_default();
-                    let value_str = value.as_str().ok_or_else(|| {
-                        OrderbookYamlError::InvalidFieldType(format!(
-                            "metaboard value must be a string for key {:?}",
-                            key_str
-                        ))
-                    })?;
-                    yaml.metaboards
-                        .insert(key_str.to_string(), value_str.to_string());
-                }
-            }
-            None => return Err(OrderbookYamlError::MissingField("metaboards".to_string())),
+        for (key, value) in
+            require_hash(doc, "metaboards", Some(format!("missing field metaboards")))?
+        {
+            let key = key.as_str().unwrap_or_default();
+            yaml.metaboards.insert(
+                key.to_string(),
+                require_string(
+                    value,
+                    None,
+                    Some(format!(
+                        "metaboard value must be a string for key {:?}",
+                        key
+                    )),
+                )?,
+            );
         }
 
-        match doc["orderbooks"].as_hash() {
-            Some(orderbooks) => {
-                for (key, value) in orderbooks {
-                    let key_str = key.as_str().unwrap_or_default();
-                    let address = value["address"].as_str().ok_or_else(|| {
-                        OrderbookYamlError::MissingField(format!(
-                            "address missing for orderbook {:?}",
-                            key_str
-                        ))
-                    })?;
-
-                    let orderbook = OrderbookEntryYaml {
-                        address: address.to_string(),
-                        network: value["network"].as_str().map(|s| s.to_string()),
-                        subgraph: value["subgraph"].as_str().map(|s| s.to_string()),
-                        label: value["label"].as_str().map(|s| s.to_string()),
-                    };
-                    yaml.orderbooks.insert(key_str.to_string(), orderbook);
-                }
-            }
-            None => return Err(OrderbookYamlError::MissingField("orderbooks".to_string())),
+        for (key, value) in
+            require_hash(doc, "orderbooks", Some(format!("missing field orderbooks")))?
+        {
+            let key = key.as_str().unwrap_or_default();
+            let orderbook = OrderbookEntryYaml {
+                address: require_string(
+                    value,
+                    Some("address"),
+                    Some(format!("address missing for orderbook: {:?}", key)),
+                )?,
+                network: optional_string(value, "network"),
+                subgraph: optional_string(value, "subgraph"),
+                label: optional_string(value, "label"),
+            };
+            yaml.orderbooks.insert(key.to_string(), orderbook);
         }
 
-        match doc["tokens"].as_hash() {
-            Some(tokens) => {
-                for (key, value) in tokens {
-                    let key_str = key.as_str().unwrap_or_default();
-                    let network = value["network"].as_str().ok_or_else(|| {
-                        OrderbookYamlError::MissingField(format!(
-                            "network missing for token {:?}",
-                            key_str
-                        ))
-                    })?;
-
-                    let address = value["address"].as_str().ok_or_else(|| {
-                        OrderbookYamlError::MissingField(format!(
-                            "address missing for token {:?}",
-                            key_str
-                        ))
-                    })?;
-
-                    let token = TokenYaml {
-                        network: network.to_string(),
-                        address: address.to_string(),
-                        decimals: value["decimals"].as_str().map(|s| s.to_string()),
-                        label: value["label"].as_str().map(|s| s.to_string()),
-                        symbol: value["symbol"].as_str().map(|s| s.to_string()),
-                    };
-                    yaml.tokens.insert(key_str.to_string(), token);
-                }
-            }
-            None => return Err(OrderbookYamlError::MissingField("tokens".to_string())),
+        for (key, value) in require_hash(doc, "tokens", Some(format!("missing field tokens")))? {
+            let key = key.as_str().unwrap_or_default();
+            let token = TokenYaml {
+                network: require_string(
+                    value,
+                    Some("network"),
+                    Some(format!("network missing for token: {:?}", key)),
+                )?,
+                address: require_string(
+                    value,
+                    Some("address"),
+                    Some(format!("address missing for token: {:?}", key)),
+                )?,
+                decimals: optional_string(value, "decimals"),
+                label: optional_string(value, "label"),
+                symbol: optional_string(value, "symbol"),
+            };
+            yaml.tokens.insert(key.to_string(), token);
         }
 
-        match doc["deployers"].as_hash() {
-            Some(deployers) => {
-                for (key, value) in deployers {
-                    let key_str = key.as_str().unwrap_or_default();
-                    let address = value["address"].as_str().ok_or_else(|| {
-                        OrderbookYamlError::MissingField(format!(
-                            "address missing for deployer {:?}",
-                            key_str
-                        ))
-                    })?;
-
-                    let deployer = DeployerYaml {
-                        address: address.to_string(),
-                        network: value["network"].as_str().map(|s| s.to_string()),
-                        label: value["label"].as_str().map(|s| s.to_string()),
-                    };
-                    yaml.deployers.insert(key_str.to_string(), deployer);
-                }
-            }
-            None => return Err(OrderbookYamlError::MissingField("deployers".to_string())),
+        for (key, value) in
+            require_hash(doc, "deployers", Some(format!("missing field deployers")))?
+        {
+            let key = key.as_str().unwrap_or_default();
+            let deployer = DeployerYaml {
+                address: require_string(
+                    value,
+                    Some("address"),
+                    Some(format!("address missing for deployer: {:?}", key)),
+                )?,
+                network: optional_string(value, "network"),
+                label: optional_string(value, "label"),
+            };
+            yaml.deployers.insert(key.to_string(), deployer);
         }
 
-        if doc["accounts"].as_str().is_some() || doc["accounts"].as_vec().is_some() {
-            return Err(OrderbookYamlError::InvalidFieldType(
-                "accounts must be a map".to_string(),
-            ));
-        }
-        if let Some(accounts) = doc["accounts"].as_hash() {
+        if let Some(accounts) = optional_hash(doc, "accounts") {
             let mut accounts_map = HashMap::new();
             for (key, value) in accounts {
-                let key_str = key.as_str().unwrap_or_default();
-                let value_str = value.as_str().ok_or_else(|| {
-                    OrderbookYamlError::InvalidFieldType(format!(
-                        "account value must be a string for key {:?}",
-                        key_str
-                    ))
-                })?;
-                accounts_map.insert(key_str.to_string(), value_str.to_string());
+                let key = key.as_str().unwrap_or_default();
+                accounts_map.insert(
+                    key.to_string(),
+                    require_string(
+                        value,
+                        None,
+                        Some(format!("account value must be a string for key {:?}", key)),
+                    )?,
+                );
             }
             yaml.accounts = Some(accounts_map);
         }
 
-        if doc["sentry"].as_hash().is_some() || doc["sentry"].as_vec().is_some() {
-            return Err(OrderbookYamlError::InvalidFieldType(
-                "sentry must be a string".to_string(),
-            ));
-        }
-        if let Some(sentry) = doc["sentry"].as_str() {
-            yaml.sentry = Some(sentry.to_string());
+        if let Some(sentry) = optional_string(doc, "sentry") {
+            yaml.sentry = Some(sentry);
         }
 
         Ok(yaml)

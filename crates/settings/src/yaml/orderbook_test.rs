@@ -1,5 +1,6 @@
 mod tests {
     use super::super::orderbook::*;
+    use crate::yaml::YamlError;
     use std::collections::HashMap;
 
     const VALID_YAML: &str = r#"
@@ -48,7 +49,7 @@ test: test
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("networks".to_string())
+            YamlError::ParseError("missing field networks".to_string())
         );
 
         let yaml = r#"
@@ -58,7 +59,7 @@ networks:
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("rpc missing for network \"mainnet\"".to_string())
+            YamlError::ParseError("rpc missing for network: \"mainnet\"".to_string())
         );
 
         let yaml = r#"
@@ -69,9 +70,7 @@ networks:
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField(
-                "chain-id missing for network \"mainnet\"".to_string()
-            )
+            YamlError::ParseError("chain-id missing for network: \"mainnet\"".to_string())
         );
 
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
@@ -94,7 +93,7 @@ networks:
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("subgraphs".to_string())
+            YamlError::ParseError("missing field subgraphs".to_string())
         );
 
         let yaml = r#"
@@ -109,9 +108,7 @@ subgraphs:
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::InvalidFieldType(
-                "subgraph value must be a string for key \"main\"".to_string()
-            )
+            YamlError::ParseError("subgraph value must be a string for key \"main\"".to_string())
         );
         let yaml = r#"
 networks:
@@ -125,9 +122,7 @@ subgraphs:
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::InvalidFieldType(
-                "subgraph value must be a string for key \"main\"".to_string()
-            )
+            YamlError::ParseError("subgraph value must be a string for key \"main\"".to_string())
         );
 
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
@@ -145,52 +140,52 @@ subgraphs:
     #[test]
     fn test_metaboards() {
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("metaboards".to_string())
+            YamlError::ParseError("missing field metaboards".to_string())
         );
 
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1:
-        - one
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1:
+            - one
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::InvalidFieldType(
+            YamlError::ParseError(
                 "metaboard value must be a string for key \"board1\"".to_string()
             )
         );
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1:
-        - one: one
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1:
+            - one: one
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::InvalidFieldType(
+            YamlError::ParseError(
                 "metaboard value must be a string for key \"board1\"".to_string()
             )
         );
@@ -210,38 +205,38 @@ metaboards:
     #[test]
     fn test_orderbooks() {
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("orderbooks".to_string())
+            YamlError::ParseError("missing field orderbooks".to_string())
         );
 
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        network: "mainnet"
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            network: "mainnet"
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("address missing for orderbook \"book1\"".to_string())
+            YamlError::ParseError("address missing for orderbook: \"book1\"".to_string())
         );
 
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
@@ -255,66 +250,66 @@ orderbooks:
     #[test]
     fn test_tokens() {
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("tokens".to_string())
+            YamlError::ParseError("missing field tokens".to_string())
         );
 
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        address: "0x5678"
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    tokens:
+        weth:
+            address: "0x5678"
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("network missing for token \"weth\"".to_string())
+            YamlError::ParseError("network missing for token: \"weth\"".to_string())
         );
 
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    tokens:
+        weth:
+            network: "mainnet"
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("address missing for token \"weth\"".to_string())
+            YamlError::ParseError("address missing for token: \"weth\"".to_string())
         );
 
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
@@ -329,52 +324,52 @@ tokens:
     #[test]
     fn test_deployers() {
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    tokens:
+        weth:
+            network: "mainnet"
+            address: "0x5678"
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("deployers".to_string())
+            YamlError::ParseError("missing field deployers".to_string())
         );
 
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        network: "mainnet"
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    tokens:
+        weth:
+            network: "mainnet"
+            address: "0x5678"
+    deployers:
+        main:
+            network: "mainnet"
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::MissingField("address missing for deployer \"main\"".to_string())
+            YamlError::ParseError("address missing for deployer: \"main\"".to_string())
         );
 
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
@@ -387,118 +382,60 @@ deployers:
     #[test]
     fn test_accounts() {
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        address: "0x9012"
-accounts: one
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    tokens:
+        weth:
+            network: "mainnet"
+            address: "0x5678"
+    deployers:
+        main:
+            address: "0x9012"
+    accounts:
+        admin:
+            - one
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::InvalidFieldType("accounts must be a map".to_string())
+            YamlError::ParseError("account value must be a string for key \"admin\"".to_string())
         );
         let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        address: "0x9012"
-accounts:
-    - one
-"#;
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: "1"
+    subgraphs:
+        main: https://api.thegraph.com/subgraphs/name/xyz
+    metaboards:
+        board1: https://meta.example.com/board1
+    orderbooks:
+        book1:
+            address: "0x1234"
+    tokens:
+        weth:
+            network: "mainnet"
+            address: "0x5678"
+    deployers:
+        main:
+            address: "0x9012"
+    accounts:
+        admin:
+            - one: one
+    "#;
         let error = OrderbookYaml::from_str(yaml).unwrap_err();
         assert_eq!(
             error,
-            OrderbookYamlError::InvalidFieldType("accounts must be a map".to_string())
-        );
-
-        let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        address: "0x9012"
-accounts:
-    admin:
-        - one
-"#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
-        assert_eq!(
-            error,
-            OrderbookYamlError::InvalidFieldType(
-                "account value must be a string for key \"admin\"".to_string()
-            )
-        );
-        let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        address: "0x9012"
-accounts:
-    admin:
-        - one: one
-"#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
-        assert_eq!(
-            error,
-            OrderbookYamlError::InvalidFieldType(
-                "account value must be a string for key \"admin\"".to_string()
-            )
+            YamlError::ParseError("account value must be a string for key \"admin\"".to_string())
         );
 
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
@@ -509,65 +446,6 @@ accounts:
 
     #[test]
     fn test_sentry() {
-        let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        address: "0x9012"
-accounts:
-    admin: 0x4567890123abcdef
-sentry:
-    - one
-"#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
-        assert_eq!(
-            error,
-            OrderbookYamlError::InvalidFieldType("sentry must be a string".to_string())
-        );
-        let yaml = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-deployers:
-    main:
-        address: "0x9012"
-accounts:
-    admin: 0x4567890123abcdef
-sentry:
-    - one: one
-"#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
-        assert_eq!(
-            error,
-            OrderbookYamlError::InvalidFieldType("sentry must be a string".to_string())
-        );
-
         let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
         assert_eq!(config.sentry, Some("true".to_string()));
     }
