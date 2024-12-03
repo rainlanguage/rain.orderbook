@@ -23,7 +23,8 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
   const MockCodeMirror = (await import('$lib/mocks/MockComponent.svelte')).default;
   return {
     ...((await importOriginal()) as object),
-    codeMirrorRainlang: MockCodeMirror };
+    codeMirrorRainlang: MockCodeMirror,
+  };
 });
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
