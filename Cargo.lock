@@ -235,7 +235,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0881930a22e84db49ba955c5b88e790e1266ac66#0881930a22e84db49ba955c5b88e790e1266ac66"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698#0e636d2bc865a49c6eaea95ab139465708a65698"
 dependencies = [
  "alloy",
  "async-trait",
@@ -255,7 +255,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698#0e636d2bc865a49c6eaea95ab139465708a65698"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a#65a68f207287d024cba934bf1e3c8b3f63d2834a"
 dependencies = [
  "alloy",
  "async-trait",
@@ -6171,10 +6171,10 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=80bb411b161c1ee992a7974d325a783214046d5b#80bb411b161c1ee992a7974d325a783214046d5b"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=e86b46bfce535f4c562b93a212171fbf19953a8f#e86b46bfce535f4c562b93a212171fbf19953a8f"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0881930a22e84db49ba955c5b88e790e1266ac66)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
  "thiserror",
 ]
 
@@ -6231,7 +6231,7 @@ name = "rain-metadata"
 version = "0.0.2-alpha.6"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0881930a22e84db49ba955c5b88e790e1266ac66)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
  "anyhow",
  "clap",
  "deflate",
@@ -6310,7 +6310,7 @@ name = "rain_interpreter_dispair"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "ethers",
  "rain_interpreter_bindings",
  "serde",
@@ -6326,7 +6326,7 @@ name = "rain_interpreter_parser"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "ethers",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
@@ -6385,7 +6385,7 @@ name = "rain_orderbook_cli"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "anyhow",
  "chrono",
  "clap",
@@ -6413,7 +6413,7 @@ name = "rain_orderbook_common"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "chrono",
  "csv",
  "dotrain",
@@ -6468,7 +6468,7 @@ name = "rain_orderbook_js_api"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "base64 0.22.1",
  "bincode",
  "cynic",
@@ -6503,7 +6503,7 @@ name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0e636d2bc865a49c6eaea95ab139465708a65698)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
  "anyhow",
  "clap",
  "httpmock",
