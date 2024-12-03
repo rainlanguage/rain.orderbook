@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
-import { expect } from '$lib/test/matchers';
+import { expect } from '../lib/test/matchers';
 import TanstackPageContentDetailTest from './TanstackPageContentDetail.test.svelte';
 import { createResolvableQuery } from '@rainlanguage/ui-components';
 

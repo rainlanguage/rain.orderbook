@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
-import EditableSpan from './EditableSpan.svelte';
+import EditableSpan from '../lib/components/EditableSpan.svelte';
 
 describe('Editable Span', () => {
   test('should show the correct value', async () => {

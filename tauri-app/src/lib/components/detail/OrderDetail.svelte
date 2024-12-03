@@ -9,7 +9,7 @@
 
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { settings } from '$lib/stores/settings';
-  import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
+  import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal, handleDebugTradeModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
   import { QKEY_ORDER } from '@rainlanguage/ui-components';
