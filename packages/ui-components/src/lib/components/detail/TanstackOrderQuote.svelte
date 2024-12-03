@@ -2,6 +2,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote } from '@rainlanguage/orderbook/quote';
+	// TODO: I Should be able to use the typeshare type here (and everywhere)
 	import type { Order } from '@rainlanguage/orderbook/quote';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
