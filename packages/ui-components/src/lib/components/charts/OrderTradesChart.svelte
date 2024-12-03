@@ -10,8 +10,6 @@
 	export let colorTheme;
 	export let lightweightChartsTheme;
 
-	$: console.log('subgraphUrl', subgraphUrl);
-
 	$: query = createQuery({
 		queryKey: [QKEY_ORDER_TRADES_LIST, id],
 		queryFn: async () => {
