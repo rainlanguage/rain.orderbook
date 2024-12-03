@@ -2,7 +2,7 @@
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { TanstackAppTable } from '@rainlanguage/ui-components';
   import { QKEY_ORDER_TRADES_LIST } from '@rainlanguage/ui-components';
-  import { orderTradesCount, orderTradesList } from '$lib/queries/orderTradesList';
+  import { getOrderTradesList, getOrderTradesCount } from '@rainlanguage/orderbook/js_api';
   import { rpcUrl, subgraphUrl } from '$lib/stores/settings';
   import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
   import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
@@ -27,8 +27,19 @@
       tradesCount = undefined;
 
       const [count, trades] = await Promise.all([
-        orderTradesCount(id, $subgraphUrl || '', startTimestamp, endTimestamp),
-        orderTradesList(id, $subgraphUrl || '', pageParam, undefined, startTimestamp, endTimestamp),
+        getOrderTradesCount(
+          $subgraphUrl || '',
+          id,
+          startTimestamp ? BigInt(startTimestamp) : undefined,
+          endTimestamp ? BigInt(endTimestamp) : undefined,
+        ),
+        getOrderTradesList(
+          $subgraphUrl || '',
+          id,
+          { page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE },
+          startTimestamp ? BigInt(startTimestamp) : undefined,
+          endTimestamp ? BigInt(endTimestamp) : undefined,
+        ),
       ]);
 
       if (typeof count === 'number') {

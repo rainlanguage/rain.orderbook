@@ -20,6 +20,9 @@ path = [
     "package-lock.json",
     "Cargo.lock",
     "Cargo.toml",
+    ".env.example",
+    "tauri-app/.env.example",
+    "prep-all.sh",
 ]
 SPDX-FileCopyrightText = "Copyright (c) 2020 thedavidmeister"
 SPDX-License-Identifier = "LicenseRef-DCL-1.0"
