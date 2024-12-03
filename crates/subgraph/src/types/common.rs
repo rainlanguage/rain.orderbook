@@ -315,14 +315,18 @@ pub struct TradeEvent {
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 pub struct Trade {
     pub id: Bytes,
     pub trade_event: TradeEvent,
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: TradeStructPartialOrder,
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub input_vault_balance_change: TradeVaultBalanceChange,
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
     pub orderbook: Orderbook,
 }
@@ -584,4 +588,5 @@ mod impls {
     impl_all_wasm_traits!(Bytes);
     impl_all_wasm_traits!(OrdersListFilterArgs);
     impl_all_wasm_traits!(VaultsListFilterArgs);
+    impl_all_wasm_traits!(Trade);
 }
