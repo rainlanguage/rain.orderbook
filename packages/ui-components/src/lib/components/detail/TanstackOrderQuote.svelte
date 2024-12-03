@@ -23,15 +23,17 @@
 	export let order: OrderTypeshare;
 	export let rpcUrl: string = '';
 	export let orderbookAddress: string = '';
-	export let handleQuoteDebugModal: (
-		order: OrderTypeshare,
-		rpcUrl: string,
-		orderbookAddress: string,
-		inputIndex: number,
-		outputIndex: number,
-		pairName: string,
-		blockNumber: number
-	) => void;
+	export let handleQuoteDebugModal:
+		| undefined
+		| ((
+				order: OrderTypeshare,
+				rpcUrl: string,
+				orderbookAddress: string,
+				inputIndex: number,
+				outputIndex: number,
+				pairName: string,
+				blockNumber: number
+		  ) => void) = undefined;
 
 	let enabled = true;
 
@@ -122,20 +124,22 @@
 								)}</TableBodyCell
 							>
 							<TableBodyCell>
-								<button
-									on:click={() =>
-										handleQuoteDebugModal(
-											orderModalArg,
-											rpcUrl || '',
-											orderbookAddress || '',
-											item.pair.input_index,
-											item.pair.output_index,
-											item.pair.pair_name,
-											parseInt($orderQuoteQuery.data[0].block_number)
-										)}
-								>
-									<BugOutline size="sm" color="grey" />
-								</button>
+								{#if handleQuoteDebugModal}
+									<button
+										on:click={() =>
+											handleQuoteDebugModal(
+												orderModalArg,
+												rpcUrl || '',
+												orderbookAddress || '',
+												item.pair.input_index,
+												item.pair.output_index,
+												item.pair.pair_name,
+												parseInt($orderQuoteQuery.data[0].block_number)
+											)}
+									>
+										<BugOutline size="sm" color="grey" />
+									</button>
+								{/if}
 							</TableBodyCell>
 						</TableBodyRow>
 					{:else if !item.success && item.error}
@@ -155,20 +159,22 @@
 							<TableBodyCell />
 							<TableBodyCell />
 							<TableBodyCell>
-								<button
-									on:click={() =>
-										handleQuoteDebugModal(
-											order,
-											rpcUrl || '',
-											orderbookAddress || '',
-											item.pair.input_index,
-											item.pair.output_index,
-											item.pair.pair_name,
-											parseInt($orderQuoteQuery.data[0].block_number)
-										)}
-								>
-									<BugOutline size="sm" color="grey" />
-								</button>
+								{#if handleQuoteDebugModal}
+									<button
+										on:click={() =>
+											handleQuoteDebugModal(
+												order,
+												rpcUrl || '',
+												orderbookAddress || '',
+												item.pair.input_index,
+												item.pair.output_index,
+												item.pair.pair_name,
+												parseInt($orderQuoteQuery.data[0].block_number)
+											)}
+									>
+										<BugOutline size="sm" color="grey" />
+									</button>
+								{/if}
 							</TableBodyCell>
 						</TableBodyRow>
 					{/if}

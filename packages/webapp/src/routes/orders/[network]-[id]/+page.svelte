@@ -4,7 +4,8 @@
 		OrderTradesChart,
 		OrderTradesListTable,
 		colorTheme,
-		lightweightChartsTheme
+		lightweightChartsTheme,
+		TanstackOrderQuote
 	} from '@rainlanguage/ui-components';
 	const { id, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -13,5 +14,6 @@
 </script>
 
 <h1>Order Trades</h1>
+<TanstackOrderQuote {id} {colorTheme} {lightweightChartsTheme} />
 <OrderTradesChart {id} {subgraphUrl} {colorTheme} {lightweightChartsTheme} />
 <OrderTradesListTable {id} {subgraphUrl} {rpcUrl} />
