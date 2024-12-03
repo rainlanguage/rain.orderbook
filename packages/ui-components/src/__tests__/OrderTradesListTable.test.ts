@@ -1,36 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
-import { expect } from '$lib/test/matchers';
+import { expect } from '../lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Trade } from '$lib/typeshare/subgraphTypes';
+import type { Trade } from '../lib/typeshare/subgraphTypes';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
-
-vi.mock('$lib/stores/settings', async (importOriginal) => {
-	const { writable } = await import('svelte/store');
-	const { mockSettingsStore } = await import('@rainlanguage/ui-components');
-
-	const _activeOrderbook = writable();
-
-	return {
-		...((await importOriginal()) as object),
-		settings: mockSettingsStore,
-		subgraphUrl: writable('https://example.com'),
-		activeOrderbook: {
-			..._activeOrderbook,
-			load: vi.fn(() => _activeOrderbook.set(true))
-		}
-	};
-});
-
-vi.mock('$lib/services/modal', async () => {
-	return {
-		handleDepositGenericModal: vi.fn(),
-		handleDepositModal: vi.fn(),
-		handleWithdrawModal: vi.fn()
-	};
-});
 
 const mockTradeOrdersList: Trade[] = [
 	{
