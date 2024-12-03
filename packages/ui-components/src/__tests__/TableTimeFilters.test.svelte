@@ -1,5 +1,5 @@
 <script>
-	import TableTimeFilters from './TableTimeFilters.svelte';
+	import TableTimeFilters from '../lib/components/charts/TableTimeFilters.svelte';
 	import { writable } from 'svelte/store';
 
 	export let startTimeStore = writable();

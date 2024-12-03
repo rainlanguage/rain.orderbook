@@ -4,7 +4,7 @@ import { expect } from '$lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { Trade } from '$lib/typeshare/subgraphTypes';
 import { formatUnits } from 'viem';
-import OrderTradesListTable from './OrderTradesListTable.svelte';
+import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 
 vi.mock('$lib/stores/settings', async (importOriginal) => {
