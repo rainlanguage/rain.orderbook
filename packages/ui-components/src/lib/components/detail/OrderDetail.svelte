@@ -17,8 +17,9 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
 
-	export let walletAddressMatchesOrBlank: ((address: string) => boolean) | undefined = undefined;
+	export let walletAddressMatchesOrBlank: Readable<boolean> | undefined = undefined;
 	export let handleOrderRemoveModal: ((order: Order, refetch: () => void) => void) | undefined =
 		undefined;
 	export let handleQuoteDebugModal:
@@ -61,6 +62,8 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
+
+	$: console.log('orderDetailQuery', $orderDetailQuery.data);
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -72,8 +75,9 @@
 			</div>
 			<BadgeActive active={data.active} large />
 		</div>
-		{#if data && walletAddressMatchesOrBlank?.(data.owner) && data.active && handleOrderRemoveModal}
+		{#if data && $walletAddressMatchesOrBlank && data.active && handleOrderRemoveModal}
 			<Button
+				data-testid="remove-button"
 				color="dark"
 				on:click={() => handleOrderRemoveModal(data, $orderDetailQuery.refetch)}
 				disabled={!handleOrderRemoveModal}

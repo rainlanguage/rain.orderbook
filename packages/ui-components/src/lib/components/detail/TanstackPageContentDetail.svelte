@@ -12,9 +12,7 @@
 
 	// eslint-disable-next-line no-undef
 	let data: NonNullable<T>;
-	$: console.log('query', $query);
 	$: if ($query.data) {
-		console.log('data', $query.data);
 		data = $query.data;
 	}
 </script>
