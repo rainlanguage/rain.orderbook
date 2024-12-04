@@ -47,15 +47,35 @@ pub fn optional_string(value: &StrictYaml, field: &str) -> Option<String> {
 
 pub fn require_hash<'a>(
     value: &'a StrictYaml,
-    field: &str,
+    field: Option<&str>,
     custom_msg: Option<String>,
 ) -> Result<&'a Hash, YamlError> {
-    value[field].as_hash().ok_or_else(|| {
-        YamlError::ParseError(custom_msg.unwrap_or(format!("{field} must be a map")))
-    })
+    match field {
+        Some(field) => value[field].as_hash().ok_or_else(|| {
+            YamlError::ParseError(custom_msg.unwrap_or(format!("{field} must be a map")))
+        }),
+        None => value.as_hash().ok_or(YamlError::ParseError(
+            custom_msg.ok_or(YamlError::MissingCustomMsg)?,
+        )),
+    }
 }
 pub fn optional_hash<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Hash> {
     value[field].as_hash()
+}
+
+pub fn get_hash_value<'a>(
+    hash: &'a Hash,
+    field: &str,
+    custom_msg: Option<String>,
+) -> Result<&'a StrictYaml, YamlError> {
+    hash.get(&StrictYaml::String(field.to_string()))
+        .ok_or(YamlError::ParseError(
+            custom_msg.unwrap_or(format!("{field} missing in map")),
+        ))
+}
+
+pub fn get_hash_value_as_option<'a>(hash: &'a Hash, field: &str) -> Option<&'a StrictYaml> {
+    hash.get(&StrictYaml::String(field.to_string()))
 }
 
 pub fn require_vec<'a>(
