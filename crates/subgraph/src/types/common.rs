@@ -1,9 +1,9 @@
 use crate::schema;
+use alloy::primitives::{I256, U256};
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
-
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[typeshare]
 pub struct IdQueryVariables<'a> {
@@ -567,6 +567,23 @@ pub enum VaultOrderBy {
     BalanceChanges,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+#[typeshare]
+pub struct VaultVolume {
+    pub id: String,
+    pub token: Erc20,
+    #[typeshare(tsify(type = "string"))]
+    pub total_in: U256,
+    #[typeshare(tsify(type = "string"))]
+    pub total_out: U256,
+    #[typeshare(tsify(type = "string"))]
+    pub total_vol: U256,
+    #[typeshare(tsify(type = "string"))]
+    pub net_vol: I256,
+}
+
 #[cfg(target_family = "wasm")]
 mod impls {
     use super::*;
@@ -589,4 +606,5 @@ mod impls {
     impl_all_wasm_traits!(OrdersListFilterArgs);
     impl_all_wasm_traits!(VaultsListFilterArgs);
     impl_all_wasm_traits!(Trade);
+    impl_all_wasm_traits!(VaultVolume);
 }
