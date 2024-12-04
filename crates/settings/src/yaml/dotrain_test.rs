@@ -104,7 +104,7 @@ deployments:
 
     #[test]
     fn test_valid_yaml() {
-        let config = DotrainYaml::from_str(FULL_VALID_YAML).unwrap();
+        let config = DotrainYaml::new(FULL_VALID_YAML).unwrap();
         assert_eq!(config.orders.len(), 1);
         let order = config.orders.get("order1").unwrap();
         assert_eq!(order.inputs.len(), 1);
@@ -201,7 +201,7 @@ deployments:
 
     #[test]
     fn test_valid_yaml_without_optional_fields() {
-        let config = DotrainYaml::from_str(VALID_YAML_WITHOUT_OPTIONAL_FIELDS).unwrap();
+        let config = DotrainYaml::new(VALID_YAML_WITHOUT_OPTIONAL_FIELDS).unwrap();
         assert_eq!(config.orders.len(), 1);
         assert_eq!(config.scenarios.len(), 1);
         assert_eq!(config.charts.len(), 1);
@@ -213,7 +213,7 @@ deployments:
         let yaml = r#"
 test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field orders".to_string())
@@ -223,7 +223,7 @@ test: test
 orders:
     order1:
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("inputs missing for order \"order1\"".to_string())
@@ -235,7 +235,7 @@ orders:
         inputs:
             - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -249,7 +249,7 @@ orders:
         inputs:
             - token: eth
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("outputs missing for order \"order1\"".to_string())
@@ -263,7 +263,7 @@ orders:
         outputs:
             - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -282,7 +282,7 @@ orders:
         outputs:
             - token: usdc
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field scenarios".to_string())
@@ -299,7 +299,7 @@ scenarios:
     scenario1:
         test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("bindings missing for scenario \"scenario1\"".to_string())
@@ -318,7 +318,7 @@ scenarios:
             key1:
               - value1
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("binding value must be a string for key \"key1\"".to_string())
@@ -337,7 +337,7 @@ scenarios:
             key1:
               - value1: value2
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("binding value must be a string for key \"key1\"".to_string())
@@ -358,7 +358,7 @@ scenarios:
         bindings:
             key1: value1
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field charts".to_string())
@@ -380,7 +380,7 @@ charts:
         metrics:
             - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -404,7 +404,7 @@ charts:
         metrics:
             - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -428,7 +428,7 @@ charts:
             - label:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -452,7 +452,7 @@ charts:
             - label:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -478,7 +478,7 @@ charts:
               description:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -503,7 +503,7 @@ charts:
               description:
                 - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -530,7 +530,7 @@ charts:
               unit_prefix:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -556,7 +556,7 @@ charts:
               unit_prefix:
                 - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -584,7 +584,7 @@ charts:
               unit_suffix:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -611,7 +611,7 @@ charts:
               unit_suffix:
                 - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -638,7 +638,7 @@ charts:
               unit_prefix: test
               unit_suffix: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -666,7 +666,7 @@ charts:
               value:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -694,7 +694,7 @@ charts:
               value:
                 - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -724,7 +724,7 @@ charts:
               precision:
                 - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -753,7 +753,7 @@ charts:
               precision:
                 - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -778,7 +778,7 @@ scenarios:
 charts:
     chart1:
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field deployments".to_string())
@@ -801,7 +801,7 @@ deployments:
     deployment1:
         test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("scenario missing for deployment \"deployment1\"".to_string())
@@ -825,7 +825,7 @@ deployments:
         scenario: scenario1
         test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("order missing for deployment \"deployment1\"".to_string())
@@ -854,7 +854,7 @@ deployments:
 gui:
     test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name missing for gui".to_string())
@@ -880,7 +880,7 @@ gui:
     name:
       - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name must be a string".to_string())
@@ -906,7 +906,7 @@ gui:
     name:
       - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name must be a string".to_string())
@@ -932,7 +932,7 @@ deployments:
 gui:
     name: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description missing for gui".to_string())
@@ -959,7 +959,7 @@ gui:
     description:
       - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description must be a string".to_string())
@@ -986,7 +986,7 @@ gui:
     description:
       - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description must be a string".to_string())
@@ -1013,7 +1013,7 @@ gui:
     name: test
     description: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments missing for gui".to_string())
@@ -1040,7 +1040,7 @@ gui:
     description: test
     deployments: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments must be a vector".to_string())
@@ -1068,7 +1068,7 @@ gui:
     deployments:
         test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments must be a vector".to_string())
@@ -1097,7 +1097,7 @@ gui:
     deployments:
         - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployment missing for gui deployment index 0".to_string())
@@ -1126,7 +1126,7 @@ gui:
     deployments:
         - deployment: deployment1
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name missing for gui deployment index 0".to_string())
@@ -1156,7 +1156,7 @@ gui:
         - deployment: deployment1
           name: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description missing for gui deployment index 0".to_string())
@@ -1187,7 +1187,7 @@ gui:
           name: test
           description: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deposits missing for gui deployment index 0".to_string())
@@ -1220,7 +1220,7 @@ gui:
           deposits:
             - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1255,7 +1255,7 @@ gui:
           deposits:
             - token: eth
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1292,7 +1292,7 @@ gui:
               presets:
                 - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1329,7 +1329,7 @@ gui:
               presets:
                 - 1
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("fields missing for gui deployment index 0".to_string())
@@ -1366,7 +1366,7 @@ gui:
           fields:
             - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1405,7 +1405,7 @@ gui:
           fields:
             - binding: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1448,7 +1448,7 @@ gui:
                 - value:
                     - test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1492,7 +1492,7 @@ gui:
           select-tokens:
             - test: test
 "#;
-        let error = DotrainYaml::from_str(yaml).unwrap_err();
+        let error = DotrainYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(

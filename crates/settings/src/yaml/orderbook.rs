@@ -73,7 +73,7 @@ pub struct DeployerYaml {
 }
 
 impl OrderbookYaml {
-    pub fn from_str(yaml: &str) -> Result<Self, YamlError> {
+    pub fn new(yaml: &str) -> Result<Self, YamlError> {
         let docs = StrictYamlLoader::load_from_str(yaml)?;
 
         if docs.is_empty() {
@@ -86,7 +86,7 @@ impl OrderbookYaml {
         for (key, value) in require_hash(
             doc,
             Some("networks"),
-            Some(format!("missing field networks")),
+            Some("missing field networks".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let network = NetworkYaml {
@@ -110,7 +110,7 @@ impl OrderbookYaml {
         for (key, value) in require_hash(
             doc,
             Some("subgraphs"),
-            Some(format!("missing field subgraphs")),
+            Some("missing field subgraphs".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             yaml.subgraphs.insert(
@@ -126,7 +126,7 @@ impl OrderbookYaml {
         for (key, value) in require_hash(
             doc,
             Some("metaboards"),
-            Some(format!("missing field metaboards")),
+            Some("missing field metaboards".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             yaml.metaboards.insert(
@@ -145,7 +145,7 @@ impl OrderbookYaml {
         for (key, value) in require_hash(
             doc,
             Some("orderbooks"),
-            Some(format!("missing field orderbooks")),
+            Some("missing field orderbooks".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let orderbook = OrderbookEntryYaml {
@@ -161,9 +161,11 @@ impl OrderbookYaml {
             yaml.orderbooks.insert(key.to_string(), orderbook);
         }
 
-        for (key, value) in
-            require_hash(doc, Some("tokens"), Some(format!("missing field tokens")))?
-        {
+        for (key, value) in require_hash(
+            doc,
+            Some("tokens"),
+            Some("missing field tokens".to_string()),
+        )? {
             let key = key.as_str().unwrap_or_default();
             let token = TokenYaml {
                 network: require_string(
@@ -186,7 +188,7 @@ impl OrderbookYaml {
         for (key, value) in require_hash(
             doc,
             Some("deployers"),
-            Some(format!("missing field deployers")),
+            Some("missing field deployers".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let deployer = DeployerYaml {

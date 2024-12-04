@@ -46,7 +46,7 @@ sentry: true
         let yaml = r#"
 test: test
 "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field networks".to_string())
@@ -56,7 +56,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("rpc missing for network: \"mainnet\"".to_string())
@@ -67,13 +67,13 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("chain-id missing for network: \"mainnet\"".to_string())
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         let network = config.networks.get("mainnet").unwrap();
         assert_eq!(network.rpc, "https://mainnet.infura.io");
         assert_eq!(network.chain_id, "1");
@@ -90,7 +90,7 @@ networks:
         rpc: https://mainnet.infura.io
         chain-id: "1"
 "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field subgraphs".to_string())
@@ -105,7 +105,7 @@ subgraphs:
     main:
         - one
 "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("subgraph value must be a string for key \"main\"".to_string())
@@ -119,13 +119,13 @@ subgraphs:
     main:
         - one: one
 "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("subgraph value must be a string for key \"main\"".to_string())
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         assert_eq!(config.subgraphs.len(), 2);
         assert_eq!(
             config.subgraphs.get("mainnet").unwrap(),
@@ -147,7 +147,7 @@ subgraphs:
     subgraphs:
         main: https://api.thegraph.com/subgraphs/name/xyz
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field metaboards".to_string())
@@ -164,7 +164,7 @@ subgraphs:
         board1:
             - one
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -182,7 +182,7 @@ subgraphs:
         board1:
             - one: one
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -190,7 +190,7 @@ subgraphs:
             )
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         assert_eq!(config.metaboards.len(), 2);
         assert_eq!(
             config.metaboards.get("board1").unwrap(),
@@ -214,7 +214,7 @@ subgraphs:
     metaboards:
         board1: https://meta.example.com/board1
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field orderbooks".to_string())
@@ -233,13 +233,13 @@ subgraphs:
         book1:
             network: "mainnet"
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address missing for orderbook: \"book1\"".to_string())
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         let orderbook = config.orderbooks.get("book1").unwrap();
         assert_eq!(orderbook.address, "0x1234567890abcdef");
         assert_eq!(orderbook.network, Some("mainnet".to_string()));
@@ -262,7 +262,7 @@ subgraphs:
         book1:
             address: "0x1234"
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field tokens".to_string())
@@ -284,7 +284,7 @@ subgraphs:
         weth:
             address: "0x5678"
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("network missing for token: \"weth\"".to_string())
@@ -306,13 +306,13 @@ subgraphs:
         weth:
             network: "mainnet"
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address missing for token: \"weth\"".to_string())
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         let token = config.tokens.get("weth").unwrap();
         assert_eq!(token.network, "mainnet");
         assert_eq!(token.address, "0x2345678901abcdef");
@@ -340,7 +340,7 @@ subgraphs:
             network: "mainnet"
             address: "0x5678"
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field deployers".to_string())
@@ -366,13 +366,13 @@ subgraphs:
         main:
             network: "mainnet"
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address missing for deployer: \"main\"".to_string())
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         let deployer = config.deployers.get("mainnet").unwrap();
         assert_eq!(deployer.address, "0x3456789012abcdef");
         assert_eq!(deployer.network, Some("mainnet".to_string()));
@@ -404,7 +404,7 @@ subgraphs:
         admin:
             - one
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("account value must be a string for key \"admin\"".to_string())
@@ -432,13 +432,13 @@ subgraphs:
         admin:
             - one: one
     "#;
-        let error = OrderbookYaml::from_str(yaml).unwrap_err();
+        let error = OrderbookYaml::new(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("account value must be a string for key \"admin\"".to_string())
         );
 
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         let accounts = config.accounts.unwrap();
         assert_eq!(accounts.get("admin").unwrap(), "0x4567890123abcdef");
         assert_eq!(accounts.get("user").unwrap(), "0x5678901234abcdef");
@@ -446,7 +446,7 @@ subgraphs:
 
     #[test]
     fn test_sentry() {
-        let config = OrderbookYaml::from_str(VALID_YAML).unwrap();
+        let config = OrderbookYaml::new(VALID_YAML).unwrap();
         assert_eq!(config.sentry, Some("true".to_string()));
     }
 

@@ -178,7 +178,7 @@ impl DotrainYaml {
         })
     }
 
-    pub fn from_str(yaml: &str) -> Result<Self, YamlError> {
+    pub fn new(yaml: &str) -> Result<Self, YamlError> {
         let docs = StrictYamlLoader::load_from_str(yaml)?;
 
         if docs.is_empty() {
@@ -188,9 +188,11 @@ impl DotrainYaml {
         let doc = &docs[0];
         let mut yaml = Self::default();
 
-        for (key, value) in
-            require_hash(doc, Some("orders"), Some(format!("missing field orders")))?
-        {
+        for (key, value) in require_hash(
+            doc,
+            Some("orders"),
+            Some("missing field orders".to_string()),
+        )? {
             let key = key.as_str().unwrap_or_default();
             let order = OrderYaml {
                 inputs: require_vec(
@@ -244,16 +246,18 @@ impl DotrainYaml {
         for (key, value) in require_hash(
             doc,
             Some("scenarios"),
-            Some(format!("missing field scenarios")),
+            Some("missing field scenarios".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let scenario = Self::parse_scenario(key, value)?;
             yaml.scenarios.insert(key.to_string(), scenario);
         }
 
-        for (key, value) in
-            require_hash(doc, Some("charts"), Some(format!("missing field charts")))?
-        {
+        for (key, value) in require_hash(
+            doc,
+            Some("charts"),
+            Some("missing field charts".to_string()),
+        )? {
             let key = key.as_str().unwrap_or_default();
             let mut chart = ChartYaml {
                 scenario: optional_string(value, "scenario"),
@@ -384,7 +388,7 @@ impl DotrainYaml {
         for (key, value) in require_hash(
             doc,
             Some("deployments"),
-            Some(format!("missing field deployments")),
+            Some("missing field deployments".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let deployment = DeploymentYaml {
@@ -405,29 +409,29 @@ impl DotrainYaml {
         if let Some(gui) = optional_hash(doc, "gui") {
             let name = gui
                 .get(&StrictYaml::String("name".to_string()))
-                .ok_or(YamlError::ParseError(format!("name missing for gui")))?
+                .ok_or(YamlError::ParseError("name missing for gui".to_string()))?
                 .as_str()
-                .ok_or(YamlError::ParseError(format!("name must be a string")))?
+                .ok_or(YamlError::ParseError("name must be a string".to_string()))?
                 .to_string();
             let description = gui
                 .get(&StrictYaml::String("description".to_string()))
-                .ok_or(YamlError::ParseError(format!(
-                    "description missing for gui"
-                )))?
+                .ok_or(YamlError::ParseError(
+                    "description missing for gui".to_string(),
+                ))?
                 .as_str()
-                .ok_or(YamlError::ParseError(format!(
-                    "description must be a string"
-                )))?
+                .ok_or(YamlError::ParseError(
+                    "description must be a string".to_string(),
+                ))?
                 .to_string();
             let deployments = gui
                 .get(&StrictYaml::String("deployments".to_string()))
-                .ok_or(YamlError::ParseError(format!(
-                    "deployments missing for gui"
-                )))?
+                .ok_or(YamlError::ParseError(
+                    "deployments missing for gui".to_string(),
+                ))?
                 .as_vec()
-                .ok_or(YamlError::ParseError(format!(
-                    "deployments must be a vector"
-                )))?;
+                .ok_or(YamlError::ParseError(
+                    "deployments must be a vector".to_string(),
+                ))?;
 
             let gui_deployments = deployments
                 .iter()
