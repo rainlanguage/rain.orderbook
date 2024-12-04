@@ -1,9 +1,9 @@
 <script lang="ts" generics="T">
+	import type { Order } from '@rainlanguage/orderbook/js_api';
+
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote } from '@rainlanguage/orderbook/quote';
-	import type { Order as OrderPackage } from '@rainlanguage/orderbook/quote';
-	import type { Order as OrderTypeshare } from '../../typeshare/subgraphTypes';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
@@ -19,19 +19,19 @@
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 
 	export let id: string;
-	export let order: OrderTypeshare;
+	export let order: Order;
 	export let rpcUrl: string;
 	export let orderbookAddress: string = '';
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: OrderTypeshare,
+				order: Order,
 				rpcUrl: string,
 				orderbookAddress: string,
 				inputIndex: number,
 				outputIndex: number,
 				pairName: string,
-				blockNumber: number
+				blockNumber?: number
 		  ) => void) = undefined;
 
 	let enabled = true;
@@ -42,13 +42,13 @@
 
 	$: orderQuoteQuery = createQuery({
 		queryKey: [QKEY_ORDER_QUOTE + id],
-		queryFn: () => getOrderQuote([order as OrderPackage], rpcUrl),
+		queryFn: () => getOrderQuote([order], rpcUrl),
 		enabled: !!id && enabled,
 		refetchInterval: 10000
 	});
 
 	let blockNumber: number | undefined;
-	$: orderModalArg = order as OrderTypeshare;
+	$: orderModalArg = order;
 </script>
 
 <div class="mt-4">

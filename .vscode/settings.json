@@ -3,6 +3,8 @@
   "svelte.enable-ts-plugin": true,
    
   "rust-analyzer.linkedProjects": ["./Cargo.toml", "tauri-app/src-tauri/Cargo.toml"],
+  // Don't push this
+  "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
 
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",

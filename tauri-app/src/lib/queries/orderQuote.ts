@@ -1,7 +1,7 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl } from '$lib/stores/settings';
-import type { Order } from '$lib/typeshare/subgraphTypes';
+import type { Order } from '@rainlanguage/orderbook/js_api';
 import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
@@ -67,7 +67,7 @@ if (import.meta.vitest) {
         addEvents: [],
         timestampAdded: '123',
         trades: [],
-      },
+      } as unknown as Order,
       0,
       0,
       '0x123',
