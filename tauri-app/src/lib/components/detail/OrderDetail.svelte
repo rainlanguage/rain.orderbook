@@ -22,6 +22,7 @@
   import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 
   export let id: string;
+  export let network: string;
 
   $: orderDetailQuery = createQuery({
     queryKey: [id, QKEY_ORDER + id],
@@ -60,7 +61,7 @@
         color="dark"
         on:click={() => handleOrderRemoveModal(data.order, $orderDetailQuery.refetch)}
       >
-        Remove
+        Remove {network}
       </Button>
     {/if}
   </svelte:fragment>
