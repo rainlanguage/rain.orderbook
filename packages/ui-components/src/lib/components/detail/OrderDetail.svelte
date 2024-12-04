@@ -11,20 +11,29 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
+	import { queryClient } from '../../stores/queryClient';
 
 	import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
+	import { onDestroy } from 'svelte';
 
 	export let walletAddressMatchesOrBlank: ((address: string) => boolean) | undefined = undefined;
 	export let handleOrderRemoveModal: ((order: Order, refetch: () => void) => void) | undefined =
 		undefined;
 	export let handleQuoteDebugModal:
-		| ((order: Order, rpcUrl: string, orderbookAddress: string) => void)
-		| undefined = undefined;
-	export let handleDebugTradeModal: ((hash: string, rpcUrl: string) => void) | undefined =
+		| undefined
+		| ((
+				order: Order,
+				rpcUrl: string,
+				orderbook: string,
+				inputIOIndex: number,
+				outputIOIndex: number,
+				pair: string,
+				blockNumber?: number
+		  ) => void) = undefined;
+	export const handleDebugTradeModal: ((hash: string, rpcUrl: string) => void) | undefined =
 		undefined;
-
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
@@ -35,50 +44,64 @@
 
 	$: orderDetailQuery = createQuery<Order>({
 		queryKey: [id, QKEY_ORDER + id],
-		queryFn: () => getOrder(subgraphUrl, id || ''),
+		queryFn: () => getOrder(subgraphUrl, id),
 		enabled: !!subgraphUrl && !!id
+	});
+
+	const interval = setInterval(async () => {
+		// This invalidate function invalidates
+		// both order detail and order trades list queries
+		await queryClient.invalidateQueries({
+			queryKey: [id],
+			refetchType: 'active',
+			exact: false
+		});
+	}, 10000);
+
+	onDestroy(() => {
+		clearInterval(interval);
 	});
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
-	<svelte:fragment slot="top" let:data={order}>
+	<svelte:fragment slot="top" let:data>
 		<div class="flex gap-x-4 text-3xl font-medium dark:text-white">
 			<div class="flex gap-x-2">
 				<span class="font-light">Order</span>
-				<Hash shorten value={order.orderHash} />
+				<Hash shorten value={data.orderHash} />
 			</div>
-			<BadgeActive active={order.active} large />
+			<BadgeActive active={data.active} large />
 		</div>
-		{#if order && walletAddressMatchesOrBlank?.(order.owner) && order.active && handleOrderRemoveModal}
+		{#if data && walletAddressMatchesOrBlank?.(data.owner) && data.active && handleOrderRemoveModal}
 			<Button
 				color="dark"
-				on:click={() => handleOrderRemoveModal(order, $orderDetailQuery.refetch)}
+				on:click={() => handleOrderRemoveModal(data, $orderDetailQuery.refetch)}
 				disabled={!handleOrderRemoveModal}
 			>
 				Remove
 			</Button>
 		{/if}
 	</svelte:fragment>
-	<svelte:fragment slot="card" let:data={order}>
+	<svelte:fragment slot="card" let:data>
 		<div class="flex flex-col gap-y-6">
 			<CardProperty>
 				<svelte:fragment slot="key">Orderbook</svelte:fragment>
 				<svelte:fragment slot="value">
-					<Hash type={HashType.Identifier} shorten={false} value={order.orderbook.id} />
+					<Hash type={HashType.Identifier} shorten={false} value={data.orderbook.id} />
 				</svelte:fragment>
 			</CardProperty>
 
 			<CardProperty>
 				<svelte:fragment slot="key">Owner</svelte:fragment>
 				<svelte:fragment slot="value">
-					<Hash type={HashType.Wallet} shorten={false} value={order.owner} />
+					<Hash type={HashType.Wallet} shorten={false} value={data.owner} />
 				</svelte:fragment>
 			</CardProperty>
 
 			<CardProperty>
 				<svelte:fragment slot="key">Created</svelte:fragment>
 				<svelte:fragment slot="value">
-					{formatTimestampSecondsAsLocal(BigInt(order.timestampAdded))}
+					{formatTimestampSecondsAsLocal(BigInt(data.timestampAdded))}
 				</svelte:fragment>
 			</CardProperty>
 
@@ -89,7 +112,7 @@
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
-						{#each order.inputs || [] as t}
+						{#each data.inputs || [] as t}
 							<ButtonVaultLink tokenVault={t} />
 						{/each}
 					</div>
@@ -103,7 +126,7 @@
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
-						{#each order.outputs || [] as t}
+						{#each data.outputs || [] as t}
 							<ButtonVaultLink tokenVault={t} />
 						{/each}
 					</div>
@@ -112,16 +135,10 @@
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart">
-		<OrderTradesChart {id} {subgraphUrl} {colorTheme} {lightweightChartsTheme} />
+		<OrderTradesChart {id} {subgraphUrl} {lightweightChartsTheme} {colorTheme} />
 	</svelte:fragment>
-	<svelte:fragment slot="below" let:data={order}>
-		<TanstackOrderQuote
-			{id}
-			{order}
-			{rpcUrl}
-			orderbookAddress={orderbookAddress || ''}
-			{handleQuoteDebugModal}
-		/>
+	<svelte:fragment slot="below" let:data>
+		<TanstackOrderQuote {id} order={data} {rpcUrl} {orderbookAddress} {handleQuoteDebugModal} />
 		<Tabs
 			style="underline"
 			contentClass="mt-4"
@@ -129,11 +146,11 @@
 		>
 			<TabItem open title="Rainlang source">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-					<CodeMirrorRainlang disabled={true} {order} {codeMirrorTheme} />
+					<CodeMirrorRainlang disabled={true} order={data} codeMirrorTheme={$codeMirrorTheme} />
 				</div>
 			</TabItem>
 			<TabItem title="Trades">
-				<OrderTradesListTable {id} {subgraphUrl} {rpcUrl} {handleDebugTradeModal} />
+				<OrderTradesListTable {id} {subgraphUrl} />
 			</TabItem>
 			<TabItem title="Volume">
 				<OrderVaultsVolTable {id} {subgraphUrl} />

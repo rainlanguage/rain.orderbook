@@ -1,40 +1,36 @@
 <script lang="ts">
-  import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { BadgeActive } from '@rainlanguage/ui-components';
+  import { BadgeActive, CardProperty } from '@rainlanguage/ui-components';
   import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-  import { ButtonVaultLink } from '@rainlanguage/ui-components';
-  import { Hash, HashType } from '@rainlanguage/ui-components';
-
-  import { CodeMirrorRainlang } from '@rainlanguage/ui-components';
-  import { settings, orderbookAddress } from '$lib/stores/settings';
-  import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
   import {
-    handleOrderRemoveModal,
-    handleDebugTradeModal,
-    handleQuoteDebugModal,
-  } from '$lib/services/modal';
+    ButtonVaultLink,
+    CodeMirrorRainlang,
+    Hash,
+    HashType,
+    TanstackPageContentDetail,
+    OrderTradesChart,
+    OrderTradesListTable,
+    OrderVaultsVolTable,
+    TanstackOrderQuote,
+    QKEY_ORDER,
+  } from '@rainlanguage/ui-components';
+
+  import { subgraphUrl } from '$lib/stores/settings';
+
+  import { handleOrderRemoveModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
-  import { QKEY_ORDER } from '@rainlanguage/ui-components';
-  import { OrderTradesListTable } from '@rainlanguage/ui-components';
-  import { OrderTradesChart } from '@rainlanguage/ui-components';
-  import { TanstackOrderQuote } from '@rainlanguage/ui-components';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
+  import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
+  import { codeMirrorTheme } from '$lib/stores/darkMode';
 
-  import { OrderVaultsVolTable } from '@rainlanguage/ui-components';
-  import { colorTheme, lightweightChartsTheme, codeMirrorTheme } from '$lib/stores/darkMode';
-  export let id, network;
-  const subgraphUrl = $settings?.subgraphs?.[network] || '';
-  const rpcUrl = $settings?.networks?.[network]?.rpc || '';
-  import type { Order } from '@rainlanguage/orderbook/js_api';
-  import { getOrder } from '@rainlanguage/orderbook/js_api';
+  export let id: string;
 
   $: orderDetailQuery = createQuery<Order>({
     queryKey: [id, QKEY_ORDER + id],
-    queryFn: () => getOrder(subgraphUrl || '', id),
-    enabled: !!subgraphUrl,
+    queryFn: () => getOrder($subgraphUrl || '', id),
+    enabled: !!$subgraphUrl && !!id,
   });
 
   const interval = setInterval(async () => {
@@ -53,43 +49,40 @@
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
-  <svelte:fragment slot="top" let:data={order}>
+  <svelte:fragment slot="top" let:data>
     <div class="flex gap-x-4 text-3xl font-medium dark:text-white">
       <div class="flex gap-x-2">
         <span class="font-light">Order</span>
-        <Hash shorten value={order.orderHash} />
+        <Hash shorten value={data.orderHash} />
       </div>
-      <BadgeActive active={order.active} large />
+      <BadgeActive active={data.active} large />
     </div>
-    {#if order && $walletAddressMatchesOrBlank(order.owner) && order.active}
-      <Button
-        color="dark"
-        on:click={() => handleOrderRemoveModal(order, $orderDetailQuery.refetch)}
-      >
+    {#if data && $walletAddressMatchesOrBlank(data.owner) && data.active}
+      <Button color="dark" on:click={() => handleOrderRemoveModal(data, $orderDetailQuery.refetch)}>
         Remove
       </Button>
     {/if}
   </svelte:fragment>
-  <svelte:fragment slot="card" let:data={order}>
+  <svelte:fragment slot="card" let:data>
     <div class="flex flex-col gap-y-6">
       <CardProperty>
         <svelte:fragment slot="key">Orderbook</svelte:fragment>
         <svelte:fragment slot="value">
-          <Hash type={HashType.Identifier} shorten={false} value={order.orderbook.id} />
+          <Hash type={HashType.Identifier} shorten={false} value={data.orderbook.id} />
         </svelte:fragment>
       </CardProperty>
 
       <CardProperty>
         <svelte:fragment slot="key">Owner</svelte:fragment>
         <svelte:fragment slot="value">
-          <Hash type={HashType.Wallet} shorten={false} value={order.owner} />
+          <Hash type={HashType.Wallet} shorten={false} value={data.owner} />
         </svelte:fragment>
       </CardProperty>
 
       <CardProperty>
         <svelte:fragment slot="key">Created</svelte:fragment>
         <svelte:fragment slot="value">
-          {formatTimestampSecondsAsLocal(BigInt(order.timestampAdded))}
+          {formatTimestampSecondsAsLocal(BigInt(data.timestampAdded))}
         </svelte:fragment>
       </CardProperty>
 
@@ -100,7 +93,7 @@
             <span>Balance</span>
           </div>
           <div class="space-y-2">
-            {#each order.inputs || [] as t}
+            {#each data.inputs || [] as t}
               <ButtonVaultLink tokenVault={t} />
             {/each}
           </div>
@@ -114,7 +107,7 @@
             <span>Balance</span>
           </div>
           <div class="space-y-2">
-            {#each order.outputs || [] as t}
+            {#each data.outputs || [] as t}
               <ButtonVaultLink tokenVault={t} />
             {/each}
           </div>
@@ -123,16 +116,10 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
-    <OrderTradesChart {id} {subgraphUrl} {colorTheme} {lightweightChartsTheme} />
+    <OrderTradesChart {id} subgraphUrl={$subgraphUrl} />
   </svelte:fragment>
-  <svelte:fragment slot="below" let:data={order}>
-    <TanstackOrderQuote
-      {id}
-      {order}
-      {rpcUrl}
-      orderbookAddress={$orderbookAddress}
-      {handleQuoteDebugModal}
-    />
+  <svelte:fragment slot="below" let:data>
+    <TanstackOrderQuote {id} order={data} subgraphUrl={$subgraphUrl} />
     <Tabs
       style="underline"
       contentClass="mt-4"
@@ -140,14 +127,14 @@
     >
       <TabItem open title="Rainlang source">
         <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-          <CodeMirrorRainlang disabled={true} {order} {codeMirrorTheme} />
+          <CodeMirrorRainlang disabled={true} order={data} codeMirrorTheme={$codeMirrorTheme} />
         </div>
       </TabItem>
       <TabItem title="Trades">
-        <OrderTradesListTable {id} {subgraphUrl} {rpcUrl} {handleDebugTradeModal} />
+        <OrderTradesListTable {id} subgraphUrl={$subgraphUrl} />
       </TabItem>
       <TabItem title="Volume">
-        <OrderVaultsVolTable {id} {subgraphUrl} />
+        <OrderVaultsVolTable {id} subgraphUrl={$subgraphUrl} />
       </TabItem>
     </Tabs>
   </svelte:fragment>
