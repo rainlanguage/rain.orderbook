@@ -13,6 +13,6 @@
 		"strict": true,
 		"module": "es2022",
 		"moduleResolution": "bundler",
-		"types": ["vitest/globals", "@testing-library/jest-dom", "vitest/importMeta"]
+		"types": ["vitest/globals", "@testing-library/jest-dom", "vitest/importMeta", "codemirror-rainlang", "@rainlanguage/dotrain"]
 	},
 }
