@@ -23,6 +23,6 @@
     {handleQuoteDebugModal}
     {handleDebugTradeModal}
     orderbookAddress={$orderbookAddress}
-    walletAddressMatchesOrBlank={$walletAddressMatchesOrBlank}
+    {walletAddressMatchesOrBlank}
   />
 {/if}

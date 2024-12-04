@@ -19,7 +19,8 @@
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 
-	export let walletAddressMatchesOrBlank: Readable<boolean> | undefined = undefined;
+	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
+		undefined;
 	export let handleOrderRemoveModal: ((order: Order, refetch: () => void) => void) | undefined =
 		undefined;
 	export let handleQuoteDebugModal:
@@ -75,7 +76,7 @@
 			</div>
 			<BadgeActive active={data.active} large />
 		</div>
-		{#if data && $walletAddressMatchesOrBlank && data.active && handleOrderRemoveModal}
+		{#if data}
 			<Button
 				data-testid="remove-button"
 				color="dark"

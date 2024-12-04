@@ -1,12 +1,11 @@
 <script lang="ts" generics="T">
-	import type { Order } from '@rainlanguage/orderbook/js_api';
-
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
-	import { getOrderQuote } from '@rainlanguage/orderbook/quote';
+	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook/quote';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
+	import type { Order } from '@rainlanguage/orderbook/js_api';
 	import {
 		Table,
 		TableBody,
@@ -40,12 +39,14 @@
 		$orderQuoteQuery.refetch();
 	};
 
-	$: orderQuoteQuery = createQuery({
+	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
 		queryKey: [QKEY_ORDER_QUOTE + id],
 		queryFn: () => getOrderQuote([order], rpcUrl),
 		enabled: !!id && enabled,
 		refetchInterval: 10000
 	});
+
+	$: console.log('orderQuoteQuery', $orderQuoteQuery.data);
 
 	let blockNumber: number | undefined;
 	$: orderModalArg = order;
@@ -55,10 +56,10 @@
 	<div class="mb-4 flex items-center justify-between">
 		<h2 class="text-lg font-semibold">Order Quotes</h2>
 		<div class="flex items-center gap-x-1">
-			{#if $orderQuoteQuery.data && isHex($orderQuoteQuery.data[0].block_number)}
+			{#if $orderQuoteQuery.data && isHex($orderQuoteQuery.data[0].blockNumber)}
 				<EditableSpan
 					displayValue={blockNumber?.toString() ||
-						hexToNumber($orderQuoteQuery.data[0].block_number).toString()}
+						hexToNumber($orderQuoteQuery.data[0].blockNumber).toString()}
 					on:focus={() => {
 						enabled = false;
 					}}
@@ -130,10 +131,10 @@
 												orderModalArg,
 												rpcUrl || '',
 												orderbookAddress || '',
-												item.pair.input_index,
-												item.pair.output_index,
-												item.pair.pair_name,
-												parseInt($orderQuoteQuery.data[0].block_number)
+												item.pair.inputIndex,
+												item.pair.outputIndex,
+												item.pair.pairName,
+												$orderQuoteQuery.data[0].blockNumber
 											)}
 									>
 										<BugOutline size="sm" color="grey" />
@@ -143,7 +144,7 @@
 						</TableBodyRow>
 					{:else if !item.success && item.error}
 						<TableBodyRow>
-							<TableBodyCell>{item.pair.pair_name}</TableBodyCell>
+							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
 							<TableBodyCell colspan="2" class="flex flex-col justify-start text-gray-400">
 								<Tooltip triggeredBy="#quote-error">
 									{item.error}
@@ -165,9 +166,9 @@
 												order,
 												rpcUrl || '',
 												orderbookAddress || '',
-												item.pair.input_index,
-												item.pair.output_index,
-												item.pair.pair_name,
+												item.pair.inputIndex,
+												item.pair.outputIndex,
+												item.pair.pairName,
 												parseInt($orderQuoteQuery.data[0].block_number)
 											)}
 									>
