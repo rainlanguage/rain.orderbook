@@ -76,7 +76,7 @@
 			</div>
 			<BadgeActive active={data.active} large />
 		</div>
-		{#if data}
+		{#if data && $walletAddressMatchesOrBlank?.(data.owner) && data.active && handleOrderRemoveModal}
 			<Button
 				data-testid="remove-button"
 				color="dark"
