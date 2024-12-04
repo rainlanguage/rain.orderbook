@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { OrderDetail } from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 
 	const { colorTheme, codeMirrorTheme, lightweightChartsTheme } = $page.data.stores;
@@ -9,4 +9,5 @@
 	const rpcUrl = $settings.networks[network]?.rpc;
 </script>
 
+<PageHeader title="Order" pathname={$page.url.pathname} />
 <OrderDetail {id} {subgraphUrl} {rpcUrl} {colorTheme} {codeMirrorTheme} {lightweightChartsTheme} />

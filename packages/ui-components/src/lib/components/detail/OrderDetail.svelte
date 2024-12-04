@@ -40,8 +40,6 @@
 	});
 </script>
 
-<h1>Order Trades</h1>
-
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data={order}>
 		<div class="flex gap-x-4 text-3xl font-medium dark:text-white">
