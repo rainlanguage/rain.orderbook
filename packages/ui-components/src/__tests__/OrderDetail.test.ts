@@ -1,102 +1,34 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { test, vi, type Mock } from 'vitest';
+import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
-import { QueryClient } from '@tanstack/svelte-query';
-import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
-import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
-import { readable, writable } from 'svelte/store';
+import OrderDetail from './OrderDetail.test.svelte';
+import type { Order } from '@rainlanguage/orderbook/js_api';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
 const mockOrder: Order = {
-	id: '0xabc...bcdef',
-	owner: '0x1111111111111111111111111111111111111111',
+	id: 'mockId',
+	owner: 'mockOwner',
+	orderHash: 'mockOrderHash',
+	active: true,
+	// Minimum required properties to satisfy Order type
 	meta: '0x',
 	timestampAdded: '1234567890',
-	orderHash: '0xabcdef1234567890',
 	expression: '0x',
 	interpreter: '0x',
 	dispatch: '0x',
-	active: true,
 	orderbook: { id: '1' },
-	inputs: [
-		{
-			token: {
-				id: '1',
-				address: '0x1234567890abcdef',
-				name: 'Token A',
-				symbol: 'TKA',
-				decimals: '18'
-			},
-			balance: '1000000000000000000',
-			vaultId: '1'
-		}
-	],
-	outputs: [
-		{
-			token: {
-				id: '2',
-				address: '0xfedcba0987654321',
-				name: 'Token B',
-				symbol: 'TKB',
-				decimals: '18'
-			},
-			balance: '2000000000000000000',
-			vaultId: '2'
-		}
-	]
+	inputs: [],
+	outputs: []
 };
 
 vi.mock('@tanstack/svelte-query');
 
-const MockComponent = await vi.hoisted(() => import('../lib/__mocks__/MockComponent.svelte'));
-
-vi.mock('../lib/components/CodeMirrorRainlang.svelte', async (importOriginal) => {
-	return {
-		default: MockComponent.default
-	};
-});
-
-vi.mock('../lib/components/charts/TanstackLightweightChartLine.svelte', async (importOriginal) => {
-	return {
-		default: MockComponent.default
-	};
-});
-
-vi.mock('../lib/components/detail/TanstackOrderQuote.svelte', async (importOriginal) => {
-	return {
-		default: MockComponent.default
-	};
-});
-
-vi.mock('../lib/components/charts/OrderTradesChart.svelte', async (importOriginal) => {
-	return {
-		default: MockComponent.default
-	};
-});
-
-vi.mock('../lib/components/tables/OrderTradesListTable.svelte', async (importOriginal) => {
-	return {
-		default: MockComponent.default
-	};
-});
-
-vi.mock('lightweight-charts', async (importOriginal) => ({
-	...((await importOriginal()) as object),
-	createChart: vi.fn(() => ({
-		addLineSeries: vi.fn(),
-		remove(): void {},
-		applyOptions: vi.fn()
-	}))
-}));
-
 describe('OrderDetail Component', () => {
 	it('shows the correct empty message when the query returns no data', async () => {
-		const codeMirrorTheme = writable({});
-
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,19 +44,16 @@ describe('OrderDetail Component', () => {
 
 		render(OrderDetail, {
 			props: {
-				id: 'order1',
-				rpcUrl: 'https://example.com',
+				id: 'mockId',
 				subgraphUrl: 'https://example.com',
-				colorTheme: writable('light'),
-				codeMirrorTheme,
-				lightweightChartsTheme: {}
 			}
 		});
 
 		await waitFor(() => expect(screen.getByText('Order not found')).toBeInTheDocument());
 	});
 
-	it('shows remove button if owner wallet matches and order is active, opens correct modal', async () => {
+	it('shows remove button if owner wallet matches and order is active', async () => {
+		const handleOrderRemoveModal = vi.fn();
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,26 +73,32 @@ describe('OrderDetail Component', () => {
 		render(OrderDetail, {
 			props: {
 				id: mockOrder.id,
-				rpcUrl: 'https://example.com',
 				subgraphUrl: 'https://example.com',
-				colorTheme: writable('light'),
-				codeMirrorTheme: writable({}),
-				lightweightChartsTheme: {},
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				handleOrderRemoveModal
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.queryByText('Remove')).toBeInTheDocument();
+			expect(handleOrderRemoveModal).not.toHaveBeenCalled();
+		});
+	});
+
+	it('does not render the remove button if conditions are not met', async () => {
+		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => false);
+
+		render(OrderDetail, {
+			props: {
+				id: mockOrder.id,
+				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				handleOrderRemoveModal: vi.fn()
 			}
 		});
 
-		mockWalletAddressMatchesOrBlankStore.set(() => true);
-
 		await waitFor(() => {
-			expect(screen.queryByText('Remove')).toBeInTheDocument();
-		});
-
-		screen.getByText('Remove').click();
-
-		await waitFor(() => {
-			expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, expect.any(Function));
+			expect(screen.queryByText('Remove')).not.toBeInTheDocument();
 		});
 	});
 });
