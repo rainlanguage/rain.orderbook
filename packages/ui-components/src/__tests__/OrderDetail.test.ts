@@ -45,7 +45,7 @@ describe('OrderDetail Component', () => {
 		render(OrderDetail, {
 			props: {
 				id: 'mockId',
-				subgraphUrl: 'https://example.com',
+				subgraphUrl: 'https://example.com'
 			}
 		});
 
