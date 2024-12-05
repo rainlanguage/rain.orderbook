@@ -39,7 +39,7 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
         &self,
         period: Option<(u64, u64)>,
         threshold: u64,
-    ) -> (f64, f64, f64, usize, f64) {
+    ) -> (f64, f64, f64, usize, u64) {
         let trades: Vec<Trade> = match period {
             Some((start, end)) => self.client.all_trades_list(Some(start), Some(end)).await,
             None => self.client.all_trades_list(None, None).await,
@@ -58,12 +58,12 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
         }
 
         if time_diffs.is_empty() {
-            return (0.0, 0.0, 0.0, 0, 0.0);
+            return (0.0, 0.0, 0.0, 0, 0);
         }
 
         let count: usize = time_diffs.len();
-        let total: f64 = time_diffs.iter().sum::<u64>() as f64;
-        let avg: f64 = total.div(count as f64);
+        let total: u64 = time_diffs.iter().sum::<u64>();
+        let avg: f64 = (total as f64).div(count as f64);
         let min: f64 = *time_diffs.iter().min().unwrap() as f64;
         let max: f64 = *time_diffs.iter().max().unwrap() as f64;
 
@@ -184,7 +184,7 @@ mod tests {
         assert_eq!(min, 0.0);
         assert_eq!(max, 0.0);
         assert_eq!(count, 0);
-        assert_eq!(total, 0.0);
+        assert_eq!(total, 0);
     }
 
     #[tokio::test]
@@ -200,7 +200,7 @@ mod tests {
         assert_eq!(min, 0.0);
         assert_eq!(max, 0.0);
         assert_eq!(count, 0);
-        assert_eq!(total, 0.0);
+        assert_eq!(total, 0);
     }
 
     #[tokio::test]
@@ -220,7 +220,7 @@ mod tests {
         assert_eq!(min, 1000.0);
         assert_eq!(max, 1000.0);
         assert_eq!(count, 1); // Only one gap above threshold
-        assert_eq!(total, 1000.0);
+        assert_eq!(total, 1000);
     }
 
     #[tokio::test]
@@ -241,6 +241,6 @@ mod tests {
         assert_eq!(min, 500.0);
         assert_eq!(max, 1000.0);
         assert_eq!(count, 2); // Two gaps above threshold
-        assert_eq!(total, 1500.0); // 500 + 1000
+        assert_eq!(total, 1500); // 500 + 1000
     }
 }

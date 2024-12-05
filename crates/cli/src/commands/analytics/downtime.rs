@@ -2,10 +2,11 @@ use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use chrono::NaiveDate;
 use clap::Args;
-use humantime::Duration;
+use humantime::{format_duration, Duration};
 use rain_orderbook_analytics::Analytics as OrderbookAnalytics;
 use rain_orderbook_subgraph_client::OrderbookSubgraphClient;
 use reqwest::Url;
+use std::time::Duration as STD_Duration;
 
 #[derive(Args, Clone)]
 pub struct DowntimeArgs {
@@ -57,11 +58,22 @@ impl Execute for DowntimeArgs {
             .calculate_downtime_between_trades(period, threshold_secs)
             .await;
 
+        let percentage = if let Some((start, end)) = period {
+            let total_period = end.saturating_sub(start) as f64;
+            total as f64 / total_period * 100.0
+        } else {
+            0.0
+        };
+
         println!("Average downtime: {:.2} seconds", avg);
         println!("Minimum downtime: {:.2} seconds", min);
         println!("Maximum downtime: {:.2} seconds", max);
         println!("Number of occurrences: {}", count);
-        println!("Total downtime: {:.2} seconds", total);
+        println!(
+            "Total downtime: {} ({:.2}%)",
+            format_duration(STD_Duration::new(total, 0)).to_string(),
+            percentage
+        );
 
         Ok(())
     }
