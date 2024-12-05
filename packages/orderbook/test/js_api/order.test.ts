@@ -1,13 +1,12 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
-import {VaultVolume} from "../../dist/types/common.js"
+import {VaultVolume}
 import {
   Order,
   OrderWithSubgraphName,
   Trade,
-
-} from "../../dist/types/js_api.js";
+} from "../../dist/types/js_api";
 import {
   getOrders,
   getOrder,
@@ -507,7 +506,8 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
   });
 
   it("should fetch order vaults volume data", async () => {
-    const mockVolumeData = {
+
+    const mockVolumeData: VaultVolume = {
       data: {
         order: {
           inputVaultVolume: "1000",
