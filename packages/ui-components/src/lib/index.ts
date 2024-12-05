@@ -24,6 +24,9 @@ export { default as LightweightChart } from './components/charts/LightweightChar
 export { default as TanstackLightweightChartLine } from './components/charts/TanstackLightweightChartLine.svelte';
 export { default as MockComponent } from './__mocks__/MockComponent.svelte';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
+export { default as BlockQuote } from './components/BlockQuote.svelte';
+export { default as Heading } from './components/Heading.svelte';
+export { default as Text } from './components/Text.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
