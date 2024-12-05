@@ -1,16 +1,13 @@
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
-    ScanError, StrictYaml,
+    ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
 
 pub mod dotrain;
 pub mod orderbook;
-
 #[cfg(test)]
-mod dotrain_test;
-#[cfg(test)]
-mod orderbook_test;
+mod tests;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum YamlError {
@@ -22,6 +19,14 @@ pub enum YamlError {
     ParseError(String),
     #[error("Missing custom message")]
     MissingCustomMsg,
+}
+
+pub fn load_yaml(yaml: &str) -> Result<StrictYaml, YamlError> {
+    let docs = StrictYamlLoader::load_from_str(yaml)?;
+    if docs.is_empty() {
+        return Err(YamlError::EmptyFile);
+    }
+    Ok(docs[0].clone())
 }
 
 pub fn require_string(
