@@ -1,7 +1,7 @@
 import assert from "assert";
 import { getLocal } from "mockttp";
 import { describe, it, beforeEach, afterEach } from "vitest";
-import {VaultVolume}
+import { mockOrder } from "../../../ui-components/src/lib/__fixtures__/orderDetail";
 import {
   Order,
   OrderWithSubgraphName,
@@ -14,7 +14,6 @@ import {
   getOrderTradeDetail,
   getOrderTradesCount,
   getOrderVaultsVolume,
-  
   extendOrder,
 } from "../../dist/cjs/js_api.js";
 
@@ -309,9 +308,19 @@ const mockTrade: Trade = {
 };
 
 describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function () {
-  const mockServer = getLocal();
-  beforeEach(() => mockServer.start(8082));
-  afterEach(() => mockServer.stop());
+  let mockServer = getLocal()
+
+  beforeEach(async () => {
+    // Create a new server - it will automatically use a random available port
+    mockServer = getLocal();
+    await mockServer.start();
+});
+
+  afterEach(async () => {
+    // Clean up after each test
+    await mockServer.stop();
+  });
+
 
   it("should fetch a single order", async () => {
     await mockServer
@@ -404,6 +413,8 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
           (e instanceof Error ? e.message : String(e))
       );
     }
+
+    
   });
 
   it("should fetch order trade detail", async () => {
@@ -434,6 +445,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       );
     }
   });
+
   it("should fetch trade count for a single order", async () => {
     await mockServer.forPost("/sg1").thenReply(
       200,
@@ -460,7 +472,6 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
         undefined,
         undefined
       );
-      console.log(count);
 
       assert.strictEqual(typeof count, "number", "Count should be a number");
       assert.strictEqual(count, 1, "Should count one trade");
@@ -475,20 +486,17 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
       );
     }
   });
+  
+  it("should extend order with Rainlang string using extendOrder", async () => {
 
-    it("should extend order with Rainlang string using extendOrder", async () => {
-    // Create a test order with meta data that contains encoded rainlang
-    const orderWithMeta = {
-      ...order1,
-      meta: "0xff0a89c674ee7874a3005910362f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d203078463933323342376432336336353531323246623032373244393839623833453130356342636639640a65706f63683a63616c6c3c323e28292c0a696f3a2063616c6c3c333e2865706f6368292c0a65706f63682d6d61782d6f75747075743a2063616c6c3c343e2865706f636820696f292c0a6f746865722d746f74616c2d6f75740a5f0a6f746865722d767761696f3a2063616c6c3c353e28292c0a6d61782d6f75747075743a206d6178280a202065706f63682d6d61782d6f75747075740a20206576657279280a20202020310a202020206d756c286f746865722d746f74616c2d6f7574206f746865722d767761696f2929292c0a5f3a20696f2c0a3a63616c6c3c363e28696f293b0a0a2f2a20312e2068616e646c652d696f202a2f200a6d696e2d74726164652d616d6f756e743a206d756c28323020302e39292c0a3a656e73757265280a2020677265617465722d7468616e2d6f722d657175616c2d746f280a2020202069662863616c6c3c373e2829206f75747075742d7661756c742d6465637265617365282920696e7075742d7661756c742d696e6372656173652829290a202020206d696e2d74726164652d616d6f756e74290a2020224d696e20747261646520616d6f756e742e22292c0a3a63616c6c3c383e28293b0a0a2f2a20322e206765742d65706f6368202a2f200a6c6173742d74696d65205f3a2063616c6c3c393e28292c0a6475726174696f6e3a20737562286e6f772829206c6173742d74696d65292c0a65706f6368733a20646976286475726174696f6e2033363030293b0a0a2f2a20332e20696f2d666f722d65706f6368202a2f200a65706f63683a2c0a6c6173742d696f3a2063616c6c3c393e28292c0a746869732d767761696f0a6f746865722d767761696f3a2063616c6c3c353e28292c0a636f73742d62617369732d696f3a206d756c28616e7928746869732d767761696f20696e7628616e79286f746865722d767761696f206d61782d76616c7565282929292920312e30303235292c0a6d61782d6e6578742d74726164653a206d756c286d617828636f73742d62617369732d696f206c6173742d696f2920312e3031292c0a626173656c696e653a20616e7928636f73742d62617369732d696f206c6173742d696f292c0a7661726961626c652d636f6d706f6e656e743a20737562286d61782d6e6578742d747261646520626173656c696e65292c0a64656361793a2063616c6c3c31303e2865706f6368292c0a61626f76652d626173656c696e653a206d756c287661726961626c652d636f6d706f6e656e74206465636179292c0a5f3a2061646428626173656c696e652061626f76652d626173656c696e65293b0a0a2f2a20342e20616d6f756e742d666f722d65706f6368202a2f200a65706f636820696f3a2c0a64656361793a2063616c6c3c31303e2865706f6368292c0a7368792d64656361793a20657665727928677265617465722d7468616e2865706f636820302e303529206465636179292c0a7661726961626c652d636f6d706f6e656e743a2073756228313030203230292c0a626173652d616d6f756e743a20616464283230206d756c287661726961626c652d636f6d706f6e656e74207368792d646563617929292c0a5f3a2069662863616c6c3c373e282920626173652d616d6f756e74206d756c28626173652d616d6f756e7420696e7628696f2929293b0a0a2f2a20352e206765742d636f73742d62617369732d696f2d726174696f202a2f200a746869732d746f74616c2d6f75742d6b65793a2068617368286f726465722d68617368282920696e7075742d746f6b656e2829206f75747075742d746f6b656e2829292c0a2020746869732d767761696f2d6b65793a206861736828746869732d746f74616c2d6f75742d6b65792022636f73742d62617369732d696f2d726174696f22292c0a20206f746865722d746f74616c2d6f75742d6b65793a2068617368286f726465722d686173682829206f75747075742d746f6b656e282920696e7075742d746f6b656e2829292c0a20206f746865722d767761696f2d6b65793a2068617368286f746865722d746f74616c2d6f75742d6b65792022636f73742d62617369732d696f2d726174696f22292c0a0a2020746869732d746f74616c2d6f75743a2067657428746869732d746f74616c2d6f75742d6b6579292c0a20206f746865722d746f74616c2d6f75743a20676574286f746865722d746f74616c2d6f75742d6b6579292c0a0a2020746869732d767761696f3a2067657428746869732d767761696f2d6b6579292c0a20206f746865722d767761696f3a20676574286f746865722d767761696f2d6b6579293b0a0a2f2a20362e207365742d6c6173742d7472616465202a2f200a6c6173742d696f3a2c0a3a7365742868617368286f726465722d68617368282920226c6173742d74726164652d74696d652229206e6f772829292c0a3a7365742868617368286f726465722d68617368282920226c6173742d74726164652d696f2229206c6173742d696f292c0a3a7365742868617368286f726465722d68617368282920226c6173742d74726164652d6f75747075742d746f6b656e2229206f75747075742d746f6b656e2829293b0a0a2f2a20372e20616d6f756e742d69732d6f7574707574202a2f200a5f3a20657175616c2d746f28307833633439396335343263454635453338313165313139326365373064386343303364356333333539206f75747075742d746f6b656e2829293b0a0a2f2a20382e207365742d636f73742d62617369732d696f2d726174696f202a2f200a2f2a20666972737420726564756365206f75747374616e64696e6720696e76656e746f7279202a2f0a2020746869732d746f74616c2d6f75742d6b65790a2020746869732d767761696f2d6b65790a20206f746865722d746f74616c2d6f75742d6b65790a20206f746865722d767761696f2d6b65790a2020746869732d746f74616c2d6f75740a20206f746865722d746f74616c2d6f75740a2020746869732d767761696f0a20206f746865722d767761696f3a2063616c6c3c353e28292c0a0a20206f746865722d726564756374696f6e2d6f75743a206d696e286f746865722d746f74616c2d6f757420696e7075742d7661756c742d696e6372656173652829292c0a2020726564756365642d6f746865722d746f74616c2d6f75743a20737562286f746865722d746f74616c2d6f7574206f746865722d726564756374696f6e2d6f7574292c0a0a20203a736574286f746865722d746f74616c2d6f75742d6b657920726564756365642d6f746865722d746f74616c2d6f7574292c0a20203a736574286f746865722d767761696f2d6b657920657665727928726564756365642d6f746865722d746f74616c2d6f7574206f746865722d767761696f29292c0a0a20202f2a207468656e20696e637265617365206f757220696e76656e746f7279202a2f0a2020746869732d746f74616c2d696e3a206d756c28746869732d746f74616c2d6f757420746869732d767761696f292c0a2020746869732d72656d61696e696e672d696e3a2073756228696e7075742d7661756c742d696e6372656173652829206f746865722d726564756374696f6e2d6f7574292c0a2020746869732d6e65772d696e3a2061646428746869732d746f74616c2d696e20746869732d72656d61696e696e672d696e292c0a2020746869732d72656d61696e696e672d6f75743a2064697628746869732d72656d61696e696e672d696e2063616c63756c617465642d696f2d726174696f2829292c0a2020746869732d6e65772d6f75743a2061646428746869732d746f74616c2d6f757420746869732d72656d61696e696e672d6f7574292c0a2020746869732d6e65772d767761696f3a20657665727928746869732d6e65772d6f75742064697628746869732d6e65772d696e20616e7928746869732d6e65772d6f7574206d61782d76616c756528292929292c0a20206361702d6f75743a2069662863616c6c3c373e2829203165353020646976283165353020616e7928746869732d6e65772d767761696f2063616c63756c617465642d696f2d726174696f28292929292c0a20206361707065642d6f75743a206d696e28746869732d6e65772d6f7574206361702d6f7574292c0a0a20203a73657428746869732d746f74616c2d6f75742d6b6579206361707065642d6f7574292c0a20203a73657428746869732d767761696f2d6b657920746869732d6e65772d767761696f293b0a0a2f2a20392e206765742d6c6173742d7472616465202a2f200a73746f7265642d6c6173742d696f3a6765742868617368286f726465722d68617368282920226c6173742d74726164652d696f2229292c0a73746f7265642d6c6173742d6f75747075742d746f6b656e3a6765742868617368286f726465722d68617368282920226c6173742d74726164652d6f75747075742d746f6b656e2229292c0a6c6173742d74696d653a6765742868617368286f726465722d68617368282920226c6173742d74726164652d74696d652229292c0a5f3a20696628657175616c2d746f2873746f7265642d6c6173742d6f75747075742d746f6b656e206f75747075742d746f6b656e2829292073746f7265642d6c6173742d696f20696e762873746f7265642d6c6173742d696f29293b0a0a2f2a2031302e2068616c666c696665202a2f200a65706f63683a2c0a2f2a2a0a202a20536872696e6b696e6720746865206d756c7469706c696572206c696b6520746869730a202a207468656e206170706c79696e672069742031302074696d657320616c6c6f777320666f720a202a2062657474657220707265636973696f6e207768656e206d61782d696f2d726174696f0a202a2069732076657279206c617267652c20652e672e207e31653130206f72207e316532302b0a202a0a202a205468697320776f726b7320626563617573652060706f77657260206c6f7365730a202a20707265636973696f6e206f6e20626173652060302e3560207768656e207468650a202a206578706f6e656e74206973206c6172676520616e642063616e206576656e20676f0a202a20746f20603060207768696c652074686520696f2d726174696f206973207374696c6c0a202a206c617267652e2042657474657220746f206b65657020746865206d756c7469706c6965720a202a2068696768657220707265636973696f6e20616e642064726f702074686520696f2d726174696f0a202a20736d6f6f74686c7920666f72206173206c6f6e672061732077652063616e2e0a202a2f0a6d756c7469706c6965723a0a2020706f77657228302e35206469762865706f636820313029292c0a76616c3a0a20206d756c280a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a202020206d756c7469706c6965720a2020293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d" // "rainlang test" in base64   
-    } as Order;
+
 
     try {
-      const result = await extendOrder(orderWithMeta);
+      const result = await extendOrder(mockOrder);
       assert.ok(result, "Result should exist");
-      assert.equal(result.order.id, orderWithMeta.id);
-      assert.equal(result.order.orderHash, orderWithMeta.orderHash);
-      assert.equal(result.order.owner, orderWithMeta.owner);
+      assert.equal(result.order.id, mockOrder.id);
+      assert.equal(result.order.orderHash, mockOrder.orderHash);
+      assert.equal(result.order.owner, mockOrder.owner);
       // The rainlang field should be decoded from the meta.source
       assert.ok(result.rainlang, "Should have a rainlang string");
       assert.ok(result.order.inputs.length > 0, "Should have inputs");
@@ -505,34 +513,76 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
     }
   });
 
-  it("should fetch order vaults volume data", async () => {
+  it("should fetch order vaults volume", async () => { 
 
-    const mockVolumeData: VaultVolume = {
-      data: {
-        order: {
-          inputVaultVolume: "1000",
-          outputVaultVolume: "500",
-        }
+  await mockServer.forPost("/sg4").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockOrderTradesList,
+        },
+      })
+    );
+
+    await mockServer.forPost("/sg4").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: [],
+        },
+      })
+    );
+
+      // Mock the expected vault volume response
+    const expectedVaultVolume = [
+      {
+        id: '2',
+        token: {
+          id: 'token-2',
+          address: '0x2222222222222222222222222222222222222222',
+          name: 'Token Two',
+          symbol: 'TK2',
+          decimals: '18'
+        },
+        totalIn: '0x32',
+        totalOut: '0x0',
+        totalVol: '0x32',
+        netVol: '50'
+      },
+      {
+        id: '1',
+        token: {
+          id: 'token-1',
+          address: '0x1111111111111111111111111111111111111111',
+          name: 'Token One',
+          symbol: 'TK1',
+          decimals: '18'
+        },
+        totalIn: '0x0',
+        totalOut: '0x64',
+        totalVol: '0x64',
+        netVol: '-100'
       }
-    };
-
-    await mockServer
-      .forPost("/sg1")
-      .thenReply(200, JSON.stringify(mockVolumeData));
+    ];
 
     try {
-      const result = await getOrderVaultsVolume(
-        mockServer.url + "/sg1",
-        order1.id,
-        undefined, // start timestamp
-        undefined  // end timestamp
+     
+
+
+           const result = await getOrderVaultsVolume(
+        mockServer.url + "/sg4",
+        mockOrder.id,
+        undefined,
+        undefined
       );
 
       assert.ok(result, "Result should exist");
-      assert.equal(result.inputVaultVolume, mockVolumeData.data.order.inputVaultVolume);
-      assert.equal(result.outputVaultVolume, mockVolumeData.data.order.outputVaultVolume);
+      assert.deepEqual(result, expectedVaultVolume, "Vault volume should match expected response");
     } catch (e) {
       console.error("Test error:", e);
+      if (e instanceof Error) {
+        console.error("Error details:", e.stack);
+      }
       assert.fail(
         "Expected to resolve, but failed: " +
           (e instanceof Error ? e.message : String(e))
@@ -540,25 +590,314 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Order", async function (
     }
   });
 
-  // get_sg_order is tested implicitly through getOrder, but here's a specific test
-  it("should fetch a single order from subgraph", async () => {
-    await mockServer
-      .forPost("/sg1")
-      .thenReply(200, JSON.stringify({ data: { order: order1 } }));
+   it("should fetch order vaults volume", async () => { 
+
+  await mockServer.forPost("/sg5").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockOrderTradesList,
+        },
+      })
+    );
+
+    await mockServer.forPost("/sg5").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: [],
+        },
+      })
+    );
+
+      // Mock the expected vault volume response
+    const expectedVaultVolume = [
+      {
+        id: '2',
+        token: {
+          id: 'token-2',
+          address: '0x2222222222222222222222222222222222222222',
+          name: 'Token Two',
+          symbol: 'TK2',
+          decimals: '18'
+        },
+        totalIn: '0x32',
+        totalOut: '0x0',
+        totalVol: '0x32',
+        netVol: '50'
+      },
+      {
+        id: '1',
+        token: {
+          id: 'token-1',
+          address: '0x1111111111111111111111111111111111111111',
+          name: 'Token One',
+          symbol: 'TK1',
+          decimals: '18'
+        },
+        totalIn: '0x0',
+        totalOut: '0x64',
+        totalVol: '0x64',
+        netVol: '-100'
+      }
+    ];
 
     try {
-      const result = await getOrder(mockServer.url + "/sg1", order1.id);
-      assert.equal(result.id, order1.id);
-      assert.equal(result.orderHash, order1.orderHash);
-      assert.equal(result.owner, order1.owner);
-      assert.ok(result.inputs.length > 0, "Should have inputs");
-      assert.ok(result.outputs.length > 0, "Should have outputs");
+     
+
+
+           const result = await getOrderVaultsVolume(
+        mockServer.url + "/sg5",
+        mockOrder.id,
+        undefined,
+        undefined
+      );
+
+      assert.ok(result, "Result should exist");
+      assert.deepEqual(result, expectedVaultVolume, "Vault volume should match expected response");
     } catch (e) {
-      console.log(e);
+      console.error("Test error:", e);
+      if (e instanceof Error) {
+        console.error("Error details:", e.stack);
+      }
       assert.fail(
-        "expected to resolve, but failed" +
+        "Expected to resolve, but failed: " +
           (e instanceof Error ? e.message : String(e))
       );
     }
   });
+
+   it("should fetch order vaults volume", async () => { 
+
+  await mockServer.forPost("/sg6").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockOrderTradesList,
+        },
+      })
+    );
+
+    await mockServer.forPost("/sg6").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: [],
+        },
+      })
+    );
+
+      // Mock the expected vault volume response
+    const expectedVaultVolume = [
+      {
+        id: '2',
+        token: {
+          id: 'token-2',
+          address: '0x2222222222222222222222222222222222222222',
+          name: 'Token Two',
+          symbol: 'TK2',
+          decimals: '18'
+        },
+        totalIn: '0x32',
+        totalOut: '0x0',
+        totalVol: '0x32',
+        netVol: '50'
+      },
+      {
+        id: '1',
+        token: {
+          id: 'token-1',
+          address: '0x1111111111111111111111111111111111111111',
+          name: 'Token One',
+          symbol: 'TK1',
+          decimals: '18'
+        },
+        totalIn: '0x0',
+        totalOut: '0x64',
+        totalVol: '0x64',
+        netVol: '-100'
+      }
+    ];
+
+    try {
+     
+
+
+           const result = await getOrderVaultsVolume(
+        mockServer.url + "/sg6",
+        mockOrder.id,
+        undefined,
+        undefined
+      );
+
+      assert.ok(result, "Result should exist");
+      assert.deepEqual(result, expectedVaultVolume, "Vault volume should match expected response");
+    } catch (e) {
+      console.error("Test error:", e);
+      if (e instanceof Error) {
+        console.error("Error details:", e.stack);
+      }
+      assert.fail(
+        "Expected to resolve, but failed: " +
+          (e instanceof Error ? e.message : String(e))
+      );
+    }
+  });
+
+   it("should fetch order vaults volume", async () => { 
+
+  await mockServer.forPost("/sg7").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockOrderTradesList,
+        },
+      })
+    );
+
+    await mockServer.forPost("/sg7").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: [],
+        },
+      })
+    );
+
+      // Mock the expected vault volume response
+    const expectedVaultVolume = [
+      {
+        id: '2',
+        token: {
+          id: 'token-2',
+          address: '0x2222222222222222222222222222222222222222',
+          name: 'Token Two',
+          symbol: 'TK2',
+          decimals: '18'
+        },
+        totalIn: '0x32',
+        totalOut: '0x0',
+        totalVol: '0x32',
+        netVol: '50'
+      },
+      {
+        id: '1',
+        token: {
+          id: 'token-1',
+          address: '0x1111111111111111111111111111111111111111',
+          name: 'Token One',
+          symbol: 'TK1',
+          decimals: '18'
+        },
+        totalIn: '0x0',
+        totalOut: '0x64',
+        totalVol: '0x64',
+        netVol: '-100'
+      }
+    ];
+
+    try {
+     
+
+
+           const result = await getOrderVaultsVolume(
+        mockServer.url + "/sg7",
+        mockOrder.id,
+        undefined,
+        undefined
+      );
+
+      assert.ok(result, "Result should exist");
+      assert.deepEqual(result, expectedVaultVolume, "Vault volume should match expected response");
+    } catch (e) {
+      console.error("Test error:", e);
+      if (e instanceof Error) {
+        console.error("Error details:", e.stack);
+      }
+      assert.fail(
+        "Expected to resolve, but failed: " +
+          (e instanceof Error ? e.message : String(e))
+      );
+    }
+  });
+
+   it("should fetch order vaults volume", async () => { 
+
+  await mockServer.forPost("/sg8").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: mockOrderTradesList,
+        },
+      })
+    );
+
+    await mockServer.forPost("/sg8").thenReply(
+      200,
+      JSON.stringify({
+        data: {
+          trades: [],
+        },
+      })
+    );
+
+      // Mock the expected vault volume response
+    const expectedVaultVolume = [
+      {
+        id: '2',
+        token: {
+          id: 'token-2',
+          address: '0x2222222222222222222222222222222222222222',
+          name: 'Token Two',
+          symbol: 'TK2',
+          decimals: '18'
+        },
+        totalIn: '0x32',
+        totalOut: '0x0',
+        totalVol: '0x32',
+        netVol: '50'
+      },
+      {
+        id: '1',
+        token: {
+          id: 'token-1',
+          address: '0x1111111111111111111111111111111111111111',
+          name: 'Token One',
+          symbol: 'TK1',
+          decimals: '18'
+        },
+        totalIn: '0x0',
+        totalOut: '0x64',
+        totalVol: '0x64',
+        netVol: '-100'
+      }
+    ];
+
+    try {
+     
+
+
+           const result = await getOrderVaultsVolume(
+        mockServer.url + "/sg8",
+        mockOrder.id,
+        undefined,
+        undefined
+      );
+
+      assert.ok(result, "Result should exist");
+      assert.deepEqual(result, expectedVaultVolume, "Vault volume should match expected response");
+    } catch (e) {
+      console.error("Test error:", e);
+      if (e instanceof Error) {
+        console.error("Error details:", e.stack);
+      }
+      assert.fail(
+        "Expected to resolve, but failed: " +
+          (e instanceof Error ? e.message : String(e))
+      );
+    }
+  });
+
 });
+
+

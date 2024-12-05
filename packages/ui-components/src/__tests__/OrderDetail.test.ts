@@ -7,7 +7,9 @@ import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
 import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
 import { readable, writable } from 'svelte/store';
 
-const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
+const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
 
 const mockOrder: Order = {
 	id: '0xabc...bcdef',
@@ -82,7 +84,6 @@ vi.mock('../lib/components/tables/OrderTradesListTable.svelte', async (importOri
 	};
 });
 
-
 vi.mock('lightweight-charts', async (importOriginal) => ({
 	...((await importOriginal()) as object),
 	createChart: vi.fn(() => ({
@@ -124,8 +125,6 @@ describe('OrderDetail Component', () => {
 	});
 
 	it('shows remove button if owner wallet matches and order is active, opens correct modal', async () => {
-
-
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -156,7 +155,6 @@ describe('OrderDetail Component', () => {
 		});
 
 		mockWalletAddressMatchesOrBlankStore.set(() => true);
-
 
 		await waitFor(() => {
 			expect(screen.queryByText('Remove')).toBeInTheDocument();
