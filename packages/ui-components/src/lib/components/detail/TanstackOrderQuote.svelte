@@ -46,8 +46,6 @@
 		refetchInterval: 10000
 	});
 
-	$: console.log('orderQuoteQuery', $orderQuoteQuery.data);
-
 	let blockNumber: number | undefined;
 	$: orderModalArg = order;
 </script>

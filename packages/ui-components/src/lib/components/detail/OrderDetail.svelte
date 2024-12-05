@@ -63,8 +63,6 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
-
-	$: console.log('orderDetailQuery', $orderDetailQuery.data);
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">

@@ -10,8 +10,6 @@
 	export let styles = {};
 	export let codeMirrorTheme;
 
-	$: console.log(order);
-
 	$: value = order ? extendOrder(order).rainlang : rainlangText;
 </script>
 
