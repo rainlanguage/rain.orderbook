@@ -7,6 +7,7 @@ import { writable } from 'svelte/store';
 
 // Mock the extendOrder function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	extendOrder: vi.fn((order: Order) => ({
 		rainlang: 'mocked rainlang text'
 	}))
