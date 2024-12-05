@@ -1,5 +1,6 @@
 use std::ops::Div;
 
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 
 use rain_orderbook_subgraph_client::types::common::Trade;
@@ -39,12 +40,16 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
         &self,
         period: Option<(u64, u64)>,
         threshold: u64,
-    ) -> (f64, f64, f64, usize, u64) {
-        let trades: Vec<Trade> = match period {
+    ) -> Result<(f64, f64, f64, usize, u64)> {
+        let maybe_trades = match period {
             Some((start, end)) => self.client.all_trades_list(Some(start), Some(end)).await,
             None => self.client.all_trades_list(None, None).await,
-        }
-        .unwrap_or_default();
+        };
+
+        let trades: Vec<Trade> = match maybe_trades {
+            Ok(trades) => trades,
+            Err(e) => return Err(anyhow!("Error fetching trades: {:?}", e)),
+        };
 
         let mut time_diffs: Vec<u64> = Vec::new();
         for window in trades.windows(2) {
@@ -58,7 +63,7 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
         }
 
         if time_diffs.is_empty() {
-            return (0.0, 0.0, 0.0, 0, 0);
+            return Ok((0.0, 0.0, 0.0, 0, 0));
         }
 
         let count: usize = time_diffs.len();
@@ -67,7 +72,7 @@ impl<T: OrderbookSubgraphClientTrait + Send + Sync> Analytics<T> {
         let min: f64 = *time_diffs.iter().min().unwrap() as f64;
         let max: f64 = *time_diffs.iter().max().unwrap() as f64;
 
-        (avg, min, max, count, total)
+        Ok((avg, min, max, count, total))
     }
 }
 
@@ -178,8 +183,10 @@ mod tests {
         let client = MockSubgraphClient { trades: vec![] };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max, count, total) =
-            analytics.calculate_downtime_between_trades(None, 0).await;
+        let (avg, min, max, count, total) = analytics
+            .calculate_downtime_between_trades(None, 0)
+            .await
+            .unwrap();
         assert_eq!(avg, 0.0);
         assert_eq!(min, 0.0);
         assert_eq!(max, 0.0);
@@ -194,8 +201,10 @@ mod tests {
         };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max, count, total) =
-            analytics.calculate_downtime_between_trades(None, 0).await;
+        let (avg, min, max, count, total) = analytics
+            .calculate_downtime_between_trades(None, 0)
+            .await
+            .unwrap();
         assert_eq!(avg, 0.0);
         assert_eq!(min, 0.0);
         assert_eq!(max, 0.0);
@@ -214,8 +223,10 @@ mod tests {
         };
         let analytics = Analytics::new(client);
 
-        let (avg, min, max, count, total) =
-            analytics.calculate_downtime_between_trades(None, 600).await;
+        let (avg, min, max, count, total) = analytics
+            .calculate_downtime_between_trades(None, 600)
+            .await
+            .unwrap();
         assert_eq!(avg, 1000.0);
         assert_eq!(min, 1000.0);
         assert_eq!(max, 1000.0);
@@ -236,7 +247,8 @@ mod tests {
 
         let (avg, min, max, count, total) = analytics
             .calculate_downtime_between_trades(Some((1000, 2500)), 400)
-            .await;
+            .await
+            .unwrap();
         assert_eq!(avg, 750.0);
         assert_eq!(min, 500.0);
         assert_eq!(max, 1000.0);

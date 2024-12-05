@@ -6335,6 +6335,7 @@ dependencies = [
 name = "rain_orderbook_analytics"
 version = "0.0.0-alpha.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",

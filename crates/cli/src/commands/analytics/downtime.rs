@@ -54,9 +54,17 @@ impl Execute for DowntimeArgs {
         let analytics = OrderbookAnalytics::new(client);
 
         let threshold_secs = self.threshold.as_secs();
-        let (avg, min, max, count, total) = analytics
+        let (avg, min, max, count, total) = match analytics
             .calculate_downtime_between_trades(period, threshold_secs)
-            .await;
+            .await
+        {
+            Ok(metrics) => metrics,
+            Err(e) => {
+                eprintln!("Error calculating downtime metrics:");
+                eprintln!("  {}", e);
+                return Err(anyhow!("Failed to calculate downtime metrics"));
+            }
+        };
 
         let percentage = if let Some((start, end)) = period {
             let total_period = end.saturating_sub(start) as f64;
