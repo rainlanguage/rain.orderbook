@@ -33,6 +33,9 @@ export { default as TanstackOrderQuote } from './components/detail/TanstackOrder
 export { default as EditableSpan } from './components/EditableSpan.svelte';
 export { default as OrderVaultsVolTable } from './components/tables/OrderVaultsVolTable.svelte';
 export { default as OrderDetail } from './components/detail/OrderDetail.svelte';
+export { default as BlockQuote } from './components/BlockQuote.svelte';
+export { default as Heading } from './components/Heading.svelte';
+export { default as Text } from './components/Text.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
