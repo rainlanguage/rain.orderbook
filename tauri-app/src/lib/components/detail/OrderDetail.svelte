@@ -61,7 +61,7 @@
         color="dark"
         on:click={() => handleOrderRemoveModal(data.order, $orderDetailQuery.refetch)}
       >
-        Remove {network}
+        Remove
       </Button>
     {/if}
   </svelte:fragment>
