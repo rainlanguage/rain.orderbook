@@ -3,16 +3,20 @@
   import { page } from '$app/stores';
   import { OrderDetail } from '@rainlanguage/ui-components';
   import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
+  import { settings } from '$lib/stores/settings';
   import { handleDebugTradeModal, handleQuoteDebugModal } from '$lib/services/modal';
-  import { subgraphUrl, rpcUrl, orderbookAddress } from '$lib/stores/settings';
+  import { subgraphUrl, rpcUrl } from '$lib/stores/settings';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
-  const { id } = $page.params;
+  const { id, network } = $page.params;
+  $: orderbookAddress = $settings?.orderbooks?.[network]?.address;
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
-
-{#if $rpcUrl && $subgraphUrl && $orderbookAddress}
+{#if $rpcUrl && $subgraphUrl && orderbookAddress}
+  {orderbookAddress}
+  {network}
+  {$rpcUrl}
   <OrderDetail
     {id}
     rpcUrl={$rpcUrl}
@@ -22,7 +26,7 @@
     {lightweightChartsTheme}
     {handleQuoteDebugModal}
     {handleDebugTradeModal}
-    orderbookAddress={$orderbookAddress}
+    {orderbookAddress}
     {walletAddressMatchesOrBlank}
   />
 {/if}

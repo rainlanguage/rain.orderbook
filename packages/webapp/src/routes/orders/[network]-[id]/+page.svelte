@@ -5,9 +5,18 @@
 	const { codeMirrorTheme, lightweightChartsTheme, colorTheme } = $page.data.stores;
 	const { id, network } = $page.params;
 	const { settings } = $page.data.stores;
+	$: orderbookAddress = $settings?.orderbooks[network]?.address;
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
-<OrderDetail {id} {subgraphUrl} {rpcUrl} {codeMirrorTheme} {lightweightChartsTheme} {colorTheme} />
+<OrderDetail
+	{id}
+	{subgraphUrl}
+	{rpcUrl}
+	{codeMirrorTheme}
+	{lightweightChartsTheme}
+	{colorTheme}
+	{orderbookAddress}
+/>
