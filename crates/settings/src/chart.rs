@@ -93,6 +93,7 @@ mod tests {
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
             runs,
             blocks: None,
+            entrypoint: None,
             deployer: mock_deployer(),
         };
         (name.to_string(), Arc::new(scenario))

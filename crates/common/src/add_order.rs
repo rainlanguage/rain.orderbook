@@ -448,6 +448,7 @@ price: 2e18;
             runs: None,
             blocks: None,
             deployer: deployer_arc.clone(),
+            entrypoint: None,
         };
         let token1 = Token {
             address: Address::default(),
@@ -546,6 +547,7 @@ _ _: 0 0;
             runs: None,
             blocks: None,
             deployer: deployer_arc.clone(),
+            entrypoint: None,
         };
         let token1 = Token {
             address: Address::default(),
@@ -678,6 +680,7 @@ _ _: 0 0;
             runs: None,
             blocks: None,
             deployer: deployer_arc.clone(),
+            entrypoint: None,
         };
         let token1 = Token {
             address: Address::default(),
