@@ -51,7 +51,7 @@
 	$: orderDetailQuery = createQuery<Order>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => getOrder(subgraphUrl, id),
-		enabled: !!subgraphUrl && !!id
+		enabled: !!subgraphUrl
 	});
 
 	const interval = setInterval(async () => {
@@ -71,6 +71,9 @@
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
+		{subgraphUrl}
+		{id}
+		{$orderDetailQuery.data}
 		<div class="flex gap-x-4 text-3xl font-medium dark:text-white">
 			<div class="flex gap-x-2">
 				<span class="font-light">Order</span>
