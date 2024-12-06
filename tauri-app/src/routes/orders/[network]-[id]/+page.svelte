@@ -14,9 +14,6 @@
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
 {#if $rpcUrl && $subgraphUrl && orderbookAddress}
-  {orderbookAddress}
-  {network}
-  {$rpcUrl}
   <OrderDetail
     {id}
     rpcUrl={$rpcUrl}
