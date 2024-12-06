@@ -42,18 +42,16 @@ pub struct OrderbookYaml {
 
 impl OrderbookYaml {
     pub fn try_from_string(source: &str) -> Result<Self, YamlError> {
-        let mut yaml = Self::default();
-
-        yaml.networks = NetworkYaml::try_from_string(source)?;
-        yaml.subgraphs = SubgraphsYaml::try_from_string(source)?;
-        yaml.metaboards = MetaboardsYaml::try_from_string(source)?;
-        yaml.orderbooks = OrderbookEntryYaml::try_from_string(source)?;
-        yaml.tokens = TokenYaml::try_from_string(source)?;
-        yaml.deployers = DeployerYaml::try_from_string(source)?;
-        yaml.accounts = AccountsYaml::try_from_string(source)?;
-        yaml.sentry = SentryYaml::try_from_string(source)?;
-
-        Ok(yaml)
+        Ok(OrderbookYaml {
+            networks: NetworkYaml::try_from_string(source)?,
+            subgraphs: SubgraphsYaml::try_from_string(source)?,
+            metaboards: MetaboardsYaml::try_from_string(source)?,
+            orderbooks: OrderbookEntryYaml::try_from_string(source)?,
+            tokens: TokenYaml::try_from_string(source)?,
+            deployers: DeployerYaml::try_from_string(source)?,
+            accounts: AccountsYaml::try_from_string(source)?,
+            sentry: SentryYaml::try_from_string(source)?,
+        })
     }
 
     pub fn set_network(&mut self, key: String, network: NetworkYaml) {

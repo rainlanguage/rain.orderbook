@@ -30,15 +30,13 @@ pub struct DotrainYaml {
 
 impl DotrainYaml {
     pub fn try_from_string(source: &str) -> Result<Self, YamlError> {
-        let mut yaml = Self::default();
-
-        yaml.orders = OrderYaml::try_from_string(source)?;
-        yaml.scenarios = ScenarioYaml::try_from_string(source)?;
-        yaml.charts = ChartYaml::try_from_string(source)?;
-        yaml.deployments = DeploymentYaml::try_from_string(source)?;
-        yaml.gui = GuiYaml::try_from_string(source)?;
-
-        Ok(yaml)
+        Ok(DotrainYaml {
+            orders: OrderYaml::try_from_string(source)?,
+            scenarios: ScenarioYaml::try_from_string(source)?,
+            charts: ChartYaml::try_from_string(source)?,
+            deployments: DeploymentYaml::try_from_string(source)?,
+            gui: GuiYaml::try_from_string(source)?,
+        })
     }
 
     pub fn set_order(&mut self, key: String, order: OrderYaml) {
