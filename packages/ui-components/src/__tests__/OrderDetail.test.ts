@@ -9,6 +9,17 @@ const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
+vi.mock('svelte-codemirror-editor', async () => {
+	const MockCodeMirrorRainlang = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockCodeMirrorRainlang };
+});
+
+vi.mock('codemirror-rainlang', () => ({
+	RainlangLR: {
+		fromText: vi.fn()
+	}
+}));
+
 const mockOrder: Order = {
 	id: 'mockId',
 	owner: 'mockOwner',
