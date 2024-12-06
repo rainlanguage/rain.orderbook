@@ -5,7 +5,7 @@
 	const { codeMirrorTheme, lightweightChartsTheme, colorTheme } = $page.data.stores;
 	const { id, network } = $page.params;
 	const { settings } = $page.data.stores;
-	$: orderbookAddress = $settings?.orderbooks[network]?.address;
+	const orderbookAddress = $settings?.orderbooks[network]?.address;
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 </script>

@@ -5,19 +5,21 @@
   import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
   import { settings } from '$lib/stores/settings';
   import { handleDebugTradeModal, handleQuoteDebugModal } from '$lib/services/modal';
-  import { subgraphUrl, rpcUrl } from '$lib/stores/settings';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
   const { id, network } = $page.params;
-  $: orderbookAddress = $settings?.orderbooks?.[network]?.address;
+
+  const orderbookAddress = $settings?.orderbooks?.[network]?.address;
+  const subgraphUrl = $settings?.subgraphs?.[network];
+  const rpcUrl = $settings?.networks?.[network]?.rpc;
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
-{#if $rpcUrl && $subgraphUrl && orderbookAddress}
+{#if rpcUrl && subgraphUrl && orderbookAddress}
   <OrderDetail
     {id}
-    rpcUrl={$rpcUrl}
-    subgraphUrl={$subgraphUrl}
+    {rpcUrl}
+    {subgraphUrl}
     {colorTheme}
     {codeMirrorTheme}
     {lightweightChartsTheme}
