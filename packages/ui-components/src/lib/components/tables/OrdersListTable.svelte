@@ -101,7 +101,7 @@
 	on:clickRow={(e) => {
 		activeNetworkRef.set(e.detail.item.subgraphName);
 		activeOrderbookRef.set(e.detail.item.subgraphName);
-		goto(`/orders/${e.detail.item.order.id}`);
+		goto(`/orders/${e.detail.item.subgraphName}-${e.detail.item.order.id}`);
 	}}
 >
 	<svelte:fragment slot="title">

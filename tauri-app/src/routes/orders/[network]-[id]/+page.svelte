@@ -6,4 +6,4 @@
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
 
-<OrderDetail id={$page.params.id} />
+<OrderDetail id={$page.params.id} network={$page.params.network} />

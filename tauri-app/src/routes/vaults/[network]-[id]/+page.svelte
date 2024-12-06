@@ -6,4 +6,4 @@
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
-<VaultDetail id={$page.params.id} />
+<VaultDetail id={$page.params.id} network={$page.params.network} />
