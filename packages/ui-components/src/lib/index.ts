@@ -29,6 +29,10 @@ export { default as OrderTradesListTable } from './components/tables/OrderTrades
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 export { default as TanstackPageContentDetail } from './components/detail/TanstackPageContentDetail.svelte';
 export { default as EditableSpan } from './components/EditableSpan.svelte';
+export { default as BlockQuote } from './components/BlockQuote.svelte';
+export { default as Heading } from './components/Heading.svelte';
+export { default as Text } from './components/Text.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
