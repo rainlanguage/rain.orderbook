@@ -1,22 +1,9 @@
-import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl } from '$lib/stores/settings';
 import type { Order } from '@rainlanguage/orderbook/js_api';
-import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { RainEvalResultsTable } from '$lib/typeshare/config';
 
-export async function batchOrderQuotes(
-  orders: Order[],
-  blockNumber?: number,
-): Promise<BatchOrderQuotesResponse[]> {
-  return invoke('batch_order_quotes', {
-    orders,
-    blockNumber,
-    rpcUrl: get(rpcUrl),
-  });
-}
 
 export async function debugOrderQuote(
   order: Order,
