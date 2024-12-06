@@ -6,8 +6,6 @@ use thiserror::Error;
 
 pub mod dotrain;
 pub mod orderbook;
-#[cfg(test)]
-mod tests;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum YamlError {

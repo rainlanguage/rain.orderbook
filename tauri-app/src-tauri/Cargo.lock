@@ -8269,6 +8269,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "derive_builder 0.20.0",
+ "linked-hash-map",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
