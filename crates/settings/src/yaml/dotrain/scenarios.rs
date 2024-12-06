@@ -22,7 +22,7 @@ impl ScenarioYaml {
             bindings: require_hash(
                 value,
                 Some("bindings"),
-                Some(format!("bindings missing for scenario {:?}", key)),
+                Some(format!("bindings map missing in scenario: {}", key)),
             )?
             .iter()
             .map(|(binding_key, binding_value)| {
@@ -33,8 +33,8 @@ impl ScenarioYaml {
                         binding_value,
                         None,
                         Some(format!(
-                            "binding value must be a string for key {:?}",
-                            binding_key
+                            "binding value must be a string for key: {} in scenario: {}",
+                            binding_key, key
                         )),
                     )?,
                 ))
@@ -65,7 +65,7 @@ impl ScenarioYaml {
         for (key, value) in require_hash(
             doc,
             Some("scenarios"),
-            Some("missing field scenarios".to_string()),
+            Some("missing field: scenarios".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let scenario = Self::parse_scenario(key, value)?;
@@ -87,7 +87,7 @@ test: test
         let error = ScenarioYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field scenarios".to_string())
+            YamlError::ParseError("missing field: scenarios".to_string())
         );
 
         let yaml = r#"
@@ -98,7 +98,7 @@ scenarios:
         let error = ScenarioYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("bindings missing for scenario \"scenario1\"".to_string())
+            YamlError::ParseError("bindings map missing in scenario: scenario1".to_string())
         );
 
         let yaml = r#"
@@ -111,7 +111,9 @@ scenarios:
         let error = ScenarioYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("binding value must be a string for key \"key1\"".to_string())
+            YamlError::ParseError(
+                "binding value must be a string for key: key1 in scenario: scenario1".to_string()
+            )
         );
 
         let yaml = r#"
@@ -124,7 +126,9 @@ scenarios:
         let error = ScenarioYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("binding value must be a string for key \"key1\"".to_string())
+            YamlError::ParseError(
+                "binding value must be a string for key: key1 in scenario: scenario1".to_string()
+            )
         );
     }
 }

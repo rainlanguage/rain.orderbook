@@ -11,7 +11,7 @@ impl SubgraphsYaml {
         for (key, value) in require_hash(
             doc,
             Some("subgraphs"),
-            Some("missing field subgraphs".to_string()),
+            Some("missing field: subgraphs".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             subgraphs.insert(
@@ -19,7 +19,7 @@ impl SubgraphsYaml {
                 require_string(
                     value,
                     None,
-                    Some(format!("subgraph value must be a string for key {:?}", key)),
+                    Some(format!("subgraph value must be a string for key: {}", key)),
                 )?,
             );
         }
@@ -31,19 +31,15 @@ impl SubgraphsYaml {
 mod tests {
     use super::*;
 
-    const VALID_YAML: &str = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-"#;
-
     #[test]
     fn test_subgraphs_errors() {
-        let error = SubgraphsYaml::try_from_string(VALID_YAML).unwrap_err();
+        let yaml = r#"
+test: test
+"#;
+        let error = SubgraphsYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field subgraphs".to_string())
+            YamlError::ParseError("missing field: subgraphs".to_string())
         );
 
         let yaml = r#"
@@ -51,20 +47,21 @@ subgraphs:
     main:
         - one
 "#;
-        let error = SubgraphsYaml::try_from_string(&format!("{}{}", VALID_YAML, yaml)).unwrap_err();
+        let error = SubgraphsYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("subgraph value must be a string for key \"main\"".to_string())
+            YamlError::ParseError("subgraph value must be a string for key: main".to_string())
         );
+
         let yaml = r#"
 subgraphs:
     main:
         - one: one
 "#;
-        let error = SubgraphsYaml::try_from_string(&format!("{}{}", VALID_YAML, yaml)).unwrap_err();
+        let error = SubgraphsYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("subgraph value must be a string for key \"main\"".to_string())
+            YamlError::ParseError("subgraph value must be a string for key: main".to_string())
         );
     }
 }

@@ -176,7 +176,7 @@ impl ChartYaml {
         let marks_vector: &Vec<StrictYaml> = require_vec(
             plot_value,
             "marks",
-            Some(format!("marks vector missing for plot: {}", plot_key)),
+            Some(format!("marks list missing for plot: {}", plot_key)),
         )?;
         let mut marks: Vec<Mark> = vec![];
         for (i, mark) in marks_vector.iter().enumerate() {
@@ -184,7 +184,7 @@ impl ChartYaml {
                 mark,
                 None,
                 Some(format!(
-                    "each mark value must be a map for index: {} for plot: {}",
+                    "mark value must be a map for index: {} for plot: {}",
                     i, plot_key
                 )),
             )?;
@@ -192,7 +192,7 @@ impl ChartYaml {
                 mark,
                 "options",
                 Some(format!(
-                    "options field missing for mark index: {} for plot: {}",
+                    "options map missing for mark index: {} for plot: {}",
                     i, plot_key
                 )),
             )?;
@@ -207,7 +207,7 @@ impl ChartYaml {
                 )?,
                 None,
                 Some(format!(
-                    "type field must be string for mark index: {} for plot: {}",
+                    "type field must be a string for mark index: {} for plot: {}",
                     i, plot_key
                 )),
             )?;
@@ -300,7 +300,7 @@ impl ChartYaml {
             transform,
             "content",
             Some(format!(
-                "content missing for transform for mark index: {} for plot: {}",
+                "content map missing for transform for mark index: {} for plot: {}",
                 mark_index, plot_key
             )),
         )?;
@@ -310,7 +310,7 @@ impl ChartYaml {
             transform_content,
             Some("outputs"),
             Some(format!(
-                "outputs missing for transform content for mark index: {} for plot: {}",
+                "outputs map missing for transform content for mark index: {} for plot: {}",
                 mark_index, plot_key
             )),
         )?;
@@ -320,7 +320,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "x must be string for transform for mark index: {} for plot: {}",
+                        "x field must be a string for transform for mark index: {} for plot: {}",
                         mark_index, plot_key
                     )),
                 )
@@ -332,7 +332,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "y must be string for transform for mark index: {} for plot: {}",
+                        "y field must be a string for transform for mark index: {} for plot: {}",
                         mark_index, plot_key
                     )),
                 )
@@ -344,7 +344,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "r must be string for transform for mark index: {} for plot: {}",
+                        "r field must be a string for transform for mark index: {} for plot: {}",
                         mark_index, plot_key
                     )),
                 )
@@ -356,7 +356,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "z must be string for transform for mark index: {} for plot: {}",
+                        "z field must be a string for transform for mark index: {} for plot: {}",
                         mark_index, plot_key
                     )),
                 )
@@ -368,7 +368,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "stroke must be string for transform for mark index: {} for plot: {}",
+                        "stroke field must be a string for transform for mark index: {} for plot: {}",
                         mark_index, plot_key
                     )),
                 )
@@ -380,7 +380,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "fill must be string for transform for mark index: {} for plot: {}",
+                        "fill field must be a string for transform for mark index: {} for plot: {}",
                         mark_index, plot_key
                     )),
                 )
@@ -401,7 +401,7 @@ impl ChartYaml {
             transform_content,
             Some("options"),
             Some(format!(
-                "options missing for transform content for mark index: {} for plot: {}",
+                "options map missing for transform content for mark index: {} for plot: {}",
                 mark_index, plot_key
             )),
         )?;
@@ -413,7 +413,7 @@ impl ChartYaml {
                             v,
                             None,
                             Some(format!(
-                                "x must be string for transform for mark index: {} for plot: {}",
+                                "x field must be a string for transform for mark index: {} for plot: {}",
                                 mark_index, plot_key
                             )),
                         )
@@ -425,19 +425,19 @@ impl ChartYaml {
                             v,
                             None,
                             Some(format!(
-                                "y must be string for transform for mark index: {} for plot: {}",
+                                "y field must be a string for transform for mark index: {} for plot: {}",
                                 mark_index, plot_key
                             )),
                         )
                     })
                     .transpose()?;
-                let bin_width = get_hash_value_as_option(options, "bin_width")
+                let bin_width = get_hash_value_as_option(options, "bin-width")
                     .map(|v| {
                         require_string(
                             v,
                             None,
                             Some(format!(
-                            "bin_width must be string for transform for mark index: {} for plot: {}",
+                            "bin-width field must be a string for transform for mark index: {} for plot: {}",
                             mark_index, plot_key
                         )),
                         )
@@ -455,7 +455,7 @@ impl ChartYaml {
                             v,
                             None,
                             Some(format!(
-                                "x must be string for transform for mark index: {} for plot: {}",
+                                "x field must be a string for transform for mark index: {} for plot: {}",
                                 mark_index, plot_key
                             )),
                         )
@@ -467,7 +467,7 @@ impl ChartYaml {
                             v,
                             None,
                             Some(format!(
-                            "thresholds must be string for transform for mark index: {} for plot: {}",
+                            "thresholds field must be a string for transform for mark index: {} for plot: {}",
                             mark_index, plot_key
                         )),
                         )
@@ -498,7 +498,7 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "label field must be string for axis options: {} for plot: {}",
+                        "label field must be a string for axis options: {} for plot: {}",
                         axis_key, plot_key
                     )),
                 )
@@ -510,31 +510,31 @@ impl ChartYaml {
                     v,
                     None,
                     Some(format!(
-                        "anchor field must be string for axis options: {} for plot: {}",
+                        "anchor field must be a string for axis options: {} for plot: {}",
                         axis_key, plot_key
                     )),
                 )
             })
             .transpose()?;
-        let label_anchor = get_hash_value_as_option(value, "label_anchor")
+        let label_anchor = get_hash_value_as_option(value, "label-anchor")
             .map(|v| {
                 require_string(
                     v,
                     None,
                     Some(format!(
-                        "label_anchor field must be string for axis options: {} for plot: {}",
+                        "label-anchor field must be a string for axis options: {} for plot: {}",
                         axis_key, plot_key
                     )),
                 )
             })
             .transpose()?;
-        let label_arrow = get_hash_value_as_option(value, "label_arrow")
+        let label_arrow = get_hash_value_as_option(value, "label-arrow")
             .map(|v| {
                 require_string(
                     v,
                     None,
                     Some(format!(
-                        "label_arrow field must be string for axis options: {} for plot: {}",
+                        "label-arrow field must be a string for axis options: {} for plot: {}",
                         axis_key, plot_key
                     )),
                 )
@@ -572,7 +572,7 @@ impl ChartYaml {
                     let title = require_string(
                         plot_value,
                         Some("title"),
-                        Some(format!("title missing for plot: {}", plot_key)),
+                        Some(format!("title string missing for plot: {}", plot_key)),
                     )?;
                     let subtitle = optional_string(plot_value, "subtitle");
                     let marks = Self::parse_marks(plot_key, plot_value)?;
@@ -583,10 +583,10 @@ impl ChartYaml {
                         .map(|v| Self::parse_axis_options(plot_key, "y", v))
                         .transpose()?;
                     let margin = optional_string(plot_value, "margin");
-                    let margin_left = optional_string(plot_value, "margin_left");
-                    let margin_right = optional_string(plot_value, "margin_right");
-                    let margin_top = optional_string(plot_value, "margin_top");
-                    let margin_bottom = optional_string(plot_value, "margin_bottom");
+                    let margin_left = optional_string(plot_value, "margin-left");
+                    let margin_right = optional_string(plot_value, "margin-right");
+                    let margin_top = optional_string(plot_value, "margin-top");
+                    let margin_bottom = optional_string(plot_value, "margin-bottom");
                     let inset = optional_string(plot_value, "inset");
 
                     plots_map.insert(
@@ -619,7 +619,7 @@ impl ChartYaml {
                                 v,
                                 None,
                                 Some(format!(
-                                    "metric value must be a map for index {:?} in chart {:?}",
+                                    "metric field must be a map for index: {} in chart: {}",
                                     i, key
                                 )),
                             )?;
@@ -629,13 +629,13 @@ impl ChartYaml {
                                         metric_value,
                                         "label",
                                         Some(format!(
-                                            "label missing for metric index {:?} in chart {:?}",
+                                            "label field missing for metric index: {} in chart: {}",
                                             i, key
                                         )),
                                     )?,
                                     None,
                                     Some(format!(
-                                        "label must be string for metric index {:?} in chart {:?}",
+                                        "label field must be a string for metric index: {} in chart: {}",
                                         i, key
                                     )),
                                 )?,
@@ -645,31 +645,31 @@ impl ChartYaml {
                                             v,
                                             None,
                                             Some(format!(
-                                                "description must be string for metric index {:?} in chart {:?}",
+                                                "description field must be a string for metric index: {} in chart: {}",
                                                 i, key
                                             )),
                                         )
                                     })
                                     .transpose()?,
-                                    unit_prefix: get_hash_value_as_option(metric_value, "unit_prefix")
+                                    unit_prefix: get_hash_value_as_option(metric_value, "unit-prefix")
                                     .map(|v| {
                                         require_string(
                                             v,
                                             None,
                                             Some(format!(
-                                                "unit_prefix must be string for metric index {:?} in chart {:?}",
+                                                "unit-prefix field must be a string for metric index: {} in chart: {}",
                                                 i, key
                                             )),
                                         )
                                     })
                                     .transpose()?,
-                                    unit_suffix: get_hash_value_as_option(metric_value, "unit_suffix")
+                                    unit_suffix: get_hash_value_as_option(metric_value, "unit-suffix")
                                     .map(|v| {
                                         require_string(
                                             v,
                                             None,
                                             Some(format!(
-                                                "unit_suffix must be string for metric index {:?} in chart {:?}",
+                                                "unit-suffix field must be a string for metric index: {} in chart: {}",
                                                 i, key
                                             )),
                                         )
@@ -680,13 +680,13 @@ impl ChartYaml {
                                             metric_value,
                                             "value",
                                             Some(format!(
-                                                "value missing for metric index {:?} in chart {:?}",
+                                                "value field missing for metric index: {} in chart: {}",
                                                 i, key
                                             )),
                                         )?,
                                         None,
                                         Some(format!(
-                                            "value must be string for metric index {:?} in chart {:?}",
+                                            "value field must be a string for metric index: {} in chart: {}",
                                             i, key
                                         )),
                                     )?,
@@ -696,7 +696,7 @@ impl ChartYaml {
                                         v,
                                         None,
                                         Some(format!(
-                                            "precision must be string for metric index {:?} in chart {:?}",
+                                            "precision field must be a string for metric index: {} in chart: {}",
                                             i, key
                                         )),
                                     )
@@ -738,7 +738,7 @@ charts:
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("title missing for plot: plot1".to_string())
+            YamlError::ParseError("title string missing for plot: plot1".to_string())
         );
 
         let yaml = r#"
@@ -751,7 +751,7 @@ charts:
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("marks vector missing for plot: plot1".to_string())
+            YamlError::ParseError("marks list missing for plot: plot1".to_string())
         );
 
         let yaml = r#"
@@ -767,7 +767,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "each mark value must be a map for index: 0 for plot: plot1".to_string()
+                "mark value must be a map for index: 0 for plot: plot1".to_string()
             )
         );
 
@@ -785,7 +785,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "options field missing for mark index: 0 for plot: plot1".to_string()
+                "options map missing for mark index: 0 for plot: plot1".to_string()
             )
         );
 
@@ -823,7 +823,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "type field must be string for mark index: 0 for plot: plot1".to_string()
+                "type field must be a string for mark index: 0 for plot: plot1".to_string()
             )
         );
         let yaml = r#"
@@ -842,7 +842,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "type field must be string for mark index: 0 for plot: plot1".to_string()
+                "type field must be a string for mark index: 0 for plot: plot1".to_string()
             )
         );
         let yaml = r#"
@@ -967,7 +967,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label field must be string for axis options: x for plot: plot1".to_string()
+                "label field must be a string for axis options: x for plot: plot1".to_string()
             )
         );
         let yaml = r#"
@@ -987,7 +987,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label field must be string for axis options: x for plot: plot1".to_string()
+                "label field must be a string for axis options: x for plot: plot1".to_string()
             )
         );
 
@@ -1008,7 +1008,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "anchor field must be string for axis options: x for plot: plot1".to_string()
+                "anchor field must be a string for axis options: x for plot: plot1".to_string()
             )
         );
         let yaml = r#"
@@ -1028,7 +1028,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "anchor field must be string for axis options: x for plot: plot1".to_string()
+                "anchor field must be a string for axis options: x for plot: plot1".to_string()
             )
         );
 
@@ -1042,14 +1042,15 @@ charts:
                     - type: dot
                       options:
                 x:
-                    label_anchor:
+                    label-anchor:
                         - test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label_anchor field must be string for axis options: x for plot: plot1".to_string()
+                "label-anchor field must be a string for axis options: x for plot: plot1"
+                    .to_string()
             )
         );
         let yaml = r#"
@@ -1062,14 +1063,15 @@ charts:
                     - type: dot
                       options:
                 x:
-                    label_anchor:
+                    label-anchor:
                         - test: test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label_anchor field must be string for axis options: x for plot: plot1".to_string()
+                "label-anchor field must be a string for axis options: x for plot: plot1"
+                    .to_string()
             )
         );
 
@@ -1083,14 +1085,15 @@ charts:
                     - type: dot
                       options:
                 x:
-                    label_arrow:
+                    label-arrow:
                         - test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label_arrow field must be string for axis options: x for plot: plot1".to_string()
+                "label-arrow field must be a string for axis options: x for plot: plot1"
+                    .to_string()
             )
         );
         let yaml = r#"
@@ -1103,14 +1106,15 @@ charts:
                     - type: dot
                       options:
                 x:
-                    label_arrow:
+                    label-arrow:
                         - test: test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label_arrow field must be string for axis options: x for plot: plot1".to_string()
+                "label-arrow field must be a string for axis options: x for plot: plot1"
+                    .to_string()
             )
         );
 
@@ -1124,7 +1128,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "metric value must be a map for index 0 in chart \"chart1\"".to_string()
+                "metric field must be a map for index: 0 in chart: chart1".to_string()
             )
         );
 
@@ -1138,7 +1142,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label missing for metric index 0 in chart \"chart1\"".to_string()
+                "label field missing for metric index: 0 in chart: chart1".to_string()
             )
         );
         let yaml = r#"
@@ -1152,7 +1156,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label must be string for metric index 0 in chart \"chart1\"".to_string()
+                "label field must be a string for metric index: 0 in chart: chart1".to_string()
             )
         );
         let yaml = r#"
@@ -1166,7 +1170,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "label must be string for metric index 0 in chart \"chart1\"".to_string()
+                "label field must be a string for metric index: 0 in chart: chart1".to_string()
             )
         );
 
@@ -1182,7 +1186,8 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "description must be string for metric index 0 in chart \"chart1\"".to_string()
+                "description field must be a string for metric index: 0 in chart: chart1"
+                    .to_string()
             )
         );
         let yaml = r#"
@@ -1197,7 +1202,8 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "description must be string for metric index 0 in chart \"chart1\"".to_string()
+                "description field must be a string for metric index: 0 in chart: chart1"
+                    .to_string()
             )
         );
 
@@ -1206,15 +1212,15 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix:
+              unit-prefix:
                 - test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "unit_prefix must be string for metric index 0 in chart \"chart1\"".to_string()
+                "unit-prefix field must be a string for metric index: 0 in chart: chart1"
+                    .to_string()
             )
         );
         let yaml = r#"
@@ -1222,15 +1228,15 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix:
+              unit-prefix:
                 - test: test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "unit_prefix must be string for metric index 0 in chart \"chart1\"".to_string()
+                "unit-prefix field must be a string for metric index: 0 in chart: chart1"
+                    .to_string()
             )
         );
 
@@ -1239,16 +1245,15 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix:
+              unit-suffix:
                 - test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "unit_suffix must be string for metric index 0 in chart \"chart1\"".to_string()
+                "unit-suffix field must be a string for metric index: 0 in chart: chart1"
+                    .to_string()
             )
         );
         let yaml = r#"
@@ -1256,16 +1261,15 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix:
+              unit-suffix:
                 - test: test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "unit_suffix must be string for metric index 0 in chart \"chart1\"".to_string()
+                "unit-suffix field must be a string for metric index: 0 in chart: chart1"
+                    .to_string()
             )
         );
 
@@ -1274,15 +1278,12 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix: test
 "#;
         let error = ChartYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "value missing for metric index 0 in chart \"chart1\"".to_string()
+                "value field missing for metric index: 0 in chart: chart1".to_string()
             )
         );
         let yaml = r#"
@@ -1290,9 +1291,6 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix: test
               value:
                 - test
 "#;
@@ -1300,7 +1298,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "value must be string for metric index 0 in chart \"chart1\"".to_string()
+                "value field must be a string for metric index: 0 in chart: chart1".to_string()
             )
         );
         let yaml = r#"
@@ -1308,9 +1306,6 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix: test
               value:
                 - test: test
 "#;
@@ -1318,7 +1313,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "value must be string for metric index 0 in chart \"chart1\"".to_string()
+                "value field must be a string for metric index: 0 in chart: chart1".to_string()
             )
         );
 
@@ -1327,9 +1322,6 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix: test
               value: test
               precision:
                 - test
@@ -1338,7 +1330,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "precision must be string for metric index 0 in chart \"chart1\"".to_string()
+                "precision field must be a string for metric index: 0 in chart: chart1".to_string()
             )
         );
         let yaml = r#"
@@ -1346,9 +1338,6 @@ charts:
     chart1:
         metrics:
             - label: test
-              description: test
-              unit_prefix: test
-              unit_suffix: test
               value: test
               precision:
                 - test: test
@@ -1357,7 +1346,7 @@ charts:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "precision must be string for metric index 0 in chart \"chart1\"".to_string()
+                "precision field must be a string for metric index: 0 in chart: chart1".to_string()
             )
         );
     }

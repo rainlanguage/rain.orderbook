@@ -16,7 +16,7 @@ impl AccountsYaml {
                     require_string(
                         value,
                         None,
-                        Some(format!("account value must be a string for key {:?}", key)),
+                        Some(format!("account value must be a string for key: {}", key)),
                     )?,
                 );
             }
@@ -65,7 +65,7 @@ accounts:
         let error = AccountsYaml::try_from_string(&format!("{}{}", VALID_YAML, yaml)).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("account value must be a string for key \"admin\"".to_string())
+            YamlError::ParseError("account value must be a string for key: admin".to_string())
         );
 
         let yaml = r#"
@@ -76,7 +76,7 @@ accounts:
         let error = AccountsYaml::try_from_string(&format!("{}{}", VALID_YAML, yaml)).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("account value must be a string for key \"admin\"".to_string())
+            YamlError::ParseError("account value must be a string for key: admin".to_string())
         );
     }
 }

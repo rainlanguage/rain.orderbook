@@ -21,14 +21,14 @@ impl OrderbookEntryYaml {
         for (key, value) in require_hash(
             doc,
             Some("orderbooks"),
-            Some("missing field orderbooks".to_string()),
+            Some("missing field: orderbooks".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let orderbook = OrderbookEntryYaml {
                 address: require_string(
                     value,
                     Some("address"),
-                    Some(format!("address missing for orderbook: {:?}", key)),
+                    Some(format!("address string missing in orderbook: {}", key)),
                 )?,
                 network: optional_string(value, "network"),
                 subgraph: optional_string(value, "subgraph"),
@@ -44,23 +44,15 @@ impl OrderbookEntryYaml {
 mod tests {
     use super::*;
 
-    const VALID_YAML: &str = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-"#;
-
     #[test]
     fn test_orderbooks_errors() {
-        let error = OrderbookEntryYaml::try_from_string(VALID_YAML).unwrap_err();
+        let yaml = r#"
+test: test
+"#;
+        let error = OrderbookEntryYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field orderbooks".to_string())
+            YamlError::ParseError("missing field: orderbooks".to_string())
         );
 
         let yaml = r#"
@@ -68,11 +60,10 @@ orderbooks:
     book1:
         network: "mainnet"
 "#;
-        let error =
-            OrderbookEntryYaml::try_from_string(&format!("{}{}", VALID_YAML, yaml)).unwrap_err();
+        let error = OrderbookEntryYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("address missing for orderbook: \"book1\"".to_string())
+            YamlError::ParseError("address string missing in orderbook: book1".to_string())
         );
     }
 }

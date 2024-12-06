@@ -30,14 +30,14 @@ impl OrderYaml {
         for (key, value) in require_hash(
             doc,
             Some("orders"),
-            Some("missing field orders".to_string()),
+            Some("missing field: orders".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let order = OrderYaml {
                 inputs: require_vec(
                     value,
                     "inputs",
-                    Some(format!("inputs missing for order {:?}", key)),
+                    Some(format!("inputs list missing in order: {}", key)),
                 )?
                 .iter()
                 .enumerate()
@@ -47,7 +47,7 @@ impl OrderYaml {
                             input,
                             Some("token"),
                             Some(format!(
-                                "token missing in input index {:?} for order {:?}",
+                                "token string missing in input index: {} in order: {}",
                                 i, key
                             )),
                         )?,
@@ -58,7 +58,7 @@ impl OrderYaml {
                 outputs: require_vec(
                     value,
                     "outputs",
-                    Some(format!("outputs missing for order {:?}", key)),
+                    Some(format!("outputs list missing in order: {}", key)),
                 )?
                 .iter()
                 .enumerate()
@@ -68,7 +68,7 @@ impl OrderYaml {
                             output,
                             Some("token"),
                             Some(format!(
-                                "token missing in output index {:?} for order {:?}",
+                                "token string missing in output index: {} in order: {}",
                                 i, key
                             )),
                         )?,
@@ -97,7 +97,7 @@ test: test
         let error = OrderYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field orders".to_string())
+            YamlError::ParseError("missing field: orders".to_string())
         );
 
         let yaml = r#"
@@ -107,7 +107,7 @@ orders:
         let error = OrderYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("inputs missing for order \"order1\"".to_string())
+            YamlError::ParseError("inputs list missing in order: order1".to_string())
         );
 
         let yaml = r#"
@@ -120,7 +120,7 @@ orders:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "token missing in input index 0 for order \"order1\"".to_string()
+                "token string missing in input index: 0 in order: order1".to_string()
             )
         );
 
@@ -133,7 +133,7 @@ orders:
         let error = OrderYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("outputs missing for order \"order1\"".to_string())
+            YamlError::ParseError("outputs list missing in order: order1".to_string())
         );
 
         let yaml = r#"
@@ -148,7 +148,7 @@ orders:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "token missing in output index 0 for order \"order1\"".to_string()
+                "token string missing in output index: 0 in order: order1".to_string()
             )
         );
     }

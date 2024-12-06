@@ -51,92 +51,92 @@ impl GuiYaml {
 
         if let Some(gui) = optional_hash(doc, "gui") {
             let name = require_string(
-                get_hash_value(gui, "name", Some("name missing for gui".to_string()))?,
+                get_hash_value(gui, "name", Some("name field missing in gui".to_string()))?,
                 None,
-                Some("name must be a string".to_string()),
+                Some("name field must be a string in gui".to_string()),
             )?;
             let description = require_string(
                 get_hash_value(
                     gui,
                     "description",
-                    Some("description missing for gui".to_string()),
+                    Some("description field missing in gui".to_string()),
                 )?,
                 None,
-                Some("description must be a string".to_string()),
+                Some("description field must be a string in gui".to_string()),
             )?;
             let deployments = gui
                 .get(&StrictYaml::String("deployments".to_string()))
                 .ok_or(YamlError::ParseError(
-                    "deployments missing for gui".to_string(),
+                    "deployments field missing in gui".to_string(),
                 ))?
                 .as_vec()
                 .ok_or(YamlError::ParseError(
-                    "deployments must be a vector".to_string(),
+                    "deployments field must be a list in gui".to_string(),
                 ))?;
 
             let gui_deployments = deployments
                 .iter()
                 .enumerate()
-                .map(|(i, value)| {
+                .map(|(deployment_index, value)| {
                     Ok(GuiDeploymentYaml {
                         deployment: require_string(
                             value,
                             Some("deployment"),
                             Some(format!(
-                                "deployment missing for gui deployment index {:?}",
-                                i
+                                "deployment string missing for gui deployment index: {}",
+                                deployment_index
                             )),
                         )?,
                         name: require_string(
                             value,
                             Some("name"),
                             Some(format!(
-                                "name missing for gui deployment index {:?}",
-                                i
+                                "name string missing for gui deployment index: {}",
+                                deployment_index
                             )),
                         )?,
                         description: require_string(
                             value,
                             Some("description"),
                             Some(format!(
-                                "description missing for gui deployment index {:?}",
-                                i
+                                "description string missing for gui deployment index: {}",
+                                deployment_index
                             )),
                         )?,
                         deposits: require_vec(
                             value,
                             "deposits",
                             Some(format!(
-                                "deposits missing for gui deployment index {:?}",
-                                i
+                                "deposits list missing for gui deployment index: {}",
+                                deployment_index
                             )),
                         )?
                         .iter()
                         .enumerate()
-                        .map(|(deposit_i, deposit_value)| {
+                        .map(|(deposit_index, deposit_value)| {
                             Ok(GuiDepositYaml {
                                 token: require_string(
                                     deposit_value,
                                     Some("token"),
                                     Some(format!(
-                                        "token missing for deposit index {:?} in gui deployment index {:?}",
-                                        deposit_i, i
+                                        "token string missing for deposit index: {} for gui deployment index: {}",
+                                        deposit_index, deployment_index
                                     )),
                                 )?,
                                 presets: require_vec(
                                     deposit_value,
                                     "presets",
                                     Some(format!(
-                                        "presets missing for deposit index {:?} in gui deployment index {:?}",
-                                        deposit_i, i
+                                        "presets list missing for deposit index: {} for gui deployment index: {}",
+                                        deposit_index, deployment_index
                                     )),
                                 )?
                                 .iter()
                                 .enumerate()
                                 .map(|(preset_i, p)| {
                                     Ok(p.as_str().ok_or(YamlError::ParseError(format!(
-                                        "preset value must be a string for preset index {:?} in deposit index {:?} in gui deployment index {:?}",
-                                        preset_i, deposit_i, i
+                                        "preset value must be a string for preset list index: {} for deposit index: {} for gui deployment index: {}",
+                                        preset_i, deposit_index, deployment_index
                                     )))?.to_string())
                                 })
                                 .collect::<Result<Vec<_>, YamlError>>()?,
@@ -147,39 +147,43 @@ impl GuiYaml {
                             value,
                             "fields",
                             Some(format!(
-                                "fields missing for gui deployment index {:?}",
-                                i
+                                "fields list missing for gui deployment index: {}",
+                                deployment_index
                             )),
                         )?
                         .iter()
                         .enumerate()
-                        .map(|(field_i, field_value)| {
+                        .map(|(field_index, field_value)| {
                             Ok(GuiFieldDefinitionYaml {
                                 binding: require_string(
                                     field_value,
                                     Some("binding"),
                                     Some(format!(
-                                        "binding missing for field index {:?} in gui deployment index {:?}",
-                                        field_i, i
+                                        "binding string missing for field index: {} for gui deployment index: {}",
+                                        field_index, deployment_index
                                     )),
                                 )?,
                                 name: require_string(
                                     field_value,
                                     Some("name"),
                                     Some(format!(
-                                        "name missing for field index {:?} in gui deployment index {:?}",
-                                        field_i, i
+                                        "name string missing for field index: {} for gui deployment index: {}",
+                                        field_index, deployment_index
                                     )),
                                 )?,
                                 description: optional_string(field_value, "description"),
                                 presets: match optional_vec(field_value, "presets") {
-                                    Some(p) => Some(p.iter().enumerate().map(|(preset_i, preset_value)| {
+                                    Some(p) => Some(p.iter().enumerate().map(|(preset_index, preset_value)| {
                                         Ok(GuiPresetYaml {
                                             name: optional_string(preset_value, "name"),
-                                            value: require_string(preset_value, Some("value"), Some(format!(
-                                                "preset value must be a string for preset index {:?} in field index {:?} in gui deployment index {:?}",
-                                                preset_i, field_i, i
-                                            )))?,
+                                            value: require_string(
+                                                preset_value,
+                                                Some("value"),
+                                                Some(format!(
+                                                    "preset value must be a string for preset index: {} for field index: {} for gui deployment index: {}",
+                                                    preset_index, field_index, deployment_index
+                                                ))
+                                            )?,
                                         })
                                     })
                                     .collect::<Result<Vec<_>, YamlError>>()?),
@@ -193,10 +197,10 @@ impl GuiYaml {
                                 tokens
                                     .iter()
                                     .enumerate()
-                                    .map(|(select_token_i, select_token_value)| {
+                                    .map(|(select_token_index, select_token_value)| {
                                         Ok(select_token_value.as_str().ok_or(YamlError::ParseError(format!(
-                                            "select-token value must be a string for select-token index {:?} in gui deployment index {:?}",
-                                            select_token_i, i
+                                            "select-token value must be a string for select-token index: {} for gui deployment index: {}",
+                                            select_token_index, deployment_index
                                         )))?.to_string())
                                     })
                                     .collect::<Result<Vec<_>, YamlError>>()?,
@@ -231,7 +235,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name missing for gui".to_string())
+            YamlError::ParseError("name field missing in gui".to_string())
         );
         let yaml = r#"
 gui:
@@ -241,7 +245,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name must be a string".to_string())
+            YamlError::ParseError("name field must be a string in gui".to_string())
         );
         let yaml = r#"
 gui:
@@ -251,7 +255,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name must be a string".to_string())
+            YamlError::ParseError("name field must be a string in gui".to_string())
         );
 
         let yaml = r#"
@@ -261,7 +265,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description missing for gui".to_string())
+            YamlError::ParseError("description field missing in gui".to_string())
         );
         let yaml = r#"
 gui:
@@ -272,7 +276,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description must be a string".to_string())
+            YamlError::ParseError("description field must be a string in gui".to_string())
         );
         let yaml = r#"
 gui:
@@ -283,7 +287,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description must be a string".to_string())
+            YamlError::ParseError("description field must be a string in gui".to_string())
         );
 
         let yaml = r#"
@@ -294,7 +298,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments missing for gui".to_string())
+            YamlError::ParseError("deployments field missing in gui".to_string())
         );
         let yaml = r#"
 gui:
@@ -305,7 +309,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments must be a vector".to_string())
+            YamlError::ParseError("deployments field must be a list in gui".to_string())
         );
         let yaml = r#"
 gui:
@@ -317,7 +321,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments must be a vector".to_string())
+            YamlError::ParseError("deployments field must be a list in gui".to_string())
         );
 
         let yaml = r#"
@@ -330,7 +334,9 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployment missing for gui deployment index 0".to_string())
+            YamlError::ParseError(
+                "deployment string missing for gui deployment index: 0".to_string()
+            )
         );
 
         let yaml = r#"
@@ -343,7 +349,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name missing for gui deployment index 0".to_string())
+            YamlError::ParseError("name string missing for gui deployment index: 0".to_string())
         );
 
         let yaml = r#"
@@ -357,7 +363,9 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description missing for gui deployment index 0".to_string())
+            YamlError::ParseError(
+                "description string missing for gui deployment index: 0".to_string()
+            )
         );
 
         let yaml = r#"
@@ -372,7 +380,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deposits missing for gui deployment index 0".to_string())
+            YamlError::ParseError("deposits list missing for gui deployment index: 0".to_string())
         );
 
         let yaml = r#"
@@ -390,7 +398,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "token missing for deposit index 0 in gui deployment index 0".to_string()
+                "token string missing for deposit index: 0 for gui deployment index: 0".to_string()
             )
         );
 
@@ -409,7 +417,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "presets missing for deposit index 0 in gui deployment index 0".to_string()
+                "presets list missing for deposit index: 0 for gui deployment index: 0".to_string()
             )
         );
 
@@ -430,7 +438,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "preset value must be a string for preset index 0 in deposit index 0 in gui deployment index 0".to_string()
+                "preset value must be a string for preset list index: 0 for deposit index: 0 for gui deployment index: 0".to_string()
             )
         );
 
@@ -450,7 +458,7 @@ gui:
         let error = GuiYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("fields missing for gui deployment index 0".to_string())
+            YamlError::ParseError("fields list missing for gui deployment index: 0".to_string())
         );
 
         let yaml = r#"
@@ -472,7 +480,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "binding missing for field index 0 in gui deployment index 0".to_string()
+                "binding string missing for field index: 0 for gui deployment index: 0".to_string()
             )
         );
 
@@ -495,7 +503,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "name missing for field index 0 in gui deployment index 0".to_string()
+                "name string missing for field index: 0 for gui deployment index: 0".to_string()
             )
         );
 
@@ -522,7 +530,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "preset value must be a string for preset index 0 in field index 0 in gui deployment index 0".to_string()
+                "preset value must be a string for preset index: 0 for field index: 0 for gui deployment index: 0".to_string()
             )
         );
 
@@ -550,7 +558,7 @@ gui:
         assert_eq!(
             error,
             YamlError::ParseError(
-                "select-token value must be a string for select-token index 0 in gui deployment index 0".to_string()
+                "select-token value must be a string for select-token index: 0 for gui deployment index: 0".to_string()
             )
         );
     }

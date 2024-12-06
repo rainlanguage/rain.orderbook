@@ -22,19 +22,19 @@ impl NetworkYaml {
         for (key, value) in require_hash(
             doc,
             Some("networks"),
-            Some("missing field networks".to_string()),
+            Some("missing field: networks".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let network = NetworkYaml {
                 rpc: require_string(
                     value,
                     Some("rpc"),
-                    Some(format!("rpc missing for network: {:?}", key)),
+                    Some(format!("rpc string missing in network: {}", key)),
                 )?,
                 chain_id: require_string(
                     value,
                     Some("chain-id"),
-                    Some(format!("chain-id missing for network: {:?}", key)),
+                    Some(format!("chain-id string missing in network: {}", key)),
                 )?,
                 label: optional_string(value, "label"),
                 network_id: optional_string(value, "network-id"),
@@ -58,7 +58,7 @@ test: test
         let error = NetworkYaml::try_from_string(&yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field networks".to_string())
+            YamlError::ParseError("missing field: networks".to_string())
         );
 
         let yaml = r#"
@@ -68,7 +68,7 @@ networks:
         let error = NetworkYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("rpc missing for network: \"mainnet\"".to_string())
+            YamlError::ParseError("rpc string missing in network: mainnet".to_string())
         );
 
         let yaml = r#"
@@ -79,7 +79,7 @@ networks:
         let error = NetworkYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("chain-id missing for network: \"mainnet\"".to_string())
+            YamlError::ParseError("chain-id string missing in network: mainnet".to_string())
         );
     }
 }

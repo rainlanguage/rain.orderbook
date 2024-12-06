@@ -19,14 +19,14 @@ impl DeployerYaml {
         for (key, value) in require_hash(
             doc,
             Some("deployers"),
-            Some("missing field deployers".to_string()),
+            Some("missing field: deployers".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let deployer = DeployerYaml {
                 address: require_string(
                     value,
                     Some("address"),
-                    Some(format!("address missing for deployer: {:?}", key)),
+                    Some(format!("address string missing in deployer: {}", key)),
                 )?,
                 network: optional_string(value, "network"),
                 label: optional_string(value, "label"),
@@ -41,30 +41,15 @@ impl DeployerYaml {
 mod tests {
     use super::*;
 
-    const VALID_YAML: &str = r#"
-networks:
-    mainnet:
-        rpc: https://mainnet.infura.io
-        chain-id: "1"
-subgraphs:
-    main: https://api.thegraph.com/subgraphs/name/xyz
-metaboards:
-    board1: https://meta.example.com/board1
-orderbooks:
-    book1:
-        address: "0x1234"
-tokens:
-    weth:
-        network: "mainnet"
-        address: "0x5678"
-"#;
-
     #[test]
     fn test_deployers_errors() {
-        let error = DeployerYaml::try_from_string(VALID_YAML).unwrap_err();
+        let yaml = r#"
+test: test
+"#;
+        let error = DeployerYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field deployers".to_string())
+            YamlError::ParseError("missing field: deployers".to_string())
         );
 
         let yaml = r#"
@@ -72,10 +57,10 @@ deployers:
     main:
         network: "mainnet"
 "#;
-        let error = DeployerYaml::try_from_string(&format!("{}{}", VALID_YAML, yaml)).unwrap_err();
+        let error = DeployerYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("address missing for deployer: \"main\"".to_string())
+            YamlError::ParseError("address string missing in deployer: main".to_string())
         );
     }
 }

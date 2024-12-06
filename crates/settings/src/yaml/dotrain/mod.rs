@@ -125,7 +125,7 @@ charts:
                                 options:
                                     x: 1
                                     y: 2
-                                    bin_width: 3
+                                    bin-width: 3
                     - type: line
                       options:
                         x: 4
@@ -146,7 +146,7 @@ charts:
                                 options:
                                     x: 2
                                     y: 3
-                                    bin_width: 4
+                                    bin-width: 4
                     - type: recty
                       options:
                         x0: 4
@@ -156,18 +156,18 @@ charts:
                 x:
                   label: this is x
                   anchor: 1
-                  label_anchor: 2
-                  label_arrow: 3
+                  label-anchor: 2
+                  label-arrow: 3
                 y:
                   label: this is y
                   anchor: 1
-                  label_anchor: 2
-                  label_arrow: 3
+                  label-anchor: 2
+                  label-arrow: 3
                 margin: 10
-                margin_left: 20
-                margin_right: 30
-                margin_top: 40
-                margin_bottom: 50
+                margin-left: 20
+                margin-right: 30
+                margin-top: 40
+                margin-bottom: 50
                 inset: 60
 deployments:
     deployment1:

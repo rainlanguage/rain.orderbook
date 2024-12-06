@@ -14,19 +14,19 @@ impl DeploymentYaml {
         for (key, value) in require_hash(
             doc,
             Some("deployments"),
-            Some("missing field deployments".to_string()),
+            Some("missing field: deployments".to_string()),
         )? {
             let key = key.as_str().unwrap_or_default();
             let deployment = DeploymentYaml {
                 scenario: require_string(
                     value,
                     Some("scenario"),
-                    Some(format!("scenario missing for deployment {:?}", key)),
+                    Some(format!("scenario field missing in deployment: {}", key)),
                 )?,
                 order: require_string(
                     value,
                     Some("order"),
-                    Some(format!("order missing for deployment {:?}", key)),
+                    Some(format!("order field missing in deployment: {}", key)),
                 )?,
             };
             deployments.insert(key.to_string(), deployment);
@@ -47,7 +47,7 @@ test: test
         let error = DeploymentYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field deployments".to_string())
+            YamlError::ParseError("missing field: deployments".to_string())
         );
 
         let yaml = r#"
@@ -58,7 +58,7 @@ deployments:
         let error = DeploymentYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("scenario missing for deployment \"deployment1\"".to_string())
+            YamlError::ParseError("scenario field missing in deployment: deployment1".to_string())
         );
 
         let yaml = r#"
@@ -70,7 +70,7 @@ deployments:
         let error = DeploymentYaml::try_from_string(yaml).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("order missing for deployment \"deployment1\"".to_string())
+            YamlError::ParseError("order field missing in deployment: deployment1".to_string())
         );
     }
 }
