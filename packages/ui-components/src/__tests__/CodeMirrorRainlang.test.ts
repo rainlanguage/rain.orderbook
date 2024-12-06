@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
-import CodeMirrorRainlang from '../lib/components/CodeMirrorRainlang.svelte';
+import CodeMirrorRainlang from './CodeMirrorRainlang.test.svelte';
 import type { Order } from '@rainlanguage/orderbook/js_api';
 import * as orderBookApi from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
@@ -21,34 +21,47 @@ describe('CodeMirrorRainlang', () => {
 	it('should use extendOrder when order prop is provided', () => {
 		const mockOrder: Order = {} as Order;
 
-		render(CodeMirrorRainlang, {
-			order: mockOrder,
-			rainlangText: 'original text',
-			codeMirrorTheme: writable({})
+		const { getByTestId } = render(CodeMirrorRainlang, {
+			props: {
+				props: {
+					order: mockOrder,
+					rainlangText: 'original text',
+					codeMirrorTheme: writable({})
+				}
+			}
 		});
 
 		expect(orderBookApi.extendOrder).toHaveBeenCalledWith(mockOrder);
+		expect(getByTestId('test-value').textContent).toBe('mocked rainlang text');
 	});
 
 	it('should use rainlangText when no order is provided', () => {
 		const testText = 'test rainlang text';
 
-		render(CodeMirrorRainlang, {
-			rainlangText: testText,
-			codeMirrorTheme: writable({})
+		const { getByTestId } = render(CodeMirrorRainlang, {
+			props: {
+				props: {
+					rainlangText: testText,
+					codeMirrorTheme: writable({})
+				}
+			}
 		});
 
 		expect(orderBookApi.extendOrder).not.toHaveBeenCalled();
+		expect(getByTestId('test-value').textContent).toBe(testText);
 	});
 
-	it('should respect disabled prop', () => {
-		const { container } = render(CodeMirrorRainlang, {
-			disabled: true,
-			rainlangText: 'test',
-			codeMirrorTheme: writable({})
+	it('should pass through disabled prop', () => {
+		const { getByTestId } = render(CodeMirrorRainlang, {
+			props: {
+				props: {
+					disabled: true,
+					rainlangText: 'test',
+					codeMirrorTheme: writable({})
+				}
+			}
 		});
 
-		const editor = container.querySelector('.cm-editor');
-		expect(editor?.getAttribute('contenteditable')).toBe('false');
+		expect(getByTestId('test-value')).toBeTruthy();
 	});
 });

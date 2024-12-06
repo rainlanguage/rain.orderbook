@@ -12,6 +12,8 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
+	import CodeMirror from 'svelte-codemirror-editor';
+	import { RainlangLR } from 'codemirror-rainlang';
 
 	import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
@@ -43,6 +45,8 @@
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
+	let codeMirrorDisabled = true;
+	let codeMirrorStyles = {};
 
 	$: orderDetailQuery = createQuery<Order>({
 		queryKey: [id, QKEY_ORDER + id],
@@ -149,7 +153,29 @@
 		>
 			<TabItem open title="Rainlang source">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-					<CodeMirrorRainlang disabled={true} order={data} codeMirrorTheme={$codeMirrorTheme} />
+					<CodeMirrorRainlang
+						order={data}
+						codeMirrorTheme={$codeMirrorTheme}
+						disabled={codeMirrorDisabled}
+						styles={codeMirrorStyles}
+					>
+						<svelte:fragment slot="codemirror" let:value>
+							<CodeMirror
+								{value}
+								extensions={[RainlangLR]}
+								theme={codeMirrorTheme}
+								readonly={codeMirrorDisabled}
+								useTab={true}
+								tabSize={2}
+								styles={{
+									'&': {
+										width: '100%'
+									},
+									...codeMirrorStyles
+								}}
+							/>
+						</svelte:fragment>
+					</CodeMirrorRainlang>
 				</div>
 			</TabItem>
 			<TabItem title="Trades">
