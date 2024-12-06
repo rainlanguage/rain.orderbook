@@ -4,7 +4,6 @@ import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { RainEvalResultsTable } from '$lib/typeshare/config';
 
-
 export async function debugOrderQuote(
   order: Order,
   inputIOIndex: number,

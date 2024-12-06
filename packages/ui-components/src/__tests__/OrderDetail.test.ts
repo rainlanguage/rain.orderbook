@@ -9,7 +9,6 @@ const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-
 const mockOrder: Order = {
 	id: 'mockId',
 	owner: 'mockOwner',
