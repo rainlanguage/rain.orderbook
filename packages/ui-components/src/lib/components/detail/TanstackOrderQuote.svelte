@@ -167,7 +167,7 @@
 												item.pair.inputIndex,
 												item.pair.outputIndex,
 												item.pair.pairName,
-												parseInt($orderQuoteQuery.data[0].block_number)
+												$orderQuoteQuery.data[0].blockNumber
 											)}
 									>
 										<BugOutline size="sm" color="grey" />

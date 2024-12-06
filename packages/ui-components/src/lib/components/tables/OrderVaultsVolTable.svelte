@@ -8,6 +8,7 @@
 	import { formatUnits } from 'viem';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 	import { bigintStringToHex } from '../../utils/hex';
+	import type { VaultVolume } from '$lib/typeshare/subgraphTypes';
 
 	export let id: string;
 	export let subgraphUrl: string;
@@ -15,9 +16,12 @@
 	let startTimestamp: number | undefined;
 	let endTimestamp: number | undefined;
 
-	$: vaultsVol = createInfiniteQuery({
+	$: queryStartTime = startTimestamp ? BigInt(startTimestamp) : undefined;
+	$: queryEndTime = endTimestamp ? BigInt(endTimestamp) : undefined;
+
+	$: vaultsVol = createInfiniteQuery<VaultVolume[]>({
 		queryKey: [id, QKEY_VAULTS_VOL_LIST + id],
-		queryFn: () => getOrderVaultsVolume(subgraphUrl || '', id, startTimestamp, endTimestamp),
+		queryFn: () => getOrderVaultsVolume(subgraphUrl || '', id, queryStartTime, queryEndTime),
 		initialPageParam: 0,
 		getNextPageParam: () => undefined,
 		enabled: !!subgraphUrl

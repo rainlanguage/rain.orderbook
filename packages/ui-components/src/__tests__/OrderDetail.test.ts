@@ -14,16 +14,12 @@ const mockOrder: Order = {
 	owner: 'mockOwner',
 	orderHash: 'mockOrderHash',
 	active: true,
-	// Minimum required properties to satisfy Order type
 	meta: '0x',
 	timestampAdded: '1234567890',
-	expression: '0x',
-	interpreter: '0x',
-	dispatch: '0x',
 	orderbook: { id: '1' },
 	inputs: [],
 	outputs: []
-};
+} as unknown as Order;
 
 vi.mock('@tanstack/svelte-query');
 
