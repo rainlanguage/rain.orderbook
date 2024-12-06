@@ -29,7 +29,7 @@
     queryFn: () => {
       return orderDetail(id, subgraphUrl || '');
     },
-    enabled: !! subgraphUrl,
+    enabled: !!subgraphUrl,
   });
 
   const interval = setInterval(async () => {

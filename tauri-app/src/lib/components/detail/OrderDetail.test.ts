@@ -107,7 +107,7 @@ test('shows the correct data when the query returns data', async () => {
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: mockData.order.id, network: 'mainnet'},
+    props: { id: mockData.order.id, network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
