@@ -13,7 +13,7 @@
   import { vaultDetail } from '$lib/queries/vaultDetail';
   import { QKEY_VAULT } from '@rainlanguage/ui-components';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
-  import TanstackContentDetail from '$lib/components/detail/TanstackPageContentDetail.svelte';
+  import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
   import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
@@ -46,7 +46,7 @@
   });
 </script>
 
-<TanstackContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
+<TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
   <svelte:fragment slot="top" let:data>
     <div
       data-testid="vaultDetailTokenName"
@@ -158,4 +158,4 @@
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>
-</TanstackContentDetail>
+</TanstackPageContentDetail>

@@ -6,23 +6,24 @@
   import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import { ButtonVaultLink } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
+
   import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
-  import { handleOrderRemoveModal } from '$lib/services/modal';
+  import { settings } from '$lib/stores/settings';
+  import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
+  import { handleOrderRemoveModal, handleDebugTradeModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
   import { QKEY_ORDER } from '@rainlanguage/ui-components';
   import { orderDetail } from '$lib/queries/orderDetail';
-  import OrderTradesListTable from '../tables/OrderTradesListTable.svelte';
-  import OrderTradesChart from '../charts/OrderTradesChart.svelte';
+  import { OrderTradesListTable } from '@rainlanguage/ui-components';
+  import { OrderTradesChart } from '@rainlanguage/ui-components';
   import OrderQuote from '../detail/TanstackOrderQuote.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
-  import { settings } from '$lib/stores/settings';
-
-  export let id: string;
-  export let network: string;
+  import { colorTheme, lightweightChartsTheme } from '$lib/stores/darkMode';
+  export let id, network;
   const subgraphUrl = $settings?.subgraphs?.[network] || '';
+  const rpcUrl = $settings?.networks?.[network]?.rpc || '';
 
   $: orderDetailQuery = createQuery({
     queryKey: [id, QKEY_ORDER + id],
@@ -118,7 +119,7 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="chart">
-    <OrderTradesChart {id} />
+    <OrderTradesChart {id} {subgraphUrl} {colorTheme} {lightweightChartsTheme} />
   </svelte:fragment>
   <svelte:fragment slot="below" let:data>
     <OrderQuote {id} order={data.order} />
@@ -139,7 +140,7 @@
         {/if}
       </TabItem>
       <TabItem title="Trades">
-        <OrderTradesListTable {id} />
+        <OrderTradesListTable {id} {subgraphUrl} {rpcUrl} {handleDebugTradeModal} />
       </TabItem>
       <TabItem title="Volume">
         <OrderVaultsVolTable {id} />
