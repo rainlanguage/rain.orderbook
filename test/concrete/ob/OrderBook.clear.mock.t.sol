@@ -220,18 +220,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             vm.prank(bountyBot);
             iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
-        // No changes to Alice's or Bob's balances due to zero ratio
+
+        //Check that the entire output vault balances have been transferred to the bounty bot
         assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0
+            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId), 0
         );
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
-            amount
-        );
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0);
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), amount
-        );
+        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), 0);
+        assertEq(iOrderbook.vaultBalance(bountyBot, aliceConfig.validOutputs[0].token, aliceBountyVaultId), amount);
+        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), amount);
     }
 
     /// Make a deposit to the OB mocking the internal transferFrom call.
