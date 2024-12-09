@@ -1,0 +1,16 @@
+[package]
+name = "rain_orderbook_analytics"
+description = "Rain Orderbook Analytics."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+
+[dependencies]
+async-trait = "0.1.77"
+anyhow = { workspace = true }
+rain_orderbook_subgraph_client = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+reqwest = { workspace = true }
