@@ -58,6 +58,24 @@ impl NetworkYaml {
             .clone();
         Ok(network)
     }
+
+    pub fn update_network_rpc(
+        source: &str,
+        key: &str,
+        rpc: &str,
+    ) -> Result<HashMap<String, NetworkYaml>, YamlError> {
+        let mut networks = NetworkYaml::try_from_string(source)?;
+        let network = networks
+            .get_mut(key)
+            .ok_or(YamlError::KeyNotFound(key.to_string()))?;
+        network.rpc = rpc.to_string();
+        Ok(networks)
+    }
+
+    pub fn from<T: Serialize>(data: T) -> Result<HashMap<String, NetworkYaml>, YamlError> {
+        let yaml_str = serde_yaml::to_string(&data).map_err(|_| YamlError::ConvertError)?;
+        NetworkYaml::try_from_string(&yaml_str)
+    }
 }
 
 #[cfg(test)]

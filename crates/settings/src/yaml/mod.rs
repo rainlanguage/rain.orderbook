@@ -20,6 +20,8 @@ pub enum YamlError {
     MissingCustomMsg,
     #[error("Key not found: {0}")]
     KeyNotFound(String),
+    #[error("Error while converting to yaml string")]
+    ConvertError,
     #[error(transparent)]
     ParseNetworkYamlError(#[from] ParseNetworkYamlError),
 }
