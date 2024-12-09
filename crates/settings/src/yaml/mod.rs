@@ -1,3 +1,4 @@
+use crate::ParseNetworkYamlError;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
     ScanError, StrictYaml, StrictYamlLoader,
@@ -17,6 +18,10 @@ pub enum YamlError {
     ParseError(String),
     #[error("Missing custom message")]
     MissingCustomMsg,
+    #[error("Key not found: {0}")]
+    KeyNotFound(String),
+    #[error(transparent)]
+    ParseNetworkYamlError(#[from] ParseNetworkYamlError),
 }
 
 pub fn load_yaml(yaml: &str) -> Result<StrictYaml, YamlError> {

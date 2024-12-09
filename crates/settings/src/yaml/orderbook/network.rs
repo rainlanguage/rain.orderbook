@@ -44,6 +44,20 @@ impl NetworkYaml {
         }
         Ok(networks)
     }
+
+    pub fn get_network_keys(source: &str) -> Result<Vec<String>, YamlError> {
+        let networks = NetworkYaml::try_from_string(source)?;
+        Ok(networks.keys().cloned().collect())
+    }
+
+    pub fn get_network(source: &str, key: &str) -> Result<NetworkYaml, YamlError> {
+        let networks = NetworkYaml::try_from_string(source)?;
+        let network = networks
+            .get(key)
+            .ok_or(YamlError::KeyNotFound(key.to_string()))?
+            .clone();
+        Ok(network)
+    }
 }
 
 #[cfg(test)]
