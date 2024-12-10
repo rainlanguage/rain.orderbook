@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { TextFileStore } from '$lib/storesGeneric/textFileStore';
-  import ButtonLoading from './ButtonLoading.svelte';
+  import { ButtonLoading } from '@rainlanguage/ui-components';
 
   export let textFile: TextFileStore;
 </script>
