@@ -1,7 +1,11 @@
-use crate::config_source::*;
 use crate::yaml::orderbook::network::NetworkYaml;
+use crate::{config_source::*, yaml::YamlError};
 use serde::{Deserialize, Serialize};
-use std::num::ParseIntError;
+use std::{
+    num::ParseIntError,
+    sync::{Arc, RwLock},
+};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use url::{ParseError, Url};
@@ -10,10 +14,13 @@ use url::{ParseError, Url};
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
+#[serde(default)]
 pub struct Network {
+    #[serde(skip)]
+    pub document: Arc<RwLock<StrictYaml>>,
     pub name: String,
     #[typeshare(typescript(type = "string"))]
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
@@ -28,6 +35,7 @@ pub struct Network {
 impl Network {
     pub fn dummy() -> Self {
         Network {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             name: "".to_string(),
             rpc: Url::parse("http://rpc.com").unwrap(),
             chain_id: 1,
@@ -36,9 +44,31 @@ impl Network {
             currency: None,
         }
     }
+
+    pub fn update_rpc(&mut self, rpc: &str) -> Result<(), YamlError> {
+        self.rpc = Url::parse(rpc).map_err(ParseNetworkYamlError::RpcParseError)?;
+        NetworkYaml::update_rpc(&self.document, &self.name, rpc)?;
+        Ok(())
+    }
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);
+
+impl Default for Network {
+    fn default() -> Self {
+        Network::dummy()
+    }
+}
+impl PartialEq for Network {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.rpc == other.rpc
+            && self.chain_id == other.chain_id
+            && self.label == other.label
+            && self.network_id == other.network_id
+            && self.currency == other.currency
+    }
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseNetworkConfigSourceError {
@@ -53,6 +83,7 @@ pub enum ParseNetworkConfigSourceError {
 impl NetworkConfigSource {
     pub fn try_into_network(self, name: String) -> Result<Network, ParseNetworkConfigSourceError> {
         Ok(Network {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             name,
             rpc: self.rpc,
             chain_id: self.chain_id,
@@ -75,6 +106,7 @@ pub enum ParseNetworkYamlError {
 impl NetworkYaml {
     pub fn try_into_network(self, name: &str) -> Result<Network, ParseNetworkYamlError> {
         Ok(Network {
+            document: self.document,
             name: name.to_string(),
             rpc: Url::parse(&self.rpc).map_err(ParseNetworkYamlError::RpcParseError)?,
             chain_id: self
@@ -122,6 +154,7 @@ mod tests {
     #[test]
     fn test_try_from_network_yaml_success() {
         let network_yaml = NetworkYaml {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             rpc: "http://127.0.0.1:8545".to_string(),
             chain_id: "1".to_string(),
             label: Some("Local Testnet".into()),

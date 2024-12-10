@@ -1,17 +1,25 @@
+use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
+
 use crate::ParseNetworkYamlError;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
-    ScanError, StrictYaml, StrictYamlLoader,
+    EmitError, ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
 
-pub mod dotrain;
+// pub mod dotrain;
 pub mod orderbook;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum YamlError {
     #[error(transparent)]
     ScanError(#[from] ScanError),
+    #[error(transparent)]
+    EmitError(#[from] EmitError),
+    #[error(transparent)]
+    RwLockReadGuardError(#[from] PoisonError<RwLockReadGuard<'static, StrictYaml>>),
+    #[error(transparent)]
+    RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
     #[error("Yaml file is empty")]
     EmptyFile,
     #[error("Yaml parse error: {0}")]
@@ -22,8 +30,28 @@ pub enum YamlError {
     KeyNotFound(String),
     #[error("Error while converting to yaml string")]
     ConvertError,
+    #[error("Document read lock error")]
+    ReadLockError,
+    #[error("Document write lock error")]
+    WriteLockError,
     #[error(transparent)]
     ParseNetworkYamlError(#[from] ParseNetworkYamlError),
+}
+impl PartialEq for YamlError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::ScanError(a), Self::ScanError(b)) => a == b,
+            (Self::EmptyFile, Self::EmptyFile) => true,
+            (Self::ParseError(a), Self::ParseError(b)) => a == b,
+            (Self::MissingCustomMsg, Self::MissingCustomMsg) => true,
+            (Self::KeyNotFound(a), Self::KeyNotFound(b)) => a == b,
+            (Self::ConvertError, Self::ConvertError) => true,
+            (Self::ReadLockError, Self::ReadLockError) => true,
+            (Self::WriteLockError, Self::WriteLockError) => true,
+            (Self::ParseNetworkYamlError(a), Self::ParseNetworkYamlError(b)) => a == b,
+            _ => false,
+        }
+    }
 }
 
 pub fn load_yaml(yaml: &str) -> Result<StrictYaml, YamlError> {
