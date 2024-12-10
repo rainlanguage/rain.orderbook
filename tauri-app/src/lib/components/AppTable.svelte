@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
   import { Spinner, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
   import { FileCsvOutline } from 'flowbite-svelte-icons';
-  import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
+  import { ButtonsPagination } from '@rainlanguage/ui-components';
   import type { ListStore } from '$lib/storesGeneric/listStore';
   import ButtonLoading from './ButtonLoading.svelte';
   import { createEventDispatcher } from 'svelte';
