@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import VaultBalanceChart from './VaultBalanceChart.svelte';
+import VaultBalanceChart from '@rainlanguage/ui-components/src/lib/components/charts/VaultBalanceChart.svelte';
 import { timestampSecondsToUTCTimestamp } from '@rainlanguage/ui-components';
 import { bigintToFloat } from '$lib/utils/number';
 import type { Vault } from '$lib/typeshare/subgraphTypes';

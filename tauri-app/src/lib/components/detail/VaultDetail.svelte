@@ -8,13 +8,13 @@
   import { goto } from '$app/navigation';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
   import { CardProperty } from '@rainlanguage/ui-components';
+  import { VaultBalanceChart } from '@rainlanguage/ui-components';
   import { formatUnits } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultDetail } from '$lib/queries/vaultDetail';
   import { QKEY_VAULT } from '@rainlanguage/ui-components';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
-  import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import { settings } from '$lib/stores/settings';
@@ -154,7 +154,7 @@
   </svelte:fragment>
 
   <svelte:fragment slot="chart" let:data>
-    <VaultBalanceChart vault={data} />
+    <VaultBalanceChart vault={data} {subgraphUrl} />
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>

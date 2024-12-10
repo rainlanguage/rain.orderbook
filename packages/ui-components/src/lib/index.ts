@@ -32,6 +32,7 @@ export { default as EditableSpan } from './components/EditableSpan.svelte';
 export { default as BlockQuote } from './components/BlockQuote.svelte';
 export { default as Heading } from './components/Heading.svelte';
 export { default as Text } from './components/Text.svelte';
+export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
