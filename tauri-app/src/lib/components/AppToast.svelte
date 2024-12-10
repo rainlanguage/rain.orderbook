@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Toast } from 'flowbite-svelte';
   import IconSuccess from '$lib/components/IconSuccess.svelte';
-  import IconError from '$lib/components/IconError.svelte';
+  import { IconError } from '@rainlanguage/ui-components';
   import IconWarning from '$lib/components/IconWarning.svelte';
   import IconInfo from '$lib/components/IconInfo.svelte';
   import CloseSolid from 'flowbite-svelte-icons/CloseSolid.svelte';
