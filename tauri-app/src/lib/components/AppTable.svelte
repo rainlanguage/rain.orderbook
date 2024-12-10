@@ -3,7 +3,7 @@
   import { FileCsvOutline } from 'flowbite-svelte-icons';
   import ButtonsPagination from '$lib/components/ButtonsPagination.svelte';
   import type { ListStore } from '$lib/storesGeneric/listStore';
-  import ButtonLoading from './ButtonLoading.svelte';
+  import { ButtonLoading } from '@rainlanguage/ui-components';
   import { createEventDispatcher } from 'svelte';
 
   const dispatch = createEventDispatcher();

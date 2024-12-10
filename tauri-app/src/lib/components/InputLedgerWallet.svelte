@@ -7,7 +7,7 @@
   import { reportErrorToSentry } from '$lib/services/sentry';
   import IconWarning from '$lib/components/IconWarning.svelte';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-  import ButtonLoading from './ButtonLoading.svelte';
+  import { ButtonLoading } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
 
   const maskOptions = {
