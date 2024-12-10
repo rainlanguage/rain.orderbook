@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { timestampSecondsToUTCTimestamp } from '../../utils/time';
 	import { bigintToFloat } from 'tauri-app/src/lib/utils/number.ts';
-	import type { Vault } from 'tauri-app/src/lib/typeshare/subgraphTypes.ts';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { vaultBalanceChangesList } from 'tauri-app/src/lib/queries/vaultBalanceChangesList.ts';
 	import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
-	import { lightweightChartsTheme } from 'tauri-app/src/lib/stores/darkMode.ts';
-	export let vault: Vault;
+	import type {Readable} from "svelte/store";
+	export let vault;
 	export let subgraphUrl: string;
-
+	export let lightweightChartsTheme: Readable<Record<string, unknown>>;
 	$: query = createQuery({
 		queryKey: [QKEY_VAULT_CHANGES, vault.id],
 		queryFn: () => {

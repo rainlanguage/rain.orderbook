@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation';
   import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
   import { CardProperty } from '@rainlanguage/ui-components';
-  import { VaultBalanceChart } from '@rainlanguage/ui-components';
+  import { VaultBalanceChart, lightweightChartsTheme } from '@rainlanguage/ui-components';
   import { formatUnits } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';
   import { vaultDetail } from '$lib/queries/vaultDetail';
@@ -154,7 +154,7 @@
   </svelte:fragment>
 
   <svelte:fragment slot="chart" let:data>
-    <VaultBalanceChart vault={data} {subgraphUrl} />
+    <VaultBalanceChart vault={data} {subgraphUrl} {lightweightChartsTheme} />
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>
