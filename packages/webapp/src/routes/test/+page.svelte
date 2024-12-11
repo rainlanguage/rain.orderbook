@@ -8,7 +8,7 @@
 		IconWalletConnect,
 		IconWarning,
 		IconExternalLink
-	} from "@rainlanguage/ui-components";
+	} from '@rainlanguage/ui-components';
 	let isLoading: boolean = true;
 </script>
 
@@ -18,10 +18,10 @@
 	>
 	<IconError />
 	<IconExternalLink svgClass="!h-2 !w-2 mr-1" />
-	<IconInfo/>
-	<IconLedger/>
-	<IconSuccess/>
-	<IconTelegram/>
-	<IconWalletConnect/>
-	<IconWarning/>
+	<IconInfo />
+	<IconLedger />
+	<IconSuccess />
+	<IconTelegram />
+	<IconWalletConnect />
+	<IconWarning />
 </div>
