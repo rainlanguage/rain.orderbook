@@ -1,5 +1,5 @@
 <script lang="ts">
-	import icon from '../../../../../tauri-app/src/lib/assets/walletconnect.svg?raw';
+	import icon from '$lib/assets/walletconnect.svg?raw';
 </script>
 
 <!-- eslint-disable-next-line svelte/no-at-html-tags -->

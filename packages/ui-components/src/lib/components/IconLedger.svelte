@@ -1,5 +1,5 @@
 <script lang="ts">
-	import icon from '../../../../../tauri-app/src/lib/assets/ledger.svg?raw';
+	import icon from '$lib/assets/ledger.svg?raw';
 </script>
 
 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
