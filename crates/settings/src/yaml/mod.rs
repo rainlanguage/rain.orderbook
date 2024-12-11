@@ -1,6 +1,6 @@
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::ParseNetworkYamlError;
+use crate::ParseNetworkConfigSourceError;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
     EmitError, ScanError, StrictYaml, StrictYamlLoader,
@@ -35,7 +35,7 @@ pub enum YamlError {
     #[error("Document write lock error")]
     WriteLockError,
     #[error(transparent)]
-    ParseNetworkYamlError(#[from] ParseNetworkYamlError),
+    ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -48,7 +48,9 @@ impl PartialEq for YamlError {
             (Self::ConvertError, Self::ConvertError) => true,
             (Self::ReadLockError, Self::ReadLockError) => true,
             (Self::WriteLockError, Self::WriteLockError) => true,
-            (Self::ParseNetworkYamlError(a), Self::ParseNetworkYamlError(b)) => a == b,
+            (Self::ParseNetworkConfigSourceError(a), Self::ParseNetworkConfigSourceError(b)) => {
+                a == b
+            }
             _ => false,
         }
     }
