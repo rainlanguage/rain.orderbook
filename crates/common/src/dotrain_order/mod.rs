@@ -282,8 +282,8 @@ impl DotrainOrder {
         let metaboard = self
             .config
             .metaboards
-            .get(&network.name)
-            .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network.name.clone()))?
+            .get(&network.key)
+            .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network.key.clone()))?
             .clone();
         Ok(
             AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())

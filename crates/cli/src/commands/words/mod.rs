@@ -111,7 +111,7 @@ impl Execute for Words {
                     order
                         .config()
                         .metaboards
-                        .get(&deployer.network.name)
+                        .get(&deployer.network.key)
                         .map(|v| v.to_string())
                 })
                 .ok_or(anyhow!("undefined metaboard subgraph url"))?;
@@ -133,7 +133,7 @@ impl Execute for Words {
                     .ok_or(anyhow!("undefined scenario"))?
                     .deployer
                     .network
-                    .name
+                    .key
                     .clone();
                 order
                     .config_mut()
@@ -187,11 +187,11 @@ impl Execute for Words {
 
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
-                let network_name = deployment.scenario.deployer.network.name.clone();
+                let network_key = deployment.scenario.deployer.network.key.clone();
                 order
                     .config_mut()
                     .metaboards
-                    .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
+                    .insert(network_key.to_string(), Arc::new(Url::from_str(v)?));
             }
             let result = order.get_all_words_for_scenario(&scenario).await?;
             let mut words = vec![];
