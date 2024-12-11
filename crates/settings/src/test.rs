@@ -1,10 +1,12 @@
 use crate::*;
 use alloy::primitives::Address;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::StrictYaml;
 
 // Helper function to create a mock network
 pub fn mock_network() -> Arc<Network> {
     Arc::new(Network {
+        document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         name: "local".into(),
         rpc: ("http://127.0.0.1:8545").parse().unwrap(),
         chain_id: 1,

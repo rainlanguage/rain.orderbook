@@ -329,7 +329,8 @@ mod tests {
         token::Token,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
-    use std::sync::Arc;
+    use std::sync::{Arc, RwLock};
+    use strict_yaml_rust::StrictYaml;
     use url::Url;
 
     #[test]
@@ -428,6 +429,7 @@ price: 2e18;
     #[tokio::test]
     async fn test_add_order_random_vault_id_generation() {
         let network = Network {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             name: "test-network".to_string(),
             rpc: Url::parse("https://some-rpc.com").unwrap(),
             chain_id: 137,
@@ -526,6 +528,7 @@ _ _: 0 0;
     async fn test_into_add_order_call() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
         let network = Network {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             name: "test-network".to_string(),
             rpc: Url::parse(&local_evm.url()).unwrap(),
             chain_id: 137,
@@ -658,6 +661,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_add_order_post_action() {
         let network = Network {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             name: "test-network".to_string(),
             rpc: Url::parse("https://some-rpc.com").unwrap(),
             chain_id: 137,
