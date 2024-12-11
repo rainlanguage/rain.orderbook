@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import { ButtonLoading } from '@rainlanguage/ui-components';
   import { settings } from '$lib/stores/settings';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
