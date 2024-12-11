@@ -6,6 +6,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { formatEther } from 'viem';
 import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
+import type { Order } from '@rainlanguage/orderbook/js_api';
 
 test('renders table with the correct data', async () => {
   const queryClient = new QueryClient();
@@ -32,7 +33,7 @@ test('renders table with the correct data', async () => {
         addEvents: [],
         timestampAdded: '123',
         trades: [],
-      },
+      } as unknown as Order,
       rpcUrl: 'https://rpc-url.com',
       inputIOIndex: 0,
       outputIOIndex: 0,
