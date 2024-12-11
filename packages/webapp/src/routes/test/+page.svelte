@@ -21,7 +21,7 @@
 	<IconInfo />
 	<IconLedger />
 	<IconSuccess />
-	<IconTelegram />
+	<IconTelegram dark/>
 	<IconWalletConnect />
 	<IconWarning />
 </div>
