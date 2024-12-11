@@ -35,6 +35,7 @@ export { default as Text } from './components/Text.svelte';
 export { default as DropdownProperty } from './components/DropdownProperty.svelte';
 export { default as IconError } from './components/IconError.svelte';
 export { default as ButtonLoading } from './components/ButtonLoading.svelte';
+export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
