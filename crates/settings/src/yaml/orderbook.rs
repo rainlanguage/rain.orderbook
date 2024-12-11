@@ -35,7 +35,7 @@ impl OrderbookYaml {
         let networks = Network::parse_all_from_yaml(self.document.clone())?;
         Ok(networks.keys().cloned().collect())
     }
-    pub fn get_network<'a>(&'a self, key: &str) -> Result<Network, YamlError> {
+    pub fn get_network(&self, key: &str) -> Result<Network, YamlError> {
         let networks = Network::parse_all_from_yaml(self.document.clone())?;
         let network = networks
             .get(key)
