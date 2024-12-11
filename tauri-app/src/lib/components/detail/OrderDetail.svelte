@@ -6,10 +6,9 @@
   import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import { ButtonVaultLink } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
-
-  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
+  import { codeMirrorTheme } from '$lib/stores/darkMode';
   import { settings } from '$lib/stores/settings';
-  import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
+  import { TanstackPageContentDetail, CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal, handleDebugTradeModal } from '$lib/services/modal';
   import { createQuery } from '@tanstack/svelte-query';
   import { QKEY_ORDER } from '@rainlanguage/ui-components';
@@ -131,7 +130,11 @@
       <TabItem open title="Rainlang source">
         {#if data.rainlang}
           <div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
-            <CodeMirrorRainlang disabled={true} value={data.rainlang} />
+            <CodeMirrorRainlang
+              disabled={true}
+              value={data.rainlang}
+              codeMirrorTheme={$codeMirrorTheme}
+            />
           </div>
         {:else}
           <div class="w-full tracking-tight text-gray-900 dark:text-white">

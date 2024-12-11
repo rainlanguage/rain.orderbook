@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { PageHeader } from '@rainlanguage/ui-components';
-  import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
-  import { ButtonLoading } from '@rainlanguage/ui-components';
+  import { PageHeader, CodeMirrorDotrain, ButtonLoading } from '@rainlanguage/ui-components';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
@@ -25,8 +23,7 @@
   } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import { promiseTimeout } from '@rainlanguage/ui-components';
+  import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
   import {
@@ -40,6 +37,7 @@
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
+  import { codeMirrorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -220,6 +218,7 @@
 
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
+      codeMirrorTheme={$codeMirrorTheme}
       bind:value={$globalDotrainFile.text}
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
@@ -274,7 +273,11 @@
       >
         {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
           <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
-            <CodeMirrorRainlang bind:value={rainlangText} disabled={true} />
+            <CodeMirrorRainlang
+              bind:value={rainlangText}
+              disabled={true}
+              codeMirrorTheme={$codeMirrorTheme}
+            />
           </TabItem>
         {/each}
       </Tabs>
