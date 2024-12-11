@@ -1,4 +1,4 @@
-use crate::yaml::{optional_string, require_hash, require_string};
+use crate::yaml::{optional_string, require_hash, require_string, YamlParseable};
 use crate::{config_source::*, yaml::YamlError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -47,53 +47,6 @@ impl Network {
         }
     }
 
-    pub fn parse_networks_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<HashMap<String, Network>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-
-        let networks_hash = require_hash(
-            &document_read,
-            Some("networks"),
-            Some("missing field: networks".to_string()),
-        )?;
-
-        let networks = networks_hash
-            .into_iter()
-            .map(|(key, value)| {
-                let key = key.as_str().unwrap_or_default().to_string();
-                let network = Network {
-                    document: document.clone(),
-                    key: key.clone(),
-                    rpc: Url::from_str(&require_string(
-                        &value,
-                        Some("rpc"),
-                        Some(format!("rpc string missing in network: {key}")),
-                    )?)
-                    .map_err(|e| ParseNetworkConfigSourceError::RpcParseError(e))?,
-                    chain_id: require_string(
-                        &value,
-                        Some("chain-id"),
-                        Some(format!(
-                            "chain-id number as string missing in network: {key}"
-                        )),
-                    )?
-                    .parse::<u64>()
-                    .map_err(ParseNetworkConfigSourceError::ChainIdParseError)?,
-                    label: optional_string(&value, "label"),
-                    network_id: optional_string(&value, "network-id")
-                        .map(|id| id.parse::<u64>())
-                        .transpose()
-                        .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)?,
-                    currency: optional_string(&value, "currency"),
-                };
-                Ok((key, network))
-            })
-            .collect::<Result<HashMap<_, _>, YamlError>>()?;
-
-        Ok(networks)
-    }
-
     pub fn update_rpc(&mut self, rpc: &str) -> Result<(), YamlError> {
         let mut document = self
             .document
@@ -130,6 +83,63 @@ impl Network {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);
 
+impl YamlParseable for Network {
+    type Collection = HashMap<String, Network>;
+    type Item = Network;
+
+    fn parse_all_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Self::Collection, YamlError> {
+        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+        let networks_hash = require_hash(
+            &document_read,
+            Some("networks"),
+            Some("missing field: networks".to_string()),
+        )?;
+
+        networks_hash
+            .into_iter()
+            .map(|(key, value)| {
+                let key = key.as_str().unwrap_or_default().to_string();
+                let network = Self::parse_from_yaml(document.clone(), key.clone(), value)?;
+                Ok((key, network))
+            })
+            .collect()
+    }
+
+    fn parse_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        key: String,
+        value: &StrictYaml,
+    ) -> Result<Self::Item, YamlError> {
+        Ok(Network {
+            document,
+            key: key.clone(),
+            rpc: Url::from_str(&require_string(
+                value,
+                Some("rpc"),
+                Some(format!("rpc string missing in network: {key}")),
+            )?)
+            .map_err(|e| ParseNetworkConfigSourceError::RpcParseError(e))?,
+            chain_id: require_string(
+                value,
+                Some("chain-id"),
+                Some(format!(
+                    "chain-id number as string missing in network: {key}"
+                )),
+            )?
+            .parse::<u64>()
+            .map_err(ParseNetworkConfigSourceError::ChainIdParseError)?,
+            label: optional_string(value, "label"),
+            network_id: optional_string(value, "network-id")
+                .map(|id| id.parse::<u64>())
+                .transpose()
+                .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)?,
+            currency: optional_string(value, "currency"),
+        })
+    }
+}
 impl Default for Network {
     fn default() -> Self {
         Network::dummy()
@@ -208,7 +218,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Network::parse_networks_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -218,7 +228,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = Network::parse_networks_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("rpc string missing in network: mainnet".to_string())
@@ -229,10 +239,12 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = Network::parse_networks_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("chain-id string missing in network: mainnet".to_string())
+            YamlError::ParseError(
+                "chain-id number as string missing in network: mainnet".to_string()
+            )
         );
     }
 }

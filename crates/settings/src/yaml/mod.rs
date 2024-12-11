@@ -1,12 +1,28 @@
 pub mod orderbook;
 
 use crate::ParseNetworkConfigSourceError;
+use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
     EmitError, ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
+
+pub trait YamlParseable {
+    type Collection;
+    type Item;
+
+    fn parse_all_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Self::Collection, YamlError>;
+
+    fn parse_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        key: String,
+        value: &StrictYaml,
+    ) -> Result<Self::Item, YamlError>;
+}
 
 #[derive(Debug, Error)]
 pub enum YamlError {

@@ -18,14 +18,7 @@ impl OrderbookYaml {
         let document = Arc::new(RwLock::new(doc));
 
         if validate {
-            Network::parse_networks_from_yaml(document.clone())?;
-            //     SubgraphsYaml::try_from_string(&source)?;
-            //     MetaboardsYaml::try_from_string(&source)?;
-            //     OrderbookEntryYaml::try_from_string(&source)?;
-            //     TokenYaml::try_from_string(&source)?;
-            //     DeployerYaml::try_from_string(&source)?;
-            //     AccountsYaml::try_from_string(&source)?;
-            //     SentryYaml::try_from_string(&source)?;
+            Network::parse_all_from_yaml(document.clone())?;
         }
         Ok(OrderbookYaml { document })
     }
@@ -39,11 +32,11 @@ impl OrderbookYaml {
     }
 
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let networks = Network::parse_networks_from_yaml(self.document.clone())?;
+        let networks = Network::parse_all_from_yaml(self.document.clone())?;
         Ok(networks.keys().cloned().collect())
     }
     pub fn get_network<'a>(&'a self, key: &str) -> Result<Network, YamlError> {
-        let networks = Network::parse_networks_from_yaml(self.document.clone())?;
+        let networks = Network::parse_all_from_yaml(self.document.clone())?;
         let network = networks
             .get(key)
             .ok_or(YamlError::KeyNotFound(key.to_string()))?;
