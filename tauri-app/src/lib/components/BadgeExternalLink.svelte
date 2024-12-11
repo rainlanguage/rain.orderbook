@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Badge } from 'flowbite-svelte';
-  import IconExternalLink from '$lib/components/IconExternalLink.svelte';
+  import { IconExternalLink } from '@rainlanguage/ui-components';
   export let text: string;
   export let href: string;
   export let color:

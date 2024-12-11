@@ -35,6 +35,13 @@ export { default as Text } from './components/Text.svelte';
 export { default as DropdownProperty } from './components/DropdownProperty.svelte';
 export { default as IconError } from './components/IconError.svelte';
 export { default as ButtonLoading } from './components/ButtonLoading.svelte';
+export { default as IconExternalLink } from './components/IconExternalLink.svelte';
+export { default as IconInfo } from './components/IconInfo.svelte';
+export { default as IconLedger } from './components/IconLedger.svelte';
+export { default as IconSuccess } from './components/IconSuccess.svelte';
+export { default as IconTelegram } from './components/IconTelegram.svelte';
+export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
+export { default as IconWarning } from './components/IconWarning.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

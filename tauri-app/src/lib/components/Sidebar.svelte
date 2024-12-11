@@ -10,11 +10,10 @@
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
-  import IconExternalLink from '$lib/components/IconExternalLink.svelte';
+  import { IconExternalLink, IconTelegram } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import ButtonDarkMode from '../../../../packages/ui-components/src/lib/components/ButtonDarkMode.svelte';
   import { PlusSolid } from 'flowbite-svelte-icons';
-  import IconTelegram from '$lib/components/IconTelegram.svelte';
   import ModalConnect from '$lib/components/ModalConnect.svelte';
   import { onMount } from 'svelte';
   import { getAppCommitSha } from '$lib/services/app';
