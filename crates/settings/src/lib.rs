@@ -14,6 +14,7 @@ pub mod remote;
 pub mod scenario;
 pub mod token;
 pub mod unit_test;
+pub mod yaml;
 
 pub(crate) use chart::*;
 pub(crate) use config_source::*;
@@ -26,6 +27,7 @@ pub(crate) use orderbook::*;
 pub(crate) use plot_source::*;
 pub(crate) use scenario::*;
 pub(crate) use token::*;
+pub(crate) use yaml::*;
 #[cfg(test)]
 pub mod test;
 
