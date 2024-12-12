@@ -50,6 +50,7 @@ impl ERC20 {
             address: self.address,
             call: decimalsCall {},
             block_number: None,
+            gas: None,
         };
         Ok(client.read(parameters).await?._0)
     }
@@ -60,6 +61,7 @@ impl ERC20 {
             address: self.address,
             call: nameCall {},
             block_number: None,
+            gas: None,
         };
         Ok(client.read(parameters).await?._0)
     }
@@ -70,6 +72,7 @@ impl ERC20 {
             address: self.address,
             call: symbolCall {},
             block_number: None,
+            gas: None,
         };
         Ok(client.read(parameters).await?._0)
     }
@@ -79,6 +82,7 @@ impl ERC20 {
 
         let results = client
             .read(ReadContractParameters {
+                gas: None,
                 address: multicall_address
                     .map_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap(), |s| {
                         Address::from_str(&s).unwrap_or(Address::default())

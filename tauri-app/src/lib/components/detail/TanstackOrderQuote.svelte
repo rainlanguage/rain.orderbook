@@ -17,7 +17,7 @@
     Tooltip,
   } from 'flowbite-svelte';
   import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
-  import EditableSpan from '../EditableSpan.svelte';
+  import { EditableSpan } from '@rainlanguage/ui-components';
 
   export let id: string;
   export let order: Order;

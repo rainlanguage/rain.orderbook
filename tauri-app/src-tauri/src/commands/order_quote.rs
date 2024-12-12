@@ -12,8 +12,9 @@ pub async fn batch_order_quotes(
     orders: Vec<Order>,
     block_number: Option<u64>,
     rpc_url: String,
+    gas: Option<U256>,
 ) -> CommandResult<Vec<BatchOrderQuotesResponse>> {
-    Ok(get_order_quotes(orders, block_number, rpc_url).await?)
+    Ok(get_order_quotes(orders, block_number, rpc_url, gas).await?)
 }
 
 #[tauri::command]

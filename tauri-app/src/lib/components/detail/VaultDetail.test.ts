@@ -68,7 +68,7 @@ test('calls the vault detail query fn with the correct vault id', async () => {
   const queryClient = new QueryClient();
 
   render(VaultDetail, {
-    props: { id: '100' },
+    props: { id: '100', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -85,7 +85,7 @@ test('shows the correct empty message when the query returns no data', async () 
   const queryClient = new QueryClient();
 
   render(VaultDetail, {
-    props: { id: '100' },
+    props: { id: '100', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -121,7 +121,7 @@ test('shows the correct data when the query returns data', async () => {
   const queryClient = new QueryClient();
 
   render(VaultDetail, {
-    props: { id: '100' },
+    props: { id: '100', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -191,7 +191,7 @@ test('shows the correct data when the query returns data with orders', async () 
   const queryClient = new QueryClient();
 
   render(VaultDetail, {
-    props: { id: '100' },
+    props: { id: '100', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -269,7 +269,7 @@ test('orders link to the correct order', async () => {
   const queryClient = new QueryClient();
 
   render(VaultDetail, {
-    props: { id: '100' },
+    props: { id: '100', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -328,7 +328,7 @@ test('shows deposit and withdraw buttons if owner wallet matches, opens correct 
   const queryClient = new QueryClient();
 
   render(VaultDetail, {
-    props: { id: '100' },
+    props: { id: '100', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 

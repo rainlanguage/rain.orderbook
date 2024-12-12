@@ -154,7 +154,7 @@
               # Create env file with working defaults
               ENV_FILE=".env"
               ENV_EXAMPLE_FILE=".env.example"
-              cp $ENV_EXAMPLE_FILE $ENV_FILE
+              cp $ENV_EXAMPLE_FILE $ENV_FILE  
 
               # Add walletconnect project id from github action env to .env file
               echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> $ENV_FILE
