@@ -1,5 +1,14 @@
 <script lang="ts" generics="T">
 	import { ButtonLoading, IconError } from '@rainlanguage/ui-components';
+	import {
+		IconInfo,
+		IconLedger,
+		IconSuccess,
+		IconTelegram,
+		IconWalletConnect,
+		IconWarning,
+		IconExternalLink
+	} from '@rainlanguage/ui-components';
 	let isLoading: boolean = true;
 </script>
 
@@ -8,4 +17,11 @@
 		>Loading button</ButtonLoading
 	>
 	<IconError />
+	<IconExternalLink svgClass="!h-2 !w-2 mr-1" />
+	<IconInfo />
+	<IconLedger />
+	<IconSuccess />
+	<IconTelegram dark />
+	<IconWalletConnect />
+	<IconWarning />
 </div>
