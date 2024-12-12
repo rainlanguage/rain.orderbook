@@ -19,23 +19,8 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter/lib/rain.metadata
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter/lib/rain.metadata
-      - run: nix develop -c rainix-sol-prelude
-      - run: nix develop -c rainix-rs-prelude
-      - run: nix develop -c raindex-prelude
-      - run: nix develop -c ob-ui-components-prelude
+      - run: ./prep-all.sh
 
-      - run: nix develop -c npm run build
-        working-directory: packages/ui-components
-      - run: nix develop -c npm run build
-        working-directory: packages/orderbook
       - run: nix develop -c npm run svelte-lint-format-check
         working-directory: packages/webapp
       - run: nix develop -c npm run test

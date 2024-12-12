@@ -72,7 +72,7 @@ test('calls the order detail query fn with the correct order id', async () => {
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: 'order1' },
+    props: { id: 'order1', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -89,7 +89,7 @@ test('shows the correct empty message when the query returns no data', async () 
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: 'order1' },
+    props: { id: 'order1', network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -107,7 +107,7 @@ test('shows the correct data when the query returns data', async () => {
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: mockData.order.id },
+    props: { id: mockData.order.id, network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -134,7 +134,7 @@ test('shows the correct data when the query returns data with inputs and outputs
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: mockData.order.id },
+    props: { id: mockData.order.id, network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -177,7 +177,7 @@ test('shows remove button if owner wallet matches and order is active, opens cor
   const queryClient = new QueryClient();
 
   render(OrderDetail, {
-    props: { id: mockData.order.id },
+    props: { id: mockData.order.id, network: 'mainnet' },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 

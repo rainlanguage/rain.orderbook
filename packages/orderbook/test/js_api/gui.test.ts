@@ -370,6 +370,14 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       assert.equal(deposits.length, 1);
     });
 
+    it("should update deposit", async () => {
+      gui.saveDeposit("token1", "50.6");
+      gui.saveDeposit("token1", "100.6");
+      const deposits: TokenDeposit[] = gui.getDeposits();
+      assert.equal(deposits.length, 1);
+      assert.equal(deposits[0].amount, "100.6");
+    });
+
     it("should throw error if deposit token is not found in gui config", () => {
       expect(() => gui.saveDeposit("token3", "1")).toThrow(
         "Deposit token not found in gui config: token3"
@@ -384,6 +392,22 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
       gui.removeDeposit("token1");
       const depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
       assert.equal(depositsAfterRemove.length, 0);
+    });
+
+    it("should get deposit presets", async () => {
+      const presets = gui.getDepositPresets("token1");
+      assert.equal(presets.length, 5);
+      assert.equal(presets[0], "0");
+      assert.equal(presets[1], "10");
+      assert.equal(presets[2], "100");
+      assert.equal(presets[3], "1000");
+      assert.equal(presets[4], "10000");
+    });
+
+    it("should throw error if deposit token is not found in gui config", () => {
+      expect(() => gui.getDepositPresets("token2")).toThrow(
+        "Deposit token not found in gui config: token2"
+      );
     });
   });
 
@@ -594,7 +618,7 @@ describe("Rain Orderbook JS API Package Bindgen Tests - Gui", async function () 
 
   describe("state management tests", async () => {
     let serializedState =
-      "H4sIAAAAAAAA_3WPPQrCQBCFjUbRTtAyhbUQmdlsdjedtZVX2J9ZCUIETeENBAvFw3gBCy_gMbyEhbuN4Gu-NzPwhrfsfFVWXHjLuZNGSUCLUFqpDEkCLgqoPFlA7yTJQipdMkNoQXPGmXIKteiGnFGgqRtXN5sck7CAZBjcek8Hamc4j5cjsoKXQqoKtLGO_L_5N5x1onqBCBAfDgLb3ZYaTGNPWIhp8I9J3n9lt9XpqbNxe36n98v1A0N-TrAQAQAA";
+      "H4sIAAAAAAAA_3WNSwrCQBBEExXRW7gWlO6ezG_nEbzCfHokCCNoFh7fgD0uhNSm-lO8unRfxaigFJVUIGTlNWZiYyFkS0mzA60GjQF4mGNDIEpZgfNOF28iOMor4ewbb6x5rLcT9nKAfifT9ckvng54bJ830kw31nkIMWUuS_s_nLqmtTgCtMKt-PS4c8VfciOu4Ww-Bfyqq_0AAAA=";
     let gui: DotrainOrderGui;
     beforeAll(async () => {
       mockServer
@@ -691,6 +715,26 @@ ${dotrain}
       assert.equal(fieldValues.length, 0);
       const deposits: TokenDeposit[] = gui.getDeposits();
       assert.equal(deposits.length, 0);
+    });
+
+    it("should check if field is preset", async () => {
+      gui.saveFieldValue("binding-1", {
+        isPreset: true,
+        value: gui.getFieldDefinition("binding-1").presets[0].id,
+      });
+      assert.equal(gui.isFieldPreset("binding-1"), true);
+      gui.saveFieldValue("binding-2", {
+        isPreset: false,
+        value: "100",
+      });
+      assert.equal(gui.isFieldPreset("binding-2"), false);
+    });
+
+    it("should check if deposit is preset", async () => {
+      gui.saveDeposit("token1", "55");
+      assert.equal(gui.isDepositPreset("token1"), false);
+      gui.saveDeposit("token1", "100");
+      assert.equal(gui.isDepositPreset("token1"), true);
     });
   });
 
@@ -882,7 +926,7 @@ ${dotrain}
 
       const calldata: DepositAndAddOrderCalldataResult =
         await gui.generateDepositAndAddOrderCalldatas();
-      assert.equal(calldata.length, 3530);
+      assert.equal(calldata.length, 3146);
 
       const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
       assert.deepEqual(
@@ -902,42 +946,32 @@ ${dotrain}
         "other-deployment"
       );
 
-      expect(async () =>
+      await expect(async () =>
         testGui.checkAllowances("0x1234567890abcdef1234567890abcdef12345678")
       ).rejects.toThrow("Token must be selected: token1");
-      expect(
+      await expect(
         async () =>
           await testGui.generateApprovalCalldatas(
             "0x1234567890abcdef1234567890abcdef12345678"
           )
       ).rejects.toThrow("Token must be selected: token1");
-      expect(
+      await expect(
         async () => await testGui.generateDepositCalldatas()
       ).rejects.toThrow("Token must be selected: token1");
-      expect(
+      await expect(
         async () => await testGui.generateAddOrderCalldata()
       ).rejects.toThrow("Token must be selected: token1");
-      expect(
+      await expect(
         async () => await testGui.generateDepositAndAddOrderCalldatas()
       ).rejects.toThrow("Token must be selected: token1");
     });
 
-    it("should populate vault ids if not set", async () => {
-      // token1 info
+    it("should set vault ids", async () => {
       mockServer
         .forPost("/rpc-url")
-        .once()
         .withBodyIncluding("0x82ad56cb")
         .thenSendJsonRpcResult(
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000"
-        );
-      // token2 info
-      mockServer
-        .forPost("/rpc-url")
-        .once()
-        .withBodyIncluding("0x82ad56cb")
-        .thenSendJsonRpcResult(
-          "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000"
         );
 
       let testDotrain = `
@@ -960,7 +994,8 @@ ${dotrain}
         undefined
       );
 
-      gui.populateVaultIds();
+      gui.setVaultId(true, 0, "0x123123123456456456");
+      gui.setVaultId(false, 0, "0x123123123456456456");
 
       let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
       assert.notEqual(
@@ -973,11 +1008,15 @@ ${dotrain}
       );
       assert.equal(
         newCurrentDeployment.deployment.order.inputs[0].vaultId,
-        newCurrentDeployment.deployment.order.outputs[0].vaultId
+        "0x123123123456456456"
+      );
+      assert.equal(
+        newCurrentDeployment.deployment.order.outputs[0].vaultId,
+        "0x123123123456456456"
       );
     });
 
-    it("should throw error on deposit calldatas if vault ids are not set", async () => {
+    it("should skip deposits with zero amount for deposit calldata", async () => {
       // token1 info
       mockServer
         .forPost("/rpc-url")
@@ -995,20 +1034,10 @@ ${dotrain}
           "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000"
         );
 
-      let testDotrain = `
-              ${guiConfig2}
-              
-              ${dotrainWithoutVaultIds}
-              `;
-      let testGui = await DotrainOrderGui.chooseDeployment(
-        testDotrain,
-        "other-deployment"
-      );
-
-      testGui.saveDeposit("token2", "5000");
-      expect(
-        async () => await testGui.generateDepositCalldatas()
-      ).rejects.toThrow("Vault id not found");
+      gui.saveDeposit("token1", "0");
+      gui.saveDeposit("token2", "0");
+      const calldatas = await gui.generateDepositCalldatas();
+      assert.equal(calldatas.length, 0);
     });
   });
 
@@ -1053,13 +1082,13 @@ ${dotrain}
       );
 
       expect(() => testGui.getSelectTokens()).toThrow("Select tokens not set");
-      expect(
+      await expect(
         async () => await testGui.saveSelectTokenAddress("token1", "0x1")
       ).rejects.toThrow("Select tokens not set");
     });
 
     it("should throw error if token not found", async () => {
-      expect(
+      await expect(
         async () => await gui.saveSelectTokenAddress("token3", "0x1")
       ).rejects.toThrow("Token not found");
     });

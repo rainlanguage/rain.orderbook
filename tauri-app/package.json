@@ -2,6 +2,8 @@
   "name": "tauri-app",
   "version": "0.0.1",
   "private": true,
+  "license": "LicenseRef-DCL-1.0",
+  "author": "Rain Open Source LLC",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
