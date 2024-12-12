@@ -1,5 +1,5 @@
 <script lang="ts">
-  import IconTelegram from '$lib/components/IconTelegram.svelte';
+  import { IconTelegram } from '@rainlanguage/ui-components';
   import { Button } from 'flowbite-svelte';
 </script>
 
