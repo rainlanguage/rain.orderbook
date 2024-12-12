@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ButtonTab from '$lib/components/ButtonTab.svelte';
+  import { ButtonTab } from '@rainlanguage/ui-components';
   import { dateTimestamp, TIME_DELTA_1_YEAR, TIME_DELTA_30_DAYS } from '$lib/services/time';
   import { ButtonGroup } from 'flowbite-svelte';
 
