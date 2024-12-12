@@ -38,6 +38,8 @@ pub fn mock_orderbook() -> Arc<Orderbook> {
 // Helper function to create a mock token
 pub fn mock_token(name: &str) -> Arc<Token> {
     Arc::new(Token {
+        document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+        key: "".to_string(),
         label: Some(name.into()),
         address: Address::repeat_byte(0x05),
         symbol: Some("TKN".into()),
