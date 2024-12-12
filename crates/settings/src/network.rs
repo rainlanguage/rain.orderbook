@@ -104,7 +104,7 @@ impl YamlParsableHash for Network {
                     Some("rpc"),
                     Some(format!("rpc string missing in network: {network_key}")),
                 )?)
-                .map_err(|e| ParseNetworkConfigSourceError::RpcParseError(e))?;
+                .map_err(ParseNetworkConfigSourceError::RpcParseError)?;
 
                 let chain_id = require_string(
                     network_yaml,
