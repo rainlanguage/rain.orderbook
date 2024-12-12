@@ -10,17 +10,14 @@ use strict_yaml_rust::{
 };
 use thiserror::Error;
 
-pub trait YamlParsableHash {
-    type Item;
+pub trait YamlParsableHash: Sized {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<HashMap<String, Self::Item>, YamlError>;
+    ) -> Result<HashMap<String, Self>, YamlError>;
 }
 
-pub trait YamlParsableVector {
-    type Item;
-    fn parse_all_from_yaml(document: Arc<RwLock<StrictYaml>>)
-        -> Result<Vec<Self::Item>, YamlError>;
+pub trait YamlParsableVector: Sized {
+    fn parse_all_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<Vec<Self>, YamlError>;
 }
 
 pub trait YamlParsableString {

@@ -84,11 +84,9 @@ impl Network {
 impl_all_wasm_traits!(Network);
 
 impl YamlParsableHash for Network {
-    type Item = Network;
-
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<HashMap<String, Network>, YamlError> {
+    ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let networks_hash = require_hash(
             &document_read,
