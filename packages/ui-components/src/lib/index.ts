@@ -23,10 +23,25 @@ export { default as ChartTimeFilters } from './components/charts/ChartTimeFilter
 export { default as LightweightChart } from './components/charts/LightweightChart.svelte';
 export { default as TanstackLightweightChartLine } from './components/charts/TanstackLightweightChartLine.svelte';
 export { default as MockComponent } from './__mocks__/MockComponent.svelte';
+export { default as OrderTradesChart } from './components/charts/OrderTradesChart.svelte';
+export { default as TableTimeFilters } from './components/charts/TableTimeFilters.svelte';
+export { default as OrderTradesListTable } from './components/tables/OrderTradesListTable.svelte';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
+export { default as TanstackPageContentDetail } from './components/detail/TanstackPageContentDetail.svelte';
+export { default as EditableSpan } from './components/EditableSpan.svelte';
 export { default as BlockQuote } from './components/BlockQuote.svelte';
 export { default as Heading } from './components/Heading.svelte';
 export { default as Text } from './components/Text.svelte';
+export { default as DropdownProperty } from './components/DropdownProperty.svelte';
+export { default as IconError } from './components/IconError.svelte';
+export { default as ButtonLoading } from './components/ButtonLoading.svelte';
+export { default as IconExternalLink } from './components/IconExternalLink.svelte';
+export { default as IconInfo } from './components/IconInfo.svelte';
+export { default as IconLedger } from './components/IconLedger.svelte';
+export { default as IconSuccess } from './components/IconSuccess.svelte';
+export { default as IconTelegram } from './components/IconTelegram.svelte';
+export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
+export { default as IconWarning } from './components/IconWarning.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -63,3 +78,4 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
+export { colorTheme, lightweightChartsTheme } from './stores/darkMode';

@@ -1,10 +1,7 @@
 <script>
-  import { Heading } from '@rainlanguage/ui-components';
+  import { Heading, Text, BlockQuote } from '@rainlanguage/ui-components';
   import Markdown from 'svelte-markdown';
-
   import { onMount } from 'svelte';
-  import { Text } from '@rainlanguage/ui-components';
-  import { BlockQuote } from '@rainlanguage/ui-components';
 
   let source = '';
 
