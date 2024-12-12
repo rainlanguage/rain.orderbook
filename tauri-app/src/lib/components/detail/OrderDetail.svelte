@@ -1,8 +1,7 @@
 <script lang="ts">
-  import CardProperty from './../../../lib/components/CardProperty.svelte';
   import { Button, TabItem, Tabs } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
-  import { BadgeActive } from '@rainlanguage/ui-components';
+  import { BadgeActive, CardProperty } from '@rainlanguage/ui-components';
   import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
   import { ButtonVaultLink } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
