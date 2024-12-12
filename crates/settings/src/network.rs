@@ -1,5 +1,5 @@
-use crate::yaml::{optional_string, require_hash, require_string, YamlParseable};
-use crate::{config_source::*, yaml::YamlError};
+use crate::config_source::*;
+use crate::yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -83,15 +83,13 @@ impl Network {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);
 
-impl YamlParseable for Network {
-    type Collection = HashMap<String, Network>;
+impl YamlParsableHash for Network {
     type Item = Network;
 
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<Self::Collection, YamlError> {
+    ) -> Result<HashMap<String, Network>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-
         let networks_hash = require_hash(
             &document_read,
             Some("networks"),
@@ -100,46 +98,51 @@ impl YamlParseable for Network {
 
         networks_hash
             .into_iter()
-            .map(|(key, value)| {
-                let key = key.as_str().unwrap_or_default().to_string();
-                let network = Self::parse_from_yaml(document.clone(), key.clone(), value)?;
-                Ok((key, network))
+            .map(|(key_yaml, network_yaml)| {
+                let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                let rpc_url = Url::from_str(&require_string(
+                    network_yaml,
+                    Some("rpc"),
+                    Some(format!("rpc string missing in network: {network_key}")),
+                )?)
+                .map_err(|e| ParseNetworkConfigSourceError::RpcParseError(e))?;
+
+                let chain_id = require_string(
+                    network_yaml,
+                    Some("chain-id"),
+                    Some(format!(
+                        "chain-id number as string missing in network: {network_key}"
+                    )),
+                )?
+                .parse::<u64>()
+                .map_err(ParseNetworkConfigSourceError::ChainIdParseError)?;
+
+                let label = optional_string(network_yaml, "label");
+
+                let network_id = optional_string(network_yaml, "network-id")
+                    .map(|id| id.parse::<u64>())
+                    .transpose()
+                    .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)?;
+
+                let currency = optional_string(network_yaml, "currency");
+
+                let network = Network {
+                    document: document.clone(),
+                    key: network_key.clone(),
+                    rpc: rpc_url,
+                    chain_id,
+                    label,
+                    network_id,
+                    currency,
+                };
+
+                Ok((network_key, network))
             })
             .collect()
     }
-
-    fn parse_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
-        key: String,
-        value: &StrictYaml,
-    ) -> Result<Self::Item, YamlError> {
-        Ok(Network {
-            document,
-            key: key.clone(),
-            rpc: Url::from_str(&require_string(
-                value,
-                Some("rpc"),
-                Some(format!("rpc string missing in network: {key}")),
-            )?)
-            .map_err(ParseNetworkConfigSourceError::RpcParseError)?,
-            chain_id: require_string(
-                value,
-                Some("chain-id"),
-                Some(format!(
-                    "chain-id number as string missing in network: {key}"
-                )),
-            )?
-            .parse::<u64>()
-            .map_err(ParseNetworkConfigSourceError::ChainIdParseError)?,
-            label: optional_string(value, "label"),
-            network_id: optional_string(value, "network-id")
-                .map(|id| id.parse::<u64>())
-                .transpose()
-                .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)?,
-            currency: optional_string(value, "currency"),
-        })
-    }
 }
+
 impl Default for Network {
     fn default() -> Self {
         Network::dummy()

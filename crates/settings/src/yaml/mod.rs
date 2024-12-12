@@ -1,6 +1,7 @@
 pub mod orderbook;
 
 use crate::ParseNetworkConfigSourceError;
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use strict_yaml_rust::{
@@ -9,19 +10,21 @@ use strict_yaml_rust::{
 };
 use thiserror::Error;
 
-pub trait YamlParseable {
-    type Collection;
+pub trait YamlParsableHash {
     type Item;
-
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<Self::Collection, YamlError>;
+    ) -> Result<HashMap<String, Self::Item>, YamlError>;
+}
 
-    fn parse_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
-        key: String,
-        value: &StrictYaml,
-    ) -> Result<Self::Item, YamlError>;
+pub trait YamlParsableVector {
+    type Item;
+    fn parse_all_from_yaml(document: Arc<RwLock<StrictYaml>>)
+        -> Result<Vec<Self::Item>, YamlError>;
+}
+
+pub trait YamlParsableString {
+    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
 }
 
 #[derive(Debug, Error)]
