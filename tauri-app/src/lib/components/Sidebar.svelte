@@ -12,11 +12,12 @@
   import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
   import { IconExternalLink, IconTelegram } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
-  import ButtonDarkMode from '$lib/components/ButtonDarkMode.svelte';
+  import ButtonDarkMode from '../../../../packages/ui-components/src/lib/components/ButtonDarkMode.svelte';
   import { PlusSolid } from 'flowbite-svelte-icons';
   import ModalConnect from '$lib/components/ModalConnect.svelte';
   import { onMount } from 'svelte';
   import { getAppCommitSha } from '$lib/services/app';
+  import { colorTheme } from '$lib/stores/darkMode';
 
   let app_sha: string;
   onMount(async () => {
@@ -106,7 +107,7 @@
       </SidebarItem>
     </SidebarGroup>
     <SidebarGroup border class="flex justify-start">
-      <ButtonDarkMode />
+      <ButtonDarkMode {colorTheme} />
     </SidebarGroup>
     <SidebarGroup border class="flex justify-start self-end">
       <div class="flex flex-col text-xs text-gray-500 dark:text-gray-400">
