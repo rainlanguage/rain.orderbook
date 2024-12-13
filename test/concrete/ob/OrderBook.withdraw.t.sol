@@ -206,13 +206,11 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         address alice,
         uint256 vaultId,
         uint256 depositAmount,
+        uint256 withdrawAmount,
         EvaluableV3 memory evaluable
     ) external {
-        // Ensure valid deposit amount and a scenario where withdrawAmount leads to 0 actual withdrawal
         vm.assume(depositAmount > 0);
-        uint256 withdrawAmount = 0;
-
-        // Mock the deposit
+        vm.assume(withdrawAmount >= depositAmount);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
@@ -220,7 +218,6 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
-
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         TaskV1[] memory post = new TaskV1[](1);
@@ -237,7 +234,12 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
 
         // Perform withdraw2 with 0 withdrawAmount and a post task
         vm.prank(alice);
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, post);
+        vm.mockCall(
+            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
+        );
+        vm.expectEmit(false, false, false, true);
+        emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, depositAmount);
+        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new TaskV1[](0));
 
         // Ensure the `doPost` function is executed even when withdrawAmount is 0
         //        vm.expectCall(
@@ -245,7 +247,6 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         //            abi.encodeWithSelector(LibOrderBook.doPost.selector, abi.encode(/* expected post data */))
         //        );
 
-        // Check that the vault balance remains unchanged
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
+        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), 0);
     }
 }
