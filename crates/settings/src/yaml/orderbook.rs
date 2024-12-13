@@ -1,5 +1,5 @@
 use super::*;
-use crate::Network;
+use crate::{Network, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -42,10 +42,25 @@ impl OrderbookYaml {
             .ok_or(YamlError::KeyNotFound(key.to_string()))?;
         Ok(network.clone())
     }
+
+    pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
+        let tokens = Token::parse_all_from_yaml(self.document.clone())?;
+        Ok(tokens.keys().cloned().collect())
+    }
+    pub fn get_token(&self, key: &str) -> Result<Token, YamlError> {
+        let tokens = Token::parse_all_from_yaml(self.document.clone())?;
+        let token = tokens
+            .get(key)
+            .ok_or(YamlError::KeyNotFound(key.to_string()))?;
+        Ok(token.clone())
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use alloy::primitives::Address;
     use url::Url;
 
     use super::*;
@@ -73,7 +88,7 @@ mod tests {
     tokens:
         token1:
             network: mainnet
-            address: 0x2345678901abcdef
+            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
             decimals: 18
             label: Wrapped Ether
             symbol: WETH
@@ -145,6 +160,29 @@ mod tests {
         assert_eq!(
             network.rpc,
             Url::parse("https://some-random-rpc-address.com").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_update_token_address() {
+        let ob_yaml = OrderbookYaml::new(FULL_YAML.to_string(), false).unwrap();
+
+        let mut token = ob_yaml.get_token("token1").unwrap();
+        assert_eq!(
+            token.address,
+            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
+        );
+
+        token
+            .update_address(
+                Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+            )
+            .unwrap();
+
+        let token = ob_yaml.get_token("token1").unwrap();
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
         );
     }
 }

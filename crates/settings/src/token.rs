@@ -30,7 +30,39 @@ pub struct Token {
     pub label: Option<String>,
     pub symbol: Option<String>,
 }
+impl Token {
+    pub fn update_address(&mut self, address: Address) -> Result<Self, YamlError> {
+        let mut document = self
+            .document
+            .write()
+            .map_err(|_| YamlError::WriteLockError)?;
 
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if let Some(StrictYaml::Hash(ref mut tokens)) =
+                document_hash.get_mut(&StrictYaml::String("tokens".to_string()))
+            {
+                if let Some(StrictYaml::Hash(ref mut token)) =
+                    tokens.get_mut(&StrictYaml::String(self.key.to_string()))
+                {
+                    token[&StrictYaml::String("address".to_string())] =
+                        StrictYaml::String(address.to_string());
+                    self.address = address;
+                } else {
+                    return Err(YamlError::ParseError(format!(
+                        "missing field: {} in tokens",
+                        self.key
+                    )));
+                }
+            } else {
+                return Err(YamlError::ParseError("missing field: tokens".to_string()));
+            }
+        } else {
+            return Err(YamlError::ParseError("document parse error".to_string()));
+        }
+
+        Ok(self.clone())
+    }
+}
 impl YamlParsableHash for Token {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
