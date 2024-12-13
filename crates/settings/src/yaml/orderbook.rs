@@ -174,9 +174,7 @@ mod tests {
         );
 
         token
-            .update_address(
-                Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
-            )
+            .update_address("0x0000000000000000000000000000000000000001")
             .unwrap();
 
         let token = ob_yaml.get_token("token1").unwrap();

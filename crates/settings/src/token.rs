@@ -31,7 +31,16 @@ pub struct Token {
     pub symbol: Option<String>,
 }
 impl Token {
-    pub fn update_address(&mut self, address: Address) -> Result<Self, YamlError> {
+    pub fn validate_address(value: &str) -> Result<Address, ParseTokenConfigSourceError> {
+        Address::from_str(value).map_err(ParseTokenConfigSourceError::AddressParseError)
+    }
+    pub fn validate_decimals(value: &str) -> Result<u8, ParseTokenConfigSourceError> {
+        value
+            .parse::<u8>()
+            .map_err(ParseTokenConfigSourceError::DecimalsParseError)
+    }
+
+    pub fn update_address(&mut self, address: &str) -> Result<Self, YamlError> {
         let mut document = self
             .document
             .write()
@@ -46,7 +55,7 @@ impl Token {
                 {
                     token[&StrictYaml::String("address".to_string())] =
                         StrictYaml::String(address.to_string());
-                    self.address = address;
+                    self.address = Token::validate_address(address)?;
                 } else {
                     return Err(YamlError::ParseError(format!(
                         "missing field: {} in tokens",
@@ -91,17 +100,15 @@ impl YamlParsableHash for Token {
                     ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
                 })?;
 
-                let address = Address::from_str(&require_string(
+                let address = Token::validate_address(&require_string(
                     token_yaml,
                     Some("address"),
                     Some(format!("address string missing in token: {token_key}")),
-                )?)
-                .map_err(ParseTokenConfigSourceError::AddressParseError)?;
+                )?)?;
 
                 let decimals = optional_string(token_yaml, "decimals")
-                    .map(|d| d.parse::<u8>())
-                    .transpose()
-                    .map_err(ParseTokenConfigSourceError::DecimalsParseError)?;
+                    .map(|d| Token::validate_decimals(&d))
+                    .transpose()?;
 
                 let label = optional_string(token_yaml, "label");
                 let symbol = optional_string(token_yaml, "symbol");
