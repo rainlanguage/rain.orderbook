@@ -111,7 +111,7 @@ mod tests {
     sentry: true
     "#;
 
-    const YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
+    const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
     networks:
         mainnet:
             rpc: https://mainnet.infura.io
