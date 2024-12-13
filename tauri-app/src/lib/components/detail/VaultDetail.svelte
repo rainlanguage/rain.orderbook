@@ -13,11 +13,11 @@
   import { QKEY_VAULT } from '@rainlanguage/ui-components';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
-  import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
-  import { VaultBalanceChangesTable } from '@rainlanguage/ui-components';
+  import { VaultBalanceChangesTable, VaultBalanceChart } from '@rainlanguage/ui-components';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import { settings } from '$lib/stores/settings';
+  import { lightweightChartsTheme } from '$lib/stores/darkMode';
 
   export let id: string;
   export let network: string;
@@ -154,7 +154,7 @@
   </svelte:fragment>
 
   <svelte:fragment slot="chart" let:data>
-    <VaultBalanceChart vault={data} />
+    <VaultBalanceChart vault={data} {subgraphUrl} {lightweightChartsTheme} />
   </svelte:fragment>
 
   <svelte:fragment slot="below"><VaultBalanceChangesTable {id} {subgraphUrl} /></svelte:fragment>
