@@ -177,9 +177,13 @@ mod tests {
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
         );
 
-        token
+        let token = token
             .update_address("0x0000000000000000000000000000000000000001")
             .unwrap();
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
 
         let token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
