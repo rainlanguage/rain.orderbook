@@ -8,7 +8,7 @@
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault } from '@rainlanguage/orderbook/js_api';
-
+	import { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { goto } from '$app/navigation';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
@@ -18,7 +18,7 @@
 	import { queryClient } from '../../queries/queryClient';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import type { Vault } from '../../lib/typeshare/subgraphTypes';
+	import type { Vault } from '../..lib/typeshare/subgraphTypes';
 
 	export let id: string;
 	export let network: string;
@@ -28,7 +28,7 @@
 		undefined;
 	export let handleWithdrawModal: ((vault: Vault, onWithdraw: () => void) => void) | undefined =
 		undefined;
-	export let lightweightChartsTheme = undefined;
+	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let settings;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
