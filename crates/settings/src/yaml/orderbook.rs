@@ -139,6 +139,23 @@ mod tests {
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.currency, Some("ETH".to_string()));
 
+        assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
+        let token = ob_yaml.get_token("token1").unwrap();
+        assert_eq!(
+            token.address,
+            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
+        );
+        assert_eq!(token.decimals, Some(18));
+        assert_eq!(token.label, Some("Wrapped Ether".to_string()));
+        assert_eq!(token.symbol, Some("WETH".to_string()));
+
+        assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
+        let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
+        assert_eq!(
+            subgraph,
+            Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
+        );
+
         assert!(OrderbookYaml::new(YAML_WITHOUT_OPTIONAL_FIELDS.to_string(), true).is_ok());
     }
 
