@@ -110,7 +110,7 @@
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500" data-testid="network-connection-error">
           You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
-          to {overrideNetwork?.name || $activeNetworkRef} network.
+          to {overrideNetwork?.key || $activeNetworkRef} network.
         </div>
       {/if}
     </div>

@@ -152,9 +152,13 @@ mod tests {
             Url::parse("https://mainnet.infura.io").unwrap()
         );
 
-        network
+        let network = network
             .update_rpc("https://some-random-rpc-address.com")
             .unwrap();
+        assert_eq!(
+            network.rpc,
+            Url::parse("https://some-random-rpc-address.com").unwrap()
+        );
 
         let network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
