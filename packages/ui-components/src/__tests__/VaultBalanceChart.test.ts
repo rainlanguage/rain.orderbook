@@ -48,7 +48,7 @@ test('calls getVaultBalanceChanges with correct arguments', async () => {
 	});
 
 	expect(getVaultBalanceChanges).toHaveBeenCalledWith('https://example.com', 'vault1', {
-		first: 1000,
-		skip: 0
+		page: 1,
+		pageSize: 1000
 	});
 });

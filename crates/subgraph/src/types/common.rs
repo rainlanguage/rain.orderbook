@@ -202,6 +202,7 @@ pub struct VaultBalanceChangeVault {
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeUnwrapped {
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     pub amount: BigInt,
     pub new_vault_balance: BigInt,
