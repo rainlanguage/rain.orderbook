@@ -18,7 +18,7 @@ impl YamlParsableHash for Subgraph {
             Some("missing field: subgraphs".to_string()),
         )?;
 
-        Ok(subgraphs_hash
+        subgraphs_hash
             .iter()
             .map(|(key_yaml, subgraph_yaml)| {
                 let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
@@ -33,7 +33,7 @@ impl YamlParsableHash for Subgraph {
 
                 Ok((subgraph_key, url))
             })
-            .collect::<Result<HashMap<String, Url>, YamlError>>()?)
+            .collect()
     }
 }
 
