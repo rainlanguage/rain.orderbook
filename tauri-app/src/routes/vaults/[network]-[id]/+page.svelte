@@ -13,7 +13,7 @@
 <VaultDetail
   id={$page.params.id}
   network={$page.params.network}
-  handleDespoitModal={handleDepositModal}
+  {handleDepositModal}
   {handleWithdrawModal}
   {lightweightChartsTheme}
   {settings}
