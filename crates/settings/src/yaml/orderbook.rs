@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Network, Token};
+use crate::{Network, Subgraph, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -36,11 +36,7 @@ impl OrderbookYaml {
         Ok(networks.keys().cloned().collect())
     }
     pub fn get_network(&self, key: &str) -> Result<Network, YamlError> {
-        let networks = Network::parse_all_from_yaml(self.document.clone())?;
-        let network = networks
-            .get(key)
-            .ok_or(YamlError::KeyNotFound(key.to_string()))?;
-        Ok(network.clone())
+        Network::parse_from_yaml(self.document.clone(), key)
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -48,11 +44,15 @@ impl OrderbookYaml {
         Ok(tokens.keys().cloned().collect())
     }
     pub fn get_token(&self, key: &str) -> Result<Token, YamlError> {
-        let tokens = Token::parse_all_from_yaml(self.document.clone())?;
-        let token = tokens
-            .get(key)
-            .ok_or(YamlError::KeyNotFound(key.to_string()))?;
-        Ok(token.clone())
+        Token::parse_from_yaml(self.document.clone(), key)
+    }
+
+    pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
+        let subgraphs = Subgraph::parse_all_from_yaml(self.document.clone())?;
+        Ok(subgraphs.keys().cloned().collect())
+    }
+    pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
+        Subgraph::parse_from_yaml(self.document.clone(), key)
     }
 }
 

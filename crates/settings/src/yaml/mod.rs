@@ -16,10 +16,10 @@ pub trait YamlParsableHash: Sized + Clone {
         document: Arc<RwLock<StrictYaml>>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: String) -> Result<Self, YamlError> {
+    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: &str) -> Result<Self, YamlError> {
         let all = Self::parse_all_from_yaml(document)?;
-        all.get(&key)
-            .ok_or_else(|| YamlError::KeyNotFound(key))
+        all.get(key)
+            .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
     }
 }

@@ -90,7 +90,7 @@ impl YamlParsableHash for Token {
 
                 let network = Network::parse_from_yaml(
                     document.clone(),
-                    require_string(
+                    &require_string(
                         token_yaml,
                         Some("network"),
                         Some(format!("network string missing in token: {token_key}")),
