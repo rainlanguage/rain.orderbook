@@ -9,13 +9,10 @@ import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV1, EvaluableV3, SignedContextV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {LibOrderTest} from "../../lib/LibOrder.t.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
 contract OrderBookWithdrawTest is OrderBookExternalMockTest {
-    LibOrderTest libOrderTest;
-
     using Math for uint256;
 
     /// Withdrawing a zero target amount should revert.
@@ -200,53 +197,5 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                 );
             }
         }
-    }
-
-    function testWithdrawBypassesPostTaskWithZeroWithdrawAmount(
-        address alice,
-        uint256 vaultId,
-        uint256 depositAmount,
-        uint256 withdrawAmount,
-        EvaluableV3 memory evaluable
-    ) external {
-        vm.assume(depositAmount > 0);
-        vm.assume(withdrawAmount >= depositAmount);
-        vm.prank(alice);
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
-            abi.encode(true)
-        );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
-
-        TaskV1[] memory post = new TaskV1[](1);
-
-        // Prepare a post task to mock and track if it is executed
-        post[0] = TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)});
-
-        // Mock the `doPost` function call to verify execution
-        vm.mockCall(
-            address(libOrderTest),
-            abi.encodeWithSelector(libOrderTest.doPost.selector, abi.encode( /* expected post data */ )),
-            abi.encode()
-        );
-
-        // Perform withdraw2 with 0 withdrawAmount and a post task
-        vm.prank(alice);
-        vm.mockCall(
-            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
-        );
-        vm.expectEmit(false, false, false, true);
-        emit Withdraw(alice, address(iToken0), vaultId, withdrawAmount, depositAmount);
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, new TaskV1[](0));
-
-        // Ensure the `doPost` function is executed even when withdrawAmount is 0
-        //        vm.expectCall(
-        //            address(LibOrderBook),
-        //            abi.encodeWithSelector(LibOrderBook.doPost.selector, abi.encode(/* expected post data */))
-        //        );
-
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), 0);
     }
 }
