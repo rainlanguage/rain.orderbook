@@ -3,8 +3,7 @@
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
-  import IconLedger from '$lib/components/IconLedger.svelte';
-  import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
+  import { IconLedger, IconWalletConnect } from '@rainlanguage/ui-components';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
 
   let open = false;
