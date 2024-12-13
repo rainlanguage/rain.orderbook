@@ -47,7 +47,7 @@ impl Network {
         }
     }
 
-    pub fn update_rpc(&mut self, rpc: &str) -> Result<(), YamlError> {
+    pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
         let mut document = self
             .document
             .write()
@@ -77,7 +77,7 @@ impl Network {
             return Err(YamlError::ParseError("document parse error".to_string()));
         }
 
-        Ok(())
+        Ok(self.clone())
     }
 }
 #[cfg(target_family = "wasm")]
