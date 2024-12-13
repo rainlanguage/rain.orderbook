@@ -9,7 +9,6 @@
   import { CardProperty } from '@rainlanguage/ui-components';
   import { formatUnits } from 'viem';
   import { createQuery } from '@tanstack/svelte-query';
-  import { vaultDetail } from '$lib/queries/vaultDetail';
   import { QKEY_VAULT } from '@rainlanguage/ui-components';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
@@ -18,6 +17,7 @@
   import { queryClient } from '$lib/queries/queryClient';
   import { settings } from '$lib/stores/settings';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
+  import { getVault } from '@rainlanguage/orderbook/js_api';
 
   export let id: string;
   export let network: string;
@@ -26,7 +26,7 @@
   $: vaultDetailQuery = createQuery({
     queryKey: [id, QKEY_VAULT + id],
     queryFn: () => {
-      return vaultDetail(id, subgraphUrl || '');
+      return getVault(subgraphUrl || '', id);
     },
     enabled: !!subgraphUrl,
   });

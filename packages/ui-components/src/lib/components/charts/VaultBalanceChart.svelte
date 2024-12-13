@@ -7,7 +7,7 @@
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
-	export let vault: Vault = null;
+	export let vault: Vault;
 	export let subgraphUrl: string;
 	export let lightweightChartsTheme;
 
