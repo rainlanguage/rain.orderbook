@@ -1,9 +1,8 @@
 <script lang="ts">
   import { Alert, Spinner } from 'flowbite-svelte';
   import { hasRequiredSettings, settingsText, settings, settingsFile } from '$lib/stores/settings';
-  import { PageHeader } from '@rainlanguage/ui-components';
+  import { PageHeader, FileTextarea } from '@rainlanguage/ui-components';
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
-  import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { parseConfigSource } from '$lib/services/config';
   import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
