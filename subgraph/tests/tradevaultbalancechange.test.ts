@@ -8,7 +8,12 @@ import {
   assert,
 } from "matchstick-as";
 import { BigInt, Address, Bytes, crypto } from "@graphprotocol/graph-ts";
-import { Evaluable, IO, createTakeOrderEvent } from "./event-mocks.test";
+import {
+  Evaluable,
+  IO,
+  createAfterClearEvent,
+  createTakeOrderEvent,
+} from "./event-mocks.test";
 import { eventId } from "../src/interfaces/event";
 import {
   createTradeVaultBalanceChangeEntity,
@@ -18,6 +23,7 @@ import { vaultEntityId } from "../src/vault";
 import { orderHashFromTakeOrderEvent } from "../src/takeorder";
 import { makeTradeId } from "../src/trade";
 import { createMockERC20Functions } from "./erc20.test";
+import { makeClearBountyId } from "../src/clear";
 
 describe("Deposits", () => {
   afterEach(() => {
@@ -135,5 +141,29 @@ describe("Deposits", () => {
       "transaction",
       event.transaction.hash.toHex()
     );
+  });
+
+  test("TradeVaultBalanceChangeEntity id should not be equal to ClearBounty id", () => {
+    const alice = Address.fromString(
+      "0x850c40aBf6e325231ba2DeD1356d1f2c267e63Ce"
+    );
+    let aliceOutputAmount = BigInt.fromString("10");
+    let bobOutputAmount = BigInt.fromString("20");
+    let aliceInputAmount = BigInt.fromString("15");
+    let bobInputAmount = BigInt.fromString("10");
+    let vaultEntityId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef12345678"
+    );
+    let event = createAfterClearEvent(
+      alice,
+      aliceOutputAmount,
+      bobOutputAmount,
+      aliceInputAmount,
+      bobInputAmount
+    );
+    const id1 = tradeVaultBalanceChangeId(event, vaultEntityId);
+    const id2 = makeClearBountyId(event, vaultEntityId);
+
+    assert.assertTrue(id1 !== id2);
   });
 });
