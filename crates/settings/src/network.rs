@@ -2,7 +2,6 @@ use crate::config_source::*;
 use crate::yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::{
     num::ParseIntError,
     sync::{Arc, RwLock},
@@ -47,7 +46,21 @@ impl Network {
         }
     }
 
-    pub fn update_rpc(&mut self, rpc: &str) -> Result<(), YamlError> {
+    pub fn validate_rpc(value: &str) -> Result<Url, ParseNetworkConfigSourceError> {
+        Url::parse(value).map_err(ParseNetworkConfigSourceError::RpcParseError)
+    }
+    pub fn validate_chain_id(value: &str) -> Result<u64, ParseNetworkConfigSourceError> {
+        value
+            .parse::<u64>()
+            .map_err(ParseNetworkConfigSourceError::ChainIdParseError)
+    }
+    pub fn validate_network_id(value: &str) -> Result<u64, ParseNetworkConfigSourceError> {
+        value
+            .parse::<u64>()
+            .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)
+    }
+
+    pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
         let mut document = self
             .document
             .write()
@@ -62,8 +75,7 @@ impl Network {
                 {
                     network[&StrictYaml::String("rpc".to_string())] =
                         StrictYaml::String(rpc.to_string());
-                    self.rpc =
-                        Url::parse(rpc).map_err(ParseNetworkConfigSourceError::RpcParseError)?;
+                    self.rpc = Network::validate_rpc(rpc)?;
                 } else {
                     return Err(YamlError::ParseError(format!(
                         "missing field: {} in networks",
@@ -77,7 +89,7 @@ impl Network {
             return Err(YamlError::ParseError("document parse error".to_string()));
         }
 
-        Ok(())
+        Ok(self.clone())
     }
 }
 #[cfg(target_family = "wasm")]
@@ -99,29 +111,25 @@ impl YamlParsableHash for Network {
             .map(|(key_yaml, network_yaml)| {
                 let network_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let rpc_url = Url::from_str(&require_string(
+                let rpc_url = Network::validate_rpc(&require_string(
                     network_yaml,
                     Some("rpc"),
                     Some(format!("rpc string missing in network: {network_key}")),
-                )?)
-                .map_err(ParseNetworkConfigSourceError::RpcParseError)?;
+                )?)?;
 
-                let chain_id = require_string(
+                let chain_id = Network::validate_chain_id(&require_string(
                     network_yaml,
                     Some("chain-id"),
                     Some(format!(
                         "chain-id number as string missing in network: {network_key}"
                     )),
-                )?
-                .parse::<u64>()
-                .map_err(ParseNetworkConfigSourceError::ChainIdParseError)?;
+                )?)?;
 
                 let label = optional_string(network_yaml, "label");
 
                 let network_id = optional_string(network_yaml, "network-id")
-                    .map(|id| id.parse::<u64>())
-                    .transpose()
-                    .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)?;
+                    .map(|id| Network::validate_network_id(&id))
+                    .transpose()?;
 
                 let currency = optional_string(network_yaml, "currency");
 
