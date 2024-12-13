@@ -9,6 +9,7 @@ use strict_yaml_rust::{
     EmitError, ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
+use url::ParseError as UrlParseError;
 
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
@@ -41,6 +42,8 @@ pub enum YamlError {
     RwLockReadGuardError(#[from] PoisonError<RwLockReadGuard<'static, StrictYaml>>),
     #[error(transparent)]
     RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
+    #[error(transparent)]
+    UrlParseError(#[from] UrlParseError),
     #[error("Yaml file is empty")]
     EmptyFile,
     #[error("Yaml parse error: {0}")]
@@ -153,4 +156,14 @@ pub fn require_vec<'a>(
 }
 pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array> {
     value[field].as_vec()
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    pub fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
+        let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
+        Arc::new(RwLock::new(document))
+    }
 }

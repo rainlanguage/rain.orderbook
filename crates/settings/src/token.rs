@@ -195,18 +195,13 @@ mod tests {
     use self::test::*;
     use super::*;
     use alloy::primitives::Address;
-    use strict_yaml_rust::StrictYamlLoader;
+    use yaml::tests::get_document;
 
     fn setup_networks() -> HashMap<String, Arc<Network>> {
         let network = mock_network();
         let mut networks = HashMap::new();
         networks.insert("TestNetwork".to_string(), network);
         networks
-    }
-
-    fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
-        let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
-        Arc::new(RwLock::new(document))
     }
 
     #[test]
