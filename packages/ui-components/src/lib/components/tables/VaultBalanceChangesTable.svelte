@@ -1,15 +1,13 @@
-<script lang="ts">
+<script lang="ts" generics="T">
 	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
-	import { Hash, HashType } from '@rainlanguage/ui-components';
-
 	import { formatUnits } from 'viem';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
-	import { QKEY_VAULT_CHANGES } from '@rainlanguage/ui-components';
-
-	import { DEFAULT_PAGE_SIZE } from '@rainlanguage/ui-components';
-	import { TanstackAppTable } from '@rainlanguage/ui-components';
+	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import Hash, { HashType } from '../Hash.svelte';
+	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
+	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
+	import TanstackAppTable from '../TanstackAppTable.svelte';
 
 	export let id: string;
 	export let subgraphUrl: string;
@@ -17,7 +15,10 @@
 	$: balanceChangesQuery = createInfiniteQuery({
 		queryKey: [id, QKEY_VAULT_CHANGES + id],
 		queryFn: ({ pageParam }) => {
-			return getVaultBalanceChanges(subgraphUrl || '', pageParam);
+			return getVaultBalanceChanges(subgraphUrl || '', id, {
+				page: pageParam + 1,
+				pageSize: DEFAULT_PAGE_SIZE
+			});
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {

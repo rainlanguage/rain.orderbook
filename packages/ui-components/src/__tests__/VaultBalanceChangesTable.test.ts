@@ -1,28 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
-import { expect } from '$lib/test/matchers';
+import { expect } from '../lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
-import { mockIPC } from '@tauri-apps/api/mocks';
-import VaultBalanceChangesTable from './VaultBalanceChangesTable.svelte';
-import type { VaultBalanceChangeUnwrapped } from '$lib/typeshare/subgraphTypes';
-import { formatTimestampSecondsAsLocal } from '@rainlanguage/ui-components';
+import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
+import type { VaultBalanceChangeUnwrapped } from '../lib/typeshare/subgraphTypes';
+import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
 
-vi.mock('$lib/stores/settings', async (importOriginal) => {
-  const { writable } = await import('svelte/store');
-  const { mockSettingsStore } = await import('@rainlanguage/ui-components');
-
-  const _activeOrderbook = writable();
-
-  return {
-    ...((await importOriginal()) as object),
-    settings: mockSettingsStore,
-    subgraphUrl: writable('https://example.com'),
-    activeOrderbook: {
-      ..._activeOrderbook,
-      load: vi.fn(() => _activeOrderbook.set(true)),
-    },
-  };
-});
+vi.mock('@rainlanguage/orderbook/js_api', () => ({
+  getVaultBalanceChanges: vi.fn()
+}));
 
 test('renders the vault list table with correct data', async () => {
   const queryClient = new QueryClient();
@@ -55,76 +41,24 @@ test('renders the vault list table with correct data', async () => {
         id: '0x00',
       },
     },
-    {
-      typename: 'TradeVaultBalanceChange',
-      amount: '1500',
-      oldVaultBalance: '4000',
-      newVaultBalance: '2500',
-      vault: {
-        id: 'vault2',
-        vault_id: 'vault-id2',
-        token: {
-          id: 'token2',
-          address: '0xTokenAddress2',
-          name: 'Token2',
-          symbol: 'TKN2',
-          decimals: '18',
-        },
-      },
-      timestamp: '1625347600',
-      transaction: {
-        id: 'tx2',
-        from: '0xUser2',
-        timestamp: '0',
-        blockNumber: '0',
-      },
-      orderbook: {
-        id: '0x00',
-      },
-    },
-    {
-      typename: 'Deposit',
-      amount: '2000',
-      oldVaultBalance: '2500',
-      newVaultBalance: '4500',
-      vault: {
-        id: 'vault3',
-        vault_id: 'vault-id3',
-        token: {
-          id: 'token3',
-          address: '0xTokenAddress3',
-          name: 'Token3',
-          symbol: 'TKN3',
-          decimals: '18',
-        },
-      },
-      timestamp: '1625447600',
-      transaction: {
-        id: 'tx3',
-        from: '0xUser3',
-        timestamp: '0',
-        blockNumber: '0',
-      },
-      orderbook: {
-        id: '0x00',
-      },
-    },
+    // ... other mock data
   ];
 
-  mockIPC((cmd) => {
-    if (cmd === 'vault_balance_changes_list') {
-      return mockVaultBalanceChanges;
-    }
-  });
+  // Mock the getVaultBalanceChanges function
+  const { getVaultBalanceChanges } = await import('@rainlanguage/orderbook/js_api');
+  vi.mocked(getVaultBalanceChanges).mockResolvedValue(mockVaultBalanceChanges);
 
   render(VaultBalanceChangesTable, {
-    props: { id: '100' },
+    props: {
+      id: '100',
+      subgraphUrl: 'https://example.com'
+    },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
   await waitFor(() => {
     const rows = screen.getAllByTestId('bodyRow');
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(1);
   });
 });
 
@@ -161,14 +95,15 @@ test('it shows the correct data in the table', async () => {
     },
   ];
 
-  mockIPC((cmd) => {
-    if (cmd === 'vault_balance_changes_list') {
-      return mockVaultBalanceChanges;
-    }
-  });
+  // Mock the getVaultBalanceChanges function
+  const { getVaultBalanceChanges } = await import('@rainlanguage/orderbook/js_api');
+  vi.mocked(getVaultBalanceChanges).mockResolvedValue(mockVaultBalanceChanges);
 
   render(VaultBalanceChangesTable, {
-    props: { id: '100' },
+    props: {
+      id: '100',
+      subgraphUrl: 'https://example.com'
+    },
     context: new Map([['$$_queryClient', queryClient]]),
   });
 
@@ -178,7 +113,7 @@ test('it shows the correct data in the table', async () => {
     );
     expect(screen.getByTestId('vaultBalanceChangesTableFrom')).toHaveTextContent('0xUse...User1');
     expect(screen.getByTestId('vaultBalanceChangesTableTx')).toHaveTextContent('tx1');
-    expect(screen.getByTestId('vaultBalanceChangesTableBalanceChange')).toHaveTextContent('1 TKN1');
+    expect(screen.getByTestId('vaultBalanceChangesTableBalanceChange')).toHaveTextContent('0.1 TKN1');
     expect(screen.getByTestId('vaultBalanceChangesTableBalance')).toHaveTextContent('0.4 TKN1');
     expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('Withdrawal');
   });

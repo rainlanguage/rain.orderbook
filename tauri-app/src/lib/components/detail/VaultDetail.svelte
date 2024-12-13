@@ -1,5 +1,4 @@
 <script lang="ts">
-  import VaultBalanceChangesTable from '../tables/VaultBalanceChangesTable.svelte';
   import { Button } from 'flowbite-svelte';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { bigintStringToHex } from '@rainlanguage/ui-components';
@@ -15,6 +14,7 @@
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { TanstackPageContentDetail } from '@rainlanguage/ui-components';
   import VaultBalanceChart from '$lib/components/charts/VaultBalanceChart.svelte';
+  import { VaultBalanceChangesTable } from '@rainlanguage/ui-components';
   import { onDestroy } from 'svelte';
   import { queryClient } from '$lib/queries/queryClient';
   import { settings } from '$lib/stores/settings';
@@ -157,5 +157,5 @@
     <VaultBalanceChart vault={data} />
   </svelte:fragment>
 
-  <svelte:fragment slot="below"><VaultBalanceChangesTable {id} /></svelte:fragment>
+  <svelte:fragment slot="below"><VaultBalanceChangesTable {id} {subgraphUrl} /></svelte:fragment>
 </TanstackPageContentDetail>
