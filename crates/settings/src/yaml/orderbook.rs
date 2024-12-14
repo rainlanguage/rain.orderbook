@@ -1,5 +1,8 @@
 use super::*;
-use crate::{metaboard::YamlMetaboard, Network, Orderbook, Subgraph, Token};
+use crate::{
+    metaboard::YamlMetaboard, subgraph::YamlSubgraph, Metaboard, Network, Orderbook, Subgraph,
+    Token,
+};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -48,11 +51,12 @@ impl OrderbookYaml {
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
-        let subgraphs = Subgraph::parse_all_from_yaml(self.document.clone())?;
+        let subgraphs = YamlSubgraph::parse_all_from_yaml(self.document.clone())?;
         Ok(subgraphs.keys().cloned().collect())
     }
     pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
-        Subgraph::parse_from_yaml(self.document.clone(), key)
+        let yaml_subgraph = YamlSubgraph::parse_from_yaml(self.document.clone(), key)?;
+        Ok(yaml_subgraph.into())
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -67,15 +71,15 @@ impl OrderbookYaml {
         let metaboards = YamlMetaboard::parse_all_from_yaml(self.document.clone())?;
         Ok(metaboards.keys().cloned().collect())
     }
-    pub fn get_metaboard(&self, key: &str) -> Result<YamlMetaboard, YamlError> {
-        YamlMetaboard::parse_from_yaml(self.document.clone(), key)
+    pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
+        let yaml_metaboard = YamlMetaboard::parse_from_yaml(self.document.clone(), key)?;
+        Ok(yaml_metaboard.into())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Metaboard;
     use alloy::primitives::Address;
     use std::str::FromStr;
     use url::Url;
@@ -182,12 +186,12 @@ mod tests {
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
 
         assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
-        let metaboard: Metaboard = ob_yaml.get_metaboard("board1").unwrap().into();
+        let metaboard = ob_yaml.get_metaboard("board1").unwrap();
         assert_eq!(
             metaboard,
             Url::parse("https://meta.example.com/board1").unwrap()
         );
-        let metaboard: Metaboard = ob_yaml.get_metaboard("board2").unwrap().into();
+        let metaboard = ob_yaml.get_metaboard("board2").unwrap();
         assert_eq!(
             metaboard,
             Url::parse("https://meta.example.com/board2").unwrap()

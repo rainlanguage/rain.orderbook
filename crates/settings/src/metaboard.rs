@@ -7,15 +7,10 @@ use std::{
 use strict_yaml_rust::StrictYaml;
 use url::{ParseError, Url};
 
-// Wrapper type just for YAML parsing
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct YamlMetaboard(Metaboard);
 
 impl YamlMetaboard {
-    pub fn metaboard(&self) -> &Metaboard {
-        &self.0
-    }
-
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
@@ -56,8 +51,61 @@ impl From<Metaboard> for YamlMetaboard {
         YamlMetaboard(value)
     }
 }
+
 impl From<YamlMetaboard> for Metaboard {
     fn from(value: YamlMetaboard) -> Self {
         value.0
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::yaml::tests::get_document;
+
+    #[test]
+    fn test_parse_metaboards_from_yaml() {
+        let yaml = r#"
+test: test
+"#;
+        let error = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("missing field: metaboards".to_string())
+        );
+
+        let yaml = r#"
+metaboards:
+    TestMetaboard:
+        test: https://metaboard.com
+"#;
+        let error = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "metaboard value must be a string for key: TestMetaboard".to_string()
+            )
+        );
+
+        let yaml = r#"
+metaboards:
+    TestMetaboard:
+        - https://metaboard.com
+"#;
+        let error = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "metaboard value must be a string for key: TestMetaboard".to_string()
+            )
+        );
+
+        let yaml = r#"
+metaboards:
+    TestMetaboard: https://metaboard.com
+"#;
+        let result = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result.contains_key("TestMetaboard"));
     }
 }

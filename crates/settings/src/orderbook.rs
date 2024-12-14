@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
+use subgraph::YamlSubgraph;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
@@ -67,7 +68,8 @@ impl YamlParsableHash for Orderbook {
                     Some(subgraph_name) => subgraph_name,
                     None => orderbook_key.clone(),
                 };
-                let subgraph = Subgraph::parse_from_yaml(document.clone(), &subgraph_name)?;
+                let subgraph = YamlSubgraph::parse_from_yaml(document.clone(), &subgraph_name)?;
+                let subgraph = Arc::new(subgraph.into());
 
                 let label = optional_string(orderbook_yaml, "label");
 
@@ -76,7 +78,7 @@ impl YamlParsableHash for Orderbook {
                     key: orderbook_key.clone(),
                     address,
                     network: Arc::new(network),
-                    subgraph: Arc::new(subgraph),
+                    subgraph,
                     label,
                 };
 
