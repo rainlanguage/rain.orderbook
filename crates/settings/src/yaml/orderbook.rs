@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Network, Orderbook, Subgraph, Token};
+use crate::{metaboard::YamlMetaboard, Network, Orderbook, Subgraph, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -62,16 +62,23 @@ impl OrderbookYaml {
     pub fn get_orderbook(&self, key: &str) -> Result<Orderbook, YamlError> {
         Orderbook::parse_from_yaml(self.document.clone(), key)
     }
+
+    pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
+        let metaboards = YamlMetaboard::parse_all_from_yaml(self.document.clone())?;
+        Ok(metaboards.keys().cloned().collect())
+    }
+    pub fn get_metaboard(&self, key: &str) -> Result<YamlMetaboard, YamlError> {
+        YamlMetaboard::parse_from_yaml(self.document.clone(), key)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use alloy::primitives::Address;
-    use url::Url;
-
     use super::*;
+    use crate::Metaboard;
+    use alloy::primitives::Address;
+    use std::str::FromStr;
+    use url::Url;
 
     const FULL_YAML: &str = r#"
     networks:
@@ -173,6 +180,18 @@ mod tests {
         assert_eq!(orderbook.network, network.into());
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
+
+        assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
+        let metaboard: Metaboard = ob_yaml.get_metaboard("board1").unwrap().into();
+        assert_eq!(
+            metaboard,
+            Url::parse("https://meta.example.com/board1").unwrap()
+        );
+        let metaboard: Metaboard = ob_yaml.get_metaboard("board2").unwrap().into();
+        assert_eq!(
+            metaboard,
+            Url::parse("https://meta.example.com/board2").unwrap()
+        );
     }
 
     #[test]
