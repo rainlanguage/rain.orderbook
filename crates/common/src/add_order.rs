@@ -452,6 +452,8 @@ price: 2e18;
             deployer: deployer_arc.clone(),
         };
         let token1 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -459,6 +461,8 @@ price: 2e18;
             symbol: Some("Token1".to_string()),
         };
         let token2 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -466,6 +470,8 @@ price: 2e18;
             symbol: Some("Token2".to_string()),
         };
         let token3 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -551,6 +557,8 @@ _ _: 0 0;
             deployer: deployer_arc.clone(),
         };
         let token1 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -558,6 +566,8 @@ _ _: 0 0;
             symbol: Some("Token1".to_string()),
         };
         let token2 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -565,6 +575,8 @@ _ _: 0 0;
             symbol: Some("Token2".to_string()),
         };
         let token3 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -684,6 +696,8 @@ _ _: 0 0;
             deployer: deployer_arc.clone(),
         };
         let token1 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -691,6 +705,8 @@ _ _: 0 0;
             symbol: Some("Token1".to_string()),
         };
         let token2 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),
@@ -698,6 +714,8 @@ _ _: 0 0;
             symbol: Some("Token2".to_string()),
         };
         let token3 = Token {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             address: Address::default(),
             network: network_arc.clone(),
             decimals: Some(18),

@@ -1,6 +1,6 @@
 pub mod orderbook;
 
-use crate::ParseNetworkConfigSourceError;
+use crate::{ParseNetworkConfigSourceError, ParseTokenConfigSourceError};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
@@ -10,10 +10,17 @@ use strict_yaml_rust::{
 };
 use thiserror::Error;
 
-pub trait YamlParsableHash: Sized {
+pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
     ) -> Result<HashMap<String, Self>, YamlError>;
+
+    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: String) -> Result<Self, YamlError> {
+        let all = Self::parse_all_from_yaml(document)?;
+        all.get(&key)
+            .ok_or_else(|| YamlError::KeyNotFound(key))
+            .cloned()
+    }
 }
 
 pub trait YamlParsableVector: Sized {
@@ -50,6 +57,8 @@ pub enum YamlError {
     WriteLockError,
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
+    #[error(transparent)]
+    ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -65,6 +74,7 @@ impl PartialEq for YamlError {
             (Self::ParseNetworkConfigSourceError(a), Self::ParseNetworkConfigSourceError(b)) => {
                 a == b
             }
+            (Self::ParseTokenConfigSourceError(a), Self::ParseTokenConfigSourceError(b)) => a == b,
             _ => false,
         }
     }
