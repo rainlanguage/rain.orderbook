@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    metaboard::YamlMetaboard, subgraph::YamlSubgraph, Deployer, Metaboard, Network, Orderbook,
-    Subgraph, Token,
+    metaboard::YamlMetaboard, sentry::YamlSentry, subgraph::YamlSubgraph, Deployer, Metaboard,
+    Network, Orderbook, Subgraph, Token,
 };
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
@@ -82,6 +82,11 @@ impl OrderbookYaml {
     }
     pub fn get_deployer(&self, key: &str) -> Result<Deployer, YamlError> {
         Deployer::parse_from_yaml(self.document.clone(), key)
+    }
+
+    pub fn get_sentry(&self) -> Result<bool, YamlError> {
+        let value = YamlSentry::parse_from_yaml_optional(self.document.clone())?;
+        Ok(value.map_or(false, |v| v == "true"))
     }
 }
 
@@ -213,6 +218,8 @@ mod tests {
         );
         assert_eq!(deployer.network, network.into());
         assert_eq!(deployer.label, Some("Main Deployer".to_string()));
+
+        assert!(ob_yaml.get_sentry().unwrap());
     }
 
     #[test]
