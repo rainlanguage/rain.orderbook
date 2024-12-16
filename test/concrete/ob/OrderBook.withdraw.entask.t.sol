@@ -323,7 +323,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         checkWithdraw(alice, vaultId, depositAmount, targetAmount, evals, 0, 0);
     }
 
-    function testWithdrawBypassesPostTaskWithZeroWithdrawAmount(
+    function testWithdrawBypassesTaskWithZeroWithdrawAmount(
         address alice,
         uint256 vaultId,
         uint256 depositAmount,
@@ -376,7 +376,10 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         );
         evals[5] = bytes(
             string.concat(
-                usingWordsFrom, ":ensure(equal-to(withdraw-amount() ", withdrawAmount.toString(), "e-6) \"withdraw amount\");"
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-amount() ",
+                withdrawAmount.toString(),
+                "e-6) \"withdraw amount\");"
             )
         );
         // target amount
