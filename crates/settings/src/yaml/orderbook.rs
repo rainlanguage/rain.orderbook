@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    metaboard::YamlMetaboard, subgraph::YamlSubgraph, Metaboard, Network, Orderbook, Subgraph,
-    Token,
+    metaboard::YamlMetaboard, subgraph::YamlSubgraph, Deployer, Metaboard, Network, Orderbook,
+    Subgraph, Token,
 };
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
@@ -75,6 +75,14 @@ impl OrderbookYaml {
         let yaml_metaboard = YamlMetaboard::parse_from_yaml(self.document.clone(), key)?;
         Ok(yaml_metaboard.into())
     }
+
+    pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
+        let deployers = Deployer::parse_all_from_yaml(self.document.clone())?;
+        Ok(deployers.keys().cloned().collect())
+    }
+    pub fn get_deployer(&self, key: &str) -> Result<Deployer, YamlError> {
+        Deployer::parse_from_yaml(self.document.clone(), key)
+    }
 }
 
 #[cfg(test)]
@@ -113,7 +121,7 @@ mod tests {
             symbol: WETH
     deployers:
         deployer1:
-            address: 0x3456789012abcdef
+            address: 0x0000000000000000000000000000000000000002
             network: mainnet
             label: Main Deployer
     accounts:
@@ -181,7 +189,7 @@ mod tests {
             orderbook.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
-        assert_eq!(orderbook.network, network.into());
+        assert_eq!(orderbook.network, network.clone().into());
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
 
@@ -196,6 +204,15 @@ mod tests {
             metaboard,
             Url::parse("https://meta.example.com/board2").unwrap()
         );
+
+        assert_eq!(ob_yaml.get_deployer_keys().unwrap().len(), 1);
+        let deployer = ob_yaml.get_deployer("deployer1").unwrap();
+        assert_eq!(
+            deployer.address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+        assert_eq!(deployer.network, network.into());
+        assert_eq!(deployer.label, Some("Main Deployer".to_string()));
     }
 
     #[test]
