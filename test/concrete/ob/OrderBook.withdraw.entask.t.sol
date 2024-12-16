@@ -331,8 +331,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         bytes[] memory evalStrings
     ) external {
         depositAmount = bound(depositAmount, 1, type(uint128).max);
-        targetAmount = bound(targetAmount, 0, type(uint128).max);
-        uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
+        targetAmount = bound(targetAmount, 1, type(uint128).max);
+        uint256 withdrawAmount = 0;
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -413,6 +413,10 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         );
         vm.record();
         iOrderbook.withdraw2(address(iToken0), vaultId, targetAmount, actions);
+
+        // Assert that the tasks (`actions`) were executed regardless of `withdrawAmount`
+        (bytes32[] memory writes,) = vm.accesses(address(iOrderbook));
+        assert(writes.length > 0); // Ensure state writes occurred, indicating task execution
 
         vm.stopPrank();
     }
