@@ -2,7 +2,7 @@
 	import type { InputMask } from 'imask';
 	import { imask } from '@imask/svelte';
 	import { fromHex, toHex } from 'viem';
-	import { HEX_INPUT_REGEX } from '../../../../dist';
+	import { HEX_INPUT_REGEX } from '@rainlanguage/ui-components';
 
 	let valueRaw: string = '';
 	export let value: bigint | undefined;
