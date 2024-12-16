@@ -95,16 +95,21 @@ impl DotrainOrder {
         let deployment = self.get_deployment(deployment_name)?;
         let mut calldatas = Vec::new();
 
-        for output in &deployment.order.outputs {
+        for (i, output) in deployment.order.outputs.iter().enumerate() {
             let vault_id = output
                 .vault_id
-                .ok_or(DotrainOrderCalldataError::VaultIdNotFound)?;
+                .ok_or(DotrainOrderCalldataError::VaultIdNotFound(i.to_string()))?;
 
             let token_deposit = token_deposits
                 .get(&(vault_id, output.token.address))
                 .ok_or(DotrainOrderCalldataError::TokenNotFound(
                     output.token.address.to_string(),
                 ))?;
+
+            if *token_deposit == U256::ZERO {
+                continue;
+            }
+
             let calldata = DepositArgs {
                 token: output.token.address,
                 amount: token_deposit.to_owned(),
@@ -153,8 +158,8 @@ pub enum DotrainOrderCalldataError {
     #[error("Token not found {0}")]
     TokenNotFound(String),
 
-    #[error("Vault id not found")]
-    VaultIdNotFound,
+    #[error("Vault id not found for output index: {0}")]
+    VaultIdNotFound(String),
 
     #[error(transparent)]
     DepositError(#[from] DepositError),

@@ -95,7 +95,7 @@
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
 			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
-			goto(`/vaults/${e.detail.item.vault.id}`);
+			goto(`/vaults/${e.detail.item.subgraphName}-${e.detail.item.vault.id}`);
 		}}
 	>
 		<svelte:fragment slot="title">

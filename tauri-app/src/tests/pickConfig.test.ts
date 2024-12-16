@@ -6,12 +6,12 @@ import type { Config, ConfigSource, DeploymentConfigSource, Scenario } from '$li
 export const config: Config = {
   networks: {
     network1: {
-      name: 'network1',
+      key: 'network1',
       rpc: 'rpc-url',
       'chain-id': 14,
     },
     network2: {
-      name: 'network2',
+      key: 'network2',
       rpc: 'rpc-url',
       'chain-id': 137,
     },
@@ -26,7 +26,7 @@ export const config: Config = {
     network1: {
       address: '0x123456',
       network: {
-        name: 'network1',
+        key: 'network1',
         rpc: 'rpc-url',
         'chain-id': 14,
       },
@@ -37,7 +37,7 @@ export const config: Config = {
     network1: {
       address: '0xabcdef',
       network: {
-        name: 'network1',
+        key: 'network1',
         rpc: 'rpc-url',
         'chain-id': 14,
       },
@@ -49,7 +49,7 @@ export const config: Config = {
       inputs: [],
       outputs: [],
       network: {
-        name: 'network1',
+        key: 'network1',
         rpc: 'rpc-url',
         'chain-id': 14,
       },
@@ -58,7 +58,7 @@ export const config: Config = {
       inputs: [],
       outputs: [],
       network: {
-        name: 'network1',
+        key: 'network1',
         rpc: 'rpc-url',
         'chain-id': 14,
       },
@@ -71,7 +71,7 @@ export const config: Config = {
       deployer: {
         address: '0xabcdef',
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -83,7 +83,7 @@ export const config: Config = {
       deployer: {
         address: '0xabcdef',
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -95,7 +95,7 @@ export const config: Config = {
       deployer: {
         address: '0xabcdef',
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -111,7 +111,7 @@ export const config: Config = {
         deployer: {
           address: '0xabcdef',
           network: {
-            name: 'network1',
+            key: 'network1',
             rpc: 'rpc-url',
             'chain-id': 14,
           },
@@ -121,7 +121,7 @@ export const config: Config = {
         inputs: [],
         outputs: [],
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -134,7 +134,7 @@ export const config: Config = {
         deployer: {
           address: '0xabcdef',
           network: {
-            name: 'network1',
+            key: 'network1',
             rpc: 'rpc-url',
             'chain-id': 14,
           },
@@ -144,7 +144,7 @@ export const config: Config = {
         inputs: [],
         outputs: [],
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -259,7 +259,7 @@ test('pick scenarios', () => {
       deployer: {
         address: '0xabcdef',
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -271,7 +271,7 @@ test('pick scenarios', () => {
       deployer: {
         address: '0xabcdef',
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },
@@ -283,7 +283,7 @@ test('pick scenarios', () => {
       deployer: {
         address: '0xabcdef',
         network: {
-          name: 'network1',
+          key: 'network1',
           rpc: 'rpc-url',
           'chain-id': 14,
         },

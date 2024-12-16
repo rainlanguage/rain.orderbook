@@ -3,7 +3,8 @@ name = "tauri-app"
 version = "0.0.0"
 description = "raindex"
 edition = "2021"
-license = "CAL-1.0"
+license = "LicenseRef-DCL-1.0"
+author = "Rain Open Source LLC"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,7 +20,7 @@ rain_orderbook_quote = { path = "../../crates/quote" }
 rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
 rain_orderbook_bindings = { path = "../../crates/bindings" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "0881930a22e84db49ba955c5b88e790e1266ac66" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "65a68f207287d024cba934bf1e3c8b3f63d2834a" }
 alloy = { version = "0.1.4", features = ["full", "node-bindings"] }
 typeshare = "1.0.1"
 reqwest = { version = "0.11.22", features = ["json"] }

@@ -1,13 +1,11 @@
 <script lang="ts">
   import { Button, Modal } from 'flowbite-svelte';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
   import { settings } from '$lib/stores/settings';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
-  import IconLedger from './IconLedger.svelte';
-  import IconWalletConnect from './IconWalletConnect.svelte';
+  import { IconLedger, IconWalletConnect, ButtonLoading } from '@rainlanguage/ui-components';
   import { activeNetworkRef, chainId as globalChainId } from '$lib/stores/settings';
   import type { Network } from '$lib/typeshare/config';
 
@@ -112,7 +110,7 @@
       {#if $walletconnectAccount && $walletConnectNetwork !== chainId}
         <div class="text-red-500" data-testid="network-connection-error">
           You are connected to {getNetworkName($walletConnectNetwork)} network. Please connect your wallet
-          to {overrideNetwork?.name || $activeNetworkRef} network.
+          to {overrideNetwork?.key || $activeNetworkRef} network.
         </div>
       {/if}
     </div>

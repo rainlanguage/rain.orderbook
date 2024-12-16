@@ -235,7 +235,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=0881930a22e84db49ba955c5b88e790e1266ac66#0881930a22e84db49ba955c5b88e790e1266ac66"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a#65a68f207287d024cba934bf1e3c8b3f63d2834a"
 dependencies = [
  "alloy",
  "async-trait",
@@ -6151,7 +6151,7 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 [[package]]
 name = "rain-erc"
 version = "0.0.0"
-source = "git+https://github.com/rainlanguage/rain.erc?rev=80bb411b161c1ee992a7974d325a783214046d5b#80bb411b161c1ee992a7974d325a783214046d5b"
+source = "git+https://github.com/rainlanguage/rain.erc?rev=0106e645ebd49334addc698c5aad9a85370eb54d#0106e645ebd49334addc698c5aad9a85370eb54d"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast",
