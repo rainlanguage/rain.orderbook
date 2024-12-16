@@ -338,7 +338,7 @@ mod tests {
             Url::parse("https://mainnet.node").unwrap()
         );
         assert_eq!(mainnet_network.chain_id, 1);
-        assert_eq!(mainnet_network.name, "mainnet".to_string());
+        assert_eq!(mainnet_network.key, "mainnet".to_string());
 
         // Verify subgraphs
         assert_eq!(config.subgraphs.len(), 1);
