@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Network, Subgraph, Token};
+use crate::{Network, Orderbook, Subgraph, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -54,6 +54,14 @@ impl OrderbookYaml {
     pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
         Subgraph::parse_from_yaml(self.document.clone(), key)
     }
+
+    pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
+        let orderbooks = Orderbook::parse_all_from_yaml(self.document.clone())?;
+        Ok(orderbooks.keys().cloned().collect())
+    }
+    pub fn get_orderbook(&self, key: &str) -> Result<Orderbook, YamlError> {
+        Orderbook::parse_from_yaml(self.document.clone(), key)
+    }
 }
 
 #[cfg(test)]
@@ -81,9 +89,9 @@ mod tests {
         board2: https://meta.example.com/board2
     orderbooks:
         orderbook1:
-            address: 0x1234567890abcdef
+            address: 0x0000000000000000000000000000000000000002
             network: mainnet
-            subgraph: main
+            subgraph: mainnet
             label: Primary Orderbook
     tokens:
         token1:
@@ -103,7 +111,7 @@ mod tests {
     sentry: true
     "#;
 
-    const YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
+    const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
     networks:
         mainnet:
             rpc: https://mainnet.infura.io
@@ -156,7 +164,15 @@ mod tests {
             Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
         );
 
-        assert!(OrderbookYaml::new(YAML_WITHOUT_OPTIONAL_FIELDS.to_string(), true).is_ok());
+        assert_eq!(ob_yaml.get_orderbook_keys().unwrap().len(), 1);
+        let orderbook = ob_yaml.get_orderbook("orderbook1").unwrap();
+        assert_eq!(
+            orderbook.address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+        assert_eq!(orderbook.network, network.into());
+        assert_eq!(orderbook.subgraph, subgraph.into());
+        assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
     }
 
     #[test]

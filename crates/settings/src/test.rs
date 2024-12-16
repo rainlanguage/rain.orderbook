@@ -28,6 +28,8 @@ pub fn mock_deployer() -> Arc<Deployer> {
 // Helper function to create a mock orderbook
 pub fn mock_orderbook() -> Arc<Orderbook> {
     Arc::new(Orderbook {
+        document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+        key: "".to_string(),
         label: Some("Orderbook1".into()),
         address: Address::repeat_byte(0x04),
         subgraph: Arc::new("https://subgraph.com".parse().unwrap()),

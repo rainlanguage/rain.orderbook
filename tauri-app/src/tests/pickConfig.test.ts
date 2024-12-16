@@ -24,6 +24,7 @@ export const config: Config = {
   },
   orderbooks: {
     network1: {
+      key: 'network1',
       address: '0x123456',
       network: {
         key: 'network1',
