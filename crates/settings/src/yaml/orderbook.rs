@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Network, Token};
+use crate::{Network, Subgraph, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -36,11 +36,7 @@ impl OrderbookYaml {
         Ok(networks.keys().cloned().collect())
     }
     pub fn get_network(&self, key: &str) -> Result<Network, YamlError> {
-        let networks = Network::parse_all_from_yaml(self.document.clone())?;
-        let network = networks
-            .get(key)
-            .ok_or(YamlError::KeyNotFound(key.to_string()))?;
-        Ok(network.clone())
+        Network::parse_from_yaml(self.document.clone(), key)
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -48,11 +44,15 @@ impl OrderbookYaml {
         Ok(tokens.keys().cloned().collect())
     }
     pub fn get_token(&self, key: &str) -> Result<Token, YamlError> {
-        let tokens = Token::parse_all_from_yaml(self.document.clone())?;
-        let token = tokens
-            .get(key)
-            .ok_or(YamlError::KeyNotFound(key.to_string()))?;
-        Ok(token.clone())
+        Token::parse_from_yaml(self.document.clone(), key)
+    }
+
+    pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
+        let subgraphs = Subgraph::parse_all_from_yaml(self.document.clone())?;
+        Ok(subgraphs.keys().cloned().collect())
+    }
+    pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
+        Subgraph::parse_from_yaml(self.document.clone(), key)
     }
 }
 
@@ -138,6 +138,23 @@ mod tests {
         assert_eq!(network.label, Some("Ethereum Mainnet".to_string()));
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.currency, Some("ETH".to_string()));
+
+        assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
+        let token = ob_yaml.get_token("token1").unwrap();
+        assert_eq!(
+            token.address,
+            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
+        );
+        assert_eq!(token.decimals, Some(18));
+        assert_eq!(token.label, Some("Wrapped Ether".to_string()));
+        assert_eq!(token.symbol, Some("WETH".to_string()));
+
+        assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
+        let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
+        assert_eq!(
+            subgraph,
+            Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
+        );
 
         assert!(OrderbookYaml::new(YAML_WITHOUT_OPTIONAL_FIELDS.to_string(), true).is_ok());
     }
