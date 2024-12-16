@@ -8,7 +8,7 @@ import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
-import {TaskV1, EvaluableV3, SignedContextV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
