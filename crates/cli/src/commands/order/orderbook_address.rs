@@ -44,11 +44,11 @@ impl Execute for OrderbookAddress {
         let orderbook_address = if let Some(v) = &deployment_ref.order.orderbook {
             v.address
         } else {
-            let network_name = &deployment_ref.scenario.deployer.network.name;
+            let network_key = &deployment_ref.scenario.deployer.network.key;
             order_config
                 .orderbooks
                 .iter()
-                .find(|(k, v)| *k == network_name || v.network.name == *network_name)
+                .find(|(k, v)| *k == network_key || v.network.key == *network_key)
                 .ok_or(anyhow!("specified orderbook is undefined!"))?
                 .1
                 .address

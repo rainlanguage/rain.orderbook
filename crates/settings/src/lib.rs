@@ -12,8 +12,10 @@ pub mod orderbook;
 pub mod plot_source;
 pub mod remote;
 pub mod scenario;
+pub mod subgraph;
 pub mod token;
 pub mod unit_test;
+pub mod yaml;
 
 pub(crate) use chart::*;
 pub(crate) use config_source::*;

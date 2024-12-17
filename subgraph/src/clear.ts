@@ -35,7 +35,7 @@ export function makeClearBountyId(
   vaultEntityId: Bytes
 ): Bytes {
   return Bytes.fromByteArray(
-    crypto.keccak256(eventId(event).concat(vaultEntityId))
+    crypto.keccak256(vaultEntityId.concat(eventId(event)))
   );
 }
 
