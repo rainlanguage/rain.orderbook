@@ -3,9 +3,9 @@ use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 
 #[derive(Clone, Debug)]
-pub struct YamlSentry;
+pub struct Sentry;
 
-impl YamlParsableString for YamlSentry {
+impl YamlParsableString for Sentry {
     fn parse_from_yaml(_: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         Err(YamlError::InvalidTraitFunction)
     }
