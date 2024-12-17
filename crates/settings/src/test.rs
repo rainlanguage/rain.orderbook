@@ -20,10 +20,9 @@ pub fn mock_network() -> Arc<Network> {
 pub fn mock_deployer() -> Arc<Deployer> {
     Arc::new(Deployer {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-        key: "".to_string(),
+        key: "Deployer1".to_string(),
         address: Address::repeat_byte(0x03),
         network: mock_network(),
-        label: Some("Deployer1".into()),
     })
 }
 

@@ -123,7 +123,6 @@ mod tests {
         deployer1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
-            label: Main Deployer
     accounts:
         admin: 0x4567890123abcdef
         user: 0x5678901234abcdef
@@ -212,7 +211,6 @@ mod tests {
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
         assert_eq!(deployer.network, network.into());
-        assert_eq!(deployer.label, Some("Main Deployer".to_string()));
     }
 
     #[test]
