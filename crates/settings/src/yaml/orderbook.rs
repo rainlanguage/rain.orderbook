@@ -1,8 +1,5 @@
 use super::*;
-use crate::{
-    metaboard::YamlMetaboard, subgraph::YamlSubgraph, Metaboard, Network, Orderbook, Subgraph,
-    Token,
-};
+use crate::{metaboard::Metaboard, subgraph::Subgraph, Network, Orderbook, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -51,12 +48,11 @@ impl OrderbookYaml {
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
-        let subgraphs = YamlSubgraph::parse_all_from_yaml(self.document.clone())?;
+        let subgraphs = Subgraph::parse_all_from_yaml(self.document.clone())?;
         Ok(subgraphs.keys().cloned().collect())
     }
     pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
-        let yaml_subgraph = YamlSubgraph::parse_from_yaml(self.document.clone(), key)?;
-        Ok(yaml_subgraph.into())
+        Subgraph::parse_from_yaml(self.document.clone(), key)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -68,12 +64,11 @@ impl OrderbookYaml {
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
-        let metaboards = YamlMetaboard::parse_all_from_yaml(self.document.clone())?;
+        let metaboards = Metaboard::parse_all_from_yaml(self.document.clone())?;
         Ok(metaboards.keys().cloned().collect())
     }
     pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
-        let yaml_metaboard = YamlMetaboard::parse_from_yaml(self.document.clone(), key)?;
-        Ok(yaml_metaboard.into())
+        Metaboard::parse_from_yaml(self.document.clone(), key)
     }
 }
 
@@ -171,7 +166,7 @@ mod tests {
         assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
         let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
         assert_eq!(
-            subgraph,
+            subgraph.url,
             Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
         );
 
@@ -186,14 +181,12 @@ mod tests {
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
 
         assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
-        let metaboard = ob_yaml.get_metaboard("board1").unwrap();
         assert_eq!(
-            metaboard,
+            ob_yaml.get_metaboard("board1").unwrap().url,
             Url::parse("https://meta.example.com/board1").unwrap()
         );
-        let metaboard = ob_yaml.get_metaboard("board2").unwrap();
         assert_eq!(
-            metaboard,
+            ob_yaml.get_metaboard("board2").unwrap().url,
             Url::parse("https://meta.example.com/board2").unwrap()
         );
     }
