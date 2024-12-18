@@ -82,4 +82,3 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
-export { colorTheme, lightweightChartsTheme } from './stores/darkMode';
