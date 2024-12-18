@@ -6,14 +6,17 @@ pub mod deployer;
 pub mod deployment;
 pub mod gui;
 pub mod merge;
+pub mod metaboard;
 pub mod network;
 pub mod order;
 pub mod orderbook;
 pub mod plot_source;
 pub mod remote;
 pub mod scenario;
+pub mod subgraph;
 pub mod token;
 pub mod unit_test;
+pub mod yaml;
 
 pub(crate) use chart::*;
 pub(crate) use config_source::*;
