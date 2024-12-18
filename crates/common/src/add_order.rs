@@ -485,6 +485,8 @@ price: 2e18;
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
@@ -591,6 +593,8 @@ _ _: 0 0;
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
@@ -733,6 +737,8 @@ _ _: 0 0;
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
