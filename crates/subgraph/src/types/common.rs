@@ -108,6 +108,7 @@ pub struct OrderWithSubgraphName {
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
@@ -309,6 +310,7 @@ pub struct ClearBounty {
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[typeshare]
 pub struct TradeEvent {
     pub transaction: Transaction,
@@ -322,10 +324,8 @@ pub struct TradeEvent {
 pub struct Trade {
     pub id: Bytes,
     pub trade_event: TradeEvent,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: TradeStructPartialOrder,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub input_vault_balance_change: TradeVaultBalanceChange,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
@@ -590,4 +590,6 @@ mod impls {
     impl_all_wasm_traits!(OrdersListFilterArgs);
     impl_all_wasm_traits!(VaultsListFilterArgs);
     impl_all_wasm_traits!(Trade);
+    impl_all_wasm_traits!(TradeStructPartialOrder);
+    impl_all_wasm_traits!(TradeEvent);
 }
