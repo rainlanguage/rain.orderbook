@@ -386,7 +386,7 @@ impl DotrainOrder {
             // same scenario network name as any previously added network
             for (chart_key, chart) in &self.config.charts {
                 if chart.scenario.name.split('.').nth(0).unwrap() == scenario_key
-                    || all_network_keys.contains(&chart.scenario.deployer.network.name.as_str())
+                    || all_network_keys.contains(&chart.scenario.deployer.network.key.as_str())
                 {
                     new_config_source.charts.insert(
                         chart_key.clone(),

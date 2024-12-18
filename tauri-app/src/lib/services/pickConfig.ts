@@ -11,7 +11,7 @@ export function pickDeployments(
     !isNil(mergedConfigSource?.orders)
     ? pickBy(
         mergedConfigSource.deployments,
-        (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.name === activeNetworkRef,
+        (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.key === activeNetworkRef,
       )
     : {};
 }
@@ -21,6 +21,6 @@ export function pickScenarios(
   activeNetworkRef: string | undefined,
 ) {
   return !isNil(mergedConfig)
-    ? pickBy(mergedConfig.scenarios, (d) => d?.deployer?.network?.name === activeNetworkRef)
+    ? pickBy(mergedConfig.scenarios, (d) => d?.deployer?.network?.key === activeNetworkRef)
     : {};
 }
