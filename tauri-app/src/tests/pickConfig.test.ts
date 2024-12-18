@@ -36,6 +36,7 @@ export const config: Config = {
   },
   deployers: {
     network1: {
+      key: 'network1',
       address: '0xabcdef',
       network: {
         key: 'network1',
@@ -70,6 +71,7 @@ export const config: Config = {
       name: 'network1.sell',
       bindings: {},
       deployer: {
+        key: 'network1',
         address: '0xabcdef',
         network: {
           key: 'network1',
@@ -82,6 +84,7 @@ export const config: Config = {
       name: 'network1',
       bindings: {},
       deployer: {
+        key: 'network1',
         address: '0xabcdef',
         network: {
           key: 'network1',
@@ -94,6 +97,7 @@ export const config: Config = {
       name: 'network1.buy',
       bindings: {},
       deployer: {
+        key: 'network1',
         address: '0xabcdef',
         network: {
           key: 'network1',
@@ -110,6 +114,7 @@ export const config: Config = {
         name: 'network1.sell',
         bindings: {},
         deployer: {
+          key: 'network1',
           address: '0xabcdef',
           network: {
             key: 'network1',
@@ -133,6 +138,7 @@ export const config: Config = {
         name: 'network1.buy',
         bindings: {},
         deployer: {
+          key: 'network1',
           address: '0xabcdef',
           network: {
             key: 'network1',
@@ -258,6 +264,7 @@ test('pick scenarios', () => {
       name: 'network1.sell',
       bindings: {},
       deployer: {
+        key: 'network1',
         address: '0xabcdef',
         network: {
           key: 'network1',
@@ -270,6 +277,7 @@ test('pick scenarios', () => {
       name: 'network1.buy',
       bindings: {},
       deployer: {
+        key: 'network1',
         address: '0xabcdef',
         network: {
           key: 'network1',
@@ -282,6 +290,7 @@ test('pick scenarios', () => {
       name: 'network1',
       bindings: {},
       deployer: {
+        key: 'network1',
         address: '0xabcdef',
         network: {
           key: 'network1',
