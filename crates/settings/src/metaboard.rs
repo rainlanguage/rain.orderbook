@@ -12,7 +12,7 @@ use url::{ParseError, Url};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 #[serde(default)]
-pub struct Subgraph {
+pub struct Metaboard {
     #[serde(skip)]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
@@ -20,59 +20,59 @@ pub struct Subgraph {
     pub url: Url,
 }
 
-impl Subgraph {
+impl Metaboard {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
 }
 
-impl YamlParsableHash for Subgraph {
+impl YamlParsableHash for Metaboard {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<HashMap<String, Subgraph>, YamlError> {
+    ) -> Result<HashMap<String, Metaboard>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let subgraphs_hash = require_hash(
+        let metaboards_hash = require_hash(
             &document_read,
-            Some("subgraphs"),
-            Some("missing field: subgraphs".to_string()),
+            Some("metaboards"),
+            Some("missing field: metaboards".to_string()),
         )?;
 
-        subgraphs_hash
+        metaboards_hash
             .iter()
-            .map(|(key_yaml, subgraph_yaml)| {
-                let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
+            .map(|(key_yaml, metaboard_yaml)| {
+                let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let url = Subgraph::validate_url(&require_string(
-                    subgraph_yaml,
+                let url = Metaboard::validate_url(&require_string(
+                    metaboard_yaml,
                     None,
                     Some(format!(
-                        "subgraph value must be a string for key: {subgraph_key}"
+                        "metaboard value must be a string for key: {metaboard_key}"
                     )),
                 )?)?;
 
-                let subgraph = Subgraph {
+                let metaboard = Metaboard {
                     document: document.clone(),
-                    key: subgraph_key.clone(),
+                    key: metaboard_key.clone(),
                     url,
                 };
 
-                Ok((subgraph_key, subgraph))
+                Ok((metaboard_key, metaboard))
             })
             .collect()
     }
 }
 
-impl Default for Subgraph {
+impl Default for Metaboard {
     fn default() -> Self {
         Self {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
-            url: Url::parse("https://subgraph.com").unwrap(),
+            url: Url::parse("https://metaboard.com").unwrap(),
         }
     }
 }
 
-impl PartialEq for Subgraph {
+impl PartialEq for Metaboard {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key && self.url == other.url
     }
@@ -84,48 +84,47 @@ mod test {
     use crate::yaml::tests::get_document;
 
     #[test]
-    fn test_parse_subgraphs_from_yaml() {
+    fn test_parse_metaboards_from_yaml() {
         let yaml = r#"
 test: test
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: subgraphs".to_string())
+            YamlError::ParseError("missing field: metaboards".to_string())
         );
 
         let yaml = r#"
-subgraphs:
-    TestSubgraph:
-        test: https://subgraph.com
+metaboards:
+    TestMetaboard:
+        test: https://metaboard.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "subgraph value must be a string for key: TestSubgraph".to_string()
+                "metaboard value must be a string for key: TestMetaboard".to_string()
             )
         );
 
         let yaml = r#"
-subgraphs:
-    TestSubgraph:
-        - https://subgraph.com
+metaboards:
+    TestMetaboard:
+        - https://metaboard.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
-                "subgraph value must be a string for key: TestSubgraph".to_string()
+                "metaboard value must be a string for key: TestMetaboard".to_string()
             )
         );
 
         let yaml = r#"
-subgraphs:
-    TestSubgraph: https://subgraph.com
+metaboards:
+    TestMetaboard: invalid-url
 "#;
-        let result = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result.contains_key("TestSubgraph"));
+        let res = Metaboard::parse_all_from_yaml(get_document(yaml));
+        assert!(res.is_err());
     }
 }

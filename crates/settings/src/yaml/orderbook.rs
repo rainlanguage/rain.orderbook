@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Network, Orderbook, Subgraph, Token};
+use crate::{metaboard::Metaboard, subgraph::Subgraph, Network, Orderbook, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -62,16 +62,22 @@ impl OrderbookYaml {
     pub fn get_orderbook(&self, key: &str) -> Result<Orderbook, YamlError> {
         Orderbook::parse_from_yaml(self.document.clone(), key)
     }
+
+    pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
+        let metaboards = Metaboard::parse_all_from_yaml(self.document.clone())?;
+        Ok(metaboards.keys().cloned().collect())
+    }
+    pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
+        Metaboard::parse_from_yaml(self.document.clone(), key)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use alloy::primitives::Address;
-    use url::Url;
-
     use super::*;
+    use alloy::primitives::Address;
+    use std::str::FromStr;
+    use url::Url;
 
     const FULL_YAML: &str = r#"
     networks:
@@ -160,7 +166,7 @@ mod tests {
         assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
         let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
         assert_eq!(
-            subgraph,
+            subgraph.url,
             Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
         );
 
@@ -173,6 +179,16 @@ mod tests {
         assert_eq!(orderbook.network, network.into());
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
+
+        assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
+        assert_eq!(
+            ob_yaml.get_metaboard("board1").unwrap().url,
+            Url::parse("https://meta.example.com/board1").unwrap()
+        );
+        assert_eq!(
+            ob_yaml.get_metaboard("board2").unwrap().url,
+            Url::parse("https://meta.example.com/board2").unwrap()
+        );
     }
 
     #[test]

@@ -38,6 +38,8 @@ pub enum OrderbookSubgraphClientError {
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+    #[error("Failed to extend the order detail")]
+    OrderDetailExtendError,
 }
 
 #[cfg(target_family = "wasm")]
