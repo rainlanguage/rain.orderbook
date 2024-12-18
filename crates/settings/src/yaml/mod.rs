@@ -2,8 +2,9 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
-    ParseOrderbookConfigSourceError, ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
+    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
@@ -96,6 +97,8 @@ pub enum YamlError {
     ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
     #[error(transparent)]
     ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
+    #[error(transparent)]
+    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -190,6 +193,10 @@ pub fn require_vec<'a>(
 }
 pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array> {
     value[field].as_vec()
+}
+
+pub fn default_document() -> Arc<RwLock<StrictYaml>> {
+    Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
 
 #[cfg(test)]
