@@ -34,7 +34,7 @@ describe('ModalExecute', () => {
           executeWalletconnect: vi.fn(),
           isSubmitting: false,
           overrideNetwork: {
-            name: 'test',
+            key: 'test',
             rpc: 'https://test.com',
             'chain-id': 2,
           },
@@ -66,7 +66,7 @@ describe('ModalExecute', () => {
           executeWalletconnect: vi.fn(),
           isSubmitting: false,
           overrideNetwork: {
-            name: 'test',
+            key: 'test',
             rpc: 'https://test.com',
             'chain-id': 2,
           },
